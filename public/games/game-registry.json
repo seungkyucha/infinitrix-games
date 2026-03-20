@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T23:45:00Z",
-  "totalGames": 8,
+  "lastUpdated": "2026-03-20T23:50:00Z",
+  "totalGames": 9,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -183,6 +183,29 @@
         "1/2/3: 레벨업 스킬 선택",
         "P / ESC: 일시정지",
         "터치: 가상 조이스틱 이동"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "mini-coffee-tycoon",
+      "title": "미니 커피숍 타이쿤",
+      "description": "작은 커피 노점에서 시작해 도시 최고의 커피 체인으로! 음료를 직접 제조하고 매장을 확장하세요.",
+      "genre": ["casual", "strategy"],
+      "thumbnail": "/games/mini-coffee-tycoon/assets/thumbnail.svg",
+      "path": "/games/mini-coffee-tycoon/index.html",
+      "addedAt": "2026-03-20T23:50:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["커피숍", "타이쿤", "경영시뮬레이션", "아이들", "캐주얼", "전략"],
+      "controls": [
+        "마우스/터치: 재료 슬롯 클릭으로 음료 제조",
+        "1~6 키: 재료 슬롯 바로가기",
+        "Space: 음료 완성/서빙",
+        "P/Esc: 일시정지",
+        "Tab: 업그레이드 카테고리 전환"
       ],
       "difficulty": "medium",
       "version": "1.0.0",

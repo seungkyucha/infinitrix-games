@@ -1,0 +1,14 @@
+{
+  "gameId": "mini-coffee-tycoon",
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 64,  "height": 64,  "desc": "바리스타 캐릭터 (플레이어)" },
+    "enemy":       { "file": "enemy.svg",        "width": 64,  "height": 64,  "desc": "화난 고객 (급한 타입)" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 800, "height": 600, "desc": "배경 원경 (하늘/언덕/원경 건물)" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 800, "height": 600, "desc": "배경 근경 (커피숍 외관/거리)" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 32,  "height": 32,  "desc": "만족도/생명력 아이콘" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 32,  "height": 32,  "desc": "골드 코인 아이콘" },
+    "powerup":     { "file": "powerup.svg",      "width": 48,  "height": 48,  "desc": "황금 커피 파워업 아이템" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 96,  "height": 96,  "desc": "서빙 성공 이펙트 (별/하트 버스트)" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "플랫폼 썸네일" }
+  }
+}

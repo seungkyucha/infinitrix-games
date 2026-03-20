@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tBgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF8F0"/>
+      <stop offset="100%" stop-color="#FAF0E6"/>
+    </linearGradient>
+    <linearGradient id="tFloorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4A574"/>
+      <stop offset="60%" stop-color="#C49464"/>
+      <stop offset="100%" stop-color="#B8856A"/>
+    </linearGradient>
+    <linearGradient id="tCounterGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A07828"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <linearGradient id="tMachineGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D0D0D0"/>
+      <stop offset="100%" stop-color="#A0A0A0"/>
+    </linearGradient>
+    <linearGradient id="tAwningGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E74C3C"/>
+      <stop offset="100%" stop-color="#C0392B"/>
+    </linearGradient>
+    <linearGradient id="tTitleBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8B6914"/>
+      <stop offset="50%" stop-color="#A07828"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <radialGradient id="tWarmGlow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FFE484" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FFE484" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tSteamG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tShadow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feOffset dx="0" dy="2" in="blur" result="offset"/>
+      <feMerge><feMergeNode in="offset"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tSteamF">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+  <!-- 배경 벽 -->
+  <rect width="400" height="300" fill="url(#tBgGrad)"/>
+  <!-- 따뜻한 조명 글로우 -->
+  <rect width="400" height="300" fill="url(#tWarmGlow)"/>
+  <!-- 바닥 -->
+  <rect x="0" y="200" width="400" height="100" fill="url(#tFloorGrad)"/>
+  <!-- 바닥 나무 줄무늬 -->
+  <g opacity="0.15">
+    <line x1="0" y1="220" x2="400" y2="220" stroke="#8B6914" stroke-width="0.5"/>
+    <line x1="0" y1="240" x2="400" y2="240" stroke="#8B6914" stroke-width="0.5"/>
+    <line x1="0" y1="260" x2="400" y2="260" stroke="#8B6914" stroke-width="0.5"/>
+    <line x1="0" y1="280" x2="400" y2="280" stroke="#8B6914" stroke-width="0.5"/>
+  </g>
+  <!-- 벽 액자 -->
+  <rect x="30" y="60" width="40" height="50" rx="2" fill="#F5E6D0" stroke="#8B6914" stroke-width="2"/>
+  <rect x="34" y="64" width="32" height="42" fill="#6F4E37" opacity="0.3"/>
+  <circle cx="50" cy="80" r="10" fill="#8FBC8F" opacity="0.5"/>
+  <rect x="310" y="50" width="60" height="45" rx="2" fill="#F5E6D0" stroke="#8B6914" stroke-width="2"/>
+  <rect x="314" y="54" width="52" height="37" fill="#87CEEB" opacity="0.2"/>
+  <!-- 어닝 상단 -->
+  <rect x="0" y="0" width="400" height="35" fill="url(#tAwningGrad)"/>
+  <path d="M0 35 Q20 45 40 35 Q60 45 80 35 Q100 45 120 35 Q140 45 160 35 Q180 45 200 35 Q220 45 240 35 Q260 45 280 35 Q300 45 320 35 Q340 45 360 35 Q380 45 400 35" fill="none" stroke="#A93226" stroke-width="2"/>
+  <!-- 카운터 -->
+  <rect x="20" y="170" width="360" height="35" rx="4" fill="url(#tCounterGrad)"/>
+  <rect x="22" y="172" width="356" height="4" rx="2" fill="#A07828" opacity="0.6"/>
+  <!-- 에스프레소 머신 -->
+  <g transform="translate(310, 110)">
+    <rect x="0" y="0" width="50" height="60" rx="5" fill="url(#tMachineGrad)" stroke="#888" stroke-width="1"/>
+    <rect x="5" y="5" width="40" height="15" rx="3" fill="#888"/>
+    <circle cx="15" cy="12" r="4" fill="#2C2C2C" stroke="#666" stroke-width="1"/>
+    <circle cx="35" cy="12" r="4" fill="#2C2C2C" stroke="#666" stroke-width="1"/>
+    <rect x="15" y="30" width="20" height="25" rx="2" fill="#999"/>
+    <rect x="18" y="45" width="14" height="8" rx="1" fill="#6F4E37"/>
+    <!-- 증기 -->
+    <g filter="url(#tSteamF)" opacity="0.5">
+      <path d="M20 0 Q18 -8 22 -14" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M30 0 Q32 -10 28 -16" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+  <!-- 좌석 1 -->
+  <g transform="translate(60, 205)">
+    <rect x="-12" y="10" width="24" height="3" rx="1" fill="#8B6914"/>
+    <rect x="-10" y="0" width="20" height="12" rx="3" fill="#C0392B"/>
+    <rect x="-10" y="13" width="3" height="15" fill="#6B4F10"/>
+    <rect x="7" y="13" width="3" height="15" fill="#6B4F10"/>
+  </g>
+  <!-- 좌석 2 -->
+  <g transform="translate(130, 205)">
+    <rect x="-12" y="10" width="24" height="3" rx="1" fill="#8B6914"/>
+    <rect x="-10" y="0" width="20" height="12" rx="3" fill="#C0392B"/>
+    <rect x="-10" y="13" width="3" height="15" fill="#6B4F10"/>
+    <rect x="7" y="13" width="3" height="15" fill="#6B4F10"/>
+  </g>
+  <!-- 고객 1 (일반, 녹색) -->
+  <g transform="translate(80, 140)">
+    <rect x="-10" y="5" width="20" height="28" rx="5" fill="#5B8C5A"/>
+    <circle cx="0" cy="-2" r="10" fill="#FFD5C2"/>
+    <circle cx="-4" cy="-4" r="1.5" fill="#3C2415"/>
+    <circle cx="4" cy="-4" r="1.5" fill="#3C2415"/>
+    <path d="M-3 2 Q0 5 3 2" fill="none" stroke="#3C2415" stroke-width="1" stroke-linecap="round"/>
+    <!-- 주문 버블 -->
+    <g transform="translate(15, -20)">
+      <rect x="0" y="-12" width="35" height="20" rx="5" fill="#FFFFFF" stroke="#D4A574" stroke-width="1" opacity="0.9"/>
+      <polygon points="5,8 10,14 15,8" fill="#FFFFFF" stroke="#D4A574" stroke-width="1"/>
+      <!-- 커피컵 아이콘 -->
+      <path d="M8 -6 L10 4 L22 4 L24 -6 Z" fill="#FDFEFE" stroke="#D4A574" stroke-width="0.8"/>
+      <ellipse cx="16" cy="-6" rx="8" ry="2.5" fill="#6F4E37"/>
+    </g>
+  </g>
+  <!-- 고객 2 (VIP, 금색) -->
+  <g transform="translate(170, 145)">
+    <rect x="-10" y="5" width="20" height="25" rx="5" fill="#F1C40F"/>
+    <circle cx="0" cy="-2" r="10" fill="#FFD5C2"/>
+    <circle cx="-4" cy="-4" r="1.5" fill="#3C2415"/>
+    <circle cx="4" cy="-4" r="1.5" fill="#3C2415"/>
+    <path d="M-3 2 Q0 4 3 2" fill="none" stroke="#3C2415" stroke-width="1" stroke-linecap="round"/>
+    <!-- VIP 왕관 -->
+    <g transform="translate(0, -14)" filter="url(#tGlow)">
+      <path d="M-7 2 L-5 -4 L-2 0 L0 -6 L2 0 L5 -4 L7 2 Z" fill="#FFD700" stroke="#B8860B" stroke-width="0.5"/>
+    </g>
+  </g>
+  <!-- 바리스타 (플레이어) -->
+  <g transform="translate(260, 125)">
+    <rect x="-10" y="10" width="20" height="30" rx="4" fill="#4A7C49"/>
+    <circle cx="0" cy="2" r="10" fill="#FFEEDD"/>
+    <circle cx="-4" cy="0" r="1.5" fill="#3C2415"/>
+    <circle cx="4" cy="0" r="1.5" fill="#3C2415"/>
+    <path d="M-3 5 Q0 8 3 5" fill="none" stroke="#3C2415" stroke-width="1" stroke-linecap="round"/>
+    <!-- 바리스타 모자 -->
+    <path d="M-9 -3 Q-8 -10 0 -12 Q8 -10 9 -3" fill="#8B6914"/>
+    <rect x="-10" y="-4" width="20" height="3" rx="1" fill="#8B6914"/>
+    <!-- 커피컵 들기 -->
+    <g transform="translate(14, 28)">
+      <path d="M-3 0 L-2 -7 L4 -7 L5 0 Z" fill="#FDFEFE" stroke="#D4A574" stroke-width="0.6"/>
+      <ellipse cx="1" cy="-7" rx="3.5" ry="1.2" fill="#6F4E37"/>
+    </g>
+  </g>
+  <!-- 골드 코인 이펙트 -->
+  <g filter="url(#tGlow)">
+    <circle cx="230" cy="120" r="6" fill="#FFD700" stroke="#B8860B" stroke-width="0.5" opacity="0.8"/>
+    <circle cx="245" cy="110" r="5" fill="#FFD700" stroke="#B8860B" stroke-width="0.5" opacity="0.6"/>
+    <circle cx="220" cy="108" r="4" fill="#FFE484" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
+  </g>
+  <!-- 식물 장식 -->
+  <g transform="translate(20, 140)">
+    <path d="M-5 30 L-3 10 L3 10 L5 30 Z" fill="#C0392B" opacity="0.8"/>
+    <circle cx="0" cy="6" r="8" fill="#27AE60"/>
+    <circle cx="-5" cy="2" r="5" fill="#2ECC71"/>
+    <circle cx="5" cy="3" r="6" fill="#27AE60"/>
+  </g>
+  <!-- 타이틀 배경 -->
+  <rect x="60" y="240" width="280" height="45" rx="8" fill="url(#tTitleBg)" filter="url(#tShadow)" opacity="0.95"/>
+  <rect x="64" y="244" width="272" height="37" rx="6" fill="#6B4F10" opacity="0.3"/>
+  <!-- 타이틀 텍스트 -->
+  <text x="200" y="268" font-size="28" font-weight="bold" fill="#FFE484" text-anchor="middle" font-family="sans-serif" filter="url(#tGlow)">미니 커피숍 타이쿤</text>
+  <!-- 서브 타이틀 -->
+  <text x="200" y="282" font-size="10" fill="#F5E6D0" text-anchor="middle" font-family="sans-serif" opacity="0.8">☕ Casual Tycoon ☕</text>
+  <!-- 조명 효과 (천장) -->
+  <g opacity="0.3">
+    <circle cx="120" cy="42" r="3" fill="#FFE484"/>
+    <path d="M120 45 L110 90 L130 90 Z" fill="#FFE484" opacity="0.05"/>
+    <circle cx="280" cy="42" r="3" fill="#FFE484"/>
+    <path d="M280 45 L270 90 L290 90 Z" fill="#FFE484" opacity="0.05"/>
+  </g>
+</svg>

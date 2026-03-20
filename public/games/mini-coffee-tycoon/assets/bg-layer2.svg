@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="streetGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4A574"/>
+      <stop offset="100%" stop-color="#B8956A"/>
+    </linearGradient>
+    <linearGradient id="sidewalkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8DDD0"/>
+      <stop offset="100%" stop-color="#D8CCBF"/>
+    </linearGradient>
+    <linearGradient id="shopFrontGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B6914"/>
+      <stop offset="100%" stop-color="#6B4F10"/>
+    </linearGradient>
+    <linearGradient id="awningGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E74C3C"/>
+      <stop offset="60%" stop-color="#C0392B"/>
+      <stop offset="100%" stop-color="#A93226"/>
+    </linearGradient>
+    <linearGradient id="lampGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2C3E50"/>
+      <stop offset="100%" stop-color="#1A252F"/>
+    </linearGradient>
+    <radialGradient id="lampLight" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFE484" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="nearShadow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 도로/보도 -->
+  <rect x="0" y="480" width="800" height="120" fill="url(#streetGrad)"/>
+  <rect x="0" y="460" width="800" height="30" fill="url(#sidewalkGrad)"/>
+  <!-- 도로 중앙선 -->
+  <g opacity="0.5">
+    <rect x="50" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="160" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="270" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="380" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="490" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="600" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+    <rect x="710" y="530" width="60" height="4" rx="2" fill="#FFFFFF"/>
+  </g>
+  <!-- 커피숍 건물 (중앙) -->
+  <g opacity="0.85">
+    <rect x="280" y="280" width="240" height="180" rx="3" fill="#FFF8F0" stroke="#D4A574" stroke-width="2"/>
+    <!-- 어닝 -->
+    <path d="M275 320 L525 320 L520 290 L280 290 Z" fill="url(#awningGrad)"/>
+    <path d="M275 320 Q290 330 305 320 Q320 330 335 320 Q350 330 365 320 Q380 330 395 320 Q410 330 425 320 Q440 330 455 320 Q470 330 485 320 Q500 330 525 320" fill="none" stroke="#A93226" stroke-width="1.5"/>
+    <!-- 간판 -->
+    <rect x="340" y="295" width="120" height="22" rx="4" fill="url(#shopFrontGrad)"/>
+    <rect x="344" y="298" width="112" height="16" rx="2" fill="#6B4F10"/>
+    <!-- 유리 문 -->
+    <rect x="370" y="370" width="60" height="90" rx="3" fill="#87CEEB" opacity="0.5" stroke="#8B6914" stroke-width="2"/>
+    <rect x="395" y="395" width="8" height="30" rx="2" fill="#8B6914"/>
+    <!-- 유리창 좌 -->
+    <rect x="295" y="340" width="60" height="50" rx="2" fill="#87CEEB" opacity="0.4" stroke="#8B6914" stroke-width="1.5"/>
+    <line x1="325" y1="340" x2="325" y2="390" stroke="#8B6914" stroke-width="0.8"/>
+    <!-- 유리창 우 -->
+    <rect x="445" y="340" width="60" height="50" rx="2" fill="#87CEEB" opacity="0.4" stroke="#8B6914" stroke-width="1.5"/>
+    <line x1="475" y1="340" x2="475" y2="390" stroke="#8B6914" stroke-width="0.8"/>
+    <!-- 화분 -->
+    <g transform="translate(290, 430)">
+      <path d="M-8 0 L-6 -15 L6 -15 L8 0 Z" fill="#C0392B"/>
+      <circle cx="0" cy="-18" r="8" fill="#27AE60"/>
+      <circle cx="-5" cy="-22" r="5" fill="#2ECC71"/>
+      <circle cx="5" cy="-21" r="6" fill="#27AE60"/>
+    </g>
+    <g transform="translate(510, 430)">
+      <path d="M-8 0 L-6 -15 L6 -15 L8 0 Z" fill="#C0392B"/>
+      <circle cx="0" cy="-18" r="8" fill="#27AE60"/>
+      <circle cx="-5" cy="-22" r="5" fill="#2ECC71"/>
+      <circle cx="5" cy="-21" r="6" fill="#27AE60"/>
+    </g>
+  </g>
+  <!-- 가로등 왼쪽 -->
+  <g opacity="0.7">
+    <rect x="118" y="330" width="4" height="130" fill="url(#lampGrad)"/>
+    <path d="M110 330 Q120 320 130 330 L128 335 L112 335 Z" fill="#2C3E50"/>
+    <circle cx="120" cy="328" r="12" fill="url(#lampLight)" filter="url(#nearShadow)"/>
+    <circle cx="120" cy="328" r="5" fill="#FFE484" opacity="0.8"/>
+  </g>
+  <!-- 가로등 오른쪽 -->
+  <g opacity="0.7">
+    <rect x="678" y="330" width="4" height="130" fill="url(#lampGrad)"/>
+    <path d="M670 330 Q680 320 690 330 L688 335 L672 335 Z" fill="#2C3E50"/>
+    <circle cx="680" cy="328" r="12" fill="url(#lampLight)" filter="url(#nearShadow)"/>
+    <circle cx="680" cy="328" r="5" fill="#FFE484" opacity="0.8"/>
+  </g>
+  <!-- 벤치 -->
+  <g transform="translate(60, 440)" opacity="0.6">
+    <rect x="0" y="5" width="40" height="3" rx="1" fill="#8B6914"/>
+    <rect x="0" y="12" width="40" height="3" rx="1" fill="#8B6914"/>
+    <rect x="2" y="0" width="3" height="20" fill="#6B4F10"/>
+    <rect x="35" y="0" width="3" height="20" fill="#6B4F10"/>
+    <rect x="0" y="0" width="40" height="3" rx="1" fill="#A87D3A"/>
+  </g>
+  <!-- 쓰레기통 -->
+  <g transform="translate(720, 435)" opacity="0.5">
+    <path d="M-8 25 L-6 0 L6 0 L8 25 Z" fill="#5D6D7E" stroke="#4A5A6A" stroke-width="1"/>
+    <rect x="-7" y="-2" width="14" height="4" rx="1" fill="#4A5A6A"/>
+  </g>
+</svg>
