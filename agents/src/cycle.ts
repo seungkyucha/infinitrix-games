@@ -215,27 +215,57 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('coder')
 
-    // ── 5단계: 리뷰 + 테스트 ─────────────────────────────────
-    console.log(`\n🔍 [5/7] 리뷰어 — 코드 검토 & 브라우저 테스트`)
-    state.status = 'reviewing'
-    startAgent('reviewer', 5, '코드 리뷰 + 테스트')
-    const reviewResult = await runAgent('reviewer', `
-      docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
-      public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
-      에셋 로딩(assets/manifest.json, SVG 파일들) 여부도 확인할 것.
-      결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
-      최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
-    `)
-    completeAgent('reviewer')
+    // ── 5단계: 리뷰 + 테스트 (최대 3회 반복) ──────────────────
+    const MAX_REVIEW_ROUNDS = 3
+    for (let round = 1; round <= MAX_REVIEW_ROUNDS; round++) {
+      const isRetry = round > 1
+      console.log(`\n🔍 [5/7] 리뷰어 — 코드 검토 & 브라우저 테스트 (${round}/${MAX_REVIEW_ROUNDS}회차)`)
+      state.status = 'reviewing'
+      startAgent('reviewer', 5, `코드 리뷰 + 테스트 (${round}회차)`)
+      const reviewResult = await runAgent('reviewer', `
+        docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
+        public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
+        에셋 로딩(assets/manifest.json, SVG 파일들) 여부도 확인할 것.
+        ${isRetry ? `⚠️ 이번은 ${round}회차 재리뷰입니다. 이전 리뷰(docs/reviews/cycle-${cycleNumber}-review.md)에서 지적한 사항이 실제로 수정되었는지 중점 검증해줘.` : ''}
 
-    // NEEDS_MAJOR_FIX인 경우 코더가 재작업
-    if (reviewResult.output.includes('NEEDS_MAJOR_FIX')) {
-      console.log(`\n🔧 [리뷰 피드백] 코더 재작업 시작...`)
-      startAgent('coder', 4, '코딩 재작업 (피드백 반영)')
+        📱 모바일 조작 대응 검사 항목 (반드시 확인):
+        - 터치 이벤트(touchstart/touchmove/touchend) 등록 여부
+        - 가상 조이스틱 또는 터치 버튼 UI 존재 여부
+        - 터치 영역이 44px 이상인지 (탭 타겟 사이즈)
+        - 모바일 뷰포트 meta 태그 설정 여부
+        - 가로/세로 스크롤 방지 (touch-action, overflow 처리)
+        - 키보드 입력 없이 게임 플레이가 가능한지 여부
+
+        결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
+        최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
+        YAML front-matter에 verdict: [판정] 을 반드시 포함할 것.
+      `)
+      completeAgent('reviewer')
+
+      // APPROVED이면 루프 종료
+      const needsFix = reviewResult.output.includes('NEEDS_MAJOR_FIX')
+        || reviewResult.output.includes('NEEDS_MINOR_FIX')
+
+      if (!needsFix) {
+        console.log(`  ✅ 리뷰 통과 (${round}회차)`)
+        break
+      }
+
+      // 마지막 회차면 더 이상 재작업하지 않음
+      if (round === MAX_REVIEW_ROUNDS) {
+        console.log(`  ⚠️ 최대 리뷰 횟수(${MAX_REVIEW_ROUNDS}회) 도달 — 현재 상태로 진행`)
+        break
+      }
+
+      // 코더 재작업
+      console.log(`\n🔧 [리뷰 피드백] 코더 재작업 시작... (${round}회차 피드백)`)
+      startAgent('coder', 4, `코딩 재작업 (${round}회차 피드백 반영)`)
       await runAgent('coder', `
         docs/reviews/cycle-${cycleNumber}-review.md의 리뷰 피드백을 반영하여
         public/games/[game-id]/index.html을 수정해줘.
         기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
+        ${feedbackBlock}
+        ⚠️ 리뷰에서 지적된 모든 항목(특히 모바일 터치 조작 대응)을 빠짐없이 수정할 것.
       `)
       completeAgent('coder')
     }
