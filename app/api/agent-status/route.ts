@@ -47,7 +47,8 @@ async function readFromRedis(): Promise<object | null> {
       retryStrategy: () => null,
     })
     // 반드시 error 핸들러 등록 — 없으면 uncaught exception
-    redis.on('error', () => {
+    redis.on('error', (err: Error) => {
+      console.error('[redis-error]', err.message)
       clearTimeout(timer)
       redis.disconnect()
       resolve(null)
