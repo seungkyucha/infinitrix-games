@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T23:30:00Z",
-  "totalGames": 7,
+  "lastUpdated": "2026-03-20T23:45:00Z",
+  "totalGames": 8,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -163,6 +163,28 @@
         "Space: 공 이동 가속"
       ],
       "difficulty": "easy",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "mini-survivor-arena",
+      "title": "미니 서바이버 아레나",
+      "description": "360도 몬스터 웨이브 속에서 자동 공격과 스킬 빌드로 생존하라!",
+      "genre": ["action", "arcade"],
+      "thumbnail": "/games/mini-survivor-arena/assets/thumbnail.svg",
+      "path": "/games/mini-survivor-arena/index.html",
+      "addedAt": "2026-03-20T23:45:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["서바이버", "자동공격", "스킬빌드", "웨이브생존", "뱀서라이크", "로그라이트"],
+      "controls": [
+        "WASD / 방향키: 이동",
+        "1/2/3: 레벨업 스킬 선택",
+        "P / ESC: 일시정지",
+        "터치: 가상 조이스틱 이동"
+      ],
+      "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }

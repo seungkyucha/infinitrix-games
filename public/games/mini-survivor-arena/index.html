@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>미니 서바이버 아레나</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0A0A1A;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100vw;height:100vh}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════
+// §0. CONSTANTS & CONFIG
+// ═══════════════════════════════════════════════
+const ARENA_W = 800, ARENA_H = 800;
+const GRID_SIZE = 32;
+const PLAYER_R = 12, PLAYER_HIT_R = 8;
+const MAX_ENEMIES = 100, MAX_PROJ = 200, MAX_GEMS = 200, MAX_PARTICLES = 300;
+const WAVE_COUNT = 20;
+const DT_CAP = 50, FIXED_DT = 16.67;
+const BASE_SPEED = 150; // player px/s
+const GEM_MAGNET_BASE = 40, GEM_ACCEL = 300;
+const COMBO_TIMEOUT = 2000; // ms
+
+const COLORS = {
+  bg: '#0A0A1A', arena: '#12122A', grid: '#1A1A3A', border: '#2A2A4A',
+  player: '#00FFAA', playerGlow: '#00FFAA40',
+  enemyNormal: '#FF4444', enemyFast: '#FFAA00', enemyTanker: '#8844FF',
+  enemyRanged: '#FF44AA', boss: '#FF0044',
+  xpGem: '#44FF44', projectile: '#FFFF44',
+  hpBg: '#333333', hpFull: '#00FF66', hpLow: '#FF3333',
+  xpBar: '#6644FF',
+  skillCard: '#1A1A3A', skillBorder: '#4488FF', skillHover: '#6699FF',
+  text: '#FFFFFF', textSub: '#888899',
+  dmgText: '#FF4444', healText: '#44FF44'
+};
+
+// State priority map — higher = cannot be overridden
+const STATES = { TITLE:0, PLAYING:1, WAVE_PREP:2, LEVELUP:3, PAUSE:4, GAMEOVER:5, VICTORY:6 };
+
+// Enemy type definitions
+const ENEMY_TYPES = {
+  normal: { hp:3, speed:60, dmg:1, xp:1, score:10, r:10, color: COLORS.enemyNormal },
+  fast:   { hp:2, speed:110, dmg:1, xp:2, score:20, r:8, color: COLORS.enemyFast },
+  tanker: { hp:12, speed:40, dmg:2, xp:3, score:30, r:14, color: COLORS.enemyTanker },
+  ranged: { hp:4, speed:50, dmg:1, xp:3, score:30, r:10, color: COLORS.enemyRanged },
+  boss:   { hp:50, speed:35, dmg:3, xp:20, score:200, r:24, color: COLORS.boss }
+};
+
+// Skill definitions (12 skills)
+const SKILL_DEFS = [
+  { id:'multishot', name:'멀티샷', type:'attack', desc:'볼트 +1발', maxLv:5, icon:'⚡' },
+  { id:'rapidfire', name:'래피드', type:'attack', desc:'발사 간격↓', maxLv:5, icon:'🔥' },
+  { id:'piercing', name:'피어싱', type:'attack', desc:'관통 +1', maxLv:3, icon:'💎' },
+  { id:'orbital', name:'오비탈', type:'attack', desc:'회전 구체', maxLv:3, icon:'🔮' },
+  { id:'shockwave', name:'충격파', type:'attack', desc:'범위 폭발', maxLv:3, icon:'💥' },
+  { id:'lightning', name:'번개', type:'attack', desc:'랜덤 적 타격', maxLv:3, icon:'⚡' },
+  { id:'speed', name:'이속 UP', type:'util', desc:'이동속도 +15%', maxLv:3, icon:'👟' },
+  { id:'magnet', name:'자석', type:'util', desc:'흡수 반경 +50', maxLv:3, icon:'🧲' },
+  { id:'armor', name:'방어력', type:'def', desc:'데미지 -1', maxLv:2, icon:'🛡️' },
+  { id:'regen', name:'HP 회복', type:'def', desc:'자동 HP 회복', maxLv:3, icon:'💚' },
+  { id:'knockback', name:'넉백', type:'util', desc:'적 밀어내기', maxLv:2, icon:'💨' },
+  { id:'critical', name:'크리티컬', type:'attack', desc:'크리 확률↑', maxLv:3, icon:'🎯' }
+];
+
+// ═══════════════════════════════════════════════
+// §1. TWEEN MANAGER (clearImmediate API, Cycle 5 확정)
+// ═══════════════════════════════════════════════
+class TweenManager {
+  constructor() { this._tweens = []; this._toRemove = []; }
+  // Add a new tween animation
+  add(obj, prop, from, to, dur, easing, onComplete) {
+    const t = { obj, prop, from, to, dur, elapsed: 0, easing: easing || 'linear', onComplete };
+    obj[prop] = from;
+    this._tweens.push(t);
+    return t;
+  }
+  // Update all tweens safely with deferred removal
+  update(dt) {
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const t = this._tweens[i];
+      t.elapsed += dt;
+      let p = Math.min(1, t.elapsed / t.dur);
+      p = this._ease(p, t.easing);
+      t.obj[t.prop] = t.from + (t.to - t.from) * p;
+      if (t.elapsed >= t.dur) {
+        t.obj[t.prop] = t.to;
+        this._toRemove.push(i);
+        if (t.onComplete) t.onComplete();
+      }
+    }
+    // Deferred removal (reverse order safe)
+    if (this._toRemove.length) {
+      this._toRemove.sort((a,b) => b - a);
+      for (const idx of this._toRemove) this._tweens.splice(idx, 1);
+      this._toRemove.length = 0;
+    }
+  }
+  // Immediate clear — no deferred race condition (Cycle 4 B1 fix)
+  clearImmediate() { this._tweens.length = 0; this._toRemove.length = 0; }
+  // Easing functions
+  _ease(t, type) {
+    switch(type) {
+      case 'easeOutQuad': return t * (2 - t);
+      case 'easeInQuad': return t * t;
+      case 'easeOutCubic': return 1 - Math.pow(1 - t, 3);
+      case 'easeInOutQuad': return t < .5 ? 2*t*t : -1+(4-2*t)*t;
+      case 'easeOutElastic': {
+        if (t === 0 || t === 1) return t;
+        return Math.pow(2, -10*t) * Math.sin((t - .075) * (2*Math.PI) / .3) + 1;
+      }
+      case 'easeOutBack': { const c = 1.70158; return 1 + (c+1)*Math.pow(t-1,3) + c*Math.pow(t-1,2); }
+      default: return t;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// §2. OBJECT POOL (Cycle 2 검증 패턴)
+// ═══════════════════════════════════════════════
+class ObjectPool {
+  constructor(createFn, resetFn, size) {
+    this._pool = []; this._active = []; this._resetFn = resetFn;
+    for (let i = 0; i < size; i++) this._pool.push(createFn());
+  }
+  // Acquire an object from pool
+  acquire() {
+    const obj = this._pool.pop();
+    if (!obj) return null;
+    obj.active = true;
+    this._active.push(obj);
+    return obj;
+  }
+  // Release object back to pool
+  release(obj) {
+    obj.active = false;
+    this._resetFn(obj);
+    const idx = this._active.indexOf(obj);
+    if (idx !== -1) this._active.splice(idx, 1);
+    this._pool.push(obj);
+  }
+  // Iterate active objects (reverse for safe removal)
+  forEach(fn) {
+    for (let i = this._active.length - 1; i >= 0; i--) {
+      fn(this._active[i], i);
+    }
+  }
+  // Clear all active objects
+  clear() {
+    while (this._active.length) {
+      const obj = this._active.pop();
+      obj.active = false;
+      this._resetFn(obj);
+      this._pool.push(obj);
+    }
+  }
+  get activeCount() { return this._active.length; }
+}
+
+// ═══════════════════════════════════════════════
+// §3. EVENT MANAGER (listen/destroy, Cycle 3 패턴)
+// ═══════════════════════════════════════════════
+const _listeners = [];
+function listen(target, event, handler, options) {
+  target.addEventListener(event, handler, options);
+  _listeners.push({ target, event, handler, options });
+}
+function destroyListeners() {
+  _listeners.forEach(l => l.target.removeEventListener(l.event, l.handler, l.options));
+  _listeners.length = 0;
+}
+
+// ═══════════════════════════════════════════════
+// §4. AUDIO SYSTEM (Web Audio procedural, Cycle 3 패턴)
+// ═══════════════════════════════════════════════
+let audioCtx = null;
+// Initialize AudioContext on first user interaction
+function initAudio() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch(e) { /* unsupported */ }
+}
+// Resume audio context if suspended
+function resumeAudio() {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    try { audioCtx.resume(); } catch(e) {}
+  }
+}
+// Play a procedural sound effect
+function playSfx(type) {
+  if (!audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+    const g = audioCtx.createGain();
+    g.connect(audioCtx.destination);
+    const o = audioCtx.createOscillator();
+    o.connect(g);
+    switch(type) {
+      case 'shoot':
+        o.type = 'square'; o.frequency.setValueAtTime(880, now);
+        o.frequency.linearRampToValueAtTime(440, now+.05);
+        g.gain.setValueAtTime(.08, now); g.gain.linearRampToValueAtTime(0, now+.05);
+        o.start(now); o.stop(now+.05); break;
+      case 'hit':
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(220, now);
+        o.frequency.linearRampToValueAtTime(110, now+.08);
+        g.gain.setValueAtTime(.1, now); g.gain.linearRampToValueAtTime(0, now+.08);
+        o.start(now); o.stop(now+.08); break;
+      case 'kill':
+        o.type = 'square'; o.frequency.setValueAtTime(440, now);
+        o.frequency.linearRampToValueAtTime(880, now+.12);
+        g.gain.setValueAtTime(.1, now); g.gain.linearRampToValueAtTime(0, now+.12);
+        o.start(now); o.stop(now+.12); break;
+      case 'gem':
+        o.type = 'sine'; o.frequency.setValueAtTime(660, now);
+        o.frequency.linearRampToValueAtTime(880, now+.1);
+        g.gain.setValueAtTime(.06, now); g.gain.linearRampToValueAtTime(0, now+.1);
+        o.start(now); o.stop(now+.1); break;
+      case 'levelup': {
+        g.gain.setValueAtTime(.12, now); g.gain.linearRampToValueAtTime(0, now+.4);
+        const notes = [261.6, 329.6, 392, 523.3]; // C-E-G-C5
+        notes.forEach((f, i) => {
+          const oo = audioCtx.createOscillator();
+          oo.type = 'sine'; oo.frequency.value = f; oo.connect(g);
+          oo.start(now + i*.1); oo.stop(now + .4);
+        });
+        o.disconnect(); break; }
+      case 'playerHit':
+        o.type = 'square'; o.frequency.setValueAtTime(200, now);
+        o.frequency.linearRampToValueAtTime(100, now+.15);
+        g.gain.setValueAtTime(.12, now); g.gain.linearRampToValueAtTime(0, now+.15);
+        o.start(now); o.stop(now+.15); break;
+      case 'gameover':
+        o.type = 'sine'; o.frequency.setValueAtTime(440, now);
+        o.frequency.linearRampToValueAtTime(110, now+.5);
+        g.gain.setValueAtTime(.15, now); g.gain.linearRampToValueAtTime(0, now+.5);
+        o.start(now); o.stop(now+.5); break;
+      case 'victory': {
+        g.gain.setValueAtTime(.12, now); g.gain.linearRampToValueAtTime(0, now+.6);
+        [261.6, 329.6, 392, 523.3].forEach((f, i) => {
+          const oo = audioCtx.createOscillator();
+          oo.type = 'sine'; oo.frequency.value = f; oo.connect(g);
+          oo.start(now + i*.15); oo.stop(now + .6);
+        });
+        o.disconnect(); break; }
+      case 'boss':
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(80, now);
+        o.frequency.linearRampToValueAtTime(40, now+.3);
+        g.gain.setValueAtTime(.15, now); g.gain.linearRampToValueAtTime(0, now+.3);
+        o.start(now); o.stop(now+.3); break;
+      default:
+        o.disconnect(); return;
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+// §5. SEEDED RNG (daily challenge)
+// ═══════════════════════════════════════════════
+function seededRng(seed) {
+  let s = seed | 0;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (s >>> 0) / 0xFFFFFFFF;
+  };
+}
+// Get today's seed
+function getDailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+}
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════
+// §6. PURE FUNCTIONS (no global references, Cycle 6 feedback)
+// ═══════════════════════════════════════════════
+// Clamp value between min and max
+function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
+// Check circle-circle collision
+function checkCircleCollision(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y;
+  const dist = dx*dx + dy*dy;
+  const r = (a.r||0) + (b.r||0);
+  return dist < r * r;
+}
+// Calculate distance squared
+function distSq(ax, ay, bx, by) { return (ax-bx)*(ax-bx) + (ay-by)*(ay-by); }
+// Calculate XP needed for next level
+function calcXpNeeded(level) { return Math.floor(5 + (level-1) * 1.5 + Math.pow(level-1, 1.3)); }
+// Get wave configuration (declarative, §6.1)
+function getWaveConfig(wave) {
+  return {
+    enemyCount:    Math.min(40, 8 + wave * 2),
+    spawnInterval: Math.max(300, 1500 - wave * 60),
+    enemyHpMul:    1 + (wave - 1) * 0.1,
+    enemySpeedMul: 1 + (wave - 1) * 0.03,
+    fastRatio:     Math.min(0.4, wave * 0.02),
+    tankerRatio:   wave >= 5 ? Math.min(0.2, (wave - 4) * 0.02) : 0,
+    rangedRatio:   wave >= 8 ? Math.min(0.15, (wave - 7) * 0.02) : 0,
+    isBoss:        wave % 5 === 0
+  };
+}
+// Calculate damage with critical chance
+function calcDamage(baseDmg, critChance, critMul) {
+  const isCrit = Math.random() < critChance;
+  return { damage: isCrit ? baseDmg * critMul : baseDmg, isCrit };
+}
+// Pick skill choices for level-up
+function pickSkillChoices(pool, owned, count, rng) {
+  const available = [];
+  for (const s of pool) {
+    const ownedSkill = owned.find(o => o.id === s.id);
+    if (!ownedSkill || ownedSkill.lv < s.maxLv) available.push(s);
+  }
+  // Shuffle using rng
+  for (let i = available.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [available[i], available[j]] = [available[j], available[i]];
+  }
+  return available.slice(0, count);
+}
+// Update player position (pure function)
+function updatePlayer(player, input, dt, bounds) {
+  const speed = player.baseSpeed * (1 + player.speedBonus);
+  const mag = Math.sqrt(input.dx*input.dx + input.dy*input.dy);
+  if (mag > 0) {
+    const nx = input.dx / mag, ny = input.dy / mag;
+    player.x += nx * speed * dt;
+    player.y += ny * speed * dt;
+    player.facingAngle = Math.atan2(ny, nx);
+  }
+  player.x = clamp(player.x, bounds.left + player.r, bounds.right - player.r);
+  player.y = clamp(player.y, bounds.top + player.r, bounds.bottom - player.r);
+}
+
+// ═══════════════════════════════════════════════
+// §8. CANVAS & CAMERA SETUP
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+let camX = 0, camY = 0; // Camera offset (arena center - screen center)
+
+// Offscreen canvas for grid cache
+let gridCanvas = null;
+function buildGridCache() {
+  gridCanvas = document.createElement('canvas');
+  gridCanvas.width = ARENA_W;
+  gridCanvas.height = ARENA_H;
+  const gc = gridCanvas.getContext('2d');
+  gc.fillStyle = COLORS.arena;
+  gc.fillRect(0, 0, ARENA_W, ARENA_H);
+  gc.strokeStyle = COLORS.grid;
+  gc.lineWidth = 1;
+  for (let x = 0; x <= ARENA_W; x += GRID_SIZE) {
+    gc.beginPath(); gc.moveTo(x, 0); gc.lineTo(x, ARENA_H); gc.stroke();
+  }
+  for (let y = 0; y <= ARENA_H; y += GRID_SIZE) {
+    gc.beginPath(); gc.moveTo(0, y); gc.lineTo(ARENA_W, y); gc.stroke();
+  }
+}
+
+// Resize canvas to window, DPR aware
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// ═══════════════════════════════════════════════
+// §9. GAME STATE
+// ═══════════════════════════════════════════════
+const tw = new TweenManager();
+let state = 'TITLE';
+let isTransitioning = false;
+let isWaveClearing = false;
+let isLevelingUp = false;
+let inputMode = null; // 'keyboard' or 'touch'
+
+// Player object
+let player = {};
+// Game state variables
+let wave = 1, score = 0, combo = 0, comboTimer = 0, maxCombo = 0;
+let levelUpQueue = 0;
+let spawnTimer = 0, enemiesSpawnedThisWave = 0, waveConfig = null;
+let wavePrepTimer = { val: 3 };
+let dailyMode = false;
+let difficultyMode = 'normal'; // 'normal' or 'hard'
+let rng = Math.random;
+
+// Screen shake
+let shakeX = 0, shakeY = 0, shakeMag = 0, shakeDur = 0;
+// UI animation values
+let titleAlpha = { val: 0 };
+let overlayAlpha = { val: 0 };
+
+// Skill UI state for level-up cards
+let skillChoices = [];
+let hoveredCard = -1;
+
+// Input state
+const input = { dx: 0, dy: 0 };
+const keys = {};
+// Touch joystick
+let touchId = null, touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
+let joystickActive = false;
+
+// Object pools
+let enemyPool, projPool, gemPool, particlePool;
+
+// ═══════════════════════════════════════════════
+// §10. STATE MACHINE (TransitionGuard, Cycle 4)
+// ═══════════════════════════════════════════════
+// Enter a new game state safely with priority check
+function enterState(newState) {
+  if (isTransitioning && STATES[newState] < STATES[state]) return;
+  isTransitioning = true;
+  tw.clearImmediate();
+  const oldState = state;
+  state = newState;
+
+  switch(newState) {
+    case 'TITLE':
+      titleAlpha.val = 0;
+      tw.add(titleAlpha, 'val', 0, 1, 800, 'easeOutCubic');
+      break;
+    case 'PLAYING':
+      if (oldState === 'WAVE_PREP' || oldState === 'LEVELUP' || oldState === 'PAUSE') {
+        // Resume from sub-state
+      } else {
+        // Fresh game start
+        initGame();
+      }
+      break;
+    case 'WAVE_PREP':
+      isWaveClearing = false;
+      wavePrepTimer.val = 3;
+      tw.add(wavePrepTimer, 'val', 3, 0, 3000, 'linear', () => {
+        wave++;
+        waveConfig = getWaveConfig(wave);
+        if (difficultyMode === 'hard') waveConfig.enemyHpMul *= 1.5;
+        enemiesSpawnedThisWave = 0;
+        spawnTimer = 0;
+        if (waveConfig.isBoss) playSfx('boss');
+        enterState('PLAYING');
+      });
+      break;
+    case 'LEVELUP':
+      isLevelingUp = true;
+      const choiceCount = difficultyMode === 'hard' ? 2 : 3;
+      skillChoices = pickSkillChoices(SKILL_DEFS, player.skills, choiceCount, rng);
+      overlayAlpha.val = 0;
+      tw.add(overlayAlpha, 'val', 0, 1, 300, 'easeOutQuad');
+      hoveredCard = -1;
+      playSfx('levelup');
+      break;
+    case 'PAUSE':
+      overlayAlpha.val = 0;
+      tw.add(overlayAlpha, 'val', 0, 1, 200, 'easeOutQuad');
+      break;
+    case 'GAMEOVER': {
+      overlayAlpha.val = 0;
+      tw.add(overlayAlpha, 'val', 0, 1, 600, 'easeOutQuad');
+      triggerShake(8, 500);
+      playSfx('gameover');
+      // Judge first, save later (Cycle 2 lesson)
+      const best = loadBest();
+      const isNew = score > best;
+      if (isNew) saveBest(score);
+      player.isNewRecord = isNew;
+      if (dailyMode) saveDailyBest(score);
+      break; }
+    case 'VICTORY': {
+      score += 5000; // Victory bonus
+      overlayAlpha.val = 0;
+      tw.add(overlayAlpha, 'val', 0, 1, 600, 'easeOutCubic');
+      playSfx('victory');
+      const best = loadBest();
+      const isNew = score > best;
+      if (isNew) saveBest(score);
+      player.isNewRecord = isNew;
+      if (dailyMode) saveDailyBest(score);
+      break; }
+  }
+  isTransitioning = false;
+}
+
+// ═══════════════════════════════════════════════
+// §11. GAME INIT
+// ═══════════════════════════════════════════════
+function initGame() {
+  player = {
+    x: ARENA_W / 2, y: ARENA_H / 2, r: PLAYER_R, hitR: PLAYER_HIT_R,
+    hp: 10, maxHp: 10, baseSpeed: BASE_SPEED, speedBonus: 0,
+    xp: 0, level: 1, xpNeeded: calcXpNeeded(1),
+    skills: [], facingAngle: 0,
+    // Weapon stats
+    fireRate: 1.0, fireTimer: 0, projCount: 1, piercing: 0,
+    orbitalCount: 0, orbitalAngle: 0,
+    shockwaveCd: 5, shockwaveTimer: 0, shockwaveR: 80, shockwaveDmg: 3,
+    lightningCd: 3, lightningTimer: 0, lightningTargets: 3, lightningDmg: 2,
+    armor: 0, regenCd: 10, regenTimer: 0,
+    knockbackForce: 0, critChance: 0, magnetRange: GEM_MAGNET_BASE,
+    iFrames: 0, isNewRecord: false,
+    damageFlash: 0
+  };
+  wave = 1; score = 0; combo = 0; comboTimer = 0; maxCombo = 0;
+  levelUpQueue = 0; isWaveClearing = false; isLevelingUp = false;
+  waveConfig = getWaveConfig(1);
+  if (difficultyMode === 'hard') waveConfig.enemyHpMul *= 1.5;
+  enemiesSpawnedThisWave = 0; spawnTimer = 0;
+  shakeMag = 0; shakeDur = 0;
+
+  if (dailyMode) {
+    rng = seededRng(getDailySeed());
+  } else {
+    rng = Math.random;
+  }
+
+  // Reset pools
+  enemyPool.clear(); projPool.clear(); gemPool.clear(); particlePool.clear();
+}
+
+// ═══════════════════════════════════════════════
+// §12. POOL FACTORIES
+// ═══════════════════════════════════════════════
+function createPools() {
+  enemyPool = new ObjectPool(
+    () => ({ active:false, x:0, y:0, r:10, hp:0, maxHp:0, speed:0, dmg:0, xp:0,
+             scoreVal:0, type:'normal', color:'#f00', knockResist:false,
+             shootTimer:0, shootCd:2, phase:0, phaseTimer:0, summonTimer:0 }),
+    (e) => { e.active = false; e.hp = 0; },
+    MAX_ENEMIES
+  );
+  projPool = new ObjectPool(
+    () => ({ active:false, x:0, y:0, vx:0, vy:0, r:3, dmg:1, pierce:0, owner:'player',
+             trailX:[], trailY:[] }),
+    (p) => { p.active = false; p.trailX.length = 0; p.trailY.length = 0; },
+    MAX_PROJ
+  );
+  gemPool = new ObjectPool(
+    () => ({ active:false, x:0, y:0, xp:1, age:0, angle:0 }),
+    (g) => { g.active = false; g.age = 0; },
+    MAX_GEMS
+  );
+  particlePool = new ObjectPool(
+    () => ({ active:false, x:0, y:0, vx:0, vy:0, life:0, maxLife:1,
+             r:2, color:'#fff', type:'circle', text:'', fontSize:14 }),
+    (p) => { p.active = false; },
+    MAX_PARTICLES
+  );
+}
+
+// ═══════════════════════════════════════════════
+// §13. PARTICLE SPAWNERS
+// ═══════════════════════════════════════════════
+// Spawn radial burst particles at position
+function spawnBurst(x, y, count, color, speed, life) {
+  for (let i = 0; i < count; i++) {
+    const p = particlePool.acquire();
+    if (!p) return;
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.3;
+    const spd = speed * (0.5 + Math.random() * 0.5);
+    p.x = x; p.y = y; p.vx = Math.cos(angle)*spd; p.vy = Math.sin(angle)*spd;
+    p.life = life; p.maxLife = life; p.r = 2 + Math.random()*2;
+    p.color = color; p.type = 'circle'; p.text = '';
+  }
+}
+// Spawn floating damage/heal text
+function spawnFloatText(x, y, text, color) {
+  const p = particlePool.acquire();
+  if (!p) return;
+  p.x = x; p.y = y; p.vx = (Math.random()-.5)*20; p.vy = -60;
+  p.life = 800; p.maxLife = 800; p.r = 0;
+  p.color = color; p.type = 'text'; p.text = text; p.fontSize = 14;
+}
+
+// ═══════════════════════════════════════════════
+// §14. SCREEN SHAKE
+// ═══════════════════════════════════════════════
+function triggerShake(mag, dur) { shakeMag = mag; shakeDur = dur; }
+function updateShake(dt) {
+  if (shakeDur > 0) {
+    shakeDur -= dt;
+    const t = shakeDur > 0 ? shakeMag * (shakeDur / 500) : 0;
+    shakeX = (Math.random() - .5) * t * 2;
+    shakeY = (Math.random() - .5) * t * 2;
+  } else {
+    shakeX = 0; shakeY = 0;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// §15. ENEMY SPAWNING
+// ═══════════════════════════════════════════════
+// Spawn a single enemy based on wave config
+function spawnEnemy(cfg, px, py) {
+  const e = enemyPool.acquire();
+  if (!e) return;
+  // Determine type by ratio
+  const roll = rng();
+  let type = 'normal';
+  if (roll < cfg.rangedRatio) type = 'ranged';
+  else if (roll < cfg.rangedRatio + cfg.tankerRatio) type = 'tanker';
+  else if (roll < cfg.rangedRatio + cfg.tankerRatio + cfg.fastRatio) type = 'fast';
+
+  const def = ENEMY_TYPES[type];
+  e.type = type;
+  e.hp = Math.ceil(def.hp * cfg.enemyHpMul);
+  e.maxHp = e.hp;
+  e.speed = def.speed * cfg.enemySpeedMul;
+  e.dmg = def.dmg;
+  e.xp = def.xp;
+  e.scoreVal = def.score;
+  e.r = def.r;
+  e.color = def.color;
+  e.knockResist = type === 'tanker';
+  e.shootTimer = 0;
+  e.shootCd = 2;
+  e.phase = 0;
+  e.phaseTimer = 0;
+  e.summonTimer = 0;
+
+  // Spawn outside screen
+  const angle = rng() * Math.PI * 2;
+  const dist = Math.sqrt(W*W + H*H) / 2 + 50;
+  e.x = px + Math.cos(angle) * dist;
+  e.y = py + Math.sin(angle) * dist;
+}
+
+// Spawn boss enemy
+function spawnBoss(cfg, px, py) {
+  const e = enemyPool.acquire();
+  if (!e) return;
+  const def = ENEMY_TYPES.boss;
+  e.type = 'boss'; e.color = def.color;
+  e.hp = (50 + wave * 10) * (difficultyMode === 'hard' ? 1.5 : 1);
+  e.maxHp = e.hp;
+  e.speed = def.speed * cfg.enemySpeedMul;
+  e.dmg = def.dmg; e.xp = def.xp;
+  e.scoreVal = 200 + wave * 20;
+  e.r = def.r; e.knockResist = true;
+  e.phase = 0; e.phaseTimer = 0; e.summonTimer = 0;
+  e.shootTimer = 0; e.shootCd = 1.5;
+  const angle = rng() * Math.PI * 2;
+  const dist = Math.sqrt(W*W + H*H) / 2 + 80;
+  e.x = px + Math.cos(angle) * dist;
+  e.y = py + Math.sin(angle) * dist;
+}
+
+// ═══════════════════════════════════════════════
+// §16. ENEMY AI UPDATE (pure-ish — takes params)
+// ═══════════════════════════════════════════════
+function updateEnemies(pool, target, dt, projPoolRef, particlePoolRef) {
+  pool.forEach(e => {
+    if (!e.active) return;
+    const dx = target.x - e.x, dy = target.y - e.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const nx = dx/dist, ny = dy/dist;
+
+    if (e.type === 'ranged' && dist < 120) {
+      // Stop and shoot
+      e.shootTimer -= dt;
+      if (e.shootTimer <= 0) {
+        e.shootTimer = e.shootCd;
+        fireEnemyProjectile(e, target, projPoolRef);
+      }
+    } else if (e.type === 'boss') {
+      updateBossAI(e, target, dt, nx, ny, projPoolRef, pool);
+    } else {
+      // Chase player
+      e.x += nx * e.speed * dt;
+      e.y += ny * e.speed * dt;
+    }
+  });
+}
+
+// Boss 3-phase AI
+function updateBossAI(boss, target, dt, nx, ny, projPoolRef, enemyPoolRef) {
+  const hpRatio = boss.hp / boss.maxHp;
+  // Phase transitions based on HP
+  if (hpRatio > 0.66) boss.phase = 0; // Charge
+  else if (hpRatio > 0.33) boss.phase = 1; // Radial shots
+  else boss.phase = 2; // Summon + charge
+
+  boss.phaseTimer += dt;
+
+  switch(boss.phase) {
+    case 0: // Charge at player
+      boss.x += nx * boss.speed * 1.5 * dt;
+      boss.y += ny * boss.speed * 1.5 * dt;
+      break;
+    case 1: // Slow + radial projectiles
+      boss.x += nx * boss.speed * 0.5 * dt;
+      boss.y += ny * boss.speed * 0.5 * dt;
+      boss.shootTimer -= dt;
+      if (boss.shootTimer <= 0) {
+        boss.shootTimer = boss.shootCd;
+        // Fire radial burst
+        for (let i = 0; i < 8; i++) {
+          const a = (Math.PI * 2 / 8) * i;
+          const p = projPoolRef.acquire();
+          if (p) {
+            p.x = boss.x; p.y = boss.y;
+            p.vx = Math.cos(a) * 120; p.vy = Math.sin(a) * 120;
+            p.dmg = boss.dmg; p.pierce = 0; p.owner = 'enemy'; p.r = 4;
+          }
+        }
+      }
+      break;
+    case 2: // Summon minions + charge
+      boss.x += nx * boss.speed * 1.2 * dt;
+      boss.y += ny * boss.speed * 1.2 * dt;
+      boss.summonTimer -= dt;
+      if (boss.summonTimer <= 0) {
+        boss.summonTimer = 4;
+        // Summon 3 normal enemies around boss
+        for (let i = 0; i < 3; i++) {
+          const se = enemyPoolRef.acquire();
+          if (se) {
+            const def = ENEMY_TYPES.normal;
+            se.type = 'normal'; se.color = def.color;
+            se.hp = def.hp; se.maxHp = def.hp; se.speed = def.speed;
+            se.dmg = def.dmg; se.xp = def.xp; se.scoreVal = def.score;
+            se.r = def.r; se.knockResist = false;
+            const a = (Math.PI*2/3)*i + Math.random();
+            se.x = boss.x + Math.cos(a)*40; se.y = boss.y + Math.sin(a)*40;
+          }
+        }
+      }
+      break;
+  }
+}
+
+// Fire enemy projectile toward target
+function fireEnemyProjectile(enemy, target, poolRef) {
+  const p = poolRef.acquire();
+  if (!p) return;
+  const dx = target.x - enemy.x, dy = target.y - enemy.y;
+  const d = Math.sqrt(dx*dx + dy*dy) || 1;
+  p.x = enemy.x; p.y = enemy.y;
+  p.vx = (dx/d) * 150; p.vy = (dy/d) * 150;
+  p.dmg = enemy.dmg; p.pierce = 0; p.owner = 'enemy'; p.r = 4;
+}
+
+// ═══════════════════════════════════════════════
+// §17. PROJECTILE UPDATE
+// ═══════════════════════════════════════════════
+function updateProjectiles(pool, dt, bounds) {
+  pool.forEach(p => {
+    // Store trail positions
+    p.trailX.push(p.x); p.trailY.push(p.y);
+    if (p.trailX.length > 5) { p.trailX.shift(); p.trailY.shift(); }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    // Out of bounds check (extended by 50px)
+    if (p.x < bounds.left - 50 || p.x > bounds.right + 50 ||
+        p.y < bounds.top - 50 || p.y > bounds.bottom + 50) {
+      pool.release(p);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// §18. WEAPON SYSTEM
+// ═══════════════════════════════════════════════
+// Fire player weapons automatically
+function firePlayerWeapons(player, enemies, projPoolRef, dt) {
+  player.fireTimer -= dt;
+  if (player.fireTimer > 0) return;
+  player.fireTimer = player.fireRate;
+
+  // Find nearest enemy
+  let nearest = null, nearDist = Infinity;
+  enemies.forEach(e => {
+    if (!e.active) return;
+    const d = distSq(player.x, player.y, e.x, e.y);
+    if (d < nearDist) { nearDist = d; nearest = e; }
+  });
+
+  if (!nearest) return;
+  const dx = nearest.x - player.x, dy = nearest.y - player.y;
+  const d = Math.sqrt(dx*dx + dy*dy) || 1;
+  const baseAngle = Math.atan2(dy, dx);
+
+  // Fire projectiles in fan pattern
+  const count = player.projCount;
+  const spread = count > 1 ? Math.PI * 0.15 : 0; // Fan spread
+  for (let i = 0; i < count; i++) {
+    const p = projPoolRef.acquire();
+    if (!p) break;
+    const offset = count > 1 ? ((i / (count-1)) - 0.5) * spread * 2 : 0;
+    const angle = baseAngle + offset;
+    p.x = player.x; p.y = player.y;
+    p.vx = Math.cos(angle) * 300; p.vy = Math.sin(angle) * 300;
+    p.dmg = 1; p.pierce = player.piercing; p.owner = 'player'; p.r = 3;
+  }
+  playSfx('shoot');
+}
+
+// Update orbital weapons
+function updateOrbitals(player, enemies, dt) {
+  if (player.orbitalCount <= 0) return;
+  player.orbitalAngle += dt * 3;
+  const orbR = 60;
+  const orbDmg = 2;
+  for (let i = 0; i < player.orbitalCount; i++) {
+    const a = player.orbitalAngle + (Math.PI * 2 / player.orbitalCount) * i;
+    const ox = player.x + Math.cos(a) * orbR;
+    const oy = player.y + Math.sin(a) * orbR;
+    // Check collision with enemies
+    enemies.forEach(e => {
+      if (!e.active) return;
+      if (distSq(ox, oy, e.x, e.y) < (8 + e.r) * (8 + e.r)) {
+        damageEnemy(e, orbDmg, false, ox, oy, player.critChance, player.knockbackForce);
+      }
+    });
+  }
+}
+
+// Update shockwave skill
+function updateShockwave(player, enemies, dt) {
+  if (player.shockwaveR <= 0) return;
+  player.shockwaveTimer -= dt;
+  if (player.shockwaveTimer > 0) return;
+  player.shockwaveTimer = player.shockwaveCd;
+  // Damage all enemies in radius
+  const rSq = player.shockwaveR * player.shockwaveR;
+  enemies.forEach(e => {
+    if (!e.active) return;
+    if (distSq(player.x, player.y, e.x, e.y) < rSq) {
+      damageEnemy(e, player.shockwaveDmg, false, e.x, e.y, player.critChance, player.knockbackForce);
+    }
+  });
+  // Visual effect
+  spawnBurst(player.x, player.y, 16, '#FFAA44', 200, 400);
+}
+
+// Update lightning skill
+function updateLightning(player, enemies, dt, rngFn) {
+  if (player.lightningTargets <= 0) return;
+  player.lightningTimer -= dt;
+  if (player.lightningTimer > 0) return;
+  player.lightningTimer = player.lightningCd;
+  // Pick random targets
+  const targets = [];
+  enemies.forEach(e => { if (e.active) targets.push(e); });
+  // Shuffle using seeded rng for daily challenge consistency
+  for (let i = targets.length - 1; i > 0; i--) {
+    const j = Math.floor(rngFn() * (i+1));
+    [targets[i], targets[j]] = [targets[j], targets[i]];
+  }
+  const count = Math.min(player.lightningTargets, targets.length);
+  for (let i = 0; i < count; i++) {
+    const e = targets[i];
+    damageEnemy(e, player.lightningDmg, false, e.x, e.y, player.critChance, player.knockbackForce);
+    // Lightning visual
+    spawnBurst(e.x, e.y, 4, '#88CCFF', 80, 200);
+  }
+}
+
+// Update HP regen
+function updateRegen(player, dt) {
+  if (player.regenCd >= 10 && player.skills.find(s => s.id === 'regen') === undefined) return;
+  player.regenTimer -= dt;
+  if (player.regenTimer > 0) return;
+  player.regenTimer = player.regenCd;
+  if (player.hp < player.maxHp) {
+    player.hp = Math.min(player.maxHp, player.hp + 1);
+    spawnFloatText(player.x, player.y - 20, '+1', COLORS.healText);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// §19. COLLISION DETECTION
+// ═══════════════════════════════════════════════
+// Damage an enemy, handle death
+function damageEnemy(enemy, baseDmg, fromProjectile, hitX, hitY, critChance, knockbackForce) {
+  const { damage, isCrit } = calcDamage(baseDmg, critChance, 2);
+  enemy.hp -= damage;
+  playSfx('hit');
+  spawnFloatText(hitX, hitY - 10, isCrit ? damage+'!' : ''+damage, isCrit ? '#FFFF00' : COLORS.dmgText);
+
+  // Knockback (using parameter, not global)
+  if (knockbackForce > 0 && !enemy.knockResist) {
+    const dx = enemy.x - hitX, dy = enemy.y - hitY;
+    const d = Math.sqrt(dx*dx + dy*dy) || 1;
+    enemy.x += (dx/d) * knockbackForce;
+    enemy.y += (dy/d) * knockbackForce;
+  }
+
+  if (enemy.hp <= 0) {
+    killEnemy(enemy);
+  }
+}
+
+function killEnemy(enemy) {
+  // Score with combo multiplier
+  const comboMul = Math.min(3, 1 + combo * 0.1);
+  const gained = Math.round(enemy.scoreVal * comboMul);
+  score += gained;
+  combo++;
+  comboTimer = COMBO_TIMEOUT;
+  if (combo > maxCombo) maxCombo = combo;
+
+  // Spawn XP gem
+  const gem = gemPool.acquire();
+  if (gem) {
+    gem.x = enemy.x; gem.y = enemy.y;
+    gem.xp = enemy.xp * (dailyMode && difficultyMode === 'hard' ? 0.8 : 1);
+    gem.age = 0; gem.angle = Math.random() * Math.PI * 2;
+  }
+
+  // Death particles (100% Canvas)
+  spawnBurst(enemy.x, enemy.y, 8, enemy.color, 120, 400);
+  playSfx('kill');
+
+  enemyPool.release(enemy);
+}
+
+// Check projectile vs enemy collisions
+function checkProjectileHits(projPool, enemyPool) {
+  projPool.forEach(p => {
+    if (p.owner !== 'player') return;
+    enemyPool.forEach(e => {
+      if (!e.active || !p.active) return;
+      if (distSq(p.x, p.y, e.x, e.y) < (p.r + e.r) * (p.r + e.r)) {
+        damageEnemy(e, p.dmg, true, p.x, p.y, player.critChance, player.knockbackForce);
+        if (p.pierce > 0) { p.pierce--; }
+        else { projPool.release(p); }
+      }
+    });
+  });
+}
+
+// Check enemy projectile vs player
+function checkEnemyProjectileHits(projPool, pl) {
+  projPool.forEach(p => {
+    if (p.owner !== 'enemy') return;
+    if (distSq(p.x, p.y, pl.x, pl.y) < (p.r + pl.hitR) * (p.r + pl.hitR)) {
+      hurtPlayer(pl, p.dmg);
+      projPool.release(p);
+    }
+  });
+}
+
+// Check enemy body vs player
+function checkEnemyCollisions(enemyPool, pl, dt) {
+  if (pl.iFrames > 0) { pl.iFrames -= dt; return; }
+  enemyPool.forEach(e => {
+    if (!e.active) return;
+    if (distSq(e.x, e.y, pl.x, pl.y) < (e.r + pl.hitR) * (e.r + pl.hitR)) {
+      hurtPlayer(pl, e.dmg);
+    }
+  });
+}
+
+// Hurt the player
+function hurtPlayer(pl, rawDmg) {
+  if (pl.iFrames > 0) return;
+  const dmg = Math.max(1, rawDmg - pl.armor);
+  pl.hp -= dmg;
+  pl.iFrames = 500; // 500ms invincibility
+  pl.damageFlash = 200;
+  triggerShake(4, 200);
+  playSfx('playerHit');
+  spawnFloatText(pl.x, pl.y - 20, '-' + dmg, COLORS.dmgText);
+}
+
+// Check player vs XP gems (magnet range)
+function checkGemPickup(pl, gemPool, dt) {
+  gemPool.forEach(g => {
+    if (!g.active) return;
+    const d2 = distSq(pl.x, pl.y, g.x, g.y);
+    const magnetR = pl.magnetRange;
+    if (d2 < magnetR * magnetR) {
+      // Accelerate toward player (using actual dt)
+      const d = Math.sqrt(d2) || 1;
+      const nx = (pl.x - g.x) / d, ny = (pl.y - g.y) / d;
+      g.x += nx * GEM_ACCEL * dt;
+      g.y += ny * GEM_ACCEL * dt;
+    }
+    // Actual pickup
+    if (d2 < 16 * 16) {
+      pl.xp += g.xp;
+      playSfx('gem');
+      gemPool.release(g);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// §20. SKILL APPLICATION
+// ═══════════════════════════════════════════════
+// Apply a skill choice to the player
+function applySkill(skillDef) {
+  let owned = player.skills.find(s => s.id === skillDef.id);
+  if (!owned) {
+    owned = { id: skillDef.id, lv: 0 };
+    player.skills.push(owned);
+  }
+  owned.lv++;
+  const lv = owned.lv;
+
+  switch(skillDef.id) {
+    case 'multishot': player.projCount = 1 + lv; break;
+    case 'rapidfire': player.fireRate = Math.max(0.5, 1.0 - lv * 0.1); break;
+    case 'piercing': player.piercing = lv; break;
+    case 'orbital': player.orbitalCount = 1 + lv; break;
+    case 'shockwave':
+      player.shockwaveR = 80 + (lv-1)*40;
+      player.shockwaveDmg = 3 + (lv-1)*1.5;
+      player.shockwaveCd = 5; player.shockwaveTimer = 0; break;
+    case 'lightning':
+      player.lightningTargets = 3 + (lv-1)*2;
+      player.lightningDmg = 2 + (lv-1)*1.5;
+      player.lightningCd = 3; player.lightningTimer = 0; break;
+    case 'speed': player.speedBonus = lv * 0.15; break;
+    case 'magnet': player.magnetRange = GEM_MAGNET_BASE + lv * 50; break;
+    case 'armor': player.armor = lv; break;
+    case 'regen': player.regenCd = 10 - (lv-1)*2.5; player.regenTimer = 0; break;
+    case 'knockback': player.knockbackForce = lv * 30; break;
+    case 'critical': player.critChance = [0, 0.15, 0.22, 0.30][lv] || 0.30; break;
+  }
+
+  score += 50; // Level-up score
+  player.level++;
+  player.xpNeeded = calcXpNeeded(player.level);
+  player.xp = 0;
+  isLevelingUp = false;
+  levelUpQueue--;
+  if (levelUpQueue > 0) {
+    enterState('LEVELUP');
+  } else {
+    enterState('PLAYING');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// §21. INPUT HANDLING
+// ═══════════════════════════════════════════════
+function setupInput() {
+  // Keyboard
+  listen(window, 'keydown', e => {
+    if (!inputMode) inputMode = 'keyboard';
+    initAudio(); resumeAudio();
+    keys[e.key] = true;
+    keys[e.code] = true;
+
+    if (state === 'TITLE') {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        enterState('PLAYING');
+      }
+      // Difficulty toggle
+      if (e.key === 'h' || e.key === 'H') {
+        difficultyMode = difficultyMode === 'normal' ? 'hard' : 'normal';
+      }
+      // Daily mode toggle
+      if (e.key === 'c' || e.key === 'C') {
+        dailyMode = !dailyMode;
+      }
+    } else if (state === 'PLAYING') {
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        enterState('PAUSE');
+      }
+    } else if (state === 'PAUSE') {
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        enterState('PLAYING');
+      }
+    } else if (state === 'LEVELUP') {
+      if (e.key === '1' && skillChoices.length >= 1) applySkill(skillChoices[0]);
+      else if (e.key === '2' && skillChoices.length >= 2) applySkill(skillChoices[1]);
+      else if (e.key === '3' && skillChoices.length >= 3) applySkill(skillChoices[2]);
+    } else if (state === 'GAMEOVER' || state === 'VICTORY') {
+      if (e.key === 'r' || e.key === 'R' || e.code === 'Enter' || e.code === 'Space') {
+        enterState('TITLE');
+      }
+    }
+  });
+
+  listen(window, 'keyup', e => {
+    keys[e.key] = false;
+    keys[e.code] = false;
+  });
+
+  // Mouse for skill card clicks
+  listen(canvas, 'click', e => {
+    initAudio(); resumeAudio();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+
+    if (state === 'TITLE') {
+      enterState('PLAYING');
+    } else if (state === 'LEVELUP') {
+      handleSkillCardClick(mx, my);
+    } else if (state === 'GAMEOVER' || state === 'VICTORY') {
+      enterState('TITLE');
+    }
+  });
+
+  listen(canvas, 'mousemove', e => {
+    if (state !== 'LEVELUP') return;
+    const rect = canvas.getBoundingClientRect();
+    handleSkillCardHover(e.clientX - rect.left, e.clientY - rect.top);
+  });
+
+  // Touch events (virtual joystick)
+  listen(canvas, 'touchstart', e => {
+    e.preventDefault();
+    if (!inputMode) inputMode = 'touch';
+    initAudio(); resumeAudio();
+
+    if (state === 'TITLE') {
+      enterState('PLAYING'); return;
+    }
+    if (state === 'GAMEOVER' || state === 'VICTORY') {
+      enterState('TITLE'); return;
+    }
+
+    for (const t of e.changedTouches) {
+      const tx = t.clientX, ty = t.clientY;
+
+      if (state === 'LEVELUP') {
+        handleSkillCardClick(tx, ty);
+        return;
+      }
+
+      // Joystick: left 1/3 bottom area or any area
+      if (touchId === null) {
+        touchId = t.identifier;
+        touchStartX = tx; touchStartY = ty;
+        touchCurX = tx; touchCurY = ty;
+        joystickActive = true;
+      }
+    }
+  }, { passive: false });
+
+  listen(canvas, 'touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === touchId) {
+        touchCurX = t.clientX; touchCurY = t.clientY;
+      }
+    }
+  }, { passive: false });
+
+  listen(canvas, 'touchend', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === touchId) {
+        touchId = null; joystickActive = false;
+        input.dx = 0; input.dy = 0;
+      }
+    }
+  }, { passive: false });
+
+  listen(canvas, 'touchcancel', e => {
+    touchId = null; joystickActive = false;
+    input.dx = 0; input.dy = 0;
+  });
+
+  listen(window, 'resize', resize);
+}
+
+// Process keyboard input into dx/dy
+function processInput() {
+  if (inputMode === 'touch' && joystickActive) {
+    const jdx = touchCurX - touchStartX;
+    const jdy = touchCurY - touchStartY;
+    const jd = Math.sqrt(jdx*jdx + jdy*jdy);
+    const deadzone = 10;
+    if (jd > deadzone) {
+      input.dx = jdx / jd;
+      input.dy = jdy / jd;
+    } else {
+      input.dx = 0; input.dy = 0;
+    }
+  } else {
+    input.dx = 0; input.dy = 0;
+    if (keys['a'] || keys['A'] || keys['ArrowLeft']) input.dx -= 1;
+    if (keys['d'] || keys['D'] || keys['ArrowRight']) input.dx += 1;
+    if (keys['w'] || keys['W'] || keys['ArrowUp']) input.dy -= 1;
+    if (keys['s'] || keys['S'] || keys['ArrowDown']) input.dy += 1;
+  }
+}
+
+// Skill card hit testing
+function getSkillCardRects() {
+  const cardW = Math.min(160, W * 0.25);
+  const cardH = cardW * 1.4;
+  const gap = 16;
+  const totalW = skillChoices.length * cardW + (skillChoices.length - 1) * gap;
+  const startX = (W - totalW) / 2;
+  const startY = H / 2 - cardH / 2;
+  return skillChoices.map((_, i) => ({
+    x: startX + i * (cardW + gap), y: startY, w: cardW, h: cardH
+  }));
+}
+
+function handleSkillCardClick(mx, my) {
+  const rects = getSkillCardRects();
+  for (let i = 0; i < rects.length; i++) {
+    const r = rects[i];
+    if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+      applySkill(skillChoices[i]);
+      return;
+    }
+  }
+}
+
+function handleSkillCardHover(mx, my) {
+  const rects = getSkillCardRects();
+  hoveredCard = -1;
+  for (let i = 0; i < rects.length; i++) {
+    const r = rects[i];
+    if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+      hoveredCard = i; return;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// §22. LOCALSTORAGE (try-catch, Cycle 1 pattern)
+// ═══════════════════════════════════════════════
+function loadBest() {
+  try { return parseInt(localStorage.getItem('miniSurvivorBest')) || 0; }
+  catch(e) { return 0; }
+}
+function saveBest(s) {
+  try { localStorage.setItem('miniSurvivorBest', s); }
+  catch(e) {}
+}
+function loadDailyBest() {
+  try {
+    const key = 'dailyChallenge_' + getTodayStr();
+    return parseInt(localStorage.getItem(key)) || 0;
+  } catch(e) { return 0; }
+}
+function saveDailyBest(s) {
+  try {
+    const key = 'dailyChallenge_' + getTodayStr();
+    const prev = parseInt(localStorage.getItem(key)) || 0;
+    if (s > prev) localStorage.setItem(key, s);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+// §23. MAIN GAME LOOP
+// ═══════════════════════════════════════════════
+let lastTime = 0;
+let accumulator = 0;
+
+function gameLoop(now) {
+  requestAnimationFrame(gameLoop);
+  const rawDt = now - lastTime;
+  lastTime = now;
+  // Cap delta time
+  const dtMs = Math.min(rawDt, DT_CAP);
+  const dt = dtMs / 1000; // seconds
+
+  // Tween update in all states except PAUSE (§5.3 matrix)
+  if (state !== 'PAUSE') tw.update(dtMs);
+
+  // Screen shake
+  updateShake(dtMs);
+
+  switch(state) {
+    case 'TITLE':
+      break;
+
+    case 'PLAYING':
+      processInput();
+      updatePlayer(player, input, dt, { left:0, top:0, right:ARENA_W, bottom:ARENA_H });
+
+      // Auto-fire weapons
+      firePlayerWeapons(player, enemyPool, projPool, dt);
+      updateOrbitals(player, enemyPool, dt);
+
+      // Skill-based abilities
+      if (player.skills.find(s => s.id === 'shockwave')) {
+        updateShockwave(player, enemyPool, dt);
+      }
+      if (player.skills.find(s => s.id === 'lightning')) {
+        updateLightning(player, enemyPool, dt, rng);
+      }
+      updateRegen(player, dt);
+
+      // Projectile movement
+      updateProjectiles(projPool, dt, { left:0, top:0, right:ARENA_W, bottom:ARENA_H });
+
+      // Enemy AI
+      updateEnemies(enemyPool, player, dt, projPool, particlePool);
+
+      // Enemy spawning
+      if (enemiesSpawnedThisWave < waveConfig.enemyCount) {
+        spawnTimer -= dtMs;
+        if (spawnTimer <= 0) {
+          spawnTimer = waveConfig.spawnInterval;
+          spawnEnemy(waveConfig, player.x, player.y);
+          enemiesSpawnedThisWave++;
+          // Boss spawn at wave start
+          if (waveConfig.isBoss && enemiesSpawnedThisWave === 1) {
+            spawnBoss(waveConfig, player.x, player.y);
+          }
+        }
+      }
+
+      // Collisions
+      checkProjectileHits(projPool, enemyPool);
+      checkEnemyProjectileHits(projPool, player);
+      checkEnemyCollisions(enemyPool, player, dtMs);
+      checkGemPickup(player, gemPool, dt);
+
+      // Combo timeout
+      if (combo > 0) {
+        comboTimer -= dtMs;
+        if (comboTimer <= 0) { combo = 0; }
+      }
+
+      // iFrames / damage flash
+      if (player.damageFlash > 0) player.damageFlash -= dtMs;
+
+      // XP / Level up check
+      if (player.xp >= player.xpNeeded && !isLevelingUp) {
+        levelUpQueue++;
+        player.xp -= player.xpNeeded;
+        enterState('LEVELUP');
+      }
+
+      // Wave clear check (guard: isWaveClearing)
+      if (!isWaveClearing &&
+          enemiesSpawnedThisWave >= waveConfig.enemyCount &&
+          enemyPool.activeCount === 0) {
+        isWaveClearing = true;
+        score += 100 * wave; // Wave clear bonus
+        if (wave >= WAVE_COUNT) {
+          enterState('VICTORY');
+        } else {
+          enterState('WAVE_PREP');
+        }
+      }
+
+      // HP check (guard: isTransitioning — priority protects GAMEOVER)
+      if (player.hp <= 0 && state === 'PLAYING') {
+        enterState('GAMEOVER');
+      }
+
+      // Update particles
+      updateParticles(dtMs);
+      break;
+
+    case 'WAVE_PREP':
+      updateProjectiles(projPool, dt, { left:0, top:0, right:ARENA_W, bottom:ARENA_H });
+      updateParticles(dtMs);
+      break;
+
+    case 'LEVELUP':
+      updateParticles(dtMs);
+      break;
+
+    case 'PAUSE':
+      // No updates
+      break;
+
+    case 'GAMEOVER':
+    case 'VICTORY':
+      updateParticles(dtMs);
+      break;
+  }
+
+  // Camera follows player
+  if (state !== 'TITLE') {
+    camX = player.x - W / 2;
+    camY = player.y - H / 2;
+  }
+
+  render();
+}
+
+// Update all active particles
+function updateParticles(dtMs) {
+  const dt = dtMs / 1000;
+  particlePool.forEach(p => {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dtMs;
+    if (p.life <= 0) particlePool.release(p);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// §24. RENDERING
+// ═══════════════════════════════════════════════
+function render() {
+  ctx.save();
+  // Clear
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  if (state === 'TITLE') {
+    renderTitle();
+  } else {
+    // Apply shake
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // Camera transform
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    // Background layers
+    renderBackground();
+
+    // Gems
+    renderGems();
+
+    // Projectiles
+    renderProjectiles();
+
+    // Enemies
+    renderEnemies();
+
+    // Player
+    renderPlayer();
+
+    // Orbitals
+    renderOrbitals();
+
+    // Particles (world space)
+    renderParticles();
+
+    ctx.restore(); // Camera
+
+    ctx.restore(); // Shake
+
+    // HUD (screen space)
+    renderHUD();
+
+    // State overlays
+    if (state === 'WAVE_PREP') renderWavePrep();
+    if (state === 'LEVELUP') renderLevelUp();
+    if (state === 'PAUSE') renderPause();
+    if (state === 'GAMEOVER') renderGameOver();
+    if (state === 'VICTORY') renderVictory();
+
+    // Virtual joystick (touch only)
+    if (inputMode === 'touch' && joystickActive && state === 'PLAYING') renderJoystick();
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════
+// §25. RENDER FUNCTIONS
+// ═══════════════════════════════════════════════
+
+function renderBackground() {
+  // Grid cache (100% Canvas, no external assets)
+  if (gridCanvas) {
+    ctx.drawImage(gridCanvas, 0, 0);
+  }
+  // Arena border
+  ctx.strokeStyle = COLORS.border;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, ARENA_W, ARENA_H);
+}
+
+function renderPlayer() {
+  const p = player;
+  // Invincibility flash
+  if (p.iFrames > 0 && Math.floor(p.iFrames / 80) % 2 === 0) return;
+  // Damage flash tint
+  const isFlashing = p.damageFlash > 0;
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+
+  // Glow
+  ctx.fillStyle = COLORS.playerGlow;
+  ctx.beginPath();
+  ctx.arc(0, 0, p.r + 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Canvas circle + direction triangle (100% code drawing)
+  ctx.fillStyle = isFlashing ? '#FF6666' : COLORS.player;
+  ctx.beginPath();
+  ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+  ctx.fill();
+  // Direction triangle
+  ctx.save();
+  ctx.rotate(p.facingAngle);
+  ctx.fillStyle = '#006644';
+  ctx.beginPath();
+  ctx.moveTo(p.r * 0.8, 0);
+  ctx.lineTo(-p.r * 0.3, -p.r * 0.5);
+  ctx.lineTo(-p.r * 0.3, p.r * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function renderEnemies() {
+  enemyPool.forEach(e => {
+    if (!e.active) return;
+    ctx.save();
+    ctx.translate(e.x, e.y);
+
+    // Use sprite for base enemies, fallback shapes for all types
+    if (e.type === 'normal') {
+      // Canvas circle + eyes (100% code drawing)
+      ctx.fillStyle = e.color;
+      ctx.beginPath(); ctx.arc(0, 0, e.r, 0, Math.PI * 2); ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-3, -3, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(3, -3, 2, 0, Math.PI * 2); ctx.fill();
+    } else if (e.type === 'fast') {
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.moveTo(0, -e.r); ctx.lineTo(-e.r, e.r); ctx.lineTo(e.r, e.r);
+      ctx.closePath(); ctx.fill();
+    } else if (e.type === 'tanker') {
+      ctx.fillStyle = e.color;
+      ctx.fillRect(-e.r, -e.r, e.r*2, e.r*2);
+      ctx.strokeStyle = '#fff3';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-e.r, -e.r, e.r*2, e.r*2);
+    } else if (e.type === 'ranged') {
+      ctx.fillStyle = e.color;
+      ctx.save(); ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-e.r/1.4, -e.r/1.4, e.r*1.4, e.r*1.4);
+      ctx.restore();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
+    } else if (e.type === 'boss') {
+      // Big circle + crown + glow
+      const pulse = 1 + Math.sin(performance.now() * 0.005) * 0.08;
+      ctx.fillStyle = COLORS.boss + '30';
+      ctx.beginPath(); ctx.arc(0, 0, e.r * pulse + 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = e.color;
+      ctx.beginPath(); ctx.arc(0, 0, e.r * pulse, 0, Math.PI * 2); ctx.fill();
+      // Crown
+      ctx.fillStyle = '#FFD700';
+      const cr = e.r * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(-cr, -e.r * 0.3);
+      ctx.lineTo(-cr * 0.5, -e.r * 0.9);
+      ctx.lineTo(0, -e.r * 0.4);
+      ctx.lineTo(cr * 0.5, -e.r * 0.9);
+      ctx.lineTo(cr, -e.r * 0.3);
+      ctx.closePath(); ctx.fill();
+      // Boss HP bar
+      const bw = e.r * 2.5, bh = 4;
+      ctx.fillStyle = COLORS.hpBg;
+      ctx.fillRect(-bw/2, e.r + 6, bw, bh);
+      const hpRatio = Math.max(0, e.hp / e.maxHp);
+      ctx.fillStyle = hpRatio > 0.5 ? COLORS.hpFull : hpRatio > 0.25 ? '#FFAA00' : COLORS.hpLow;
+      ctx.fillRect(-bw/2, e.r + 6, bw * hpRatio, bh);
+    }
+
+    // HP bar for non-boss enemies at < full HP
+    if (e.type !== 'boss' && e.hp < e.maxHp) {
+      const bw = e.r * 2, bh = 3;
+      ctx.fillStyle = COLORS.hpBg;
+      ctx.fillRect(-bw/2, -e.r - 6, bw, bh);
+      const ratio = Math.max(0, e.hp / e.maxHp);
+      ctx.fillStyle = ratio > 0.5 ? COLORS.hpFull : COLORS.hpLow;
+      ctx.fillRect(-bw/2, -e.r - 6, bw * ratio, bh);
+    }
+
+    ctx.restore();
+  });
+}
+
+function renderProjectiles() {
+  projPool.forEach(p => {
+    if (!p.active) return;
+    const isEnemy = p.owner === 'enemy';
+    const color = isEnemy ? COLORS.enemyNormal : COLORS.projectile;
+    // Trail
+    ctx.strokeStyle = color + '60';
+    ctx.lineWidth = 2;
+    if (p.trailX.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(p.trailX[0], p.trailY[0]);
+      for (let i = 1; i < p.trailX.length; i++) {
+        ctx.lineTo(p.trailX[i], p.trailY[i]);
+      }
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    // Head
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    // Glow
+    ctx.fillStyle = color + '40';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r + 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function renderGems() {
+  const t = performance.now() * 0.003;
+  gemPool.forEach(g => {
+    if (!g.active) return;
+    ctx.save();
+    ctx.translate(g.x, g.y);
+    ctx.rotate(t + g.angle);
+    // Diamond shape
+    ctx.fillStyle = COLORS.xpGem;
+    ctx.beginPath();
+    ctx.moveTo(0, -6); ctx.lineTo(6, 0);
+    ctx.lineTo(0, 6); ctx.lineTo(-6, 0);
+    ctx.closePath();
+    ctx.fill();
+    // Glow
+    ctx.fillStyle = COLORS.xpGem + '40';
+    ctx.beginPath();
+    ctx.moveTo(0, -9); ctx.lineTo(9, 0);
+    ctx.lineTo(0, 9); ctx.lineTo(-9, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function renderOrbitals() {
+  if (player.orbitalCount <= 0) return;
+  const orbR = 60;
+  for (let i = 0; i < player.orbitalCount; i++) {
+    const a = player.orbitalAngle + (Math.PI * 2 / player.orbitalCount) * i;
+    const ox = player.x + Math.cos(a) * orbR;
+    const oy = player.y + Math.sin(a) * orbR;
+    // Glow
+    ctx.fillStyle = '#6644FF40';
+    ctx.beginPath(); ctx.arc(ox, oy, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8866FF';
+    ctx.beginPath(); ctx.arc(ox, oy, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#BBAAFF';
+    ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function renderParticles() {
+  particlePool.forEach(p => {
+    if (!p.active) return;
+    const alpha = Math.max(0, p.life / p.maxLife);
+    ctx.globalAlpha = alpha;
+
+    if (p.type === 'circle') {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.type === 'text') {
+      ctx.fillStyle = p.color;
+      ctx.font = `bold ${p.fontSize}px 'Segoe UI', system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.text, p.x, p.y);
+    }
+
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ═══════════════════════════════════════════════
+// §26. HUD RENDERING
+// ═══════════════════════════════════════════════
+function renderHUD() {
+  const pad = 12;
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  ctx.textAlign = 'left';
+
+  // HP bar (top-left)
+  const hpBarW = Math.min(200, W * 0.3), hpBarH = 16;
+  const hpX = pad, hpY = pad;
+  // Heart icon (Canvas text)
+  ctx.fillStyle = '#FF4466';
+  ctx.font = `16px ${font}`;
+  ctx.fillText('♥', hpX + 2, hpY + 14);
+  const barX = hpX + 28;
+  ctx.fillStyle = COLORS.hpBg;
+  ctx.fillRect(barX, hpY, hpBarW, hpBarH);
+  const hpRatio = Math.max(0, player.hp / player.maxHp);
+  const hpColor = hpRatio > 0.5 ? COLORS.hpFull : hpRatio > 0.25 ? '#FFAA00' : COLORS.hpLow;
+  ctx.fillStyle = hpColor;
+  ctx.fillRect(barX, hpY, hpBarW * hpRatio, hpBarH);
+  ctx.strokeStyle = '#ffffff20';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, hpY, hpBarW, hpBarH);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = `bold 11px ${font}`;
+  ctx.fillText(`${player.hp}/${player.maxHp}`, barX + 4, hpY + 12);
+
+  // XP bar (below HP)
+  const xpY = hpY + hpBarH + 4;
+  ctx.fillStyle = COLORS.hpBg;
+  ctx.fillRect(barX, xpY, hpBarW, 8);
+  const xpRatio = player.xpNeeded > 0 ? Math.min(1, player.xp / player.xpNeeded) : 0;
+  ctx.fillStyle = COLORS.xpBar;
+  ctx.fillRect(barX, xpY, hpBarW * xpRatio, 8);
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `10px ${font}`;
+  ctx.fillText(`Lv.${player.level}  XP ${player.xp}/${player.xpNeeded}`, barX, xpY + 18);
+
+  // Score (top-right)
+  ctx.textAlign = 'right';
+  // Star icon (Canvas text)
+  ctx.fillStyle = '#FFD700';
+  ctx.font = `16px ${font}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('★', W - pad - 100, pad + 14);
+  ctx.fillStyle = COLORS.text;
+  ctx.font = `bold 18px ${font}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(score.toLocaleString(), W - pad, pad + 16);
+
+  // Wave indicator
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `12px ${font}`;
+  ctx.fillText(`Wave ${wave}/${WAVE_COUNT}`, W - pad, pad + 34);
+
+  // Combo (top-right, below wave)
+  if (combo >= 2) {
+    const comboAlpha = combo >= 5 ? 1 : 0.7;
+    ctx.globalAlpha = comboAlpha;
+    ctx.fillStyle = combo >= 10 ? '#FFD700' : combo >= 5 ? '#FF6644' : '#FFAA44';
+    ctx.font = `bold ${combo >= 5 ? 16 : 14}px ${font}`;
+    ctx.fillText(`${combo}x COMBO`, W - pad, pad + 54);
+    ctx.globalAlpha = 1;
+  }
+
+  // Difficulty / Daily mode indicator
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#666';
+  ctx.font = `10px ${font}`;
+  let modeStr = difficultyMode === 'hard' ? '🔴 HARD' : '';
+  if (dailyMode) modeStr += (modeStr ? ' • ' : '') + '📅 Daily';
+  if (modeStr) ctx.fillText(modeStr, pad, H - pad);
+
+  // Active skills (bottom-left)
+  if (player.skills.length > 0) {
+    const skillY = H - pad - 30;
+    ctx.fillStyle = COLORS.textSub;
+    ctx.font = `10px ${font}`;
+    ctx.textAlign = 'left';
+    let sx = pad;
+    for (const sk of player.skills) {
+      const def = SKILL_DEFS.find(d => d.id === sk.id);
+      if (!def) continue;
+      ctx.fillStyle = '#1A1A3A';
+      ctx.fillRect(sx, skillY, 28, 28);
+      ctx.strokeStyle = '#4488FF40';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx, skillY, 28, 28);
+      ctx.font = `14px ${font}`;
+      ctx.fillStyle = COLORS.text;
+      ctx.textAlign = 'center';
+      ctx.fillText(def.icon, sx + 14, skillY + 18);
+      // Level badge
+      ctx.fillStyle = '#6644FF';
+      ctx.fillRect(sx + 18, skillY, 12, 12);
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold 8px ${font}`;
+      ctx.fillText(sk.lv, sx + 24, skillY + 9);
+      ctx.textAlign = 'left';
+      sx += 34;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// §27. OVERLAY SCREENS
+// ═══════════════════════════════════════════════
+
+function renderTitle() {
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  const t = performance.now() * 0.001;
+  const alpha = titleAlpha.val;
+
+  // Animated background: subtle particle field
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Scanline effect (action genre)
+  ctx.globalAlpha = 0.03;
+  for (let y = 0; y < H; y += 3) {
+    ctx.fillStyle = '#FF0044';
+    ctx.fillRect(0, y, W, 1);
+  }
+  ctx.globalAlpha = 1;
+
+  // Background particles (floating red/orange specks)
+  ctx.globalAlpha = 0.4;
+  for (let i = 0; i < 40; i++) {
+    const px = ((i * 73.7 + t * 20) % W);
+    const py = ((i * 51.3 + t * 10 * (1 + i%3 * 0.5)) % H);
+    const size = 1 + (i % 3);
+    ctx.fillStyle = i % 3 === 0 ? COLORS.enemyNormal : i % 3 === 1 ? COLORS.enemyFast : COLORS.player;
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.globalAlpha = alpha;
+
+  // Title with glitch effect
+  const titleY = H * 0.3;
+  ctx.textAlign = 'center';
+
+  // Glitch layers
+  const glitchOff = Math.sin(t * 8) > 0.95 ? (Math.random() - 0.5) * 8 : 0;
+  ctx.fillStyle = '#FF004440';
+  ctx.font = `bold ${Math.min(48, W * 0.08)}px ${font}`;
+  ctx.fillText('미니 서바이버 아레나', W/2 + glitchOff + 2, titleY + 2);
+  ctx.fillStyle = '#00FFAA40';
+  ctx.fillText('미니 서바이버 아레나', W/2 - glitchOff - 2, titleY - 2);
+  ctx.fillStyle = COLORS.text;
+  ctx.fillText('미니 서바이버 아레나', W/2, titleY);
+
+  // Subtitle
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `${Math.min(16, W * 0.03)}px ${font}`;
+  ctx.fillText('360° 몬스터 웨이브에서 살아남아라!', W/2, titleY + 40);
+
+  // Start prompt (blinking)
+  const blink = Math.sin(t * 3) > 0 ? 1 : 0.3;
+  ctx.globalAlpha = alpha * blink;
+  ctx.fillStyle = COLORS.player;
+  ctx.font = `bold ${Math.min(20, W * 0.04)}px ${font}`;
+  const startText = inputMode === 'touch' ? '탭하여 시작' : 'SPACE / ENTER 로 시작';
+  ctx.fillText(startText, W/2, H * 0.55);
+  ctx.globalAlpha = alpha;
+
+  // Difficulty selector
+  const selY = H * 0.65;
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `14px ${font}`;
+  ctx.fillText(`난이도: ${difficultyMode === 'hard' ? '🔴 HARD' : '🟢 NORMAL'}  (H키로 변경)`, W/2, selY);
+  ctx.fillText(`일일 챌린지: ${dailyMode ? '✅ ON' : '⬜ OFF'}  (C키로 변경)`, W/2, selY + 24);
+
+  // Best score
+  const best = loadBest();
+  if (best > 0) {
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold 14px ${font}`;
+    ctx.fillText(`BEST: ${best.toLocaleString()}`, W/2, selY + 56);
+  }
+
+  // Daily best
+  if (dailyMode) {
+    const dailyBest = loadDailyBest();
+    ctx.fillStyle = '#6644FF';
+    ctx.font = `12px ${font}`;
+    ctx.fillText(`오늘의 기록: ${dailyBest > 0 ? dailyBest.toLocaleString() : '---'}`, W/2, selY + 76);
+  }
+
+  // Controls hint
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `11px ${font}`;
+  ctx.fillText('WASD/방향키: 이동  |  자동 공격  |  P: 일시정지', W/2, H * 0.88);
+  ctx.fillText('레벨업 시 1/2/3키로 스킬 선택', W/2, H * 0.92);
+
+  ctx.globalAlpha = 1;
+}
+
+function renderWavePrep() {
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  ctx.textAlign = 'center';
+  ctx.fillStyle = COLORS.text;
+  ctx.font = `bold ${Math.min(40, W * 0.07)}px ${font}`;
+  ctx.fillText(`Wave ${wave + 1}`, W/2, H/2 - 20);
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `${Math.min(20, W * 0.04)}px ${font}`;
+  ctx.fillText(`준비하세요... ${Math.ceil(wavePrepTimer.val)}`, W/2, H/2 + 20);
+  if (getWaveConfig(wave + 1).isBoss) {
+    ctx.fillStyle = COLORS.boss;
+    ctx.font = `bold 18px ${font}`;
+    ctx.fillText('⚠ BOSS WAVE ⚠', W/2, H/2 + 50);
+  }
+}
+
+function renderLevelUp() {
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  const a = overlayAlpha.val;
+  // Dim background
+  ctx.fillStyle = `rgba(0,0,0,${0.6 * a})`;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFD700';
+  ctx.font = `bold ${Math.min(32, W*0.06)}px ${font}`;
+  ctx.fillText('LEVEL UP!', W/2, H * 0.22);
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `14px ${font}`;
+  ctx.fillText('스킬을 선택하세요', W/2, H * 0.28);
+
+  // Skill cards
+  const rects = getSkillCardRects();
+  for (let i = 0; i < skillChoices.length; i++) {
+    const r = rects[i];
+    const s = skillChoices[i];
+    const owned = player.skills.find(o => o.id === s.id);
+    const isHover = hoveredCard === i;
+    const isUpgrade = !!owned;
+
+    // Card bg
+    ctx.fillStyle = isHover ? '#2A2A5A' : COLORS.skillCard;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = isHover ? COLORS.skillHover : COLORS.skillBorder;
+    ctx.lineWidth = isHover ? 3 : 2;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+    // Icon
+    ctx.font = `${Math.min(36, r.w * 0.25)}px ${font}`;
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText(s.icon, r.x + r.w/2, r.y + r.h * 0.3);
+
+    // Name
+    ctx.font = `bold ${Math.min(16, r.w * 0.1)}px ${font}`;
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText(s.name, r.x + r.w/2, r.y + r.h * 0.48);
+
+    // Level indicator
+    if (isUpgrade) {
+      ctx.fillStyle = COLORS.xpBar;
+      ctx.font = `bold 12px ${font}`;
+      ctx.fillText(`Lv.${owned.lv} → ${owned.lv+1}`, r.x + r.w/2, r.y + r.h * 0.58);
+    } else {
+      ctx.fillStyle = COLORS.player;
+      ctx.font = `bold 12px ${font}`;
+      ctx.fillText('NEW!', r.x + r.w/2, r.y + r.h * 0.58);
+    }
+
+    // Description
+    ctx.fillStyle = COLORS.textSub;
+    ctx.font = `${Math.min(12, r.w * 0.08)}px ${font}`;
+    ctx.fillText(s.desc, r.x + r.w/2, r.y + r.h * 0.72);
+
+    // Key hint
+    if (inputMode !== 'touch') {
+      ctx.fillStyle = '#ffffff40';
+      ctx.font = `bold 14px ${font}`;
+      ctx.fillText(`[${i+1}]`, r.x + r.w/2, r.y + r.h * 0.88);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function renderPause() {
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  const a = overlayAlpha.val;
+  ctx.fillStyle = `rgba(0,0,0,${0.5 * a})`;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = COLORS.text;
+  ctx.font = `bold ${Math.min(36, W*0.06)}px ${font}`;
+  ctx.fillText('PAUSED', W/2, H/2 - 10);
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `16px ${font}`;
+  ctx.fillText('P / ESC 로 재개', W/2, H/2 + 24);
+  ctx.globalAlpha = 1;
+}
+
+function renderGameOver() {
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  const a = overlayAlpha.val;
+  ctx.fillStyle = `rgba(10,5,0,${0.7 * a})`;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center';
+
+  // Red vignette
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W * 0.7);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(1, `rgba(255,0,0,${0.15 * a})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = COLORS.dmgText;
+  ctx.font = `bold ${Math.min(48, W*0.08)}px ${font}`;
+  ctx.fillText('GAME OVER', W/2, H * 0.35);
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = `bold 24px ${font}`;
+  ctx.fillText(`SCORE: ${score.toLocaleString()}`, W/2, H * 0.46);
+
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `16px ${font}`;
+  ctx.fillText(`Wave ${wave}  |  Lv.${player.level}  |  Max Combo: ${maxCombo}x`, W/2, H * 0.53);
+
+  if (player.isNewRecord) {
+    const pulse = 1 + Math.sin(performance.now() * 0.005) * 0.15;
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${20 * pulse}px ${font}`;
+    ctx.fillText('★ NEW RECORD! ★', W/2, H * 0.60);
+  }
+
+  const best = loadBest();
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `14px ${font}`;
+  ctx.fillText(`BEST: ${best.toLocaleString()}`, W/2, H * 0.67);
+
+  // Restart prompt
+  const blink = Math.sin(performance.now() * 0.004) > 0 ? 1 : 0.4;
+  ctx.globalAlpha = a * blink;
+  ctx.fillStyle = COLORS.player;
+  ctx.font = `bold 16px ${font}`;
+  const restartText = inputMode === 'touch' ? '탭하여 타이틀로' : 'R / ENTER 로 타이틀';
+  ctx.fillText(restartText, W/2, H * 0.78);
+  ctx.globalAlpha = 1;
+}
+
+function renderVictory() {
+  const font = "'Segoe UI', system-ui, -apple-system, sans-serif";
+  const a = overlayAlpha.val;
+  ctx.fillStyle = `rgba(0,5,15,${0.7 * a})`;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center';
+
+  // Golden glow
+  const grad = ctx.createRadialGradient(W/2, H * 0.35, 0, W/2, H * 0.35, W * 0.4);
+  grad.addColorStop(0, `rgba(255,215,0,${0.1 * a})`);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#FFD700';
+  ctx.font = `bold ${Math.min(48, W*0.08)}px ${font}`;
+  ctx.fillText('VICTORY!', W/2, H * 0.32);
+
+  ctx.fillStyle = COLORS.text;
+  ctx.font = `bold 28px ${font}`;
+  ctx.fillText(`SCORE: ${score.toLocaleString()}`, W/2, H * 0.44);
+
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `16px ${font}`;
+  ctx.fillText(`Lv.${player.level}  |  Max Combo: ${maxCombo}x  |  Skills: ${player.skills.length}`, W/2, H * 0.52);
+
+  if (player.isNewRecord) {
+    const pulse = 1 + Math.sin(performance.now() * 0.005) * 0.15;
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${22 * pulse}px ${font}`;
+    ctx.fillText('★ NEW RECORD! ★', W/2, H * 0.60);
+  }
+
+  const best = loadBest();
+  ctx.fillStyle = COLORS.textSub;
+  ctx.font = `14px ${font}`;
+  ctx.fillText(`BEST: ${best.toLocaleString()}`, W/2, H * 0.67);
+
+  const blink = Math.sin(performance.now() * 0.004) > 0 ? 1 : 0.4;
+  ctx.globalAlpha = a * blink;
+  ctx.fillStyle = COLORS.player;
+  ctx.font = `bold 16px ${font}`;
+  const text = inputMode === 'touch' ? '탭하여 타이틀로' : 'R / ENTER 로 타이틀';
+  ctx.fillText(text, W/2, H * 0.78);
+  ctx.globalAlpha = 1;
+}
+
+function renderJoystick() {
+  if (!joystickActive) return;
+  const maxR = 50;
+  // Base circle
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(touchStartX, touchStartY, maxR, 0, Math.PI * 2);
+  ctx.fill();
+  // Stick
+  const dx = touchCurX - touchStartX, dy = touchCurY - touchStartY;
+  const d = Math.sqrt(dx*dx + dy*dy);
+  const clampD = Math.min(d, maxR);
+  const sx = d > 0 ? touchStartX + (dx/d)*clampD : touchStartX;
+  const sy = d > 0 ? touchStartY + (dy/d)*clampD : touchStartY;
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = COLORS.player;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// ═══════════════════════════════════════════════
+// §28. INITIALIZATION
+// ═══════════════════════════════════════════════
+function init() {
+  resize();
+  buildGridCache();
+  createPools();
+
+  // Setup input
+  setupInput();
+
+  // Enter title state
+  enterState('TITLE');
+
+  // Start loop
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+init();
+</script>
+</body>
+</html>
