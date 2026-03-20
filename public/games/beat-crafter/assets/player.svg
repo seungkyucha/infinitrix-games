@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D500F9"/>
+      <stop offset="50%" stop-color="#7C4DFF"/>
+      <stop offset="100%" stop-color="#2979FF"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="40%" r="45%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#00E5FF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="noteAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#D500F9" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="noteHeadGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF1744"/>
+      <stop offset="25%" stop-color="#FFAB00"/>
+      <stop offset="50%" stop-color="#00E676"/>
+      <stop offset="75%" stop-color="#2979FF"/>
+      <stop offset="100%" stop-color="#D500F9"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 오라 배경 -->
+  <ellipse cx="32" cy="34" rx="28" ry="28" fill="url(#noteAura)"/>
+  <!-- 음표 몸체 — 기둥 -->
+  <g filter="url(#glow)">
+    <path d="M38 12 L38 36 Q38 38 36 38 L36 38" stroke="url(#bodyGrad)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- 음표 머리 (타원) -->
+    <ellipse cx="30" cy="40" rx="10" ry="7" fill="url(#noteHeadGrad)" transform="rotate(-20 30 40)"/>
+    <!-- 음표 머리 하이라이트 -->
+    <ellipse cx="28" cy="38" rx="5" ry="3" fill="white" opacity="0.3" transform="rotate(-20 28 38)"/>
+  </g>
+  <!-- 꼬리 깃발 -->
+  <g filter="url(#softGlow)">
+    <path d="M38 12 Q46 16 42 22 Q48 20 44 26" stroke="#00E5FF" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- 코어 글로우 -->
+  <ellipse cx="30" cy="40" rx="6" ry="4" fill="url(#coreGlow)" transform="rotate(-20 30 40)"/>
+  <!-- 장식 — 작은 음표들 -->
+  <g opacity="0.6" filter="url(#softGlow)">
+    <circle cx="14" cy="18" r="3" fill="#FF1744"/>
+    <line x1="14" y1="18" x2="14" y2="10" stroke="#FF1744" stroke-width="1.5"/>
+    <circle cx="50" cy="50" r="2.5" fill="#00E676"/>
+    <line x1="50" y1="50" x2="50" y2="44" stroke="#00E676" stroke-width="1.2"/>
+    <circle cx="52" cy="16" r="2" fill="#FFAB00"/>
+    <line x1="52" y1="16" x2="52" y2="11" stroke="#FFAB00" stroke-width="1"/>
+  </g>
+  <!-- 리듬 파동 링 -->
+  <circle cx="30" cy="40" r="18" stroke="#7C4DFF" stroke-width="1" fill="none" opacity="0.3"/>
+  <circle cx="30" cy="40" r="24" stroke="#D500F9" stroke-width="0.6" fill="none" opacity="0.15"/>
+</svg>

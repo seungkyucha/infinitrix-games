@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0A14"/>
+      <stop offset="40%" stop-color="#0D0A1E"/>
+      <stop offset="100%" stop-color="#0F0A1E"/>
+    </linearGradient>
+    <radialGradient id="nebula1" cx="25%" cy="30%" r="35%">
+      <stop offset="0%" stop-color="#D500F9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula2" cx="75%" cy="60%" r="30%">
+      <stop offset="0%" stop-color="#2979FF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#2979FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula3" cx="50%" cy="80%" r="25%">
+      <stop offset="0%" stop-color="#00E676" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#00E676" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="starGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 기본 배경 -->
+  <rect width="800" height="600" fill="url(#skyGrad)"/>
+  <!-- 성운 (네뷸라) — 음악적 분위기 -->
+  <rect width="800" height="600" fill="url(#nebula1)"/>
+  <rect width="800" height="600" fill="url(#nebula2)"/>
+  <rect width="800" height="600" fill="url(#nebula3)"/>
+  <!-- 별 필드 — 다양한 크기와 밝기 -->
+  <g opacity="0.8">
+    <!-- 밝은 별 -->
+    <circle cx="120" cy="45" r="1.8" fill="#FFFFFF" filter="url(#starGlow)"/>
+    <circle cx="340" cy="80" r="2" fill="#D500F9" filter="url(#starGlow)"/>
+    <circle cx="580" cy="35" r="1.5" fill="#00E5FF" filter="url(#starGlow)"/>
+    <circle cx="720" cy="100" r="1.8" fill="#FFFFFF" filter="url(#starGlow)"/>
+    <circle cx="200" cy="150" r="1.5" fill="#FFAB00" filter="url(#starGlow)"/>
+    <circle cx="650" cy="180" r="2" fill="#FF1744" filter="url(#starGlow)"/>
+    <circle cx="450" cy="130" r="1.3" fill="#2979FF" filter="url(#starGlow)"/>
+    <!-- 중간 별 -->
+    <circle cx="60" cy="120" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="180" cy="70" r="1" fill="#E0E0E0" opacity="0.5"/>
+    <circle cx="290" cy="160" r="0.8" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="410" cy="50" r="1.2" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="530" cy="110" r="0.8" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="670" cy="60" r="1" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="760" cy="170" r="0.7" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="100" cy="200" r="1" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="500" cy="200" r="0.9" fill="#FFFFFF" opacity="0.5"/>
+    <!-- 작은 별 -->
+    <circle cx="40" cy="30" r="0.5" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="150" cy="100" r="0.5" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="250" cy="40" r="0.6" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="370" cy="130" r="0.5" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="470" cy="70" r="0.5" fill="#FFFFFF" opacity="0.35"/>
+    <circle cx="560" cy="160" r="0.6" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="680" cy="140" r="0.5" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="740" cy="40" r="0.5" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="310" cy="20" r="0.4" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="620" cy="90" r="0.4" fill="#FFFFFF" opacity="0.35"/>
+  </g>
+  <!-- 음파 리듬 라인 — 하단 원경 -->
+  <g opacity="0.12">
+    <path d="M0 480 Q50 470 100 480 Q150 490 200 475 Q250 460 300 478 Q350 496 400 472 Q450 448 500 476 Q550 504 600 470 Q650 436 700 474 Q750 512 800 468"
+          stroke="#D500F9" stroke-width="1.5" fill="none"/>
+    <path d="M0 510 Q50 500 100 510 Q150 520 200 505 Q250 490 300 508 Q350 526 400 502 Q450 478 500 506 Q550 534 600 500 Q650 466 700 504 Q750 542 800 498"
+          stroke="#2979FF" stroke-width="1" fill="none"/>
+    <path d="M0 540 Q50 535 100 540 Q150 545 200 538 Q250 531 300 540 Q350 549 400 536 Q450 523 500 540 Q550 557 600 534 Q650 511 700 538 Q750 565 800 532"
+          stroke="#00E676" stroke-width="0.8" fill="none"/>
+  </g>
+  <!-- 오선 (음악 상징) — 매우 연하게 -->
+  <g opacity="0.04" stroke="#FFFFFF" stroke-width="0.5" fill="none">
+    <line x1="0" y1="350" x2="800" y2="350"/>
+    <line x1="0" y1="365" x2="800" y2="365"/>
+    <line x1="0" y1="380" x2="800" y2="380"/>
+    <line x1="0" y1="395" x2="800" y2="395"/>
+    <line x1="0" y1="410" x2="800" y2="410"/>
+  </g>
+</svg>

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="enemyBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF1744"/>
+      <stop offset="60%" stop-color="#C62828"/>
+      <stop offset="100%" stop-color="#4A0000"/>
+    </linearGradient>
+    <radialGradient id="enemyGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF1744" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FF1744" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="crackGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF6E40"/>
+      <stop offset="100%" stop-color="#FF1744"/>
+    </linearGradient>
+    <filter id="enemyGlowF">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 위협 오라 -->
+  <ellipse cx="32" cy="32" rx="30" ry="30" fill="url(#enemyGlow)"/>
+  <!-- 불협화음 블록 — 깨진 사각형 -->
+  <g filter="url(#enemyGlowF)">
+    <!-- 메인 블록 바디 (깨진 정사각형) -->
+    <path d="M16 14 L48 14 L50 18 L46 20 L48 48 L44 50 L18 50 L14 46 L16 14 Z"
+          fill="url(#enemyBody)" stroke="#FF6E40" stroke-width="1.5"/>
+    <!-- 균열선 -->
+    <path d="M28 14 L30 24 L26 32 L32 40 L28 50" stroke="url(#crackGrad)" stroke-width="1.5" fill="none" opacity="0.8"/>
+    <path d="M40 14 L38 22 L42 30 L36 42 L40 50" stroke="url(#crackGrad)" stroke-width="1" fill="none" opacity="0.6"/>
+    <!-- X 마크 (불협화음 심볼) -->
+    <g filter="url(#innerGlow)" opacity="0.9">
+      <line x1="24" y1="24" x2="40" y2="40" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+      <line x1="40" y1="24" x2="24" y2="40" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <!-- 디스코드 심볼 — 플랫 기호 (♭) -->
+    <path d="M22 16 L22 26 Q28 24 28 20 Q28 16 22 18" fill="#FF6E40" opacity="0.7"/>
+  </g>
+  <!-- 스파크 파티클 -->
+  <g opacity="0.5">
+    <circle cx="10" cy="10" r="1.5" fill="#FF6E40"/>
+    <circle cx="54" cy="12" r="2" fill="#FF1744"/>
+    <circle cx="8" cy="52" r="1.5" fill="#FF6E40"/>
+    <circle cx="56" cy="48" r="1" fill="#FF1744"/>
+    <circle cx="32" cy="6" r="1.5" fill="#FFAB00"/>
+    <circle cx="32" cy="58" r="1" fill="#FF6E40"/>
+  </g>
+  <!-- 위협 링 -->
+  <circle cx="32" cy="32" r="22" stroke="#FF1744" stroke-width="0.8" fill="none" opacity="0.3" stroke-dasharray="4 3"/>
+</svg>

@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T21:00:00Z",
-  "totalGames": 5,
+  "lastUpdated": "2026-03-20T23:00:00Z",
+  "totalGames": 6,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -113,6 +113,30 @@
         "P / ESC: 일시정지",
         "터치: 레인 영역 탭/홀드",
         "마우스: 레인 영역 클릭"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "beat-crafter",
+      "title": "비트 크래프터",
+      "description": "음표 블록을 배치해 화음을 만드는 리듬 퍼즐!",
+      "genre": ["puzzle", "casual"],
+      "thumbnail": "/games/beat-crafter/assets/thumbnail.svg",
+      "path": "/games/beat-crafter/index.html",
+      "addedAt": "2026-03-20T23:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["리듬퍼즐", "음악", "퍼즐", "블록", "캐주얼", "절차적음악", "WebAudio"],
+      "controls": [
+        "← → : 블록 좌우 이동",
+        "↓ : 소프트 드롭",
+        "Space : 하드 드롭 (즉시 착지)",
+        "P / ESC : 일시정지",
+        "터치 : 스와이프 이동 / 열 탭",
+        "마우스 : 열 클릭으로 배치"
       ],
       "difficulty": "medium",
       "version": "1.0.0",

@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>비트 크래프터 — Beat Crafter</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A0A14;overflow:hidden;touch-action:none;-webkit-tap-highlight-color:transparent}
+canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+/* ============================================================
+   비트 크래프터 (Beat Crafter) — Cycle 5
+   리듬 퍼즐: 4×8 그리드에 음표 블록을 배치, 3매치 클리어 시 화음 연주
+   순수 Canvas + Web Audio. 외부 에셋 0개.
+   ============================================================ */
+
+/* ============================================================
+   상태 × 시스템 업데이트 매트릭스 (Cycle 2~4 교훈)
+   ---------------------------------------------------------------
+   상태           | Tween | Drop | Input    | Match | Beat | Part | Render      | Audio
+   LOADING        |  ✗    |  ✗   |  ✗       |  ✗    |  ✗   |  ✗   | loading     |  ✗
+   TITLE          |  ✓    |  ✗   | start만  |  ✗    | 느림 |  ✗   | title       |  ✗
+   PLAYING        |  ✓    |  ✓   |  ✓       |  ✓    |  ✓   |  ✓   | game        |  ✓
+   PAUSE          |  ✓    |  ✗   | resume만 |  ✗    | 정지 |  ✗   | game+pause  | suspend
+   CONFIRM_MODAL  |  ✓    |  ✗   | yes/no   |  ✗    | 정지 |  ✗   | game+modal  | suspend
+   GAMEOVER       |  ✓    |  ✗   | restart  |  ✗    | 감쇠 |  ✓   | game+result | suspend
+   핵심: TweenManager는 모든 상태에서 항상 업데이트
+   ============================================================ */
+
+'use strict';
+
+/* ============================================================
+   1. 상수 & 설정
+   ============================================================ */
+const COLS = 4, ROWS = 8;
+const FONT = "'Segoe UI',system-ui,-apple-system,sans-serif";
+
+// 음계 정의 (C4~G4)
+const NOTE_FREQ   = [261.6, 293.7, 329.6, 349.2, 392.0];
+const NOTE_COLORS = ['#FF1744','#2979FF','#00E676','#FFAB00','#D500F9'];
+const NOTE_LIGHT  = ['#FF5252','#448AFF','#69F0AE','#FFD740','#EA80FC'];
+const NOTE_LETTERS= ['C','D','E','F','G'];
+const NOTE_NAMES  = ['도','레','미','파','솔'];
+
+// 색상 팔레트
+const C_BG_TOP    = '#0A0A14';
+const C_BG_BOT    = '#0F0A1E';
+const C_GRID_BG   = '#12122A';
+const C_GRID_LINE = 'rgba(42,42,94,0.2)';
+const C_GRID_BORDER='#4A4A8E';
+const C_TEXT      = '#E0E0E0';
+const C_TEXT_DIM  = '#8080A0';
+const C_LEVEL     = '#FFD740';
+const C_CHAIN     = '#00E5FF';
+const C_BPM       = '#D500F9';
+const C_DANGER    = '#FF1744';
+const C_NEXT_BG   = '#1A1A3E';
+
+// 레벨 테이블 (§6.1)
+const LEVEL_TABLE = [0,5,12,21,32,45,60,77,96,117];
+
+// 게임 상태
+const S_LOADING=0, S_TITLE=1, S_PLAYING=2, S_PAUSE=3, S_CONFIRM=4, S_GAMEOVER=5;
+
+// 상태 우선순위 (§10.1 — Cycle 4 계승)
+const STATE_PRIORITY = { 0:0, 1:10, 2:20, 3:30, 4:35, 5:99 };
+
+/* ============================================================
+   2. 이징 함수 5종
+   ============================================================ */
+const EASING = {
+  linear:        t => t,
+  easeOutQuad:   t => t * (2 - t),
+  easeInQuad:    t => t * t,
+  easeOutBack:   t => 1 + (--t) * t * (2.70158 * t + 1.70158),
+  easeOutElastic:t => t===0?0:t===1?1:
+    Math.pow(2,-10*t)*Math.sin((t*10-0.75)*(2*Math.PI/3))+1
+};
+
+/* ============================================================
+   3. TweenManager (clearImmediate 포함 — Cycle 4 B1 CRITICAL 해결)
+   ============================================================ */
+class TweenManager {
+  constructor() { this._tweens = []; this._pendingCancel = false; }
+
+  // 새 tween 추가
+  add(target, props, duration, easing, onComplete) {
+    this._tweens.push({ target, props, duration, easing: easing||'linear',
+      onComplete, elapsed: 0, startValues: {}, _started: false });
+    return this;
+  }
+
+  // 매 프레임 업데이트
+  update(dt) {
+    if (this._pendingCancel) {
+      this._tweens.length = 0;
+      this._pendingCancel = false;
+      return;
+    }
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      if (!tw._started) {
+        tw._started = true;
+        for (const k in tw.props) tw.startValues[k] = tw.target[k];
+      }
+      tw.elapsed += dt * 1000;
+      const t = Math.min(1, tw.elapsed / tw.duration);
+      const e = EASING[tw.easing](t);
+      for (const k in tw.props)
+        tw.target[k] = tw.startValues[k] + (tw.props[k] - tw.startValues[k]) * e;
+      if (t >= 1) {
+        this._tweens.splice(i, 1);
+        if (tw.onComplete) tw.onComplete();
+      }
+    }
+  }
+
+  // Deferred cancel (update 루프 내 안전)
+  cancelAll() { this._pendingCancel = true; }
+
+  // ⭐ 즉시 정리 — resetGame()에서만 사용 (Cycle 4 B1 해결)
+  clearImmediate() {
+    this._tweens.length = 0;
+    this._pendingCancel = false;
+  }
+}
+
+const tw = new TweenManager();
+
+/* ============================================================
+   4. ObjectPool (Cycle 2~4 인프라 계승)
+   ============================================================ */
+class ObjectPool {
+  constructor(factory, size) {
+    this._pool = []; this._active = []; this._factory = factory;
+    for (let i = 0; i < size; i++) this._pool.push(factory());
+  }
+  acquire() {
+    const obj = this._pool.length > 0 ? this._pool.pop() : this._factory();
+    this._active.push(obj);
+    return obj;
+  }
+  release(obj) {
+    const idx = this._active.indexOf(obj);
+    if (idx >= 0) { this._active.splice(idx, 1); this._pool.push(obj); }
+  }
+  releaseAll() {
+    while (this._active.length) this._pool.push(this._active.pop());
+  }
+  get active() { return this._active; }
+}
+
+/* ============================================================
+   5. 캔버스 초기화 & DPR 대응
+   ============================================================ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+let CELL, gridW, gridH, gridX, gridY;
+let gridCacheCanvas, gridCacheCtx;
+
+// 캔버스 리사이즈 + 그리드 레이아웃 계산
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+
+  // 그리드 셀 크기 계산 (화면에 맞춤)
+  const maxCH = Math.floor((H - 90) / ROWS);
+  const maxCW = Math.floor((W * 0.45) / COLS);
+  CELL = Math.min(maxCH, maxCW, 56);
+  CELL = Math.max(CELL, 28);
+  gridW = COLS * CELL;
+  gridH = ROWS * CELL;
+  gridX = Math.floor(W / 2 - gridW / 2);
+  gridY = Math.floor((H - gridH) / 2) + 15;
+
+  buildGridCache();
+}
+
+// offscreen canvas로 격자선 캐시 (§4.2 — 매 프레임 재드로잉 방지)
+function buildGridCache() {
+  gridCacheCanvas = document.createElement('canvas');
+  gridCacheCanvas.width = (gridW + 4) * dpr;
+  gridCacheCanvas.height = (gridH + 4) * dpr;
+  gridCacheCtx = gridCacheCanvas.getContext('2d');
+  gridCacheCtx.scale(dpr, dpr);
+
+  gridCacheCtx.strokeStyle = C_GRID_LINE;
+  gridCacheCtx.lineWidth = 1;
+  gridCacheCtx.beginPath();
+  for (let c = 0; c <= COLS; c++) {
+    gridCacheCtx.moveTo(c * CELL + 2, 2);
+    gridCacheCtx.lineTo(c * CELL + 2, gridH + 2);
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    gridCacheCtx.moveTo(2, r * CELL + 2);
+    gridCacheCtx.lineTo(gridW + 2, r * CELL + 2);
+  }
+  gridCacheCtx.stroke();
+
+  // 테두리
+  gridCacheCtx.strokeStyle = C_GRID_BORDER;
+  gridCacheCtx.lineWidth = 2;
+  gridCacheCtx.lineJoin = 'round';
+  roundRect(gridCacheCtx, 1, 1, gridW + 2, gridH + 2, 4);
+  gridCacheCtx.stroke();
+}
+
+// 둥근 모서리 사각형 헬퍼
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
+}
+
+/* ============================================================
+   6. 웹 오디오 (절차적 음악 생성 — §10.5)
+   ============================================================ */
+let audioCtx = null, masterGain = null;
+
+// 첫 인터랙션에서 AudioContext 초기화
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.3;
+    masterGain.connect(audioCtx.destination);
+  } catch(e) { audioCtx = null; }
+}
+
+// 블록 착지 단음 (해당 음계, 80ms)
+function sfxPlace(noteIdx) {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(NOTE_FREQ[noteIdx], now);
+    g.gain.setValueAtTime(0.12, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.08);
+  } catch(e) {}
+}
+
+// 매치 클리어 화음 (매치된 음계 동시 연주 — "퍼즐 = 작곡" 핵심)
+function sfxClearChord(matchedNotes, chain) {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    const unique = [...new Set(matchedNotes)];
+
+    // 기본 화음: 매치된 음계들 동시 연주
+    unique.forEach((ni, i) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(NOTE_FREQ[ni], now);
+      const vol = 0.15 / unique.length;
+      g.gain.setValueAtTime(vol, now);
+      g.gain.linearRampToValueAtTime(vol * 0.8, now + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now + i * 0.02); osc.stop(now + 0.4);
+    });
+
+    // 체인 1+: 옥타브 위 화음 추가
+    if (chain >= 1) {
+      unique.forEach(ni => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(NOTE_FREQ[ni] * 2, now);
+        g.gain.setValueAtTime(0.06, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(g); g.connect(masterGain);
+        osc.start(now + 0.05); osc.stop(now + 0.3);
+      });
+    }
+
+    // 체인 2+: 베이스 추가
+    if (chain >= 2) {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(NOTE_FREQ[unique[0]] / 2, now);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now); osc.stop(now + 0.35);
+    }
+  } catch(e) {}
+}
+
+// 레벨업 상승 아르페지오
+function sfxLevelUp() {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    const notes = [0, 2, 4]; // C E G
+    notes.forEach((ni, i) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(NOTE_FREQ[ni] * (i === 2 ? 2 : 1), now);
+      g.gain.setValueAtTime(0.1, now + i * 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.2);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now + i * 0.06); osc.stop(now + i * 0.06 + 0.2);
+    });
+  } catch(e) {}
+}
+
+// 게임오버 하강 효과음
+function sfxGameOver() {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    [4, 2, 0].forEach((ni, i) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(NOTE_FREQ[ni] / 2, now + i * 0.1);
+      g.gain.setValueAtTime(0.08, now + i * 0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.25);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.25);
+    });
+  } catch(e) {}
+}
+
+// 올 클리어 풀 메이저 코드
+function sfxAllClear() {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    [0, 2, 4].forEach(ni => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(NOTE_FREQ[ni], now);
+      g.gain.setValueAtTime(0.15 / 3, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now); osc.stop(now + 0.8);
+    });
+  } catch(e) {}
+}
+
+// 배경 비트 메트로놈 (BPM 기반)
+function sfxBeatTick() {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    g.gain.setValueAtTime(0.02, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.03);
+  } catch(e) {}
+}
+
+/* ============================================================
+   7. 점수 & localStorage (try-catch 래핑 — iframe sandbox 대응)
+   ============================================================ */
+function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+function getBest() { return parseInt(lsGet('bc_bestScore')) || 0; }
+function getBestChain() { return parseInt(lsGet('bc_bestChain')) || 0; }
+function getBestLevel() { return parseInt(lsGet('bc_bestLevel')) || 0; }
+function getTotalPlays() { return parseInt(lsGet('bc_totalPlays')) || 0; }
+
+// 점수를 콤마 포맷으로 변환
+function fmtNum(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+// 시간(초)을 M:SS 포맷으로 변환
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+/* ============================================================
+   8. 게임 변수
+   ============================================================ */
+let state = S_LOADING;
+let transitioning = false;
+let rafId = null;
+let lastTime = 0;
+
+// 그리드 데이터: grid[col][row] = null | { note:0~4, gravFrom:undefined|number }
+let grid = [];
+
+// 낙하 블록
+let fallingBlock = null; // { note, col, row, dropTimer }
+let nextNote = 0;
+let softDropping = false;
+let hardDropDist = 0;
+let softDropDist = 0;
+
+// 점수/레벨
+let score = 0, level = 1, clearCount = 0;
+let chainCount = 0, maxChain = 0;
+let dropInterval = 1000;
+let isClearing = false;
+let playTime = 0;
+let achievedAllClear = false;
+let noMatchStreak = 0; // 연속 매치 실패 수
+
+// BPM (tween 단일 경로로만 갱신 — §7.3, §10.5)
+let bpmState = { val: 80 };
+let beatTimer = 0, beatFlash = 0;
+
+// 입력 모드 (4개 사용처 — §5.3 유령 코드 방지)
+let inputMode = 'keyboard';
+
+// DAS (Delayed Auto Shift — dt 누적 방식, setTimeout 금지)
+const das = { dir: 0, delay: 0, repeat: 0, active: false };
+
+// 효과 상태
+let clearAnimState = null; // { scale, alpha, cells: [{c,r,note}] }
+let gravAnimState = null;  // { t }
+let gravMoves = [];        // [{c, fromRow, toRow}]
+let chainTextState = null; // { text, scale, alpha, x, y }
+let landWaveState = null;  // { x, y, w, alpha }
+let lvlUpFlash = { alpha: 0 };
+let scorePopups = [];      // [{text, x, y, alpha, dy}]
+let shakeTimer = 0, shakeX = 0, shakeY = 0;
+let dangerBlink = 0;
+let titleAlpha = { a: 1 };
+let titleColorIdx = 0, titleColorTimer = 0;
+let resultReveal = { items: 0, newBestScale: 0 };
+let modalAlpha = { a: 0 };
+let modalYesHover = false, modalNoHover = false;
+
+// 일시정지 버튼 영역
+let pauseBtnRect = { x: 0, y: 0, w: 24, h: 24 };
+
+// 결과 데이터
+let resultData = {};
+
+// 풀
+const pools = {
+  particle: new ObjectPool(() => ({ x:0,y:0,vx:0,vy:0,color:'#fff',alpha:1,size:4,life:0,maxLife:1 }), 50),
+  noteIcon: new ObjectPool(() => ({ x:0,y:0,vy:0,alpha:0,size:12,color:'#fff',life:0,maxLife:3 }), 12)
+};
+
+/* ============================================================
+   9. 이벤트 리스너 등록 (destroy 패턴 — Cycle 3~4 표준)
+   ============================================================ */
+const registeredListeners = [];
+function listen(el, evt, fn, opts) {
+  el.addEventListener(evt, fn, opts);
+  registeredListeners.push([el, evt, fn, opts]);
+}
+
+/* ============================================================
+   10. 상태 전환 (TransitionGuard — Cycle 4 계승)
+   ============================================================ */
+// 상태 전환 시작 (가드 + 우선순위)
+function beginTransition(targetState, tweenCfg) {
+  if (transitioning) return false;
+  if (STATE_PRIORITY[state] >= STATE_PRIORITY[targetState]) return false;
+  transitioning = true;
+
+  if (tweenCfg) {
+    tw.add(tweenCfg.target, tweenCfg.props, tweenCfg.duration,
+      tweenCfg.easing, () => {
+        state = targetState;
+        transitioning = false;
+        enterState(targetState);
+        if (tweenCfg.onComplete) tweenCfg.onComplete();
+      });
+  } else {
+    state = targetState;
+    transitioning = false;
+    enterState(targetState);
+  }
+  return true;
+}
+
+// 상태 진입 초기화 (Cycle 4 타이틀 글로우 미복구 해결)
+function enterState(s) {
+  switch(s) {
+    case S_TITLE:
+      pulseTitle();
+      try { audioCtx && audioCtx.suspend(); } catch(e) {}
+      break;
+    case S_PLAYING:
+      try { audioCtx && audioCtx.resume(); } catch(e) {}
+      if (!fallingBlock && !isClearing) spawnNextBlock();
+      break;
+    case S_PAUSE:
+      try { audioCtx && audioCtx.suspend(); } catch(e) {}
+      break;
+    case S_CONFIRM:
+      modalAlpha = { a: 0 };
+      tw.add(modalAlpha, { a: 1 }, 200, 'easeOutQuad');
+      try { audioCtx && audioCtx.suspend(); } catch(e) {}
+      break;
+    case S_GAMEOVER:
+      try { audioCtx && audioCtx.suspend(); } catch(e) {}
+      sfxGameOver();
+      calculateResults();
+      startResultSequence();
+      shakeTimer = 0.4;
+      break;
+  }
+}
+
+// 타이틀 글로우 tween (ping-pong 반복)
+function pulseTitle() {
+  titleAlpha = { a: 0.7 };
+  tw.add(titleAlpha, { a: 1 }, 800, 'easeOutQuad', () => {
+    tw.add(titleAlpha, { a: 0.7 }, 800, 'easeInQuad', pulseTitle);
+  });
+}
+
+/* ============================================================
+   11. 그리드 & 매치 시스템 (§10.4)
+   ============================================================ */
+// 그리드 초기화
+function initGrid() {
+  grid = [];
+  for (let c = 0; c < COLS; c++) {
+    grid[c] = [];
+    for (let r = 0; r < ROWS; r++) grid[c][r] = null;
+  }
+}
+
+// 열의 높이 (가장 높은 블록 + 1)
+function colHeight(c) {
+  for (let r = ROWS - 1; r >= 0; r--) if (grid[c][r] !== null) return r + 1;
+  return 0;
+}
+
+// 최대 열 높이
+function maxColHeight() {
+  let m = 0;
+  for (let c = 0; c < COLS; c++) m = Math.max(m, colHeight(c));
+  return m;
+}
+
+// 해당 위치에 블록을 놓을 수 있는지 확인
+function canPlace(c, r) {
+  return r >= 0 && r < ROWS && grid[c][r] === null;
+}
+
+// 착지 row 계산
+function getLandRow(c) {
+  return colHeight(c);
+}
+
+// 매치 탐색 (가로/세로 3+ 연속 같은 음표)
+function findMatches() {
+  const matched = Array.from({length:COLS}, () => Array(ROWS).fill(false));
+  let hasH = false, hasV = false, maxRun = 0;
+
+  // 가로 탐색
+  for (let r = 0; r < ROWS; r++) {
+    let cnt = 1;
+    for (let c = 1; c < COLS; c++) {
+      if (grid[c][r] && grid[c-1][r] && grid[c][r].note === grid[c-1][r].note) {
+        cnt++;
+      } else {
+        if (cnt >= 3) {
+          for (let k = c - cnt; k < c; k++) matched[k][r] = true;
+          hasH = true; maxRun = Math.max(maxRun, cnt);
+        }
+        cnt = 1;
+      }
+    }
+    if (cnt >= 3) {
+      for (let k = COLS - cnt; k < COLS; k++) matched[k][r] = true;
+      hasH = true; maxRun = Math.max(maxRun, cnt);
+    }
+  }
+
+  // 세로 탐색
+  for (let c = 0; c < COLS; c++) {
+    let cnt = 1;
+    for (let r = 1; r < ROWS; r++) {
+      if (grid[c][r] && grid[c][r-1] && grid[c][r].note === grid[c][r-1].note) {
+        cnt++;
+      } else {
+        if (cnt >= 3) {
+          for (let k = r - cnt; k < r; k++) matched[c][k] = true;
+          hasV = true; maxRun = Math.max(maxRun, cnt);
+        }
+        cnt = 1;
+      }
+    }
+    if (cnt >= 3) {
+      for (let k = ROWS - cnt; k < ROWS; k++) matched[c][k] = true;
+      hasV = true; maxRun = Math.max(maxRun, cnt);
+    }
+  }
+
+  // 매치된 셀 수집
+  const cells = [];
+  for (let c = 0; c < COLS; c++)
+    for (let r = 0; r < ROWS; r++)
+      if (matched[c][r] && grid[c][r]) cells.push({c, r, note: grid[c][r].note});
+
+  // 유형 분류 (§7.1 — 점수 차등)
+  let type = 'NONE';
+  if (cells.length > 0) {
+    if (hasH && hasV) type = 'CROSS';    // T/L자 500점
+    else if (maxRun >= 4) type = 'FOUR'; // 4매치 300점
+    else type = 'THREE';                  // 3매치 100점
+  }
+  return { cells, type };
+}
+
+/* ============================================================
+   12. 블록 생성 (가중 랜덤 + 밸런스 보정 — §6.2, §6.3)
+   ============================================================ */
+// 현재 레벨에서 사용 가능한 음표 수
+function availableNotes() {
+  if (level <= 2) return 3;
+  if (level <= 4) return 4;
+  return 5;
+}
+
+// 그리드 내 각 음표 수 세기
+function countNotesInGrid() {
+  const counts = [0,0,0,0,0];
+  for (let c = 0; c < COLS; c++)
+    for (let r = 0; r < ROWS; r++)
+      if (grid[c][r]) counts[grid[c][r].note]++;
+  return counts;
+}
+
+// 가중 랜덤 음표 생성
+function generateNote() {
+  const avail = availableNotes();
+  const counts = countNotesInGrid();
+  const inCrisis = maxColHeight() >= 6;
+  const weights = [];
+
+  for (let i = 0; i < avail; i++) {
+    let w = 1;
+    if (counts[i] >= 2) w += 0.3;    // 그리드에 2개 이상 → 매치 기회 ↑
+    if (inCrisis && counts[i] >= 2) w += 0.5; // 위기 시 추가 보정
+    weights.push(w);
+  }
+
+  // 연속 3블록 매치 실패 시 강제 보정
+  if (noMatchStreak >= 3) {
+    let best = -1, bestCount = 0;
+    for (let i = 0; i < avail; i++) {
+      if (counts[i] > bestCount) { bestCount = counts[i]; best = i; }
+    }
+    if (best >= 0 && bestCount >= 2) return best;
+  }
+
+  const total = weights.reduce((s, w) => s + w, 0);
+  let rnd = Math.random() * total;
+  for (let i = 0; i < avail; i++) {
+    rnd -= weights[i];
+    if (rnd <= 0) return i;
+  }
+  return 0;
+}
+
+// 다음 블록 스폰
+function spawnNextBlock() {
+  const note = nextNote;
+  nextNote = generateNote();
+  const col = 1; // 스폰 열
+
+  // 게임오버 체크: 스폰 위치가 이미 점유
+  if (colHeight(col) >= ROWS) {
+    if (!transitioning) {
+      beginTransition(S_GAMEOVER, {
+        target: { t: 0 }, props: { t: 1 }, duration: 500,
+        easing: 'easeOutQuad'
+      });
+    }
+    return;
+  }
+
+  fallingBlock = { note, col, row: ROWS - 1, dropTimer: 0 };
+  softDropDist = 0;
+  hardDropDist = 0;
+}
+
+/* ============================================================
+   13. 낙하 & 착지 시스템
+   ============================================================ */
+// 낙하 업데이트 (dt 누적 방식)
+function updateDrop(dt) {
+  if (!fallingBlock || isClearing) return;
+
+  const interval = softDropping
+    ? dropInterval * 0.15
+    : dropInterval;
+
+  fallingBlock.dropTimer += dt * 1000;
+
+  while (fallingBlock && fallingBlock.dropTimer >= interval) {
+    fallingBlock.dropTimer -= interval;
+    tryDropOne();
+  }
+}
+
+// 블록 1칸 낙하 시도
+function tryDropOne() {
+  if (!fallingBlock) return;
+  const landRow = getLandRow(fallingBlock.col);
+  if (fallingBlock.row - 1 >= landRow) {
+    fallingBlock.row--;
+    if (softDropping) { softDropDist++; score += 1; } // 소프트 드롭 점수
+  } else {
+    placeBlock();
+  }
+}
+
+// 하드 드롭
+function hardDrop() {
+  if (!fallingBlock || isClearing) return;
+  const landRow = getLandRow(fallingBlock.col);
+  hardDropDist = fallingBlock.row - landRow;
+  score += hardDropDist * 2; // 하드 드롭 점수 (행당 2점)
+  fallingBlock.row = landRow;
+  placeBlock();
+}
+
+// 블록 착지 처리
+function placeBlock() {
+  if (!fallingBlock) return;
+  const { col, row, note } = fallingBlock;
+
+  // 그리드에 배치
+  grid[col][row] = { note };
+  fallingBlock = null;
+
+  // 착지 이펙트
+  spawnLandWave(col, row, note);
+  sfxPlace(note);
+
+  // 매치 판정 시작
+  chainCount = 0;
+  checkAndClear();
+}
+
+// 매치 판정 → 클리어 → 중력 → 재판정 루프
+function checkAndClear() {
+  const match = findMatches();
+  if (match.cells.length === 0) {
+    // 매치 없음 — 체인 종료
+    if (chainCount > 0) maxChain = Math.max(maxChain, chainCount);
+    isClearing = false;
+    noMatchStreak = chainCount > 0 ? 0 : noMatchStreak + 1;
+
+    // 올 클리어 체크
+    if (isGridEmpty()) {
+      achievedAllClear = true;
+      score += 3000;
+      sfxAllClear();
+      addScorePopup('ALL CLEAR! +3000', W / 2, H / 2);
+    }
+
+    // 다음 블록 스폰 (게임오버 아니면)
+    if (state === S_PLAYING) spawnNextBlock();
+    return;
+  }
+
+  // 매치 발견 — 클리어 시작
+  isClearing = true;
+
+  // 점수 계산 (§7.1)
+  const baseScore = match.type === 'CROSS' ? 500 : match.type === 'FOUR' ? 300 : 100;
+  const chainMul = 1 + chainCount * 0.5;
+  const levelMul = 1 + (level - 1) * 0.1;
+  const gained = Math.floor(baseScore * chainMul * levelMul);
+  score += gained;
+
+  // 클리어 수 증가 (매치된 블록 수)
+  clearCount += match.cells.length;
+  updateLevel();
+
+  // 체인 보너스
+  if (chainCount >= 3) { score += 500; addScorePopup('Amazing! +500', W / 2, gridY + gridH / 2); }
+  if (chainCount >= 5) { score += 1500; addScorePopup('Incredible! +1500', W / 2, gridY + gridH / 2 - 30); }
+
+  // 점수 팝업
+  const avgC = match.cells.reduce((s, c) => s + c.c, 0) / match.cells.length;
+  const avgR = match.cells.reduce((s, c) => s + c.r, 0) / match.cells.length;
+  addScorePopup('+' + fmtNum(gained),
+    gridX + (avgC + 0.5) * CELL, gridY + (ROWS - 1 - avgR) * CELL);
+
+  // 사운드
+  sfxClearChord(match.cells.map(c => c.note), chainCount);
+
+  // 파티클 생성
+  match.cells.forEach(cell => spawnClearParticles(cell.c, cell.r, cell.note));
+
+  // 클리어 애니메이션 시작 (스케일 1.2→0, 300ms)
+  clearAnimState = { scale: 1.2, alpha: 1, cells: match.cells };
+  tw.add(clearAnimState, { scale: 0, alpha: 0 }, 300, 'easeOutQuad', () => {
+    // 매치된 블록 제거
+    clearAnimState.cells.forEach(({ c, r }) => { grid[c][r] = null; });
+    clearAnimState = null;
+
+    // 중력 적용
+    applyGravity();
+  });
+
+  // 체인 텍스트 표시
+  if (chainCount >= 1) {
+    const txt = 'Chain ×' + (chainCount + 1) + '!';
+    chainTextState = { text: txt, scale: 1.5, alpha: 1,
+      x: gridX + gridW + 20, y: gridY + gridH / 2 };
+    tw.add(chainTextState, { scale: 1, alpha: 0 }, 800, 'easeOutBack');
+  }
+
+  // 배경 비트 플래시
+  beatFlash = 0.3;
+
+  chainCount++;
+}
+
+// 중력 적용 (빈 칸 채우기 + 애니메이션)
+function applyGravity() {
+  gravMoves = [];
+  for (let c = 0; c < COLS; c++) {
+    let writeR = 0;
+    for (let r = 0; r < ROWS; r++) {
+      if (grid[c][r] !== null) {
+        if (r !== writeR) {
+          grid[c][writeR] = grid[c][r];
+          grid[c][writeR].gravFrom = r;
+          grid[c][r] = null;
+          gravMoves.push({ c, fromRow: r, toRow: writeR });
+        }
+        writeR++;
+      }
+    }
+  }
+
+  if (gravMoves.length === 0) {
+    // 이동 없음 → 바로 재판정
+    checkAndClear();
+    return;
+  }
+
+  // 중력 애니메이션 (200ms)
+  gravAnimState = { t: 0 };
+  tw.add(gravAnimState, { t: 1 }, 200, 'easeOutQuad', () => {
+    // 애니메이션 완료 — gravFrom 클리어
+    for (let c = 0; c < COLS; c++)
+      for (let r = 0; r < ROWS; r++)
+        if (grid[c][r]) grid[c][r].gravFrom = undefined;
+    gravAnimState = null;
+    gravMoves = [];
+    // 재판정 (연쇄)
+    checkAndClear();
+  });
+}
+
+// 그리드 비었는지 확인
+function isGridEmpty() {
+  for (let c = 0; c < COLS; c++)
+    for (let r = 0; r < ROWS; r++)
+      if (grid[c][r] !== null) return false;
+  return true;
+}
+
+// 레벨 업데이트
+function updateLevel() {
+  let newLv = 1;
+  for (let i = LEVEL_TABLE.length - 1; i >= 0; i--) {
+    if (clearCount >= LEVEL_TABLE[i]) { newLv = i + 1; break; }
+  }
+  if (newLv > 10) newLv = 10;
+
+  if (newLv > level) {
+    level = newLv;
+    dropInterval = Math.max(280, 1000 - (level - 1) * 80);
+    score += level * 200; // 레벨업 보너스
+    addScorePopup('Level Up! +' + (level * 200), W / 2, H / 2 - 40);
+    sfxLevelUp();
+
+    // BPM tween (단일 경로 — §10.5)
+    const targetBpm = Math.min(145, 80 + (level - 1) * 7.2);
+    tw.add(bpmState, { val: targetBpm }, 500, 'easeOutQuad');
+
+    // 레벨업 플래시 이펙트
+    lvlUpFlash = { alpha: 0.3 };
+    tw.add(lvlUpFlash, { alpha: 0 }, 400, 'easeOutQuad');
+  }
+}
+
+/* ============================================================
+   14. 파티클 시스템
+   ============================================================ */
+// 클리어 파티클 생성 (블록당 8개)
+function spawnClearParticles(c, r, note) {
+  const cx = gridX + (c + 0.5) * CELL;
+  const cy = gridY + (ROWS - 1 - r + 0.5) * CELL;
+  for (let i = 0; i < 8; i++) {
+    const p = pools.particle.acquire();
+    const angle = (Math.PI * 2 / 8) * i + Math.random() * 0.3;
+    const speed = 60 + Math.random() * 80;
+    p.x = cx; p.y = cy;
+    p.vx = Math.cos(angle) * speed;
+    p.vy = Math.sin(angle) * speed;
+    p.color = NOTE_COLORS[note];
+    p.alpha = 1; p.size = 3 + Math.random() * 3;
+    p.life = 0; p.maxLife = 0.4 + Math.random() * 0.2;
+  }
+}
+
+// 착지 수평 웨이브
+function spawnLandWave(c, r, note) {
+  landWaveState = {
+    x: gridX, y: gridY + (ROWS - 1 - r + 0.5) * CELL,
+    w: gridW, alpha: 0.5, color: NOTE_COLORS[note]
+  };
+  tw.add(landWaveState, { alpha: 0 }, 150, 'easeOutQuad');
+}
+
+// 점수 팝업 추가
+function addScorePopup(text, x, y) {
+  scorePopups.push({ text, x, y, alpha: 1, dy: 0 });
+}
+
+// 부유 음표 아이콘 생성 (타이틀/게임 배경)
+function spawnNoteIcon() {
+  const n = pools.noteIcon.acquire();
+  n.x = Math.random() * W;
+  n.y = H + 10;
+  n.vy = -(15 + Math.random() * 25);
+  n.alpha = 0.3 + Math.random() * 0.3;
+  n.size = 10 + Math.random() * 6;
+  n.color = NOTE_COLORS[Math.floor(Math.random() * 5)];
+  n.life = 0; n.maxLife = 6 + Math.random() * 4;
+}
+
+// 파티클 업데이트
+function updateParticles(dt) {
+  // 클리어 파티클
+  for (let i = pools.particle.active.length - 1; i >= 0; i--) {
+    const p = pools.particle.active[i];
+    p.life += dt;
+    if (p.life >= p.maxLife) { pools.particle.release(p); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.alpha = 1 - p.life / p.maxLife;
+  }
+
+  // 음표 아이콘 파티클
+  for (let i = pools.noteIcon.active.length - 1; i >= 0; i--) {
+    const n = pools.noteIcon.active[i];
+    n.life += dt;
+    if (n.life >= n.maxLife) { pools.noteIcon.release(n); continue; }
+    n.y += n.vy * dt;
+    n.x += Math.sin(n.life * 1.5) * 0.3;
+    if (n.life < 0.5) n.alpha = n.life / 0.5 * 0.4;
+    else if (n.life > n.maxLife - 1) n.alpha = (n.maxLife - n.life) * 0.4;
+  }
+
+  // 점수 팝업
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    const p = scorePopups[i];
+    p.dy -= 40 * dt;
+    p.alpha -= dt * 1.2;
+    if (p.alpha <= 0) scorePopups.splice(i, 1);
+  }
+}
+
+/* ============================================================
+   15. 배경 비트 펄스 업데이트 (BPM 기반)
+   ============================================================ */
+let noteSpawnTimer = 0;
+
+function updateBeat(dt) {
+  // 비트 플래시 감쇠
+  beatFlash = Math.max(0, beatFlash - dt * 3);
+
+  // BPM 기반 비트 틱
+  beatTimer += dt;
+  const beatInterval = 60 / bpmState.val;
+  if (beatTimer >= beatInterval) {
+    beatTimer -= beatInterval;
+    dangerBlink = 1 - dangerBlink;
+    if (state === S_PLAYING) sfxBeatTick();
+  }
+
+  // 부유 음표 생성 (PLAYING 상태에서)
+  if (state === S_PLAYING || state === S_TITLE) {
+    noteSpawnTimer += dt;
+    if (noteSpawnTimer >= 1.5) {
+      noteSpawnTimer -= 1.5;
+      if (pools.noteIcon.active.length < 10) spawnNoteIcon();
+    }
+  }
+
+  // 화면 흔들림 감쇠
+  if (shakeTimer > 0) {
+    shakeTimer -= dt;
+    shakeX = (Math.random() - 0.5) * shakeTimer * 20;
+    shakeY = (Math.random() - 0.5) * shakeTimer * 20;
+  } else { shakeX = 0; shakeY = 0; }
+}
+
+/* ============================================================
+   16. 입력 시스템 (키보드 + 마우스 + 터치)
+   ============================================================ */
+const keysDown = {};
+
+function onKeyDown(e) {
+  if (keysDown[e.code]) return;
+  keysDown[e.code] = true;
+  inputMode = 'keyboard';
+  initAudio();
+
+  switch(state) {
+    case S_TITLE:
+      if (e.code === 'Enter' || e.code === 'Space') startGame();
+      break;
+    case S_PLAYING:
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') startDAS(-1);
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') startDAS(1);
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') softDropping = true;
+      if (e.code === 'Space') hardDrop();
+      if (e.code === 'KeyP' || e.code === 'Escape') pauseGame();
+      break;
+    case S_PAUSE:
+      if (e.code === 'KeyP' || e.code === 'Escape') resumeGame();
+      if (e.code === 'KeyR') showConfirmModal();
+      break;
+    case S_CONFIRM:
+      if (e.code === 'KeyY') confirmRestart();
+      if (e.code === 'KeyN' || e.code === 'Escape') cancelModal();
+      break;
+    case S_GAMEOVER:
+      if (e.code === 'KeyR' || e.code === 'Enter' || e.code === 'Space') goToTitle();
+      break;
+  }
+}
+
+function onKeyUp(e) {
+  keysDown[e.code] = false;
+
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') { if (das.dir === -1) stopDAS(); }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') { if (das.dir === 1) stopDAS(); }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') softDropping = false;
+}
+
+// DAS 시작 (즉시 1칸 이동 + 반복 타이머)
+function startDAS(dir) {
+  das.dir = dir; das.delay = 0; das.repeat = 0; das.active = true;
+  moveFalling(dir);
+}
+function stopDAS() { das.dir = 0; das.active = false; }
+
+// DAS 업데이트 (dt 누적 — setTimeout 금지)
+function updateDAS(dt) {
+  if (!das.active || das.dir === 0 || !fallingBlock || isClearing) return;
+  das.delay += dt * 1000;
+  if (das.delay >= 200) {
+    das.repeat += dt * 1000;
+    if (das.repeat >= 100) {
+      das.repeat -= 100;
+      moveFalling(das.dir);
+    }
+  }
+}
+
+// 좌우 이동
+function moveFalling(dir) {
+  if (!fallingBlock || isClearing) return;
+  const nc = fallingBlock.col + dir;
+  if (nc >= 0 && nc < COLS) fallingBlock.col = nc;
+}
+
+// 마우스 클릭 처리
+function onMouseDown(e) {
+  inputMode = 'mouse';
+  initAudio();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  handlePointerDown(mx, my);
+}
+
+// 터치 처리
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+
+function onTouchStart(e) {
+  e.preventDefault();
+  inputMode = 'touch';
+  initAudio();
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  touchStartTime = performance.now();
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+  const elapsed = performance.now() - touchStartTime;
+
+  if (absDx < 25 && absDy < 25) {
+    // 탭
+    const rect = canvas.getBoundingClientRect();
+    handlePointerDown(t.clientX - rect.left, t.clientY - rect.top);
+  } else if (absDy > absDx && dy > 30) {
+    // 하향 스와이프 → 하드 드롭
+    if (state === S_PLAYING) hardDrop();
+  } else if (absDx > absDy && absDx > 25) {
+    // 가로 스와이프
+    if (state === S_PLAYING) moveFalling(dx > 0 ? 1 : -1);
+  }
+}
+
+// 공통 포인터 처리
+function handlePointerDown(mx, my) {
+  switch(state) {
+    case S_TITLE:
+      startGame();
+      break;
+    case S_PLAYING: {
+      // 일시정지 버튼 체크
+      if (mx >= pauseBtnRect.x && mx <= pauseBtnRect.x + pauseBtnRect.w &&
+          my >= pauseBtnRect.y && my <= pauseBtnRect.y + pauseBtnRect.h) {
+        pauseGame(); return;
+      }
+      // 그리드 열 클릭 → 해당 열로 이동 + 하드 드롭
+      const col = Math.floor((mx - gridX) / CELL);
+      if (col >= 0 && col < COLS && my >= gridY && my <= gridY + gridH) {
+        if (fallingBlock && !isClearing) {
+          fallingBlock.col = col;
+          hardDrop();
+        }
+      }
+      break;
+    }
+    case S_PAUSE:
+      resumeGame();
+      break;
+    case S_CONFIRM: {
+      // 예/아니오 버튼 히트 테스트
+      const cw = Math.min(W * 0.7, 260);
+      const ch = 140;
+      const cx = (W - cw) / 2;
+      const cy = (H - ch) / 2;
+      const btnW = 80, btnH = 32;
+      const btnY = cy + ch - 50;
+      const yesX = cx + cw / 2 - btnW - 10;
+      const noX = cx + cw / 2 + 10;
+      if (my >= btnY && my <= btnY + btnH) {
+        if (mx >= yesX && mx <= yesX + btnW) confirmRestart();
+        if (mx >= noX && mx <= noX + btnW) cancelModal();
+      }
+      break;
+    }
+    case S_GAMEOVER:
+      goToTitle();
+      break;
+  }
+}
+
+/* ============================================================
+   17. 게임 흐름 함수
+   ============================================================ */
+function startGame() {
+  resetGame();
+  state = S_PLAYING;
+  transitioning = false;
+  enterState(S_PLAYING);
+}
+
+function resetGame() {
+  tw.clearImmediate(); // ⭐ clearImmediate 사용 (cancelAll 아님! — Cycle 4 B1 해결)
+  initGrid();
+  score = 0; level = 1; clearCount = 0;
+  chainCount = 0; maxChain = 0;
+  dropInterval = 1000;
+  bpmState = { val: 80 };
+  beatTimer = 0; beatFlash = 0;
+  isClearing = false; transitioning = false;
+  fallingBlock = null;
+  softDropping = false;
+  playTime = 0;
+  achievedAllClear = false;
+  noMatchStreak = 0;
+  clearAnimState = null; gravAnimState = null; gravMoves = [];
+  chainTextState = null; landWaveState = null;
+  scorePopups = [];
+  shakeTimer = 0; shakeX = 0; shakeY = 0;
+  pools.particle.releaseAll();
+  pools.noteIcon.releaseAll();
+  nextNote = generateNote();
+
+  // 통계
+  const plays = getTotalPlays() + 1;
+  lsSet('bc_totalPlays', plays);
+}
+
+function pauseGame() {
+  if (state !== S_PLAYING || transitioning) return;
+  state = S_PAUSE; enterState(S_PAUSE);
+}
+
+function resumeGame() {
+  if (state !== S_PAUSE) return;
+  state = S_PLAYING; enterState(S_PLAYING);
+}
+
+function showConfirmModal() {
+  if (state !== S_PAUSE) return;
+  state = S_CONFIRM; enterState(S_CONFIRM);
+}
+
+function confirmRestart() {
+  goToTitle();
+}
+
+function cancelModal() {
+  tw.add(modalAlpha, { a: 0 }, 200, 'easeOutQuad', () => {
+    state = S_PAUSE;
+  });
+}
+
+function goToTitle() {
+  tw.clearImmediate();
+  state = S_TITLE;
+  transitioning = false;
+  enterState(S_TITLE);
+}
+
+// 결과 집계 (§7.4 — 판정 먼저, 저장 나중에)
+function calculateResults() {
+  const best = getBest();
+  const bestChain = getBestChain();
+  const bestLv = getBestLevel();
+
+  resultData = {
+    score, level, clearCount, maxChain, playTime,
+    isNewBest: score > best,
+    isNewChain: maxChain > bestChain,
+    isNewLevel: level > bestLv,
+    prevBest: best,
+    achievedAllClear
+  };
+
+  // 저장 (판정 후)
+  if (resultData.isNewBest) lsSet('bc_bestScore', score);
+  if (resultData.isNewChain) lsSet('bc_bestChain', maxChain);
+  if (resultData.isNewLevel) lsSet('bc_bestLevel', level);
+  lsSet('bc_totalClears', (parseInt(lsGet('bc_totalClears')) || 0) + clearCount);
+}
+
+// 결과 화면 순차 fadeIn 시작
+function startResultSequence() {
+  resultReveal = { items: 0, newBestScale: 0 };
+  // 항목 하나씩 나타남 (각 200ms 딜레이)
+  for (let i = 1; i <= 6; i++) {
+    const target = { val: i };
+    tw.add(resultReveal, { items: i }, 200 * i, 'easeOutQuad');
+  }
+  // NEW BEST 스케일 연출
+  if (resultData.isNewBest) {
+    tw.add(resultReveal, { newBestScale: 1 }, 1400, 'easeOutElastic');
+  }
+}
+
+/* ============================================================
+   18. 블록 드로잉 (5종 고유 도형 — §4.3)
+   ============================================================ */
+function drawBlock(x, y, sz, noteIdx, alpha, scale) {
+  const s = scale || 1;
+  const a = alpha != null ? alpha : 1;
+  const color = NOTE_COLORS[noteIdx];
+  const light = NOTE_LIGHT[noteIdx];
+  const letter = NOTE_LETTERS[noteIdx];
+  const bs = (sz - 4) * s;
+  const cx = x + sz / 2;
+  const cy = y + sz / 2;
+
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8 * s;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = light;
+  ctx.lineWidth = 2;
+
+  switch(noteIdx) {
+    case 0: // 도: 원
+      ctx.beginPath();
+      ctx.arc(cx, cy, bs * 0.4, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      break;
+    case 1: // 레: 다이아몬드 (45도 회전 사각형)
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-bs * 0.28, -bs * 0.28, bs * 0.56, bs * 0.56);
+      ctx.strokeRect(-bs * 0.28, -bs * 0.28, bs * 0.56, bs * 0.56);
+      ctx.restore();
+      break;
+    case 2: // 미: 삼각형
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - bs * 0.38);
+      ctx.lineTo(cx + bs * 0.36, cy + bs * 0.3);
+      ctx.lineTo(cx - bs * 0.36, cy + bs * 0.3);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      break;
+    case 3: // 파: 사각형
+      ctx.fillRect(cx - bs * 0.3, cy - bs * 0.3, bs * 0.6, bs * 0.6);
+      ctx.strokeRect(cx - bs * 0.3, cy - bs * 0.3, bs * 0.6, bs * 0.6);
+      break;
+    case 4: // 솔: 별 (5각)
+      drawStar5(cx, cy, bs * 0.38, bs * 0.16);
+      ctx.fill(); ctx.stroke();
+      break;
+  }
+
+  // 음계 글자
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.max(10, bs * 0.35)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, cx, cy + 1);
+  ctx.restore();
+}
+
+// 5각 별 패스
+function drawStar5(cx, cy, outer, inner) {
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const aOut = -Math.PI / 2 + i * Math.PI * 2 / 5;
+    const aIn = aOut + Math.PI / 5;
+    ctx.lineTo(cx + Math.cos(aOut) * outer, cy + Math.sin(aOut) * outer);
+    ctx.lineTo(cx + Math.cos(aIn) * inner, cy + Math.sin(aIn) * inner);
+  }
+  ctx.closePath();
+}
+
+// 고스트 블록 (착지 예측, 30% alpha + 점선)
+function drawGhostBlock(x, y, sz, noteIdx) {
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.setLineDash([4, 4]);
+  drawBlock(x, y, sz, noteIdx, 0.25, 1);
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+/* ============================================================
+   19. 렌더링 함수
+   ============================================================ */
+
+// 셀(col, row)의 화면 좌표 (row 0 = 바닥)
+function cellX(c) { return gridX + c * CELL; }
+function cellY(r) { return gridY + (ROWS - 1 - r) * CELL; }
+
+// 배경 렌더링 (그라데이션 + 비트 펄스)
+function renderBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, C_BG_TOP);
+  grad.addColorStop(1, C_BG_BOT);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 비트 플래시 오버레이
+  if (beatFlash > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${beatFlash * 0.08})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// 그리드 영역 배경 + 캐시된 격자선
+function renderGridArea() {
+  // 그리드 배경
+  ctx.fillStyle = C_GRID_BG;
+  ctx.globalAlpha = 0.7;
+  roundRect(ctx, gridX - 1, gridY - 1, gridW + 2, gridH + 2, 4);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // BPM 미세 진동 (격자선 alpha)
+  const beatAlpha = 0.7 + Math.sin(beatTimer * Math.PI * 2 * bpmState.val / 60) * 0.15;
+  ctx.globalAlpha = beatAlpha;
+  ctx.drawImage(gridCacheCanvas, 0, 0, gridCacheCanvas.width, gridCacheCanvas.height,
+    gridX - 2, gridY - 2, gridW + 4, gridH + 4);
+  ctx.globalAlpha = 1;
+}
+
+// 배치된 블록 렌더링
+function renderBlocks() {
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const block = grid[c][r];
+      if (!block) continue;
+
+      // 클리어 중인 블록은 별도 렌더
+      if (clearAnimState && clearAnimState.cells.some(cell => cell.c === c && cell.r === r)) continue;
+
+      let x = cellX(c), y = cellY(r);
+
+      // 중력 애니메이션 중 블록 위치 보간
+      if (gravAnimState && block.gravFrom !== undefined) {
+        const fromY = cellY(block.gravFrom);
+        const toY = cellY(r);
+        y = fromY + (toY - fromY) * gravAnimState.t;
+      }
+
+      drawBlock(x, y, CELL, block.note, 1, 1);
+    }
+  }
+}
+
+// 클리어 애니메이션 중인 블록 렌더
+function renderClearAnim() {
+  if (!clearAnimState) return;
+  clearAnimState.cells.forEach(({ c, r, note }) => {
+    const x = cellX(c), y = cellY(r);
+    drawBlock(x, y, CELL, note, clearAnimState.alpha, clearAnimState.scale / 1.2);
+  });
+}
+
+// 고스트 블록 렌더
+function renderGhost() {
+  if (!fallingBlock || isClearing) return;
+  const landR = getLandRow(fallingBlock.col);
+  if (landR < fallingBlock.row) {
+    drawGhostBlock(cellX(fallingBlock.col), cellY(landR), CELL, fallingBlock.note);
+  }
+}
+
+// 떨어지는 블록 렌더
+function renderFalling() {
+  if (!fallingBlock) return;
+  drawBlock(cellX(fallingBlock.col), cellY(fallingBlock.row), CELL, fallingBlock.note, 1, 1);
+}
+
+// 착지 웨이브 이펙트
+function renderLandWave() {
+  if (!landWaveState || landWaveState.alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = landWaveState.alpha;
+  ctx.strokeStyle = landWaveState.color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(landWaveState.x, landWaveState.y);
+  ctx.lineTo(landWaveState.x + landWaveState.w, landWaveState.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// 파티클 렌더
+function renderParticles() {
+  // 클리어 파티클
+  pools.particle.active.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // 부유 음표 아이콘
+  pools.noteIcon.active.forEach(n => {
+    ctx.globalAlpha = n.alpha;
+    ctx.fillStyle = n.color;
+    ctx.font = `${n.size}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('♪', n.x, n.y);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// 점수 팝업 렌더
+function renderScorePopups() {
+  scorePopups.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.alpha);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 6;
+    ctx.font = `bold ${14}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.text, p.x, p.y + p.dy);
+    ctx.restore();
+  });
+}
+
+// 체인 텍스트 렌더
+function renderChainText() {
+  if (!chainTextState || chainTextState.alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = chainTextState.alpha;
+  ctx.fillStyle = C_CHAIN;
+  ctx.shadowColor = C_CHAIN;
+  ctx.shadowBlur = 12;
+  const sz = 22 * chainTextState.scale;
+  ctx.font = `bold ${sz}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(chainTextState.text, chainTextState.x, chainTextState.y);
+  ctx.restore();
+}
+
+// 위험 경고 (상단 2행 적색 비네트)
+function renderDanger() {
+  if (maxColHeight() < 6) return;
+  const alpha = dangerBlink ? 0.15 : 0.08;
+  ctx.fillStyle = `rgba(255,23,68,${alpha})`;
+  ctx.fillRect(gridX, gridY, gridW, CELL * 2);
+}
+
+// 레벨업 플래시
+function renderLevelUpFlash() {
+  if (lvlUpFlash.alpha <= 0) return;
+  ctx.fillStyle = `rgba(255,255,255,${lvlUpFlash.alpha})`;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// HUD 렌더 (§11.1)
+function renderHUD() {
+  const hudTop = gridY - 28;
+  const hudBot = gridY + gridH + 8;
+
+  // 레벨 (좌상단)
+  ctx.fillStyle = C_LEVEL;
+  ctx.font = `bold 14px ${FONT}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Lv.' + level, gridX, hudTop);
+
+  // 점수 (우상단)
+  ctx.fillStyle = C_TEXT;
+  ctx.font = `bold 18px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(fmtNum(score), gridX + gridW, hudTop);
+
+  // 클리어 수 (좌측)
+  ctx.fillStyle = C_TEXT_DIM;
+  ctx.font = `12px ${FONT}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Lines: ' + clearCount, gridX - (W > 500 ? 80 : 0), gridY + 20);
+
+  // BPM (우하단)
+  ctx.fillStyle = C_BPM;
+  ctx.font = `11px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('♪ ' + Math.round(bpmState.val) + ' BPM', gridX + gridW, hudBot + 12);
+
+  // 다음 블록 미리보기 (우측)
+  const nxX = gridX + gridW + 16;
+  const nxY = gridY + 10;
+  const nxSz = Math.min(60, CELL * 1.3);
+
+  ctx.fillStyle = C_NEXT_BG;
+  roundRect(ctx, nxX, nxY, nxSz, nxSz + 16, 6);
+  ctx.fill();
+  ctx.fillStyle = C_TEXT_DIM;
+  ctx.font = `10px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('NEXT', nxX + nxSz / 2, nxY + 10);
+  drawBlock(nxX + nxSz / 2 - CELL / 2, nxY + 18, CELL, nextNote, 1, 1);
+
+  // 일시정지 버튼 (마우스/터치 모드에서만)
+  if (inputMode !== 'keyboard') {
+    pauseBtnRect.x = gridX + gridW - 24;
+    pauseBtnRect.y = hudTop - 12;
+    pauseBtnRect.w = 24; pauseBtnRect.h = 24;
+    ctx.fillStyle = C_TEXT_DIM;
+    ctx.fillRect(pauseBtnRect.x + 6, pauseBtnRect.y + 4, 4, 16);
+    ctx.fillRect(pauseBtnRect.x + 14, pauseBtnRect.y + 4, 4, 16);
+  }
+
+  // 조작 가이드 (inputMode별 — §5.3 사용처 1)
+  ctx.fillStyle = C_TEXT_DIM;
+  ctx.font = `11px ${FONT}`;
+  ctx.textAlign = 'center';
+  if (inputMode === 'keyboard')
+    ctx.fillText('← → : 이동   ↓ : 드롭   Space : 하드 드롭', gridX + gridW / 2, hudBot + 2);
+  else if (inputMode === 'mouse')
+    ctx.fillText('클릭으로 블록 배치', gridX + gridW / 2, hudBot + 2);
+  else
+    ctx.fillText('스와이프/탭으로 조작', gridX + gridW / 2, hudBot + 2);
+}
+
+// 타이틀 화면 렌더 (§11.2)
+function renderTitle() {
+  renderBg();
+  renderParticles();
+
+  const cx = W / 2;
+  const titleY = H * 0.22;
+
+  // 한글 타이틀
+  ctx.save();
+  ctx.globalAlpha = titleAlpha.a;
+  titleColorTimer += 0.01;
+  const ci = Math.floor(titleColorTimer * 2) % 5;
+  ctx.shadowColor = NOTE_COLORS[ci];
+  ctx.shadowBlur = 25;
+  ctx.fillStyle = C_TEXT;
+  ctx.font = `bold ${Math.min(W * 0.065, 30)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('비 트  크 래 프 터', cx, titleY);
+
+  // 영문 타이틀
+  ctx.font = `bold ${Math.min(W * 0.08, 36)}px ${FONT}`;
+  ctx.fillText('BEAT CRAFTER', cx, titleY + 40);
+  ctx.restore();
+
+  // 음표 데코
+  ctx.fillStyle = NOTE_COLORS[ci];
+  ctx.font = `${Math.min(W * 0.05, 22)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('♪  ♫  ♪  ♫', cx, titleY + 75);
+
+  // 최고 기록
+  const best = getBest();
+  if (best > 0) {
+    ctx.fillStyle = C_TEXT_DIM;
+    ctx.font = `14px ${FONT}`;
+    ctx.fillText(`BEST: ${fmtNum(best)}pts  |  Lv.${getBestLevel()}`, cx, titleY + 110);
+    const bc = getBestChain();
+    if (bc > 0) ctx.fillText(`BEST CHAIN: ×${bc}`, cx, titleY + 130);
+  }
+
+  // 시작 안내 (inputMode별 — §5.3 사용처 3)
+  ctx.globalAlpha = 0.5 + Math.sin(performance.now() / 500) * 0.3;
+  ctx.fillStyle = C_TEXT;
+  ctx.font = `bold 14px ${FONT}`;
+  if (inputMode === 'keyboard') ctx.fillText('[ENTER / Space 로 시작]', cx, H * 0.7);
+  else ctx.fillText('[탭하여 시작]', cx, H * 0.7);
+  ctx.globalAlpha = 1;
+
+  // 조작 안내
+  ctx.fillStyle = C_TEXT_DIM;
+  ctx.font = `12px ${FONT}`;
+  ctx.fillText('← → : 이동   ↓ : 드롭   Space : 하드 드롭', cx, H * 0.78);
+
+  // 음계 가이드 (5종 블록 미리보기)
+  const guideY = H * 0.86;
+  const bsz = Math.min(32, CELL * 0.7);
+  const totalW = 5 * (bsz + 16) - 16;
+  const startX = cx - totalW / 2;
+  for (let i = 0; i < 5; i++) {
+    const bx = startX + i * (bsz + 16);
+    drawBlock(bx, guideY - bsz / 2, bsz, i, 1, 1);
+    ctx.fillStyle = C_TEXT_DIM;
+    ctx.font = `10px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(NOTE_NAMES[i], bx + bsz / 2, guideY + bsz / 2 + 10);
+  }
+}
+
+// 일시정지 오버레이 (§11)
+function renderPause() {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C_TEXT;
+  ctx.font = `bold 28px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('PAUSE', W / 2, H / 2 - 20);
+
+  ctx.fillStyle = C_TEXT_DIM;
+  ctx.font = `14px ${FONT}`;
+  if (inputMode === 'keyboard') {
+    ctx.fillText('P키로 재개  |  R키로 재시작', W / 2, H / 2 + 20);
+  } else {
+    ctx.fillText('탭하여 재개', W / 2, H / 2 + 20);
+  }
+}
+
+// Canvas 모달 — confirm() 대체 (§4.5 — iframe 환경)
+function renderModal() {
+  if (modalAlpha.a <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = modalAlpha.a;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+
+  const cw = Math.min(W * 0.7, 260);
+  const ch = 140;
+  const cx = (W - cw) / 2;
+  const cy = (H - ch) / 2;
+
+  // 패널
+  ctx.fillStyle = '#1a1a2e';
+  ctx.strokeStyle = C_GRID_BORDER;
+  ctx.lineWidth = 2;
+  roundRect(ctx, cx, cy, cw, ch, 8);
+  ctx.fill(); ctx.stroke();
+
+  // 텍스트
+  ctx.fillStyle = C_TEXT;
+  ctx.font = `bold 16px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('정말 재시작할까요?', cx + cw / 2, cy + 40);
+
+  // 버튼
+  const btnW = 80, btnH = 32;
+  const btnY = cy + ch - 50;
+  const yesX = cx + cw / 2 - btnW - 10;
+  const noX = cx + cw / 2 + 10;
+
+  ctx.fillStyle = '#2979FF';
+  roundRect(ctx, yesX, btnY, btnW, btnH, 4); ctx.fill();
+  ctx.fillStyle = '#555';
+  roundRect(ctx, noX, btnY, btnW, btnH, 4); ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold 14px ${FONT}`;
+  ctx.fillText('네 (Y)', yesX + btnW / 2, btnY + btnH / 2);
+  ctx.fillText('아니오 (N)', noX + btnW / 2, btnY + btnH / 2);
+  ctx.restore();
+}
+
+// 게임오버 / 결과 화면 (§11.3)
+function renderGameover() {
+  // 반투명 오버레이
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const topY = H * 0.15;
+  const items = Math.floor(resultReveal.items);
+
+  // GAME OVER 타이틀
+  ctx.fillStyle = C_DANGER;
+  ctx.shadowColor = C_DANGER;
+  ctx.shadowBlur = 15;
+  ctx.font = `bold ${Math.min(W * 0.08, 32)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('GAME OVER', cx, topY);
+  ctx.shadowBlur = 0;
+
+  // 결과 항목 (순차 fadeIn)
+  const lineH = 28;
+  let y = topY + 55;
+  ctx.font = `16px ${FONT}`;
+
+  if (items >= 1) {
+    ctx.fillStyle = C_TEXT;
+    ctx.fillText('점수:  ' + fmtNum(resultData.score), cx, y);
+  }
+  y += lineH;
+  if (items >= 2) {
+    ctx.fillStyle = C_LEVEL;
+    ctx.fillText('레벨:  ' + resultData.level, cx, y);
+  }
+  y += lineH;
+  if (items >= 3) {
+    ctx.fillStyle = C_TEXT;
+    ctx.fillText('클리어:  ' + resultData.clearCount + '개', cx, y);
+  }
+  y += lineH;
+  if (items >= 4) {
+    ctx.fillStyle = C_CHAIN;
+    ctx.fillText('최대 체인:  ×' + resultData.maxChain, cx, y);
+  }
+  y += lineH;
+  if (items >= 5) {
+    ctx.fillStyle = C_TEXT_DIM;
+    ctx.fillText('플레이 시간:  ' + fmtTime(resultData.playTime), cx, y);
+  }
+  y += lineH + 10;
+
+  // NEW BEST
+  if (items >= 6 && resultData.isNewBest) {
+    ctx.save();
+    const s = resultReveal.newBestScale;
+    ctx.translate(cx, y);
+    ctx.scale(s, s);
+    ctx.fillStyle = C_LEVEL;
+    ctx.shadowColor = C_LEVEL;
+    ctx.shadowBlur = 15;
+    ctx.font = `bold 20px ${FONT}`;
+    ctx.fillText('🏆 NEW BEST!', 0, 0);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = C_TEXT_DIM;
+    ctx.font = `12px ${FONT}`;
+    ctx.fillText(`(이전: ${fmtNum(resultData.prevBest)})`, 0, 22);
+    ctx.restore();
+    y += 50;
+  }
+
+  // ALL CLEAR 표시
+  if (items >= 6 && resultData.achievedAllClear) {
+    ctx.fillStyle = C_LEVEL;
+    ctx.shadowColor = C_LEVEL;
+    ctx.shadowBlur = 10;
+    ctx.font = `bold 16px ${FONT}`;
+    ctx.fillText('★ ALL CLEAR ★', cx, y);
+    ctx.shadowBlur = 0;
+    y += 30;
+  }
+
+  // 재시작 안내 (inputMode별 — §5.3 사용처 3)
+  if (items >= 6) {
+    ctx.globalAlpha = 0.5 + Math.sin(performance.now() / 500) * 0.3;
+    ctx.fillStyle = C_TEXT;
+    ctx.font = `bold 14px ${FONT}`;
+    if (inputMode === 'keyboard') ctx.fillText('[R키로 재시작]', cx, y + 10);
+    else ctx.fillText('[탭하여 재시작]', cx, y + 10);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// 로딩 화면
+function renderLoading() {
+  ctx.fillStyle = C_BG_TOP;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C_TEXT;
+  ctx.font = `bold 18px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Loading...', W / 2, H / 2);
+}
+
+/* ============================================================
+   20. 메인 게임 업데이트 & 루프
+   ============================================================ */
+function updateGame(dt) {
+  if (isClearing) return; // 클리어/체인 중 — 블록 입력 무시 (tween은 메인 루프에서 업데이트)
+  updateDAS(dt);
+  updateDrop(dt);
+}
+
+function loop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05); // 최대 50ms 캡
+  lastTime = timestamp;
+
+  // DPR 기반 transform 리셋
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // 화면 흔들림 오프셋 적용
+  if (shakeX || shakeY) ctx.translate(shakeX, shakeY);
+
+  switch(state) {
+    case S_LOADING:
+      renderLoading();
+      break;
+
+    case S_TITLE:
+      tw.update(dt);
+      updateBeat(dt);
+      updateParticles(dt);
+      renderTitle();
+      break;
+
+    case S_PLAYING:
+      playTime += dt;
+      updateGame(dt);
+      tw.update(dt);
+      updateBeat(dt);
+      updateParticles(dt);
+
+      renderBg();
+      renderParticles();
+      renderGridArea();
+      renderBlocks();
+      renderGhost();
+      renderFalling();
+      renderClearAnim();
+      renderLandWave();
+      renderDanger();
+      renderScorePopups();
+      renderChainText();
+      renderLevelUpFlash();
+      renderHUD();
+      break;
+
+    case S_PAUSE:
+      tw.update(dt);
+      renderBg();
+      renderGridArea();
+      renderBlocks();
+      renderFalling();
+      renderHUD();
+      renderPause();
+      break;
+
+    case S_CONFIRM:
+      tw.update(dt);
+      renderBg();
+      renderGridArea();
+      renderBlocks();
+      renderFalling();
+      renderHUD();
+      renderPause();
+      renderModal();
+      break;
+
+    case S_GAMEOVER:
+      tw.update(dt);
+      updateBeat(dt);
+      updateParticles(dt);
+
+      renderBg();
+      renderParticles();
+      renderGridArea();
+      renderBlocks();
+      renderDanger();
+      renderHUD();
+      renderGameover();
+      break;
+  }
+
+  rafId = requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   21. 초기화 & 정리 (destroy 패턴 — Cycle 3~4 표준)
+   ============================================================ */
+function init() {
+  resize();
+
+  // 이벤트 리스너 등록 (destroy에서 일괄 해제)
+  listen(window, 'resize', resize);
+  listen(window, 'keydown', onKeyDown);
+  listen(window, 'keyup', onKeyUp);
+  listen(canvas, 'mousedown', onMouseDown);
+  listen(canvas, 'touchstart', onTouchStart, { passive: false });
+  listen(canvas, 'touchend', onTouchEnd, { passive: false });
+  listen(canvas, 'touchmove', e => e.preventDefault(), { passive: false });
+
+  // 초기 상태
+  initGrid();
+  nextNote = generateNote();
+  state = S_TITLE;
+  enterState(S_TITLE);
+
+  // 게임 루프 시작
+  lastTime = performance.now();
+  rafId = requestAnimationFrame(loop);
+}
+
+// 게임 정리 (메모리 누수 방지)
+function destroy() {
+  cancelAnimationFrame(rafId);
+  registeredListeners.forEach(([el, evt, fn, opts]) =>
+    el.removeEventListener(evt, fn, opts));
+  registeredListeners.length = 0;
+  pools.particle.releaseAll();
+  pools.noteIcon.releaseAll();
+  tw.clearImmediate();
+  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null; }
+}
+
+// 시작
+init();
+
+</script>
+</body>
+</html>

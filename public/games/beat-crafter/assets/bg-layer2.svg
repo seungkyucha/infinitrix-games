@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="eqGrad1" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#D500F9" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="eqGrad2" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#2979FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#2979FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="eqGrad3" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#00E676" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00E676" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="eqGrad4" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#FF1744" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FF1744" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="eqGrad5" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#FFAB00" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FFAB00" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="barGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="noteFloat">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 이퀄라이저 바 — 하단에서 올라오는 리듬 시각화 -->
+  <g filter="url(#barGlow)" opacity="0.7">
+    <!-- 좌측 그룹 -->
+    <rect x="30" y="460" width="12" height="140" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="50" y="420" width="12" height="180" rx="3" fill="url(#eqGrad2)"/>
+    <rect x="70" y="480" width="12" height="120" rx="3" fill="url(#eqGrad3)"/>
+    <rect x="90" y="440" width="12" height="160" rx="3" fill="url(#eqGrad4)"/>
+    <rect x="110" y="490" width="12" height="110" rx="3" fill="url(#eqGrad5)"/>
+    <rect x="130" y="450" width="12" height="150" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="150" y="470" width="12" height="130" rx="3" fill="url(#eqGrad2)"/>
+    <!-- 중앙-좌 그룹 -->
+    <rect x="190" y="430" width="12" height="170" rx="3" fill="url(#eqGrad3)"/>
+    <rect x="210" y="400" width="12" height="200" rx="3" fill="url(#eqGrad4)"/>
+    <rect x="230" y="460" width="12" height="140" rx="3" fill="url(#eqGrad5)"/>
+    <rect x="250" y="410" width="12" height="190" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="270" y="470" width="12" height="130" rx="3" fill="url(#eqGrad2)"/>
+    <!-- 중앙 그룹 -->
+    <rect x="320" y="380" width="12" height="220" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="340" y="350" width="12" height="250" rx="3" fill="url(#eqGrad4)"/>
+    <rect x="360" y="390" width="12" height="210" rx="3" fill="url(#eqGrad3)"/>
+    <rect x="380" y="360" width="12" height="240" rx="3" fill="url(#eqGrad5)"/>
+    <rect x="400" y="370" width="12" height="230" rx="3" fill="url(#eqGrad2)"/>
+    <rect x="420" y="340" width="12" height="260" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="440" y="380" width="12" height="220" rx="3" fill="url(#eqGrad4)"/>
+    <rect x="460" y="400" width="12" height="200" rx="3" fill="url(#eqGrad3)"/>
+    <!-- 중앙-우 그룹 -->
+    <rect x="510" y="420" width="12" height="180" rx="3" fill="url(#eqGrad5)"/>
+    <rect x="530" y="440" width="12" height="160" rx="3" fill="url(#eqGrad2)"/>
+    <rect x="550" y="410" width="12" height="190" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="570" y="460" width="12" height="140" rx="3" fill="url(#eqGrad4)"/>
+    <rect x="590" y="430" width="12" height="170" rx="3" fill="url(#eqGrad3)"/>
+    <!-- 우측 그룹 -->
+    <rect x="640" y="450" width="12" height="150" rx="3" fill="url(#eqGrad5)"/>
+    <rect x="660" y="470" width="12" height="130" rx="3" fill="url(#eqGrad1)"/>
+    <rect x="680" y="440" width="12" height="160" rx="3" fill="url(#eqGrad2)"/>
+    <rect x="700" y="480" width="12" height="120" rx="3" fill="url(#eqGrad4)"/>
+    <rect x="720" y="460" width="12" height="140" rx="3" fill="url(#eqGrad3)"/>
+    <rect x="740" y="490" width="12" height="110" rx="3" fill="url(#eqGrad5)"/>
+    <rect x="760" y="470" width="12" height="130" rx="3" fill="url(#eqGrad1)"/>
+  </g>
+  <!-- 부유하는 음표 파티클 -->
+  <g filter="url(#noteFloat)" opacity="0.4">
+    <!-- ♪ 음표 1 (퍼플) -->
+    <g transform="translate(80, 280)">
+      <ellipse cx="0" cy="0" rx="5" ry="4" fill="#D500F9" transform="rotate(-15)"/>
+      <line x1="4" y1="-2" x2="4" y2="-18" stroke="#D500F9" stroke-width="1.5"/>
+      <path d="M4 -18 Q10 -16 8 -12" stroke="#D500F9" stroke-width="1.2" fill="none"/>
+    </g>
+    <!-- ♪ 음표 2 (블루) -->
+    <g transform="translate(250, 200)">
+      <ellipse cx="0" cy="0" rx="4" ry="3" fill="#2979FF" transform="rotate(-10)"/>
+      <line x1="3" y1="-1" x2="3" y2="-14" stroke="#2979FF" stroke-width="1.2"/>
+      <path d="M3 -14 Q8 -12 6 -9" stroke="#2979FF" stroke-width="1" fill="none"/>
+    </g>
+    <!-- ♪ 음표 3 (레드) -->
+    <g transform="translate(520, 240)">
+      <ellipse cx="0" cy="0" rx="5" ry="4" fill="#FF1744" transform="rotate(-20)"/>
+      <line x1="4" y1="-2" x2="4" y2="-16" stroke="#FF1744" stroke-width="1.5"/>
+      <path d="M4 -16 Q9 -14 7 -11" stroke="#FF1744" stroke-width="1.2" fill="none"/>
+    </g>
+    <!-- ♪ 음표 4 (그린) -->
+    <g transform="translate(680, 300)">
+      <ellipse cx="0" cy="0" rx="4" ry="3" fill="#00E676" transform="rotate(-12)"/>
+      <line x1="3" y1="-1" x2="3" y2="-13" stroke="#00E676" stroke-width="1.2"/>
+      <path d="M3 -13 Q7 -11 5 -8" stroke="#00E676" stroke-width="1" fill="none"/>
+    </g>
+    <!-- ♪ 음표 5 (앰버) -->
+    <g transform="translate(400, 160)">
+      <ellipse cx="0" cy="0" rx="3.5" ry="2.8" fill="#FFAB00" transform="rotate(-18)"/>
+      <line x1="3" y1="-1" x2="3" y2="-12" stroke="#FFAB00" stroke-width="1"/>
+      <path d="M3 -12 Q7 -10 5 -7" stroke="#FFAB00" stroke-width="0.8" fill="none"/>
+    </g>
+    <!-- ♫ 쌍음표 (시안) -->
+    <g transform="translate(160, 350)">
+      <ellipse cx="0" cy="0" rx="4" ry="3" fill="#00E5FF" transform="rotate(-10)"/>
+      <ellipse cx="14" cy="2" rx="4" ry="3" fill="#00E5FF" transform="rotate(-10)"/>
+      <line x1="3" y1="-1" x2="3" y2="-14" stroke="#00E5FF" stroke-width="1.2"/>
+      <line x1="17" y1="1" x2="17" y2="-12" stroke="#00E5FF" stroke-width="1.2"/>
+      <line x1="3" y1="-14" x2="17" y2="-12" stroke="#00E5FF" stroke-width="1.5"/>
+    </g>
+    <!-- ♫ 쌍음표 (퍼플) -->
+    <g transform="translate(600, 130)">
+      <ellipse cx="0" cy="0" rx="3.5" ry="2.5" fill="#D500F9" transform="rotate(-15)"/>
+      <ellipse cx="12" cy="1.5" rx="3.5" ry="2.5" fill="#D500F9" transform="rotate(-15)"/>
+      <line x1="3" y1="-1" x2="3" y2="-12" stroke="#D500F9" stroke-width="1"/>
+      <line x1="15" y1="0" x2="15" y2="-10" stroke="#D500F9" stroke-width="1"/>
+      <line x1="3" y1="-12" x2="15" y2="-10" stroke="#D500F9" stroke-width="1.2"/>
+    </g>
+  </g>
+  <!-- 수평 음파 라인 (근경) -->
+  <g opacity="0.08" stroke-width="1" fill="none">
+    <path d="M0 550 Q40 540 80 550 Q120 560 160 548 Q200 536 240 552 Q280 568 320 546 Q360 524 400 550 Q440 576 480 544 Q520 512 560 548 Q600 584 640 542 Q680 500 720 546 Q760 592 800 540"
+          stroke="#FFFFFF"/>
+  </g>
+</svg>
