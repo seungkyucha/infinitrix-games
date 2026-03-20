@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Google Fonts는 layout.tsx <head>의 <link> 태그로 로드됩니다 */
 
 :root {
   --bg-primary:    #0a0a0f;
@@ -48,15 +48,6 @@ html, body {
   background-clip: text;
 }
 
-/* 카드 글로우 호버 */
-.card-glow {
-  transition: all 0.3s ease;
-}
-.card-glow:hover {
-  box-shadow: 0 0 30px #6c3cf730, 0 8px 32px rgba(0,0,0,0.5);
-  transform: translateY(-4px);
-}
-
 /* 배경 그리드 패턴 */
 .bg-grid {
   background-image:
@@ -79,5 +70,5 @@ html, body {
 
 /* 장르 배지 */
 .genre-badge {
-  @apply text-xs px-2 py-0.5 rounded-full font-medium;
+  @apply text-xs px-2 py-0.5 rounded-sm font-medium;
 }

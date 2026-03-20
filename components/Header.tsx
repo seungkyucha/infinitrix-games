@@ -25,7 +25,7 @@ export default function Header() {
             <NavLink href="/">게임</NavLink>
             <NavLink href="/about">소개</NavLink>
             <a
-              href="https://github.com"
+              href="https://github.com/seungkyucha/infinitrix-games"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-secondary hover:text-text-primary transition-colors text-sm flex items-center gap-1.5"

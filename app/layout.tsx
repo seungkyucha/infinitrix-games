@@ -20,6 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="bg-bg-primary min-h-screen font-sans antialiased">
         <div className="bg-grid min-h-screen">
           <Header />
@@ -27,7 +35,7 @@ export default function RootLayout({
             {children}
           </main>
           <footer className="border-t border-border-dim mt-20 py-8 text-center text-text-muted text-sm">
-            <p>© 2024 InfiniTriX · AI-Powered Game Platform · 게임은 매일 자동으로 추가됩니다</p>
+            <p>© 2025 InfiniTriX · AI-Powered Game Platform · 게임은 매일 자동으로 추가됩니다</p>
           </footer>
         </div>
       </body>
