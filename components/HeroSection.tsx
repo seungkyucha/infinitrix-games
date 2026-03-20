@@ -57,8 +57,6 @@ export default function HeroSection({ totalGames, rightSlot }: Props) {
           <StatBlock value={totalGames} label="Games"   accent="text-accent-cyan" />
           <div className="w-px bg-border-dim" />
           <StatBlock value="Free"       label="Always"  accent="text-accent-green" />
-          <div className="w-px bg-border-dim" />
-          <StatBlock value="0"          label="Install" accent="text-accent-purple" />
         </div>
       </div>
 
