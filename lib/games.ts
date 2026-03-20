@@ -4,7 +4,7 @@ import registryData from '@/public/games/game-registry.json'
 const registry = registryData as GameRegistry
 
 export function getAllGames(): Game[] {
-  return registry.games
+  return [...registry.games].sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
 }
 
 export function getGameById(id: string): Game | undefined {
