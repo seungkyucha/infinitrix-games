@@ -183,11 +183,84 @@ export function failAgent(agentId: AgentId, error: string): void {
   write(data)
 }
 
+// ── 사람이 읽기 쉬운 액션 설명 ───────────────────────────────────────────────
+
+function humanizeAction(agentId: AgentId, toolName: string, detail: string): string {
+  let inp: Record<string, string> = {}
+  try { inp = JSON.parse(detail) } catch {}
+
+  const filePath = inp['file_path'] ?? inp['path'] ?? ''
+  const query    = inp['query'] ?? inp['search_query'] ?? ''
+  const cmd      = inp['command'] ?? ''
+  const url      = inp['url'] ?? ''
+
+  switch (agentId) {
+    case 'analyst':
+      if (toolName === 'WebSearch') return query ? `"${query.slice(0, 28)}" 검색 중` : '웹 검색 중'
+      if (toolName === 'WebFetch')  return url ? `${new URL(url).hostname} 분석 중` : '웹 페이지 분석 중'
+      if (toolName === 'Read')      return '플랫폼 현황 분석 중'
+      if (toolName === 'Write')     return '분석 보고서 작성 중'
+      return '트렌드 분석 중'
+
+    case 'planner':
+      if (toolName === 'WebSearch') return query ? `"${query.slice(0, 28)}" 레퍼런스 검색 중` : '레퍼런스 게임 조사 중'
+      if (toolName === 'Read')      return '분석 보고서 검토 중'
+      if (toolName === 'Write')     return '게임 기획서 작성 중'
+      return '게임 기획 중'
+
+    case 'designer':
+      if (filePath.includes('player'))    return '플레이어 캐릭터 SVG 제작 중'
+      if (filePath.includes('enemy'))     return '적 캐릭터 SVG 제작 중'
+      if (filePath.includes('bg-layer'))  return '배경 이미지 제작 중'
+      if (filePath.includes('thumbnail')) return '썸네일 이미지 제작 중'
+      if (filePath.includes('powerup'))   return '아이템 에셋 제작 중'
+      if (filePath.includes('effect'))    return '이펙트 에셋 제작 중'
+      if (filePath.includes('ui-'))       return 'UI 아이콘 제작 중'
+      if (filePath.includes('manifest'))  return '에셋 목록 정리 중'
+      if (toolName === 'Read')            return '기획서 확인 중'
+      return '그래픽 에셋 제작 중'
+
+    case 'coder':
+      if (toolName === 'Read')  return filePath.includes('manifest') ? '에셋 목록 확인 중' : '기획서 및 에셋 확인 중'
+      if (toolName === 'Write') return filePath.includes('index.html') ? '게임 메인 코드 작성 중' : '게임 코드 작성 중'
+      if (toolName === 'Edit')  return '게임 코드 수정 중'
+      if (toolName === 'Bash')  return '게임 동작 테스트 중'
+      return '게임 구현 중'
+
+    case 'reviewer':
+      if (toolName === 'Read')  return '게임 코드 리뷰 중'
+      if (toolName === 'Write') return '리뷰 보고서 작성 중'
+      if (toolName === 'Bash')  {
+        if (cmd.includes('puppeteer') || cmd.includes('node')) return '브라우저에서 게임 테스트 중'
+        return '자동화 테스트 실행 중'
+      }
+      return '코드 품질 검토 중'
+
+    case 'postmortem':
+      if (toolName === 'Read')  return '리뷰 결과 분석 중'
+      if (toolName === 'Write') return filePath.includes('wisdom') ? '플랫폼 지혜 업데이트 중' : '포스트모템 문서 작성 중'
+      return '사이클 총정리 중'
+
+    case 'deployer':
+      if (toolName === 'Read')  return '게임 정보 확인 중'
+      if (toolName === 'Write') return '게임 레지스트리 등록 중'
+      if (toolName === 'Bash')  {
+        if (cmd.includes('git add') || cmd.includes('git commit')) return '변경사항 커밋 중'
+        if (cmd.includes('git push')) return 'GitHub에 배포 중'
+        return '배포 작업 중'
+      }
+      return '배포 진행 중'
+
+    default:
+      return `${toolName} 실행 중`
+  }
+}
+
 /** 툴 사용 기록 (hook에서 호출) */
 export function logTool(agentId: AgentId, toolName: string, detail: string): void {
-  const data = read()
-  const a    = data.agents[agentId]
-  const action = `${toolName}: ${detail.slice(0, 80)}`
+  const data   = read()
+  const a      = data.agents[agentId]
+  const action = humanizeAction(agentId, toolName, detail)
   a.toolCalls    += 1
   a.currentAction = action
   a.logs = [action, ...a.logs].slice(0, 20)
