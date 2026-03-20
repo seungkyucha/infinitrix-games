@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T23:00:00Z",
-  "totalGames": 6,
+  "lastUpdated": "2026-03-20T23:30:00Z",
+  "totalGames": 7,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -139,6 +139,30 @@
         "마우스 : 열 클릭으로 배치"
       ],
       "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "mini-golf-adventure",
+      "title": "미니 골프 어드벤처",
+      "description": "드래그로 공을 쳐서 최소 타수로 홀인원을 노려보세요!",
+      "genre": ["puzzle", "casual"],
+      "thumbnail": "/games/mini-golf-adventure/assets/thumbnail.svg",
+      "path": "/games/mini-golf-adventure/index.html",
+      "addedAt": "2026-03-20T23:30:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["미니골프", "물리퍼즐", "드래그에이밍", "레벨기반", "벽반사", "별3개"],
+      "controls": [
+        "마우스 드래그: 에이밍 + 힘 조절",
+        "마우스 놓기: 공 발사",
+        "터치 드래그: 모바일 에이밍",
+        "R: 레벨 재시작",
+        "ESC: 일시 정지",
+        "Space: 공 이동 가속"
+      ],
+      "difficulty": "easy",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }
