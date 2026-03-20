@@ -1,4 +1,13 @@
 import type { AgentDefinition } from '@anthropic-ai/claude-agent-sdk'
+import {
+  PLATFORM_INFO,
+  ALLOWED_GENRES,
+  DESIGN_SYSTEM,
+  IFRAME_CONTEXT,
+  REGISTRY_SCHEMA,
+  THUMBNAIL_DISPLAY,
+  GAME_PAGE_LAYOUT,
+} from './platform-context.js'
 
 /**
  * InfiniTriX 에이전트 팀 정의
@@ -74,7 +83,12 @@ export const agentRoles: Record<string, AgentDefinition> = {
 1. 현재 플랫폼 현황 (장르 분포, 총 게임 수)
 2. 시장 트렌드 분석 (실제 방문한 사이트 데이터 기반)
 3. 추천 게임 TOP 3 (장르, 구현 난이도, 예상 인기도)
-4. 최종 추천 1개 선정 + 선정 근거`,
+4. 최종 추천 1개 선정 + 선정 근거
+
+---
+${PLATFORM_INFO}
+
+허용 장르 목록: ${ALLOWED_GENRES.join(', ')}`,
     tools: ['WebSearch', 'WebFetch', 'Read', 'Write', 'Glob'],
     mcpServers: { fetch: mcpServers.fetch },
   },
@@ -115,7 +129,12 @@ difficulty: easy|medium|hard
 6. 난이도 시스템 (시간/점수에 따른 변화)
 7. 점수 시스템
 
-⚠️ index.html 하나에 구현 가능한 현실적 규모로 기획할 것`,
+⚠️ index.html 하나에 구현 가능한 현실적 규모로 기획할 것
+
+---
+${GAME_PAGE_LAYOUT}
+
+허용 장르 목록: ${ALLOWED_GENRES.join(', ')}`,
     tools: ['Read', 'Write', 'WebSearch', 'WebFetch'],
     mcpServers: {
       fetch:              mcpServers.fetch,
@@ -153,7 +172,12 @@ difficulty: easy|medium|hard
 코드 품질:
 - 각 함수에 한 줄 주석
 - 변수명은 camelCase 영어
-- 게임 상수는 파일 상단에 const로 선언`,
+- 게임 상수는 파일 상단에 const로 선언
+
+---
+${IFRAME_CONTEXT}
+
+${DESIGN_SYSTEM}`,
     tools: ['Read', 'Write', 'Edit', 'Bash'],
   },
 
@@ -188,7 +212,12 @@ difficulty: easy|medium|hard
     <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
     <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
-</defs>`,
+</defs>
+
+---
+${THUMBNAIL_DISPLAY}
+
+${DESIGN_SYSTEM}`,
     tools: ['Read', 'Write', 'Edit'],
   },
 
@@ -227,7 +256,10 @@ difficulty: easy|medium|hard
 판정 기준:
 - APPROVED: 즉시 배포 가능
 - NEEDS_MINOR_FIX: 1~2개 사소한 수정 (배포는 가능하나 수정 권장)
-- NEEDS_MAJOR_FIX: 게임 불가능하게 만드는 버그 존재`,
+- NEEDS_MAJOR_FIX: 게임 불가능하게 만드는 버그 존재
+
+---
+${IFRAME_CONTEXT}`,
     tools: ['Read', 'Glob', 'Grep', 'Write'],
   },
 
@@ -274,7 +306,10 @@ difficulty: easy|medium|hard
 최종 판정: PASS | FAIL
 판정 근거: (한 줄 요약)
 
-테스트 결과를 docs/test-reports/cycle-N-test.md에 저장`,
+테스트 결과를 docs/test-reports/cycle-N-test.md에 저장
+
+---
+${IFRAME_CONTEXT}`,
     tools: ['Read', 'Glob', 'Bash', 'Write'],
     mcpServers: { puppeteer: mcpServers.puppeteer },
   },
@@ -321,7 +356,10 @@ difficulty: easy|medium|hard
 7. github MCP로 최신 커밋 확인
 8. 완료 로그 출력
 
-⚠️ game-registry.json은 반드시 유효한 JSON 형식 유지`,
+⚠️ game-registry.json은 반드시 유효한 JSON 형식 유지
+
+---
+${REGISTRY_SCHEMA}`,
     tools: ['Read', 'Write', 'Edit', 'Bash'],
     mcpServers: { github: mcpServers.github },
   },
@@ -356,7 +394,10 @@ difficulty: easy|medium|hard
 의사결정 원칙:
 - 품질 우선: 불완전한 게임은 배포하지 않습니다
 - 효율 추구: 사이클당 1개 게임 완성
-- 지속 개선: 매 사이클 이전 경험 반영`,
+- 지속 개선: 매 사이클 이전 경험 반영
+
+---
+${PLATFORM_INFO}`,
     tools: ['Agent', 'Read', 'Write', 'Bash', 'Glob'],
     mcpServers: {
       memory:             mcpServers.memory,
