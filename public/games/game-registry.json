@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T12:00:00Z",
-  "totalGames": 2,
+  "lastUpdated": "2026-03-20T15:00:00Z",
+  "totalGames": 3,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -43,6 +43,30 @@
         "마우스: 이동+좌클릭 발사",
         "터치: 가상 조이스틱+오토파이어",
         "R: 재시작 (확인 후)"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "mini-tower-defense",
+      "title": "미니 타워 디펜스",
+      "description": "3종 타워를 배치하여 20웨이브의 적을 막아라!",
+      "genre": ["strategy"],
+      "thumbnail": "/games/mini-tower-defense/assets/thumbnail.svg",
+      "path": "/games/mini-tower-defense/index.html",
+      "addedAt": "2026-03-20T15:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["타워디펜스", "전략", "웨이브서바이벌", "업그레이드", "판타지"],
+      "controls": [
+        "마우스 클릭: 타워 배치/선택/업그레이드",
+        "1/2/3키: 타워 종류 선택",
+        "U키: 업그레이드, S키: 판매",
+        "P키: 일시정지",
+        "Space: 웨이브 조기 시작",
+        "터치: 탭으로 모든 조작"
       ],
       "difficulty": "medium",
       "version": "1.0.0",

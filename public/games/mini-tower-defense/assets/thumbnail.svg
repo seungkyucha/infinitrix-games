@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tbSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D1B2A"/>
+      <stop offset="50%" stop-color="#1B2838"/>
+      <stop offset="100%" stop-color="#1A3A25"/>
+    </linearGradient>
+    <linearGradient id="tbGrass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#1B5E20"/>
+    </linearGradient>
+    <linearGradient id="tbPath" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#795548"/>
+      <stop offset="100%" stop-color="#5D4037"/>
+    </linearGradient>
+    <linearGradient id="tbTower1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#66BB6A"/>
+      <stop offset="100%" stop-color="#2E7D32"/>
+    </linearGradient>
+    <linearGradient id="tbTower2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B39DDB"/>
+      <stop offset="100%" stop-color="#7E57C2"/>
+    </linearGradient>
+    <linearGradient id="tbTower3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EF9A9A"/>
+      <stop offset="100%" stop-color="#EF5350"/>
+    </linearGradient>
+    <linearGradient id="tbTitle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD54F"/>
+      <stop offset="100%" stop-color="#FF8F00"/>
+    </linearGradient>
+    <radialGradient id="tbMoon" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF9C4" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#FFF9C4" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFF9C4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tbMagic" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#B39DDB" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#7E57C2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tbExplosion" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#FFEB3B" stop-opacity="0.7"/>
+      <stop offset="60%" stop-color="#FF9800" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FF5722" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="tbGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tbSoftGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tbTextShadow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 하늘 배경 -->
+  <rect width="400" height="300" fill="url(#tbSky)"/>
+  <!-- 달 -->
+  <circle cx="340" cy="50" r="40" fill="url(#tbMoon)" filter="url(#tbSoftGlow)"/>
+  <circle cx="340" cy="50" r="16" fill="#FFF9C4" opacity="0.85"/>
+  <!-- 별 -->
+  <g opacity="0.7">
+    <circle cx="50" cy="30" r="1.5" fill="#FFFFFF"/>
+    <circle cx="120" cy="50" r="1" fill="#FFFFFF"/>
+    <circle cx="200" cy="25" r="1.2" fill="#FFFFFF"/>
+    <circle cx="280" cy="40" r="0.8" fill="#FFD700"/>
+    <circle cx="380" cy="20" r="1" fill="#FFFFFF"/>
+    <circle cx="160" cy="65" r="0.7" fill="#FFFFFF"/>
+    <circle cx="250" cy="55" r="1.1" fill="#FFD700" opacity="0.5"/>
+  </g>
+  <!-- 산맥 원경 -->
+  <path d="M0,200 L0,160 Q50,130 100,150 Q150,120 200,140 Q250,110 300,130 Q350,100 400,120 L400,200 Z" fill="#0D2818" opacity="0.6"/>
+  <!-- 잔디 지면 -->
+  <rect x="0" y="160" width="400" height="140" fill="url(#tbGrass)"/>
+  <!-- 그리드 라인 힌트 -->
+  <g stroke="#388E3C" stroke-width="0.5" opacity="0.3">
+    <line x1="60" y1="170" x2="60" y2="280"/>
+    <line x1="110" y1="170" x2="110" y2="280"/>
+    <line x1="160" y1="170" x2="160" y2="280"/>
+    <line x1="210" y1="170" x2="210" y2="280"/>
+    <line x1="260" y1="170" x2="260" y2="280"/>
+    <line x1="310" y1="170" x2="310" y2="280"/>
+    <line x1="360" y1="170" x2="360" y2="280"/>
+    <line x1="10" y1="200" x2="390" y2="200"/>
+    <line x1="10" y1="230" x2="390" y2="230"/>
+    <line x1="10" y1="260" x2="390" y2="260"/>
+  </g>
+  <!-- S자 경로 -->
+  <g fill="url(#tbPath)" opacity="0.8">
+    <rect x="10" y="180" width="200" height="22" rx="3"/>
+    <rect x="190" y="180" width="22" height="52" rx="3"/>
+    <rect x="60" y="210" width="155" height="22" rx="3"/>
+    <rect x="40" y="210" width="22" height="52" rx="3"/>
+    <rect x="40" y="240" width="330" height="22" rx="3"/>
+  </g>
+  <!-- 아처 타워 -->
+  <g transform="translate(135, 168)">
+    <rect x="-10" y="2" width="20" height="20" rx="2" fill="url(#tbTower1)"/>
+    <polygon points="0,-8 -12,2 12,2" fill="#FFD700"/>
+    <path d="M10,6 Q16,10 10,14" fill="none" stroke="#5D4037" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <!-- 마법사 타워 -->
+  <g transform="translate(85, 230)">
+    <rect x="-10" y="2" width="20" height="20" rx="2" fill="url(#tbTower2)"/>
+    <polygon points="0,-10 -10,2 10,2" fill="#9575CD"/>
+    <circle cx="0" cy="-2" r="4" fill="#E1BEE7" opacity="0.8" filter="url(#tbGlow)"/>
+  </g>
+  <!-- 캐논 타워 -->
+  <g transform="translate(285, 230)">
+    <rect x="-12" y="2" width="24" height="20" rx="2" fill="url(#tbTower3)"/>
+    <line x1="0" y1="8" x2="14" y2="2" stroke="#37474F" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="-6" cy="22" r="3" fill="#37474F"/>
+    <circle cx="6" cy="22" r="3" fill="#37474F"/>
+  </g>
+  <!-- 적 행렬 (경로 위) -->
+  <g>
+    <!-- 고블린 -->
+    <circle cx="40" cy="191" r="7" fill="#8BC34A"/>
+    <polygon points="33,186 36,180 38,186" fill="#8BC34A"/>
+    <polygon points="42,186 44,180 47,186" fill="#8BC34A"/>
+    <circle cx="37" cy="190" r="1.5" fill="#FFFFFF"/>
+    <circle cx="43" cy="190" r="1.5" fill="#FFFFFF"/>
+    <!-- 오크 -->
+    <circle cx="70" cy="191" r="9" fill="#FF9800"/>
+    <circle cx="66" cy="189" r="1.5" fill="#FFFFFF"/>
+    <circle cx="74" cy="189" r="1.5" fill="#FFFFFF"/>
+    <!-- 다크나이트 -->
+    <rect x="95" y="183" width="14" height="14" rx="1" fill="#546E7A"/>
+    <polygon points="102,178 94,185 110,185" fill="#78909C"/>
+    <!-- 스피드러너 -->
+    <polygon points="130,191 122,199 130,207 138,199" fill="#E040FB"/>
+    <line x1="118" y1="199" x2="122" y2="199" stroke="#E040FB" stroke-width="1" opacity="0.6"/>
+    <line x1="116" y1="196" x2="120" y2="197" stroke="#E040FB" stroke-width="1" opacity="0.4"/>
+    <line x1="116" y1="202" x2="120" y2="201" stroke="#E040FB" stroke-width="1" opacity="0.4"/>
+  </g>
+  <!-- 투사체들 -->
+  <g filter="url(#tbGlow)">
+    <!-- 화살 -->
+    <line x1="140" y1="175" x2="152" y2="190" stroke="#FFD700" stroke-width="1.5"/>
+    <polygon points="152,189 155,192 151,193" fill="#FFD700"/>
+    <!-- 마법 구체 -->
+    <circle cx="105" cy="228" r="5" fill="url(#tbMagic)" filter="url(#tbGlow)"/>
+    <circle cx="105" cy="228" r="2" fill="#E1BEE7"/>
+    <!-- 포탄 궤적 -->
+    <circle cx="310" cy="238" r="4" fill="#37474F"/>
+    <path d="M290,235 Q300,220 310,238" fill="none" stroke="#546E7A" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.4"/>
+  </g>
+  <!-- 폭발 이펙트 -->
+  <circle cx="350" cy="251" r="18" fill="url(#tbExplosion)" filter="url(#tbSoftGlow)"/>
+  <!-- HUD 힌트 (상단) -->
+  <rect x="0" y="0" width="400" height="24" fill="#1B2631" opacity="0.7"/>
+  <g fill="#ECF0F1" font-family="'Segoe UI', system-ui, sans-serif" font-size="10">
+    <!-- WAVE -->
+    <text x="15" y="16" fill="#F39C12" font-weight="bold">WAVE 12/20</text>
+    <!-- 골드 -->
+    <text x="140" y="16" fill="#FFD700" font-weight="bold">💰 245G</text>
+    <!-- 라이프 -->
+    <text x="240" y="16" fill="#E74C3C" font-weight="bold">❤️ 16</text>
+    <!-- 점수 -->
+    <text x="330" y="16" fill="#ECF0F1" font-weight="bold">8,450</text>
+  </g>
+  <!-- 타이틀 텍스트 -->
+  <g filter="url(#tbTextShadow)">
+    <text x="200" y="115" text-anchor="middle" font-family="'Segoe UI', system-ui, sans-serif" font-size="28" font-weight="bold" fill="url(#tbTitle)" stroke="#B8860B" stroke-width="0.5">MINI TOWER DEFENSE</text>
+  </g>
+  <!-- 서브 타이틀 -->
+  <text x="200" y="140" text-anchor="middle" font-family="'Segoe UI', system-ui, sans-serif" font-size="12" fill="#ECF0F1" opacity="0.7">판타지 전략 타워 디펜스</text>
+  <!-- 비네팅 효과 -->
+  <rect width="400" height="300" fill="none" stroke="#000000" stroke-width="20" opacity="0.15" rx="5"/>
+</svg>

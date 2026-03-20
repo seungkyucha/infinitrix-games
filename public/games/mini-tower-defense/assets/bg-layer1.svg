@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D1B2A"/>
+      <stop offset="30%" stop-color="#1B2838"/>
+      <stop offset="60%" stop-color="#1F3A50"/>
+      <stop offset="100%" stop-color="#2E5C3F"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFDE7" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#FFF9C4" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FFF9C4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mountain1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A3A2A"/>
+      <stop offset="100%" stop-color="#0D1F15"/>
+    </linearGradient>
+    <linearGradient id="mountain2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E4D35"/>
+      <stop offset="100%" stop-color="#122B1E"/>
+    </linearGradient>
+    <linearGradient id="mountain3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#264D38"/>
+      <stop offset="100%" stop-color="#163525"/>
+    </linearGradient>
+    <filter id="moonBlur">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="starBlur">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 하늘 -->
+  <rect width="800" height="600" fill="url(#skyGrad)"/>
+  <!-- 달 글로우 -->
+  <circle cx="650" cy="90" r="80" fill="url(#moonGlow)" filter="url(#moonBlur)"/>
+  <!-- 달 본체 -->
+  <circle cx="650" cy="90" r="28" fill="#FFF9C4" opacity="0.9"/>
+  <circle cx="658" cy="82" r="22" fill="#0D1B2A" opacity="0.2"/>
+  <!-- 달 크레이터 -->
+  <circle cx="640" cy="85" r="4" fill="#F0E68C" opacity="0.3"/>
+  <circle cx="655" cy="100" r="3" fill="#F0E68C" opacity="0.25"/>
+  <circle cx="648" cy="78" r="2" fill="#F0E68C" opacity="0.2"/>
+  <!-- 별들 -->
+  <g filter="url(#starBlur)">
+    <circle cx="100" cy="40" r="1.5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="200" cy="80" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="320" cy="30" r="1.8" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="450" cy="60" r="1" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="550" cy="25" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="720" cy="45" r="1.5" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="80" cy="120" r="1" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="380" cy="100" r="1.3" fill="#FFFFFF" opacity="0.55"/>
+    <circle cx="500" cy="45" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="750" cy="130" r="1" fill="#FFFFFF" opacity="0.45"/>
+    <circle cx="150" cy="70" r="0.8" fill="#FFD700" opacity="0.4"/>
+    <circle cx="280" cy="55" r="0.6" fill="#FFD700" opacity="0.35"/>
+    <circle cx="600" cy="50" r="0.7" fill="#FFD700" opacity="0.3"/>
+    <circle cx="420" cy="20" r="1.1" fill="#FFFFFF" opacity="0.65"/>
+    <circle cx="170" cy="150" r="0.9" fill="#FFFFFF" opacity="0.35"/>
+    <circle cx="530" cy="110" r="1.2" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="680" cy="70" r="0.7" fill="#FFE082" opacity="0.45"/>
+    <circle cx="50" cy="90" r="1.4" fill="#FFFFFF" opacity="0.55"/>
+    <circle cx="770" cy="20" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="350" cy="140" r="0.8" fill="#FFFFFF" opacity="0.3"/>
+  </g>
+  <!-- 원경 산맥 레이어 1 (가장 뒤) -->
+  <path d="M0,400 L0,320 Q50,280 100,300 Q160,260 200,290 Q250,240 320,270 Q380,230 440,260 Q480,220 540,250 Q600,210 660,240 Q720,200 780,230 L800,220 L800,400 Z" fill="url(#mountain1)" opacity="0.6"/>
+  <!-- 원경 산맥 레이어 2 -->
+  <path d="M0,420 L0,360 Q80,320 140,340 Q200,300 280,330 Q340,290 400,310 Q460,270 520,300 Q580,280 640,310 Q700,270 760,290 L800,280 L800,420 Z" fill="url(#mountain2)" opacity="0.7"/>
+  <!-- 원경 산맥 레이어 3 (앞) -->
+  <path d="M0,450 L0,400 Q60,370 120,385 Q180,350 240,370 Q320,340 380,360 Q440,330 500,355 Q560,340 620,360 Q680,330 740,350 L800,340 L800,450 Z" fill="url(#mountain3)" opacity="0.8"/>
+  <!-- 산 위 눈 하이라이트 -->
+  <g opacity="0.15" fill="#FFFFFF">
+    <path d="M320,270 Q340,260 350,275" fill="#FFFFFF"/>
+    <path d="M540,250 Q555,240 565,255" fill="#FFFFFF"/>
+    <path d="M780,230 L790,225 L795,235" fill="#FFFFFF"/>
+  </g>
+  <!-- 숲 실루엣 (산 앞) -->
+  <g fill="#0D2818" opacity="0.8">
+    <path d="M0,500 L0,460 Q10,440 20,460 Q30,435 40,455 Q50,430 60,450 Q70,425 80,445 Q90,430 100,450 Q110,420 120,440 Q130,425 140,450 Q150,430 160,455 Q170,435 180,460 Q190,440 200,455 Q210,430 220,445 Q230,420 240,440 Q250,425 260,450 Q270,435 280,455 Q290,440 300,460 Q310,435 320,450 Q330,425 340,445 Q350,430 360,455 Q370,440 380,460 Q390,435 400,450 Z"/>
+    <path d="M400,500 L400,450 Q410,430 420,450 Q430,425 440,445 Q450,420 460,440 Q470,425 480,450 Q490,435 500,455 Q510,430 520,445 Q530,420 540,440 Q550,425 560,455 Q570,435 580,460 Q590,440 600,455 Q610,430 620,445 Q630,420 640,440 Q650,430 660,455 Q670,435 680,460 Q690,440 700,450 Q710,425 720,445 Q730,430 740,455 Q750,440 760,460 Q770,435 780,450 Q790,430 800,445 L800,500 Z"/>
+  </g>
+  <!-- 지면 그라디언트 -->
+  <rect x="0" y="480" width="800" height="120" fill="#1A3A25" opacity="0.9"/>
+  <!-- 지면 풀 텍스처 -->
+  <g opacity="0.3">
+    <path d="M30,490 L32,475 L34,490" stroke="#2E7D32" stroke-width="1" fill="none"/>
+    <path d="M120,495 L122,480 L124,495" stroke="#2E7D32" stroke-width="1" fill="none"/>
+    <path d="M250,488 L252,472 L254,488" stroke="#2E7D32" stroke-width="1" fill="none"/>
+    <path d="M400,492 L402,478 L404,492" stroke="#2E7D32" stroke-width="1" fill="none"/>
+    <path d="M550,490 L552,476 L554,490" stroke="#2E7D32" stroke-width="1" fill="none"/>
+    <path d="M700,494 L702,480 L704,494" stroke="#2E7D32" stroke-width="1" fill="none"/>
+    <path d="M780,488 L782,474 L784,488" stroke="#2E7D32" stroke-width="1" fill="none"/>
+  </g>
+</svg>
