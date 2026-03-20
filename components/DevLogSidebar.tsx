@@ -2,7 +2,6 @@
 
 import { useState }                   from 'react'
 import { useRouter, useSearchParams }  from 'next/navigation'
-import type { DocEntry }               from '@/lib/devlog'
 
 const VERDICT_BADGE: Record<string, string> = {
   APPROVED:        'bg-green-500/20  text-green-400  border-green-500/30',
@@ -16,8 +15,15 @@ const VERDICT_SHORT: Record<string, string> = {
   NEEDS_MAJOR_FIX: 'MAJOR',
 }
 
+export interface SidebarEntry {
+  id:          string   // 'wisdom' | 'cycle-3'
+  label:       string   // '누적 플랫폼 지혜' | '#3 미니 타워 디펜스'
+  icon:        string
+  verdict?:    string
+}
+
 interface Props {
-  entries:    DocEntry[]
+  entries:    SidebarEntry[]
   defaultDoc: string
 }
 
@@ -34,27 +40,10 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
     setOpen(false)
   }
 
-  const groups = buildGroups(entries)
   const navList = (
     <nav className="flex flex-col gap-1 text-sm">
-      {groups.meta.map(e => (
+      {entries.map(e => (
         <SidebarItem key={e.id} entry={e} active={activeId === e.id} onClick={() => select(e.id)} />
-      ))}
-      {groups.cycles.map(({ cycleNumber, gameTitle, docs }) => (
-        <div key={cycleNumber} className="mt-4">
-          <div className="flex items-center gap-2 px-3 mb-1">
-            <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">
-              Cycle #{cycleNumber}
-            </span>
-            <div className="flex-1 h-px bg-border-dim" />
-          </div>
-          <p className="px-3 mb-2 text-[11px] text-text-secondary truncate font-medium">
-            {gameTitle}
-          </p>
-          {docs.map(e => (
-            <SidebarItem key={e.id} entry={e} active={activeId === e.id} onClick={() => select(e.id)} indent />
-          ))}
-        </div>
       ))}
       {entries.length === 0 && (
         <p className="px-3 py-4 text-xs text-text-muted italic">아직 문서가 없습니다.</p>
@@ -73,11 +62,7 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">{activeEntry?.icon ?? '📄'}</span>
             <span className="text-xs font-medium text-text-primary truncate">
-              {activeEntry
-                ? (activeEntry.gameTitle
-                    ? `${activeEntry.gameTitle} — ${activeEntry.label}`
-                    : activeEntry.label)
-                : '문서 선택'}
+              {activeEntry?.label ?? '문서 선택'}
             </span>
           </div>
           <svg
@@ -114,19 +99,16 @@ function SidebarItem({
   entry,
   active,
   onClick,
-  indent = false,
 }: {
-  entry:   DocEntry
+  entry:   SidebarEntry
   active:  boolean
   onClick: () => void
-  indent?: boolean
 }) {
   const verdict = entry.verdict
   return (
     <button
       onClick={onClick}
       className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors
-        ${indent ? 'pl-5' : ''}
         ${active
           ? 'bg-accent-purple/15 text-text-primary border border-accent-purple/30'
           : 'text-text-secondary hover:text-text-primary hover:bg-bg-card-hover border border-transparent'
@@ -141,29 +123,4 @@ function SidebarItem({
       )}
     </button>
   )
-}
-
-// ── 그룹 빌더 ───────────────────────────────────────────────────────────────
-
-interface CycleGroup {
-  cycleNumber: number
-  gameTitle:   string
-  docs:        DocEntry[]
-}
-
-function buildGroups(entries: DocEntry[]) {
-  const meta: DocEntry[]          = []
-  const cycleMap = new Map<number, CycleGroup>()
-
-  for (const e of entries) {
-    if (e.group === 'meta') { meta.push(e); continue }
-    const n = e.cycleNumber!
-    if (!cycleMap.has(n)) {
-      cycleMap.set(n, { cycleNumber: n, gameTitle: e.gameTitle ?? `사이클 #${n}`, docs: [] })
-    }
-    cycleMap.get(n)!.docs.push(e)
-  }
-
-  const cycles = Array.from(cycleMap.values()).sort((a, b) => b.cycleNumber - a.cycleNumber)
-  return { meta, cycles }
 }

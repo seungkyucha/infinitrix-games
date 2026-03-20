@@ -1,6 +1,7 @@
-import { Suspense }             from 'react'
-import { getAllDocEntries, getDocHtml } from '@/lib/devlog'
-import DevLogSidebar           from '@/components/DevLogSidebar'
+import { Suspense }  from 'react'
+import { getSidebarEntries, getCycleTabInfo, getPlatformWisdomHtml } from '@/lib/devlog'
+import DevLogSidebar from '@/components/DevLogSidebar'
+import DevLogTabs    from '@/components/DevLogTabs'
 
 export const dynamic   = 'force-dynamic'
 export const revalidate = 0
@@ -11,16 +12,38 @@ export const metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ doc?: string }>
+  searchParams: Promise<{ doc?: string; tab?: string }>
 }
 
 export default async function DevLogPage({ searchParams }: Props) {
-  const { doc: docParam } = await searchParams
-  const entries   = getAllDocEntries()
-  const defaultId = entries[0]?.id ?? 'wisdom'
-  const activeId  = docParam ?? defaultId
-  const html      = getDocHtml(activeId)
-  const entry     = entries.find(e => e.id === activeId)
+  const { doc: docParam, tab: tabParam } = await searchParams
+  const entries    = getSidebarEntries()
+  const defaultId  = entries[0]?.id ?? 'wisdom'
+  const activeId   = docParam ?? defaultId
+
+  // 콘텐츠 결정
+  let content: { type: 'wisdom'; html: string }
+    | { type: 'cycle';  info: NonNullable<ReturnType<typeof getCycleTabInfo>>; activeTab: string; html: string }
+    | { type: 'empty' }
+
+  if (activeId === 'wisdom') {
+    const html = getPlatformWisdomHtml()
+    content = html ? { type: 'wisdom', html } : { type: 'empty' }
+  } else {
+    const m = activeId.match(/^cycle-(\d+)$/)
+    if (m) {
+      const info = getCycleTabInfo(parseInt(m[1], 10))
+      if (info && info.tabs.length > 0) {
+        const activeTab = (tabParam && info.tabs.some(t => t.key === tabParam)) ? tabParam : info.tabs[0].key
+        const tabData   = info.tabs.find(t => t.key === activeTab)!
+        content = { type: 'cycle', info, activeTab, html: tabData.html }
+      } else {
+        content = { type: 'empty' }
+      }
+    } else {
+      content = { type: 'empty' }
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
@@ -31,7 +54,7 @@ export default async function DevLogPage({ searchParams }: Props) {
           <span className="text-2xl">📓</span>
           <h1 className="text-xl font-bold text-text-primary tracking-tight">제작 일지</h1>
           <span className="text-xs font-mono text-text-muted border border-border-dim rounded px-2 py-0.5">
-            {entries.length}개 문서
+            {entries.filter(e => e.id.startsWith('cycle-')).length}개 사이클
           </span>
         </div>
         <p className="text-text-secondary text-xs max-w-xl">
@@ -67,9 +90,18 @@ export default async function DevLogPage({ searchParams }: Props) {
 
         {/* ── 문서 뷰어 ───────────────────────────────── */}
         <main className="flex-1 min-w-0">
-          {html ? (
-            <DocViewer html={html} entry={entry} />
-          ) : (
+          {content.type === 'wisdom' && (
+            <WisdomViewer html={content.html} />
+          )}
+          {content.type === 'cycle' && (
+            <CycleViewer
+              info={content.info}
+              activeTab={content.activeTab}
+              html={content.html}
+              docId={activeId}
+            />
+          )}
+          {content.type === 'empty' && (
             <EmptyDoc />
           )}
         </main>
@@ -79,7 +111,7 @@ export default async function DevLogPage({ searchParams }: Props) {
   )
 }
 
-// ── 문서 뷰어 ──────────────────────────────────────────────────────────────
+// ── 뷰어 컴포넌트 ───────────────────────────────────────────────────────────
 
 const VERDICT_STYLE: Record<string, string> = {
   APPROVED:        'text-green-400  bg-green-400/10  border-green-400/30',
@@ -87,58 +119,80 @@ const VERDICT_STYLE: Record<string, string> = {
   NEEDS_MAJOR_FIX: 'text-red-400    bg-red-400/10    border-red-400/30',
 }
 
-function DocViewer({
+const PROSE = `prose prose-invert prose-sm max-w-none overflow-x-auto
+  prose-headings:text-text-primary prose-headings:font-bold prose-headings:tracking-tight
+  prose-h1:text-xl prose-h2:text-base prose-h3:text-sm
+  prose-p:text-text-secondary prose-p:leading-relaxed
+  prose-li:text-text-secondary
+  prose-code:text-accent-cyan prose-code:bg-bg-secondary prose-code:px-1.5 prose-code:rounded prose-code:text-xs
+  prose-pre:bg-bg-secondary prose-pre:border prose-pre:border-border-dim prose-pre:rounded-lg
+  prose-a:text-accent-purple prose-a:no-underline hover:prose-a:underline
+  prose-strong:text-text-primary
+  prose-hr:border-border-dim
+  prose-blockquote:border-l-4 prose-blockquote:border-accent-purple/50 prose-blockquote:text-text-secondary prose-blockquote:not-italic
+  prose-table:text-text-secondary prose-th:text-text-primary prose-th:border-border-dim prose-td:border-border-dim`
+
+function CycleViewer({
+  info,
+  activeTab,
   html,
-  entry,
+  docId,
 }: {
-  html:   string
-  entry?: { icon: string; label: string; gameTitle?: string; cycleNumber?: number; verdict?: string }
+  info:      { cycleNumber: number; gameTitle: string; verdict: string; tabs: { key: string; label: string; icon: string }[] }
+  activeTab: string
+  html:      string
+  docId:     string
 }) {
   return (
     <article className="rounded-xl border border-border-dim bg-bg-card overflow-hidden">
-      {/* 문서 헤더 */}
-      {entry && (
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border-dim bg-bg-secondary/40 flex items-center gap-3 flex-wrap">
-          <span className="text-lg">{entry.icon}</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              {entry.cycleNumber && (
-                <span className="text-[10px] font-mono text-text-muted">
-                  CYCLE #{entry.cycleNumber}
-                </span>
-              )}
-              <h2 className="text-sm font-bold text-text-primary">
-                {entry.gameTitle
-                  ? `${entry.gameTitle} — ${entry.label}`
-                  : entry.label}
-              </h2>
-            </div>
-          </div>
-          {entry.verdict && (
-            <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded border tracking-wider shrink-0 whitespace-nowrap ${VERDICT_STYLE[entry.verdict] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>
-              {entry.verdict.replace(/^NEEDS_/, '').replace(/_/g, ' ')}
+      {/* 헤더: 사이클 정보 */}
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border-dim bg-bg-secondary/40 flex items-center gap-3 flex-wrap">
+        <span className="text-lg">🎮</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-mono text-text-muted">
+              CYCLE #{info.cycleNumber}
             </span>
-          )}
+            <h2 className="text-sm font-bold text-text-primary">
+              {info.gameTitle}
+            </h2>
+          </div>
         </div>
-      )}
+        {info.verdict && (
+          <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded border tracking-wider shrink-0 whitespace-nowrap ${VERDICT_STYLE[info.verdict] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>
+            {info.verdict.replace(/^NEEDS_/, '').replace(/_/g, ' ')}
+          </span>
+        )}
+      </div>
 
-      {/* 마크다운 본문 */}
+      {/* 탭 */}
+      <div className="px-4 md:px-6 pt-3 border-b border-border-dim bg-bg-secondary/20">
+        <Suspense>
+          <DevLogTabs
+            tabs={info.tabs.map(t => ({ key: t.key, label: t.label, icon: t.icon }))}
+            activeTab={activeTab}
+            docId={docId}
+          />
+        </Suspense>
+      </div>
+
+      {/* 본문 */}
       <div className="px-4 md:px-6 py-4 md:py-6">
-        <div
-          className="prose prose-invert prose-sm max-w-none overflow-x-auto
-            prose-headings:text-text-primary prose-headings:font-bold prose-headings:tracking-tight
-            prose-h1:text-xl prose-h2:text-base prose-h3:text-sm
-            prose-p:text-text-secondary prose-p:leading-relaxed
-            prose-li:text-text-secondary
-            prose-code:text-accent-cyan prose-code:bg-bg-secondary prose-code:px-1.5 prose-code:rounded prose-code:text-xs
-            prose-pre:bg-bg-secondary prose-pre:border prose-pre:border-border-dim prose-pre:rounded-lg
-            prose-a:text-accent-purple prose-a:no-underline hover:prose-a:underline
-            prose-strong:text-text-primary
-            prose-hr:border-border-dim
-            prose-blockquote:border-l-4 prose-blockquote:border-accent-purple/50 prose-blockquote:text-text-secondary prose-blockquote:not-italic
-            prose-table:text-text-secondary prose-th:text-text-primary prose-th:border-border-dim prose-td:border-border-dim"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <div className={PROSE} dangerouslySetInnerHTML={{ __html: html }} />
+      </div>
+    </article>
+  )
+}
+
+function WisdomViewer({ html }: { html: string }) {
+  return (
+    <article className="rounded-xl border border-border-dim bg-bg-card overflow-hidden">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border-dim bg-bg-secondary/40 flex items-center gap-3">
+        <span className="text-lg">🧠</span>
+        <h2 className="text-sm font-bold text-text-primary">누적 플랫폼 지혜</h2>
+      </div>
+      <div className="px-4 md:px-6 py-4 md:py-6">
+        <div className={PROSE} dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     </article>
   )
