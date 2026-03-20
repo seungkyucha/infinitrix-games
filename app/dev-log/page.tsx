@@ -23,10 +23,10 @@ export default async function DevLogPage({ searchParams }: Props) {
   const entry     = entries.find(e => e.id === activeId)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
 
       {/* ── 페이지 헤더 ──────────────────────────────── */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <div className="flex items-center gap-3 mb-1.5">
           <span className="text-2xl">📓</span>
           <h1 className="text-xl font-bold text-text-primary tracking-tight">제작 일지</h1>
@@ -39,11 +39,18 @@ export default async function DevLogPage({ searchParams }: Props) {
         </p>
       </div>
 
-      {/* ── 본문 레이아웃 ─────────────────────────────── */}
-      <div className="flex gap-5 items-start">
+      {/* ── 모바일: 드로어 토글 ───────────────────────── */}
+      <div className="md:hidden mb-3">
+        <Suspense>
+          <DevLogSidebar entries={entries} defaultDoc={defaultId} />
+        </Suspense>
+      </div>
 
-        {/* ── 좌측 사이드바 ──────────────────────────── */}
-        <aside className="w-52 shrink-0 sticky top-20">
+      {/* ── 데스크톱: 사이드바 + 뷰어 2열 ───────────── */}
+      <div className="md:flex md:gap-5 md:items-start">
+
+        {/* ── 좌측 사이드바 (데스크톱만) ─────────────── */}
+        <aside className="hidden md:block w-52 shrink-0 sticky top-20">
           <div className="rounded-xl border border-border-dim bg-bg-card overflow-hidden">
             <div className="px-3 py-2.5 border-b border-border-dim bg-bg-secondary/60">
               <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">
@@ -58,7 +65,7 @@ export default async function DevLogPage({ searchParams }: Props) {
           </div>
         </aside>
 
-        {/* ── 우측 문서 뷰어 ─────────────────────────── */}
+        {/* ── 문서 뷰어 ───────────────────────────────── */}
         <main className="flex-1 min-w-0">
           {html ? (
             <DocViewer html={html} entry={entry} />
@@ -91,7 +98,7 @@ function DocViewer({
     <article className="rounded-xl border border-border-dim bg-bg-card overflow-hidden">
       {/* 문서 헤더 */}
       {entry && (
-        <div className="px-6 py-4 border-b border-border-dim bg-bg-secondary/40 flex items-center gap-3 flex-wrap">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border-dim bg-bg-secondary/40 flex items-center gap-3 flex-wrap">
           <span className="text-lg">{entry.icon}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -116,9 +123,9 @@ function DocViewer({
       )}
 
       {/* 마크다운 본문 */}
-      <div className="px-6 py-6">
+      <div className="px-4 md:px-6 py-4 md:py-6">
         <div
-          className="prose prose-invert prose-sm max-w-none
+          className="prose prose-invert prose-sm max-w-none overflow-x-auto
             prose-headings:text-text-primary prose-headings:font-bold prose-headings:tracking-tight
             prose-h1:text-xl prose-h2:text-base prose-h3:text-sm
             prose-p:text-text-secondary prose-p:leading-relaxed

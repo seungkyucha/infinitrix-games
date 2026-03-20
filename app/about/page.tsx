@@ -70,7 +70,7 @@ export default function AboutPage() {
       </section>
 
       {/* 링크 */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <a
           href="https://github.com/seungkyucha/infinitrix-games"
           target="_blank"
@@ -83,6 +83,12 @@ export default function AboutPage() {
           GitHub 레포지토리
         </a>
         <Link
+          href="/dev-log"
+          className="flex items-center gap-2 px-4 py-2.5 bg-bg-card border border-border-dim rounded-lg text-sm text-text-secondary hover:text-text-primary hover:border-accent-purple/40 transition-all"
+        >
+          📓 제작 일지
+        </Link>
+        <Link
           href="/"
           className="flex items-center gap-2 px-4 py-2.5 bg-bg-card border border-border-dim rounded-lg text-sm text-text-secondary hover:text-text-primary hover:border-accent-cyan/40 transition-all"
         >
@@ -94,11 +100,13 @@ export default function AboutPage() {
 }
 
 const CYCLE_STEPS = [
-  { title: '트렌드 분석',    agent: 'analyst',  desc: '플랫폼 현황과 HTML5 게임 트렌드를 분석하여 다음 게임 방향을 결정합니다.' },
-  { title: '게임 기획',      agent: 'planner',  desc: '분석 결과를 바탕으로 게임 규칙, 조작법, 시각 스타일을 담은 상세 기획서를 작성합니다.' },
-  { title: '코딩 + 디자인',  agent: 'coder',    desc: '기획서를 바탕으로 index.html 단일 파일 게임과 SVG 썸네일을 제작합니다.' },
-  { title: '리뷰 + 테스트',  agent: 'reviewer', desc: '코드 품질 검토와 실제 브라우저(Puppeteer) 테스트로 게임을 검증합니다.' },
-  { title: '배포',           agent: 'deployer', desc: '게임 레지스트리에 등록하고 GitHub push → Vercel 자동 배포를 트리거합니다.' },
+  { title: '트렌드 분석',   agent: 'analyst',    desc: '플랫폼 현황과 HTML5 게임 트렌드를 분석해 다음 게임의 방향성을 결정합니다.' },
+  { title: '게임 기획',     agent: 'planner',    desc: '분석 결과를 바탕으로 게임 규칙·조작법·시각 스타일을 담은 상세 기획서(GDD)를 작성합니다.' },
+  { title: '그래픽 에셋',   agent: 'designer',   desc: '기획서 사양에 맞는 캐릭터·배경·UI·썸네일 SVG 에셋 전체를 제작합니다.' },
+  { title: '게임 코딩',     agent: 'coder',      desc: '에셋과 기획서를 바탕으로 index.html 단일 파일 HTML5 게임을 구현합니다.' },
+  { title: '리뷰 + 테스트', agent: 'reviewer',   desc: '코드 품질 검토와 Puppeteer 헤드리스 브라우저 자동 테스트로 게임 동작을 검증합니다.' },
+  { title: '포스트모템',    agent: 'postmortem', desc: '사이클 전반을 회고하고 개선점을 정리해 플랫폼 누적 지혜(platform-wisdom)에 반영합니다.' },
+  { title: '배포',          agent: 'deployer',   desc: '게임 레지스트리에 등록 후 GitHub push → Vercel 자동 배포를 트리거합니다.' },
 ]
 
 const TECH_STACK = [

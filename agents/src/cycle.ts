@@ -193,7 +193,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       - bg-layer1.svg, bg-layer2.svg
       - ui-heart.svg, ui-star.svg
       - powerup.svg, effect-hit.svg
-      - thumbnail.svg (플랫폼 썸네일, viewBox="0 0 400 300")
+      - thumbnail.svg (플랫폼 썸네일, 반드시 width="400" height="300" viewBox="0 0 400 300" 포함)
       - manifest.json (에셋 목록)
       기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
       ${feedbackBlock}

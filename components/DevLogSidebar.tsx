@@ -1,7 +1,8 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
-import type { DocEntry } from '@/lib/devlog'
+import { useState }                   from 'react'
+import { useRouter, useSearchParams }  from 'next/navigation'
+import type { DocEntry }               from '@/lib/devlog'
 
 const VERDICT_BADGE: Record<string, string> = {
   APPROVED:        'bg-green-500/20  text-green-400  border-green-500/30',
@@ -24,31 +25,23 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const activeId     = searchParams.get('doc') ?? defaultDoc
+  const [open, setOpen] = useState(false)
+
+  const activeEntry = entries.find(e => e.id === activeId)
 
   function select(id: string) {
     router.push(`/dev-log?doc=${id}`, { scroll: false })
+    setOpen(false)
   }
 
-  // 사이클 그룹화: meta + 각 cycle-N 그룹
   const groups = buildGroups(entries)
-
-  return (
+  const navList = (
     <nav className="flex flex-col gap-1 text-sm">
-
-      {/* ── META (플랫폼 지혜) ──────────────────────── */}
       {groups.meta.map(e => (
-        <SidebarItem
-          key={e.id}
-          entry={e}
-          active={activeId === e.id}
-          onClick={() => select(e.id)}
-        />
+        <SidebarItem key={e.id} entry={e} active={activeId === e.id} onClick={() => select(e.id)} />
       ))}
-
-      {/* ── 사이클별 그룹 ───────────────────────────── */}
       {groups.cycles.map(({ cycleNumber, gameTitle, docs }) => (
         <div key={cycleNumber} className="mt-4">
-          {/* 그룹 헤더 */}
           <div className="flex items-center gap-2 px-3 mb-1">
             <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">
               Cycle #{cycleNumber}
@@ -58,25 +51,60 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
           <p className="px-3 mb-2 text-[11px] text-text-secondary truncate font-medium">
             {gameTitle}
           </p>
-
           {docs.map(e => (
-            <SidebarItem
-              key={e.id}
-              entry={e}
-              active={activeId === e.id}
-              onClick={() => select(e.id)}
-              indent
-            />
+            <SidebarItem key={e.id} entry={e} active={activeId === e.id} onClick={() => select(e.id)} indent />
           ))}
         </div>
       ))}
-
       {entries.length === 0 && (
-        <p className="px-3 py-4 text-xs text-text-muted italic">
-          아직 문서가 없습니다.
-        </p>
+        <p className="px-3 py-4 text-xs text-text-muted italic">아직 문서가 없습니다.</p>
       )}
     </nav>
+  )
+
+  return (
+    <>
+      {/* ── 모바일: 상단 토글 바 ─────────────────────── */}
+      <div className="md:hidden">
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border-dim bg-bg-card text-left"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">{activeEntry?.icon ?? '📄'}</span>
+            <span className="text-xs font-medium text-text-primary truncate">
+              {activeEntry
+                ? (activeEntry.gameTitle
+                    ? `${activeEntry.gameTitle} — ${activeEntry.label}`
+                    : activeEntry.label)
+                : '문서 선택'}
+            </span>
+          </div>
+          <svg
+            className={`w-4 h-4 text-text-muted shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {open && (
+          <div className="mt-1 rounded-xl border border-border-dim bg-bg-card overflow-hidden shadow-lg">
+            <div className="px-3 py-2 border-b border-border-dim bg-bg-secondary/60">
+              <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">문서 목록</span>
+            </div>
+            <div className="p-2 max-h-72 overflow-y-auto">
+              {navList}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 데스크톱: 고정 사이드바 ──────────────────── */}
+      <div className="hidden md:block">
+        {navList}
+      </div>
+    </>
   )
 }
 
@@ -124,14 +152,11 @@ interface CycleGroup {
 }
 
 function buildGroups(entries: DocEntry[]) {
-  const meta: DocEntry[]             = []
+  const meta: DocEntry[]          = []
   const cycleMap = new Map<number, CycleGroup>()
 
   for (const e of entries) {
-    if (e.group === 'meta') {
-      meta.push(e)
-      continue
-    }
+    if (e.group === 'meta') { meta.push(e); continue }
     const n = e.cycleNumber!
     if (!cycleMap.has(n)) {
       cycleMap.set(n, { cycleNumber: n, gameTitle: e.gameTitle ?? `사이클 #${n}`, docs: [] })

@@ -1,12 +1,14 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import Redis, { type Redis as RedisClient } from 'ioredis'
 
-const __dirname  = dirname(fileURLToPath(import.meta.url))
-const LOGS_DIR   = resolve(__dirname, '..', '..', 'logs')
+const __dirname   = dirname(fileURLToPath(import.meta.url))
+const LOGS_DIR    = resolve(__dirname, '..', '..', 'logs')
 const STATUS_FILE = resolve(LOGS_DIR, 'agent-status.json')
-const REDIS_KEY  = 'infinitrix:agent-status'
+
+// Vercel HTTP Push 설정
+const VERCEL_URL   = process.env.VERCEL_APP_URL   // e.g. https://infinitrix-games.vercel.app
+const WRITE_SECRET = process.env.STATUS_WRITE_SECRET
 
 export type AgentId     = 'analyst' | 'planner' | 'designer' | 'coder' | 'reviewer' | 'postmortem' | 'deployer'
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
@@ -35,32 +37,16 @@ export interface StatusData {
   recentLogs:   string[]
 }
 
-// ── Redis 클라이언트 (싱글톤) ─────────────────────────────────────────────────
+// ── Vercel Blob HTTP Push (fire-and-forget) ──────────────────────────────────
 
-let _redis: RedisClient | null = null
-
-function getRedis(): RedisClient | null {
-  if (!process.env.REDIS_URL) return null
-  if (_redis) return _redis
-  try {
-    _redis = new (Redis as unknown as new (...a: unknown[]) => RedisClient)(process.env.REDIS_URL, {
-      connectTimeout: 5000,
-      lazyConnect:    true,
-      maxRetriesPerRequest: 2,
-    })
-    _redis!.on('error', () => { /* suppress */ })
-    return _redis
-  } catch {
-    return null
-  }
-}
-
-/** Redis에 상태를 비동기로 저장 (fire-and-forget) */
-function pushToRedis(data: StatusData): void {
-  const redis = getRedis()
-  if (!redis) return
-  const json = JSON.stringify(data)
-  redis.set(REDIS_KEY, json).catch(() => {})
+function pushToVercel(data: StatusData): void {
+  if (!VERCEL_URL || !WRITE_SECRET) return
+  const body = JSON.stringify(data)
+  fetch(`${VERCEL_URL}/api/agent-status`, {
+    method:  'POST',
+    headers: { 'content-type': 'application/json', 'x-write-secret': WRITE_SECRET },
+    body,
+  }).catch(() => { /* fire-and-forget */ })
 }
 
 // ── 기본값 ─────────────────────────────────────────────────────────────────
@@ -106,7 +92,7 @@ function write(data: StatusData): void {
   if (!existsSync(LOGS_DIR)) mkdirSync(LOGS_DIR, { recursive: true })
   data.lastUpdated = new Date().toISOString()
   writeFileSync(STATUS_FILE, JSON.stringify(data, null, 2), 'utf-8')
-  pushToRedis(data)
+  pushToVercel(data)
 }
 
 function ts(): string {

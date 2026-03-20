@@ -22,6 +22,10 @@ export default function GameCard({ game }: { game: Game }) {
 
         {/* 썸네일 영역 */}
         <div className="relative aspect-[4/3] overflow-hidden bg-bg-secondary">
+          {/* 폴백 placeholder */}
+          <div className="absolute inset-0 flex items-center justify-center text-text-muted text-4xl select-none">
+            🎮
+          </div>
           <Image
             src={game.thumbnail}
             alt={game.title}
