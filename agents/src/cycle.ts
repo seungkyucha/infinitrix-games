@@ -286,8 +286,10 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     await runAgent('deployer', `
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
       1. public/games/game-registry.json에 새 게임을 추가해줘
+         ⚠️ thumbnail 경로는 반드시 "/games/[game-id]/assets/thumbnail.svg" 형식으로 등록할 것
+         (assets/ 폴더 포함 — 빠뜨리면 썸네일이 표시되지 않음)
       2. 아래 git 명령을 실행해줘:
-         git add public/games/ docs/game-specs/ docs/reviews/ docs/post-mortem/
+         git add public/games/ docs/game-specs/ docs/reviews/ docs/post-mortem/ docs/analytics/ docs/meta/
          git commit -m "feat: add game from cycle #${cycleNumber}"
          git push origin main
     `)
