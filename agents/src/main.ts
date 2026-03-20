@@ -8,10 +8,12 @@
  */
 
 import { runDevelopmentCycle } from './cycle.js'
-import { readFileSync, existsSync } from 'fs'
-import { resolve } from 'path'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
-const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..')
+const __dirname    = dirname(fileURLToPath(import.meta.url))
+const PROJECT_ROOT = resolve(__dirname, '..', '..')
 const CYCLE_LOG    = `${PROJECT_ROOT}/logs/cycle-counter.json`
 
 /** 현재 사이클 번호 읽기 */
@@ -27,7 +29,6 @@ function getCurrentCycle(): number {
 
 /** 사이클 번호 저장 */
 function saveCycleNumber(n: number) {
-  const { writeFileSync, mkdirSync } = await import('fs')
   mkdirSync(`${PROJECT_ROOT}/logs`, { recursive: true })
   writeFileSync(CYCLE_LOG, JSON.stringify({ lastCycle: n, updatedAt: new Date().toISOString() }))
 }
@@ -51,7 +52,7 @@ async function main() {
     const cycleNum = getCurrentCycle()
     try {
       const state = await runDevelopmentCycle(cycleNum)
-      await saveCycleNumber(cycleNum)
+      saveCycleNumber(cycleNum)
       console.log(`📈 총 완료 사이클: ${cycleNum}`)
       return state
     } catch (err) {

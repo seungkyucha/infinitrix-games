@@ -1,11 +1,13 @@
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { agentRoles } from './team.js'
 import type { AgentResult, CycleState } from './types.js'
-import { resolve } from 'path'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 
 // 프로젝트 루트 (agents/ 의 부모)
-const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..')
+const __dirname    = dirname(fileURLToPath(import.meta.url))
+const PROJECT_ROOT = resolve(__dirname, '..', '..')
 
 /** 단일 에이전트를 실행하고 결과를 반환 */
 async function runAgent(role: string, prompt: string): Promise<AgentResult> {
