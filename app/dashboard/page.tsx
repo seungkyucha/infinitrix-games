@@ -375,17 +375,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── 사용 안내 ─────────────────────────────────────────────── */}
-      {data.cycleStatus === 'idle' && (
-        <div className="rounded-xl border border-zinc-800 p-5 bg-zinc-900/40">
-          <h3 className="text-sm font-semibold text-zinc-300 mb-2">에이전트 실행 방법</h3>
-          <div className="font-mono text-xs text-zinc-500 space-y-1">
-            <p><span className="text-zinc-400">$</span> cd agents</p>
-            <p><span className="text-zinc-400">$</span> npm run cycle    <span className="text-zinc-600"># 단일 사이클 실행</span></p>
-            <p><span className="text-zinc-400">$</span> npm run start    <span className="text-zinc-600"># 무한 루프 (30분 간격)</span></p>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }
