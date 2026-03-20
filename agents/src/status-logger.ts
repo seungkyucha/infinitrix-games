@@ -175,7 +175,7 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
   let inp: Record<string, string> = {}
   try { inp = JSON.parse(detail) } catch {}
 
-  const filePath  = inp['file_path'] ?? inp['path'] ?? ''
+  const filePath  = (inp['file_path'] ?? inp['path'] ?? '').replace(/\\/g, '/')
   const query     = inp['query'] ?? inp['search_query'] ?? inp['pattern'] ?? ''
   const cmd       = inp['command'] ?? ''
   const url       = inp['url'] ?? ''
