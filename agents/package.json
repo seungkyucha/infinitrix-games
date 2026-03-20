@@ -1,0 +1,19 @@
+{
+  "name": "infinitrix-agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start":    "tsx src/main.ts",
+    "cycle":    "tsx src/main.ts --once",
+    "dev":      "tsx watch src/main.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx":        "^4.0.0",
+    "typescript": "^5"
+  }
+}
