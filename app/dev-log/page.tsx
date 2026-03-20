@@ -115,8 +115,8 @@ function DocViewer({
             </div>
           </div>
           {entry.verdict && (
-            <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded border tracking-wider shrink-0 ${VERDICT_STYLE[entry.verdict] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>
-              {entry.verdict}
+            <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded border tracking-wider shrink-0 whitespace-nowrap ${VERDICT_STYLE[entry.verdict] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>
+              {entry.verdict.replace(/^NEEDS_/, '').replace(/_/g, ' ')}
             </span>
           )}
         </div>

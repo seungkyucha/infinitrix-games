@@ -135,8 +135,8 @@ function SidebarItem({
       <span className="text-sm shrink-0">{entry.icon}</span>
       <span className="flex-1 text-xs font-medium truncate">{entry.label}</span>
       {verdict && (
-        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 ${VERDICT_BADGE[verdict] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
-          {VERDICT_SHORT[verdict] ?? verdict}
+        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 max-w-14 truncate ${VERDICT_BADGE[verdict] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+          {VERDICT_SHORT[verdict] ?? verdict.replace(/^NEEDS_/, '').replace(/_/g, ' ')}
         </span>
       )}
     </button>
