@@ -9,10 +9,50 @@ import {
 } from './status-logger.js'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs'
 
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
+
+// ── 이전 사이클 피드백 컨텍스트 로더 ──────────────────────────────────────────
+
+/** 누적 플랫폼 지혜 파일 읽기 (없으면 빈 문자열) */
+function loadPlatformWisdom(): string {
+  const path = `${PROJECT_ROOT}/docs/meta/platform-wisdom.md`
+  if (!existsSync(path)) return ''
+  try { return readFileSync(path, 'utf-8').slice(0, 4000) } catch { return '' }
+}
+
+/** 직전 사이클의 포스트모템 읽기 */
+function loadLastPostmortem(cycleNumber: number): string {
+  if (cycleNumber <= 1) return ''
+  const path = `${PROJECT_ROOT}/docs/post-mortem/cycle-${cycleNumber - 1}-postmortem.md`
+  if (!existsSync(path)) return ''
+  try { return readFileSync(path, 'utf-8').slice(0, 3000) } catch { return '' }
+}
+
+/** 분석가·플래너에게 전달할 누적 피드백 블록 생성 */
+function buildFeedbackBlock(cycleNumber: number): string {
+  const wisdom    = loadPlatformWisdom()
+  const postmortem = loadLastPostmortem(cycleNumber)
+  if (!wisdom && !postmortem) return ''
+
+  const parts: string[] = [
+    '\n---',
+    '## 📚 이전 사이클 학습 컨텍스트 (반드시 참고할 것)',
+  ]
+  if (wisdom) {
+    parts.push('\n### 누적 플랫폼 지혜 (platform-wisdom.md)\n' + wisdom)
+  }
+  if (postmortem) {
+    parts.push(`\n### 직전 사이클 포스트모템 (cycle-${cycleNumber - 1})\n` + postmortem)
+  }
+  parts.push(
+    '\n> 위 내용을 바탕으로, 이전에 잘 된 점은 이어받고 지적된 문제는 반드시 개선하라.',
+    '---\n',
+  )
+  return parts.join('\n')
+}
 
 /** 단일 에이전트를 실행하고 결과를 반환 */
 async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> {
@@ -85,9 +125,16 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   ensureDir(`${PROJECT_ROOT}/docs/game-specs`)
   ensureDir(`${PROJECT_ROOT}/docs/reviews`)
   ensureDir(`${PROJECT_ROOT}/docs/post-mortem`)
+  ensureDir(`${PROJECT_ROOT}/docs/meta`)
   ensureDir(`${PROJECT_ROOT}/logs`)
 
   startCycle(cycleNumber)
+
+  // 이전 사이클 피드백 컨텍스트 (사이클 2부터 적용)
+  const feedbackBlock = buildFeedbackBlock(cycleNumber)
+  if (feedbackBlock) {
+    console.log(`  📚 이전 사이클 학습 컨텍스트 로드됨 (cycle #${cycleNumber - 1})`)
+  }
 
   const state: CycleState = {
     cycleNumber,
@@ -108,6 +155,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       현재 플랫폼(public/games/game-registry.json)을 분석하고,
       HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
       결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
+      ${feedbackBlock}
+      ⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.
     `)
     completeAgent('analyst')
 
@@ -126,6 +175,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       difficulty: [easy/medium/hard]
       ---
       형태로 메타데이터를 포함해줘.
+      ${feedbackBlock}
+      ⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.
     `)
     completeAgent('planner')
 
@@ -138,6 +189,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       1. public/games/[game-id]/index.html — 완전한 HTML5 게임 (단일 파일)
       2. public/games/[game-id]/thumbnail.svg — 네온 스타일 썸네일 SVG
       기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
+      ${feedbackBlock}
+      ⚠️ 이전 사이클 리뷰에서 지적된 코드 품질 문제(메모리 누수, 터치 이벤트 누락 등)를 반드시 해결할 것.
     `)
     completeAgent('coder')
 
@@ -166,15 +219,41 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     }
 
     // ── 5단계: 포스트모템 ──────────────────────────────────────
-    console.log(`\n📝 [5/6] 포스트모템 — 사이클 총정리 문서 작성`)
+    console.log(`\n📝 [5/6] 포스트모템 — 사이클 총정리 + 플랫폼 지혜 갱신`)
     state.status = 'reviewing'
     startAgent('postmortem', 5, '포스트모템 작성')
     await runAgent('postmortem', `
-      사이클 #${cycleNumber}의 포스트모템을 작성해줘.
+      사이클 #${cycleNumber}의 포스트모템을 작성하고, 플랫폼 지혜 파일을 갱신해줘.
+
+      작업 1 — 포스트모템 작성:
       - docs/game-specs/cycle-${cycleNumber}-spec.md 읽기
       - docs/reviews/cycle-${cycleNumber}-review.md 읽기
       - docs/post-mortem/cycle-${cycleNumber}-postmortem.md 에 저장
-      YAML front-matter에 cycle: ${cycleNumber} 포함할 것.
+      - YAML front-matter에 cycle: ${cycleNumber} 포함할 것
+
+      작업 2 — 플랫폼 지혜 갱신:
+      - docs/meta/platform-wisdom.md 읽기 (없으면 새로 생성)
+      - 이번 사이클에서 얻은 새로운 인사이트를 추가 (기존 내용 유지)
+      - 반복되는 문제 패턴, 검증된 성공 패턴, 다음 우선순위를 갱신
+      - 아래 형식을 유지할 것:
+
+      # InfiniTriX 플랫폼 지혜 (누적 학습)
+      _마지막 갱신: 사이클 #${cycleNumber}_
+
+      ## 피해야 할 패턴 🚫
+      [각 항목에 사이클 번호 표시. 기존 항목 유지, 새 항목 추가]
+
+      ## 검증된 성공 패턴 ✅
+      [각 항목에 사이클 번호 표시. 기존 항목 유지, 새 항목 추가]
+
+      ## 기술 개선 누적 🛠️
+      [리뷰에서 반복 지적된 코드 품질 이슈. 기존 항목 유지, 새 항목 추가]
+
+      ## 장르별 노하우 🎮
+      [장르: 해당 사이클 번호와 배운 점. 기존 항목 유지, 새 항목 추가]
+
+      ## 다음 사이클 우선순위 🎯
+      [이전 항목 삭제 후 이번 사이클 기준으로 새로 작성]
     `)
     completeAgent('postmortem')
 

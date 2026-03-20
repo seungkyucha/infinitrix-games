@@ -1,4 +1,4 @@
-import { getAllCycleDocs } from '@/lib/devlog'
+import { getAllCycleDocs, getPlatformWisdomHtml } from '@/lib/devlog'
 import DevLogEntry from '@/components/DevLogEntry'
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,8 @@ export const metadata = {
 }
 
 export default function DevLogPage() {
-  const docs = getAllCycleDocs()
+  const docs          = getAllCycleDocs()
+  const wisdomHtml    = getPlatformWisdomHtml()
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -29,16 +30,47 @@ export default function DevLogPage() {
         )}
       </div>
 
-      {/* 사이클 목록 */}
-      {docs.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="space-y-8">
-          {docs.map(doc => (
-            <DevLogEntry key={doc.cycleNumber} doc={doc} />
-          ))}
-        </div>
+      {/* 누적 플랫폼 지혜 */}
+      {wisdomHtml && (
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xl">🧠</span>
+            <h2 className="text-lg font-bold text-text-primary">누적 플랫폼 지혜</h2>
+            <div className="flex-1 h-px bg-border-dim" />
+          </div>
+          <div className="rounded-xl border border-accent-purple/20 bg-accent-purple/5 px-6 py-5">
+            <div
+              className="prose prose-invert prose-sm max-w-none
+                prose-headings:text-text-primary prose-headings:font-bold
+                prose-p:text-text-secondary prose-p:leading-relaxed
+                prose-li:text-text-secondary
+                prose-strong:text-text-primary
+                prose-hr:border-border-dim"
+              dangerouslySetInnerHTML={{ __html: wisdomHtml }}
+            />
+          </div>
+        </section>
       )}
+
+      {/* 사이클 목록 */}
+      <section>
+        {docs.length > 0 && (
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-xl">📋</span>
+            <h2 className="text-lg font-bold text-text-primary">사이클별 기록</h2>
+            <div className="flex-1 h-px bg-border-dim" />
+          </div>
+        )}
+        {docs.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-8">
+            {docs.map(doc => (
+              <DevLogEntry key={doc.cycleNumber} doc={doc} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

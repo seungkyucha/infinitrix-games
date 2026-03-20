@@ -48,6 +48,16 @@ function readDocRaw(filePath: string): string {
   return readFileSync(filePath, 'utf-8')
 }
 
+/** 누적 플랫폼 지혜 파일을 HTML로 변환 */
+export function getPlatformWisdomHtml(): string {
+  const path = join(DOCS_DIR, 'meta', 'platform-wisdom.md')
+  if (!existsSync(path)) return ''
+  try {
+    const raw = readFileSync(path, 'utf-8')
+    return marked.parse(raw) as string
+  } catch { return '' }
+}
+
 /** 사용 가능한 모든 사이클 문서를 읽어 최신 순으로 반환 */
 export function getAllCycleDocs(): CycleDoc[] {
   const specsDir    = join(DOCS_DIR, 'game-specs')

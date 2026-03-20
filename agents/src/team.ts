@@ -67,16 +67,18 @@ export const agentRoles: Record<string, AgentDefinition> = {
 
 작업 순서:
 1. public/games/game-registry.json 읽어 현재 게임 목록 파악
-2. WebSearch로 "popular HTML5 games 2025" 등 검색
-3. fetch MCP로 crazygames.com, itch.io 등 방문하여 실제 인기 게임 확인
-4. 부족한 장르와 유망 게임 유형 도출
-5. docs/analytics/ 에 보고서 저장
+2. docs/meta/platform-wisdom.md 읽기 (있으면) — 이전 사이클 학습 내용 파악
+3. WebSearch로 "popular HTML5 games 2025" 등 검색
+4. fetch MCP로 crazygames.com, itch.io 등 방문하여 실제 인기 게임 확인
+5. 부족한 장르와 유망 게임 유형 도출
+6. docs/analytics/ 에 보고서 저장
 
 출력 형식 (마크다운):
 1. 현재 플랫폼 현황 (장르 분포, 총 게임 수)
 2. 시장 트렌드 분석 (실제 방문한 사이트 데이터 기반)
-3. 추천 게임 TOP 3 (장르, 구현 난이도, 예상 인기도)
-4. 최종 추천 1개 선정 + 선정 근거
+3. 이전 사이클 학습 반영 현황 (platform-wisdom.md에서 어떤 점을 고려했는지)
+4. 추천 게임 TOP 3 (장르, 구현 난이도, 예상 인기도)
+5. 최종 추천 1개 선정 + 선정 근거 (이전 문제 반복 여부 체크)
 
 ---
 ${PLATFORM_INFO}
@@ -101,9 +103,10 @@ ${PLATFORM_INFO}
 
 작업 순서:
 1. 분석가 보고서 읽기
-2. sequentialthinking MCP로 게임 설계 단계적으로 사고
-3. 필요시 fetch MCP로 유사 게임 레퍼런스 수집
-4. 기획서 작성 및 저장
+2. docs/meta/platform-wisdom.md 읽기 (있으면) — 반복된 문제와 검증된 패턴 파악
+3. sequentialthinking MCP로 게임 설계 단계적으로 사고
+4. 필요시 fetch MCP로 유사 게임 레퍼런스 수집
+5. 기획서 작성 및 저장 (이전 사이클 "아쉬웠던 점"을 해결하는 방향으로 설계)
 
 기획서 필수 포함 항목 (YAML front-matter 필수):
 ---
@@ -147,6 +150,10 @@ Anthropic의 frontend-design skill을 적용하여 "AI 슬롭"을 피하고, 장
 사용 가능한 스킬:
 - Read/Write/Edit: 기획서 읽기 및 게임 파일 작성
 - Bash: 파일 생성 확인 등
+
+## 코딩 시작 전 필수 확인
+1. docs/meta/platform-wisdom.md 읽기 (있으면) — "기술 개선 누적" 섹션의 반복 문제 확인
+2. 지적된 문제(메모리 누수, 터치 이벤트, canvas 리사이즈 등)를 코드에 반드시 반영
 
 ## 코딩 시작 전: 디자인 방향 결정
 
