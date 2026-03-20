@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>컬러 머지 퍼즐 — Color Merge Puzzle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0a0a0f;
+    font-family: 'Orbitron', sans-serif;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ============================================================
+// 컬러 머지 퍼즐 — Color Merge Puzzle
+// 장르: puzzle | 단일 파일 Canvas 게임
+// ============================================================
+
+// --- 에셋 프리로더 ---
+const SPRITES = {};
+const ASSET_MAP = {
+  player:    'assets/player.svg',
+  enemy:     'assets/enemy.svg',
+  bgLayer1:  'assets/bg-layer1.svg',
+  bgLayer2:  'assets/bg-layer2.svg',
+  uiHeart:   'assets/ui-heart.svg',
+  uiStar:    'assets/ui-star.svg',
+  powerup:   'assets/powerup.svg',
+  effectHit: 'assets/effect-hit.svg',
+};
+
+// 모든 에셋을 프리로드
+async function preloadAssets() {
+  await Promise.all(
+    Object.entries(ASSET_MAP).map(([key, src]) =>
+      new Promise(resolve => {
+        const img = new Image();
+        img.onload  = () => { SPRITES[key] = img; resolve(); };
+        img.onerror = resolve;
+        img.src = src;
+      })
+    )
+  );
+}
+
+// --- 게임 상수 ---
+const GRID_SIZE = 5;
+const CELL_GAP = 8;
+const GRID_PADDING = 12;
+const GRID_RADIUS = 16;
+const CELL_RADIUS = 10;
+const SWIPE_MIN = 30;
+
+// 7단계 무지개 색상
+const COLORS = [
+  null,
+  '#FF6B6B', // 1: 빨강
+  '#FFA06B', // 2: 주황
+  '#FFD93D', // 3: 노랑
+  '#6BCB77', // 4: 초록
+  '#4D96FF', // 5: 파랑
+  '#6B5BFF', // 6: 남색
+  '#C56BFF', // 7: 보라
+];
+
+// 색상별 내부 그라데이션 하이라이트
+const COLOR_LIGHTS = [
+  null,
+  '#FF9E9E', '#FFC49E', '#FFE87A', '#9EDDA8', '#8EBCFF', '#9E94FF', '#DA9EFF',
+];
+
+// 머지 점수 테이블
+const MERGE_SCORES = [0, 2, 6, 18, 54, 162, 486, 1458];
+const RAINBOW_SCORE = 2916;
+
+// 점수 이정표
+const MILESTONES = [
+  { score: 100,   text: '좋은 시작!' },
+  { score: 500,   text: '머지 마스터!' },
+  { score: 2000,  text: '색상 전문가!' },
+  { score: 5000,  text: '무지개 사냥꾼!' },
+  { score: 10000, text: '전설의 퍼즐러!' },
+];
+
+// --- 게임 상태 ---
+const STATE = { LOADING: 0, TITLE: 1, PLAYING: 2, GAMEOVER: 3 };
+let gameState = STATE.LOADING;
+let grid = [];             // 5x5 그리드 배열
+let score = 0;
+let bestScore = 0;
+let animating = false;     // 애니메이션 중 입력 잠금
+let comboCount = 0;
+
+// 애니메이션 데이터
+let blockAnims = [];       // 블록 이동/머지 애니메이션
+let particles = [];        // 이펙트 파티클
+let floatingTexts = [];    // 점수/콤보 텍스트
+let screenShake = { x: 0, y: 0, intensity: 0, decay: 0.9 };
+let titleAlpha = 0;        // 타이틀 페이드인
+let titleTime = 0;
+let gameOverAlpha = 0;
+let bgScrollX = 0;        // 배경 패럴랙스 오프셋
+let milestoneReached = []; // 달성한 이정표
+let newBestScore = false;  // 신기록 여부
+
+// --- Canvas 설정 ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, gridX, gridY, gridW, cellSize;
+let dpr = 1;
+
+// 캔버스 리사이즈 핸들러
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  recalcLayout();
+}
+
+// 그리드 레이아웃 재계산
+function recalcLayout() {
+  const maxGridSize = Math.min(W - 32, H * 0.6, 500);
+  gridW = maxGridSize;
+  cellSize = (gridW - GRID_PADDING * 2 - CELL_GAP * (GRID_SIZE - 1)) / GRID_SIZE;
+  gridX = (W - gridW) / 2;
+  gridY = H * 0.28;
+}
+
+// --- 그리드 유틸 ---
+
+// 그리드 초기화 (빈 5x5)
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < GRID_SIZE; r++) {
+    grid[r] = [];
+    for (let c = 0; c < GRID_SIZE; c++) {
+      grid[r][c] = 0;
+    }
+  }
+}
+
+// 빈 셀 목록 반환
+function getEmptyCells() {
+  const cells = [];
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (grid[r][c] === 0) cells.push({ r, c });
+  return cells;
+}
+
+// 난이도에 따른 새 블록 레벨 결정
+function getNewBlockLevel() {
+  const rand = Math.random();
+  if (score >= 2000) {
+    if (rand < 0.70) return 1;
+    if (rand < 0.90) return 2;
+    return 3;
+  } else if (score >= 500) {
+    if (rand < 0.80) return 1;
+    if (rand < 0.95) return 2;
+    return 3;
+  }
+  return rand < 0.90 ? 1 : 2;
+}
+
+// 새 블록 추가 (빈 셀에 랜덤 배치)
+function spawnBlock() {
+  const empty = getEmptyCells();
+  if (empty.length === 0) return false;
+  const cell = empty[Math.floor(Math.random() * empty.length)];
+  grid[cell.r][cell.c] = getNewBlockLevel();
+  // 팝업 애니메이션 등록
+  blockAnims.push({
+    type: 'spawn', r: cell.r, c: cell.c,
+    progress: 0, duration: 200
+  });
+  return true;
+}
+
+// 점수 5000+ 일 때 추가 블록 스폰 확률
+function getExtraSpawnChance() {
+  if (score >= 10000) return 0.35;
+  if (score >= 5000) return 0.20;
+  return 0;
+}
+
+// 이동 가능 여부 확인 (게임 오버 판정용)
+function canMove() {
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (grid[r][c] === 0) return true;
+      if (c < GRID_SIZE - 1 && grid[r][c] === grid[r][c + 1]) return true;
+      if (r < GRID_SIZE - 1 && grid[r][c] === grid[r + 1][c]) return true;
+    }
+  }
+  return false;
+}
+
+// --- 이동 로직 ---
+
+// 한 방향으로 블록 슬라이드 + 머지 수행
+function moveBlocks(dir) {
+  let moved = false;
+  let merges = 0;
+  const merged = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false));
+  const moveData = []; // 애니메이션용 이동 데이터
+
+  // 방향별 순회 순서 결정
+  const dr = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
+  const dc = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+  const rows = dir === 'down' ? [4,3,2,1,0] : [0,1,2,3,4];
+  const cols = dir === 'right' ? [4,3,2,1,0] : [0,1,2,3,4];
+
+  for (const r of rows) {
+    for (const c of cols) {
+      if (grid[r][c] === 0) continue;
+      let cr = r, cc = c;
+      // 끝까지 이동
+      while (true) {
+        const nr = cr + dr, nc = cc + dc;
+        if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) break;
+        if (grid[nr][nc] === 0) {
+          grid[nr][nc] = grid[cr][cc];
+          grid[cr][cc] = 0;
+          cr = nr; cc = nc;
+          moved = true;
+        } else if (grid[nr][nc] === grid[cr][cc] && !merged[nr][nc] && !merged[cr][cc]) {
+          // 머지 처리
+          const newLevel = grid[cr][cc] + 1;
+          const isRainbow = grid[cr][cc] === 7; // 보라+보라
+          grid[nr][nc] = isRainbow ? 8 : newLevel;
+          grid[cr][cc] = 0;
+          merged[nr][nc] = true;
+          merges++;
+          moved = true;
+
+          // 머지 점수 계산
+          const mergeScore = isRainbow ? RAINBOW_SCORE : (MERGE_SCORES[newLevel] || 0);
+
+          // 머지 이펙트 파티클
+          const pos = getCellCenter(nr, nc);
+          spawnMergeEffect(pos.x, pos.y, COLORS[Math.min(newLevel, 7)] || '#fff');
+
+          // 이동 데이터 기록
+          moveData.push({ fromR: r, fromC: c, toR: nr, toC: nc, merged: true, level: newLevel, score: mergeScore });
+
+          // 무지개 블록 처리
+          if (isRainbow) {
+            handleRainbowBlock(nr, nc);
+          }
+
+          cr = nr; cc = nc;
+          break;
+        } else {
+          break;
+        }
+      }
+      if (cr !== r || cc !== c) {
+        if (!moveData.find(m => m.fromR === r && m.fromC === c)) {
+          moveData.push({ fromR: r, fromC: c, toR: cr, toC: cc, merged: false });
+        }
+      }
+    }
+  }
+
+  if (!moved) return false;
+
+  // 콤보 계산
+  comboCount = merges;
+  let comboMultiplier = 1;
+  if (merges >= 5) comboMultiplier = 7;
+  else if (merges >= 4) comboMultiplier = 6;
+  else if (merges >= 3) comboMultiplier = 4;
+  else if (merges >= 2) comboMultiplier = 3;
+
+  // 점수 합산
+  let turnScore = 0;
+  for (const m of moveData) {
+    if (m.score) turnScore += m.score;
+  }
+  turnScore *= comboMultiplier;
+  score += turnScore;
+
+  // 콤보 텍스트
+  if (merges >= 2) {
+    floatingTexts.push({
+      text: `COMBO ×${comboMultiplier}!`,
+      x: W / 2, y: gridY - 20,
+      alpha: 1, vy: -1.5, scale: 1.5,
+      color: '#FFD93D', life: 80
+    });
+  }
+
+  // 점수 텍스트
+  if (turnScore > 0) {
+    floatingTexts.push({
+      text: `+${turnScore}`,
+      x: W / 2 + 60, y: H * 0.08,
+      alpha: 1, vy: -1, scale: 1,
+      color: '#00d4ff', life: 60
+    });
+  }
+
+  // 이정표 확인
+  checkMilestones();
+
+  // 블록 이동 애니메이션 등록 (간단하게 진행)
+  animating = true;
+  setTimeout(() => {
+    // 새 블록 스폰
+    spawnBlock();
+    if (Math.random() < getExtraSpawnChance()) spawnBlock();
+
+    // 무지개 블록(8) → 보라(7)로 정규화
+    for (let r2 = 0; r2 < GRID_SIZE; r2++)
+      for (let c2 = 0; c2 < GRID_SIZE; c2++)
+        if (grid[r2][c2] === 8) grid[r2][c2] = 7;
+
+    animating = false;
+
+    // 게임 오버 확인
+    if (!canMove()) {
+      triggerGameOver();
+    }
+  }, 160);
+
+  return true;
+}
+
+// 셀 중심 좌표 반환
+function getCellCenter(r, c) {
+  const x = gridX + GRID_PADDING + c * (cellSize + CELL_GAP) + cellSize / 2;
+  const y = gridY + GRID_PADDING + r * (cellSize + CELL_GAP) + cellSize / 2;
+  return { x, y };
+}
+
+// 무지개 블록 이벤트: 가장 낮은 단계 블록 3개 제거
+function handleRainbowBlock(rr, cc) {
+  let lowestLevel = 8;
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (grid[r][c] > 0 && grid[r][c] < lowestLevel && !(r === rr && c === cc))
+        lowestLevel = grid[r][c];
+
+  let removed = 0;
+  for (let r = 0; r < GRID_SIZE && removed < 3; r++) {
+    for (let c = 0; c < GRID_SIZE && removed < 3; c++) {
+      if (grid[r][c] === lowestLevel && !(r === rr && c === cc)) {
+        const pos = getCellCenter(r, c);
+        spawnMergeEffect(pos.x, pos.y, '#fff');
+        grid[r][c] = 0;
+        removed++;
+      }
+    }
+  }
+
+  // 무지개 폭발 이펙트
+  const pos = getCellCenter(rr, cc);
+  for (let i = 0; i < 30; i++) {
+    const angle = (i / 30) * Math.PI * 2;
+    const speed = 2 + Math.random() * 4;
+    particles.push({
+      x: pos.x, y: pos.y,
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      color: COLORS[1 + (i % 7)],
+      alpha: 1, life: 60 + Math.random() * 40,
+      size: 4 + Math.random() * 6,
+      type: 'rainbow'
+    });
+  }
+
+  screenShake.intensity = 8;
+
+  floatingTexts.push({
+    text: '🌈 RAINBOW!',
+    x: W / 2, y: gridY + gridW / 2,
+    alpha: 1, vy: -1, scale: 2,
+    color: '#C56BFF', life: 100
+  });
+}
+
+// 이정표 확인
+function checkMilestones() {
+  for (const m of MILESTONES) {
+    if (score >= m.score && !milestoneReached.includes(m.score)) {
+      milestoneReached.push(m.score);
+      floatingTexts.push({
+        text: m.text,
+        x: W / 2, y: H / 2,
+        alpha: 1, vy: -0.5, scale: 1.8,
+        color: '#FFD93D', life: 120
+      });
+    }
+  }
+}
+
+// 머지 이펙트 파티클 생성
+function spawnMergeEffect(x, y, color) {
+  // effectHit 이미지 파티클
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
+    const speed = 1.5 + Math.random() * 3;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color,
+      alpha: 1, life: 30 + Math.random() * 20,
+      size: 6 + Math.random() * 8,
+      type: 'merge'
+    });
+  }
+
+  // 스프라이트 기반 이펙트 (한 개 큰 폭발)
+  particles.push({
+    x, y, vx: 0, vy: 0,
+    color, alpha: 1, life: 25,
+    size: cellSize * 1.4,
+    type: 'hitSprite'
+  });
+}
+
+// --- 게임 오버 ---
+function triggerGameOver() {
+  gameState = STATE.GAMEOVER;
+  gameOverAlpha = 0;
+  screenShake.intensity = 12;
+  newBestScore = score > bestScore;
+  if (newBestScore) {
+    bestScore = score;
+    try { localStorage.setItem('colorMergePuzzle_bestScore', bestScore); } catch(e) {}
+  }
+}
+
+// --- 게임 시작/재시작 ---
+function startGame() {
+  initGrid();
+  score = 0;
+  comboCount = 0;
+  animating = false;
+  particles = [];
+  floatingTexts = [];
+  blockAnims = [];
+  milestoneReached = [];
+  newBestScore = false;
+  screenShake = { x: 0, y: 0, intensity: 0, decay: 0.9 };
+  spawnBlock();
+  spawnBlock();
+  gameState = STATE.PLAYING;
+}
+
+// --- 입력 처리 ---
+let touchStartX = 0, touchStartY = 0;
+let mouseDown = false, mouseStartX = 0, mouseStartY = 0;
+
+// 방향 입력 처리
+function handleDirection(dir) {
+  if (gameState !== STATE.PLAYING || animating) return;
+  moveBlocks(dir);
+}
+
+// 키보드 이벤트
+function onKeyDown(e) {
+  if (gameState === STATE.TITLE) {
+    if (e.code === 'Space' || e.code === 'Enter') { startGame(); e.preventDefault(); }
+    return;
+  }
+  if (gameState === STATE.GAMEOVER) {
+    if (e.code === 'KeyR' || e.code === 'Space') { startGame(); e.preventDefault(); }
+    return;
+  }
+  if (gameState === STATE.PLAYING) {
+    switch (e.code) {
+      case 'ArrowUp': case 'KeyW': handleDirection('up'); e.preventDefault(); break;
+      case 'ArrowDown': case 'KeyS': handleDirection('down'); e.preventDefault(); break;
+      case 'ArrowLeft': case 'KeyA': handleDirection('left'); e.preventDefault(); break;
+      case 'ArrowRight': case 'KeyD': handleDirection('right'); e.preventDefault(); break;
+      case 'KeyR': startGame(); e.preventDefault(); break;
+    }
+  }
+}
+
+// 스와이프 방향 결정
+function resolveSwipe(dx, dy) {
+  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+  if (Math.max(absDx, absDy) < SWIPE_MIN) return null;
+  if (absDx > absDy) return dx > 0 ? 'right' : 'left';
+  return dy > 0 ? 'down' : 'up';
+}
+
+// 터치 이벤트
+function onTouchStart(e) {
+  if (gameState === STATE.TITLE) { startGame(); return; }
+  if (gameState === STATE.GAMEOVER) { startGame(); return; }
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+}
+
+function onTouchMove(e) {
+  e.preventDefault(); // 스크롤 방지
+}
+
+function onTouchEnd(e) {
+  if (gameState !== STATE.PLAYING) return;
+  const t = e.changedTouches[0];
+  const dir = resolveSwipe(t.clientX - touchStartX, t.clientY - touchStartY);
+  if (dir) handleDirection(dir);
+}
+
+// 마우스 드래그 이벤트
+function onMouseDown(e) {
+  if (gameState === STATE.TITLE) { startGame(); return; }
+  if (gameState === STATE.GAMEOVER) { startGame(); return; }
+  mouseDown = true;
+  mouseStartX = e.clientX;
+  mouseStartY = e.clientY;
+}
+
+function onMouseUp(e) {
+  if (!mouseDown) return;
+  mouseDown = false;
+  if (gameState !== STATE.PLAYING) return;
+  const dir = resolveSwipe(e.clientX - mouseStartX, e.clientY - mouseStartY);
+  if (dir) handleDirection(dir);
+}
+
+// 이벤트 리스너 등록 (한 번만)
+function bindEvents() {
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('resize', resizeCanvas);
+  canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+  canvas.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mouseup', onMouseUp);
+}
+
+// --- 렌더링 ---
+
+// 둥근 사각형 그리기 유틸
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// 배경 렌더링 (패럴랙스)
+function drawBackground() {
+  // 기본 배경색
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, W, H);
+
+  bgScrollX += 0.3;
+
+  // bgLayer1 (원경 — 느리게)
+  if (SPRITES.bgLayer1) {
+    const w1 = W + 40, h1 = H + 40;
+    const ox1 = -(bgScrollX * 0.15) % 40 - 20;
+    const oy1 = -10;
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(SPRITES.bgLayer1, ox1, oy1, w1, h1);
+    ctx.globalAlpha = 1;
+  } else {
+    // 폴백: 미세한 그리드 패턴
+    ctx.strokeStyle = '#12121e';
+    ctx.lineWidth = 0.5;
+    const spacing = 40;
+    const ox = -(bgScrollX * 0.15) % spacing;
+    for (let x = ox; x < W; x += spacing) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += spacing) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+  }
+
+  // bgLayer2 (근경 — 빠르게)
+  if (SPRITES.bgLayer2) {
+    const w2 = W + 60, h2 = H + 60;
+    const ox2 = -(bgScrollX * 0.4) % 60 - 30;
+    ctx.globalAlpha = 0.2;
+    ctx.drawImage(SPRITES.bgLayer2, ox2, -20, w2, h2);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// 그리드 배경 그리기
+function drawGridBackground() {
+  // 그리드 컨테이너
+  ctx.save();
+  roundRect(gridX, gridY, gridW, gridW, GRID_RADIUS);
+  ctx.fillStyle = '#16213E';
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // 빈 셀
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cx = gridX + GRID_PADDING + c * (cellSize + CELL_GAP);
+      const cy = gridY + GRID_PADDING + r * (cellSize + CELL_GAP);
+      roundRect(cx, cy, cellSize, cellSize, CELL_RADIUS);
+      ctx.fillStyle = '#0F3460';
+      ctx.fill();
+    }
+  }
+}
+
+// 블록 하나 그리기
+function drawBlock(r, c, level, scaleOverride) {
+  if (level <= 0 || level > 8) return;
+  const cx = gridX + GRID_PADDING + c * (cellSize + CELL_GAP);
+  const cy = gridY + GRID_PADDING + r * (cellSize + CELL_GAP);
+  const s = scaleOverride || 1;
+  const half = cellSize / 2;
+  const bx = cx + half - (cellSize * s) / 2;
+  const by = cy + half - (cellSize * s) / 2;
+  const bs = cellSize * s;
+
+  ctx.save();
+
+  if (level === 8) {
+    // 무지개 블록 (특수) — powerup 스프라이트 사용
+    const t = performance.now() / 300;
+    const pulse = 1 + Math.sin(t) * 0.05;
+    const pbx = cx + half - (cellSize * pulse) / 2;
+    const pby = cy + half - (cellSize * pulse) / 2;
+    const pbs = cellSize * pulse;
+
+    if (SPRITES.powerup) {
+      ctx.drawImage(SPRITES.powerup, pbx, pby, pbs, pbs);
+    } else {
+      // 폴백: 무지개 그라데이션 블록
+      const grad = ctx.createLinearGradient(pbx, pby, pbx + pbs, pby + pbs);
+      for (let i = 1; i <= 7; i++) grad.addColorStop((i - 1) / 6, COLORS[i]);
+      roundRect(pbx, pby, pbs, pbs, CELL_RADIUS);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+
+  const color = COLORS[level] || '#fff';
+  const light = COLOR_LIGHTS[level] || '#fff';
+
+  // 블록 본체
+  roundRect(bx, by, bs, bs, CELL_RADIUS);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // 내부 하이라이트 (상단 빛 반사)
+  const hlGrad = ctx.createLinearGradient(bx, by, bx, by + bs);
+  hlGrad.addColorStop(0, light + '80');
+  hlGrad.addColorStop(0.4, light + '10');
+  hlGrad.addColorStop(1, 'transparent');
+  roundRect(bx, by, bs, bs, CELL_RADIUS);
+  ctx.fillStyle = hlGrad;
+  ctx.fill();
+
+  // 외곽 글로우
+  roundRect(bx, by, bs, bs, CELL_RADIUS);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
+// 모든 블록 그리기
+function drawBlocks() {
+  // 스폰 애니메이션 블록 추적
+  const spawnMap = {};
+  for (const a of blockAnims) {
+    if (a.type === 'spawn') spawnMap[a.r + ',' + a.c] = a.progress / a.duration;
+  }
+
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (grid[r][c] === 0) continue;
+      const key = r + ',' + c;
+      let sc = 1;
+      if (spawnMap[key] !== undefined) {
+        // 스폰 중: 0 → 1 팝업
+        sc = easeOutBack(Math.min(spawnMap[key], 1));
+      }
+      drawBlock(r, c, grid[r][c], sc);
+    }
+  }
+}
+
+// 이펙트 파티클 렌더링
+function drawParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    if (p.type === 'hitSprite' && SPRITES.effectHit) {
+      // effectHit 스프라이트 사용
+      const sz = p.size * (1 - p.life / 40); // 약간 커지며 사라짐
+      ctx.drawImage(SPRITES.effectHit, p.x - sz / 2, p.y - sz / 2, sz, sz);
+    } else if (p.type === 'rainbow') {
+      // 무지개 파티클: 별 모양
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+    } else {
+      // 기본 파티클
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// 떠오르는 텍스트 렌더링
+function drawFloatingTexts() {
+  for (const ft of floatingTexts) {
+    ctx.save();
+    ctx.globalAlpha = ft.alpha;
+    ctx.fillStyle = ft.color;
+    ctx.font = `bold ${14 * ft.scale}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.shadowColor = ft.color;
+    ctx.shadowBlur = 12;
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+  }
+}
+
+// HUD(점수판) 그리기
+function drawHUD() {
+  const hudY = H * 0.04;
+
+  // 현재 점수
+  ctx.save();
+  if (SPRITES.uiStar) {
+    ctx.drawImage(SPRITES.uiStar, gridX + 4, hudY - 2, 24, 24);
+  }
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 13px Orbitron';
+  ctx.textAlign = 'left';
+  ctx.fillText('SCORE', gridX + (SPRITES.uiStar ? 32 : 4), hudY + 10);
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = 'bold 22px Orbitron';
+  ctx.fillText(score.toLocaleString(), gridX + (SPRITES.uiStar ? 32 : 4), hudY + 36);
+
+  // 최고 점수
+  const rightX = gridX + gridW;
+  ctx.fillStyle = '#8080a0';
+  ctx.font = 'bold 13px Orbitron';
+  ctx.textAlign = 'right';
+  ctx.fillText('BEST', rightX - 4, hudY + 10);
+  ctx.fillStyle = '#FFD93D';
+  ctx.font = 'bold 22px Orbitron';
+  ctx.fillText(bestScore.toLocaleString(), rightX - 4, hudY + 36);
+  ctx.restore();
+
+  // 게임 제목 (작게)
+  ctx.save();
+  ctx.fillStyle = '#505070';
+  ctx.font = '10px Orbitron';
+  ctx.textAlign = 'center';
+  ctx.fillText('COLOR MERGE PUZZLE', W / 2, hudY + 58);
+  ctx.restore();
+}
+
+// --- 타이틀 화면 ---
+function drawTitle(ts) {
+  titleTime += 1;
+  titleAlpha = Math.min(titleAlpha + 0.02, 1);
+
+  drawBackground();
+
+  // 타이틀 파티클 (배경 반짝임)
+  if (titleTime % 3 === 0 && particles.length < 60) {
+    particles.push({
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.5, vy: -0.3 - Math.random() * 0.5,
+      color: COLORS[1 + Math.floor(Math.random() * 7)],
+      alpha: 0.6, life: 80 + Math.random() * 60,
+      size: 2 + Math.random() * 4, type: 'star'
+    });
+  }
+  drawParticles();
+
+  ctx.save();
+  ctx.globalAlpha = titleAlpha;
+
+  // 그리드 프리뷰 (데코용)
+  const previewScale = 0.5;
+  const previewSize = gridW * previewScale;
+  const previewX = (W - previewSize) / 2;
+  const previewY = H * 0.14;
+  ctx.save();
+  ctx.translate(previewX, previewY);
+  ctx.scale(previewScale, previewScale);
+  ctx.globalAlpha = 0.2 * titleAlpha;
+  // 미니 그리드
+  roundRect(0, 0, gridW, gridW, GRID_RADIUS);
+  ctx.fillStyle = '#16213E';
+  ctx.fill();
+  ctx.restore();
+
+  // 제목: 스캔라인 + 시안 글로우
+  const titleY = H * 0.38;
+  ctx.textAlign = 'center';
+
+  // 글로우 레이어
+  ctx.save();
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = 'bold 28px Orbitron';
+  if (W < 400) ctx.font = 'bold 22px Orbitron';
+  ctx.fillText('COLOR MERGE', W / 2, titleY);
+  ctx.font = 'bold 38px Orbitron';
+  if (W < 400) ctx.font = 'bold 30px Orbitron';
+  ctx.fillText('PUZZLE', W / 2, titleY + 44);
+  ctx.restore();
+
+  // 스캔라인 오버레이
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  for (let sy = 0; sy < H; sy += 3) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, sy, W, 1);
+  }
+  ctx.restore();
+
+  // 부제
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '12px Orbitron';
+  ctx.fillText('같은 색 블록을 합쳐 무지개를 완성하세요', W / 2, titleY + 80);
+
+  // 색상 미리보기 (7색 블록)
+  const previewBlockSize = Math.min(32, (W - 80) / 9);
+  const totalW = previewBlockSize * 7 + 6 * 6;
+  const startX = (W - totalW) / 2;
+  const blockY = titleY + 100;
+  for (let i = 0; i < 7; i++) {
+    const bx = startX + i * (previewBlockSize + 6);
+    roundRect(bx, blockY, previewBlockSize, previewBlockSize, 6);
+    ctx.fillStyle = COLORS[i + 1];
+    ctx.fill();
+    ctx.shadowColor = COLORS[i + 1];
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // 시작 안내
+  const blink = Math.sin(performance.now() / 400) * 0.4 + 0.6;
+  ctx.globalAlpha = blink;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 14px Orbitron';
+  ctx.fillText('SPACE / TAP TO START', W / 2, titleY + 165);
+  ctx.globalAlpha = 1;
+
+  // 조작 안내
+  ctx.fillStyle = '#505070';
+  ctx.font = '10px Orbitron';
+  ctx.fillText('↑↓←→ / WASD / SWIPE', W / 2, titleY + 195);
+
+  ctx.restore();
+}
+
+// --- 게임 오버 화면 ---
+function drawGameOver() {
+  gameOverAlpha = Math.min(gameOverAlpha + 0.03, 1);
+
+  ctx.save();
+  ctx.globalAlpha = gameOverAlpha * 0.7;
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = gameOverAlpha;
+  ctx.textAlign = 'center';
+
+  const cy = H * 0.35;
+
+  // GAME OVER 텍스트
+  ctx.fillStyle = '#ef4444';
+  ctx.font = 'bold 32px Orbitron';
+  ctx.shadowColor = '#ef4444';
+  ctx.shadowBlur = 20;
+  ctx.fillText('GAME OVER', W / 2, cy);
+  ctx.shadowBlur = 0;
+
+  // 최종 점수
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 16px Orbitron';
+  ctx.fillText('SCORE', W / 2, cy + 50);
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = 'bold 36px Orbitron';
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = 15;
+  ctx.fillText(score.toLocaleString(), W / 2, cy + 90);
+  ctx.shadowBlur = 0;
+
+  // 최고 점수 (신기록이면 강조)
+  if (newBestScore) {
+    ctx.fillStyle = '#FFD93D';
+    ctx.font = 'bold 14px Orbitron';
+    ctx.shadowColor = '#FFD93D';
+    ctx.shadowBlur = 10;
+    ctx.fillText('★ NEW BEST! ★', W / 2, cy + 120);
+    ctx.shadowBlur = 0;
+  }
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '12px Orbitron';
+  ctx.fillText('BEST: ' + bestScore.toLocaleString(), W / 2, cy + 145);
+
+  // 재시작 안내
+  const blink = Math.sin(performance.now() / 400) * 0.4 + 0.6;
+  ctx.globalAlpha = gameOverAlpha * blink;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 14px Orbitron';
+  ctx.fillText('R / SPACE / TAP TO RESTART', W / 2, cy + 195);
+
+  ctx.restore();
+}
+
+// --- 로딩 화면 ---
+function drawLoading() {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = 'bold 16px Orbitron';
+  ctx.textAlign = 'center';
+  ctx.fillText('LOADING...', W / 2, H / 2);
+
+  // 로딩 바
+  const barW = 200, barH = 4;
+  const barX = (W - barW) / 2;
+  const barY = H / 2 + 20;
+  ctx.fillStyle = '#1e1e30';
+  ctx.fillRect(barX, barY, barW, barH);
+  const prog = (Math.sin(performance.now() / 300) + 1) / 2;
+  ctx.fillStyle = '#00d4ff';
+  ctx.fillRect(barX, barY, barW * prog, barH);
+}
+
+// --- 업데이트 ---
+
+// 파티클 업데이트
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    p.alpha = Math.max(0, p.life / 60);
+    if (p.type === 'merge' || p.type === 'rainbow') {
+      p.size *= 0.96;
+      p.vy += 0.02;
+    }
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+// 떠오르는 텍스트 업데이트
+function updateFloatingTexts() {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy;
+    ft.life--;
+    ft.alpha = Math.max(0, ft.life / 60);
+    if (ft.life <= 0) floatingTexts.splice(i, 1);
+  }
+}
+
+// 블록 애니메이션 업데이트
+function updateBlockAnims(dt) {
+  for (let i = blockAnims.length - 1; i >= 0; i--) {
+    const a = blockAnims[i];
+    a.progress += dt;
+    if (a.progress >= a.duration) {
+      blockAnims.splice(i, 1);
+    }
+  }
+}
+
+// 화면 쉐이크 업데이트
+function updateShake() {
+  if (screenShake.intensity > 0.5) {
+    screenShake.x = (Math.random() - 0.5) * screenShake.intensity;
+    screenShake.y = (Math.random() - 0.5) * screenShake.intensity;
+    screenShake.intensity *= screenShake.decay;
+  } else {
+    screenShake.x = 0;
+    screenShake.y = 0;
+    screenShake.intensity = 0;
+  }
+}
+
+// 이징 함수
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+// --- 메인 루프 ---
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  const dt = Math.min(timestamp - lastTime, 33); // 최대 33ms (30fps 하한)
+  lastTime = timestamp;
+
+  updateParticles();
+  updateFloatingTexts();
+  updateBlockAnims(dt);
+  updateShake();
+
+  // 쉐이크 적용
+  ctx.save();
+  ctx.translate(screenShake.x, screenShake.y);
+
+  switch (gameState) {
+    case STATE.LOADING:
+      drawLoading();
+      break;
+    case STATE.TITLE:
+      drawTitle(timestamp);
+      break;
+    case STATE.PLAYING:
+      drawBackground();
+      drawGridBackground();
+      drawBlocks();
+      drawParticles();
+      drawFloatingTexts();
+      drawHUD();
+      break;
+    case STATE.GAMEOVER:
+      drawBackground();
+      drawGridBackground();
+      drawBlocks();
+      drawParticles();
+      drawFloatingTexts();
+      drawHUD();
+      drawGameOver();
+      break;
+  }
+
+  ctx.restore();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// --- 초기화 ---
+async function init() {
+  // 최고 점수 로드
+  try { bestScore = parseInt(localStorage.getItem('colorMergePuzzle_bestScore')) || 0; } catch(e) {}
+
+  resizeCanvas();
+  bindEvents();
+
+  // 로딩 화면 표시 시작
+  requestAnimationFrame(gameLoop);
+
+  // 에셋 프리로드
+  await preloadAssets();
+
+  // 타이틀로 전환
+  gameState = STATE.TITLE;
+}
+
+init();
+</script>
+</body>
+</html>
