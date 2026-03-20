@@ -36,17 +36,35 @@ const IDLE_STATE = {
 async function readFromRedis(): Promise<object | null> {
   const url = process.env.REDIS_URL
   if (!url) return null
-  let redis: Redis | null = null
-  try {
-    redis = new Redis(url, { connectTimeout: 3000, maxRetriesPerRequest: 1, lazyConnect: true })
-    await redis.connect()
-    const json = await redis.get(REDIS_KEY)
-    return json ? JSON.parse(json) : null
-  } catch {
-    return null
-  } finally {
-    redis?.disconnect()
-  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { resolve(null) }, 4000)
+    const redis = new Redis(url, {
+      connectTimeout: 3000,
+      commandTimeout: 2000,
+      maxRetriesPerRequest: 0,
+      enableOfflineQueue: false,
+      lazyConnect: false,
+      retryStrategy: () => null,
+    })
+    // 반드시 error 핸들러 등록 — 없으면 uncaught exception
+    redis.on('error', () => {
+      clearTimeout(timer)
+      redis.disconnect()
+      resolve(null)
+    })
+    redis.once('ready', async () => {
+      try {
+        const json = await redis.get(REDIS_KEY)
+        clearTimeout(timer)
+        redis.disconnect()
+        resolve(json ? JSON.parse(json) : null)
+      } catch {
+        clearTimeout(timer)
+        redis.disconnect()
+        resolve(null)
+      }
+    })
+  })
 }
 
 export async function GET() {
