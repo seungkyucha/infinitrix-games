@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#050510"/>
+      <stop offset="40%" stop-color="#0D0D1A"/>
+      <stop offset="100%" stop-color="#1A0A2E"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E0E0FF" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#B0B0E0" stop-opacity="0.5"/>
+      <stop offset="70%" stop-color="#6060A0" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0D0D1A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaGrad1" cx="30%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#D500F9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaGrad2" cx="70%" cy="60%" r="35%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="starBlur">
+      <feGaussianBlur stdDeviation="1"/>
+    </filter>
+  </defs>
+  <!-- 밤하늘 그라디언트 -->
+  <rect width="800" height="600" fill="url(#skyGrad)"/>
+  <!-- 성운 효과 -->
+  <ellipse cx="240" cy="200" rx="300" ry="180" fill="url(#nebulaGrad1)"/>
+  <ellipse cx="560" cy="350" rx="250" ry="150" fill="url(#nebulaGrad2)"/>
+  <!-- 달 -->
+  <g>
+    <circle cx="650" cy="100" r="60" fill="url(#moonGlow)"/>
+    <circle cx="650" cy="100" r="25" fill="#C0C0E8" opacity="0.8"/>
+    <circle cx="643" cy="93" r="4" fill="#A0A0C0" opacity="0.3"/>
+    <circle cx="655" cy="105" r="6" fill="#A0A0C0" opacity="0.2"/>
+    <circle cx="640" cy="108" r="3" fill="#A0A0C0" opacity="0.25"/>
+  </g>
+  <!-- 큰 별들 (밝은) -->
+  <g filter="url(#starBlur)">
+    <circle cx="80" cy="45" r="2" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="200" cy="80" r="1.8" fill="#00E5FF" opacity="0.8"/>
+    <circle cx="340" cy="30" r="2.2" fill="#FFFFFF" opacity="0.85"/>
+    <circle cx="520" cy="65" r="1.5" fill="#D500F9" opacity="0.7"/>
+    <circle cx="720" cy="40" r="2" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="150" cy="150" r="1.8" fill="#FFD740" opacity="0.6"/>
+    <circle cx="450" cy="120" r="2" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="580" cy="160" r="1.5" fill="#00E5FF" opacity="0.7"/>
+  </g>
+  <!-- 작은 별들 (파티클) -->
+  <g opacity="0.6">
+    <circle cx="30" cy="20" r="0.8" fill="#FFFFFF"/><circle cx="95" cy="110" r="0.6" fill="#FFFFFF"/>
+    <circle cx="130" cy="55" r="0.7" fill="#E0E0FF"/><circle cx="175" cy="130" r="0.5" fill="#FFFFFF"/>
+    <circle cx="250" cy="45" r="0.8" fill="#FFFFFF"/><circle cx="290" cy="95" r="0.6" fill="#E0E0FF"/>
+    <circle cx="360" cy="70" r="0.5" fill="#FFFFFF"/><circle cx="410" cy="25" r="0.7" fill="#FFFFFF"/>
+    <circle cx="440" cy="140" r="0.6" fill="#E0E0FF"/><circle cx="500" cy="50" r="0.8" fill="#FFFFFF"/>
+    <circle cx="550" cy="100" r="0.5" fill="#FFFFFF"/><circle cx="610" cy="130" r="0.7" fill="#E0E0FF"/>
+    <circle cx="670" cy="75" r="0.6" fill="#FFFFFF"/><circle cx="740" cy="115" r="0.8" fill="#FFFFFF"/>
+    <circle cx="770" cy="55" r="0.5" fill="#E0E0FF"/><circle cx="55" cy="170" r="0.6" fill="#FFFFFF"/>
+    <circle cx="310" cy="160" r="0.7" fill="#FFFFFF"/><circle cx="480" cy="180" r="0.5" fill="#E0E0FF"/>
+    <circle cx="680" cy="170" r="0.6" fill="#FFFFFF"/><circle cx="760" cy="185" r="0.7" fill="#FFFFFF"/>
+  </g>
+  <!-- 수평선 근처 도시 광해 -->
+  <rect x="0" y="480" width="800" height="120" fill="url(#skyGrad)" opacity="0"/>
+  <g opacity="0.15">
+    <rect x="0" y="520" width="800" height="80" fill="#1A0A2E"/>
+    <ellipse cx="400" cy="560" rx="400" ry="60" fill="#D500F9" opacity="0.08"/>
+    <ellipse cx="400" cy="570" rx="300" ry="40" fill="#FF1744" opacity="0.05"/>
+  </g>
+</svg>

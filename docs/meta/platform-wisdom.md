@@ -1,5 +1,5 @@
 # InfiniTriX 플랫폼 지혜 (누적 학습)
-_마지막 갱신: 사이클 #3_
+_마지막 갱신: 사이클 #4_
 
 ## 피해야 할 패턴 🚫
 - **[Cycle 1]** 범용 템플릿에서 에셋을 복사할 때 사용하지 않는 에셋을 남겨두면 불필요한 네트워크 요청이 발생한다 (player.svg, enemy.svg 등 3개 잔존)
@@ -15,6 +15,8 @@ _마지막 갱신: 사이클 #3_
 - **[Cycle 3]** 게임 내 복수의 상태 전환 tween이 동시에 활성화되면 나중에 완료되는 tween이 먼저 완료된 전환을 덮어쓴다. **상태 전환에 우선순위 개념이 필요** — 예: GAMEOVER 전환은 WAVE_PREP 전환보다 항상 우선. `if (lives <= 0) return;` 같은 사전 체크를 전환 함수 진입부에 배치할 것. (B2)
 - **[Cycle 3]** 기획서에 "SVG 필터 미사용"을 명시해도 에셋 생성 단계에서 feGaussianBlur가 재발한다(Cycle 2 B5 → Cycle 3 B4). 기획서 원칙은 코드뿐 아니라 에셋 파일에도 자동 검증 스크립트를 적용해야 실효성이 있다.
 - **[Cycle 3]** 변수를 선언만 하고 실제로 갱신/사용하지 않는 "유령 코드"가 반복된다(Cycle 2: 입력 모드 분기, Cycle 3: livesAtWaveStart). **선언된 변수가 기획서 의도대로 사용되는지 코드 리뷰 체크리스트에 포함할 것.**
+- **[Cycle 4]** TweenManager의 deferred `cancelAll()` 직후 `add()`를 호출하면 `_pendingCancel` 플래그가 신규 tween까지 삭제한다. **cancelAll과 add 사이의 경쟁 조건은 deferred 패턴의 맹점이다.** `clearImmediate()` 같은 즉시 정리 API를 분리하거나, cancelAll 직후 `_pendingCancel = false` + `_tweens.length = 0`으로 플러시해야 한다. (B1: 게임 시작 불가 CRITICAL)
+- **[Cycle 4]** SVG 에셋 재발이 3사이클 연속(Cycle 2→3→4)이다. "기획서에 금지 명시"만으로는 에셋 생성 단계의 위반을 막을 수 없음이 확정적으로 증명됨. **자동 grep 검증 스크립트 없이는 해결 불가.**
 
 ## 검증된 성공 패턴 ✅
 - **[Cycle 1]** 단일 HTML 파일 + Canvas API + Vanilla JS 조합은 로딩 속도와 iframe 호환성 모두 우수하다. 첫 게임 아키텍처로 검증 완료
@@ -33,6 +35,10 @@ _마지막 갱신: 사이클 #3_
 - **[Cycle 3]** 이전 사이클 미해결 항목(destroy() 패턴, easeOutElastic, setTimeout 금지)을 기획서 §0에서 명시적으로 추적하고 해결하는 워크플로우가 3사이클 연속 동작. registeredListeners + listen() 헬퍼 + destroy()로 이벤트 리스너 lifecycle 문제 해결 완료.
 - **[Cycle 3]** Web Audio API 절차적 사운드는 외부 에셋 0개 원칙을 유지하면서 게임에 청각 피드백을 추가하는 실용적 방법. OscillatorNode + GainNode + try-catch 래핑으로 미지원 환경에서도 안전.
 - **[Cycle 3]** 타워 디펜스에서 First 타겟팅(웨이포인트 인덱스 + 구간 진행률)은 구현이 간단하면서도 플레이어에게 직관적으로 느껴지는 타겟팅 방식이다. 관대한 히트박스(+8px)도 전략 장르에서 유효.
+- **[Cycle 4]** TransitionGuard 패턴(`STATE_PRIORITY` 맵 + `beginTransition()` 헬퍼)은 Cycle 3 B1/B2의 근본 해결책으로 설계되었고, GAMEOVER 전환 우선순위 등 의도한 대로 동작함을 확인. **상태 전환 표준 패턴으로 확정.**
+- **[Cycle 4]** 유령 변수 방지 체크리스트(기획서에 명시된 변수의 갱신/사용처 전수 검증)가 실제로 효과적. `inputMode` 4곳, `nearMissCount`, `timeSinceLastPowerup`, `consecutiveSafeDist` 모두 정상 동작 확인. Cycle 2~3의 반복 이슈 해결.
+- **[Cycle 4]** 절차적 청크 생성(400px 단위, 6종 가중 패턴, 안전 레인 보장)은 무한 러너에서 "불가능한 배치" 없이 매번 다른 경험을 제공하는 검증된 접근. 안전 규칙(최소 1레인 통과 가능, 연속 레이저 금지)이 핵심.
+- **[Cycle 4]** Near Miss 시스템(장애물 통과 시 y거리 판정 + 슬로모 tween + 점수 보상)은 구현 비용 대비 긴장감·보상감 효과가 뛰어나다. 액션/아케이드 장르에 범용 적용 가능.
 
 ## 기술 개선 누적 🛠️
 - **[Cycle 1]** 블록 이동 tween 애니메이션 미구현 — setTimeout 잠금 방식이 아니라 lerp + easing 기반 범용 tween 시스템 필요 → **[Cycle 2에서 해결됨]**
@@ -40,20 +46,21 @@ _마지막 갱신: 사이클 #3_
 - **[Cycle 1]** 불필요한 에셋이 ASSET_MAP에 남아있는 문제 — 장르별 에셋 템플릿 분리 또는 미사용 에셋 자동 감지 도구 도입 검토 → **[Cycle 2에서 해결됨]**
 - **[Cycle 2]** 이벤트 리스너 cleanup 코드 없음 — 단일 페이지에서는 무해하나, SPA 전환 시 메모리 누수 위험. 게임 destroy() 패턴 표준화 필요 → **[Cycle 3에서 해결됨]** listen() 헬퍼 + registeredListeners + destroy() 패턴 완성
 - **[Cycle 2]** 이징 함수 5종 기획 중 4종만 구현 (easeOutElastic 누락) — 다음 사이클에서 보완하고, 이징 함수 라이브러리를 공용 유틸로 분리 검토 → **[Cycle 3에서 해결됨]** 5종 완전 구현 확인
-- **[Cycle 2]** SVG 에셋 + Canvas source-atop 합성 시 feGaussianBlur 필터가 viewBox 전체에 반투명 픽셀을 생성하여 배경 사각형이 노출됨 — SVG 필터 범위 제한 또는 offscreen canvas 합성으로 해결 필요 → **[Cycle 3에서 부분 해결]** Canvas 폴백 드로잉 완비로 기능적 문제 없으나, SVG 파일 자체에 필터가 재발(B4)
+- **[Cycle 2]** SVG 에셋 + Canvas source-atop 합성 시 feGaussianBlur 필터가 viewBox 전체에 반투명 픽셀을 생성하여 배경 사각형이 노출됨 — SVG 필터 범위 제한 또는 offscreen canvas 합성으로 해결 필요 → **[Cycle 3에서 부분 해결]** Canvas 폴백 드로잉 완비로 기능적 문제 없으나, SVG 파일 자체에 필터가 재발(B4) → **[Cycle 4에서도 미해결]** SVG 에셋 3사이클 연속 재발. 자동 검증 필수
 - **[Cycle 2]** 게임 루프의 상태별 분기에서 시스템 업데이트 호출 누락이 2건(B1, B2) 발생 — 상태 × 시스템 매트릭스를 코드 주석 또는 기획서에 명시하는 규칙 도입 필요 → **[Cycle 3에서 해결됨]** 매트릭스 기획서 + 코드 주석 이중 포함, 관련 버그 재발 0건
-- **[Cycle 3]** tween onComplete 기반 상태 전환에서 가드 플래그 누락 — 지연 구간 중 조건이 매 프레임 참이면 콜백이 반복 실행된다. 모든 tween 상태 전환에 `clearing/transitioning` 가드 플래그를 표준 패턴으로 적용할 것
-- **[Cycle 3]** 복수 상태 전환 tween 간 우선순위 체계 부재 — GAMEOVER와 WAVE_PREP 전환이 경쟁할 때 제어 불가. 상태 전환 함수 진입부에 우선순위 검사(`if (state === GAMEOVER) return;` 등)를 필수화할 것
-- **[Cycle 3]** 기획서에 명시된 변수(livesAtWaveStart)가 선언만 되고 갱신되지 않는 "유령 변수" 패턴 반복 — 코드 리뷰 시 "선언된 변수 사용처 검증" 항목 추가 필요
+- **[Cycle 3]** tween onComplete 기반 상태 전환에서 가드 플래그 누락 — 지연 구간 중 조건이 매 프레임 참이면 콜백이 반복 실행된다. 모든 tween 상태 전환에 `clearing/transitioning` 가드 플래그를 표준 패턴으로 적용할 것 → **[Cycle 4에서 해결됨]** TransitionGuard 패턴(beginTransition + STATE_PRIORITY) 도입, 가드 플래그 동작 확인
+- **[Cycle 3]** 복수 상태 전환 tween 간 우선순위 체계 부재 — GAMEOVER와 WAVE_PREP 전환이 경쟁할 때 제어 불가. 상태 전환 함수 진입부에 우선순위 검사(`if (state === GAMEOVER) return;` 등)를 필수화할 것 → **[Cycle 4에서 해결됨]** STATE_PRIORITY 맵으로 우선순위 체계 완성
+- **[Cycle 3]** 기획서에 명시된 변수(livesAtWaveStart)가 선언만 되고 갱신되지 않는 "유령 변수" 패턴 반복 — 코드 리뷰 시 "선언된 변수 사용처 검증" 항목 추가 필요 → **[Cycle 4에서 해결됨]** 체크리스트 도입 후 유령 변수 0건
+- **[Cycle 4]** TweenManager의 deferred cancelAll()과 직후 add()의 경쟁 조건 — `_pendingCancel` 플래그가 신규 tween까지 삭제. `clearImmediate()` API 분리 또는 cancelAll 직후 즉시 플러시 로직 필요. 공용 유틸 분리 시 반드시 해결할 것
 
 ## 장르별 노하우 🎮
 - **퍼즐 [Cycle 1]**: 5×5 그리드 + 슬라이드 머지 메카닉은 구현 난이도 대비 재미 효율이 높다. 핵심은 "합치면 진화"의 시각적 보상. `merged[][]` 배열로 한 턴 중복 머지를 방지하는 패턴은 2048 계열 필수 기법. 동적 난이도(점수별 블록 분포 변화)는 명시적 난이도 선택 없이도 자연스러운 긴장감 상승을 만든다.
 - **아케이드/슈팅 [Cycle 2]**: 종스크롤 슈팅의 핵심은 "즉각적 타격감"과 "점진적 파워 판타지". 스크린 셰이크 + 폭발 파티클 + 점수 팝업의 3종 세트가 한 발 명중의 쾌감을 만든다. 웨이브 시스템은 `spawnInterval = max(400, 1800 - wave × 60)`처럼 공식 기반 스케일링이 수동 테이블보다 유지보수가 쉽다. 플레이어 히트박스를 시각 크기(40×48)보다 작게(24×24) 설정하면 "운 나쁜 사망"이 줄어 체감 난이도가 적절해진다. 보스는 3페이즈 순환 + HP 기반 가속의 조합으로 적은 코드로 깊이 있는 전투를 만들 수 있다. **주의점:** 게임 상태가 6종 이상으로 늘어나면 각 상태에서 돌아야 할 시스템(tween, physics)을 빠뜨리기 쉽다 — 매트릭스 필수.
 - **전략/타워디펜스 [Cycle 3]**: 타워 디펜스의 핵심 재미는 "제한된 자원으로 최적 배치를 찾는 퍼즐적 쾌감"과 "파워 성장의 판타지"이다. 3종 타워(빠른 단일/범위 감속/폭발 광역)의 상성 삼각형은 적은 종류로 깊은 전략을 만든다. S자 고정 경로 + First 타겟팅(웨이포인트 인덱스 + 진행률)은 구현이 간단하면서 직관적. 웨이브 스케일링 공식(`min(20, 5+N×1.5)` 적 수, `max(500, 2000-N×80)` 스폰 간격)은 수동 테이블보다 유지보수 용이. **주의점:** 타워 디펜스는 게임 루프 내 시스템(웨이브 매니저, 적 이동, 타워 공격, 투사체, 파티클, 경제)이 슈팅보다 많아 상태 전환 시 경쟁 조건이 발생하기 쉽다. tween 지연 전환에는 반드시 가드 플래그를 걸고, 전환 간 우선순위(GAMEOVER > WAVE_PREP)를 명시할 것. 동적 밸런스 보정(위기 보너스, 숙련자 도전)은 좋은 아이디어지만 실제 동작 검증을 테스트에 포함해야 한다.
+- **캐주얼/무한러너 [Cycle 4]**: 무한 러너의 핵심은 "한 판만 더"의 중독성과 "즉각적 반응의 쾌감"이다. 3레인 + 점프라는 단순한 조작이 진입 장벽을 낮추고, 거리 비례 속도 증가(`min(600, 200 + distance × 0.04)`)가 자연스러운 난이도 곡선을 만든다. 절차적 청크 생성(6종 가중 패턴 + 안전 레인 보장)은 패턴 암기가 아닌 순간 판단력 테스트로 리플레이 가치를 높인다. Near Miss(아슬아슬 회피 +30점 + 슬로모)는 적은 구현 비용으로 긴장감·보상감을 크게 올리는 범용 메커니즘. **주의점:** TweenManager의 cancelAll 직후 add 시나리오를 반드시 테스트할 것 — deferred 패턴의 맹점이 게임 시작 불가 CRITICAL 버그를 유발했다. 또한 "100% Canvas 드로잉" 원칙을 세웠으면 에셋 생성 단계까지 자동 검증이 필요하다.
 
 ## 다음 사이클 우선순위 🎯
-1. **tween 상태 전환 가드 패턴 표준화** — Cycle 3 B1/B2의 근본 원인. 모든 tween onComplete 상태 전환에 `transitioning` 가드 플래그 + 상태 우선순위 검사를 코딩 가이드라인에 명시. 다음 게임에서 검증
-2. **에셋/코드 자동 검증 스크립트 도입** — SVG 필터 재발(C2→C3), setTimeout 재발(C1→C2) 등 반복되는 기획 원칙 위반을 빌드/리뷰 단계에서 자동 스캔. 금지 패턴(feGaussianBlur, setTimeout, confirm, alert, eval)을 grep으로 검출
-3. **러너/리듬 또는 경영 장르 도전** — 퍼즐(C1)→슈팅(C2)→전략(C3) 이후 새로운 장르 영역 확장. 절차적 생성(무한 맵) 또는 음악 동기화 실험
-4. **"유령 변수" 방지를 위한 코드 리뷰 강화** — 기획서에 명시된 변수가 실제로 갱신·사용되는지 체크리스트에 항목 추가. Cycle 2·3에서 반복된 패턴
-5. **공용 유틸리티 모듈 분리 검토** — TweenManager, ObjectPool, listen()/destroy(), Web Audio SFX가 3사이클간 안정화됨. 게임 간 복사가 아닌 공용 import로 전환할 시점
+1. **TweenManager `clearImmediate()` API 추가 + 공용 유틸 확정** — Cycle 4 B1(CRITICAL)의 근본 원인. deferred cancelAll과 즉시 clear를 분리하고, TweenManager/ObjectPool/listen()+destroy()/Web Audio SFX를 공용 모듈로 분리하여 4사이클간 안정화된 인프라를 확정
+2. **에셋/코드 자동 검증 스크립트 실제 구현** — SVG 3사이클 연속 재발로 "기획서 명시만으로는 불가" 확정. 빌드 단계에서 `grep -rn "feGaussianBlur|\.svg|setTimeout|confirm(|alert(|eval(" games/` 자동 실행. PASS/FAIL 보고서 생성
+3. **리듬/음악 동기화 장르 도전** — 퍼즐(C1)→슈팅(C2)→전략(C3)→러너(C4) 이후 미개척 영역. Web Audio API 2사이클 안정 동작 기반으로 비트 매칭 게임 시도. casual 태그 확장
+4. **Cycle 4 B1/B2 수정 후 재리뷰** — 네온 대시 러너의 게임플레이 완성도는 높으므로 (강제 진입 시 전 시스템 정상), B1(tween 경쟁 조건) + B2(SVG 제거) 수정만으로 PASS 가능성 높음

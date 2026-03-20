@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="buildGrad1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A1A3E"/>
+      <stop offset="100%" stop-color="#14142B"/>
+    </linearGradient>
+    <linearGradient id="buildGrad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E1E40"/>
+      <stop offset="100%" stop-color="#12122A"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1C1C2E"/>
+      <stop offset="100%" stop-color="#151525"/>
+    </linearGradient>
+    <linearGradient id="neonStripL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D500F9" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="windowGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="stripGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 건물 실루엣 (원경, 낮은 불투명도) -->
+  <g opacity="0.5">
+    <rect x="0" y="320" width="50" height="280" fill="url(#buildGrad1)"/>
+    <rect x="55" y="280" width="40" height="320" fill="url(#buildGrad2)"/>
+    <rect x="100" y="350" width="60" height="250" fill="url(#buildGrad1)"/>
+    <rect x="170" y="260" width="45" height="340" fill="url(#buildGrad2)"/>
+    <rect x="220" y="310" width="55" height="290" fill="url(#buildGrad1)"/>
+    <rect x="285" y="240" width="35" height="360" fill="url(#buildGrad2)"/>
+    <rect x="325" y="290" width="50" height="310" fill="url(#buildGrad1)"/>
+    <rect x="380" y="340" width="45" height="260" fill="url(#buildGrad2)"/>
+    <rect x="430" y="270" width="55" height="330" fill="url(#buildGrad1)"/>
+    <rect x="495" y="300" width="40" height="300" fill="url(#buildGrad2)"/>
+    <rect x="540" y="250" width="50" height="350" fill="url(#buildGrad1)"/>
+    <rect x="600" y="320" width="45" height="280" fill="url(#buildGrad2)"/>
+    <rect x="650" y="280" width="55" height="320" fill="url(#buildGrad1)"/>
+    <rect x="715" y="310" width="40" height="290" fill="url(#buildGrad2)"/>
+    <rect x="760" y="260" width="50" height="340" fill="url(#buildGrad1)"/>
+  </g>
+  <!-- 안테나 -->
+  <g stroke="#2D2D4E" stroke-width="1.5" opacity="0.6">
+    <line x1="75" y1="280" x2="75" y2="260"/><circle cx="75" cy="258" r="2" fill="#FF1744" opacity="0.7"/>
+    <line x1="192" y1="260" x2="192" y2="238"/><circle cx="192" cy="236" r="2" fill="#00E5FF" opacity="0.7"/>
+    <line x1="302" y1="240" x2="302" y2="218"/><circle cx="302" cy="216" r="2" fill="#FF1744" opacity="0.7"/>
+    <line x1="455" y1="270" x2="455" y2="248"/><circle cx="455" cy="246" r="2" fill="#D500F9" opacity="0.7"/>
+    <line x1="565" y1="250" x2="565" y2="228"/><circle cx="565" cy="226" r="2" fill="#00E5FF" opacity="0.7"/>
+    <line x1="675" y1="280" x2="675" y2="258"/><circle cx="675" cy="256" r="2" fill="#FF1744" opacity="0.7"/>
+  </g>
+  <!-- 네온 창문 -->
+  <g filter="url(#windowGlow)">
+    <!-- 빌딩 1 -->
+    <rect x="10" y="340" width="3" height="3" fill="#FF1744" opacity="0.8"/>
+    <rect x="20" y="360" width="3" height="3" fill="#00E5FF" opacity="0.7"/>
+    <rect x="30" y="380" width="3" height="3" fill="#D500F9" opacity="0.6"/>
+    <rect x="15" y="400" width="3" height="3" fill="#00E5FF" opacity="0.8"/>
+    <!-- 빌딩 2 -->
+    <rect x="65" y="300" width="3" height="3" fill="#D500F9" opacity="0.8"/>
+    <rect x="75" y="320" width="3" height="3" fill="#FF1744" opacity="0.7"/>
+    <rect x="62" y="340" width="3" height="3" fill="#00E5FF" opacity="0.6"/>
+    <!-- 빌딩 3 -->
+    <rect x="180" y="280" width="3" height="3" fill="#FF1744" opacity="0.9"/>
+    <rect x="190" y="300" width="3" height="3" fill="#D500F9" opacity="0.7"/>
+    <rect x="175" y="320" width="3" height="3" fill="#00E5FF" opacity="0.8"/>
+    <rect x="195" y="340" width="3" height="3" fill="#FF1744" opacity="0.6"/>
+    <!-- 빌딩 4 -->
+    <rect x="295" y="260" width="3" height="3" fill="#00E5FF" opacity="0.8"/>
+    <rect x="305" y="280" width="3" height="3" fill="#D500F9" opacity="0.9"/>
+    <rect x="290" y="310" width="3" height="3" fill="#FF1744" opacity="0.7"/>
+    <!-- 빌딩 5 -->
+    <rect x="440" y="290" width="3" height="3" fill="#D500F9" opacity="0.8"/>
+    <rect x="450" y="310" width="3" height="3" fill="#FF1744" opacity="0.7"/>
+    <rect x="465" y="330" width="3" height="3" fill="#00E5FF" opacity="0.9"/>
+    <rect x="445" y="350" width="3" height="3" fill="#D500F9" opacity="0.6"/>
+    <!-- 빌딩 6 -->
+    <rect x="555" y="270" width="3" height="3" fill="#FF1744" opacity="0.8"/>
+    <rect x="565" y="290" width="3" height="3" fill="#00E5FF" opacity="0.7"/>
+    <rect x="550" y="310" width="3" height="3" fill="#D500F9" opacity="0.8"/>
+    <!-- 빌딩 7 -->
+    <rect x="660" y="300" width="3" height="3" fill="#00E5FF" opacity="0.9"/>
+    <rect x="675" y="320" width="3" height="3" fill="#FF1744" opacity="0.7"/>
+    <rect x="665" y="345" width="3" height="3" fill="#D500F9" opacity="0.6"/>
+    <!-- 빌딩 8 -->
+    <rect x="770" y="280" width="3" height="3" fill="#D500F9" opacity="0.8"/>
+    <rect x="780" y="310" width="3" height="3" fill="#FF1744" opacity="0.7"/>
+    <rect x="775" y="340" width="3" height="3" fill="#00E5FF" opacity="0.9"/>
+  </g>
+  <!-- 도로 영역 -->
+  <rect x="0" y="430" width="800" height="170" fill="url(#roadGrad)"/>
+  <!-- 레인 구분선 -->
+  <g stroke="#2D2D4E" stroke-width="1" stroke-dasharray="20,15" opacity="0.4">
+    <line x1="0" y1="472" x2="800" y2="472"/>
+    <line x1="0" y1="515" x2="800" y2="515"/>
+    <line x1="0" y1="558" x2="800" y2="558"/>
+  </g>
+  <!-- 도로 중앙선 (속도감) -->
+  <g stroke="#FFD740" stroke-width="2" stroke-dasharray="30,20" opacity="0.3">
+    <line x1="0" y1="515" x2="800" y2="515"/>
+  </g>
+  <!-- 양쪽 네온 스트립 -->
+  <g filter="url(#stripGlow)">
+    <line x1="0" y1="430" x2="800" y2="430" stroke="#D500F9" stroke-width="2" opacity="0.8"/>
+    <line x1="0" y1="430" x2="800" y2="430" stroke="#D500F9" stroke-width="8" opacity="0.15"/>
+    <line x1="0" y1="600" x2="800" y2="600" stroke="#00E5FF" stroke-width="2" opacity="0.6"/>
+    <line x1="0" y1="600" x2="800" y2="600" stroke="#00E5FF" stroke-width="8" opacity="0.1"/>
+  </g>
+</svg>

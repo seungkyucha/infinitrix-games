@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T15:00:00Z",
-  "totalGames": 3,
+  "lastUpdated": "2026-03-20T18:00:00Z",
+  "totalGames": 4,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -67,6 +67,29 @@
         "P키: 일시정지",
         "Space: 웨이브 조기 시작",
         "터치: 탭으로 모든 조작"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "neon-dash-runner",
+      "title": "네온 대시 러너",
+      "description": "네온 사이버펑크 도시를 질주하며 장애물을 피하고 코인을 모아라!",
+      "genre": ["arcade", "casual"],
+      "thumbnail": "/games/neon-dash-runner/assets/thumbnail.svg",
+      "path": "/games/neon-dash-runner/index.html",
+      "addedAt": "2026-03-20T18:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["무한러너", "네온", "사이버펑크", "캐주얼", "아케이드", "절차적생성"],
+      "controls": [
+        "↑↓ / W·S: 레인 전환",
+        "Space: 점프",
+        "P / ESC: 일시정지",
+        "터치: 스와이프(레인) / 탭(점프)",
+        "마우스: 영역 클릭(레인/점프)"
       ],
       "difficulty": "medium",
       "version": "1.0.0",

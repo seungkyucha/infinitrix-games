@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="barrierGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF1744"/>
+      <stop offset="50%" stop-color="#D50000"/>
+      <stop offset="100%" stop-color="#8B0000"/>
+    </linearGradient>
+    <linearGradient id="spikeGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#FF6D00"/>
+      <stop offset="100%" stop-color="#FF9100"/>
+    </linearGradient>
+    <radialGradient id="enemyGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF1744" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#FF1744" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#FF1744" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="laserGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#D500F9" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#D500F9"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="redGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="purpleGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 배경 위협 글로우 -->
+  <ellipse cx="32" cy="32" rx="28" ry="28" fill="url(#enemyGlow)"/>
+  <!-- 배리어 (메인 장애물) -->
+  <g filter="url(#redGlow)">
+    <rect x="12" y="8" width="40" height="48" rx="3" ry="3" fill="url(#barrierGrad)"/>
+    <!-- 밝은 테두리 -->
+    <rect x="12" y="8" width="40" height="48" rx="3" ry="3" fill="none" stroke="#FF5252" stroke-width="1.5"/>
+    <!-- 상단 장식선 -->
+    <line x1="16" y1="14" x2="48" y2="14" stroke="#FF8A80" stroke-width="1.5" opacity="0.8"/>
+    <!-- 하단 장식선 -->
+    <line x1="16" y1="50" x2="48" y2="50" stroke="#FF8A80" stroke-width="1.5" opacity="0.8"/>
+    <!-- 경고 패턴 X -->
+    <path d="M22 22 L42 42 M42 22 L22 42" stroke="#FF8A80" stroke-width="2" opacity="0.5" stroke-linecap="round"/>
+    <!-- 중앙 위험 심볼 -->
+    <circle cx="32" cy="32" r="6" fill="none" stroke="#FFCDD2" stroke-width="1.5" opacity="0.6"/>
+    <path d="M32 26 L32 35 M32 38 L32 39" stroke="#FFCDD2" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  </g>
+  <!-- 스파이크 장식 (상단) -->
+  <g filter="url(#redGlow)" opacity="0.7">
+    <path d="M20 8 L24 2 L28 8" fill="url(#spikeGrad)" stroke="#FFAB40" stroke-width="0.5"/>
+    <path d="M32 8 L36 0 L40 8" fill="url(#spikeGrad)" stroke="#FFAB40" stroke-width="0.5"/>
+  </g>
+  <!-- 레이저 발사구 (하단 장식) -->
+  <circle cx="20" cy="56" r="3" fill="#D500F9" opacity="0.5" filter="url(#purpleGlow)"/>
+  <circle cx="44" cy="56" r="3" fill="#D500F9" opacity="0.5" filter="url(#purpleGlow)"/>
+</svg>

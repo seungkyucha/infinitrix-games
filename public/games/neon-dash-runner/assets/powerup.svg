@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="capsuleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#42A5F5"/>
+      <stop offset="50%" stop-color="#2979FF"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+    <radialGradient id="capsuleGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2979FF" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#2979FF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#2979FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="capsuleShine" cx="35%" cy="25%" r="30%">
+      <stop offset="0%" stop-color="#BBDEFB" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#2979FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="magnetGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#82B1FF"/>
+      <stop offset="100%" stop-color="#2979FF"/>
+    </linearGradient>
+    <filter id="blueGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 외곽 글로우 펄스 -->
+  <g filter="url(#outerGlow)">
+    <circle cx="24" cy="24" r="20" fill="url(#capsuleGlow)"/>
+  </g>
+  <!-- 캡슐 본체 (둥근 사각형) -->
+  <g filter="url(#blueGlow)">
+    <rect x="8" y="8" width="32" height="32" rx="8" ry="8" fill="url(#capsuleGrad)" stroke="#64B5F6" stroke-width="1"/>
+    <!-- 내부 테두리 -->
+    <rect x="11" y="11" width="26" height="26" rx="5" ry="5" fill="none" stroke="#90CAF9" stroke-width="0.5" opacity="0.5"/>
+  </g>
+  <!-- 자석 아이콘 (U자형) -->
+  <g>
+    <!-- U자 몸체 -->
+    <path d="M17 16 L17 28 C17 32 20.5 35 24 35 C27.5 35 31 32 31 28 L31 16"
+          fill="none" stroke="url(#magnetGrad)" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- 자석 끝 (빨강/파랑 극) -->
+    <rect x="14" y="14" width="6" height="5" rx="1" fill="#FF1744" opacity="0.9"/>
+    <rect x="28" y="14" width="6" height="5" rx="1" fill="#42A5F5" opacity="0.9"/>
+    <!-- 자력선 -->
+    <path d="M15 30 C12 30 10 27 10 24" fill="none" stroke="#82B1FF" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.5"/>
+    <path d="M33 30 C36 30 38 27 38 24" fill="none" stroke="#82B1FF" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.5"/>
+  </g>
+  <!-- 광택 -->
+  <ellipse cx="19" cy="15" rx="5" ry="3.5" fill="url(#capsuleShine)"/>
+  <!-- 반짝임 파티클 -->
+  <g opacity="0.7">
+    <circle cx="6" cy="6" r="1.2" fill="#BBDEFB"/>
+    <circle cx="42" cy="8" r="0.8" fill="#FFFFFF"/>
+    <circle cx="40" cy="40" r="1" fill="#82B1FF"/>
+    <circle cx="7" cy="38" r="0.8" fill="#FFFFFF"/>
+  </g>
+</svg>
