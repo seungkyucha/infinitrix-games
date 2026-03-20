@@ -3,23 +3,10 @@
 import { useState }                   from 'react'
 import { useRouter, useSearchParams }  from 'next/navigation'
 
-const VERDICT_BADGE: Record<string, string> = {
-  APPROVED:        'bg-green-500/20  text-green-400  border-green-500/30',
-  NEEDS_MINOR_FIX: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  NEEDS_MAJOR_FIX: 'bg-red-500/20    text-red-400    border-red-500/30',
-}
-
-const VERDICT_SHORT: Record<string, string> = {
-  APPROVED:        'PASS',
-  NEEDS_MINOR_FIX: 'MINOR',
-  NEEDS_MAJOR_FIX: 'MAJOR',
-}
-
 export interface SidebarEntry {
   id:          string   // 'wisdom' | 'cycle-3'
   label:       string   // '누적 플랫폼 지혜' | '#3 미니 타워 디펜스'
   icon:        string
-  verdict?:    string
 }
 
 interface Props {
@@ -104,7 +91,6 @@ function SidebarItem({
   active:  boolean
   onClick: () => void
 }) {
-  const verdict = entry.verdict
   return (
     <button
       onClick={onClick}
@@ -116,11 +102,6 @@ function SidebarItem({
     >
       <span className="text-sm shrink-0">{entry.icon}</span>
       <span className="flex-1 text-xs font-medium truncate">{entry.label}</span>
-      {verdict && (
-        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 max-w-14 truncate ${VERDICT_BADGE[verdict] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
-          {VERDICT_SHORT[verdict] ?? verdict.replace(/^NEEDS_/, '').replace(/_/g, ' ')}
-        </span>
-      )}
     </button>
   )
 }
