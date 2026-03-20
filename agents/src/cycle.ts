@@ -25,6 +25,7 @@ async function runAgent(role: string, prompt: string): Promise<AgentResult> {
       options: {
         cwd:            PROJECT_ROOT,
         allowedTools:   roleDef.tools as string[],
+        mcpServers:     roleDef.mcpServers ?? {},
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
         model:          'claude-opus-4-6',
