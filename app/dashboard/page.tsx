@@ -27,11 +27,12 @@ interface StatusData {
   gameId:      string
   gameGenre:   string[]
   agents: {
-    analyst:  AgentState
-    planner:  AgentState
-    coder:    AgentState
-    reviewer: AgentState
-    deployer: AgentState
+    analyst:    AgentState
+    planner:    AgentState
+    coder:      AgentState
+    reviewer:   AgentState
+    postmortem: AgentState
+    deployer:   AgentState
   }
   recentLogs: string[]
 }
@@ -39,14 +40,15 @@ interface StatusData {
 // ── 에이전트 메타데이터 ────────────────────────────────────────────────────────
 
 const AGENTS: { id: keyof StatusData['agents']; label: string; role: string; step: number }[] = [
-  { id: 'analyst',  label: '분석가',    role: 'Data Analyst',    step: 1 },
-  { id: 'planner',  label: '플래너',    role: 'Game Planner',    step: 2 },
-  { id: 'coder',    label: '코더',      role: 'Full-stack Dev',  step: 3 },
-  { id: 'reviewer', label: '리뷰어',    role: 'QA Reviewer',     step: 4 },
-  { id: 'deployer', label: '배포 담당', role: 'DevOps Engineer', step: 5 },
+  { id: 'analyst',    label: '분석가',    role: 'Data Analyst',    step: 1 },
+  { id: 'planner',    label: '플래너',    role: 'Game Planner',    step: 2 },
+  { id: 'coder',      label: '코더',      role: 'Full-stack Dev',  step: 3 },
+  { id: 'reviewer',   label: '리뷰어',    role: 'QA Reviewer',     step: 4 },
+  { id: 'postmortem', label: '포스트모템', role: 'Tech Writer',     step: 5 },
+  { id: 'deployer',   label: '배포 담당', role: 'DevOps Engineer', step: 6 },
 ]
 
-const STEP_NAMES = ['트렌드 분석', '게임 기획', '코딩 + 디자인', '코드 리뷰 + 테스트', '레지스트리 등록 + 배포']
+const STEP_NAMES = ['트렌드 분석', '게임 기획', '코딩 + 디자인', '코드 리뷰 + 테스트', '포스트모템 작성', '레지스트리 등록 + 배포']
 
 // ── 상태 색상 ─────────────────────────────────────────────────────────────────
 

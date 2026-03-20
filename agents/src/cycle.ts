@@ -11,7 +11,6 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 
-// 프로젝트 루트 (agents/ 의 부모)
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
 
@@ -38,14 +37,13 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
         maxTurns:       40,
         systemPrompt:   roleDef.prompt,
 
-        // 툴 사용 실시간 기록 hook
         hooks: {
           PostToolUse: [{
             matcher: '.*',
             hooks: [async (input: Record<string, unknown>) => {
-              const toolName = String(input['tool_name'] ?? 'tool')
+              const toolName  = String(input['tool_name'] ?? 'tool')
               const toolInput = input['tool_input']
-              const detail = typeof toolInput === 'object'
+              const detail    = typeof toolInput === 'object'
                 ? JSON.stringify(toolInput).slice(0, 80)
                 : String(toolInput ?? '').slice(0, 80)
               logTool(agentId, toolName, detail)
@@ -69,14 +67,13 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
   return { agent: agentId, success, output }
 }
 
-/** 디렉토리 생성 (없으면) */
 function ensureDir(path: string) {
   if (!existsSync(path)) mkdirSync(path, { recursive: true })
 }
 
 /**
  * 완전한 게임 개발 사이클 실행
- * 분석 → 기획 → 코딩+디자인 → 리뷰+테스트 → 배포
+ * 분석 → 기획 → 코딩+디자인 → 리뷰+테스트 → 포스트모템 → 배포
  */
 export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleState> {
   const startedAt = new Date().toISOString()
@@ -84,28 +81,27 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   console.log(`🚀 개발 사이클 #${cycleNumber} 시작  (${startedAt})`)
   console.log(`${'═'.repeat(60)}\n`)
 
-  // 문서 폴더 생성
   ensureDir(`${PROJECT_ROOT}/docs/analytics`)
   ensureDir(`${PROJECT_ROOT}/docs/game-specs`)
   ensureDir(`${PROJECT_ROOT}/docs/reviews`)
+  ensureDir(`${PROJECT_ROOT}/docs/post-mortem`)
   ensureDir(`${PROJECT_ROOT}/logs`)
 
-  // 대시보드 상태 초기화
   startCycle(cycleNumber)
 
   const state: CycleState = {
     cycleNumber,
-    gameId:    '',
-    gameTitle: '',
-    gameGenre: [],
+    gameId:     '',
+    gameTitle:  '',
+    gameGenre:  [],
     difficulty: 'medium',
-    status:    'analysis',
+    status:     'analysis',
     startedAt,
   }
 
   try {
-    // ── 1단계: 분석 ─────────────────────────────────────────
-    console.log(`\n📊 [1/5] 분석가 — 플랫폼 현황 및 트렌드 분석`)
+    // ── 1단계: 분석 ──────────────────────────────────────────
+    console.log(`\n📊 [1/6] 분석가 — 플랫폼 현황 및 트렌드 분석`)
     state.status = 'analysis'
     startAgent('analyst', 1, '트렌드 분석')
     await runAgent('analyst', `
@@ -115,8 +111,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('analyst')
 
-    // ── 2단계: 기획 ─────────────────────────────────────────
-    console.log(`\n📋 [2/5] 플래너 — 게임 기획서 작성`)
+    // ── 2단계: 기획 ──────────────────────────────────────────
+    console.log(`\n📋 [2/6] 플래너 — 게임 기획서 작성`)
     state.status = 'planning'
     startAgent('planner', 2, '게임 기획')
     await runAgent('planner', `
@@ -133,8 +129,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('planner')
 
-    // ── 3단계: 코딩 + 디자인 ──────────────────────────────────
-    console.log(`\n💻 [3/5] 코더 — HTML5 게임 구현 + 썸네일 제작`)
+    // ── 3단계: 코딩 + 디자인 ─────────────────────────────────
+    console.log(`\n💻 [3/6] 코더 — HTML5 게임 구현 + 썸네일 제작`)
     state.status = 'coding'
     startAgent('coder', 3, '코딩 + 디자인')
     await runAgent('coder', `
@@ -145,8 +141,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('coder')
 
-    // ── 4단계: 리뷰 + 테스트 ──────────────────────────────────
-    console.log(`\n🔍 [4/5] 리뷰어 — 코드 검토 & 브라우저 테스트`)
+    // ── 4단계: 리뷰 + 테스트 ─────────────────────────────────
+    console.log(`\n🔍 [4/6] 리뷰어 — 코드 검토 & 브라우저 테스트`)
     state.status = 'reviewing'
     startAgent('reviewer', 4, '코드 리뷰 + 테스트')
     const reviewResult = await runAgent('reviewer', `
@@ -169,14 +165,30 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       completeAgent('coder')
     }
 
-    // ── 5단계: 배포 ─────────────────────────────────────────
-    console.log(`\n🚢 [5/5] 배포 담당 — 레지스트리 등록 & GitHub Push`)
+    // ── 5단계: 포스트모템 ──────────────────────────────────────
+    console.log(`\n📝 [5/6] 포스트모템 — 사이클 총정리 문서 작성`)
+    state.status = 'reviewing'
+    startAgent('postmortem', 5, '포스트모템 작성')
+    await runAgent('postmortem', `
+      사이클 #${cycleNumber}의 포스트모템을 작성해줘.
+      - docs/game-specs/cycle-${cycleNumber}-spec.md 읽기
+      - docs/reviews/cycle-${cycleNumber}-review.md 읽기
+      - docs/post-mortem/cycle-${cycleNumber}-postmortem.md 에 저장
+      YAML front-matter에 cycle: ${cycleNumber} 포함할 것.
+    `)
+    completeAgent('postmortem')
+
+    // ── 6단계: 배포 ──────────────────────────────────────────
+    console.log(`\n🚢 [6/6] 배포 담당 — 레지스트리 등록 & GitHub Push`)
     state.status = 'deploying'
-    startAgent('deployer', 5, '레지스트리 등록 + 배포')
+    startAgent('deployer', 6, '레지스트리 등록 + 배포')
     await runAgent('deployer', `
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
       1. public/games/game-registry.json에 새 게임을 추가해줘
-      2. git add public/games/ docs/ && git commit -m "feat: add game from cycle #${cycleNumber}" && git push 를 실행해줘
+      2. 아래 git 명령을 실행해줘:
+         git add public/games/ docs/game-specs/ docs/reviews/ docs/post-mortem/
+         git commit -m "feat: add game from cycle #${cycleNumber}"
+         git push origin main
     `)
     completeAgent('deployer')
 
@@ -192,7 +204,6 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     console.error(`\n❌ 사이클 오류:`, err)
   }
 
-  // 요약 로그 저장
   const summary = `# 사이클 #${cycleNumber} 완료\n- 시작: ${state.startedAt}\n- 완료: ${state.completedAt}\n- 상태: ${state.status}\n`
   writeFileSync(`${PROJECT_ROOT}/logs/cycle-${cycleNumber}-summary.md`, summary)
 

@@ -35,10 +35,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# docs generated
+# docs generated (internal research — not committed)
 /docs/analytics/
 /docs/test-reports/
-/docs/reviews/
 
 # agent runtime logs (local only)
 /logs/
