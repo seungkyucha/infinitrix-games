@@ -1,66 +1,67 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
   <defs>
-    <radialGradient id="midStarGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="midBlur">
-      <feGaussianBlur stdDeviation="1.2"/>
-    </filter>
     <linearGradient id="dustGrad1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.05"/>
-      <stop offset="50%" stop-color="#6C3CF7" stop-opacity="0.08"/>
-      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#1A0A2E" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0B0E17" stop-opacity="0"/>
     </linearGradient>
     <linearGradient id="dustGrad2" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FF6B35" stop-opacity="0.04"/>
-      <stop offset="50%" stop-color="#E74C3C" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#FF6B35" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#0A1A2E" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0B0E17" stop-opacity="0"/>
     </linearGradient>
-    <filter id="dustBlur">
-      <feGaussianBlur stdDeviation="20"/>
+    <radialGradient id="closeStarGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="starBloom">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="debrisBlur">
+      <feGaussianBlur stdDeviation="0.8"/>
     </filter>
   </defs>
-  <!-- 우주 먼지 구름 (반투명, 깊이감) -->
-  <ellipse cx="200" cy="300" rx="300" ry="150" fill="url(#dustGrad1)" filter="url(#dustBlur)"/>
-  <ellipse cx="600" cy="200" rx="250" ry="200" fill="url(#dustGrad2)" filter="url(#dustBlur)"/>
-  <ellipse cx="400" cy="500" rx="350" ry="100" fill="url(#dustGrad1)" filter="url(#dustBlur)"/>
-  <!-- 중간 거리 별들 (중간 크기, 중간 밝기) -->
-  <g fill="#FFFFFF" opacity="0.5">
-    <circle cx="30" cy="25" r="1.2"/><circle cx="95" cy="60" r="1.5"/><circle cx="170" cy="40" r="1.0"/>
-    <circle cx="245" cy="80" r="1.3"/><circle cx="320" cy="30" r="1.1"/><circle cx="400" cy="70" r="1.6"/>
-    <circle cx="475" cy="45" r="1.0"/><circle cx="555" cy="85" r="1.4"/><circle cx="635" cy="35" r="1.2"/>
-    <circle cx="720" cy="65" r="1.5"/><circle cx="780" cy="40" r="1.0"/>
-    <circle cx="50" cy="150" r="1.3"/><circle cx="130" cy="180" r="1.0"/><circle cx="220" cy="160" r="1.5"/>
-    <circle cx="310" cy="190" r="1.1"/><circle cx="400" cy="170" r="1.4"/><circle cx="490" cy="195" r="1.0"/>
-    <circle cx="575" cy="155" r="1.3"/><circle cx="660" cy="185" r="1.5"/><circle cx="740" cy="150" r="1.1"/>
-    <circle cx="70" cy="270" r="1.5"/><circle cx="155" cy="295" r="1.0"/><circle cx="240" cy="280" r="1.3"/>
-    <circle cx="330" cy="310" r="1.6"/><circle cx="420" cy="275" r="1.0"/><circle cx="510" cy="305" r="1.4"/>
-    <circle cx="600" cy="270" r="1.1"/><circle cx="690" cy="300" r="1.5"/><circle cx="760" cy="285" r="1.0"/>
-    <circle cx="40" cy="380" r="1.2"/><circle cx="125" cy="410" r="1.4"/><circle cx="215" cy="390" r="1.0"/>
-    <circle cx="305" cy="420" r="1.5"/><circle cx="395" cy="385" r="1.1"/><circle cx="485" cy="415" r="1.3"/>
-    <circle cx="570" cy="395" r="1.6"/><circle cx="655" cy="425" r="1.0"/><circle cx="745" cy="400" r="1.4"/>
-    <circle cx="60" cy="490" r="1.0"/><circle cx="145" cy="520" r="1.5"/><circle cx="235" cy="500" r="1.2"/>
-    <circle cx="325" cy="530" r="1.3"/><circle cx="415" cy="495" r="1.0"/><circle cx="505" cy="525" r="1.5"/>
-    <circle cx="590" cy="505" r="1.1"/><circle cx="675" cy="535" r="1.4"/><circle cx="755" cy="510" r="1.0"/>
-    <circle cx="85" cy="570" r="1.3"/><circle cx="280" cy="565" r="1.0"/><circle cx="460" cy="575" r="1.5"/>
-    <circle cx="640" cy="560" r="1.2"/><circle cx="780" cy="580" r="1.0"/>
+  <!-- Cosmic dust streaks -->
+  <path d="M0 200 Q200 180 400 220 Q600 260 800 200" fill="none" stroke="url(#dustGrad1)" stroke-width="40" opacity="0.3"/>
+  <path d="M0 400 Q250 370 500 420 Q700 450 800 380" fill="none" stroke="url(#dustGrad2)" stroke-width="50" opacity="0.25"/>
+  <path d="M100 0 Q150 150 120 300 Q90 450 150 600" fill="none" stroke="url(#dustGrad1)" stroke-width="30" opacity="0.2"/>
+  <path d="M650 0 Q680 200 660 350 Q640 500 700 600" fill="none" stroke="url(#dustGrad2)" stroke-width="35" opacity="0.2"/>
+  <!-- Closer brighter stars -->
+  <g filter="url(#starBloom)">
+    <circle cx="120" cy="90" r="2.5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="350" cy="60" r="3.0" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="580" cy="150" r="2.2" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="750" cy="100" r="2.8" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="50" cy="250" r="2.5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="250" cy="300" r="2.0" fill="#FFFFFF" opacity="0.75"/>
+    <circle cx="480" cy="270" r="3.0" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="680" cy="320" r="2.3" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="150" cy="450" r="2.8" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="400" cy="500" r="2.5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="600" cy="470" r="2.0" fill="#FFFFFF" opacity="0.75"/>
+    <circle cx="770" cy="520" r="3.0" fill="#FFFFFF" opacity="0.7"/>
   </g>
-  <!-- 글로우가 있는 밝은 별 (가까운 별) -->
-  <g filter="url(#midBlur)">
-    <circle cx="100" cy="100" r="3" fill="#FFFFFF" opacity="0.45"/>
-    <circle cx="350" cy="250" r="2.5" fill="#CCDDFF" opacity="0.4"/>
-    <circle cx="550" cy="150" r="3.5" fill="#FFFFFF" opacity="0.35"/>
-    <circle cx="700" cy="350" r="2.5" fill="#FFEEDD" opacity="0.4"/>
-    <circle cx="250" cy="450" r="3" fill="#DDDDFF" opacity="0.35"/>
-    <circle cx="450" cy="520" r="2.5" fill="#FFFFFF" opacity="0.3"/>
-    <circle cx="150" cy="350" r="2" fill="#CCFFEE" opacity="0.35"/>
-    <circle cx="600" cy="480" r="3" fill="#FFFFFF" opacity="0.3"/>
+  <!-- Space debris silhouettes -->
+  <g opacity="0.12" filter="url(#debrisBlur)">
+    <path d="M680 160 C685 155 695 158 698 165 C700 172 694 178 688 176 C682 174 676 166 680 160 Z" fill="#2C3E50"/>
+    <path d="M120 380 C125 374 138 376 140 384 C142 392 134 398 126 395 C118 392 115 386 120 380 Z" fill="#2C3E50"/>
+    <path d="M450 520 C456 516 464 518 466 526 C468 534 460 538 454 535 C448 532 444 524 450 520 Z" fill="#2C3E50"/>
   </g>
-  <!-- 유성 잔해 (대각선 스트릭) -->
-  <g opacity="0.15" stroke="#FFFFFF" stroke-linecap="round">
-    <line x1="680" y1="80" x2="710" y2="110" stroke-width="1.5"/>
-    <line x1="200" y1="350" x2="225" y2="380" stroke-width="1"/>
-    <line x1="500" y1="440" x2="520" y2="465" stroke-width="1.2"/>
+  <!-- Colored accent stars -->
+  <g filter="url(#starBloom)">
+    <circle cx="200" cy="180" r="2" fill="#00E5FF" opacity="0.3"/>
+    <circle cx="500" cy="350" r="1.8" fill="#9B59B6" opacity="0.25"/>
+    <circle cx="700" cy="450" r="1.5" fill="#FFD93D" opacity="0.2"/>
+    <circle cx="80" cy="520" r="2" fill="#5DADE2" opacity="0.25"/>
+  </g>
+  <!-- Speed lines suggesting movement -->
+  <g stroke="#FFFFFF" stroke-width="0.5" opacity="0.08">
+    <line x1="100" y1="50" x2="100" y2="70"/>
+    <line x1="300" y1="120" x2="300" y2="145"/>
+    <line x1="550" y1="80" x2="550" y2="100"/>
+    <line x1="720" y1="200" x2="720" y2="225"/>
+    <line x1="200" y1="350" x2="200" y2="375"/>
+    <line x1="450" y1="420" x2="450" y2="445"/>
+    <line x1="650" y1="500" x2="650" y2="520"/>
   </g>
 </svg>

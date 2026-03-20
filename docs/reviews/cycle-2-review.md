@@ -1,201 +1,276 @@
-# Cycle 2 — 스타 가디언 (Star Guardian) 코드 리뷰 & 테스트 결과
+# Cycle 2 — 스타 가디언 (Star Guardian) 코드 리뷰 & 테스트 리포트
 
-> **게임 ID:** `star-guardian`
 > **리뷰 일시:** 2026-03-20
+> **게임 ID:** `star-guardian`
+> **파일:** `public/games/star-guardian/index.html` (1,185줄)
 > **리뷰어:** Claude (QA)
 > **기획서:** `docs/game-specs/cycle-2-spec.md`
-> **소스:** `public/games/star-guardian/index.html` (1,751줄)
 
 ---
 
 ## 1. 코드 리뷰 (정적 분석)
 
-### 1.1 기능 완성도
+### 1.1 기능 완성도 체크리스트
 
-| 기획 기능 | 구현 여부 | 비고 |
-|-----------|----------|------|
-| 종스크롤 슈팅 메카닉 | ✅ 구현 | 자동 발사 + 수동 발사 병행 |
-| 키보드 (WASD/방향키/Space/Z) | ✅ 구현 | 동시 입력(keyDown Set) 대각 이동 지원 |
-| 마우스 (lerp 추적 + 좌클릭 발사) | ✅ 구현 | lerp 0.12 × dt 적용 |
-| 터치 (가상 조이스틱 + 오토파이어) | ✅ 구현 | 반지름 50px, 시각적 조이스틱 인디케이터 |
-| 적 4종 (Scout/Fighter/Tank/Dart) | ✅ 구현 | 각 이동 패턴·공격 패턴 분리 |
-| 보스 (3페이즈 순환) | ✅ 구현 | 직선연사→원형확산→추적탄, HP 50% 이하 가속 |
-| 파워업 3종 (W/H/S) | ✅ 구현 | 드롭 확률·분배 기획 대로 |
-| 무기 강화 4단계 (0~3) | ✅ 구현 | 단발→더블→트리플→트리플+후방탄 |
-| 웨이브 시스템 (무한, 5웨이브마다 보스) | ✅ 구현 | 웨이브 16+ 공식 적용 |
-| 점수 이정표 알림 | ✅ 구현 | 5단계 마일스톤 |
-| 패럴랙스 별 배경 (3레이어) | ✅ 구현 | 40/25/10개 별, 속도 0.3/0.8/1.5 |
-| 보스전 배경 색상 전환 | ✅ 구현 | tween으로 #0B0E17 → #1A0A0A |
-| TweenManager (Cycle 1 M4 해결) | ✅ 구현 | 이징 4종, 적 등장/폭발/파워업/WAVE 텍스트 등 활용 |
-| ObjectPool (6종) | ✅ 구현 | bullet/eBullet/enemy/powerup/particle/floatText |
-| Canvas 확인 모달 (Cycle 1 M3 해결) | ✅ 구현 | R키 → 모달 UI, 키보드+마우스+터치 지원 |
-| 시스템 폰트만 사용 (Cycle 1 M1 해결) | ✅ 구현 | `'Segoe UI', system-ui, -apple-system, sans-serif` |
-| P/Esc 일시정지 | ✅ 구현 | PAUSE 상태 오버레이 |
-| 게임오버 화면 (점수/웨이브/최고기록/재시작) | ✅ 구현 | NEW BEST 하이라이트 포함 |
-| 스크린 셰이크 | ✅ 구현 | 피격·킬 시 발동 |
-| 피격 연출 (붉은 플래시/깜빡임/무적) | ✅ 구현 | 1.5초 무적 + 100ms 간격 깜빡임 |
-| 쉴드 연출 (반투명 링) | ✅ 구현 | sin 펄스 알파 애니메이션 |
-| 무피격 웨이브 보너스 (+500) | ✅ 구현 | waveNoDamage 플래그 |
+| # | 기획서 요구사항 | 구현 | 비고 |
+|---|---------------|:----:|------|
+| 1 | 종스크롤 슈팅 기본 루프 | ✅ | requestAnimationFrame + deltaTime 정상 |
+| 2 | 적 4종 (스카우트/파이터/탱크/다트) | ✅ | 이동 패턴, HP, 점수 모두 기획서 일치 |
+| 3 | 보스전 (5웨이브마다) | ✅ | 3페이즈 공격 패턴 순환 구현 |
+| 4 | 파워업 3종 (W/H/S) | ✅ | 드롭 확률, 효과, 지속시간 일치 |
+| 5 | 무기 강화 4단계 | ✅ | 단발→더블→트리플→트리플+후방탄 |
+| 6 | 콤보 시스템 | ✅ | 1초 이내 연속 처치, 배수 공식 정확 |
+| 7 | 점수 이정표 5종 | ✅ | 메시지/색상 기획서 일치 |
+| 8 | 3레이어 패럴랙스 배경 | ✅ | 별 개수/크기/속도 기획서 일치 |
+| 9 | TweenManager 시스템 | ✅ | 이징 5종, 16+ 활용처 |
+| 10 | ObjectPool 시스템 | ✅ | 총알/적/파워업/파티클/텍스트 6종 풀링 |
+| 11 | AABB 충돌 감지 4종 | ✅ | 아탄↔적, 적탄↔아군, 적↔아군, 파워업↔아군 |
+| 12 | 게임 상태 머신 6상태 | ✅ | LOADING/TITLE/PLAYING/PAUSE/CONFIRM_MODAL/GAMEOVER |
+| 13 | 키보드 동시 입력 (Set) | ✅ | 대각선 이동 정규화 포함 |
+| 14 | 마우스 lerp 추적 | ✅ | factor 0.12 |
+| 15 | 터치 가상 조이스틱 | ✅ | 데드존 8px, 좌하단 영역 제한 |
+| 16 | Canvas 확인 모달 (R키) | ⚠️ | **구현됨 but 표시 안 됨 — 아래 MAJOR B1 참조** |
+| 17 | 일시정지 (P/Esc) | ✅ | 키보드 선택 + 마우스/터치 지원 |
+| 18 | localStorage 최고점 | ✅ | try-catch 적용 |
+| 19 | DPR 대응 | ✅ | resize + orientationchange |
+| 20 | 웨이브 난이도 스케일링 | ✅ | 공식 기획서 일치 |
 
-### 1.2 게임 루프 & 성능
+### 1.2 Cycle 1 실수 재발 방지 검증
+
+| # | 점검 항목 | 결과 | 비고 |
+|---|----------|:----:|------|
+| M1 | 외부 CDN 0개 | ✅ PASS | Google Fonts 미사용, 시스템 폰트 스택만 |
+| M2 | 미사용 에셋 잔존 없음 | ✅ PASS | ASSET_MAP 8종 = manifest.json 8종 (thumbnail 제외) 일치 |
+| M3 | confirm()/alert()/prompt() 0건 | ✅ PASS | Canvas 모달로 대체 |
+| M4 | setTimeout 애니메이션 대체 없음 | ⚠️ | **line 507: `setTimeout(600)` 게임오버 전환에 사용 — B3 참조** |
+
+### 1.3 게임 루프 & 성능
 
 | 항목 | 결과 | 비고 |
-|------|------|------|
+|------|:----:|------|
 | requestAnimationFrame 사용 | ✅ PASS | `loop` 함수에서 사용 |
-| deltaTime 처리 | ✅ PASS | `dtMs = min(rawDt, 33.33)`, 60fps 정규화 `dt = dtMs / 16.67` |
-| 최대 프레임 스킵 보호 | ✅ PASS | `Math.min(rawDt, 33.33)` — 33ms 캡 |
-| 매 프레임 DOM 접근 없음 | ✅ PASS | Canvas API만 사용, DOM 조회 없음 |
-| 객체 풀링 | ✅ PASS | 6종 엔티티 전부 풀링, GC 최소화 |
-| DPR 대응 | ✅ PASS | `canvas.width = displayW * dpr` |
-
-### 1.3 메모리 & 이벤트 관리
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| 이벤트 리스너 등록 | ⚠️ MINOR | 리스너 제거(cleanup) 코드 없음. 단일 페이지 게임이므로 실질적 문제는 아님 |
-| 객체 재사용 (ObjectPool) | ✅ PASS | acquire/release 패턴 |
-| releaseAll on restart | ✅ PASS | `startGame()`에서 모든 풀 releaseAll + tween clear |
+| deltaTime 처리 | ✅ PASS | `ms = min(now - lastT, 33.33)`, 60fps 정규화 `dt = ms / 16.67` |
+| 최대 프레임 스킵 보호 | ✅ PASS | 33.33ms 캡 |
+| 매 프레임 DOM 접근 없음 | ✅ PASS | Canvas API만 사용 |
+| 객체 풀링 | ✅ PASS | 6종 엔티티 풀링, GC 최소화 |
+| DPR 대응 | ✅ PASS | `canvas.width = cssW * dpr`, `ctx.setTransform(dpr*scX,...)` |
 
 ### 1.4 충돌 감지
 
 | 항목 | 결과 | 비고 |
-|------|------|------|
-| AABB 로직 정확성 | ✅ PASS | 중심점 기반 AABB, `a.x - a.w/2 < b.x + b.w/2 ...` |
-| 플레이어 히트박스 축소 | ✅ PASS | 시각 40×48 → 히트박스 24×24 (관대한 판정) |
+|------|:----:|------|
+| AABB 로직 정확성 | ✅ PASS | 중심+반크기 기반, `ax-ahw < bx+bhw ...` |
+| 플레이어 히트박스 축소 | ✅ PASS | 시각 40×48 → 판정 24×24 (관대한 판정) |
 | 4종 충돌 체크 | ✅ PASS | 총알↔적, 적탄↔플레이어, 적↔플레이어, 파워업↔플레이어 |
 
 ### 1.5 모바일 대응
 
 | 항목 | 결과 | 비고 |
-|------|------|------|
+|------|:----:|------|
 | 터치 이벤트 (start/move/end) | ✅ PASS | passive: false 설정 |
-| 가상 조이스틱 | ✅ PASS | 반지름 50px, 시각 인디케이터 |
-| 일시정지 버튼 (터치용) | ✅ PASS | 우측 상단 60×60 영역 |
-| canvas 리사이즈 | ✅ PASS | resize 이벤트 핸들러, 비율 유지 (2:3) |
+| 가상 조이스틱 | ✅ PASS | 반지름 50px, 시각 인디케이터, 데드존 8px |
+| 일시정지 버튼 (터치용) | ✅ PASS | 우측 상단 영역 |
+| canvas 리사이즈 | ✅ PASS | resize + orientationchange 핸들러, 2:3 비율 유지 |
 | touch-action: none | ✅ PASS | CSS에 설정 |
 | user-select: none | ✅ PASS | CSS에 설정 |
 | contextmenu 차단 | ✅ PASS | `e.preventDefault()` |
 
-### 1.6 게임 상태 머신
-
-| 상태 전환 | 구현 | 비고 |
-|-----------|------|------|
-| LOADING → TITLE | ✅ | 에셋 프리로드 완료 후 |
-| TITLE → PLAYING | ✅ | Enter/Space/클릭/터치 |
-| PLAYING → PAUSE | ✅ | P/Esc |
-| PAUSE → PLAYING | ✅ | P/Esc/터치 |
-| PLAYING → GAMEOVER | ✅ | HP = 0 |
-| GAMEOVER → PLAYING | ✅ | Enter/Space/클릭/터치 |
-| PLAYING → CONFIRM_MODAL | ✅ | R키 |
-| CONFIRM_MODAL → PLAYING (리셋 or 복귀) | ✅ | 예→startGame(), 아니오→복귀 |
-
-### 1.7 점수 & 최고점 저장
+### 1.6 보안 & iframe 호환
 
 | 항목 | 결과 | 비고 |
-|------|------|------|
-| localStorage 저장 | ✅ PASS | `starGuardian_bestScore`, `starGuardian_bestWave` |
-| try-catch 감싸기 | ✅ PASS | loadBest(), saveBest() 모두 try-catch |
-| 게임오버 시 저장 | ✅ PASS | `gameOver()` → `saveBest()` |
-| 타이틀 화면 BEST 표시 | ✅ PASS | bestScore > 0일 때 표시 |
-
-### 1.8 보안 & iframe 호환
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
+|------|:----:|------|
 | eval() 사용 | ✅ 없음 | |
 | alert()/confirm()/prompt() 사용 | ✅ 없음 | Canvas 모달로 대체 |
-| XSS 위험 | ✅ 없음 | 외부 입력 없음, 내부 데이터만 |
-| 외부 CDN 의존 | ✅ 0건 | Google Fonts 포함 없음 |
+| XSS 위험 | ✅ 없음 | 외부 입력 없음 |
+| 외부 CDN 의존 | ✅ 0건 | |
 | window.open / 팝업 | ✅ 없음 | |
 | form submit | ✅ 없음 | |
 
-### 1.9 에셋 로딩 검증 (Cycle 1 M2 체크리스트)
+### 1.7 에셋 로딩 검증
 
 | 항목 | 결과 | 비고 |
-|------|------|------|
-| ASSET_MAP 등록 에셋 수 | 8개 | player, enemy, bgLayer1, bgLayer2, uiHeart, uiStar, powerup, effectHit |
-| manifest.json 에셋 수 | 9개 | 위 8개 + thumbnail.svg |
-| 실제 에셋 파일 수 | 10개 | 8개 SVG + thumbnail.svg + manifest.json |
-| 모든 등록 에셋 실사용 여부 | ✅ PASS | 각각 렌더링 코드에서 참조 확인 |
-| 코드 폴백 렌더링 | ✅ PASS | 모든 SVG에 대해 코드 폴백 구현 (player, enemy 유형별, powerup, HUD hearts) |
-| 미사용 에셋 잔존 | ✅ 없음 | 전용 에셋만 등록 |
-| Promise.all 프리로드 + onerror 폴백 | ✅ PASS | `img.onerror = resolve` — 에셋 실패해도 게임 진행 |
-
-### 1.10 발견된 이슈
-
-#### MINOR 이슈
-
-| # | 이슈 | 심각도 | 설명 |
-|---|------|--------|------|
-| M1 | 자동 발사가 항상 활성 | MINOR | 기획서는 "터치 환경에서 오토파이어 기본 ON, 키보드는 Space/Z 수동"이나 코드(line 750)에서 `shouldFire` 변수를 선언만 하고 조건 분기에 사용하지 않음. 키보드 환경에서도 총알이 항상 자동 발사됨. 다만 이는 게임 플레이에 오히려 편리할 수 있어 UX 측면에서는 양호. |
-| M2 | Tween splice 역순회 미보호 | MINOR | `TweenManager.update()`에서 역순 순회 + splice는 올바르나, `cancelAll()`에서 filter 재할당 시 update 도중 호출되면 참조 불일치 가능. 현재 코드에서 동시 호출 경로가 없어 실질적 버그는 아님. |
-| M3 | bgScrollY 변수 미사용 경고 | MINOR | `bgScrollY1`, `bgScrollY2`가 SVG 배경 레이어 스크롤용으로 업데이트되지만, SVG가 없을 때 (`SPRITES.bgLayer1` 미존재) 불필요한 연산. 성능 영향은 무시할 수준. |
+|------|:----:|------|
+| manifest.json 존재 | ✅ | 9종 에셋 정의 (thumbnail 포함) |
+| ASSET_MAP ↔ manifest 일치 | ✅ | 8종 (thumbnail 제외) 완전 일치 |
+| SVG 파일 전체 존재 | ✅ | 10개 파일 모두 확인 (thumbnail.svg + manifest.json 포함) |
+| 에셋 프리로드 Promise.all | ✅ | `img.onerror = resolve` — 에셋 실패해도 게임 진행 |
+| 코드 폴백 렌더링 | ✅ | player, enemy 유형별, powerup, HUD hearts 등 모두 폴백 존재 |
+| 미사용 에셋 잔존 | ✅ 없음 | Cycle 1 M2 해결 |
 
 ---
 
-## 2. 브라우저 테스트 (Puppeteer)
+## 2. 발견된 버그
 
-**테스트 환경:** Puppeteer Chromium, 480×720 뷰포트
+### 🔴 B1 [MAJOR] — CONFIRM_MODAL에서 Tween이 업데이트되지 않음
 
-### 2.1 테스트 결과 요약
+**위치:** `loop()` 함수 (line 1149)
+
+**문제:**
+```javascript
+case'CONFIRM_MODAL': drawGame(); drawModal(); break;
+```
+`CONFIRM_MODAL` 상태에서 `tw.update(ms)`가 호출되지 않습니다. `tw.update(ms)`는 `updateGame()` 내부(line 455)에서만 실행되는데, `CONFIRM_MODAL` 상태는 `updateGame()`을 호출하지 않습니다.
+
+**실측 증거:** Puppeteer 테스트에서 R키 → CONFIRM_MODAL 진입 후 `modAnim = {sc: 0.8, a: 0}` 고정 확인. tweenCount = 1 (tween이 큐에 있으나 미실행). 모달이 **완전히 투명(alpha=0)** 하여 화면에 표시되지 않음.
+
+**영향:** R키 재시작 확인 기능이 사실상 작동 불가. 사용자는 보이지 않는 모달에서 Enter/Esc로만 맹목적으로 빠져나올 수 있음.
+
+**수정안:**
+```javascript
+case'CONFIRM_MODAL': tw.update(ms); drawGame(); drawModal(); break;
+```
+
+### 🔴 B2 [MAJOR] — PAUSE 상태에서도 Tween 미업데이트
+
+**위치:** `loop()` 함수 (line 1148)
+
+**문제:**
+```javascript
+case'PAUSE': drawGame(); drawPauseOL(); break;
+```
+PAUSE에서 RESTART 버튼 클릭 시 CONFIRM_MODAL로 전환하며 `modAnim` tween을 추가하지만, 이후에도 tween이 업데이트되지 않아 동일한 투명 모달 문제 발생.
+
+**수정안:**
+```javascript
+case'PAUSE': tw.update(ms); drawGame(); drawPauseOL(); break;
+```
+
+### 🟡 B3 [MINOR] — 게임오버 전환에 setTimeout 사용
+
+**위치:** line 507
+
+**문제:** `setTimeout(()=>{if(!pl.alive)state='GAMEOVER';},600)` — Cycle 1 M4에서 지적된 setTimeout 패턴의 재사용.
+
+**수정안:** tween의 onComplete 콜백으로 대체:
+```javascript
+tw.add(goAnim,{oa:0.7},500,'easeOutQuad',()=>{if(!pl.alive)state='GAMEOVER';});
+```
+
+### 🟡 B4 [MINOR] — goAnim.isNew 판정 타이밍 오류 → NEW BEST 미표시
+
+**위치:** line 503~504
+
+**문제:**
+```javascript
+pl.alive=false; saveBest(score,wave);        // ← 먼저 저장
+goAnim.isNew = score > getBest();            // ← 이미 갱신된 값과 비교 → 항상 false
+```
+`saveBest()`가 먼저 호출되어 localStorage가 갱신된 후, `getBest()`가 갱신된 값을 반환하므로 `score > getBest()`는 항상 `false`.
+
+**수정안:** 순서 변경:
+```javascript
+pl.alive=false;
+goAnim.isNew = score > getBest();   // 먼저 판정
+saveBest(score, wave);              // 나중에 저장
+```
+
+### 🟡 B5 [MINOR] — 적 SVG source-atop 렌더링 시 배경 사각형 노출
+
+**위치:** `drawEN()` 함수 (line 811~814)
+
+**문제:** `source-atop` 컴포지팅으로 적 색상 오버레이 적용 시, SVG 필터(`feGaussianBlur`)가 viewBox 전체에 반투명 픽셀을 생성하여 64×64 사각형 배경이 시각적으로 노출됨.
+
+**Puppeteer 스크린샷에서 확인:** 적 스프라이트 주변에 어두운 사각형 배경 보임.
+
+**수정안:** 색상 오버레이 제거 또는 offscreen canvas에 먼저 그린 후 합성, 또는 SVG에서 filter 범위를 `filterUnits="userSpaceOnUse"` + 좁은 영역으로 제한.
+
+### 🟢 B6 [INFO] — 추적탄 회전 속도 프레임 의존적
+
+**위치:** line 441
+
+**문제:** `b.ang += clamp(diff, -2*dt/60, 2*dt/60)` — 기획서는 `2rad/s` 명시. 현재는 `dt/60` 기반으로 프레임 변동 시 미세 차이 발생 가능. 정확한 시간 기반은 `2 * (ms/1000)`.
+
+---
+
+## 3. 브라우저 테스트 (Puppeteer)
+
+### 3.1 테스트 환경
+- **URL:** `file:///C:/Work/InfinitriX/public/games/star-guardian/index.html`
+- **해상도:** 480×720
+- **브라우저:** Chromium (Puppeteer)
+
+### 3.2 테스트 결과
 
 | # | 항목 | 결과 | 비고 |
-|---|------|------|------|
-| 1 | 페이지 로드 | ✅ PASS | file:// 프로토콜로 정상 로드 |
-| 2 | 콘솔 에러 없음 | ✅ PASS | 에러 0건, 경고 0건 |
-| 3 | 캔버스 렌더링 | ✅ PASS | 480×720 캔버스 정상 생성 |
-| 4 | 에셋 프리로드 | ✅ PASS | 8/8 SVG 에셋 전부 로드 성공 |
-| 5 | 시작 화면 표시 | ✅ PASS | 타이틀 "STAR GUARDIAN", 전투기 프리뷰, 조작법 안내, 깜빡이는 시작 프롬프트 |
-| 6 | 게임 시작 → PLAYING 전환 | ✅ PASS | `startGame()` 호출 시 state = 'PLAYING' |
-| 7 | 웨이브 시스템 동작 | ✅ PASS | Wave 1 → 2 → 3 자동 진행 확인 |
-| 8 | 적 스폰 & AI 동작 | ✅ PASS | 스카우트/파이터 정상 등장, 이동 패턴 작동 |
-| 9 | 자동 발사 & 총알 렌더링 | ✅ PASS | 시안 글로우 총알 자동 발사 확인 |
-| 10 | 충돌 감지 & 점수 | ✅ PASS | 적 격파 시 점수 증가 (1,450점 기록) |
-| 11 | HP 시스템 & 게임 오버 | ✅ PASS | HP 0 → GAMEOVER 전환 확인 |
-| 12 | 게임 오버 화면 | ✅ PASS | SCORE 표시, WAVE 표시, NEW BEST 하이라이트, 재시작 프롬프트 |
-| 13 | localStorage 저장 | ✅ PASS | bestScore=1450, bestWave=3 저장 확인 |
-| 14 | 재시작 기능 | ✅ PASS | 재시작 시 score=0, wave=1, hp=3 초기화 |
-| 15 | 확인 모달 (CONFIRM_MODAL) | ✅ PASS | 상태 전환 정상 작동 |
-| 16 | 터치 이벤트 코드 존재 | ✅ PASS | touchstart/touchmove/touchend + 가상 조이스틱 |
-| 17 | DPR 대응 | ✅ PASS | `dpr × scaleX` 트랜스폼 적용 |
-| 18 | SVG 에셋 렌더링 | ✅ PASS | 플레이어/적/배경/HUD 에셋 정상 표시 |
-| 19 | 패럴랙스 별 배경 | ✅ PASS | 3레이어 별 스크롤 시각 확인 |
-| 20 | HUD (HP/점수/웨이브/일시정지) | ✅ PASS | 하트 아이콘, 별 아이콘, 점수, WAVE 표시 확인 |
+|---|------|:----:|------|
+| 1 | 페이지 로드 | ✅ PASS | 정상 로드, LOADING → TITLE 전환 |
+| 2 | 콘솔 에러 없음 | ✅ PASS | 에러/경고 0건 |
+| 3 | 캔버스 렌더링 | ✅ PASS | 480×720 Canvas 정상 생성 |
+| 4 | 시작 화면 표시 | ✅ PASS | 타이틀, 부제, 조작 설명, 전투기 프리뷰 |
+| 5 | 에셋 로드 (8종) | ✅ PASS | SPRITES 객체에 8개 키 모두 확인 |
+| 6 | TITLE → PLAYING 전환 | ✅ PASS | Enter 키로 정상 전환 |
+| 7 | 게임 플레이 렌더링 | ✅ PASS | 플레이어, 적, 배경 별, HUD 정상 |
+| 8 | 일시정지 (P키) | ✅ PASS | PLAYING → PAUSE, 3버튼 (RESUME/RESTART/TITLE) 표시 |
+| 9 | 확인 모달 (R키) | ❌ **FAIL** | 모달이 alpha=0으로 고정되어 안 보임 (B1) |
+| 10 | 게임오버 화면 | ✅ PASS | GAME OVER + 점수/웨이브/BEST + RETRY/TITLE 버튼 |
+| 11 | 터치 이벤트 코드 존재 | ✅ PASS | touchstart/touchmove/touchend 핸들러 |
+| 12 | 점수 시스템 | ✅ PASS | 적 처치 시 점수 증가 확인 (100점) |
+| 13 | localStorage 최고점 | ✅ PASS | try-catch 래핑, 저장/로드 정상 |
+| 14 | 게임오버/재시작 | ✅ PASS | HP=0 → GAMEOVER 전환, Enter로 재시작 |
+| 15 | 패럴랙스 배경 | ✅ PASS | 3레이어 별 스크롤 시각 확인 |
+| 16 | HUD 표시 | ✅ PASS | 하트 아이콘, 별 아이콘, 점수, WAVE, 무기레벨 |
+| 17 | SVG 에셋 렌더링 | ⚠️ | 적 스프라이트 배경 사각형 노출 (B5) |
+| 18 | DPR 대응 | ✅ PASS | dpr × scaleX 트랜스폼 적용 |
 
-### 2.2 스크린샷 증거
+### 3.3 스크린샷 증적
 
-1. **타이틀 화면** — STAR GUARDIAN 타이틀, 전투기 프리뷰, 패럴랙스 별 배경, CRT 스캔라인 이펙트 정상
-2. **플레이 화면** — SVG 에셋 기반 플레이어/적 렌더링, 시안 총알, HUD(하트/별/점수/웨이브) 정상
-3. **게임 오버 화면** — 반투명 오버레이, GAME OVER, SCORE, WAVE, NEW BEST 표시 정상
+1. **타이틀 화면** — ✅ 정상. "★ STAR GUARDIAN ★" 시안 네온 타이틀, 장식 전투기, 패럴랙스 배경, 깜빡이는 시작 안내, 조작 설명 3줄, CRT 스캔라인.
+2. **플레이 화면** — ✅ 정상. HUD(하트/별/점수/웨이브/무기레벨), SVG 플레이어, SVG 적 (배경 사각형 이슈 있음), 패럴랙스 별 배경.
+3. **일시정지** — ✅ 정상. 반투명 오버레이, "⏸ PAUSED" 텍스트, 3개 버튼 (RESUME 시안/RESTART 주황/TITLE 회색).
+4. **확인 모달** — ❌ **FAIL**. 게임 화면만 보이고 모달이 보이지 않음 (`modAnim.a = 0` 고정).
+5. **게임오버** — ✅ 정상. 반투명 오버레이, "GAME OVER" 빨강 네온, SCORE/WAVE/BEST 표시, RETRY/TITLE 버튼.
 
 ---
 
-## 3. Cycle 1 피드백 반영 검증
+## 4. Cycle 1 피드백 반영 검증
 
 | Cycle 1 문제 | 반영 결과 |
 |-------------|----------|
 | **M1 — Google Fonts 외부 의존** | ✅ 완전 해결. 시스템 폰트만 사용, 외부 CDN 0건 |
 | **M2 — 불필요 에셋 3개 잔존** | ✅ 완전 해결. 전용 에셋만 등록, 모두 실사용 확인 |
-| **M3 — R키 confirm() 불가** | ✅ 완전 해결. Canvas 기반 확인 모달 구현 |
-| **M4 — 이동 애니메이션 미구현** | ✅ 완전 해결. TweenManager + 4종 이징 함수, 10+곳 활용 |
+| **M3 — R키 confirm() 불가** | ⚠️ Canvas 모달 구현됨, **but tween 미업데이트로 표시 불가 (B1)** |
+| **M4 — 이동 애니메이션 미구현** | ✅ TweenManager 구현. 단 게임오버에 setTimeout 잔존 (B3) |
 | **제안 — 객체 풀링** | ✅ 반영. ObjectPool 클래스 6종 엔티티 풀링 |
 | **제안 — 아케이드/액션 도전** | ✅ 반영. 종스크롤 슈팅으로 완전히 다른 장르 |
-| **제안 — 에셋 템플릿 정리** | ✅ 반영. 슈팅 전용 에셋만 + 코드 폴백 100% |
+| **제안 — 에셋 템플릿 정리** | ✅ 반영. manifest.json 기반 에셋 관리 + 100% 코드 폴백 |
 
 ---
 
-## 4. 최종 판정
+## 5. Cycle 1 대비 개선 평가
 
-### 코드 리뷰 판정: **APPROVED**
-
-기획서의 모든 핵심 기능이 구현되었습니다. 게임 루프(rAF + deltaTime), 객체 풀링, 충돌 감지, 상태 머신, 모바일 터치, localStorage, Canvas 확인 모달, TweenManager 등 아키텍처가 견고합니다. Cycle 1의 모든 문제점(M1~M4)이 해결되었고 개선 제안도 충실히 반영되었습니다. 발견된 MINOR 이슈 3건은 게임 플레이에 실질적 영향이 없습니다.
-
-### 테스트 판정: **PASS**
-
-20개 테스트 항목 모두 PASS. 콘솔 에러 0건, 에셋 8/8 로드 성공, 게임 시작→플레이→게임오버→재시작 전체 플로우 정상 동작, localStorage 저장/로드 확인 완료.
+| 영역 | Cycle 1 | Cycle 2 | 평가 |
+|------|---------|---------|------|
+| 장르 | 퍼즐 | 아케이드 슈팅 | ✅ 기술 영역 확대 |
+| 코드 규모 | ~600줄 | ~1,185줄 | ✅ 2배 복잡도 소화 |
+| Tween 시스템 | 없음 (setTimeout) | TweenManager 구현 | ✅ 크게 개선 |
+| 객체 풀링 | 없음 | ObjectPool 6종 | ✅ 크게 개선 |
+| 외부 의존 | Google Fonts | 0개 | ✅ 완전 해결 |
+| 미사용 에셋 | 3개 잔존 | 0개 | ✅ 완전 해결 |
+| confirm() 대체 | 미해결 | Canvas 모달 구현 (but 표시 불가) | ⚠️ 구현했으나 버그 |
+| 에셋 시스템 | 없음 | manifest.json + SVG 8종 + 코드 폴백 | ✅ 크게 개선 |
 
 ---
 
-### **최종 판정: APPROVED**
+## 6. 최종 판정
 
-> 즉시 배포 가능. Cycle 1 대비 코드 품질과 기능 완성도가 크게 향상되었으며, 종스크롤 슈팅이라는 새로운 장르에서 TweenManager, ObjectPool, Canvas 모달 등 핵심 시스템이 잘 검증되었습니다.
+### 코드 리뷰 판정: `NEEDS_MAJOR_FIX`
+
+### 테스트 판정: `FAIL`
+
+### 최종 판정: `NEEDS_MAJOR_FIX`
+
+**사유:**
+- **B1 (CONFIRM_MODAL 투명)** — 기획서 §6.4, §11.4에서 명시한 핵심 기능(Cycle 1 M3 해결)이 사실상 작동하지 않습니다. R키를 누르면 `CONFIRM_MODAL` 상태로 진입하지만 모달이 보이지 않아 UX상 게임 불가능 수준.
+- **B4 (NEW BEST 미표시)** — 점수 기록의 핵심 피드백 누락.
+
+### 필수 수정 사항 (코더 재작업 요청)
+
+| 우선순위 | 버그 | 수정 내용 |
+|:--------:|------|----------|
+| 🔴 필수 | B1 | `loop()` → `CONFIRM_MODAL` 케이스에 `tw.update(ms)` 추가 |
+| 🔴 필수 | B2 | `loop()` → `PAUSE` 케이스에 `tw.update(ms)` 추가 |
+| 🟡 필수 | B4 | `saveBest()` 호출 전에 `goAnim.isNew` 판정하도록 순서 변경 |
+| 🟡 권장 | B3 | `setTimeout(600)` → tween onComplete 콜백으로 대체 |
+| 🟡 권장 | B5 | 적 SVG `source-atop` 배경 사각형 문제 해결 |
+
+> **수정 범위:** B1+B2는 각 1줄 추가, B4는 2줄 순서 변경으로 해결 가능. 빠른 수정 후 재검증 권장.

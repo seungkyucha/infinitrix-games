@@ -29,7 +29,7 @@
       "title": "스타 가디언",
       "description": "우주를 지키는 전투기 파일럿이 되어 끝없는 적 웨이브를 격파하세요!",
       "genre": ["arcade", "action"],
-      "thumbnail": "/games/star-guardian/thumbnail.png",
+      "thumbnail": "/games/star-guardian/assets/thumbnail.svg",
       "path": "/games/star-guardian/index.html",
       "addedAt": "2026-03-20T12:00:00Z",
       "featured": true,
