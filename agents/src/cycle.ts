@@ -53,7 +53,7 @@ function ensureDir(path: string) {
 
 /**
  * 완전한 게임 개발 사이클 실행
- * 분석 → 기획 → 개발 → 디자인 → 리뷰 → 테스트 → 배포
+ * 분석 → 기획 → 코딩+디자인 → 리뷰+테스트 → 배포
  */
 export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleState> {
   const startedAt = new Date().toISOString()
@@ -65,7 +65,6 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   ensureDir(`${PROJECT_ROOT}/docs/analytics`)
   ensureDir(`${PROJECT_ROOT}/docs/game-specs`)
   ensureDir(`${PROJECT_ROOT}/docs/reviews`)
-  ensureDir(`${PROJECT_ROOT}/docs/test-reports`)
   ensureDir(`${PROJECT_ROOT}/logs`)
 
   const state: CycleState = {
@@ -79,7 +78,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   }
 
   // ── 1단계: 분석 ─────────────────────────────────────────
-  console.log(`\n📊 [1/7] 분석가 — 플랫폼 현황 및 트렌드 분석`)
+  console.log(`\n📊 [1/5] 분석가 — 플랫폼 현황 및 트렌드 분석`)
   state.status = 'analysis'
   await runAgent('analyst', `
     현재 플랫폼(public/games/game-registry.json)을 분석하고,
@@ -88,7 +87,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   `)
 
   // ── 2단계: 기획 ─────────────────────────────────────────
-  console.log(`\n📋 [2/7] 플래너 — 게임 기획서 작성`)
+  console.log(`\n📋 [2/5] 플래너 — 게임 기획서 작성`)
   state.status = 'planning'
   await runAgent('planner', `
     docs/analytics/cycle-${cycleNumber}-report.md를 읽고,
@@ -103,31 +102,22 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     형태로 메타데이터를 포함해줘.
   `)
 
-  // ── 3단계: 코딩 ─────────────────────────────────────────
-  console.log(`\n💻 [3/7] 코더 — HTML5 게임 구현`)
+  // ── 3단계: 코딩 + 디자인 ──────────────────────────────────
+  console.log(`\n💻 [3/5] 코더 — HTML5 게임 구현 + 썸네일 제작`)
   state.status = 'coding'
   await runAgent('coder', `
-    docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
-    기획서에 정의된 game-id 폴더(public/games/[game-id]/)에
-    index.html 게임 파일을 작성해줘.
-    모든 게임 코드는 index.html 하나에 완성해줘.
+    docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고 다음 두 파일을 작성해줘:
+    1. public/games/[game-id]/index.html — 완전한 HTML5 게임 (단일 파일)
+    2. public/games/[game-id]/thumbnail.svg — 네온 스타일 썸네일 SVG
+    기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
   `)
 
-  // ── 4단계: 디자인 ────────────────────────────────────────
-  console.log(`\n🎨 [4/7] 디자이너 — 썸네일 SVG 제작`)
-  state.status = 'designing'
-  await runAgent('designer', `
-    docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
-    public/games/[game-id]/thumbnail.svg 파일을 생성해줘.
-    게임의 핵심 요소를 표현하는 네온 스타일 SVG를 만들어줘.
-  `)
-
-  // ── 5단계: 리뷰 ─────────────────────────────────────────
-  console.log(`\n🔍 [5/7] 리뷰어 — 코드 검토`)
+  // ── 4단계: 리뷰 + 테스트 ──────────────────────────────────
+  console.log(`\n🔍 [4/5] 리뷰어 — 코드 검토 & 브라우저 테스트`)
   state.status = 'reviewing'
   const reviewResult = await runAgent('reviewer', `
     docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
-    public/games/[game-id]/index.html을 검토해줘.
+    public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
     결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
     최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
   `)
@@ -138,31 +128,21 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     await runAgent('coder', `
       docs/reviews/cycle-${cycleNumber}-review.md의 리뷰 피드백을 반영하여
       public/games/[game-id]/index.html을 수정해줘.
+      기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
     `)
   }
 
-  // ── 6단계: 테스트 ────────────────────────────────────────
-  console.log(`\n🧪 [6/7] 테스터 — 게임 검증`)
-  state.status = 'testing'
-  await runAgent('tester', `
-    docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
-    public/games/[game-id]/index.html을 분석하여
-    기능 테스트 및 재미 평가를 수행해줘.
-    결과를 docs/test-reports/cycle-${cycleNumber}-test.md에 저장해줘.
-    최종 판정을 PASS / FAIL로 명시해줘.
-  `)
-
-  // ── 7단계: 배포 ─────────────────────────────────────────
-  console.log(`\n🚢 [7/7] 배포 담당 — 레지스트리 등록 & GitHub Push`)
+  // ── 5단계: 배포 ─────────────────────────────────────────
+  console.log(`\n🚢 [5/5] 배포 담당 — 레지스트리 등록 & GitHub Push`)
   state.status = 'deploying'
   await runAgent('deployer', `
     docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
     1. public/games/game-registry.json에 새 게임을 추가해줘
-    2. git add . && git commit -m "feat: add game from cycle #${cycleNumber}" && git push 를 실행해줘
+    2. git add public/games/ docs/ && git commit -m "feat: add game from cycle #${cycleNumber}" && git push 를 실행해줘
   `)
 
   // 사이클 완료
-  state.status    = 'completed'
+  state.status      = 'completed'
   state.completedAt = new Date().toISOString()
 
   // 요약 로그 저장
