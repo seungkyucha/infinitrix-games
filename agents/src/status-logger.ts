@@ -175,11 +175,40 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
   let inp: Record<string, string> = {}
   try { inp = JSON.parse(detail) } catch {}
 
-  const filePath = inp['file_path'] ?? inp['path'] ?? ''
-  const query    = inp['query'] ?? inp['search_query'] ?? ''
-  const cmd      = inp['command'] ?? ''
-  const url      = inp['url'] ?? ''
-  const fname    = filePath.split('/').pop() ?? ''
+  const filePath  = inp['file_path'] ?? inp['path'] ?? ''
+  const query     = inp['query'] ?? inp['search_query'] ?? inp['pattern'] ?? ''
+  const cmd       = inp['command'] ?? ''
+  const url       = inp['url'] ?? ''
+  const content   = inp['content'] ?? inp['new_string'] ?? ''
+  const fname     = filePath.split('/').pop() ?? ''
+
+  /** content에서 키워드 기반 컨텍스트 추출 */
+  function detectContext(text: string): string {
+    const t = text.toLowerCase()
+    if (t.match(/gameloop|game.?loop|requestanimation/))     return '게임 루프 (메인 업데이트 사이클)'
+    if (t.match(/collision|충돌|hitbox|intersect/))           return '충돌 감지 시스템'
+    if (t.match(/touchstart|touchmove|touchend|touch.?event/)) return '모바일 터치 입력 처리'
+    if (t.match(/joystick|가상.?패드|virtual.?pad/))          return '가상 조이스틱 UI'
+    if (t.match(/keydown|keyup|keyboard|키보드/))             return '키보드 입력 처리'
+    if (t.match(/mouse|click|pointer/))                      return '마우스/포인터 입력 처리'
+    if (t.match(/canvas|ctx\.|drawimage|fillrect/))          return 'Canvas 렌더링 시스템'
+    if (t.match(/particle|파티클|effect|이펙트/))              return '파티클/이펙트 시스템'
+    if (t.match(/score|점수|combo|콤보/))                     return '스코어/콤보 시스템'
+    if (t.match(/level|wave|스테이지|웨이브|난이도/))           return '레벨/웨이브 진행 시스템'
+    if (t.match(/spawn|생성|enemy.?pool|적.?생성/))           return '적/오브젝트 스폰 시스템'
+    if (t.match(/powerup|파워업|buff|아이템/))                return '파워업/아이템 시스템'
+    if (t.match(/audio|sound|bgm|효과음/))                   return '사운드/오디오 시스템'
+    if (t.match(/preload|loadimage|fetch.*svg|에셋.?로드/))   return '에셋 프리로딩'
+    if (t.match(/ui|hud|health|hp|생명|체력/))               return 'UI/HUD 표시 시스템'
+    if (t.match(/gameover|game.?over|게임.?오버|restart/))    return '게임오버/재시작 처리'
+    if (t.match(/menu|메뉴|title.?screen|시작.?화면/))        return '메뉴/타이틀 화면'
+    if (t.match(/animation|animate|tween|애니메이션/))        return '애니메이션 시스템'
+    if (t.match(/physics|gravity|중력|velocity|가속/))        return '물리/이동 시스템'
+    if (t.match(/path|경로|grid|타일|map|맵/))               return '맵/타일 시스템'
+    if (t.match(/tower|타워|building|건물|설치/))             return '타워/건물 배치 시스템'
+    if (t.match(/viewport|meta.*viewport|resize/))           return '뷰포트/반응형 설정'
+    return ''
+  }
 
   switch (agentId) {
 
@@ -187,101 +216,95 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
     case 'analyst': {
       if (toolName === 'WebSearch') {
         if (!query) return '모바일 게임 트렌드 검색 중'
-        const q = query.slice(0, 35)
-        if (query.match(/trend|트렌드|인기/i))      return `"${q}" — 최신 트렌드 조사 중`
-        if (query.match(/casual|캐주얼|puzzle|퍼즐/i)) return `"${q}" — 캐주얼 장르 시장 분석 중`
-        if (query.match(/idle|방치|clicker/i))        return `"${q}" — 방치형 게임 수요 분석 중`
-        if (query.match(/hyper|하이퍼|action|액션/i)) return `"${q}" — 하이퍼캐주얼 동향 파악 중`
-        if (query.match(/revenue|매출|monetize/i))    return `"${q}" — 수익 모델 조사 중`
-        return `"${q}" — 게임 시장 데이터 수집 중`
+        const q = query.slice(0, 40)
+        return `웹 검색: "${q}"`
       }
       if (toolName === 'WebFetch') {
         try {
           const host = new URL(url).hostname.replace('www.', '')
-          if (host.includes('sensor') || host.includes('appannie')) return `${host} — 앱 순위 데이터 수집 중`
-          if (host.includes('reddit'))   return `${host} — 유저 반응 및 리뷰 분석 중`
-          if (host.includes('youtube'))  return `${host} — 게임플레이 영상 트렌드 분석 중`
-          if (host.includes('steam'))    return `${host} — PC 게임 판매 동향 파악 중`
-          return `${host} — 시장 데이터 크롤링 중`
+          return `${host} 페이지 분석 중`
         } catch { return '트렌드 데이터 페이지 분석 중' }
       }
       if (toolName === 'Read') {
         if (filePath.includes('registry'))  return '기존 게임 목록 검토 — 중복 장르 확인 중'
-        if (filePath.includes('wisdom'))    return '과거 사이클 인사이트 검토 중'
-        if (filePath.includes('postmortem')) return '이전 개발 회고 분석 중'
-        return '플랫폼 현황 및 기존 데이터 분석 중'
+        if (filePath.includes('wisdom'))    return '누적 플랫폼 지혜 검토 — 피해야 할 패턴 확인 중'
+        if (filePath.includes('postmortem')) return '이전 사이클 회고 분석 — 실패 원인 파악 중'
+        if (filePath.includes('report'))    return '이전 분석 보고서 참고 중'
+        return `파일 분석 중 (${fname})`
       }
-      if (toolName === 'Write') {
-        if (filePath.includes('analysis'))  return '트렌드 분석 보고서 작성 중'
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('report'))    return '트렌드 분석 보고서 작성 — 추천 장르/메카닉 정리 중'
         return '시장 조사 결과 문서화 중'
       }
+      if (toolName === 'Grep' || toolName === 'Glob') return '기존 게임 데이터 검색 중'
       return '모바일 게임 시장 트렌드 분석 중'
     }
 
     // ── 플래너 ──────────────────────────────────────────────────────────────
     case 'planner': {
       if (toolName === 'WebSearch') {
-        if (!query) return '레퍼런스 게임 조사 중'
-        const q = query.slice(0, 35)
-        if (query.match(/mechanic|메카닉|gameplay/i)) return `"${q}" — 핵심 게임플레이 메카닉 리서치 중`
-        if (query.match(/ui|ux|interface|인터페이스/i)) return `"${q}" — UI/UX 레퍼런스 수집 중`
-        if (query.match(/level|레벨|stage|스테이지/i)) return `"${q}" — 레벨 디자인 패턴 조사 중`
-        if (query.match(/score|점수|rank|랭킹/i))      return `"${q}" — 스코어 시스템 레퍼런스 분석 중`
-        if (query.match(/tutorial|튜토리얼|onboard/i)) return `"${q}" — 튜토리얼 흐름 사례 조사 중`
-        return `"${q}" — 게임 기획 레퍼런스 수집 중`
+        const q = query.slice(0, 40)
+        return q ? `레퍼런스 검색: "${q}"` : '레퍼런스 게임 조사 중'
       }
       if (toolName === 'WebFetch') {
         try {
           const host = new URL(url).hostname.replace('www.', '')
-          if (host.includes('itch.io'))  return `${host} — 인디 게임 기획 분석 중`
-          if (host.includes('poki'))     return `${host} — 브라우저 게임 UX 분석 중`
-          if (host.includes('github'))   return `${host} — 오픈소스 게임 구조 참고 중`
           return `${host} — 레퍼런스 게임 분석 중`
         } catch { return '레퍼런스 게임 페이지 분석 중' }
       }
       if (toolName === 'Read') {
-        if (filePath.includes('analysis'))  return '트렌드 분석 보고서 숙독 중'
-        if (filePath.includes('spec'))      return '기존 게임 스펙 참고 중'
-        if (filePath.includes('wisdom'))    return '플랫폼 개발 인사이트 검토 중'
+        if (filePath.includes('report'))    return '트렌드 분석 보고서 숙독 — 추천 장르 확인 중'
+        if (filePath.includes('spec'))      return `기존 기획서 참고 중 (${fname})`
+        if (filePath.includes('wisdom'))    return '플랫폼 지혜 검토 — 성공/실패 패턴 확인 중'
         if (filePath.includes('registry'))  return '기존 게임 목록 확인 — 차별화 포인트 도출 중'
-        return '분석 보고서 검토 중'
+        if (filePath.includes('postmortem')) return '이전 회고 확인 — 개선 요청사항 반영 중'
+        return `참고 문서 확인 중 (${fname})`
       }
-      if (toolName === 'Write') {
-        if (filePath.includes('spec'))   return '게임 기획서(GDD) 작성 중 — 핵심 메카닉 정의'
-        if (filePath.includes('brief'))  return '개발 브리프 문서 작성 중'
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('spec')) {
+          const ctx = detectContext(content)
+          if (ctx) return `기획서 작성 중 — ${ctx} 설계`
+          // content 키워드로 어떤 섹션을 쓰고 있는지
+          const c = content.toLowerCase()
+          if (c.match(/조작|control|input|터치/))    return '기획서 작성 중 — 조작법/입력 설계'
+          if (c.match(/rule|규칙|mechanic|메카닉/))  return '기획서 작성 중 — 핵심 게임 규칙 정의'
+          if (c.match(/visual|시각|color|팔레트/))   return '기획서 작성 중 — 비주얼 스타일 정의'
+          if (c.match(/level|stage|난이도|밸런스/))   return '기획서 작성 중 — 레벨/난이도 밸런스 설계'
+          if (c.match(/ui|hud|interface|화면/))      return '기획서 작성 중 — UI/화면 레이아웃 설계'
+          if (c.match(/score|점수|reward|보상/))     return '기획서 작성 중 — 점수/보상 시스템 설계'
+          return '게임 기획서(GDD) 작성 중'
+        }
         return '게임 상세 기획서 작성 중'
       }
-      if (toolName === 'Edit') return '게임 기획서 내용 보완 중'
       return '게임 컨셉 및 메카닉 기획 중'
     }
 
     // ── 디자이너 ────────────────────────────────────────────────────────────
     case 'designer': {
       if (toolName === 'Read') {
-        if (filePath.includes('spec'))     return '게임 기획서 확인 — 에셋 요구사항 파악 중'
-        if (filePath.includes('manifest')) return '에셋 목록 검토 중'
-        return '기획서 및 디자인 가이드 확인 중'
+        if (filePath.includes('spec'))     return '기획서 확인 — 캐릭터/배경/UI 사양 파악 중'
+        if (filePath.includes('manifest')) return '에셋 목록 검토 — 제작 완료 현황 확인 중'
+        return `디자인 참고 문서 확인 중 (${fname})`
       }
       if (toolName === 'Write' || toolName === 'Edit') {
-        if (filePath.includes('thumbnail'))   return `썸네일 이미지 SVG 제작 중 (${fname})`
-        if (filePath.includes('player'))      return `플레이어 캐릭터 SVG 디자인 중 (${fname})`
-        if (filePath.includes('enemy'))       return `적 캐릭터 SVG 디자인 중 (${fname})`
-        if (filePath.includes('boss'))        return `보스 캐릭터 SVG 제작 중 (${fname})`
-        if (filePath.includes('bg-layer'))    return `배경 레이어 SVG 제작 중 (${fname})`
-        if (filePath.includes('background'))  return `배경 이미지 디자인 중 (${fname})`
-        if (filePath.includes('powerup'))     return `파워업 아이템 SVG 제작 중 (${fname})`
-        if (filePath.includes('coin') || filePath.includes('gem')) return `코인/보석 아이콘 제작 중 (${fname})`
-        if (filePath.includes('effect'))      return `파티클 이펙트 SVG 제작 중 (${fname})`
-        if (filePath.includes('explosion'))   return `폭발 이펙트 SVG 제작 중 (${fname})`
-        if (filePath.includes('ui-button'))   return `UI 버튼 에셋 제작 중 (${fname})`
-        if (filePath.includes('ui-icon'))     return `UI 아이콘 에셋 제작 중 (${fname})`
-        if (filePath.includes('ui-'))         return `UI 컴포넌트 SVG 제작 중 (${fname})`
-        if (filePath.includes('font'))        return `게임 폰트 에셋 제작 중`
+        // SVG 내용에서 어떤 요소를 그리는지 추출
+        const svgCtx = content.match(/gradient|circle|rect|path|polygon|text|filter|ellipse/)
+        const shapeHint = svgCtx ? ` — ${svgCtx[0]} 요소 렌더링` : ''
+
+        if (filePath.includes('thumbnail'))   return `플랫폼 썸네일 제작 중${shapeHint}`
+        if (filePath.includes('player'))      return `플레이어 캐릭터 디자인 중${shapeHint}`
+        if (filePath.includes('enemy'))       return `적 캐릭터 디자인 중${shapeHint}`
+        if (filePath.includes('boss'))        return `보스 캐릭터 제작 중${shapeHint}`
+        if (filePath.includes('bg-layer'))    return `배경 레이어 제작 중 (${fname})${shapeHint}`
+        if (filePath.includes('powerup'))     return `파워업 아이템 아이콘 제작 중${shapeHint}`
+        if (filePath.includes('effect'))      return `이펙트 SVG 제작 중 (${fname})${shapeHint}`
+        if (filePath.includes('ui-heart'))    return '체력(하트) UI 아이콘 제작 중'
+        if (filePath.includes('ui-star'))     return '별/점수 UI 아이콘 제작 중'
+        if (filePath.includes('ui-'))         return `UI 컴포넌트 제작 중 (${fname})`
         if (filePath.includes('tile'))        return `타일맵 에셋 제작 중 (${fname})`
-        if (filePath.includes('obstacle'))    return `장애물 오브젝트 SVG 제작 중 (${fname})`
-        if (filePath.includes('platform'))    return `발판/플랫폼 에셋 디자인 중 (${fname})`
-        if (filePath.includes('manifest'))    return '에셋 매니페스트 작성 — 전체 목록 정리 중'
-        if (filePath.endsWith('.svg'))        return `SVG 에셋 제작 중 (${fname})`
+        if (filePath.includes('obstacle'))    return `장애물 오브젝트 제작 중 (${fname})`
+        if (filePath.includes('manifest'))    return '에셋 매니페스트 작성 — 전체 파일 목록 정리 중'
+        if (filePath.endsWith('.svg'))        return `SVG 에셋 제작 중 (${fname})${shapeHint}`
         return `그래픽 에셋 제작 중 (${fname})`
       }
       if (toolName === 'Bash') {
@@ -297,56 +320,79 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
       if (toolName === 'Read') {
         if (filePath.includes('manifest'))   return '에셋 매니페스트 확인 — 사용 가능 리소스 파악 중'
         if (filePath.includes('spec'))       return '게임 기획서 정독 — 구현 사양 확인 중'
-        if (filePath.includes('review'))     return '코드 리뷰 피드백 반영 준비 중'
-        if (filePath.endsWith('.html'))      return `기존 게임 코드 분석 중 (${fname})`
-        if (filePath.endsWith('.js'))        return `JS 코드 검토 중 (${fname})`
-        return '기획서 및 에셋 명세 확인 중'
+        if (filePath.includes('review'))     return '리뷰 피드백 확인 — 수정 필요 항목 파악 중'
+        if (filePath.endsWith('.html'))      return `게임 코드 분석 중 (${fname})`
+        if (filePath.endsWith('.svg'))       return `SVG 에셋 구조 확인 중 (${fname})`
+        return `참고 파일 확인 중 (${fname})`
       }
       if (toolName === 'Write') {
-        if (filePath.includes('index.html')) return '게임 메인 HTML5 파일 작성 중 — 엔진 구조 설계'
-        if (filePath.endsWith('.js'))        return `게임 로직 JS 모듈 작성 중 (${fname})`
-        if (filePath.endsWith('.css'))       return `게임 스타일시트 작성 중 (${fname})`
-        if (filePath.includes('readme'))     return '게임 README 문서 작성 중'
+        if (filePath.includes('index.html')) {
+          const ctx = detectContext(content)
+          return ctx ? `게임 코드 작성 중 — ${ctx}` : '게임 메인 HTML5 파일 작성 중'
+        }
+        if (filePath.endsWith('.js'))  return `JS 모듈 작성 중 (${fname})`
+        if (filePath.endsWith('.css')) return `스타일시트 작성 중 (${fname})`
         return `게임 파일 작성 중 (${fname})`
       }
       if (toolName === 'Edit') {
-        if (filePath.includes('index.html')) return '게임 HTML 코드 수정 중 — 버그 수정 또는 기능 추가'
-        if (filePath.endsWith('.js'))        return `게임 로직 수정 중 (${fname})`
-        return `게임 코드 디버깅 및 수정 중 (${fname})`
+        if (filePath.includes('index.html')) {
+          const ctx = detectContext(content)
+          return ctx ? `코드 수정 중 — ${ctx}` : '게임 코드 수정 중'
+        }
+        if (filePath.endsWith('.js'))  return `JS 모듈 수정 중 (${fname})`
+        return `코드 수정 중 (${fname})`
       }
       if (toolName === 'Bash') {
-        if (cmd.includes('python') || cmd.includes('puppeteer') || cmd.includes('node')) return '게임 동작 자동화 테스트 실행 중'
-        if (cmd.includes('ls') || cmd.includes('dir'))   return '게임 파일 구조 확인 중'
-        if (cmd.includes('cat') || cmd.includes('type')) return '게임 코드 내용 검토 중'
-        if (cmd.includes('mkdir'))                       return '게임 디렉토리 구조 생성 중'
-        if (cmd.includes('cp') || cmd.includes('copy'))  return '에셋 파일 복사 배치 중'
-        return '게임 빌드 및 환경 설정 중'
+        if (cmd.includes('puppeteer') || cmd.includes('node'))  return '게임 동작 자동화 테스트 실행 중'
+        if (cmd.includes('ls') || cmd.includes('dir'))          return '게임 파일 구조 확인 중'
+        if (cmd.includes('mkdir'))                              return '게임 디렉토리 구조 생성 중'
+        return '게임 빌드/환경 설정 중'
       }
+      if (toolName === 'Grep') return `코드 패턴 검색 중: "${query.slice(0, 30)}"`
+      if (toolName === 'Glob') return `파일 검색 중: ${query.slice(0, 30)}`
       return '게임 로직 구현 중'
     }
 
     // ── 리뷰어 ──────────────────────────────────────────────────────────────
     case 'reviewer': {
       if (toolName === 'Read') {
-        if (filePath.includes('index.html')) return '게임 메인 코드 정밀 리뷰 중 — 로직 검증'
-        if (filePath.endsWith('.js'))        return `JS 모듈 코드 품질 검토 중 (${fname})`
-        if (filePath.includes('spec'))       return '기획서 대비 구현 완성도 검증 중'
-        if (filePath.includes('manifest'))   return '에셋 누락 여부 체크 중'
-        return '게임 소스코드 전체 리뷰 중'
+        if (filePath.includes('index.html')) return '게임 소스코드 정밀 리뷰 중 — 로직/성능/보안 검증'
+        if (filePath.endsWith('.js'))        return `JS 코드 품질 검토 중 (${fname})`
+        if (filePath.includes('spec'))       return '기획서 대비 구현 완성도 검증 — 누락 기능 확인 중'
+        if (filePath.includes('manifest'))   return 'SVG 에셋 누락 여부 체크 중'
+        if (filePath.includes('review'))     return '이전 리뷰 피드백 확인 — 수정 여부 재검증 중'
+        if (filePath.endsWith('.svg'))       return `에셋 파일 검증 중 (${fname})`
+        return `파일 리뷰 중 (${fname})`
       }
-      if (toolName === 'Write') {
-        if (filePath.includes('review'))     return '코드 리뷰 보고서 작성 중 — 이슈 및 개선점 정리'
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('review')) {
+          const c = content.toLowerCase()
+          if (c.match(/approved/i))        return '리뷰 보고서 작성 중 — 판정: APPROVED'
+          if (c.match(/needs_major_fix/i)) return '리뷰 보고서 작성 중 — 판정: NEEDS_MAJOR_FIX'
+          if (c.match(/needs_minor_fix/i)) return '리뷰 보고서 작성 중 — 판정: NEEDS_MINOR_FIX'
+          if (c.match(/touch|터치|모바일|mobile/)) return '리뷰 보고서 작성 중 — 모바일 대응 검사 결과 정리'
+          if (c.match(/bug|버그|error|오류/))      return '리뷰 보고서 작성 중 — 버그/오류 목록 정리'
+          if (c.match(/performance|성능|memory|메모리/)) return '리뷰 보고서 작성 중 — 성능 이슈 정리'
+          return '코드 리뷰 보고서 작성 중'
+        }
         return 'QA 결과 보고서 문서화 중'
       }
-      if (toolName === 'Edit') return '리뷰 보고서 내용 보완 중'
       if (toolName === 'Bash') {
-        if (cmd.includes('puppeteer'))          return '헤드리스 브라우저로 게임 자동 실행 테스트 중'
-        if (cmd.includes('node'))               return '게임 로직 유닛 테스트 실행 중'
-        if (cmd.includes('python'))             return '자동화 QA 스크립트 실행 중'
-        if (cmd.includes('ls') || cmd.includes('dir'))  return '게임 파일 구성 검사 중'
-        if (cmd.includes('cat') || cmd.includes('type')) return '코드 가독성 및 구조 점검 중'
-        if (cmd.includes('grep') || cmd.includes('findstr')) return '잠재적 버그 패턴 탐색 중'
+        if (cmd.includes('puppeteer'))   return '헤드리스 브라우저로 게임 자동 실행 테스트 중'
+        if (cmd.includes('node'))        return '게임 로직 유닛 테스트 실행 중'
+        if (cmd.includes('grep') || cmd.includes('findstr')) {
+          if (cmd.match(/touch|mobile/i))  return '모바일 터치 이벤트 구현 여부 검사 중'
+          if (cmd.match(/viewport/i))      return '모바일 뷰포트 설정 검사 중'
+          return `잠재적 버그 패턴 탐색 중`
+        }
         return '자동화 테스트 실행 중'
+      }
+      if (toolName === 'Grep') {
+        const q = query.slice(0, 30)
+        if (query.match(/touch/i))     return `모바일 터치 이벤트 검색: "${q}"`
+        if (query.match(/viewport/i))  return `뷰포트 메타태그 검색: "${q}"`
+        if (query.match(/overflow|scroll/i)) return `스크롤 방지 코드 검색: "${q}"`
+        return `코드 패턴 검색: "${q}"`
       }
       return '게임 코드 품질 및 버그 검토 중'
     }
@@ -354,21 +400,31 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
     // ── 포스트모템 ──────────────────────────────────────────────────────────
     case 'postmortem': {
       if (toolName === 'Read') {
-        if (filePath.includes('review'))     return '리뷰어 QA 보고서 분석 중'
-        if (filePath.includes('spec'))       return '원본 기획서와 결과물 비교 분석 중'
-        if (filePath.includes('wisdom'))     return '누적 플랫폼 지혜 데이터 검토 중'
-        if (filePath.includes('postmortem')) return '이전 회고 내용과 패턴 비교 중'
-        if (filePath.includes('analysis'))   return '트렌드 분석 결과 회고 반영 중'
-        return '이번 사이클 산출물 종합 검토 중'
+        if (filePath.includes('review'))     return '리뷰 보고서 분석 — 지적 사항 정리 중'
+        if (filePath.includes('spec'))       return '기획서 vs 결과물 비교 — 달성도 평가 중'
+        if (filePath.includes('wisdom'))     return '누적 플랫폼 지혜 확인 — 기존 패턴 대비 분석 중'
+        if (filePath.includes('postmortem')) return '이전 회고와 비교 — 반복되는 문제 패턴 확인 중'
+        if (filePath.includes('report'))     return '트렌드 분석 결과 회고 반영 중'
+        if (filePath.includes('index.html')) return '실제 구현된 게임 코드 확인 중'
+        return `산출물 검토 중 (${fname})`
       }
-      if (toolName === 'Write') {
-        if (filePath.includes('wisdom'))     return '플랫폼 지혜 업데이트 — 학습 인사이트 축적 중'
-        if (filePath.includes('postmortem')) return '개발 회고(포스트모템) 문서 작성 중'
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('wisdom')) {
+          const c = content.toLowerCase()
+          if (c.match(/피해야|avoid|🚫/))  return '플랫폼 지혜 갱신 — "피해야 할 패턴" 업데이트 중'
+          if (c.match(/검증|success|✅/))   return '플랫폼 지혜 갱신 — "검증된 성공 패턴" 업데이트 중'
+          if (c.match(/기술|개선|🛠/))      return '플랫폼 지혜 갱신 — "기술 개선 누적" 업데이트 중'
+          if (c.match(/우선순위|🎯|다음/))  return '플랫폼 지혜 갱신 — "다음 사이클 우선순위" 작성 중'
+          return '플랫폼 지혜 업데이트 — 학습 인사이트 축적 중'
+        }
+        if (filePath.includes('postmortem')) {
+          const c = content.toLowerCase()
+          if (c.match(/잘된|good|성과/))     return '포스트모템 작성 — 잘된 점 정리 중'
+          if (c.match(/아쉬|improve|문제/))  return '포스트모템 작성 — 아쉬운 점/개선점 정리 중'
+          if (c.match(/다음|next|제안/))     return '포스트모템 작성 — 다음 사이클 제안 정리 중'
+          return '개발 회고(포스트모템) 문서 작성 중'
+        }
         return '사이클 결산 문서 작성 중'
-      }
-      if (toolName === 'Edit') {
-        if (filePath.includes('wisdom'))     return '플랫폼 지혜 내용 갱신 중'
-        return '회고 문서 내용 보완 중'
       }
       return '사이클 전체 회고 및 인사이트 정리 중'
     }
@@ -376,29 +432,23 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
     // ── 배포 담당 ────────────────────────────────────────────────────────────
     case 'deployer': {
       if (toolName === 'Read') {
-        if (filePath.includes('spec'))       return '게임 메타데이터 확인 — 제목/장르/설명 추출 중'
+        if (filePath.includes('spec'))       return '게임 메타데이터 추출 중 — 제목/장르/설명 확인'
         if (filePath.includes('registry'))   return '게임 레지스트리 현황 파악 중'
         if (filePath.includes('index.html')) return '게임 파일 최종 확인 중'
         if (filePath.includes('manifest'))   return '에셋 완성 여부 최종 점검 중'
-        return '배포 전 게임 정보 검토 중'
+        return `배포 전 파일 검토 중 (${fname})`
       }
-      if (toolName === 'Write') {
-        if (filePath.includes('registry'))   return '게임 레지스트리 등록 — 플랫폼 카탈로그 업데이트 중'
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('registry'))   return '게임 레지스트리 등록 — 신규 게임 카탈로그 추가 중'
         return '배포 설정 파일 작성 중'
       }
-      if (toolName === 'Edit') {
-        if (filePath.includes('registry'))   return '게임 레지스트리 정보 수정 중'
-        return '배포 메타데이터 수정 중'
-      }
       if (toolName === 'Bash') {
-        if (cmd.includes('git status'))                      return 'Git 변경사항 상태 확인 중'
-        if (cmd.includes('git add'))                         return '배포할 파일 스테이징 중 (git add)'
-        if (cmd.includes('git commit'))                      return '변경사항 커밋 생성 중 — 커밋 메시지 작성'
-        if (cmd.includes('git push'))                        return 'GitHub에 푸시 중 — Vercel 자동 배포 트리거'
-        if (cmd.includes('git log') || cmd.includes('git diff')) return 'Git 히스토리 및 변경 내역 확인 중'
-        if (cmd.includes('ls') || cmd.includes('dir'))       return '배포 대상 파일 목록 최종 확인 중'
-        if (cmd.includes('vercel'))                          return 'Vercel CLI로 수동 배포 실행 중'
-        if (cmd.includes('npm') || cmd.includes('node'))     return '배포 전 빌드 검증 중'
+        if (cmd.includes('git status'))       return 'Git 상태 확인 — 변경 파일 목록 점검 중'
+        if (cmd.includes('git add'))          return '배포할 파일 스테이징 중 (git add)'
+        if (cmd.includes('git commit'))       return '커밋 생성 중 — 배포 이력 기록'
+        if (cmd.includes('git push'))         return '🚀 GitHub 푸시 중 — Vercel 자동 배포 트리거!'
+        if (cmd.includes('git log'))          return 'Git 히스토리 확인 중'
+        if (cmd.includes('vercel'))           return 'Vercel CLI로 수동 배포 실행 중'
         return '배포 스크립트 실행 중'
       }
       return '게임 배포 진행 중'

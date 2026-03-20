@@ -84,8 +84,8 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
               const toolName  = String(input['tool_name'] ?? 'tool')
               const toolInput = input['tool_input']
               const detail    = typeof toolInput === 'object'
-                ? JSON.stringify(toolInput).slice(0, 80)
-                : String(toolInput ?? '').slice(0, 80)
+                ? JSON.stringify(toolInput).slice(0, 500)
+                : String(toolInput ?? '').slice(0, 500)
               logTool(agentId, toolName, detail)
               return {}
             }],
