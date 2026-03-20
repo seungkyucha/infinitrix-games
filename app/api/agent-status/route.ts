@@ -7,22 +7,25 @@ export const revalidate = 0
 
 const STATUS_FILE = join(process.cwd(), 'logs', 'agent-status.json')
 
+const BLANK_AGENT = { status: 'idle', currentAction: '', startedAt: null, completedAt: null, toolCalls: 0, logs: [] }
+
 const IDLE_STATE = {
   lastUpdated: new Date().toISOString(),
   cycleNumber: 0,
   cycleStatus: 'idle',
   currentStep: 0,
-  totalSteps:  5,
+  totalSteps:  6,
   stepName:    '',
   gameTitle:   '',
   gameId:      '',
   gameGenre:   [],
   agents: {
-    analyst:  { status: 'idle', currentAction: '', startedAt: null, completedAt: null, toolCalls: 0, logs: [] },
-    planner:  { status: 'idle', currentAction: '', startedAt: null, completedAt: null, toolCalls: 0, logs: [] },
-    coder:    { status: 'idle', currentAction: '', startedAt: null, completedAt: null, toolCalls: 0, logs: [] },
-    reviewer: { status: 'idle', currentAction: '', startedAt: null, completedAt: null, toolCalls: 0, logs: [] },
-    deployer: { status: 'idle', currentAction: '', startedAt: null, completedAt: null, toolCalls: 0, logs: [] },
+    analyst:    BLANK_AGENT,
+    planner:    BLANK_AGENT,
+    coder:      BLANK_AGENT,
+    reviewer:   BLANK_AGENT,
+    postmortem: BLANK_AGENT,
+    deployer:   BLANK_AGENT,
   },
   recentLogs: [],
 }
