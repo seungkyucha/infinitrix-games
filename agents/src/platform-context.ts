@@ -21,6 +21,8 @@ export type AllowedGenre = typeof ALLOWED_GENRES[number]
 // ─── 플랫폼 디자인 시스템 ─────────────────────────────────────────────────────
 export const DESIGN_SYSTEM = `
 ## 플랫폼 디자인 시스템 (다크 네온 테마)
+
+### 색상 팔레트
 배경색:
   - 최외곽 배경:  #0a0a0f (bg-primary)
   - 보조 배경:    #0f0f1a (bg-secondary)
@@ -39,6 +41,39 @@ export const DESIGN_SYSTEM = `
   - 주요:         #e0e0f0  (text-primary)
   - 보조:         #8080a0  (text-secondary)
   - 흐림:         #505070  (text-muted)
+
+### 디자인 원칙 (Anthropic frontend-design skill 기반)
+
+⛔ "AI 슬롭" 금지 — 다음을 절대 사용하지 말 것:
+  - Inter, Roboto, Arial, system-ui 같은 무난한 폰트
+  - 흰 배경 위 보라색 그라디언트 (우리 플랫폼은 다크 배경)
+  - 균일한 둥근 모서리로 도배된 레이아웃
+  - 개성 없는 가운데 정렬 중심 구조
+
+✅ 게임 UI 디자인 방향 — 장르별 개성 강조:
+  - arcade  → 픽셀아트 레트로, 스캔라인 효과, 네온 CRT 빛번짐
+  - puzzle  → 기하학적 패턴, 차갑고 정밀한 그리드, 시안 글로우
+  - strategy→ 전술 HUD 느낌, 모눈 배경, 그린 터미널 텍스트
+  - action  → 다이나믹 대각선 레이아웃, 레드 포인트, 빠른 플래시 애니메이션
+  - casual  → 따뜻한 그라디언트, 부드러운 파티클, 골드 강조
+
+✅ 타이포그래피 — 장르 분위기에 맞는 특색 있는 폰트 선택:
+  - 레트로/아케이드: "Press Start 2P", "VT323" (Google Fonts CDN 가능)
+  - 미래/SF:        "Orbitron", "Exo 2", "Audiowide"
+  - 전술/전략:      "Share Tech Mono", "Courier New" (모노스페이스)
+  - 캐주얼/귀여운:  "Nunito", "Baloo 2", "Fredoka One"
+  폰트는 index.html 내 <link> 태그로 Google Fonts CDN 로드 가능
+
+✅ 애니메이션 원칙:
+  - requestAnimationFrame 루프 내에서 매끄러운 파티클/이펙트
+  - 게임 시작 시 드라마틱한 인트로 애니메이션 (스태거드 등장)
+  - 점수 획득 시 숫자 팝업 + 글로우 플래시
+  - 게임오버 시 화면 쉐이크 + 페이드 아웃
+
+✅ 공간 구성:
+  - 비대칭 레이아웃, 오버랩, 대각선 흐름 적극 활용
+  - HUD 요소(점수, 생명)는 모서리에 배치, 게임 캔버스 방해 금지
+  - 배경에 장르별 패턴/텍스처 레이어 추가 (노이즈, 그리드, 스타필드 등)
 ` as const
 
 // ─── 게임 iframe 환경 ─────────────────────────────────────────────────────────

@@ -4,40 +4,67 @@ interface Props {
 
 export default function HeroSection({ totalGames }: Props) {
   return (
-    <section className="text-center py-14 mb-10">
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-purple/10 border border-accent-purple/30 text-accent-purple text-xs font-medium mb-5">
-        <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse-slow inline-block" />
-        AI 에이전트가 지금도 새 게임을 개발 중
-      </div>
+    <section className="relative pt-12 pb-14 mb-8 overflow-hidden">
+      {/* 배경 그리드 — 단순 단색 배경 탈출 */}
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(108,60,247,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(108,60,247,0.8) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+      {/* 좌측 네온 번짐 */}
+      <div className="absolute -left-32 top-0 w-64 h-64 rounded-full bg-accent-purple/10 blur-[80px] pointer-events-none" />
+      {/* 우측 네온 번짐 */}
+      <div className="absolute -right-32 bottom-0 w-64 h-64 rounded-full bg-accent-cyan/8 blur-[80px] pointer-events-none" />
 
-      <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-        <span className="gradient-text">무한 성장</span>하는{' '}
-        <br className="sm:hidden" />
-        HTML5 게임 플랫폼
-      </h1>
+      <div className="relative">
+        {/* 상태 태그 — 비대칭 배치 */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-accent-green/10 border border-accent-green/25 text-accent-green text-xs font-mono tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse-slow inline-block" />
+            LIVE · AI 에이전트 개발 중
+          </div>
+          <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-accent-green/20 to-transparent" />
+        </div>
 
-      <p className="text-text-secondary text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
-        AI 에이전트 팀이 기획·개발·테스트·배포 사이클을 자동 반복하여
-        <br className="hidden sm:block" />
-        게임이 끊임없이 추가됩니다. 브라우저에서 바로 플레이!
-      </p>
+        {/* 헤드라인 — 비균형 타이포그래피 */}
+        <div className="mb-6">
+          <p className="text-text-muted text-xs font-mono tracking-[0.3em] uppercase mb-2">
+            InfiniTriX Platform
+          </p>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
+            <span className="text-text-primary">AI가 매일</span>
+            <br />
+            <span className="gradient-text">게임을 만든다</span>
+          </h1>
+        </div>
 
-      <div className="flex items-center justify-center gap-8 text-sm">
-        <Stat value={totalGames} label="개 게임" color="text-accent-cyan" />
-        <div className="w-px h-8 bg-border-dim" />
-        <Stat value="100" label="% 무료" color="text-accent-green" />
-        <div className="w-px h-8 bg-border-dim" />
-        <Stat value="0" label="설치 불필요" color="text-accent-purple" />
+        {/* 설명 — 좌측 정렬, 짧게 */}
+        <p className="text-text-secondary text-sm sm:text-base max-w-md leading-relaxed mb-8">
+          기획 → 개발 → 테스트 → 배포 사이클을 에이전트 팀이 자동 반복.
+          <br />
+          설치 없이 브라우저에서 바로 플레이.
+        </p>
+
+        {/* 스탯 — 가로 배치, 구분선 활용 */}
+        <div className="flex items-stretch gap-0 w-fit border border-border-dim rounded-sm overflow-hidden">
+          <StatBlock value={totalGames} label="Games" accent="text-accent-cyan" />
+          <div className="w-px bg-border-dim" />
+          <StatBlock value="Free" label="Always" accent="text-accent-green" />
+          <div className="w-px bg-border-dim" />
+          <StatBlock value="0" label="Install" accent="text-accent-purple" />
+        </div>
       </div>
     </section>
   )
 }
 
-function Stat({ value, label, color }: { value: string | number; label: string; color: string }) {
+function StatBlock({ value, label, accent }: { value: string | number; label: string; accent: string }) {
   return (
-    <div className="text-center">
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="text-text-muted text-xs mt-0.5">{label}</div>
+    <div className="px-5 py-3 text-center bg-bg-card/50">
+      <div className={`text-xl font-bold font-mono ${accent}`}>{value}</div>
+      <div className="text-text-muted text-[10px] tracking-widest uppercase mt-0.5">{label}</div>
     </div>
   )
 }
