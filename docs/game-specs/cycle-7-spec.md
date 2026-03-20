@@ -453,6 +453,10 @@ function updatePlayer() {
 | `calcXpNeeded(level)` | 레벨 | 필요 XP |
 | `getWaveConfig(wave)` | 웨이브 번호 | config 객체 |
 | `pickSkillChoices(pool, owned, count, rng)` | 풀, 보유목록, 개수, RNG | 스킬 3개 배열 |
+| `updateCamera(camera, target, viewW, viewH, worldW, worldH, smoothing)` | 카메라, 추적대상, 뷰포트/월드 크기, 보간값 | camera 좌표 갱신 |
+| `worldToScreen(objX, objY, camera)` | 월드좌표, 카메라 | {sx, sy} 화면좌표 |
+| `isInViewport(objX, objY, camera, viewW, viewH, margin)` | 좌표, 카메라, 마진 | boolean (렌더링/culling 판단) |
+| `spawnPosAroundViewport(playerX, playerY, camera, viewW, viewH, margin, rng)` | 플레이어, 카메라, 마진, RNG | {x, y} 스폰 좌표 |
 
 ---
 
