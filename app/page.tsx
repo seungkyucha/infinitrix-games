@@ -1,6 +1,7 @@
 import { getAllGames, getFeaturedGames, getAllGenres } from '@/lib/games'
 import GameGrid from '@/components/GameGrid'
 import HeroSection from '@/components/HeroSection'
+import MiniAgentLog from '@/components/MiniAgentLog'
 
 export const dynamic = 'force-static'
 export const revalidate = 3600 // 1시간마다 재생성
@@ -13,7 +14,7 @@ export default function HomePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* 히어로 섹션 */}
-      <HeroSection totalGames={allGames.length} />
+      <HeroSection totalGames={allGames.length} rightSlot={<MiniAgentLog />} />
 
       {/* 인기 게임 섹션 */}
       {featured.length > 0 && (
