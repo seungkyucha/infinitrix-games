@@ -1,0 +1,144 @@
+'use client'
+
+import { useRouter, useSearchParams } from 'next/navigation'
+import type { DocEntry } from '@/lib/devlog'
+
+const VERDICT_BADGE: Record<string, string> = {
+  APPROVED:        'bg-green-500/20  text-green-400  border-green-500/30',
+  NEEDS_MINOR_FIX: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  NEEDS_MAJOR_FIX: 'bg-red-500/20    text-red-400    border-red-500/30',
+}
+
+const VERDICT_SHORT: Record<string, string> = {
+  APPROVED:        'PASS',
+  NEEDS_MINOR_FIX: 'MINOR',
+  NEEDS_MAJOR_FIX: 'MAJOR',
+}
+
+interface Props {
+  entries:    DocEntry[]
+  defaultDoc: string
+}
+
+export default function DevLogSidebar({ entries, defaultDoc }: Props) {
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const activeId     = searchParams.get('doc') ?? defaultDoc
+
+  function select(id: string) {
+    router.push(`/dev-log?doc=${id}`, { scroll: false })
+  }
+
+  // 사이클 그룹화: meta + 각 cycle-N 그룹
+  const groups = buildGroups(entries)
+
+  return (
+    <nav className="flex flex-col gap-1 text-sm">
+
+      {/* ── META (플랫폼 지혜) ──────────────────────── */}
+      {groups.meta.map(e => (
+        <SidebarItem
+          key={e.id}
+          entry={e}
+          active={activeId === e.id}
+          onClick={() => select(e.id)}
+        />
+      ))}
+
+      {/* ── 사이클별 그룹 ───────────────────────────── */}
+      {groups.cycles.map(({ cycleNumber, gameTitle, docs }) => (
+        <div key={cycleNumber} className="mt-4">
+          {/* 그룹 헤더 */}
+          <div className="flex items-center gap-2 px-3 mb-1">
+            <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">
+              Cycle #{cycleNumber}
+            </span>
+            <div className="flex-1 h-px bg-border-dim" />
+          </div>
+          <p className="px-3 mb-2 text-[11px] text-text-secondary truncate font-medium">
+            {gameTitle}
+          </p>
+
+          {docs.map(e => (
+            <SidebarItem
+              key={e.id}
+              entry={e}
+              active={activeId === e.id}
+              onClick={() => select(e.id)}
+              indent
+            />
+          ))}
+        </div>
+      ))}
+
+      {entries.length === 0 && (
+        <p className="px-3 py-4 text-xs text-text-muted italic">
+          아직 문서가 없습니다.
+        </p>
+      )}
+    </nav>
+  )
+}
+
+// ── 아이템 ──────────────────────────────────────────────────────────────────
+
+function SidebarItem({
+  entry,
+  active,
+  onClick,
+  indent = false,
+}: {
+  entry:   DocEntry
+  active:  boolean
+  onClick: () => void
+  indent?: boolean
+}) {
+  const verdict = entry.verdict
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors
+        ${indent ? 'pl-5' : ''}
+        ${active
+          ? 'bg-accent-purple/15 text-text-primary border border-accent-purple/30'
+          : 'text-text-secondary hover:text-text-primary hover:bg-bg-card-hover border border-transparent'
+        }`}
+    >
+      <span className="text-sm shrink-0">{entry.icon}</span>
+      <span className="flex-1 text-xs font-medium truncate">{entry.label}</span>
+      {verdict && (
+        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 ${VERDICT_BADGE[verdict] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+          {VERDICT_SHORT[verdict] ?? verdict}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ── 그룹 빌더 ───────────────────────────────────────────────────────────────
+
+interface CycleGroup {
+  cycleNumber: number
+  gameTitle:   string
+  docs:        DocEntry[]
+}
+
+function buildGroups(entries: DocEntry[]) {
+  const meta: DocEntry[]             = []
+  const cycleMap = new Map<number, CycleGroup>()
+
+  for (const e of entries) {
+    if (e.group === 'meta') {
+      meta.push(e)
+      continue
+    }
+    const n = e.cycleNumber!
+    if (!cycleMap.has(n)) {
+      cycleMap.set(n, { cycleNumber: n, gameTitle: e.gameTitle ?? `사이클 #${n}`, docs: [] })
+    }
+    cycleMap.get(n)!.docs.push(e)
+  }
+
+  const cycles = Array.from(cycleMap.values()).sort((a, b) => b.cycleNumber - a.cycleNumber)
+  return { meta, cycles }
+}
