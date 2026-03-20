@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <radialGradient id="tbgGrad" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#0F1525"/>
+      <stop offset="60%" stop-color="#0B0E17"/>
+      <stop offset="100%" stop-color="#050710"/>
+    </radialGradient>
+    <radialGradient id="tNebulaA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1A0A3E" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0B0E17" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tNebulaB" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0A1E3A" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#0B0E17" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tBodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#004D60"/>
+    </linearGradient>
+    <linearGradient id="tWingGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0097A7"/>
+      <stop offset="100%" stop-color="#002F3A"/>
+    </linearGradient>
+    <radialGradient id="tEngineGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#FF6B35" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF6B35" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tEnemyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E74C3C"/>
+      <stop offset="100%" stop-color="#7B241C"/>
+    </linearGradient>
+    <radialGradient id="tExplosionGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="25%" stop-color="#FFD93D" stop-opacity="0.7"/>
+      <stop offset="60%" stop-color="#FF6B35" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#E74C3C" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tBigGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tBlur">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="titleGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#0097A7"/>
+    </linearGradient>
+  </defs>
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#tbgGrad)"/>
+  <!-- 성운 -->
+  <ellipse cx="100" cy="100" rx="150" ry="100" fill="url(#tNebulaA)"/>
+  <ellipse cx="320" cy="200" rx="130" ry="100" fill="url(#tNebulaB)"/>
+  <!-- 배경 별 -->
+  <g fill="#FFFFFF" opacity="0.3">
+    <circle cx="20" cy="15" r="0.8"/><circle cx="60" cy="40" r="0.5"/><circle cx="110" cy="20" r="0.7"/>
+    <circle cx="160" cy="55" r="0.6"/><circle cx="200" cy="15" r="0.9"/><circle cx="250" cy="45" r="0.5"/>
+    <circle cx="300" cy="25" r="0.7"/><circle cx="350" cy="50" r="0.6"/><circle cx="380" cy="20" r="0.8"/>
+    <circle cx="35" cy="90" r="0.6"/><circle cx="85" cy="120" r="0.5"/><circle cx="145" cy="100" r="0.7"/>
+    <circle cx="215" cy="85" r="0.6"/><circle cx="275" cy="110" r="0.8"/><circle cx="340" cy="95" r="0.5"/>
+    <circle cx="50" cy="170" r="0.7"/><circle cx="130" cy="190" r="0.5"/><circle cx="230" cy="175" r="0.6"/>
+    <circle cx="310" cy="165" r="0.7"/><circle cx="370" cy="185" r="0.5"/>
+    <circle cx="25" cy="240" r="0.5"/><circle cx="95" cy="260" r="0.7"/><circle cx="175" cy="245" r="0.6"/>
+    <circle cx="265" cy="270" r="0.5"/><circle cx="355" cy="250" r="0.8"/>
+    <circle cx="45" cy="285" r="0.6"/><circle cx="150" cy="280" r="0.5"/><circle cx="330" cy="290" r="0.6"/>
+  </g>
+  <g fill="#FFFFFF" opacity="0.6">
+    <circle cx="80" cy="60" r="1.2"/><circle cx="300" cy="70" r="1.5"/>
+    <circle cx="50" cy="200" r="1.3"/><circle cx="370" cy="140" r="1.0"/>
+  </g>
+  <!-- 폭발 이펙트 (우측 상단) -->
+  <g filter="url(#tBigGlow)">
+    <circle cx="310" cy="90" r="25" fill="url(#tExplosionGrad)"/>
+  </g>
+  <!-- 적 파편 (폭발 주변) -->
+  <g opacity="0.6" filter="url(#tGlow)">
+    <path d="M300 80 L305 75 L302 82 Z" fill="#E74C3C"/>
+    <path d="M320 85 L325 80 L322 88 Z" fill="#F39C12"/>
+    <path d="M315 100 L320 96 L317 103 Z" fill="#E74C3C"/>
+    <circle cx="295" cy="95" r="1.5" fill="#FFD93D"/>
+    <circle cx="325" cy="78" r="1" fill="#FFFFFF"/>
+  </g>
+  <!-- 적 함대 (상단) -->
+  <g>
+    <!-- 스카우트 1 -->
+    <path d="M120 60 L126 48 L132 60 Z" fill="#5DADE2" opacity="0.8" filter="url(#tGlow)"/>
+    <!-- 스카우트 2 -->
+    <path d="M160 50 L166 38 L172 50 Z" fill="#5DADE2" opacity="0.7" filter="url(#tGlow)"/>
+    <!-- 파이터 -->
+    <g transform="translate(220, 65)">
+      <path d="M0 -10 L10 0 L0 10 L-10 0 Z" fill="#F39C12" filter="url(#tGlow)"/>
+      <path d="M-10 0 L-16 -3 L-14 0 L-16 3 Z" fill="#D48B08" opacity="0.8"/>
+      <path d="M10 0 L16 -3 L14 0 L16 3 Z" fill="#D48B08" opacity="0.8"/>
+    </g>
+    <!-- 탱크 -->
+    <g transform="translate(270, 55)">
+      <polygon points="0,-12 10,-6 10,6 0,12 -10,6 -10,-6" fill="#E74C3C" filter="url(#tGlow)" opacity="0.85"/>
+      <circle cx="0" cy="0" r="4" fill="#FF6B35" opacity="0.7"/>
+    </g>
+  </g>
+  <!-- 적 총알들 -->
+  <g filter="url(#tGlow)">
+    <circle cx="126" cy="70" r="2.5" fill="#FF4757" opacity="0.7"/>
+    <circle cx="222" cy="82" r="2.5" fill="#FF4757" opacity="0.6"/>
+    <circle cx="270" cy="78" r="3" fill="#FF4757" opacity="0.7"/>
+    <circle cx="165" cy="62" r="2" fill="#FF4757" opacity="0.5"/>
+  </g>
+  <!-- 플레이어 전투기 (하단 중앙, 크게) -->
+  <g transform="translate(200, 210)" filter="url(#tGlow)">
+    <!-- 엔진 불꽃 -->
+    <ellipse cx="0" cy="28" rx="10" ry="14" fill="url(#tEngineGlow)" filter="url(#tBigGlow)"/>
+    <ellipse cx="-8" cy="26" rx="6" ry="9" fill="url(#tEngineGlow)" opacity="0.6"/>
+    <ellipse cx="8" cy="26" rx="6" ry="9" fill="url(#tEngineGlow)" opacity="0.6"/>
+    <!-- 왼쪽 날개 -->
+    <path d="M-6 6 L-30 24 L-22 18 L-10 12 Z" fill="url(#tWingGrad)" stroke="#00E5FF" stroke-width="0.5" stroke-opacity="0.5"/>
+    <!-- 오른쪽 날개 -->
+    <path d="M6 6 L30 24 L22 18 L10 12 Z" fill="url(#tWingGrad)" stroke="#00E5FF" stroke-width="0.5" stroke-opacity="0.5"/>
+    <!-- 몸통 -->
+    <path d="M0 -24 L10 4 L8 18 L0 20 L-8 18 L-10 4 Z" fill="url(#tBodyGrad)" stroke="#00E5FF" stroke-width="0.6" stroke-opacity="0.4"/>
+    <!-- 조종석 -->
+    <ellipse cx="0" cy="-8" rx="4" ry="6" fill="#00E5FF" opacity="0.6" filter="url(#tGlow)"/>
+    <!-- 캐논 -->
+    <rect x="-2" y="-28" width="4" height="6" rx="1" fill="#0097A7"/>
+    <circle cx="0" cy="-27" r="1.2" fill="#00E5FF" opacity="0.8"/>
+    <!-- 날개 팁 -->
+    <circle cx="-30" cy="24" r="1.5" fill="#00E5FF" opacity="0.6"/>
+    <circle cx="30" cy="24" r="1.5" fill="#00E5FF" opacity="0.6"/>
+  </g>
+  <!-- 플레이어 총알 -->
+  <g filter="url(#tGlow)">
+    <rect x="198" y="160" width="4" height="14" rx="2" fill="#00E5FF" opacity="0.9"/>
+    <rect x="198" y="135" width="4" height="14" rx="2" fill="#00E5FF" opacity="0.7"/>
+    <rect x="198" y="110" width="4" height="14" rx="2" fill="#00E5FF" opacity="0.5"/>
+  </g>
+  <!-- 파워업 (왼쪽 아래) -->
+  <g transform="translate(80, 220)" filter="url(#tGlow)">
+    <circle cx="0" cy="0" r="10" fill="none" stroke="#FFD93D" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
+    <circle cx="0" cy="0" r="6" fill="#FFD93D" opacity="0.4"/>
+    <circle cx="0" cy="0" r="3" fill="#FFFFFF" opacity="0.6"/>
+  </g>
+  <!-- UI 요소 (좌상단 HP) -->
+  <g transform="translate(15, 15)">
+    <path d="M8 14 C8 14 2 10 2 7 C2 5 3.5 3.5 5.5 3.5 C6.5 3.5 7.5 4.2 8 5 C8.5 4.2 9.5 3.5 10.5 3.5 C12.5 3.5 14 5 14 7 C14 10 8 14 8 14 Z" fill="#E74C3C" filter="url(#tGlow)"/>
+    <path d="M24 14 C24 14 18 10 18 7 C18 5 19.5 3.5 21.5 3.5 C22.5 3.5 23.5 4.2 24 5 C24.5 4.2 25.5 3.5 26.5 3.5 C28.5 3.5 30 5 30 7 C30 10 24 14 24 14 Z" fill="#E74C3C" filter="url(#tGlow)"/>
+    <path d="M40 14 C40 14 34 10 34 7 C34 5 35.5 3.5 37.5 3.5 C38.5 3.5 39.5 4.2 40 5 C40.5 4.2 41.5 3.5 42.5 3.5 C44.5 3.5 46 5 46 7 C46 10 40 14 40 14 Z" fill="#E74C3C" opacity="0.3"/>
+  </g>
+  <!-- WAVE 표시 (우상단) -->
+  <text x="375" y="22" font-family="'Segoe UI', system-ui, sans-serif" font-size="11" font-weight="bold" fill="#00E5FF" text-anchor="end" opacity="0.7" filter="url(#tGlow)">WAVE 5</text>
+  <!-- 점수 (우상단 아래) -->
+  <text x="375" y="38" font-family="'Segoe UI', system-ui, sans-serif" font-size="9" fill="#FFFFFF" text-anchor="end" opacity="0.5">12,500</text>
+  <!-- 타이틀 텍스트 -->
+  <g filter="url(#titleGlow)">
+    <text x="200" y="284" font-family="'Segoe UI', system-ui, sans-serif" font-size="28" font-weight="bold" fill="url(#titleGrad)" text-anchor="middle" letter-spacing="3">STAR GUARDIAN</text>
+  </g>
+  <text x="200" y="298" font-family="'Segoe UI', system-ui, sans-serif" font-size="9" fill="#8892A0" text-anchor="middle" letter-spacing="5" opacity="0.7">NEON SPACE SHOOTER</text>
+  <!-- 하단 비네팅 -->
+  <rect x="0" y="260" width="400" height="40" fill="url(#tbgGrad)" opacity="0.5"/>
+</svg>

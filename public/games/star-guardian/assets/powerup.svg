@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <radialGradient id="puCoreGrad" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#FFD93D" stop-opacity="0.7"/>
+      <stop offset="70%" stop-color="#F39C12" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#D4A017" stop-opacity="0.3"/>
+    </radialGradient>
+    <radialGradient id="puOuterGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD93D" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#FFD93D" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FFD93D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="puRingGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="50%" stop-color="#FFD93D"/>
+      <stop offset="100%" stop-color="#D4A017"/>
+    </linearGradient>
+    <filter id="puGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="puOuterBlur">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- 외부 글로우 오라 -->
+  <circle cx="24" cy="24" r="20" fill="url(#puOuterGrad)" filter="url(#puOuterBlur)"/>
+  <!-- 회전 링 (외부) -->
+  <circle cx="24" cy="24" r="16" fill="none" stroke="url(#puRingGrad)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+  <!-- 회전 링 (내부) -->
+  <circle cx="24" cy="24" r="12" fill="none" stroke="#FFD93D" stroke-width="0.8" stroke-dasharray="3 5" opacity="0.4"/>
+  <!-- 코어 원 -->
+  <circle cx="24" cy="24" r="9" fill="url(#puCoreGrad)" filter="url(#puGlow)"/>
+  <!-- 내부 다이아몬드 아이콘 (에너지 심볼) -->
+  <g filter="url(#puGlow)">
+    <path d="M24 16 L30 24 L24 32 L18 24 Z" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="round" opacity="0.8"/>
+    <path d="M24 18 L28 24 L24 30 L20 24 Z" fill="#FFD93D" opacity="0.5"/>
+  </g>
+  <!-- 중앙 번개 아이콘 -->
+  <path d="M25 19 L22 24 L25 24 L23 29 L26 23 L23 23 Z" fill="#FFFFFF" opacity="0.9"/>
+  <!-- 스파클 장식 -->
+  <g opacity="0.6">
+    <circle cx="10" cy="10" r="1" fill="#FFE066" filter="url(#puGlow)"/>
+    <circle cx="38" cy="10" r="0.8" fill="#FFE066" filter="url(#puGlow)"/>
+    <circle cx="10" cy="38" r="0.8" fill="#FFE066" filter="url(#puGlow)"/>
+    <circle cx="38" cy="38" r="1" fill="#FFE066" filter="url(#puGlow)"/>
+    <circle cx="24" cy="5" r="0.6" fill="#FFFFFF"/>
+    <circle cx="24" cy="43" r="0.6" fill="#FFFFFF"/>
+    <circle cx="5" cy="24" r="0.6" fill="#FFFFFF"/>
+    <circle cx="43" cy="24" r="0.6" fill="#FFFFFF"/>
+  </g>
+</svg>

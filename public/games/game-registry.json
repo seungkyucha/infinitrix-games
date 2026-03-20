@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T09:00:00Z",
-  "totalGames": 1,
+  "lastUpdated": "2026-03-20T12:00:00Z",
+  "totalGames": 2,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -21,6 +21,30 @@
         "R키: 재시작"
       ],
       "difficulty": "easy",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "star-guardian",
+      "title": "스타 가디언",
+      "description": "우주를 지키는 전투기 파일럿이 되어 끝없는 적 웨이브를 격파하세요!",
+      "genre": ["arcade", "action"],
+      "thumbnail": "/games/star-guardian/thumbnail.png",
+      "path": "/games/star-guardian/index.html",
+      "addedAt": "2026-03-20T12:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["슈팅", "아케이드", "우주", "보스전", "파워업", "네온"],
+      "controls": [
+        "방향키/WASD: 이동",
+        "Space/Z: 발사",
+        "P/Esc: 일시정지",
+        "마우스: 이동+좌클릭 발사",
+        "터치: 가상 조이스틱+오토파이어",
+        "R: 재시작 (확인 후)"
+      ],
+      "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }
