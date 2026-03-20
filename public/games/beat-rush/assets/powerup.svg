@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="puGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#00B8D4"/>
+      <stop offset="100%" stop-color="#D500F9"/>
+    </linearGradient>
+    <radialGradient id="puCore" cx="50%" cy="45%" r="35%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#00E5FF" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="puAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#D500F9" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#D500F9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="boltGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#FFD740"/>
+      <stop offset="100%" stop-color="#FFAB00"/>
+    </linearGradient>
+    <filter id="puGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="puGlowStrong">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Outer aura -->
+  <circle cx="24" cy="24" r="22" fill="url(#puAura)"/>
+  <!-- Rotating hex container -->
+  <g filter="url(#puGlow)">
+    <path d="M24 4 L40 13 L40 35 L24 44 L8 35 L8 13 Z" fill="url(#puGrad)" opacity="0.85"/>
+    <!-- Inner hex -->
+    <path d="M24 10 L35 16 L35 32 L24 38 L13 32 L13 16 Z" fill="#0A0A14" opacity="0.5"/>
+  </g>
+  <!-- Lightning bolt (power symbol) -->
+  <g filter="url(#puGlowStrong)">
+    <path d="M27 12 L20 24 L25 24 L21 36 L32 22 L26 22 L30 12 Z" fill="url(#boltGrad)" opacity="0.95"/>
+  </g>
+  <!-- Core glow -->
+  <circle cx="24" cy="24" r="8" fill="url(#puCore)"/>
+  <!-- Orbiting particles -->
+  <g filter="url(#puGlow)">
+    <circle cx="8" cy="14" r="1.5" fill="#00E5FF" opacity="0.6"/>
+    <circle cx="40" cy="14" r="1.5" fill="#D500F9" opacity="0.6"/>
+    <circle cx="8" cy="34" r="1.5" fill="#FFAB00" opacity="0.5"/>
+    <circle cx="40" cy="34" r="1.5" fill="#00E676" opacity="0.5"/>
+  </g>
+  <!-- Corner sparkles -->
+  <path d="M24 2 L24.5 4 L25 2 L24.5 3.5 Z" fill="#FFFFFF" opacity="0.6"/>
+  <path d="M46 24 L44 24.5 L46 25 L44.5 24.5 Z" fill="#FFFFFF" opacity="0.5"/>
+  <path d="M2 24 L4 24.5 L2 25 L3.5 24.5 Z" fill="#FFFFFF" opacity="0.5"/>
+</svg>

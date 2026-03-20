@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-20T18:00:00Z",
-  "totalGames": 4,
+  "lastUpdated": "2026-03-20T21:00:00Z",
+  "totalGames": 5,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -90,6 +90,29 @@
         "P / ESC: 일시정지",
         "터치: 스와이프(레인) / 탭(점프)",
         "마우스: 영역 클릭(레인/점프)"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "beat-rush",
+      "title": "비트 러시",
+      "description": "비트에 맞춰 4레인 노트를 타이밍에 맞게 입력하는 리듬 아케이드!",
+      "genre": ["arcade", "casual"],
+      "thumbnail": "/games/beat-rush/assets/thumbnail.svg",
+      "path": "/games/beat-rush/index.html",
+      "addedAt": "2026-03-20T21:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["리듬게임", "비트", "음악", "아케이드", "캐주얼", "절차적음악", "WebAudio"],
+      "controls": [
+        "D·F·J·K: 4레인 입력",
+        "키 홀드: 롱 노트 유지",
+        "P / ESC: 일시정지",
+        "터치: 레인 영역 탭/홀드",
+        "마우스: 레인 영역 클릭"
       ],
       "difficulty": "medium",
       "version": "1.0.0",

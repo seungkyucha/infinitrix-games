@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#2979FF"/>
+      <stop offset="100%" stop-color="#D500F9"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="45%" r="40%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#00E5FF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wingGradL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF1744"/>
+      <stop offset="100%" stop-color="#D500F9"/>
+    </linearGradient>
+    <linearGradient id="wingGradR" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#FFAB00"/>
+      <stop offset="100%" stop-color="#D500F9"/>
+    </linearGradient>
+    <radialGradient id="auraGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#D500F9" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0A0A14" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Aura -->
+  <ellipse cx="32" cy="32" rx="28" ry="28" fill="url(#auraGlow)"/>
+  <!-- Body diamond shape -->
+  <g filter="url(#glow)">
+    <path d="M32 8 Q38 18 42 28 Q38 38 32 44 Q26 38 22 28 Q26 18 32 8 Z" fill="url(#bodyGrad)" opacity="0.95"/>
+  </g>
+  <!-- Left wing / beat bar -->
+  <g filter="url(#glow)">
+    <path d="M22 24 Q14 20 6 26 Q10 30 16 32 Q20 30 22 28 Z" fill="url(#wingGradL)" opacity="0.85"/>
+    <path d="M20 32 Q14 34 8 38 Q12 36 18 34 Z" fill="#FF1744" opacity="0.5"/>
+  </g>
+  <!-- Right wing / beat bar -->
+  <g filter="url(#glow)">
+    <path d="M42 24 Q50 20 58 26 Q54 30 48 32 Q44 30 42 28 Z" fill="url(#wingGradR)" opacity="0.85"/>
+    <path d="M44 32 Q50 34 56 38 Q52 36 46 34 Z" fill="#FFAB00" opacity="0.5"/>
+  </g>
+  <!-- Core glow center -->
+  <ellipse cx="32" cy="28" rx="8" ry="10" fill="url(#coreGlow)" filter="url(#softGlow)"/>
+  <!-- Inner detail lines -->
+  <path d="M32 14 L34 24 L32 22 L30 24 Z" fill="#FFFFFF" opacity="0.6"/>
+  <path d="M32 34 L34 28 L32 30 L30 28 Z" fill="#FFFFFF" opacity="0.4"/>
+  <!-- Bottom trail / engine -->
+  <g filter="url(#glow)">
+    <path d="M28 42 Q30 50 32 56 Q34 50 36 42 Q34 46 32 48 Q30 46 28 42 Z" fill="#00E5FF" opacity="0.7"/>
+    <ellipse cx="32" cy="48" rx="5" ry="3" fill="#00E5FF" opacity="0.4"/>
+  </g>
+  <!-- Note indicator dots (4 lanes) -->
+  <circle cx="16" cy="52" r="3" fill="#FF1744" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="27" cy="54" r="3" fill="#2979FF" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="37" cy="54" r="3" fill="#00E676" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="48" cy="52" r="3" fill="#FFAB00" opacity="0.7" filter="url(#glow)"/>
+</svg>
