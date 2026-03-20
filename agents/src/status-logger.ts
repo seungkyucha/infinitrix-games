@@ -6,7 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const LOGS_DIR   = resolve(__dirname, '..', '..', 'logs')
 const STATUS_FILE = resolve(LOGS_DIR, 'agent-status.json')
 
-export type AgentId     = 'analyst' | 'planner' | 'coder' | 'reviewer' | 'postmortem' | 'deployer'
+export type AgentId     = 'analyst' | 'planner' | 'designer' | 'coder' | 'reviewer' | 'postmortem' | 'deployer'
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
 export type CycleStatus = 'idle' | 'running' | 'completed' | 'error'
 
@@ -24,7 +24,7 @@ export interface StatusData {
   cycleNumber:  number
   cycleStatus:  CycleStatus
   currentStep:  number
-  totalSteps:   6
+  totalSteps:   7
   stepName:     string
   gameTitle:    string
   gameId:       string
@@ -45,7 +45,7 @@ export function defaultStatus(): StatusData {
     cycleNumber: 0,
     cycleStatus: 'idle',
     currentStep: 0,
-    totalSteps:  5,
+    totalSteps:  7,
     stepName:    '',
     gameTitle:   '',
     gameId:      '',
@@ -53,6 +53,7 @@ export function defaultStatus(): StatusData {
     agents: {
       analyst:    defaultAgent(),
       planner:    defaultAgent(),
+      designer:   defaultAgent(),
       coder:      defaultAgent(),
       reviewer:   defaultAgent(),
       postmortem: defaultAgent(),
@@ -127,7 +128,7 @@ export function startAgent(agentId: AgentId, step: number, stepName: string): vo
     toolCalls:     0,
     logs:          [],
   }
-  addLog(data, `[${agentId.toUpperCase()}] 시작 (${step}/6 ${stepName})`)
+  addLog(data, `[${agentId.toUpperCase()}] 시작 (${step}/7 ${stepName})`)
   write(data)
 }
 

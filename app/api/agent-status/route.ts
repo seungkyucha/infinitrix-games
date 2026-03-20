@@ -14,7 +14,7 @@ const IDLE_STATE = {
   cycleNumber: 0,
   cycleStatus: 'idle',
   currentStep: 0,
-  totalSteps:  6,
+  totalSteps:  7,
   stepName:    '',
   gameTitle:   '',
   gameId:      '',
@@ -22,6 +22,7 @@ const IDLE_STATE = {
   agents: {
     analyst:    BLANK_AGENT,
     planner:    BLANK_AGENT,
+    designer:   BLANK_AGENT,
     coder:      BLANK_AGENT,
     reviewer:   BLANK_AGENT,
     postmortem: BLANK_AGENT,

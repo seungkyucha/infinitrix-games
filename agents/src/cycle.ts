@@ -126,6 +126,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   ensureDir(`${PROJECT_ROOT}/docs/reviews`)
   ensureDir(`${PROJECT_ROOT}/docs/post-mortem`)
   ensureDir(`${PROJECT_ROOT}/docs/meta`)
+  ensureDir(`${PROJECT_ROOT}/public/games`)
   ensureDir(`${PROJECT_ROOT}/logs`)
 
   startCycle(cycleNumber)
@@ -148,7 +149,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
 
   try {
     // ── 1단계: 분석 ──────────────────────────────────────────
-    console.log(`\n📊 [1/6] 분석가 — 플랫폼 현황 및 트렌드 분석`)
+    console.log(`\n📊 [1/7] 분석가 — 플랫폼 현황 및 트렌드 분석`)
     state.status = 'analysis'
     startAgent('analyst', 1, '트렌드 분석')
     await runAgent('analyst', `
@@ -161,7 +162,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     completeAgent('analyst')
 
     // ── 2단계: 기획 ──────────────────────────────────────────
-    console.log(`\n📋 [2/6] 플래너 — 게임 기획서 작성`)
+    console.log(`\n📋 [2/7] 플래너 — 게임 기획서 작성`)
     state.status = 'planning'
     startAgent('planner', 2, '게임 기획')
     await runAgent('planner', `
@@ -180,27 +181,48 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('planner')
 
-    // ── 3단계: 코딩 + 디자인 ─────────────────────────────────
-    console.log(`\n💻 [3/6] 코더 — HTML5 게임 구현 + 썸네일 제작`)
+    // ── 3단계: 그래픽 에셋 제작 ──────────────────────────────
+    console.log(`\n🎨 [3/7] 디자이너 — SVG 그래픽 에셋 제작`)
+    state.status = 'designing'
+    startAgent('designer', 3, '그래픽 에셋 제작')
+    await runAgent('designer', `
+      docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
+      기획서의 game-id 폴더 안에 그래픽 에셋을 제작해줘.
+      public/games/[game-id]/assets/ 폴더에 다음 파일들을 생성할 것:
+      - player.svg, enemy.svg
+      - bg-layer1.svg, bg-layer2.svg
+      - ui-heart.svg, ui-star.svg
+      - powerup.svg, effect-hit.svg
+      - thumbnail.svg (플랫폼 썸네일, viewBox="0 0 400 300")
+      - manifest.json (에셋 목록)
+      기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
+      ${feedbackBlock}
+    `)
+    completeAgent('designer')
+
+    // ── 4단계: 게임 코딩 ─────────────────────────────────────
+    console.log(`\n💻 [4/7] 코더 — HTML5 게임 구현 (디자이너 에셋 활용)`)
     state.status = 'coding'
-    startAgent('coder', 3, '코딩 + 디자인')
+    startAgent('coder', 4, '게임 코딩')
     await runAgent('coder', `
-      docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고 다음 두 파일을 작성해줘:
-      1. public/games/[game-id]/index.html — 완전한 HTML5 게임 (단일 파일)
-      2. public/games/[game-id]/thumbnail.svg — 네온 스타일 썸네일 SVG
+      docs/game-specs/cycle-${cycleNumber}-spec.md와
+      public/games/[game-id]/assets/manifest.json을 읽고,
+      public/games/[game-id]/index.html을 작성해줘.
+      디자이너가 만든 SVG 에셋을 preloadAssets()로 로드하여 Canvas 렌더링에 활용할 것.
       기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
       ${feedbackBlock}
       ⚠️ 이전 사이클 리뷰에서 지적된 코드 품질 문제(메모리 누수, 터치 이벤트 누락 등)를 반드시 해결할 것.
     `)
     completeAgent('coder')
 
-    // ── 4단계: 리뷰 + 테스트 ─────────────────────────────────
-    console.log(`\n🔍 [4/6] 리뷰어 — 코드 검토 & 브라우저 테스트`)
+    // ── 5단계: 리뷰 + 테스트 ─────────────────────────────────
+    console.log(`\n🔍 [5/7] 리뷰어 — 코드 검토 & 브라우저 테스트`)
     state.status = 'reviewing'
-    startAgent('reviewer', 4, '코드 리뷰 + 테스트')
+    startAgent('reviewer', 5, '코드 리뷰 + 테스트')
     const reviewResult = await runAgent('reviewer', `
       docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
       public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
+      에셋 로딩(assets/manifest.json, SVG 파일들) 여부도 확인할 것.
       결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
       최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
     `)
@@ -209,7 +231,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     // NEEDS_MAJOR_FIX인 경우 코더가 재작업
     if (reviewResult.output.includes('NEEDS_MAJOR_FIX')) {
       console.log(`\n🔧 [리뷰 피드백] 코더 재작업 시작...`)
-      startAgent('coder', 3, '코딩 재작업 (피드백 반영)')
+      startAgent('coder', 4, '코딩 재작업 (피드백 반영)')
       await runAgent('coder', `
         docs/reviews/cycle-${cycleNumber}-review.md의 리뷰 피드백을 반영하여
         public/games/[game-id]/index.html을 수정해줘.
@@ -218,10 +240,10 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       completeAgent('coder')
     }
 
-    // ── 5단계: 포스트모템 ──────────────────────────────────────
-    console.log(`\n📝 [5/6] 포스트모템 — 사이클 총정리 + 플랫폼 지혜 갱신`)
+    // ── 6단계: 포스트모템 ──────────────────────────────────────
+    console.log(`\n📝 [6/7] 포스트모템 — 사이클 총정리 + 플랫폼 지혜 갱신`)
     state.status = 'reviewing'
-    startAgent('postmortem', 5, '포스트모템 작성')
+    startAgent('postmortem', 6, '포스트모템 작성')
     await runAgent('postmortem', `
       사이클 #${cycleNumber}의 포스트모템을 작성하고, 플랫폼 지혜 파일을 갱신해줘.
 
@@ -257,10 +279,10 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('postmortem')
 
-    // ── 6단계: 배포 ──────────────────────────────────────────
-    console.log(`\n🚢 [6/6] 배포 담당 — 레지스트리 등록 & GitHub Push`)
+    // ── 7단계: 배포 ──────────────────────────────────────────
+    console.log(`\n🚢 [7/7] 배포 담당 — 레지스트리 등록 & GitHub Push`)
     state.status = 'deploying'
-    startAgent('deployer', 6, '레지스트리 등록 + 배포')
+    startAgent('deployer', 7, '레지스트리 등록 + 배포')
     await runAgent('deployer', `
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
       1. public/games/game-registry.json에 새 게임을 추가해줘

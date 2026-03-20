@@ -18,6 +18,7 @@ interface StatusData {
   agents: {
     analyst:    AgentState
     planner:    AgentState
+    designer:   AgentState
     coder:      AgentState
     reviewer:   AgentState
     postmortem: AgentState
@@ -29,6 +30,7 @@ interface StatusData {
 const AGENTS: { id: keyof StatusData['agents']; label: string }[] = [
   { id: 'analyst',    label: '분석' },
   { id: 'planner',    label: '기획' },
+  { id: 'designer',   label: '디자인' },
   { id: 'coder',      label: '코딩' },
   { id: 'reviewer',   label: '리뷰' },
   { id: 'postmortem', label: 'PM'   },

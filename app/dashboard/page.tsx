@@ -29,6 +29,7 @@ interface StatusData {
   agents: {
     analyst:    AgentState
     planner:    AgentState
+    designer:   AgentState
     coder:      AgentState
     reviewer:   AgentState
     postmortem: AgentState
@@ -42,13 +43,14 @@ interface StatusData {
 const AGENTS: { id: keyof StatusData['agents']; label: string; role: string; step: number }[] = [
   { id: 'analyst',    label: '분석가',    role: 'Data Analyst',    step: 1 },
   { id: 'planner',    label: '플래너',    role: 'Game Planner',    step: 2 },
-  { id: 'coder',      label: '코더',      role: 'Full-stack Dev',  step: 3 },
-  { id: 'reviewer',   label: '리뷰어',    role: 'QA Reviewer',     step: 4 },
-  { id: 'postmortem', label: '포스트모템', role: 'Tech Writer',     step: 5 },
-  { id: 'deployer',   label: '배포 담당', role: 'DevOps Engineer', step: 6 },
+  { id: 'designer',   label: '디자이너',  role: 'Art Director',    step: 3 },
+  { id: 'coder',      label: '코더',      role: 'Full-stack Dev',  step: 4 },
+  { id: 'reviewer',   label: '리뷰어',    role: 'QA Reviewer',     step: 5 },
+  { id: 'postmortem', label: '포스트모템', role: 'Tech Writer',     step: 6 },
+  { id: 'deployer',   label: '배포 담당', role: 'DevOps Engineer', step: 7 },
 ]
 
-const STEP_NAMES = ['트렌드 분석', '게임 기획', '코딩 + 디자인', '코드 리뷰 + 테스트', '포스트모템 작성', '레지스트리 등록 + 배포']
+const STEP_NAMES = ['트렌드 분석', '게임 기획', '그래픽 에셋 제작', '게임 코딩', '코드 리뷰 + 테스트', '포스트모템 작성', '레지스트리 등록 + 배포']
 
 // ── 상태 색상 ─────────────────────────────────────────────────────────────────
 
@@ -350,7 +352,7 @@ export default function DashboardPage() {
             <p className="text-zinc-600 italic">로그가 없습니다. 에이전트가 실행되면 여기에 표시됩니다.</p>
           ) : (
             data.recentLogs.map((log, i) => {
-              const isAgent   = /\[(?:ANALYST|PLANNER|CODER|REVIEWER|DEPLOYER)\]/.test(log)
+              const isAgent   = /\[(?:ANALYST|PLANNER|DESIGNER|CODER|REVIEWER|DEPLOYER|POSTMORTEM)\]/.test(log)
               const isCycle   = /\[CYCLE\]/.test(log)
               const isError   = /\[ERROR\]/.test(log)
               const timestamp = log.slice(0, 19)
