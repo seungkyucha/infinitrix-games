@@ -41,3 +41,5 @@ next-env.d.ts
 
 # agent runtime logs (local only)
 /logs/
+
+.vercel

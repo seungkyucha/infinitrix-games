@@ -1,10 +1,12 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import Redis from 'ioredis'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname  = dirname(fileURLToPath(import.meta.url))
 const LOGS_DIR   = resolve(__dirname, '..', '..', 'logs')
 const STATUS_FILE = resolve(LOGS_DIR, 'agent-status.json')
+const REDIS_KEY  = 'infinitrix:agent-status'
 
 export type AgentId     = 'analyst' | 'planner' | 'designer' | 'coder' | 'reviewer' | 'postmortem' | 'deployer'
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
@@ -31,6 +33,34 @@ export interface StatusData {
   gameGenre:    string[]
   agents:       Record<AgentId, AgentState>
   recentLogs:   string[]
+}
+
+// ── Redis 클라이언트 (싱글톤) ─────────────────────────────────────────────────
+
+let _redis: Redis | null = null
+
+function getRedis(): Redis | null {
+  if (!process.env.REDIS_URL) return null
+  if (_redis) return _redis
+  try {
+    _redis = new Redis(process.env.REDIS_URL, {
+      connectTimeout: 5000,
+      lazyConnect:    true,
+      maxRetriesPerRequest: 2,
+    })
+    _redis.on('error', () => { /* suppress */ })
+    return _redis
+  } catch {
+    return null
+  }
+}
+
+/** Redis에 상태를 비동기로 저장 (fire-and-forget) */
+function pushToRedis(data: StatusData): void {
+  const redis = getRedis()
+  if (!redis) return
+  const json = JSON.stringify(data)
+  redis.set(REDIS_KEY, json).catch(() => {})
 }
 
 // ── 기본값 ─────────────────────────────────────────────────────────────────
@@ -76,6 +106,7 @@ function write(data: StatusData): void {
   if (!existsSync(LOGS_DIR)) mkdirSync(LOGS_DIR, { recursive: true })
   data.lastUpdated = new Date().toISOString()
   writeFileSync(STATUS_FILE, JSON.stringify(data, null, 2), 'utf-8')
+  pushToRedis(data)
 }
 
 function ts(): string {
@@ -136,8 +167,8 @@ export function startAgent(agentId: AgentId, step: number, stepName: string): vo
 export function completeAgent(agentId: AgentId): void {
   const data = read()
   const a = data.agents[agentId]
-  a.status       = 'completed'
-  a.completedAt  = new Date().toISOString()
+  a.status        = 'completed'
+  a.completedAt   = new Date().toISOString()
   a.currentAction = '✓ 완료'
   addLog(data, `[${agentId.toUpperCase()}] 완료 (${a.toolCalls}회 툴 사용)`)
   write(data)

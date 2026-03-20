@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="gridFloor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16213E" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#16213E" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0F3460" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="pillarGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a3e" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0F3460" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <filter id="medBlur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <linearGradient id="lineGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4D96FF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#6B5BFF" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <!-- 하단 안개/바닥 그라디언트 -->
+  <rect width="800" height="600" fill="url(#gridFloor)"/>
+  <!-- 기하학적 그리드 라인들 (퍼즐 느낌) -->
+  <g stroke="#4D96FF" stroke-width="0.5" opacity="0.08">
+    <!-- 세로선 -->
+    <line x1="100" y1="300" x2="100" y2="600"/>
+    <line x1="200" y1="280" x2="200" y2="600"/>
+    <line x1="300" y1="260" x2="300" y2="600"/>
+    <line x1="400" y1="250" x2="400" y2="600"/>
+    <line x1="500" y1="260" x2="500" y2="600"/>
+    <line x1="600" y1="280" x2="600" y2="600"/>
+    <line x1="700" y1="300" x2="700" y2="600"/>
+    <!-- 가로선 -->
+    <line x1="0" y1="350" x2="800" y2="350"/>
+    <line x1="0" y1="400" x2="800" y2="400"/>
+    <line x1="0" y1="450" x2="800" y2="450"/>
+    <line x1="0" y1="500" x2="800" y2="500"/>
+    <line x1="0" y1="550" x2="800" y2="550"/>
+  </g>
+  <!-- 떠있는 기하학적 도형들 (추상적 퍼즐 조각) -->
+  <g opacity="0.12" filter="url(#medBlur)">
+    <!-- 왼쪽 영역 -->
+    <rect x="60" y="380" width="30" height="30" rx="6" fill="#FF6B6B" transform="rotate(15 75 395)"/>
+    <rect x="120" y="320" width="25" height="25" rx="5" fill="#FFA06B" transform="rotate(-10 132 332)"/>
+    <rect x="30" y="460" width="22" height="22" rx="4" fill="#FFD93D" transform="rotate(25 41 471)"/>
+    <!-- 중앙 영역 -->
+    <rect x="340" y="280" width="35" height="35" rx="7" fill="#6BCB77" transform="rotate(20 357 297)"/>
+    <rect x="420" y="340" width="28" height="28" rx="5" fill="#4D96FF" transform="rotate(-15 434 354)"/>
+    <!-- 오른쪽 영역 -->
+    <rect x="640" y="350" width="32" height="32" rx="6" fill="#6B5BFF" transform="rotate(30 656 366)"/>
+    <rect x="710" y="420" width="24" height="24" rx="5" fill="#C56BFF" transform="rotate(-20 722 432)"/>
+    <rect x="580" y="440" width="20" height="20" rx="4" fill="#FF6B6B" transform="rotate(10 590 450)"/>
+  </g>
+  <!-- 흐릿한 빛 기둥들 -->
+  <g opacity="0.06">
+    <rect x="180" y="200" width="4" height="400" rx="2" fill="url(#lineGlow)" filter="url(#softBlur)"/>
+    <rect x="400" y="150" width="4" height="450" rx="2" fill="url(#lineGlow)" filter="url(#softBlur)"/>
+    <rect x="620" y="220" width="4" height="380" rx="2" fill="url(#lineGlow)" filter="url(#softBlur)"/>
+  </g>
+  <!-- 파티클 / 먼지 (라운드 사각형 파티클로 퍼즐 테마) -->
+  <g opacity="0.15">
+    <rect x="150" y="250" width="6" height="6" rx="1.5" fill="#FFD93D" transform="rotate(45 153 253)"/>
+    <rect x="350" y="200" width="5" height="5" rx="1" fill="#4D96FF" transform="rotate(30 352 202)"/>
+    <rect x="550" y="270" width="7" height="7" rx="1.5" fill="#C56BFF" transform="rotate(60 553 273)"/>
+    <rect x="250" y="420" width="5" height="5" rx="1" fill="#6BCB77" transform="rotate(20 252 422)"/>
+    <rect x="480" y="480" width="6" height="6" rx="1.5" fill="#FF6B6B" transform="rotate(50 483 483)"/>
+    <rect x="680" y="300" width="4" height="4" rx="1" fill="#FFA06B" transform="rotate(35 682 302)"/>
+    <rect x="70" y="530" width="5" height="5" rx="1" fill="#6B5BFF" transform="rotate(15 72 532)"/>
+    <rect x="750" y="520" width="6" height="6" rx="1.5" fill="#FFD93D" transform="rotate(40 753 523)"/>
+  </g>
+  <!-- 하단 디지털 안개 -->
+  <g filter="url(#softBlur)" opacity="0.1">
+    <ellipse cx="200" cy="580" rx="150" ry="30" fill="#4D96FF"/>
+    <ellipse cx="500" cy="570" rx="180" ry="35" fill="#6B5BFF"/>
+    <ellipse cx="700" cy="585" rx="120" ry="25" fill="#C56BFF"/>
+  </g>
+</svg>

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="enemyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a1a3a"/>
+      <stop offset="100%" stop-color="#2a0a2a"/>
+    </linearGradient>
+    <radialGradient id="dangerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff2255" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#ff2255" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#ff2255" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="crackGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff4477"/>
+      <stop offset="100%" stop-color="#cc1144"/>
+    </linearGradient>
+    <filter id="enemyGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innerShadow">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#ff2255" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <!-- 위험 오라 -->
+  <circle cx="32" cy="32" r="28" fill="url(#dangerGlow)" filter="url(#enemyGlow)"/>
+  <!-- 메인 블록 (잠금/방해 블록) -->
+  <rect x="8" y="8" width="48" height="48" rx="10" ry="10" fill="url(#enemyGrad)" filter="url(#innerShadow)"/>
+  <!-- 테두리 경고선 -->
+  <rect x="8" y="8" width="48" height="48" rx="10" ry="10" fill="none" stroke="#ff2255" stroke-width="2" opacity="0.7"/>
+  <!-- 잠금 아이콘 (X 마크) -->
+  <g filter="url(#enemyGlow)">
+    <line x1="22" y1="22" x2="42" y2="42" stroke="url(#crackGrad)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="42" y1="22" x2="22" y2="42" stroke="url(#crackGrad)" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <!-- 균열 패턴 -->
+  <g opacity="0.5" stroke="#ff4477" stroke-width="1" fill="none">
+    <path d="M32 8 L30 18 L34 22" stroke-linecap="round"/>
+    <path d="M56 32 L46 30 L42 34" stroke-linecap="round"/>
+    <path d="M32 56 L34 46 L30 42" stroke-linecap="round"/>
+    <path d="M8 32 L18 34 L22 30" stroke-linecap="round"/>
+  </g>
+  <!-- 위험 글로우 점 -->
+  <circle cx="17" cy="17" r="2.5" fill="#ff2255" opacity="0.6" filter="url(#enemyGlow)"/>
+  <circle cx="47" cy="17" r="2.5" fill="#ff2255" opacity="0.6" filter="url(#enemyGlow)"/>
+  <circle cx="17" cy="47" r="2.5" fill="#ff2255" opacity="0.6" filter="url(#enemyGlow)"/>
+  <circle cx="47" cy="47" r="2.5" fill="#ff2255" opacity="0.6" filter="url(#enemyGlow)"/>
+  <!-- 내부 패턴 (경고 사선) -->
+  <g opacity="0.15" stroke="#ff6688" stroke-width="1">
+    <line x1="14" y1="8" x2="8" y2="14"/>
+    <line x1="24" y1="8" x2="8" y2="24"/>
+    <line x1="34" y1="8" x2="8" y2="34"/>
+    <line x1="56" y1="30" x2="30" y2="56"/>
+    <line x1="56" y1="40" x2="40" y2="56"/>
+    <line x1="56" y1="50" x2="50" y2="56"/>
+  </g>
+</svg>

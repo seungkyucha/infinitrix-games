@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="thumbBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#1A1A2E"/>
+    </linearGradient>
+    <linearGradient id="gridBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16213E"/>
+      <stop offset="100%" stop-color="#0F3460"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="16%" stop-color="#FFA06B"/>
+      <stop offset="33%" stop-color="#FFD93D"/>
+      <stop offset="50%" stop-color="#6BCB77"/>
+      <stop offset="66%" stop-color="#4D96FF"/>
+      <stop offset="83%" stop-color="#6B5BFF"/>
+      <stop offset="100%" stop-color="#C56BFF"/>
+    </linearGradient>
+    <radialGradient id="cellGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="thumbGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="thumbBigGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#thumbBg)"/>
+  <!-- 배경 별들 -->
+  <g fill="#ffffff" opacity="0.3">
+    <circle cx="30" cy="25" r="0.8"/><circle cx="80" cy="50" r="0.6"/>
+    <circle cx="150" cy="20" r="0.7"/><circle cx="250" cy="35" r="0.5"/>
+    <circle cx="320" cy="15" r="0.8"/><circle cx="370" cy="55" r="0.6"/>
+    <circle cx="50" cy="120" r="0.5"/><circle cx="350" cy="130" r="0.7"/>
+    <circle cx="20" cy="250" r="0.6"/><circle cx="380" cy="270" r="0.5"/>
+  </g>
+  <!-- 5x5 그리드 (중앙 배치) -->
+  <g transform="translate(120, 75)">
+    <!-- 그리드 배경 -->
+    <rect x="-8" y="-8" width="176" height="176" rx="16" ry="16" fill="url(#gridBg)" opacity="0.9"/>
+    <!-- 빈 셀들 (5x5) -->
+    <g fill="#0F3460" opacity="0.6">
+      <rect x="0" y="0" width="28" height="28" rx="6"/><rect x="34" y="0" width="28" height="28" rx="6"/>
+      <rect x="68" y="0" width="28" height="28" rx="6"/><rect x="102" y="0" width="28" height="28" rx="6"/>
+      <rect x="136" y="0" width="28" height="28" rx="6"/>
+      <rect x="0" y="34" width="28" height="28" rx="6"/><rect x="34" y="34" width="28" height="28" rx="6"/>
+      <rect x="68" y="34" width="28" height="28" rx="6"/><rect x="102" y="34" width="28" height="28" rx="6"/>
+      <rect x="136" y="34" width="28" height="28" rx="6"/>
+      <rect x="0" y="68" width="28" height="28" rx="6"/><rect x="34" y="68" width="28" height="28" rx="6"/>
+      <rect x="68" y="68" width="28" height="28" rx="6"/><rect x="102" y="68" width="28" height="28" rx="6"/>
+      <rect x="136" y="68" width="28" height="28" rx="6"/>
+      <rect x="0" y="102" width="28" height="28" rx="6"/><rect x="34" y="102" width="28" height="28" rx="6"/>
+      <rect x="68" y="102" width="28" height="28" rx="6"/><rect x="102" y="102" width="28" height="28" rx="6"/>
+      <rect x="136" y="102" width="28" height="28" rx="6"/>
+      <rect x="0" y="136" width="28" height="28" rx="6"/><rect x="34" y="136" width="28" height="28" rx="6"/>
+      <rect x="68" y="136" width="28" height="28" rx="6"/><rect x="102" y="136" width="28" height="28" rx="6"/>
+      <rect x="136" y="136" width="28" height="28" rx="6"/>
+    </g>
+    <!-- 색상 블록들 (게임 진행 중인 장면) -->
+    <g filter="url(#thumbGlow)">
+      <!-- 빨강 블록들 -->
+      <rect x="0" y="0" width="28" height="28" rx="6" fill="#FF6B6B"/>
+      <rect x="102" y="34" width="28" height="28" rx="6" fill="#FF6B6B"/>
+      <rect x="0" y="136" width="28" height="28" rx="6" fill="#FF6B6B"/>
+      <!-- 주황 블록 -->
+      <rect x="34" y="68" width="28" height="28" rx="6" fill="#FFA06B"/>
+      <rect x="136" y="136" width="28" height="28" rx="6" fill="#FFA06B"/>
+      <!-- 노랑 블록 -->
+      <rect x="68" y="34" width="28" height="28" rx="6" fill="#FFD93D"/>
+      <!-- 초록 블록 -->
+      <rect x="136" y="0" width="28" height="28" rx="6" fill="#6BCB77"/>
+      <rect x="0" y="102" width="28" height="28" rx="6" fill="#6BCB77"/>
+      <!-- 파랑 블록 -->
+      <rect x="68" y="102" width="28" height="28" rx="6" fill="#4D96FF"/>
+      <!-- 남색 블록 (머지 직전!) -->
+      <rect x="102" y="102" width="28" height="28" rx="6" fill="#6B5BFF"/>
+      <rect x="102" y="136" width="28" height="28" rx="6" fill="#6B5BFF"/>
+    </g>
+    <!-- 블록 광택 -->
+    <g opacity="0.3">
+      <rect x="0" y="0" width="28" height="14" rx="6" fill="url(#cellGlow)"/>
+      <rect x="68" y="34" width="28" height="14" rx="6" fill="url(#cellGlow)"/>
+      <rect x="136" y="0" width="28" height="14" rx="6" fill="url(#cellGlow)"/>
+      <rect x="68" y="102" width="28" height="14" rx="6" fill="url(#cellGlow)"/>
+    </g>
+    <!-- 머지 이펙트 (남색 블록 사이) -->
+    <g filter="url(#thumbBigGlow)" opacity="0.6">
+      <circle cx="116" cy="130" r="8" fill="#6B5BFF" opacity="0.4"/>
+      <line x1="116" y1="122" x2="116" y2="138" stroke="#ffffff" stroke-width="1" opacity="0.5"/>
+      <line x1="108" y1="130" x2="124" y2="130" stroke="#ffffff" stroke-width="1" opacity="0.5"/>
+    </g>
+  </g>
+  <!-- 타이틀 텍스트 -->
+  <g filter="url(#textShadow)">
+    <text x="200" y="42" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="bold" fill="url(#titleGrad)" filter="url(#textGlow)">Color Merge Puzzle</text>
+  </g>
+  <!-- 서브 텍스트 -->
+  <text x="200" y="62" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#A0A0B0" opacity="0.8">같은 색 블록을 합쳐 무지개를 완성하세요!</text>
+  <!-- 하단 장식 바 (무지개) -->
+  <g opacity="0.6">
+    <rect x="60" y="280" width="40" height="3" rx="1.5" fill="#FF6B6B"/>
+    <rect x="100" y="280" width="40" height="3" rx="1.5" fill="#FFA06B"/>
+    <rect x="140" y="280" width="40" height="3" rx="1.5" fill="#FFD93D"/>
+    <rect x="180" y="280" width="40" height="3" rx="1.5" fill="#6BCB77"/>
+    <rect x="220" y="280" width="40" height="3" rx="1.5" fill="#4D96FF"/>
+    <rect x="260" y="280" width="40" height="3" rx="1.5" fill="#6B5BFF"/>
+    <rect x="300" y="280" width="40" height="3" rx="1.5" fill="#C56BFF"/>
+  </g>
+  <!-- COMBO 텍스트 이펙트 (드라마틱 장면) -->
+  <g transform="translate(55, 180)" filter="url(#thumbBigGlow)" opacity="0.8">
+    <text x="0" y="0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="#FFD93D">COMBO ×3!</text>
+  </g>
+  <!-- 점수 표시 -->
+  <g transform="translate(310, 95)">
+    <text x="0" y="0" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#A0A0B0">SCORE</text>
+    <text x="0" y="16" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#ffffff">2,486</text>
+    <text x="0" y="36" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#A0A0B0">BEST</text>
+    <text x="0" y="52" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#FFD93D">5,120</text>
+  </g>
+</svg>

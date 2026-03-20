@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <radialGradient id="hitCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="20%" stop-color="#FFD93D" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#FFA06B" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FF6B6B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hitRing" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#FFD93D" stop-opacity="0"/>
+      <stop offset="75%" stop-color="#FFD93D" stop-opacity="0.4"/>
+      <stop offset="85%" stop-color="#FFA06B" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FF6B6B" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="hitGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hitSoftGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="wideBlur">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <!-- 외곽 충격파 링 -->
+  <circle cx="48" cy="48" r="44" fill="url(#hitRing)" filter="url(#hitGlow)"/>
+  <!-- 중앙 폭발 코어 -->
+  <circle cx="48" cy="48" r="20" fill="url(#hitCore)" filter="url(#hitGlow)"/>
+  <!-- 방사형 빛줄기 -->
+  <g stroke-linecap="round" filter="url(#hitSoftGlow)" opacity="0.7">
+    <line x1="48" y1="48" x2="48" y2="8" stroke="#FFD93D" stroke-width="2.5"/>
+    <line x1="48" y1="48" x2="48" y2="88" stroke="#FFD93D" stroke-width="2.5"/>
+    <line x1="48" y1="48" x2="8" y2="48" stroke="#FFD93D" stroke-width="2.5"/>
+    <line x1="48" y1="48" x2="88" y2="48" stroke="#FFD93D" stroke-width="2.5"/>
+    <!-- 대각선 -->
+    <line x1="48" y1="48" x2="18" y2="18" stroke="#FFA06B" stroke-width="1.8"/>
+    <line x1="48" y1="48" x2="78" y2="78" stroke="#FFA06B" stroke-width="1.8"/>
+    <line x1="48" y1="48" x2="78" y2="18" stroke="#FFA06B" stroke-width="1.8"/>
+    <line x1="48" y1="48" x2="18" y2="78" stroke="#FFA06B" stroke-width="1.8"/>
+    <!-- 보조 빛줄기 (22.5도 간격) -->
+    <line x1="48" y1="48" x2="28" y2="10" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="68" y2="10" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="86" y2="28" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="86" y2="68" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="68" y2="86" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="28" y2="86" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="10" y2="68" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+    <line x1="48" y1="48" x2="10" y2="28" stroke="#FFD93D" stroke-width="1" opacity="0.5"/>
+  </g>
+  <!-- 파편 파티클 (라운드 사각형) -->
+  <g filter="url(#hitSoftGlow)">
+    <rect x="22" y="14" width="5" height="5" rx="1" fill="#FF6B6B" opacity="0.8" transform="rotate(30 24 16)"/>
+    <rect x="66" y="18" width="4" height="4" rx="1" fill="#FFA06B" opacity="0.7" transform="rotate(-20 68 20)"/>
+    <rect x="72" y="60" width="5" height="5" rx="1" fill="#FFD93D" opacity="0.8" transform="rotate(45 74 62)"/>
+    <rect x="14" y="62" width="4" height="4" rx="1" fill="#6BCB77" opacity="0.7" transform="rotate(15 16 64)"/>
+    <rect x="30" y="74" width="5" height="5" rx="1" fill="#4D96FF" opacity="0.8" transform="rotate(-35 32 76)"/>
+    <rect x="60" y="76" width="4" height="4" rx="1" fill="#C56BFF" opacity="0.7" transform="rotate(50 62 78)"/>
+    <rect x="10" y="36" width="4" height="4" rx="1" fill="#6B5BFF" opacity="0.6" transform="rotate(25 12 38)"/>
+    <rect x="78" y="40" width="4" height="4" rx="1" fill="#FF6B6B" opacity="0.6" transform="rotate(-40 80 42)"/>
+  </g>
+  <!-- 중앙 백색 코어 -->
+  <circle cx="48" cy="48" r="6" fill="#ffffff" opacity="0.9" filter="url(#hitGlow)"/>
+  <circle cx="48" cy="48" r="3" fill="#ffffff"/>
+</svg>

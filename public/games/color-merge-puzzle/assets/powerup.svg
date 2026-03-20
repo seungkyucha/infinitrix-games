@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="rainbowGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="16%" stop-color="#FFA06B"/>
+      <stop offset="33%" stop-color="#FFD93D"/>
+      <stop offset="50%" stop-color="#6BCB77"/>
+      <stop offset="66%" stop-color="#4D96FF"/>
+      <stop offset="83%" stop-color="#6B5BFF"/>
+      <stop offset="100%" stop-color="#C56BFF"/>
+    </linearGradient>
+    <radialGradient id="powerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4"/>
+      <stop offset="40%" stop-color="#FFD93D" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FFD93D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orbCore" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#FFD93D" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#C56BFF" stop-opacity="0.3"/>
+    </radialGradient>
+    <filter id="powerGlowFilter">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innerGlowFilter">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 외곽 오라 -->
+  <circle cx="24" cy="24" r="22" fill="url(#powerGlow)" filter="url(#powerGlowFilter)"/>
+  <!-- 무지개 외곽 링 -->
+  <circle cx="24" cy="24" r="18" fill="none" stroke="url(#rainbowGrad)" stroke-width="3" filter="url(#powerGlowFilter)" opacity="0.8"/>
+  <!-- 내부 원 (무지개 블록 상징) -->
+  <circle cx="24" cy="24" r="14" fill="#1A1A2E" opacity="0.7"/>
+  <circle cx="24" cy="24" r="14" fill="url(#orbCore)"/>
+  <!-- 무지개 아크 장식들 -->
+  <g fill="none" stroke-width="2" stroke-linecap="round" opacity="0.7" filter="url(#innerGlowFilter)">
+    <path d="M14 18 Q16 12, 22 11" stroke="#FF6B6B"/>
+    <path d="M22 11 Q28 10, 33 14" stroke="#FFD93D"/>
+    <path d="M33 14 Q37 19, 36 25" stroke="#6BCB77"/>
+    <path d="M36 25 Q35 31, 30 35" stroke="#4D96FF"/>
+    <path d="M30 35 Q25 38, 18 36" stroke="#6B5BFF"/>
+    <path d="M18 36 Q12 33, 11 27" stroke="#C56BFF"/>
+    <path d="M11 27 Q10 22, 14 18" stroke="#FFA06B"/>
+  </g>
+  <!-- 중앙 다이아몬드 마크 -->
+  <path d="M24 16 L30 24 L24 32 L18 24 Z" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.6" filter="url(#innerGlowFilter)"/>
+  <!-- 스파클 점들 -->
+  <g filter="url(#innerGlowFilter)">
+    <circle cx="24" cy="24" r="2" fill="#ffffff" opacity="0.8"/>
+    <circle cx="16" cy="14" r="1.2" fill="#FFD93D" opacity="0.6"/>
+    <circle cx="34" cy="14" r="1" fill="#FF6B6B" opacity="0.5"/>
+    <circle cx="34" cy="34" r="1.2" fill="#4D96FF" opacity="0.6"/>
+    <circle cx="14" cy="34" r="1" fill="#C56BFF" opacity="0.5"/>
+  </g>
+</svg>
