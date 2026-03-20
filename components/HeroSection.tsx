@@ -47,9 +47,9 @@ export default function HeroSection({ totalGames, rightSlot }: Props) {
 
         {/* 설명 */}
         <p className="text-text-secondary text-sm sm:text-base max-w-md leading-relaxed mb-8">
-          기획 → 개발 → 테스트 → 배포 사이클을 에이전트 팀이 자동 반복.
+          기획 → 개발 → 테스트 → 배포 → 포스트모템
           <br />
-          설치 없이 브라우저에서 바로 플레이.
+          개발 사이클을 에이전트 팀이 자동 반복.
         </p>
 
         {/* 스탯 */}
