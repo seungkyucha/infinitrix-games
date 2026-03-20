@@ -1,6 +1,12 @@
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { agentRoles } from './team.js'
 import type { AgentResult, CycleState } from './types.js'
+import {
+  startCycle, completeCycle, failCycle,
+  startAgent, completeAgent, failAgent,
+  logTool, setGameInfo,
+  type AgentId,
+} from './status-logger.js'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
@@ -10,13 +16,13 @@ const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
 
 /** 단일 에이전트를 실행하고 결과를 반환 */
-async function runAgent(role: string, prompt: string): Promise<AgentResult> {
-  const roleDef = agentRoles[role]
-  if (!roleDef) throw new Error(`Unknown agent role: ${role}`)
+async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> {
+  const roleDef = agentRoles[agentId]
+  if (!roleDef) throw new Error(`Unknown agent role: ${agentId}`)
 
-  console.log(`  → [${role.toUpperCase()}] 작업 시작...`)
+  console.log(`  → [${agentId.toUpperCase()}] 작업 시작...`)
 
-  let output = ''
+  let output  = ''
   let success = false
 
   try {
@@ -31,6 +37,22 @@ async function runAgent(role: string, prompt: string): Promise<AgentResult> {
         model:          'claude-opus-4-6',
         maxTurns:       40,
         systemPrompt:   roleDef.prompt,
+
+        // 툴 사용 실시간 기록 hook
+        hooks: {
+          PostToolUse: [{
+            matcher: '.*',
+            hooks: [async (input: Record<string, unknown>) => {
+              const toolName = String(input['tool_name'] ?? 'tool')
+              const toolInput = input['tool_input']
+              const detail = typeof toolInput === 'object'
+                ? JSON.stringify(toolInput).slice(0, 80)
+                : String(toolInput ?? '').slice(0, 80)
+              logTool(agentId, toolName, detail)
+              return {}
+            }],
+          }],
+        },
       },
     })) {
       if ('result' in msg) {
@@ -39,11 +61,12 @@ async function runAgent(role: string, prompt: string): Promise<AgentResult> {
       }
     }
   } catch (err) {
-    return { agent: role, success: false, output: '', error: String(err) }
+    failAgent(agentId, String(err))
+    return { agent: agentId, success: false, output: '', error: String(err) }
   }
 
-  console.log(`  ✓ [${role.toUpperCase()}] 완료`)
-  return { agent: role, success, output }
+  console.log(`  ✓ [${agentId.toUpperCase()}] 완료`)
+  return { agent: agentId, success, output }
 }
 
 /** 디렉토리 생성 (없으면) */
@@ -67,6 +90,9 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   ensureDir(`${PROJECT_ROOT}/docs/reviews`)
   ensureDir(`${PROJECT_ROOT}/logs`)
 
+  // 대시보드 상태 초기화
+  startCycle(cycleNumber)
+
   const state: CycleState = {
     cycleNumber,
     gameId:    '',
@@ -77,80 +103,97 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     startedAt,
   }
 
-  // ── 1단계: 분석 ─────────────────────────────────────────
-  console.log(`\n📊 [1/5] 분석가 — 플랫폼 현황 및 트렌드 분석`)
-  state.status = 'analysis'
-  await runAgent('analyst', `
-    현재 플랫폼(public/games/game-registry.json)을 분석하고,
-    HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
-    결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
-  `)
-
-  // ── 2단계: 기획 ─────────────────────────────────────────
-  console.log(`\n📋 [2/5] 플래너 — 게임 기획서 작성`)
-  state.status = 'planning'
-  await runAgent('planner', `
-    docs/analytics/cycle-${cycleNumber}-report.md를 읽고,
-    제작할 게임의 상세 기획서를 docs/game-specs/cycle-${cycleNumber}-spec.md에 저장해줘.
-    기획서 맨 위에 반드시 YAML front-matter 형식으로:
-    ---
-    game-id: [영문-소문자-하이픈]
-    title: [한국어 제목]
-    genre: [장르]
-    difficulty: [easy/medium/hard]
-    ---
-    형태로 메타데이터를 포함해줘.
-  `)
-
-  // ── 3단계: 코딩 + 디자인 ──────────────────────────────────
-  console.log(`\n💻 [3/5] 코더 — HTML5 게임 구현 + 썸네일 제작`)
-  state.status = 'coding'
-  await runAgent('coder', `
-    docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고 다음 두 파일을 작성해줘:
-    1. public/games/[game-id]/index.html — 완전한 HTML5 게임 (단일 파일)
-    2. public/games/[game-id]/thumbnail.svg — 네온 스타일 썸네일 SVG
-    기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
-  `)
-
-  // ── 4단계: 리뷰 + 테스트 ──────────────────────────────────
-  console.log(`\n🔍 [4/5] 리뷰어 — 코드 검토 & 브라우저 테스트`)
-  state.status = 'reviewing'
-  const reviewResult = await runAgent('reviewer', `
-    docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
-    public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
-    결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
-    최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
-  `)
-
-  // NEEDS_MAJOR_FIX인 경우 코더가 재작업
-  if (reviewResult.output.includes('NEEDS_MAJOR_FIX')) {
-    console.log(`\n🔧 [리뷰 피드백] 코더 재작업 시작...`)
-    await runAgent('coder', `
-      docs/reviews/cycle-${cycleNumber}-review.md의 리뷰 피드백을 반영하여
-      public/games/[game-id]/index.html을 수정해줘.
-      기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
+  try {
+    // ── 1단계: 분석 ─────────────────────────────────────────
+    console.log(`\n📊 [1/5] 분석가 — 플랫폼 현황 및 트렌드 분석`)
+    state.status = 'analysis'
+    startAgent('analyst', 1, '트렌드 분석')
+    await runAgent('analyst', `
+      현재 플랫폼(public/games/game-registry.json)을 분석하고,
+      HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
+      결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
     `)
+    completeAgent('analyst')
+
+    // ── 2단계: 기획 ─────────────────────────────────────────
+    console.log(`\n📋 [2/5] 플래너 — 게임 기획서 작성`)
+    state.status = 'planning'
+    startAgent('planner', 2, '게임 기획')
+    await runAgent('planner', `
+      docs/analytics/cycle-${cycleNumber}-report.md를 읽고,
+      제작할 게임의 상세 기획서를 docs/game-specs/cycle-${cycleNumber}-spec.md에 저장해줘.
+      기획서 맨 위에 반드시 YAML front-matter 형식으로:
+      ---
+      game-id: [영문-소문자-하이픈]
+      title: [한국어 제목]
+      genre: [장르]
+      difficulty: [easy/medium/hard]
+      ---
+      형태로 메타데이터를 포함해줘.
+    `)
+    completeAgent('planner')
+
+    // ── 3단계: 코딩 + 디자인 ──────────────────────────────────
+    console.log(`\n💻 [3/5] 코더 — HTML5 게임 구현 + 썸네일 제작`)
+    state.status = 'coding'
+    startAgent('coder', 3, '코딩 + 디자인')
+    await runAgent('coder', `
+      docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고 다음 두 파일을 작성해줘:
+      1. public/games/[game-id]/index.html — 완전한 HTML5 게임 (단일 파일)
+      2. public/games/[game-id]/thumbnail.svg — 네온 스타일 썸네일 SVG
+      기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
+    `)
+    completeAgent('coder')
+
+    // ── 4단계: 리뷰 + 테스트 ──────────────────────────────────
+    console.log(`\n🔍 [4/5] 리뷰어 — 코드 검토 & 브라우저 테스트`)
+    state.status = 'reviewing'
+    startAgent('reviewer', 4, '코드 리뷰 + 테스트')
+    const reviewResult = await runAgent('reviewer', `
+      docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
+      public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
+      결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
+      최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
+    `)
+    completeAgent('reviewer')
+
+    // NEEDS_MAJOR_FIX인 경우 코더가 재작업
+    if (reviewResult.output.includes('NEEDS_MAJOR_FIX')) {
+      console.log(`\n🔧 [리뷰 피드백] 코더 재작업 시작...`)
+      startAgent('coder', 3, '코딩 재작업 (피드백 반영)')
+      await runAgent('coder', `
+        docs/reviews/cycle-${cycleNumber}-review.md의 리뷰 피드백을 반영하여
+        public/games/[game-id]/index.html을 수정해줘.
+        기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
+      `)
+      completeAgent('coder')
+    }
+
+    // ── 5단계: 배포 ─────────────────────────────────────────
+    console.log(`\n🚢 [5/5] 배포 담당 — 레지스트리 등록 & GitHub Push`)
+    state.status = 'deploying'
+    startAgent('deployer', 5, '레지스트리 등록 + 배포')
+    await runAgent('deployer', `
+      docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
+      1. public/games/game-registry.json에 새 게임을 추가해줘
+      2. git add public/games/ docs/ && git commit -m "feat: add game from cycle #${cycleNumber}" && git push 를 실행해줘
+    `)
+    completeAgent('deployer')
+
+    // 사이클 완료
+    state.status      = 'completed'
+    state.completedAt = new Date().toISOString()
+    completeCycle(state.gameTitle, state.gameId)
+
+  } catch (err) {
+    state.status = 'failed'
+    state.error  = String(err)
+    failCycle(String(err))
+    console.error(`\n❌ 사이클 오류:`, err)
   }
 
-  // ── 5단계: 배포 ─────────────────────────────────────────
-  console.log(`\n🚢 [5/5] 배포 담당 — 레지스트리 등록 & GitHub Push`)
-  state.status = 'deploying'
-  await runAgent('deployer', `
-    docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
-    1. public/games/game-registry.json에 새 게임을 추가해줘
-    2. git add public/games/ docs/ && git commit -m "feat: add game from cycle #${cycleNumber}" && git push 를 실행해줘
-  `)
-
-  // 사이클 완료
-  state.status      = 'completed'
-  state.completedAt = new Date().toISOString()
-
   // 요약 로그 저장
-  const summary = `# 사이클 #${cycleNumber} 완료
-- 시작: ${state.startedAt}
-- 완료: ${state.completedAt}
-- 상태: ${state.status}
-`
+  const summary = `# 사이클 #${cycleNumber} 완료\n- 시작: ${state.startedAt}\n- 완료: ${state.completedAt}\n- 상태: ${state.status}\n`
   writeFileSync(`${PROJECT_ROOT}/logs/cycle-${cycleNumber}-summary.md`, summary)
 
   console.log(`\n✅ 사이클 #${cycleNumber} 완료!\n`)

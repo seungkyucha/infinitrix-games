@@ -39,3 +39,6 @@ next-env.d.ts
 /docs/analytics/
 /docs/test-reports/
 /docs/reviews/
+
+# agent runtime logs (local only)
+/logs/
