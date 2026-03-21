@@ -75,36 +75,57 @@ function buildGrowthDirective(cycleNumber: number): string {
   if (n <= 5) {
     parts.push('- 깔끔한 SVG 에셋 + 일관된 컬러 팔레트')
     parts.push('- 기본 애니메이션 (이동, 페이드)')
+    parts.push('- Canvas 해상도: 800×600 이상')
+    parts.push('- SVG viewBox: 각 에셋 최소 100×100 단위')
   } else if (n <= 10) {
     parts.push('- 세밀한 SVG 디테일 (그라데이션, 그림자, 하이라이트)')
     parts.push('- 파티클 이펙트 (폭발, 스파크, 먼지)')
     parts.push('- 화면 전환 애니메이션')
     parts.push('- 배경 패럴랙스 스크롤링')
+    parts.push('- Canvas 해상도: 1024×768 이상, devicePixelRatio 대응 (레티나 선명도)')
+    parts.push('- SVG viewBox: 각 에셋 200×200 이상, 세밀한 path 디테일')
+    parts.push('- 캐릭터 SVG: 관절/파츠 분리 구조 (머리, 몸통, 팔다리)')
   } else if (n <= 20) {
     parts.push('- 풍부한 SVG 아트 (캐릭터 표정/포즈 변화, 환경 디테일)')
     parts.push('- 다중 파티클 시스템 (타격, 이동 궤적, 환경 효과)')
     parts.push('- 화면 흔들림(screen shake), 슬로우모션 연출')
     parts.push('- 다이나믹 라이팅/글로우 효과')
     parts.push('- UI 애니메이션 (숫자 카운트업, 바운스, 슬라이드)')
+    parts.push('- Canvas 해상도: 전체 화면 대응 (window.innerWidth/Height), devicePixelRatio 필수')
+    parts.push('- SVG viewBox: 각 에셋 300×300 이상, filter/gradient 적극 활용')
+    parts.push('- 캐릭터 SVG: 다중 프레임/포즈 (idle, walk, attack, hit, death)')
+    parts.push('- 배경 SVG: 3~4 레이어 (far, mid, near, foreground)')
+    parts.push('- 적 SVG: 타입별 고유 디자인 (최소 5종), 보스 전용 대형 에셋')
   } else {
     parts.push('- 프리미엄급 비주얼 (캐릭터 애니메이션 시퀀스, 보스 등장 연출)')
     parts.push('- 날씨/시간대 변화 효과')
     parts.push('- 카메라 줌/팬 연출')
     parts.push('- 배경 인터랙티브 요소')
+    parts.push('- Canvas 해상도: 풀스크린 + devicePixelRatio + 동적 리사이즈')
+    parts.push('- SVG viewBox: 각 에셋 400×400 이상, 복합 filter 체인 (blur+glow+shadow)')
+    parts.push('- 캐릭터: 스프라이트 시트급 다중 포즈 (8방향 이동, 스킬 시전)')
+    parts.push('- 보스 에셋: 전용 등장 컷신용 대형 SVG (600×400+)')
+    parts.push('- 환경 에셋: 파괴 가능 오브젝트, 인터랙티브 배경 요소')
   }
 
   // ── 분량 (Content Volume) ──
   parts.push('\n### 📏 분량')
   parts.push(`- 코드 최소 ${minCodeLines}줄 이상`)
   if (n <= 5) {
-    parts.push('- 에셋 8~10개')
+    parts.push('- 에셋 8~10개, 각 SVG 평균 2~5KB')
   } else if (n <= 10) {
-    parts.push('- 에셋 12~15개 (적/아이템 변형 포함)')
+    parts.push('- 에셋 12~15개 (적/아이템 변형 포함), 각 SVG 평균 5~10KB')
     parts.push('- 사운드 이펙트 시뮬레이션 (Web Audio API 비프음)')
+    parts.push('- 썸네일 SVG: 디테일한 게임 장면 묘사 (10KB+)')
+  } else if (n <= 20) {
+    parts.push('- 에셋 15~20개 (캐릭터 변형, 환경 변형 포함), 각 SVG 평균 8~15KB')
+    parts.push('- Web Audio API 기반 BGM + 효과음 (최소 5종 효과음)')
+    parts.push('- 썸네일 SVG: 게임 하이라이트 장면 + 캐릭터 + UI 요소 포함 (15KB+)')
   } else {
-    parts.push('- 에셋 15~20개 (캐릭터 변형, 환경 변형 포함)')
-    parts.push('- Web Audio API 기반 BGM + 효과음')
-    parts.push('- 다국어 지원 고려 (한국어 기본, 영어 UI)')
+    parts.push('- 에셋 20~25개 (캐릭터 포즈별, 보스 전용, 환경 변형), 각 SVG 10~20KB')
+    parts.push('- Web Audio API: BGM 루프 + 상황별 효과음 8종+')
+    parts.push('- 다국어 지원 (한국어 기본, 영어 UI)')
+    parts.push('- 썸네일 SVG: 시네마틱 구도의 대표 장면 (20KB+)')
   }
 
   parts.push('')
