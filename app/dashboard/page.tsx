@@ -7,24 +7,27 @@ type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
 type CycleStatus = 'idle' | 'running' | 'completed' | 'error'
 
 interface AgentState {
-  status:        AgentStatus
-  currentAction: string
-  startedAt:     string | null
-  completedAt:   string | null
-  toolCalls:     number
-  logs:          string[]
+  status:          AgentStatus
+  currentAction:   string
+  currentActionEn?: string
+  startedAt:       string | null
+  completedAt:     string | null
+  toolCalls:       number
+  logs:            string[]
+  logsEn?:         string[]
 }
 
 interface StatusData {
-  lastUpdated: string
-  cycleNumber: number
-  cycleStatus: CycleStatus
-  currentStep: number
-  totalSteps:  number
-  stepName:    string
-  gameTitle:   string
-  gameId:      string
-  gameGenre:   string[]
+  lastUpdated:    string
+  cycleNumber:    number
+  cycleStatus:    CycleStatus
+  currentStep:    number
+  totalSteps:     number
+  stepName:       string
+  stepNameEn?:    string
+  gameTitle:      string
+  gameId:         string
+  gameGenre:      string[]
   agents: {
     analyst:    AgentState
     planner:    AgentState
@@ -34,7 +37,8 @@ interface StatusData {
     postmortem: AgentState
     deployer:   AgentState
   }
-  recentLogs: string[]
+  recentLogs:     string[]
+  recentLogsEn?:  string[]
 }
 
 const AGENT_IDS: (keyof StatusData['agents'])[] = [
@@ -81,7 +85,10 @@ function elapsed(startedAt: string | null): string {
 function AgentCard({ agentId, label, role, step, data }: {
   agentId: string; label: string; role: string; step: number; data: AgentState
 }) {
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
+  const useEn = locale !== 'ko'
+  const action = (useEn ? data.currentActionEn : null) || data.currentAction
+  const logs = (useEn ? data.logsEn : null) ?? data.logs
   return (
     <div className={`rounded-lg border p-4 flex flex-col gap-3 transition-all duration-500 ${statusBg(data.status)}`}>
       <div className="flex items-start justify-between">
@@ -106,15 +113,15 @@ function AgentCard({ agentId, label, role, step, data }: {
         </div>
       </div>
       <div className="min-h-[2rem]">
-        {data.currentAction ? (
-          <p className="text-xs text-zinc-300 font-mono leading-relaxed break-all line-clamp-2">{data.currentAction}</p>
+        {action ? (
+          <p className="text-xs text-zinc-300 font-mono leading-relaxed break-all line-clamp-2">{action}</p>
         ) : (
           <p className="text-xs text-zinc-600 font-mono italic">{t.dashboard.waiting}</p>
         )}
       </div>
-      {data.logs.length > 0 && (
+      {logs.length > 0 && (
         <div className="space-y-0.5 border-t border-white/5 pt-2">
-          {data.logs.slice(0, 4).map((log, i) => (
+          {logs.slice(0, 4).map((log, i) => (
             <p key={i} className="text-[10px] font-mono leading-relaxed break-all"
                style={{ color: i === 0 ? '#a1a1aa' : `rgba(161,161,170,${0.4 - i * 0.08})` }}>
               › {log}
@@ -161,7 +168,10 @@ export default function DashboardPage() {
   }
 
   const isRunning = data.cycleStatus === 'running'
+  const useEn = locale !== 'ko'
   const agentLabels = t.dashboard.agents
+  const displayStepName = (useEn ? data.stepNameEn : null) || data.stepName
+  const displayLogs = (useEn ? data.recentLogsEn : null) ?? data.recentLogs
   const ROLES = ['Data Analyst', 'Game Planner', 'Art Director', 'Full-stack Dev', 'QA Reviewer', 'Tech Writer', 'DevOps Engineer']
 
   return (
@@ -215,7 +225,7 @@ export default function DashboardPage() {
             <div className="text-right">
               <p className="text-xs text-zinc-500 font-mono">{t.dashboard.currentStep}</p>
               <p className="text-sm text-white font-mono font-semibold">
-                {data.currentStep}/{data.totalSteps} — {data.stepName}
+                {data.currentStep}/{data.totalSteps} — {displayStepName}
               </p>
             </div>
           )}
@@ -260,13 +270,13 @@ export default function DashboardPage() {
             <span className="w-2 h-2 rounded-full bg-zinc-600" />
             <span className="text-xs font-mono text-zinc-400 font-semibold tracking-wider">LIVE LOG</span>
           </div>
-          <span className="text-xs font-mono text-zinc-600">{data.recentLogs.length} entries</span>
+          <span className="text-xs font-mono text-zinc-600">{displayLogs.length} entries</span>
         </div>
         <div ref={logRef} className="h-64 overflow-y-auto p-4 space-y-1 font-mono text-xs">
-          {data.recentLogs.length === 0 ? (
+          {displayLogs.length === 0 ? (
             <p className="text-zinc-600 italic">{t.dashboard.noLogs}</p>
           ) : (
-            data.recentLogs.map((log, i) => {
+            displayLogs.map((log, i) => {
               const isAgent = /\[(?:ANALYST|PLANNER|DESIGNER|CODER|REVIEWER|DEPLOYER|POSTMORTEM)\]/.test(log)
               const isCycle = /\[CYCLE\]/.test(log)
               const isError = /\[ERROR\]/.test(log)

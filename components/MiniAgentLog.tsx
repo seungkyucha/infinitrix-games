@@ -10,12 +10,13 @@ type CycleStatus = 'idle' | 'running' | 'completed' | 'error'
 interface AgentState { status: AgentStatus; currentAction: string; toolCalls: number }
 
 interface StatusData {
-  cycleNumber: number
-  cycleStatus: CycleStatus
-  currentStep: number
-  totalSteps:  number
-  stepName:    string
-  gameTitle:   string
+  cycleNumber:    number
+  cycleStatus:    CycleStatus
+  currentStep:    number
+  totalSteps:     number
+  stepName:       string
+  stepNameEn?:    string
+  gameTitle:      string
   agents: {
     analyst:    AgentState
     planner:    AgentState
@@ -25,7 +26,8 @@ interface StatusData {
     postmortem: AgentState
     deployer:   AgentState
   }
-  recentLogs: string[]
+  recentLogs:     string[]
+  recentLogsEn?:  string[]
 }
 
 const AGENT_IDS: (keyof StatusData['agents'])[] = [
@@ -52,7 +54,7 @@ function logColor(msg: string, idx: number) {
 export default function MiniAgentLog() {
   const [data,  setData]  = useState<StatusData | null>(null)
   const [blink, setBlink] = useState(true)
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
 
   useEffect(() => {
     let dead = false
@@ -69,7 +71,9 @@ export default function MiniAgentLog() {
   }, [])
 
   const isRunning = data?.cycleStatus === 'running'
-  const logs      = data?.recentLogs?.slice(0, 4) ?? []
+  const useEn     = locale !== 'ko'
+  const logs      = ((useEn ? data?.recentLogsEn : null) ?? data?.recentLogs)?.slice(0, 4) ?? []
+  const displayStepName = (useEn ? data?.stepNameEn : null) || data?.stepName
   const agentLabels = t.dashboard.agentsShort
 
   return (
@@ -117,7 +121,7 @@ export default function MiniAgentLog() {
                 <span className="text-white font-semibold shrink-0">#{data.cycleNumber}</span>
                 <span className="text-zinc-700 shrink-0">·</span>
                 <span className={`shrink-0 truncate max-w-[160px] ${isRunning ? 'text-green-400' : 'text-zinc-400'}`}>
-                  {data.stepName || t.dashboard.preparing}
+                  {displayStepName || t.dashboard.preparing}
                 </span>
                 {data.gameTitle && (
                   <>

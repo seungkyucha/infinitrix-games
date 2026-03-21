@@ -64,9 +64,19 @@ function parseFrontMatter(content: string): Record<string, string> {
   return meta
 }
 
-function readDocHtml(filePath: string): string {
-  if (!existsSync(filePath)) return ''
-  const raw = readFileSync(filePath, 'utf-8')
+/** 로케일에 맞는 문서 파일 경로 결정 (ko가 아니면 .en.md 우선) */
+function resolveDocPath(filePath: string, locale: string = 'ko'): string {
+  if (locale === 'ko') return filePath
+  // /path/to/file.md → /path/to/file.en.md
+  const enPath = filePath.replace(/\.md$/, '.en.md')
+  if (existsSync(enPath)) return enPath
+  return filePath // 영문 파일 없으면 한국어 폴백
+}
+
+function readDocHtml(filePath: string, locale: string = 'ko'): string {
+  const resolved = resolveDocPath(filePath, locale)
+  if (!existsSync(resolved)) return ''
+  const raw = readFileSync(resolved, 'utf-8')
   const body = raw.replace(/^---\n[\s\S]*?\n---\n?/, '')
   return marked.parse(body) as string
 }
@@ -114,7 +124,7 @@ const TAB_DEFS = [
 ] as const
 
 /** 사이클 N의 탭 정보 + HTML */
-export function getCycleTabInfo(n: number): CycleTabInfo | null {
+export function getCycleTabInfo(n: number, locale: string = 'ko'): CycleTabInfo | null {
   const { gameTitle, verdict } = getCycleMeta(n)
   const tabs: CycleTabInfo['tabs'] = []
 
@@ -125,7 +135,7 @@ export function getCycleTabInfo(n: number): CycleTabInfo | null {
       key:   def.key,
       label: def.label,
       icon:  def.icon,
-      html:  readDocHtml(filePath),
+      html:  readDocHtml(filePath, locale),
     })
   }
 
@@ -134,11 +144,12 @@ export function getCycleTabInfo(n: number): CycleTabInfo | null {
 }
 
 /** 누적 플랫폼 지혜 HTML */
-export function getPlatformWisdomHtml(): string {
-  const path = join(DOCS_DIR, 'meta', 'platform-wisdom.md')
-  if (!existsSync(path)) return ''
+export function getPlatformWisdomHtml(locale: string = 'ko'): string {
+  const basePath = join(DOCS_DIR, 'meta', 'platform-wisdom.md')
+  if (!existsSync(basePath)) return ''
+  const resolved = resolveDocPath(basePath, locale)
   try {
-    return marked.parse(readFileSync(path, 'utf-8')) as string
+    return marked.parse(readFileSync(resolved, 'utf-8')) as string
   } catch { return '' }
 }
 

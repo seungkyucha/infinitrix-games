@@ -21,19 +21,19 @@ export default async function DevLogPage({ searchParams }: Props) {
   const entries    = getSidebarEntries()
   const defaultId  = entries[0]?.id ?? 'wisdom'
   const activeId   = docParam ?? defaultId
-  const { t }      = await getTranslations()
+  const { t, locale } = await getTranslations()
 
   let content: { type: 'wisdom'; html: string }
     | { type: 'cycle';  info: NonNullable<ReturnType<typeof getCycleTabInfo>>; activeTab: string; html: string }
     | { type: 'empty' }
 
   if (activeId === 'wisdom') {
-    const html = getPlatformWisdomHtml()
+    const html = getPlatformWisdomHtml(locale)
     content = html ? { type: 'wisdom', html } : { type: 'empty' }
   } else {
     const m = activeId.match(/^cycle-(\d+)$/)
     if (m) {
-      const info = getCycleTabInfo(parseInt(m[1], 10))
+      const info = getCycleTabInfo(parseInt(m[1], 10), locale)
       if (info && info.tabs.length > 0) {
         const activeTab = (tabParam && info.tabs.some(t => t.key === tabParam)) ? tabParam : info.tabs[0].key
         const tabData   = info.tabs.find(t => t.key === activeTab)!
