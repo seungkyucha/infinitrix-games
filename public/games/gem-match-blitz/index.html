@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>보석 매치 블리츠</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>보석 매치 블리츠 — Gem Match Blitz</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -11,1604 +11,1993 @@ canvas{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
+<canvas id="gc"></canvas>
 <script>
 'use strict';
 
-/* ===================================================================
-   보석 매치 블리츠 — Match-3 Puzzle (Cycle 15)
-   100% Canvas + Web Audio. 외부 에셋 0개.
-   =================================================================== */
-
-// ─── §13.1 CONFIG — 기획서 수치 정확 반영 ───
+/* ============================================================
+   CONFIG — 기획서 §13.1 수치 정합성
+   ============================================================ */
 const CONFIG = {
-  GRID_ROWS: 8,
-  GRID_COLS: 8,
-  NUM_COLORS: 6,
+  GRID_SIZE: 8,
+  GEM_TYPES: 6,
+  MIN_MATCH: 3,
   MIN_TOUCH_TARGET: 48,
-  SWAP_DURATION: 0.25,
-  REVERT_DURATION: 0.3,
-  FALL_DURATION: 0.2,
-  MAX_FALL_DURATION: 0.5,
-  EXPLODE_DURATION: 0.3,
-  CASCADE_DELAY: 0.15,
-  SPECIAL_EXPLODE_DURATION: 0.4,
-  TRANSITION_DURATION: 0.5,
-  HINT_IDLE_TIME: 5,
-  MIN_DRAG_RATIO: 0.3,
-  MIN_SWIPE_DIST: 20,
+  MAX_COMBO_MULTI: 3.0,
+  SWAP_DURATION: 0.2,
+  FALL_DURATION: 0.15,
+  REMOVE_DURATION: 0.18,
   SCORE_3MATCH: 50,
-  SCORE_4MATCH: 150,
-  SCORE_5MATCH: 500,
-  SCORE_LT_MATCH: 200,
-  SCORE_LINE_ACTIVATE: 300,
-  SCORE_BLAST_ACTIVATE: 400,
-  SCORE_COLOR_ACTIVATE: 800,
-  SCORE_COMBO_SPECIAL: 1500,
-  CASCADE_BONUS_STEP: 0.5,
-  CASCADE_BONUS_MAX: 3.0,
-  PARTICLE_POOL_SIZE: 40,
+  SCORE_4MATCH: 100,
+  SCORE_LMATCH: 150,
+  SCORE_5MATCH: 300,
+  SCORE_COMBO_SPECIAL: 500,
+  SCORE_ULTIMATE: 2000,
+  BONUS_PER_MOVE: 200,
+  STAR2_MOVES: 5,
+  STAR3_MOVES: 10,
+  DT_CAP: 0.033,
+  SWIPE_THRESHOLD: 20,
+  PARTICLE_POOL_SIZE: 100,
   POPUP_POOL_SIZE: 20,
-  MASTER_VOLUME: 0.3,
-  TOTAL_STAGES: 30,
-  BG_STAR_COUNT: 15,
-  POPUP_DURATION: 0.6,
-  HINT_PULSE_PERIOD: 0.6,
-  SELECT_PULSE_PERIOD: 0.3
+  TOTAL_STAGES: 30
 };
 
-// ─── 상태 열거 ───
-const STATE = {
-  TITLE: 0, PLAYING: 1, ANIMATING: 2, CASCADE: 3,
-  STAGE_CLEAR: 4, GAME_OVER: 5, VICTORY: 6, PAUSED: 7
+/* ============================================================
+   상태 우선순위 (§6.3)
+   ============================================================ */
+const STATE_PRIORITY = {
+  TITLE: 10, STAGE_SELECT: 20, PLAYING: 40,
+  PAUSED: 50, RESOLVING: 60, STAGE_CLEAR: 80, GAMEOVER: 100
 };
 
-// ─── 보석 색상 정의 ───
-const GEM_COLORS = [
-  { main: '#ff3366', hi: '#ff6699', name: 'R', shape: 'diamond' },
-  { main: '#3366ff', hi: '#6699ff', name: 'B', shape: 'circle' },
-  { main: '#33ff66', hi: '#66ff99', name: 'G', shape: 'hexagon' },
-  { main: '#ffcc00', hi: '#ffdd44', name: 'Y', shape: 'star' },
-  { main: '#cc33ff', hi: '#dd66ff', name: 'P', shape: 'triangle' },
-  { main: '#ff8833', hi: '#ffaa55', name: 'O', shape: 'square' }
+/* 보석 정의 (§4.1) — 색상 + 도형 + 글자 3중 구분 */
+const GEM_DEFS = [
+  { name:'Ruby',     color:'#FF4757', shape:'diamond',  letter:'R' },
+  { name:'Sapphire', color:'#3742FA', shape:'circle',   letter:'S' },
+  { name:'Emerald',  color:'#2ED573', shape:'triangle', letter:'E' },
+  { name:'Topaz',    color:'#FFA502', shape:'square',   letter:'T' },
+  { name:'Amethyst', color:'#A55EEA', shape:'star',     letter:'A' },
+  { name:'Citrine',  color:'#ECCC68', shape:'hexagon',  letter:'C' }
 ];
 
-// ─── 특수 보석 유형 ───
-const SPECIAL = { NONE: 0, LINE_H: 1, LINE_V: 2, BLAST: 3, COLOR: 4 };
+/* 특수 보석 타입 */
+const SPECIAL = { NONE:0, LINE_H:1, LINE_V:2, AREA:3, COLOR_BOMB:4 };
 
-// ─── 스테이지 데이터 (§6.1 정확 반영) ───
-const STAGES = [
-  {moves:20,goalType:'score',goalVal:1000,star3:10},
-  {moves:20,goalType:'score',goalVal:1500,star3:9},
-  {moves:18,goalType:'score',goalVal:2000,star3:8},
-  {moves:18,goalType:'score',goalVal:2500,star3:7},
-  {moves:16,goalType:'score',goalVal:3000,star3:7},
-  {moves:16,goalType:'score',goalVal:4000,star3:6},
-  {moves:15,goalType:'score',goalVal:5000,star3:6},
-  {moves:15,goalType:'score',goalVal:6000,star3:5},
-  {moves:14,goalType:'score',goalVal:7500,star3:5},
-  {moves:14,goalType:'score',goalVal:10000,star3:4},
-  {moves:18,goalType:'color',goalColors:[0],goalAmounts:[30],star3:8},
-  {moves:18,goalType:'color',goalColors:[1],goalAmounts:[30],star3:7},
-  {moves:16,goalType:'color',goalColors:[2],goalAmounts:[35],star3:7},
-  {moves:16,goalType:'color',goalColors:[3],goalAmounts:[35],star3:6},
-  {moves:15,goalType:'color',goalColors:[0,1],goalAmounts:[25,25],star3:6},
-  {moves:15,goalType:'color',goalColors:[4],goalAmounts:[40],star3:5},
-  {moves:14,goalType:'color',goalColors:[5],goalAmounts:[40],star3:5},
-  {moves:14,goalType:'color',goalColors:[2,3],goalAmounts:[30,30],star3:4},
-  {moves:13,goalType:'color',goalColors:[0,1,2],goalAmounts:[20,20,20],star3:4},
-  {moves:12,goalType:'color',goalColors:[0,1,2,3,4,5],goalAmounts:[15,15,15,15,15,15],star3:3},
-  {moves:16,goalType:'special',goalSpecials:['line'],goalAmounts:[3],star3:6},
-  {moves:16,goalType:'special',goalSpecials:['blast'],goalAmounts:[3],star3:5},
-  {moves:15,goalType:'special',goalSpecials:['line','blast'],goalAmounts:[2,2],star3:5},
-  {moves:14,goalType:'special',goalSpecials:['color'],goalAmounts:[2],star3:4},
-  {moves:14,goalType:'special',goalSpecials:['any'],goalAmounts:[5],star3:4},
-  {moves:13,goalType:'special',goalSpecials:['any'],goalAmounts:[6],star3:3},
-  {moves:12,goalType:'special',goalSpecials:['any'],goalAmounts:[7],star3:3},
-  {moves:12,goalType:'special',goalSpecials:['color'],goalAmounts:[3],star3:2},
-  {moves:11,goalType:'special',goalSpecials:['any'],goalAmounts:[8],star3:2},
-  {moves:10,goalType:'score',goalVal:25000,star3:3}
-];
-
-// ─── let 변수 선언 (§5.1 순서) ───
-let canvas, ctx, W, H, dpr;
-let state = STATE.TITLE;
+/* ============================================================
+   변수 선언 (§5.2 초기화 순서: 1단계)
+   ============================================================ */
+let canvas, ctx, dpr;
+let W, H; // 논리 크기
+let state = 'TITLE';
+let prevState = 'TITLE';
 let lastTime = 0;
-let grid = [];
-let score = 0;
+
+// 게임 데이터
+let grid = [];         // grid[r][c] = { type:0-5, special:SPECIAL.*, animX, animY, animScale, animAlpha }
+let iceTiles = [];     // iceTiles[r][c] = 0~3 (얼음 레이어 수)
+let selectedGem = null;// {r,c}
+let isResolving = false;
+let isSwapping = false;
+let isTransitioning = false;
+let comboCount = 0;
 let movesLeft = 0;
-let currentStage = 0;
-let cascadeCount = 0;
-let isProcessing = false;
-let transitioning = false;
+let score = 0;
+let currentStage = 1;
+let goalProgress = {};
+let stageGoal = null;
+
+// 레이아웃
+let cellSize = 50;
+let gridX = 0, gridY = 0;
+
+// 커서 (키보드)
+let cursorR = 0, cursorC = 0;
+let keySelected = false;
+
+// 터치/마우스
+let touchStartX = 0, touchStartY = 0;
+let touchStartR = -1, touchStartC = -1;
+let isDragging = false;
+
+// 저장 데이터
+let saveData = { unlockedStage:1, stars:{}, highScores:{} };
+
+// 사운드
+let muted = false;
+let audioCtx = null;
+let audioResumed = false;
+
+// 타이틀 애니메이션
+let titleTime = 0;
+let titleParticles = [];
+
+// 스테이지 선택 스크롤
+let stageScrollY = 0;
+let stageScrollTarget = 0;
+
+// 전환
 let transitionAlpha = 0;
-let transitionTarget = null;
-let selectedGem = null;
-let cursorGem = {r:0,c:0};
-let hintTimer = 0;
-let hintPair = null;
-let hintAlpha = 0;
-let selectPulse = 0;
-let stageProgress = {};
-let starsEarned = [];
-let totalScore = 0;
-let bestScore = 0;
-let cellSize = 0;
-let gridOffsetX = 0;
-let gridOffsetY = 0;
-let bgStars = [];
-let bgPulseAlpha = 0.85;
+let transitionCallback = null;
+
+// 스테이지 클리어 타이머
+let clearTimer = 0;
+let clearStars = 0;
+let clearBonusScore = 0;
+
+// 게임오버 셰이크
 let shakeTimer = 0;
 let shakeIntensity = 0;
-let titleAnim = 0;
-let clearStars = 0;
-let clearAnimTimer = 0;
-let pausedFromState = STATE.PLAYING;
-let dragStart = null;
-let touchId = null;
-let bgCache = null;
-let bgCacheDirty = true;
 
-// ─── TweenManager (C4 교훈: clearImmediate 지원) ───
-const tw = {
-  _tweens: [],
-  _toAdd: [],
-  _clearing: false,
-  // 트윈 추가
+/* ============================================================
+   TweenManager (§5.1)
+   ============================================================ */
+class TweenManager {
+  constructor() { this._tweens = []; this._toAdd = []; }
+  // 새 tween 추가
   add(obj, props, dur, ease, onComplete) {
-    const t = { obj, props: {}, dur, elapsed: 0, ease: ease || 'easeInOutQuad', onComplete: onComplete || null };
-    for (const k in props) {
-      t.props[k] = { from: obj[k], to: props[k] };
-    }
-    if (this._clearing) this._toAdd.push(t);
-    else this._tweens.push(t);
-    return t;
-  },
-  // 즉시 정리 (C4 경쟁 조건 방지)
-  clearImmediate() {
-    this._tweens.length = 0;
-    this._toAdd.length = 0;
-    this._clearing = false;
-  },
+    const tw = { obj, targets:{}, elapsed:0, dur, ease:ease||'easeOutQuad', onComplete:onComplete||null, done:false };
+    for (const k in props) { tw.targets[k] = { from: obj[k], to: props[k] }; }
+    this._toAdd.push(tw);
+    return tw;
+  }
+  // 즉시 모두 정리 (경쟁 조건 방지 — §12.5 clearImmediate)
+  clearImmediate() { this._tweens.length = 0; this._toAdd.length = 0; }
   // 매 프레임 업데이트
   update(dt) {
-    this._clearing = true;
+    // 신규 tween 병합
+    if (this._toAdd.length) { this._tweens.push(...this._toAdd); this._toAdd.length = 0; }
     for (let i = this._tweens.length - 1; i >= 0; i--) {
-      const t = this._tweens[i];
-      t.elapsed += dt;
-      const p = Math.min(t.elapsed / t.dur, 1);
-      const ep = easeFn(t.ease, p);
-      for (const k in t.props) {
-        t.obj[k] = t.props[k].from + (t.props[k].to - t.props[k].from) * ep;
+      const tw = this._tweens[i];
+      tw.elapsed += dt;
+      let t = Math.min(tw.elapsed / tw.dur, 1);
+      const et = EASING[tw.ease](t);
+      for (const k in tw.targets) {
+        const { from, to } = tw.targets[k];
+        tw.obj[k] = from + (to - from) * et;
       }
-      if (p >= 1) {
+      if (t >= 1) {
+        tw.done = true;
         this._tweens.splice(i, 1);
-        if (t.onComplete) t.onComplete();
+        if (tw.onComplete) tw.onComplete();
       }
     }
-    this._clearing = false;
-    if (this._toAdd.length > 0) {
-      this._tweens.push(...this._toAdd);
-      this._toAdd.length = 0;
-    }
+  }
+  get active() { return this._tweens.length + this._toAdd.length; }
+}
+
+/* 이징 함수 */
+const EASING = {
+  linear: t => t,
+  easeOutQuad: t => t * (2 - t),
+  easeInBack: t => t * t * (2.70158 * t - 1.70158),
+  easeOutBounce: t => {
+    if (t < 1/2.75) return 7.5625*t*t;
+    if (t < 2/2.75) return 7.5625*(t-=1.5/2.75)*t+.75;
+    if (t < 2.5/2.75) return 7.5625*(t-=2.25/2.75)*t+.9375;
+    return 7.5625*(t-=2.625/2.75)*t+.984375;
   },
-  count() { return this._tweens.length; }
+  easeOutExpo: t => t===1?1:1-Math.pow(2,-10*t),
+  easeInOutCubic: t => t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1
 };
 
-// ─── 이징 함수 ───
-function easeFn(name, t) {
-  switch (name) {
-    case 'linear': return t;
-    case 'easeInOutQuad': return t < 0.5 ? 2*t*t : 1-(-2*t+2)*(-2*t+2)/2;
-    case 'easeOutBack': { const c = 1.70158; const c3 = c + 1; return 1 + c3 * Math.pow(t-1,3) + c * Math.pow(t-1,2); }
-    case 'easeOutBounce': {
-      if (t < 1/2.75) return 7.5625*t*t;
-      if (t < 2/2.75) return 7.5625*(t-=1.5/2.75)*t+0.75;
-      if (t < 2.5/2.75) return 7.5625*(t-=2.25/2.75)*t+0.9375;
-      return 7.5625*(t-=2.625/2.75)*t+0.984375;
-    }
-    default: return t < 0.5 ? 2*t*t : 1-(-2*t+2)*(-2*t+2)/2;
+/* ============================================================
+   ObjectPool (§4.4 파티클/팝업)
+   ============================================================ */
+class ObjectPool {
+  constructor(size, factory) {
+    this.pool = [];
+    for (let i = 0; i < size; i++) this.pool.push(factory());
   }
+  // 비활성 객체 가져오기
+  get() {
+    for (const obj of this.pool) if (!obj.active) return obj;
+    return null;
+  }
+  // 활성 객체 업데이트
+  update(dt) {
+    for (const obj of this.pool) {
+      if (!obj.active) continue;
+      obj.life -= dt;
+      if (obj.life <= 0) { obj.active = false; continue; }
+      obj.x += obj.vx * dt;
+      obj.y += obj.vy * dt;
+      obj.vy += (obj.gravity || 0) * dt;
+      obj.alpha = Math.max(0, obj.life / obj.maxLife);
+      obj.scale = obj.alpha;
+    }
+  }
+  // 활성 객체 순회
+  forEach(fn) { for (const obj of this.pool) if (obj.active) fn(obj); }
 }
 
-// ─── ObjectPool (파티클 + 팝업) ───
-function createPool(size, factory) {
-  const pool = [];
-  for (let i = 0; i < size; i++) pool.push(factory());
-  return {
-    items: pool,
-    // 비활성 아이템 가져오기
-    get() {
-      for (let i = 0; i < pool.length; i++) {
-        if (!pool[i].active) { pool[i].active = true; return pool[i]; }
-      }
-      return null;
-    },
-    // 활성 아이템 업데이트
-    update(dt) {
-      for (let i = 0; i < pool.length; i++) {
-        if (pool[i].active) {
-          pool[i].life -= dt;
-          if (pool[i].life <= 0) { pool[i].active = false; continue; }
-          pool[i].x += pool[i].vx * dt;
-          pool[i].y += pool[i].vy * dt;
-          if (pool[i].vy !== undefined) pool[i].vy += (pool[i].gravity || 0) * dt;
-          pool[i].alpha = Math.max(0, pool[i].life / pool[i].maxLife);
-          if (pool[i].scaleDecay) pool[i].scale = pool[i].alpha;
-        }
-      }
-    },
-    // 모든 아이템 비활성화
-    clear() { for (let i = 0; i < pool.length; i++) pool[i].active = false; }
-  };
-}
-
-let particles, popups;
-
-// ─── SoundManager (Web Audio — §9 정확 반영) ───
-const sound = {
-  ctx: null,
-  gain: null,
-  muted: false,
-  // 오디오 컨텍스트 초기화
+/* ============================================================
+   SoundManager (§9 — Web Audio, setTimeout 0건)
+   ============================================================ */
+class SoundManager {
+  constructor() { this.ctx = null; }
+  // AudioContext 초기화
   init() {
-    try {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      this.gain = this.ctx.createGain();
-      this.gain.gain.value = CONFIG.MASTER_VOLUME;
-      this.gain.connect(this.ctx.destination);
-    } catch(e) { console.warn('Web Audio unavailable'); }
-  },
-  // 모바일 터치 시 resume
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { console.warn('[Sound] AudioContext 생성 실패', e); }
+  }
+  // 모바일 resume
   resume() {
     if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
-  },
-  // 단일 톤 재생
-  _tone(freq1, freq2, dur, wave, delay) {
-    if (!this.ctx || this.muted) return;
-    const t = this.ctx.currentTime + (delay || 0);
-    const osc = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    osc.type = wave || 'sine';
-    osc.frequency.setValueAtTime(freq1, t);
-    if (freq2 !== freq1) osc.frequency.linearRampToValueAtTime(freq2, t + dur/1000);
-    g.gain.setValueAtTime(0.3, t);
-    g.gain.linearRampToValueAtTime(0, t + dur/1000);
-    osc.connect(g);
-    g.connect(this.gain);
-    osc.start(t);
-    osc.stop(t + dur/1000);
-  },
-  swap() { this._tone(440, 660, 120, 'sine'); },
-  match() { this._tone(523, 262, 150, 'triangle'); },
-  cascade(n) { this._tone(523*Math.pow(1.1, n), 262*Math.pow(1.1, n), 150, 'triangle'); },
-  specialCreate() { this._tone(880, 1320, 200, 'square'); this._tone(880, 1320, 200, 'sine'); },
-  specialExplode() { this._tone(220, 880, 150, 'sawtooth'); this._tone(880, 110, 150, 'sawtooth', 0.15); },
-  stageClear() { const n=[523,659,784,1047]; for(let i=0;i<n.length;i++) this._tone(n[i],n[i],150,'sine',i*0.15); },
-  gameOver() { const n=[262,220,175]; for(let i=0;i<n.length;i++) this._tone(n[i],n[i],170,'sine',i*0.17); },
-  revert() { this._tone(330, 220, 100, 'sine'); },
-  setMute(m) {
-    this.muted = m;
-    if (this.gain) this.gain.gain.value = m ? 0 : CONFIG.MASTER_VOLUME;
   }
-};
+  // 톤 재생
+  play(freq, dur, type, freqEnd, delay) {
+    if (muted || !this.ctx) return;
+    const t0 = this.ctx.currentTime + (delay || 0);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (freqEnd) osc.frequency.linearRampToValueAtTime(freqEnd, t0 + dur);
+    gain.gain.setValueAtTime(0.15, t0);
+    gain.gain.linearRampToValueAtTime(0, t0 + dur);
+    osc.connect(gain).connect(this.ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+  }
+  // 효과음 매핑 (§9.2)
+  gemSelect() { this.play(880, 0.05, 'sine'); }
+  gemSwap() { this.play(440, 0.1, 'sine', 660); }
+  match3() { this.play(523, 0.08, 'sine', 784); }
+  match4() { this.play(784, 0.12, 'sine', 1047); }
+  match5() { this.play(523, 0.2, 'sine', 1047); }
+  comboHit(n) { this.play(523 * Math.pow(1.1, n), 0.1, 'sine'); }
+  lineBomb() {
+    if (muted || !this.ctx) return;
+    const t0 = this.ctx.currentTime;
+    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.2, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1)*Math.max(0,1-i/d.length);
+    const src = this.ctx.createBufferSource();
+    const gain = this.ctx.createGain();
+    src.buffer = buf; gain.gain.setValueAtTime(0.1, t0); gain.gain.linearRampToValueAtTime(0, t0+0.2);
+    src.connect(gain).connect(this.ctx.destination); src.start(t0);
+  }
+  areaBomb() { this.play(110, 0.3, 'sine', 55); }
+  colorBomb() { this.play(220, 0.4, 'sine', 1760); }
+  swapFail() { this.play(220, 0.15, 'square'); }
+  stageClear() {
+    this.play(523, 0.12, 'sine', 523, 0);
+    this.play(659, 0.12, 'sine', 659, 0.12);
+    this.play(784, 0.12, 'sine', 784, 0.24);
+    this.play(1047, 0.2, 'sine', 1047, 0.36);
+  }
+  gameOver() { this.play(440, 0.4, 'sine', 110); }
+}
 
-// ─── TransitionGuard ───
-function beginTransition(target) {
-  if (transitioning) return;
-  transitioning = true;
-  transitionTarget = target;
-  const fadeObj = { alpha: 0 };
-  tw.add(fadeObj, { alpha: 1 }, CONFIG.TRANSITION_DURATION * 0.5, 'easeInOutQuad', () => {
-    enterState(target);
-    tw.add(fadeObj, { alpha: 0 }, CONFIG.TRANSITION_DURATION * 0.5, 'easeInOutQuad', () => {
-      transitioning = false;
+/* ============================================================
+   TransitionGuard (§6.2 — beginTransition)
+   ============================================================ */
+function beginTransition(nextState, cb) {
+  if (isTransitioning) return;
+  isTransitioning = true;
+  transitionAlpha = 0;
+  // 페이드 아웃
+  tweens.add({ v:0 }, { v:1 }, 0.25, 'easeInOutCubic', () => {
+    transitionAlpha = 1;
+    if (cb) cb();
+    enterState(nextState);
+    // 페이드 인
+    tweens.add({ v:1 }, { v:0 }, 0.25, 'easeInOutCubic', () => {
       transitionAlpha = 0;
+      isTransitioning = false;
     });
   });
-  // transitionAlpha 추적용 트윈 객체 참조
-  transitionFadeObj = fadeObj;
-}
-let transitionFadeObj = { alpha: 0 };
-
-// ─── enterState — 상태 진입 시 초기화 ───
-function enterState(s) {
-  state = s;
-  hintTimer = 0;
-  hintPair = null;
-  switch(s) {
-    case STATE.TITLE:
-      titleAnim = 0;
-      break;
-    case STATE.PLAYING:
-      selectedGem = null;
-      isProcessing = false;
-      break;
-    case STATE.STAGE_CLEAR:
-      clearAnimTimer = 0;
-      clearStars = calcStars(movesLeft, STAGES[currentStage].moves, STAGES[currentStage].star3);
-      if (currentStage < CONFIG.TOTAL_STAGES) {
-        if (!starsEarned[currentStage] || starsEarned[currentStage] < clearStars) {
-          starsEarned[currentStage] = clearStars;
-        }
-      }
-      totalScore += score;
-      saveProgress();
-      sound.stageClear();
-      break;
-    case STATE.GAME_OVER:
-      shakeTimer = 0.4;
-      shakeIntensity = 8;
-      saveProgress();
-      sound.gameOver();
-      break;
-    case STATE.VICTORY:
-      totalScore += score;
-      saveProgress();
-      sound.stageClear();
-      break;
-  }
 }
 
-// ─── §10 순수 함수 ───
-
-// 초기 그리드 생성 (3매치 없는 배치 보장)
-function createGrid(rows, cols, numColors) {
-  const g = [];
-  for (let r = 0; r < rows; r++) {
-    g[r] = [];
-    for (let c = 0; c < cols; c++) {
-      let color;
-      do {
-        color = Math.floor(Math.random() * numColors);
-      } while (
-        (c >= 2 && g[r][c-1].color === color && g[r][c-2].color === color) ||
-        (r >= 2 && g[r-1][c].color === color && g[r-2][c].color === color)
-      );
-      g[r][c] = { color, special: SPECIAL.NONE, x: 0, y: 0, scale: 1, alpha: 1, offsetX: 0, offsetY: 0 };
-    }
-  }
-  return g;
+// 상태 진입
+function enterState(ns) {
+  prevState = state;
+  state = ns;
 }
 
-// 모든 매치 탐색
+/* ============================================================
+   순수 함수 (§10 — 전역 변수 직접 접근 금지)
+   ============================================================ */
+
+// 터치 안전 크기 보장
+function touchSafe(size) { return Math.max(CONFIG.MIN_TOUCH_TARGET, size); }
+
+// 그리드에서 가로/세로 3+매치 탐지
 function findMatches(g) {
-  const rows = g.length, cols = g[0].length;
-  const matchGroups = [];
-  // 가로 스캔
-  for (let r = 0; r < rows; r++) {
-    let start = 0;
-    for (let c = 1; c <= cols; c++) {
-      if (c < cols && g[r][c] && g[r][start] && g[r][c].color === g[r][start].color &&
-          g[r][c].special !== SPECIAL.COLOR && g[r][start].special !== SPECIAL.COLOR) continue;
-      const len = c - start;
-      if (len >= 3 && g[r][start] && g[r][start].color >= 0) {
+  const sz = CONFIG.GRID_SIZE;
+  const matched = Array.from({length:sz}, ()=>Array(sz).fill(false));
+  const matches = [];
+  // 가로 검사
+  for (let r=0;r<sz;r++) {
+    let c=0;
+    while(c<sz) {
+      const t = g[r][c] ? g[r][c].type : -1;
+      if (t<0) { c++; continue; }
+      let end=c+1;
+      while(end<sz && g[r][end] && g[r][end].type===t && g[r][end].special!==SPECIAL.COLOR_BOMB) end++;
+      if (g[r][c].special===SPECIAL.COLOR_BOMB) { c++; continue; }
+      if (end-c>=3) {
+        const cells=[];
+        for(let i=c;i<end;i++) { cells.push({r,c:i}); matched[r][i]=true; }
+        matches.push({cells, type:'h', len:end-c, gemType:t});
+      }
+      c=end;
+    }
+  }
+  // 세로 검사
+  for (let c=0;c<sz;c++) {
+    let r=0;
+    while(r<sz) {
+      const t = g[r][c] ? g[r][c].type : -1;
+      if (t<0) { r++; continue; }
+      let end=r+1;
+      while(end<sz && g[end][c] && g[end][c].type===t && g[end][c].special!==SPECIAL.COLOR_BOMB) end++;
+      if (g[r][c].special===SPECIAL.COLOR_BOMB) { r++; continue; }
+      if (end-r>=3) {
+        const cells=[];
+        for(let i=r;i<end;i++) { cells.push({r:i,c}); matched[i][c]=true; }
+        matches.push({cells, type:'v', len:end-r, gemType:t});
+      }
+      r=end;
+    }
+  }
+  // L/T 매치 탐지 — 교차하는 매치 병합
+  for (let i=0;i<matches.length;i++) {
+    for (let j=i+1;j<matches.length;j++) {
+      if (matches[i].gemType!==matches[j].gemType) continue;
+      let shared=false;
+      for (const a of matches[i].cells)
+        for (const b of matches[j].cells)
+          if (a.r===b.r&&a.c===b.c) { shared=true; break; }
+      if (shared && matches[i].type!==matches[j].type) {
+        // 병합
+        const merged = new Set();
+        for (const a of matches[i].cells) merged.add(a.r*sz+a.c);
+        for (const b of matches[j].cells) merged.add(b.r*sz+b.c);
         const cells = [];
-        for (let i = start; i < c; i++) cells.push({r, c: i});
-        matchGroups.push({ cells, dir: 'h', len });
-      }
-      start = c;
-    }
-  }
-  // 세로 스캔
-  for (let c = 0; c < cols; c++) {
-    let start = 0;
-    for (let r = 1; r <= rows; r++) {
-      if (r < rows && g[r] && g[start] && g[r][c] && g[start][c] && g[r][c].color === g[start][c].color &&
-          g[r][c].special !== SPECIAL.COLOR && g[start][c].special !== SPECIAL.COLOR) continue;
-      const len = r - start;
-      if (len >= 3 && g[start] && g[start][c] && g[start][c].color >= 0) {
-        const cells = [];
-        for (let i = start; i < r; i++) cells.push({r: i, c});
-        matchGroups.push({ cells, dir: 'v', len });
-      }
-      start = r;
-    }
-  }
-  return mergeOverlapping(matchGroups, cols);
-}
-
-// 교차 매치 그룹 병합
-function mergeOverlapping(groups, cols) {
-  if (groups.length <= 1) return groups;
-  const merged = [];
-  const used = new Array(groups.length).fill(false);
-  for (let i = 0; i < groups.length; i++) {
-    if (used[i]) continue;
-    let combined = [...groups[i].cells];
-    let hasH = groups[i].dir === 'h';
-    let hasV = groups[i].dir === 'v';
-    let changed = true;
-    used[i] = true;
-    while (changed) {
-      changed = false;
-      for (let j = 0; j < groups.length; j++) {
-        if (used[j]) continue;
-        let overlap = false;
-        for (const c1 of combined) {
-          for (const c2 of groups[j].cells) {
-            if (c1.r === c2.r && c1.c === c2.c) { overlap = true; break; }
-          }
-          if (overlap) break;
-        }
-        if (overlap) {
-          used[j] = true; changed = true;
-          if (groups[j].dir === 'h') hasH = true;
-          if (groups[j].dir === 'v') hasV = true;
-          for (const c2 of groups[j].cells) {
-            if (!combined.some(c1 => c1.r === c2.r && c1.c === c2.c)) combined.push(c2);
-          }
-        }
-      }
-    }
-    let type = 'normal';
-    if (combined.length >= 5 && hasH && hasV) type = 'LT';
-    else if (combined.length >= 5) type = '5line';
-    else if (hasH && hasV) type = 'LT';
-    else if (combined.length === 4) type = '4line';
-    merged.push({ cells: combined, type, dir: hasH ? 'h' : 'v', len: combined.length });
-  }
-  return merged;
-}
-
-// 교환 후 매치 가능 여부
-function isValidSwap(g, r1, c1, r2, c2) {
-  if (g[r1][c1].special === SPECIAL.COLOR || g[r2][c2].special === SPECIAL.COLOR) return true;
-  const tmp = g[r1][c1];
-  g[r1][c1] = g[r2][c2];
-  g[r2][c2] = tmp;
-  const matches = findMatches(g);
-  g[r2][c2] = g[r1][c1];
-  g[r1][c1] = tmp;
-  return matches.length > 0;
-}
-
-// 빈 칸 위 보석 낙하
-function applyGravity(g) {
-  const rows = g.length, cols = g[0].length;
-  const moves = [];
-  for (let c = 0; c < cols; c++) {
-    let writeRow = rows - 1;
-    for (let r = rows - 1; r >= 0; r--) {
-      if (g[r][c] !== null) {
-        if (r !== writeRow) {
-          moves.push({ fromR: r, fromC: c, toR: writeRow, toC: c, dist: writeRow - r });
-          g[writeRow][c] = g[r][c];
-          g[r][c] = null;
-        }
-        writeRow--;
+        merged.forEach(v => cells.push({r:Math.floor(v/sz),c:v%sz}));
+        matches[i] = {cells, type:'LT', len:cells.length, gemType:matches[i].gemType};
+        matches.splice(j,1); j--;
       }
     }
   }
-  return moves;
+  return matches;
 }
 
-// 최상단 빈 칸 채우기
-function fillEmpty(g, numColors) {
-  const rows = g.length, cols = g[0].length;
-  const fills = [];
-  for (let c = 0; c < cols; c++) {
-    let emptyCount = 0;
-    for (let r = 0; r < rows; r++) {
-      if (g[r][c] === null) emptyCount++;
-      else break;
-    }
-    for (let r = 0; r < emptyCount; r++) {
-      const color = Math.floor(Math.random() * numColors);
-      g[r][c] = { color, special: SPECIAL.NONE, x: 0, y: 0, scale: 1, alpha: 1, offsetX: 0, offsetY: 0 };
-      fills.push({ r, c, color, dist: emptyCount - r });
-    }
-  }
-  return fills;
+// 교환 시 매치가 생기는지 확인
+function canSwap(g, a, b) {
+  if (!g[a.r]||!g[b.r]||!g[a.r][a.c]||!g[b.r][b.c]) return false;
+  // 특수 보석 조합은 항상 허용
+  if (g[a.r][a.c].special===SPECIAL.COLOR_BOMB || g[b.r][b.c].special===SPECIAL.COLOR_BOMB) return true;
+  if (g[a.r][a.c].special && g[b.r][b.c].special) return true;
+  // 임시 교환
+  const tmp = g[a.r][a.c]; g[a.r][a.c] = g[b.r][b.c]; g[b.r][b.c] = tmp;
+  const m = findMatches(g);
+  g[b.r][b.c] = g[a.r][a.c]; g[a.r][a.c] = tmp;
+  return m.length > 0;
 }
 
-// 힌트 탐색
-function findHint(g) {
-  const rows = g.length, cols = g[0].length;
-  const dirs = [[0,1],[1,0]];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      for (const [dr, dc] of dirs) {
-        const nr = r+dr, nc = c+dc;
-        if (nr >= rows || nc >= cols) continue;
-        if (isValidSwap(g, r, c, nr, nc)) return {r1:r,c1:c,r2:nr,c2:nc};
+// 빈 칸에 중력 적용 — 낙하 정보 반환
+function applyGravityCalc(g) {
+  const sz = CONFIG.GRID_SIZE;
+  const falls = [];
+  for (let c=0;c<sz;c++) {
+    let empty = 0;
+    for (let r=sz-1;r>=0;r--) {
+      if (!g[r][c]) { empty++; }
+      else if (empty>0) {
+        falls.push({fromR:r,c,toR:r+empty});
+        g[r+empty][c] = g[r][c];
+        g[r][c] = null;
       }
     }
   }
-  return null;
+  return falls;
 }
 
-// 셔플
-function shuffleGrid(g, numColors) {
-  const rows = g.length, cols = g[0].length;
-  const flat = [];
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++)
-      if (g[r][c]) flat.push(g[r][c].color);
-  for (let attempts = 0; attempts < 10; attempts++) {
-    for (let i = flat.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [flat[i], flat[j]] = [flat[j], flat[i]];
-    }
-    let idx = 0;
-    for (let r = 0; r < rows; r++)
-      for (let c = 0; c < cols; c++) {
-        g[r][c].color = flat[idx++];
-        g[r][c].special = SPECIAL.NONE;
+// 빈 칸에 새 보석 채우기
+function fillEmptyCells(g, gemCount) {
+  const sz = CONFIG.GRID_SIZE;
+  const newGems = [];
+  for (let c=0;c<sz;c++) {
+    let count = 0;
+    for (let r=0;r<sz;r++) {
+      if (!g[r][c]) {
+        const type = Math.floor(Math.random()*gemCount);
+        g[r][c] = createGemObj(type);
+        newGems.push({r,c,type,fromRow:-(count+1)});
+        count++;
       }
-    if (findMatches(g).length === 0 && findHint(g) !== null) return g;
-  }
-  return createGrid(rows, cols, numColors);
-}
-
-// 점수 계산
-function calcScore(matchType, cascadeNum) {
-  let base = CONFIG.SCORE_3MATCH;
-  if (matchType === '4line') base = CONFIG.SCORE_4MATCH;
-  else if (matchType === '5line') base = CONFIG.SCORE_5MATCH;
-  else if (matchType === 'LT') base = CONFIG.SCORE_LT_MATCH;
-  const mult = Math.min(1 + (cascadeNum - 1) * CONFIG.CASCADE_BONUS_STEP, CONFIG.CASCADE_BONUS_MAX);
-  return Math.floor(base * mult);
-}
-
-// 특수 보석 판정
-function getSpecialType(cells, dir) {
-  if (cells.length >= 5) {
-    const rows = new Set(cells.map(c=>c.r));
-    const cols = new Set(cells.map(c=>c.c));
-    if (rows.size > 1 && cols.size > 1) return SPECIAL.BLAST;
-    return SPECIAL.COLOR;
-  }
-  if (cells.length === 4) return dir === 'h' ? SPECIAL.LINE_V : SPECIAL.LINE_H;
-  return SPECIAL.NONE;
-}
-
-// 스테이지 목표 확인
-function checkStageGoal(stageIdx, progress) {
-  const s = STAGES[stageIdx];
-  if (s.goalType === 'score') return progress.score >= s.goalVal;
-  if (s.goalType === 'color') {
-    for (let i = 0; i < s.goalColors.length; i++)
-      if ((progress.colorCount[s.goalColors[i]] || 0) < s.goalAmounts[i]) return false;
-    return true;
-  }
-  if (s.goalType === 'special') {
-    for (let i = 0; i < s.goalSpecials.length; i++) {
-      const key = s.goalSpecials[i];
-      if (key === 'any') {
-        if ((progress.lineCount||0)+(progress.blastCount||0)+(progress.colorCount2||0) < s.goalAmounts[i]) return false;
-      } else if (key === 'line') { if ((progress.lineCount||0) < s.goalAmounts[i]) return false; }
-      else if (key === 'blast') { if ((progress.blastCount||0) < s.goalAmounts[i]) return false; }
-      else if (key === 'color') { if ((progress.colorCount2||0) < s.goalAmounts[i]) return false; }
     }
-    return true;
+  }
+  return newGems;
+}
+
+// 점수 계산 (§7.1)
+function calcScore(matches, combo) {
+  let total = 0;
+  const multi = Math.min(1 + (combo-1)*0.5, CONFIG.MAX_COMBO_MULTI);
+  for (const m of matches) {
+    let base = CONFIG.SCORE_3MATCH;
+    if (m.type==='LT') base = CONFIG.SCORE_LMATCH;
+    else if (m.len===4) base = CONFIG.SCORE_4MATCH;
+    else if (m.len>=5) base = CONFIG.SCORE_5MATCH;
+    total += Math.floor(base * multi);
+  }
+  return total;
+}
+
+// 스테이지 목표 달성 확인
+function checkGoalPure(goal, progress) {
+  if (!goal) return false;
+  if (goal.type==='score') return progress.score >= goal.target;
+  if (goal.type==='collect') return (progress.collected||0) >= goal.target;
+  if (goal.type==='special') return (progress.specialCreated||0) >= goal.target;
+  if (goal.type==='ice') return (progress.iceBroken||0) >= goal.target;
+  if (goal.type==='composite') {
+    return goal.sub.every(s => checkGoalPure(s, progress));
   }
   return false;
 }
 
-// 스타 계산
-function calcStars(left, total, star3Threshold) {
-  if (left >= star3Threshold) return 3;
-  if (left >= Math.ceil(total / 3)) return 2;
+// 스타 등급 계산 (§7.4)
+function getStarRating(movesRemain) {
+  if (movesRemain >= CONFIG.STAR3_MOVES) return 3;
+  if (movesRemain >= CONFIG.STAR2_MOVES) return 2;
   return 1;
 }
 
-// ─── localStorage (F19) ───
-let savedProgress = null;
+// 특수 보석 결정 (§2.2)
+function createSpecialType(matchType, matchLen) {
+  if (matchType==='LT') return SPECIAL.AREA;
+  if (matchLen>=5) return SPECIAL.COLOR_BOMB;
+  if (matchLen===4) return SPECIAL.LINE_H; // 방향은 교환 방향에 따라 결정
+  return SPECIAL.NONE;
+}
 
-function loadProgress() {
-  try {
-    const raw = localStorage.getItem('gemMatchBlitz_progress');
-    if (raw) {
-      savedProgress = JSON.parse(raw);
-      currentStage = savedProgress.currentStage || 0;
-      starsEarned = savedProgress.stars || [];
-      totalScore = savedProgress.totalScore || 0;
-      bestScore = savedProgress.bestScore || 0;
+// 유효한 이동 존재 여부 (교착 방지)
+function hasValidMoves(g, gemCount) {
+  const sz = CONFIG.GRID_SIZE;
+  for (let r=0;r<sz;r++) {
+    for (let c=0;c<sz;c++) {
+      if (c+1<sz && canSwap(g,{r,c},{r,c:c+1})) return true;
+      if (r+1<sz && canSwap(g,{r,c},{r:r+1,c})) return true;
     }
-  } catch(e) {}
-}
-
-function saveProgress() {
-  const newBest = totalScore > bestScore;
-  if (newBest) bestScore = totalScore;
-  try {
-    localStorage.setItem('gemMatchBlitz_progress', JSON.stringify({
-      currentStage, stars: starsEarned, totalScore, bestScore
-    }));
-  } catch(e) {}
-}
-
-// ─── 레이아웃 계산 ───
-function calcGridLayout() {
-  const margin = 10;
-  const hudTop = 70;
-  const hudBottom = 60;
-  const availW = W - margin * 2;
-  const availH = H - hudTop - hudBottom - margin * 2;
-  const maxSize = Math.min(availW, availH);
-  cellSize = Math.max(CONFIG.MIN_TOUCH_TARGET, Math.floor(maxSize / CONFIG.GRID_COLS));
-  const gridW = cellSize * CONFIG.GRID_COLS;
-  const gridH = cellSize * CONFIG.GRID_ROWS;
-  gridOffsetX = Math.floor((W - gridW) / 2);
-  gridOffsetY = hudTop + Math.floor((availH - gridH) / 2) + margin;
-}
-
-function updateGemPositions(g) {
-  for (let r = 0; r < CONFIG.GRID_ROWS; r++)
-    for (let c = 0; c < CONFIG.GRID_COLS; c++)
-      if (g[r] && g[r][c]) {
-        g[r][c].x = gridOffsetX + c * cellSize + cellSize / 2;
-        g[r][c].y = gridOffsetY + r * cellSize + cellSize / 2;
-      }
-}
-
-// ─── 배경 ───
-function initBgStars() {
-  bgStars = [];
-  for (let i = 0; i < CONFIG.BG_STAR_COUNT; i++) {
-    bgStars.push({
-      x: Math.random() * W, y: Math.random() * H,
-      size: Math.random() * 2 + 0.5, speed: Math.random() * 15 + 5,
-      alpha: Math.random() * 0.5 + 0.3
-    });
   }
+  return false;
 }
 
-function renderBgCache() {
-  if (!bgCache) bgCache = document.createElement('canvas');
-  bgCache.width = canvas.width;
-  bgCache.height = canvas.height;
-  const bctx = bgCache.getContext('2d');
-  bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const grd = bctx.createLinearGradient(0, 0, 0, H);
-  grd.addColorStop(0, '#0a0a1a');
-  grd.addColorStop(0.5, '#0f0f2a');
-  grd.addColorStop(1, '#0a0a1a');
-  bctx.fillStyle = grd;
-  bctx.fillRect(0, 0, W, H);
-  // 그리드 배경
-  const gw = cellSize * CONFIG.GRID_COLS;
-  const gh = cellSize * CONFIG.GRID_ROWS;
-  if (cellSize > 0) {
-    bctx.fillStyle = '#151530';
-    roundRect(bctx, gridOffsetX - 6, gridOffsetY - 6, gw + 12, gh + 12, 12);
-    bctx.fill();
-    bctx.strokeStyle = '#2a2a5a';
-    bctx.lineWidth = 0.5;
-    for (let r = 0; r < CONFIG.GRID_ROWS; r++)
-      for (let c = 0; c < CONFIG.GRID_COLS; c++)
-        bctx.strokeRect(gridOffsetX + c * cellSize, gridOffsetY + r * cellSize, cellSize, cellSize);
-  }
-  bgCacheDirty = false;
-}
-
-// ─── 보석 드로잉 ───
-function drawGem(c, x, y, sz, gem) {
-  const col = GEM_COLORS[gem.color];
-  if (!col) return;
-  const half = sz * 0.4;
-  c.save();
-  c.translate(x, y);
-  c.globalAlpha = gem.alpha !== undefined ? gem.alpha : 1;
-  c.scale(gem.scale || 1, gem.scale || 1);
-  c.shadowColor = col.main;
-  c.shadowBlur = 8;
-  c.fillStyle = col.main;
-  switch(col.shape) {
-    case 'diamond':
-      c.rotate(Math.PI/4);
-      roundRect(c, -half*0.7, -half*0.7, half*1.4, half*1.4, 3);
-      c.fill();
-      c.fillStyle = col.hi + '50';
-      c.fillRect(-half*0.3, -half*0.5, half*0.6, half*0.3);
-      break;
-    case 'circle':
-      c.beginPath(); c.arc(0, 0, half, 0, Math.PI*2); c.fill();
-      c.fillStyle = col.hi + '50';
-      c.beginPath(); c.arc(-half*0.2, -half*0.2, half*0.45, 0, Math.PI*2); c.fill();
-      break;
-    case 'hexagon':
-      c.beginPath();
-      for (let i = 0; i < 6; i++) { const a = Math.PI/6 + i*Math.PI/3; c.lineTo(Math.cos(a)*half, Math.sin(a)*half); }
-      c.closePath(); c.fill();
-      c.fillStyle = col.hi + '50';
-      c.beginPath();
-      for (let i = 0; i < 6; i++) { const a = Math.PI/6 + i*Math.PI/3; c.lineTo(Math.cos(a)*half*0.5, Math.sin(a)*half*0.5 - half*0.15); }
-      c.closePath(); c.fill();
-      break;
-    case 'star':
-      c.beginPath();
-      for (let i = 0; i < 10; i++) { const a = -Math.PI/2 + i*Math.PI/5; const rad = i%2===0 ? half : half*0.45; c.lineTo(Math.cos(a)*rad, Math.sin(a)*rad); }
-      c.closePath(); c.fill();
-      c.fillStyle = col.hi + '50';
-      c.beginPath(); c.arc(0, -half*0.15, half*0.3, 0, Math.PI*2); c.fill();
-      break;
-    case 'triangle':
-      c.beginPath(); c.moveTo(0, -half); c.lineTo(half*0.9, half*0.7); c.lineTo(-half*0.9, half*0.7); c.closePath(); c.fill();
-      c.fillStyle = col.hi + '50';
-      c.beginPath(); c.moveTo(0, -half*0.5); c.lineTo(half*0.3, half*0.1); c.lineTo(-half*0.3, half*0.1); c.closePath(); c.fill();
-      break;
-    case 'square':
-      roundRect(c, -half*0.8, -half*0.8, half*1.6, half*1.6, 5); c.fill();
-      c.fillStyle = col.hi + '50';
-      c.fillRect(-half*0.4, -half*0.5, half*0.8, half*0.35);
-      break;
-  }
-  // 특수 보석 오버레이
-  c.shadowBlur = 0;
-  if (gem.special === SPECIAL.LINE_H || gem.special === SPECIAL.LINE_V) {
-    c.strokeStyle = '#ffffffcc'; c.lineWidth = 2;
-    if (gem.special === SPECIAL.LINE_H) {
-      c.beginPath(); c.moveTo(-half*0.7, 0); c.lineTo(half*0.7, 0); c.stroke();
-      c.beginPath(); c.moveTo(half*0.4, -half*0.2); c.lineTo(half*0.7, 0); c.lineTo(half*0.4, half*0.2); c.stroke();
-      c.beginPath(); c.moveTo(-half*0.4, -half*0.2); c.lineTo(-half*0.7, 0); c.lineTo(-half*0.4, half*0.2); c.stroke();
-    } else {
-      c.beginPath(); c.moveTo(0, -half*0.7); c.lineTo(0, half*0.7); c.stroke();
-      c.beginPath(); c.moveTo(-half*0.2, half*0.4); c.lineTo(0, half*0.7); c.lineTo(half*0.2, half*0.4); c.stroke();
-      c.beginPath(); c.moveTo(-half*0.2, -half*0.4); c.lineTo(0, -half*0.7); c.lineTo(half*0.2, -half*0.4); c.stroke();
-    }
-  } else if (gem.special === SPECIAL.BLAST) {
-    c.strokeStyle = '#ffd70099'; c.lineWidth = 2;
-    c.strokeRect(-half*0.5, -half*0.5, half, half);
-    c.strokeRect(-half*0.25, -half*0.25, half*0.5, half*0.5);
-  } else if (gem.special === SPECIAL.COLOR) {
-    const rGrd = c.createRadialGradient(0, 0, 0, 0, 0, half);
-    rGrd.addColorStop(0, '#ffffff'); rGrd.addColorStop(0.3, '#ff3366');
-    rGrd.addColorStop(0.5, '#ffcc00'); rGrd.addColorStop(0.7, '#33ff66');
-    rGrd.addColorStop(0.9, '#3366ff'); rGrd.addColorStop(1, '#cc33ff');
-    c.fillStyle = rGrd;
-    c.beginPath(); c.arc(0, 0, half*0.9, 0, Math.PI*2); c.fill();
-  }
-  c.restore();
-}
-
-// ─── 유틸 ───
-function roundRect(c, x, y, w, h, r) {
-  c.beginPath();
-  c.moveTo(x+r, y); c.lineTo(x+w-r, y); c.quadraticCurveTo(x+w, y, x+w, y+r);
-  c.lineTo(x+w, y+h-r); c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  c.lineTo(x+r, y+h); c.quadraticCurveTo(x, y+h, x, y+h-r);
-  c.lineTo(x, y+r); c.quadraticCurveTo(x, y, x+r, y); c.closePath();
-}
-
-function drawStar5(c, x, y, size) {
-  c.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI/2 + i*Math.PI/5;
-    const r = i%2===0 ? size : size*0.4;
-    c.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
-  }
-  c.closePath(); c.fill();
-}
-
-function emitParticles(x, y, color, count) {
-  const col = GEM_COLORS[color] ? GEM_COLORS[color].main : '#ffffff';
-  for (let i = 0; i < count; i++) {
-    const p = particles.get();
-    if (!p) break;
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 80 + Math.random() * 120;
-    p.x = x; p.y = y; p.vx = Math.cos(angle)*speed; p.vy = Math.sin(angle)*speed;
-    p.gravity = 200; p.life = 0.5+Math.random()*0.3; p.maxLife = p.life;
-    p.color = col; p.size = 3+Math.random()*3; p.scale = 1; p.scaleDecay = true; p.alpha = 1;
-  }
-}
-
-function emitPopup(x, y, text, color) {
-  const p = popups.get();
-  if (!p) return;
-  p.x = x; p.y = y; p.vx = 0; p.vy = -60; p.gravity = 0;
-  p.life = CONFIG.POPUP_DURATION; p.maxLife = CONFIG.POPUP_DURATION;
-  p.text = text; p.color = color||'#ffcc00'; p.size = 16; p.scale = 1; p.scaleDecay = false; p.alpha = 1;
-}
-
-// ─── 스와이프 처리 ───
-function handleSwap(r1, c1, r2, c2) {
-  if (state !== STATE.PLAYING || isProcessing || transitioning) return;
-  if (r1<0||r1>=CONFIG.GRID_ROWS||c1<0||c1>=CONFIG.GRID_COLS) return;
-  if (r2<0||r2>=CONFIG.GRID_ROWS||c2<0||c2>=CONFIG.GRID_COLS) return;
-  if (Math.abs(r1-r2)+Math.abs(c1-c2) !== 1) return;
-  sound.swap();
-  const valid = isValidSwap(grid, r1, c1, r2, c2) ||
-    grid[r1][c1].special === SPECIAL.COLOR || grid[r2][c2].special === SPECIAL.COLOR;
-  executeSwap(r1, c1, r2, c2, !valid);
-}
-
-function executeSwap(r1, c1, r2, c2, revert) {
-  enterState(STATE.ANIMATING);
-  selectedGem = null;
-  const g1 = grid[r1][c1], g2 = grid[r2][c2];
-  const dur = revert ? CONFIG.REVERT_DURATION : CONFIG.SWAP_DURATION;
-  const easing = revert ? 'easeOutBack' : 'easeInOutQuad';
-  const dx = (c2-c1)*cellSize, dy = (r2-r1)*cellSize;
-  // 실제 그리드 교환 (렌더링 용)
-  grid[r1][c1] = g2; grid[r2][c2] = g1;
-  g1.offsetX = -dx; g1.offsetY = -dy;
-  g2.offsetX = dx; g2.offsetY = dy;
-  let done = 0;
-  const onDone = () => {
-    done++;
-    if (done < 2) return;
-    g1.offsetX = 0; g1.offsetY = 0;
-    g2.offsetX = 0; g2.offsetY = 0;
-    if (revert) {
-      grid[r1][c1] = g1; grid[r2][c2] = g2;
-      enterState(STATE.PLAYING);
-      sound.revert();
-    } else {
-      updateGemPositions(grid);
-      movesLeft--;
-      cascadeCount = 0;
-      if (g1.special !== SPECIAL.NONE && g2.special !== SPECIAL.NONE) {
-        handleSpecialCombo(r2, c2, r1, c1);
-      } else if (g1.special === SPECIAL.COLOR) {
-        handleColorBomb(r2, c2, g2.color);
-      } else if (g2.special === SPECIAL.COLOR) {
-        handleColorBomb(r1, c1, g1.color);
-      } else {
-        enterState(STATE.CASCADE);
-        processCascade();
-      }
-    }
-  };
-  tw.add(g1, {offsetX:0, offsetY:0}, dur, easing, onDone);
-  tw.add(g2, {offsetX:0, offsetY:0}, dur, easing, onDone);
-}
-
-// ─── 색상 폭탄 ───
-function handleColorBomb(br, bc, targetColor) {
-  enterState(STATE.CASCADE);
-  cascadeCount = 1;
-  grid[br][bc] = null;
-  let pts = CONFIG.SCORE_COLOR_ACTIVATE;
-  for (let r = 0; r < CONFIG.GRID_ROWS; r++)
-    for (let c = 0; c < CONFIG.GRID_COLS; c++)
-      if (grid[r][c] && grid[r][c].color === targetColor) {
-        emitParticles(grid[r][c].x, grid[r][c].y, targetColor, 5);
-        trackRemoval(grid[r][c]); grid[r][c] = null; pts += 20;
-      }
-  score += pts;
-  trackSpecialActivation('color');
-  emitPopup(gridOffsetX+bc*cellSize+cellSize/2, gridOffsetY+br*cellSize, '+'+pts, '#ffffff');
-  sound.specialExplode();
-  tw.add({v:0},{v:1}, CONFIG.EXPLODE_DURATION, 'linear', () => { doCascadeGravityAndFill(); });
-}
-
-// ─── 특수+특수 조합 ───
-function handleSpecialCombo(r1, c1, r2, c2) {
-  enterState(STATE.CASCADE);
-  cascadeCount = 1;
-  const s1 = grid[r1][c1] ? grid[r1][c1].special : SPECIAL.NONE;
-  const s2 = grid[r2][c2] ? grid[r2][c2].special : SPECIAL.NONE;
-  let pts = CONFIG.SCORE_COMBO_SPECIAL;
-  const cells = new Set();
-  const addCell = (r,c) => { if(r>=0&&r<CONFIG.GRID_ROWS&&c>=0&&c<CONFIG.GRID_COLS) cells.add(r*CONFIG.GRID_COLS+c); };
-  if (s1===SPECIAL.COLOR && s2===SPECIAL.COLOR) {
-    for(let r=0;r<CONFIG.GRID_ROWS;r++) for(let c=0;c<CONFIG.GRID_COLS;c++) addCell(r,c);
-  } else if (s1===SPECIAL.COLOR || s2===SPECIAL.COLOR) {
-    const other = s1===SPECIAL.COLOR ? grid[r2][c2] : grid[r1][c1];
-    const tc = other ? other.color : 0;
-    for(let r=0;r<CONFIG.GRID_ROWS;r++) for(let c=0;c<CONFIG.GRID_COLS;c++)
-      if(grid[r][c] && grid[r][c].color === tc) addCell(r,c);
-    addCell(r1,c1); addCell(r2,c2);
+// 스테이지 설정 반환 (§7.3)
+function getStageConfig(stageNum) {
+  const stages = [
+    {goal:{type:'score',target:1000},moves:25,gems:5},
+    {goal:{type:'collect',target:15,gemType:0},moves:22,gems:5},
+    {goal:{type:'score',target:2000},moves:22,gems:5},
+    {goal:{type:'collect',target:18,gemType:1},moves:20,gems:5},
+    {goal:{type:'special',target:2,specialType:'line'},moves:20,gems:5},
+    {goal:{type:'composite',sub:[{type:'collect',target:12,gemType:2},{type:'score',target:1500}]},moves:22,gems:6},
+    {goal:{type:'ice',target:8},moves:20,gems:5,ice:8},
+    {goal:{type:'score',target:4000},moves:20,gems:6},
+    {goal:{type:'special',target:2,specialType:'area'},moves:20,gems:6},
+    {goal:{type:'composite',sub:[{type:'collect',target:20,gemType:0},{type:'ice',target:6}]},moves:22,gems:6,ice:6},
+  ];
+  if (stageNum <= 10) return stages[stageNum-1] || stages[0];
+  // 스테이지 11-30 프로시저 생성
+  const tier = stageNum <= 20 ? 'mid' : 'hard';
+  const types = ['score','collect','ice','composite','special'];
+  const t = types[(stageNum-1) % types.length];
+  let cfg;
+  if (tier==='mid') {
+    const moves = 22 - Math.floor((stageNum-11)*0.4);
+    if (t==='score') cfg = {goal:{type:'score',target:5000+(stageNum-11)*1000},moves,gems:6};
+    else if (t==='collect') cfg = {goal:{type:'collect',target:25+Math.floor((stageNum-11)*1.5),gemType:(stageNum%6)},moves,gems:6};
+    else if (t==='ice') cfg = {goal:{type:'ice',target:10+Math.floor((stageNum-11)*0.6)},moves,gems:6,ice:10+Math.floor((stageNum-11)*0.6)};
+    else if (t==='special') cfg = {goal:{type:'special',target:2+Math.floor((stageNum-11)/3),specialType:stageNum%2===0?'line':'area'},moves,gems:6};
+    else cfg = {goal:{type:'composite',sub:[{type:'score',target:3000+(stageNum-11)*500},{type:'collect',target:15+(stageNum-11),gemType:stageNum%6}]},moves,gems:6};
   } else {
-    const isL = s => s===SPECIAL.LINE_H||s===SPECIAL.LINE_V;
-    const isB = s => s===SPECIAL.BLAST;
-    if(isL(s1)&&isL(s2)){ for(let c=0;c<CONFIG.GRID_COLS;c++) addCell(r1,c); for(let r=0;r<CONFIG.GRID_ROWS;r++) addCell(r,c1); }
-    else if((isL(s1)&&isB(s2))||(isB(s1)&&isL(s2))){
-      for(let dr=-1;dr<=1;dr++) for(let c=0;c<CONFIG.GRID_COLS;c++) addCell(r1+dr,c);
-      for(let dc=-1;dc<=1;dc++) for(let r=0;r<CONFIG.GRID_ROWS;r++) addCell(r,c1+dc);
-    } else if(isB(s1)&&isB(s2)){
-      for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++) addCell(r1+dr,c1+dc);
+    const moves = 20 - Math.floor((stageNum-21)*0.5);
+    if (t==='score') cfg = {goal:{type:'score',target:15000+(stageNum-21)*1500},moves:Math.max(15,moves),gems:6};
+    else if (t==='collect') cfg = {goal:{type:'collect',target:30+Math.floor((stageNum-21)*1),gemType:(stageNum%6)},moves:Math.max(15,moves),gems:6};
+    else if (t==='ice') cfg = {goal:{type:'ice',target:16+Math.floor((stageNum-21)*0.8)},moves:Math.max(15,moves),gems:6,ice:16+Math.floor((stageNum-21)*0.8)};
+    else if (t==='special') cfg = {goal:{type:'special',target:3+Math.floor((stageNum-21)/3),specialType:stageNum%2===0?'line':'area'},moves:Math.max(15,moves),gems:6};
+    else cfg = {goal:{type:'composite',sub:[{type:'score',target:10000+(stageNum-21)*1000},{type:'ice',target:10+Math.floor((stageNum-21)*0.5)}]},moves:Math.max(15,moves),gems:6,ice:10+Math.floor((stageNum-21)*0.5)};
+  }
+  // 얼음 기본값
+  if (!cfg.ice && stageNum>=7) cfg.ice = Math.min(24, Math.floor((stageNum-6)*0.8)+4);
+  return cfg;
+}
+
+/* ============================================================
+   유틸리티
+   ============================================================ */
+const tweens = new TweenManager();
+let particles, popups;
+const sound = new SoundManager();
+
+// 보석 객체 생성
+function createGemObj(type, special) {
+  return { type, special:special||SPECIAL.NONE, animX:0, animY:0, animScale:1, animAlpha:1 };
+}
+
+// 단일 경로 점수 갱신 (§7.1 F21)
+function addScore(pts) {
+  score += pts;
+  goalProgress.score = score;
+}
+
+// localStorage 래핑 (§12.4)
+function loadSave() {
+  try {
+    const d = localStorage.getItem('gem-match-blitz-save');
+    if (d) saveData = JSON.parse(d);
+  } catch(e) { console.warn('[Save] load fail', e); }
+}
+function writeSave() {
+  try {
+    localStorage.setItem('gem-match-blitz-save', JSON.stringify(saveData));
+  } catch(e) { console.warn('[Save] write fail', e); }
+}
+function loadMuted() {
+  try { muted = localStorage.getItem('gem-match-blitz-muted')==='true'; } catch(e){}
+}
+function saveMuted() {
+  try { localStorage.setItem('gem-match-blitz-muted', muted?'true':'false'); } catch(e){}
+}
+
+/* ============================================================
+   그리드 초기화
+   ============================================================ */
+function initGrid(gemCount, iceCount) {
+  const sz = CONFIG.GRID_SIZE;
+  grid = Array.from({length:sz}, ()=>Array(sz).fill(null));
+  iceTiles = Array.from({length:sz}, ()=>Array(sz).fill(0));
+  // 보석 채우기 — 초기 매치 없이
+  for (let r=0;r<sz;r++) {
+    for (let c=0;c<sz;c++) {
+      let type;
+      do { type=Math.floor(Math.random()*gemCount); }
+      while(hasInitMatch(r,c,type));
+      grid[r][c] = createGemObj(type);
     }
   }
-  cells.forEach(key => {
-    const r=Math.floor(key/CONFIG.GRID_COLS), c=key%CONFIG.GRID_COLS;
-    if(grid[r][c]){ emitParticles(grid[r][c].x,grid[r][c].y,grid[r][c].color,4); trackRemoval(grid[r][c]); grid[r][c]=null; }
-  });
-  score += pts;
-  emitPopup(gridOffsetX+c1*cellSize+cellSize/2, gridOffsetY+r1*cellSize, '+'+pts, '#ffffff');
-  sound.specialExplode();
-  tw.add({v:0},{v:1}, CONFIG.SPECIAL_EXPLODE_DURATION, 'linear', () => { doCascadeGravityAndFill(); });
-}
-
-// ─── 진행 추적 ───
-function resetProgress() {
-  stageProgress = { score:0, colorCount:{}, lineCount:0, blastCount:0, colorCount2:0 };
-}
-function trackRemoval(gem) {
-  if(!gem) return;
-  if(!stageProgress.colorCount[gem.color]) stageProgress.colorCount[gem.color] = 0;
-  stageProgress.colorCount[gem.color]++;
-}
-function trackSpecialActivation(type) {
-  if(type==='line') stageProgress.lineCount++;
-  else if(type==='blast') stageProgress.blastCount++;
-  else if(type==='color') stageProgress.colorCount2++;
-}
-
-// ─── 연쇄(Cascade) 처리 (§5.4) ───
-function processCascade() {
-  if (isProcessing) return;
-  isProcessing = true;
-  const matches = findMatches(grid);
-  if (matches.length === 0) {
-    isProcessing = false;
-    stageProgress.score = score;
-    if (checkStageGoal(currentStage, stageProgress)) {
-      beginTransition(STATE.STAGE_CLEAR);
-    } else if (movesLeft <= 0) {
-      beginTransition(STATE.GAME_OVER);
-    } else {
-      enterState(STATE.PLAYING);
-      if (!findHint(grid)) {
-        grid = shuffleGrid(grid, CONFIG.NUM_COLORS);
-        updateGemPositions(grid);
-      }
+  // 얼음 배치
+  if (iceCount && iceCount>0) {
+    const positions = [];
+    for (let r=1;r<sz-1;r++) for (let c=1;c<sz-1;c++) positions.push({r,c});
+    shuffle(positions);
+    const layers = currentStage >= 21 ? 3 : currentStage >= 11 ? 2 : 1;
+    for (let i=0;i<Math.min(iceCount, positions.length);i++) {
+      iceTiles[positions[i].r][positions[i].c] = layers;
     }
+  }
+}
+
+// 초기 배치 시 매치 확인
+function hasInitMatch(r,c,type) {
+  if (c>=2 && grid[r][c-1] && grid[r][c-2] && grid[r][c-1].type===type && grid[r][c-2].type===type) return true;
+  if (r>=2 && grid[r-1] && grid[r-2] && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].type===type && grid[r-2][c].type===type) return true;
+  return false;
+}
+
+// 배열 셔플
+function shuffle(arr) {
+  for (let i=arr.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+}
+
+/* ============================================================
+   게임 플로우
+   ============================================================ */
+
+// 스테이지 시작
+function startStage(stageNum) {
+  currentStage = stageNum;
+  const cfg = getStageConfig(stageNum);
+  stageGoal = cfg.goal;
+  movesLeft = cfg.moves;
+  score = 0;
+  comboCount = 0;
+  selectedGem = null;
+  isResolving = false;
+  isSwapping = false;
+  goalProgress = { score:0, collected:0, specialCreated:0, iceBroken:0 };
+  tweens.clearImmediate();
+  initGrid(cfg.gems, cfg.ice||0);
+  // 교착 확인
+  if (!hasValidMoves(grid, cfg.gems)) {
+    shuffleGridSafe(cfg.gems);
+  }
+}
+
+// 안전한 셔플 (교착 해소)
+function shuffleGridSafe(gemCount) {
+  const sz = CONFIG.GRID_SIZE;
+  for (let r=0;r<sz;r++) for (let c=0;c<sz;c++) {
+    if (grid[r][c]) grid[r][c].type = Math.floor(Math.random()*gemCount);
+  }
+  // 매치 제거
+  let m = findMatches(grid);
+  let tries = 0;
+  while (m.length>0 && tries<100) {
+    for (const match of m) {
+      const last = match.cells[match.cells.length-1];
+      if (grid[last.r][last.c]) grid[last.r][last.c].type = Math.floor(Math.random()*gemCount);
+    }
+    m = findMatches(grid);
+    tries++;
+  }
+}
+
+/* ============================================================
+   스와이프/교환 로직
+   ============================================================ */
+
+function trySwap(a, b) {
+  if (isResolving || isSwapping || isTransitioning) return;
+  if (!a || !b) return;
+  if (Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1) return;
+  if (!grid[a.r][a.c] || !grid[b.r][b.c]) return;
+
+  isSwapping = true;
+  sound.gemSwap();
+
+  const gemA = grid[a.r][a.c], gemB = grid[b.r][b.c];
+  // 교환 애니메이션
+  const dx = (b.c-a.c)*cellSize, dy = (b.r-a.r)*cellSize;
+  gemA.animX = 0; gemA.animY = 0; gemB.animX = 0; gemB.animY = 0;
+
+  tweens.add(gemA, {animX:dx, animY:dy}, CONFIG.SWAP_DURATION, 'easeOutQuad');
+  tweens.add(gemB, {animX:-dx, animY:-dy}, CONFIG.SWAP_DURATION, 'easeOutQuad', () => {
+    // 실제 교환
+    gemA.animX=0; gemA.animY=0; gemB.animX=0; gemB.animY=0;
+    grid[a.r][a.c] = gemB; grid[b.r][b.c] = gemA;
+
+    // 특수 보석 조합 체크
+    if (gemA.special===SPECIAL.COLOR_BOMB || gemB.special===SPECIAL.COLOR_BOMB) {
+      isSwapping = false;
+      handleSpecialSwap(a, b, gemA, gemB);
+      return;
+    }
+    if (gemA.special && gemB.special) {
+      isSwapping = false;
+      handleSpecialCombo(a, b, gemA, gemB);
+      return;
+    }
+
+    const matches = findMatches(grid);
+    if (matches.length===0) {
+      // 되돌림
+      sound.swapFail();
+      grid[b.r][b.c] = gemB; grid[a.r][a.c] = gemA;
+      gemA.animX = dx; gemA.animY = dy; gemB.animX = -dx; gemB.animY = -dy;
+      tweens.add(gemA, {animX:0, animY:0}, 0.25, 'easeOutBounce');
+      tweens.add(gemB, {animX:0, animY:0}, 0.25, 'easeOutBounce', () => {
+        isSwapping = false;
+      });
+    } else {
+      isSwapping = false;
+      movesLeft--;
+      comboCount = 0;
+      startResolve(matches, b); // b는 교환 방향 (4매치 줄 폭탄 방향 결정)
+    }
+  });
+}
+
+// 특수 보석 스와이프 핸들러
+function handleSpecialSwap(a, b, gemA, gemB) {
+  const colorBomb = gemA.special===SPECIAL.COLOR_BOMB ? a : b;
+  const other = colorBomb===a ? b : a;
+  const otherGem = grid[other.r][other.c];
+  const targetType = otherGem.type;
+
+  movesLeft--;
+  comboCount = 0;
+
+  // 색상 폭탄 + 색상 폭탄 = 전체 제거
+  if (gemA.special===SPECIAL.COLOR_BOMB && gemB.special===SPECIAL.COLOR_BOMB) {
+    const toRemove = [];
+    for (let r=0;r<CONFIG.GRID_SIZE;r++) for (let c=0;c<CONFIG.GRID_SIZE;c++) {
+      if (grid[r][c]) toRemove.push({r,c});
+    }
+    addScore(CONFIG.SCORE_ULTIMATE);
+    sound.colorBomb();
+    removeAndResolve(toRemove);
     return;
   }
-  cascadeCount++;
-  if (cascadeCount > 1) sound.cascade(cascadeCount); else sound.match();
-  const toRemove = new Set();
-  matches.forEach(m => {
-    const pts = calcScore(m.type, cascadeCount);
-    score += pts;
-    stageProgress.score = score;
-    const specialType = getSpecialType(m.cells, m.dir);
-    if (specialType !== SPECIAL.NONE) {
-      const mid = m.cells[Math.floor(m.cells.length/2)];
-      if (grid[mid.r][mid.c]) {
-        grid[mid.r][mid.c].special = specialType;
-        grid[mid.r][mid.c].scale = 0;
-        tw.add(grid[mid.r][mid.c], {scale:1}, 0.3, 'easeOutBack');
-        sound.specialCreate();
-        if(specialType===SPECIAL.LINE_H||specialType===SPECIAL.LINE_V) trackSpecialActivation('line');
-        else if(specialType===SPECIAL.BLAST) trackSpecialActivation('blast');
-        else if(specialType===SPECIAL.COLOR) trackSpecialActivation('color');
+
+  // 색상 폭탄 + 특수 보석 — 해당 색 모두 해당 특수로 변환
+  if (otherGem.special) {
+    const toRemove = [];
+    for (let r=0;r<CONFIG.GRID_SIZE;r++) for (let c=0;c<CONFIG.GRID_SIZE;c++) {
+      if (grid[r][c] && grid[r][c].type===targetType) {
+        grid[r][c].special = otherGem.special;
+        toRemove.push({r,c});
       }
-      m.cells.forEach(cell => { if(cell.r!==mid.r||cell.c!==mid.c) toRemove.add(cell.r*CONFIG.GRID_COLS+cell.c); });
-    } else {
-      m.cells.forEach(cell => toRemove.add(cell.r*CONFIG.GRID_COLS+cell.c));
     }
-    const cx = m.cells.reduce((s,c)=>s+c.c,0)/m.cells.length;
-    const cy = m.cells.reduce((s,c)=>s+c.r,0)/m.cells.length;
-    emitPopup(gridOffsetX+cx*cellSize+cellSize/2, gridOffsetY+cy*cellSize, '+'+pts, cascadeCount>1?'#ff6699':'#ffcc00');
+    toRemove.push(colorBomb);
+    addScore(CONFIG.SCORE_COMBO_SPECIAL * toRemove.length);
+    sound.colorBomb();
+    removeAndResolve(toRemove);
+    return;
+  }
+
+  // 색상 폭탄 + 일반 보석 — 해당 색 모두 제거
+  const toRemove = [{r:colorBomb.r,c:colorBomb.c}];
+  for (let r=0;r<CONFIG.GRID_SIZE;r++) for (let c=0;c<CONFIG.GRID_SIZE;c++) {
+    if (grid[r][c] && grid[r][c].type===targetType) toRemove.push({r,c});
+  }
+  addScore(CONFIG.SCORE_COMBO_SPECIAL);
+  sound.colorBomb();
+  removeAndResolve(toRemove);
+}
+
+// 특수 보석끼리 조합
+function handleSpecialCombo(a, b, gemA, gemB) {
+  movesLeft--;
+  comboCount = 0;
+  const toRemove = new Set();
+  const sA = gemA.special, sB = gemB.special;
+
+  // 줄+줄 = 십자
+  if ((sA===SPECIAL.LINE_H||sA===SPECIAL.LINE_V)&&(sB===SPECIAL.LINE_H||sB===SPECIAL.LINE_V)) {
+    for (let i=0;i<CONFIG.GRID_SIZE;i++) { toRemove.add(a.r*CONFIG.GRID_SIZE+i); toRemove.add(i*CONFIG.GRID_SIZE+a.c); }
+    sound.lineBomb();
+  }
+  // 줄+범위 = 3줄+3열
+  else if (((sA===SPECIAL.LINE_H||sA===SPECIAL.LINE_V)&&sB===SPECIAL.AREA)||((sB===SPECIAL.LINE_H||sB===SPECIAL.LINE_V)&&sA===SPECIAL.AREA)) {
+    const cr=a.r, cc=a.c;
+    for (let dr=-1;dr<=1;dr++) for (let i=0;i<CONFIG.GRID_SIZE;i++) {
+      if (cr+dr>=0&&cr+dr<CONFIG.GRID_SIZE) toRemove.add((cr+dr)*CONFIG.GRID_SIZE+i);
+      if (cc+dr>=0&&cc+dr<CONFIG.GRID_SIZE) toRemove.add(i*CONFIG.GRID_SIZE+cc+dr);
+    }
+    sound.areaBomb();
+  }
+  // 범위+범위 = 5x5
+  else if (sA===SPECIAL.AREA&&sB===SPECIAL.AREA) {
+    for (let dr=-2;dr<=2;dr++) for (let dc=-2;dc<=2;dc++) {
+      const nr=a.r+dr, nc=a.c+dc;
+      if (nr>=0&&nr<CONFIG.GRID_SIZE&&nc>=0&&nc<CONFIG.GRID_SIZE) toRemove.add(nr*CONFIG.GRID_SIZE+nc);
+    }
+    sound.areaBomb();
+  }
+
+  const cells = [];
+  toRemove.forEach(v => cells.push({r:Math.floor(v/CONFIG.GRID_SIZE),c:v%CONFIG.GRID_SIZE}));
+  addScore(CONFIG.SCORE_COMBO_SPECIAL);
+  removeAndResolve(cells);
+}
+
+// 제거 후 연쇄 처리 시작
+function removeAndResolve(cells) {
+  isResolving = true;
+  enterState('RESOLVING');
+  comboCount = 1;
+  removeGems(cells, () => {
+    cascadeStep();
   });
-  // 특수 보석 활성화 체크
-  const extraRemove = new Set();
-  toRemove.forEach(key => {
-    const r=Math.floor(key/CONFIG.GRID_COLS), c=key%CONFIG.GRID_COLS;
-    if(grid[r][c] && grid[r][c].special !== SPECIAL.NONE) activateSpecial(r, c, extraRemove);
-  });
-  extraRemove.forEach(k => toRemove.add(k));
-  // 폭발 애니메이션
-  let animCount = 0;
-  toRemove.forEach(key => {
-    const r=Math.floor(key/CONFIG.GRID_COLS), c=key%CONFIG.GRID_COLS;
-    if(grid[r][c]) {
-      emitParticles(grid[r][c].x, grid[r][c].y, grid[r][c].color, 5);
-      trackRemoval(grid[r][c]);
-      animCount++;
-      tw.add(grid[r][c], {scale:0, alpha:0}, CONFIG.EXPLODE_DURATION, 'linear', () => {
-        animCount--;
-        if(animCount <= 0) {
-          toRemove.forEach(k2 => { const rr=Math.floor(k2/CONFIG.GRID_COLS), cc=k2%CONFIG.GRID_COLS; grid[rr][cc]=null; });
-          doCascadeGravityAndFill();
+}
+
+// 연쇄 처리 루프 시작 (매치 발견 후)
+function startResolve(matches, swapDir) {
+  isResolving = true;
+  enterState('RESOLVING');
+  comboCount = 1;
+
+  // 점수 계산 및 추가
+  const pts = calcScore(matches, comboCount);
+  addScore(pts);
+  sound.match3();
+
+  // 특수 보석 생성
+  for (const m of matches) {
+    const spType = createSpecialType(m.type, m.len);
+    if (spType!==SPECIAL.NONE) {
+      // 생성 위치: 매치 중앙 또는 스와이프 위치
+      const mid = m.cells[Math.floor(m.cells.length/2)];
+      // 4매치 줄 방향
+      let finalType = spType;
+      if (spType===SPECIAL.LINE_H && m.type==='v') finalType = SPECIAL.LINE_V;
+      if (spType===SPECIAL.LINE_H && m.type==='h') finalType = SPECIAL.LINE_H;
+      // 매치 셀에서 해당 위치 제외
+      m.cells = m.cells.filter(c => !(c.r===mid.r && c.c===mid.c));
+      grid[mid.r][mid.c] = createGemObj(m.gemType, finalType);
+      goalProgress.specialCreated = (goalProgress.specialCreated||0) + 1;
+      if (spType===SPECIAL.COLOR_BOMB) sound.match5();
+      else if (spType===SPECIAL.AREA) sound.match4();
+      else sound.match4();
+    }
+    // 수집 목표 갱신
+    if (stageGoal) {
+      for (const cell of m.cells) {
+        if (grid[cell.r] && grid[cell.r][cell.c]) {
+          const gt = grid[cell.r][cell.c].type;
+          if (stageGoal.type==='collect' && gt===stageGoal.gemType) goalProgress.collected = (goalProgress.collected||0)+1;
+          if (stageGoal.type==='composite' && stageGoal.sub) {
+            for (const s of stageGoal.sub) {
+              if (s.type==='collect' && gt===s.gemType) goalProgress.collected = (goalProgress.collected||0)+1;
+            }
+          }
         }
-      });
+      }
     }
-  });
-  if(animCount === 0) {
-    toRemove.forEach(k2 => { const rr=Math.floor(k2/CONFIG.GRID_COLS), cc=k2%CONFIG.GRID_COLS; grid[rr][cc]=null; });
-    doCascadeGravityAndFill();
   }
-  bgPulseAlpha = 1;
+
+  // 특수 보석 폭발 처리 — 매치에 포함된 특수 보석 효과 적용
+  const extraCells = [];
+  for (const m of matches) {
+    for (const cell of m.cells) {
+      if (grid[cell.r]&&grid[cell.r][cell.c]&&grid[cell.r][cell.c].special) {
+        const sp = grid[cell.r][cell.c].special;
+        if (sp===SPECIAL.LINE_H) {
+          for (let i=0;i<CONFIG.GRID_SIZE;i++) extraCells.push({r:cell.r,c:i});
+          sound.lineBomb();
+        } else if (sp===SPECIAL.LINE_V) {
+          for (let i=0;i<CONFIG.GRID_SIZE;i++) extraCells.push({r:i,c:cell.c});
+          sound.lineBomb();
+        } else if (sp===SPECIAL.AREA) {
+          for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+            const nr=cell.r+dr,nc=cell.c+dc;
+            if (nr>=0&&nr<CONFIG.GRID_SIZE&&nc>=0&&nc<CONFIG.GRID_SIZE) extraCells.push({r:nr,c:nc});
+          }
+          sound.areaBomb();
+        }
+      }
+    }
+  }
+
+  // 모든 제거할 셀 수집
+  const allCells = new Set();
+  for (const m of matches) for (const c of m.cells) allCells.add(c.r*CONFIG.GRID_SIZE+c.c);
+  for (const c of extraCells) allCells.add(c.r*CONFIG.GRID_SIZE+c.c);
+
+  const toRemove = [];
+  allCells.forEach(v => toRemove.push({r:Math.floor(v/CONFIG.GRID_SIZE),c:v%CONFIG.GRID_SIZE}));
+
+  // 점수 팝업
+  spawnPopup(gridX + 4*cellSize, gridY + 4*cellSize, '+' + pts, '#FFD700');
+
+  removeGems(toRemove, () => cascadeStep());
 }
 
-function activateSpecial(r, c, removeSet) {
-  const gem = grid[r][c];
-  if(!gem) return;
-  const s = gem.special;
-  gem.special = SPECIAL.NONE;
-  if(s===SPECIAL.LINE_H){ for(let cc=0;cc<CONFIG.GRID_COLS;cc++) removeSet.add(r*CONFIG.GRID_COLS+cc); score+=CONFIG.SCORE_LINE_ACTIVATE; }
-  else if(s===SPECIAL.LINE_V){ for(let rr=0;rr<CONFIG.GRID_ROWS;rr++) removeSet.add(rr*CONFIG.GRID_COLS+c); score+=CONFIG.SCORE_LINE_ACTIVATE; }
-  else if(s===SPECIAL.BLAST){
-    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
-      const nr=r+dr, nc=c+dc;
-      if(nr>=0&&nr<CONFIG.GRID_ROWS&&nc>=0&&nc<CONFIG.GRID_COLS) removeSet.add(nr*CONFIG.GRID_COLS+nc);
-    }
-    score+=CONFIG.SCORE_BLAST_ACTIVATE;
-  } else if(s===SPECIAL.COLOR){
-    const tc=gem.color;
-    for(let rr=0;rr<CONFIG.GRID_ROWS;rr++) for(let cc=0;cc<CONFIG.GRID_COLS;cc++)
-      if(grid[rr][cc]&&grid[rr][cc].color===tc) removeSet.add(rr*CONFIG.GRID_COLS+cc);
-    score+=CONFIG.SCORE_COLOR_ACTIVATE;
-  }
-  sound.specialExplode();
-}
+// 보석 제거 애니메이션
+function removeGems(cells, cb) {
+  let count = 0;
+  const total = cells.length;
+  if (total===0) { cb(); return; }
 
-function doCascadeGravityAndFill() {
-  const gravMoves = applyGravity(grid);
-  updateGemPositions(grid);
-  let maxDist = 0;
-  gravMoves.forEach(m => { if(m.dist>maxDist) maxDist=m.dist; });
-  const gravDur = Math.min(maxDist * CONFIG.FALL_DURATION, CONFIG.MAX_FALL_DURATION);
-  gravMoves.forEach(m => {
-    const gem = grid[m.toR][m.toC];
-    gem.offsetY = -(m.dist * cellSize);
-    tw.add(gem, {offsetY:0}, Math.min(m.dist*CONFIG.FALL_DURATION, CONFIG.MAX_FALL_DURATION), 'easeOutBounce');
-  });
-  const afterGravity = () => {
-    const fills = fillEmpty(grid, CONFIG.NUM_COLORS);
-    updateGemPositions(grid);
-    let fillDone = 0;
-    const totalFills = fills.length;
-    if(totalFills === 0){ isProcessing=false; processCascade(); return; }
-    fills.forEach(f => {
-      const gem = grid[f.r][f.c];
-      gem.offsetY = -(f.dist*cellSize) - cellSize;
-      gem.alpha = 0;
-      tw.add(gem, {offsetY:0, alpha:1}, Math.min(f.dist*CONFIG.FALL_DURATION, CONFIG.MAX_FALL_DURATION), 'easeOutBounce', () => {
-        fillDone++;
-        if(fillDone >= totalFills){ isProcessing=false; processCascade(); }
-      });
+  for (const cell of cells) {
+    if (!grid[cell.r]||!grid[cell.r][cell.c]) { count++; if(count>=total)cb(); continue; }
+    const gem = grid[cell.r][cell.c];
+    // 얼음 처리
+    if (iceTiles[cell.r][cell.c] > 0) {
+      iceTiles[cell.r][cell.c]--;
+      goalProgress.iceBroken = (goalProgress.iceBroken||0)+1;
+    }
+    // 파티클 방사
+    spawnParticles(gridX + cell.c*cellSize + cellSize/2, gridY + cell.r*cellSize + cellSize/2, GEM_DEFS[gem.type%6].color, 6);
+
+    tweens.add(gem, {animScale:0, animAlpha:0}, CONFIG.REMOVE_DURATION, 'easeInBack', () => {
+      grid[cell.r][cell.c] = null;
+      count++;
+      if (count >= total) cb();
     });
-  };
-  if(gravMoves.length > 0) tw.add({v:0},{v:1}, gravDur+0.05, 'linear', afterGravity);
-  else afterGravity();
-}
-
-// ─── 스테이지 시작 ───
-function startStage(stageIdx) {
-  currentStage = stageIdx;
-  if(currentStage >= CONFIG.TOTAL_STAGES){ beginTransition(STATE.VICTORY); return; }
-  movesLeft = STAGES[currentStage].moves;
-  score = 0; cascadeCount = 0; isProcessing = false;
-  selectedGem = null; hintTimer = 0; hintPair = null;
-  resetProgress();
-  grid = createGrid(CONFIG.GRID_ROWS, CONFIG.GRID_COLS, CONFIG.NUM_COLORS);
-  calcGridLayout();
-  updateGemPositions(grid);
-  bgCacheDirty = true;
-  let safety = 0;
-  while(findMatches(grid).length > 0 && safety++ < 100) {
-    grid = createGrid(CONFIG.GRID_ROWS, CONFIG.GRID_COLS, CONFIG.NUM_COLORS);
-    updateGemPositions(grid);
   }
-  enterState(STATE.PLAYING);
 }
 
-// ─── 업데이트 ───
-function updateTitle(dt) { titleAnim += dt; }
-function updatePlaying(dt) {
-  hintTimer += dt; selectPulse += dt;
-  if(hintTimer >= CONFIG.HINT_IDLE_TIME && !hintPair) hintPair = findHint(grid);
-  if(hintPair) hintAlpha = 0.5+0.5*Math.sin(hintTimer*Math.PI*2/CONFIG.HINT_PULSE_PERIOD);
-}
-function updateAnimating(dt) {}
-function updateCascade(dt) {}
-function updateStageClear(dt) { clearAnimTimer += dt; }
-function updateGameOver(dt) { if(shakeTimer>0) shakeTimer -= dt; }
-function updateVictory(dt) { clearAnimTimer += dt; }
-function updateBgStars(dt) {
-  for(const s of bgStars){
-    s.y += s.speed*dt;
-    if(s.y > H){ s.y=0; s.x=Math.random()*W; }
-    s.alpha = 0.3+0.2*Math.sin(s.y*0.01);
+// 연쇄 낙하 → 재매칭
+function cascadeStep() {
+  const cfg = getStageConfig(currentStage);
+  const falls = applyGravityCalc(grid);
+
+  // 낙하 애니메이션
+  for (const f of falls) {
+    const gem = grid[f.toR][f.c];
+    if (!gem) continue;
+    gem.animY = -(f.toR - f.fromR)*cellSize;
+    tweens.add(gem, {animY:0}, CONFIG.FALL_DURATION * (f.toR-f.fromR), 'easeOutBounce');
   }
-  if(bgPulseAlpha > 0.85) bgPulseAlpha = Math.max(0.85, bgPulseAlpha - dt*0.5);
+
+  // 새 보석 채우기
+  const newGems = fillEmptyCells(grid, cfg.gems);
+  for (const ng of newGems) {
+    const gem = grid[ng.r][ng.c];
+    if (!gem) continue;
+    gem.animY = ng.fromRow * cellSize;
+    tweens.add(gem, {animY:0}, CONFIG.FALL_DURATION * Math.abs(ng.fromRow), 'easeOutBounce');
+  }
+
+  // 낙하 완료 후 재매칭 체크 (최대 낙하 시간 기준)
+  const maxFallDist = Math.max(1, ...falls.map(f=>f.toR-f.fromR), ...newGems.map(n=>Math.abs(n.fromRow)));
+  const fallTime = CONFIG.FALL_DURATION * maxFallDist + 0.05;
+
+  tweens.add({v:0},{v:1}, fallTime, 'linear', () => {
+    const newMatches = findMatches(grid);
+    if (newMatches.length > 0) {
+      comboCount++;
+      sound.comboHit(comboCount);
+      const pts = calcScore(newMatches, comboCount);
+      addScore(pts);
+      spawnPopup(gridX+4*cellSize, gridY+4*cellSize, 'x'+comboCount+' +'+pts, '#00D2FF');
+
+      // 특수 보석 생성
+      for (const m of newMatches) {
+        const spType = createSpecialType(m.type, m.len);
+        if (spType!==SPECIAL.NONE) {
+          const mid = m.cells[Math.floor(m.cells.length/2)];
+          let finalType = spType;
+          if (spType===SPECIAL.LINE_H && m.type==='v') finalType = SPECIAL.LINE_V;
+          m.cells = m.cells.filter(c=>!(c.r===mid.r&&c.c===mid.c));
+          grid[mid.r][mid.c] = createGemObj(m.gemType, finalType);
+          goalProgress.specialCreated = (goalProgress.specialCreated||0)+1;
+        }
+        // 수집 목표
+        for (const cell of m.cells) {
+          if (grid[cell.r]&&grid[cell.r][cell.c]) {
+            const gt=grid[cell.r][cell.c].type;
+            if (stageGoal&&stageGoal.type==='collect'&&gt===stageGoal.gemType) goalProgress.collected=(goalProgress.collected||0)+1;
+            if (stageGoal&&stageGoal.type==='composite'&&stageGoal.sub) {
+              for(const s of stageGoal.sub) if(s.type==='collect'&&gt===s.gemType) goalProgress.collected=(goalProgress.collected||0)+1;
+            }
+          }
+        }
+      }
+
+      // 특수 보석 효과
+      const extraCells = [];
+      for (const m of newMatches) for (const cell of m.cells) {
+        if (grid[cell.r]&&grid[cell.r][cell.c]&&grid[cell.r][cell.c].special) {
+          const sp=grid[cell.r][cell.c].special;
+          if(sp===SPECIAL.LINE_H) for(let i=0;i<CONFIG.GRID_SIZE;i++) extraCells.push({r:cell.r,c:i});
+          else if(sp===SPECIAL.LINE_V) for(let i=0;i<CONFIG.GRID_SIZE;i++) extraCells.push({r:i,c:cell.c});
+          else if(sp===SPECIAL.AREA) for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) {
+            const nr=cell.r+dr,nc=cell.c+dc;
+            if(nr>=0&&nr<CONFIG.GRID_SIZE&&nc>=0&&nc<CONFIG.GRID_SIZE) extraCells.push({r:nr,c:nc});
+          }
+        }
+      }
+      const allC=new Set();
+      for(const m of newMatches) for(const c of m.cells) allC.add(c.r*CONFIG.GRID_SIZE+c.c);
+      for(const c of extraCells) allC.add(c.r*CONFIG.GRID_SIZE+c.c);
+      const toRem=[];
+      allC.forEach(v=>toRem.push({r:Math.floor(v/CONFIG.GRID_SIZE),c:v%CONFIG.GRID_SIZE}));
+
+      removeGems(toRem, () => cascadeStep());
+    } else {
+      // 연쇄 종료
+      isResolving = false;
+      comboCount = 0;
+      // 판정 먼저, 저장 나중에 (Cycle 2 교훈)
+      if (checkGoalPure(stageGoal, goalProgress)) {
+        onStageClear();
+      } else if (movesLeft <= 0) {
+        onGameOver();
+      } else if (!hasValidMoves(grid, cfg.gems)) {
+        shuffleGridSafe(cfg.gems);
+      }
+      if (state==='RESOLVING') enterState('PLAYING');
+    }
+  });
 }
 
-// ─── 렌더링 ───
+// 스테이지 클리어
+function onStageClear() {
+  clearStars = getStarRating(movesLeft);
+  clearBonusScore = movesLeft * CONFIG.BONUS_PER_MOVE;
+  addScore(clearBonusScore);
+  // 저장
+  const prev = saveData.stars[currentStage] || 0;
+  if (clearStars > prev) saveData.stars[currentStage] = clearStars;
+  const prevScore = saveData.highScores[currentStage] || 0;
+  if (score > prevScore) saveData.highScores[currentStage] = score;
+  if (currentStage >= saveData.unlockedStage && currentStage < CONFIG.TOTAL_STAGES) {
+    saveData.unlockedStage = currentStage + 1;
+  }
+  writeSave();
+  sound.stageClear();
+  clearTimer = 0;
+  // 컨페티
+  for (let i=0;i<40;i++) {
+    spawnParticles(Math.random()*W, Math.random()*H*0.3, '#FFD700', 1);
+  }
+  enterState('STAGE_CLEAR');
+}
+
+// 게임오버
+function onGameOver() {
+  sound.gameOver();
+  shakeTimer = 0.5;
+  shakeIntensity = 8;
+  enterState('GAMEOVER');
+}
+
+/* ============================================================
+   파티클/팝업 스폰
+   ============================================================ */
+function spawnParticles(x, y, color, count) {
+  for (let i=0;i<count;i++) {
+    const p = particles.get();
+    if (!p) break;
+    p.active = true;
+    p.x = x; p.y = y;
+    const angle = Math.random()*Math.PI*2;
+    const spd = 80 + Math.random()*120;
+    p.vx = Math.cos(angle)*spd;
+    p.vy = Math.sin(angle)*spd;
+    p.gravity = 200;
+    p.life = p.maxLife = 0.6 + Math.random()*0.4;
+    p.alpha = 1;
+    p.scale = 1;
+    p.color = color;
+    p.size = 3 + Math.random()*4;
+  }
+}
+
+function spawnPopup(x, y, text, color) {
+  const p = popups.get();
+  if (!p) return;
+  p.active = true;
+  p.x = x; p.y = y;
+  p.vx = 0; p.vy = -60;
+  p.gravity = 0;
+  p.life = p.maxLife = 0.8;
+  p.alpha = 1; p.scale = 1;
+  p.text = text; p.color = color;
+}
+
+/* ============================================================
+   렌더링
+   ============================================================ */
+
 function render(st, dt) {
   ctx.save();
-  if(shakeTimer > 0){
-    const si = shakeIntensity*(shakeTimer/0.4);
-    ctx.translate((Math.random()-0.5)*si, (Math.random()-0.5)*si);
+
+  // 셰이크 효과
+  if (shakeTimer > 0) {
+    shakeTimer -= dt;
+    const sx = (Math.random()-0.5)*2*shakeIntensity*Math.min(1,shakeTimer/0.3);
+    const sy = (Math.random()-0.5)*2*shakeIntensity*Math.min(1,shakeTimer/0.3);
+    ctx.translate(sx, sy);
   }
-  if(bgCacheDirty || !bgCache) renderBgCache();
-  ctx.drawImage(bgCache, 0, 0, W, H);
-  for(const s of bgStars){
-    ctx.globalAlpha = s.alpha; ctx.fillStyle = '#8888dd';
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+
+  // 배경 그라디언트
+  drawBackground();
+
+  switch(st) {
+    case 'TITLE': drawTitle(dt); break;
+    case 'STAGE_SELECT': drawStageSelect(); break;
+    case 'PLAYING':
+    case 'RESOLVING':
+      drawGrid(); drawHUD(); drawParticlesAndPopups(); break;
+    case 'STAGE_CLEAR':
+      drawGrid(); drawHUD(); drawParticlesAndPopups(); drawStageClear(dt); break;
+    case 'GAMEOVER':
+      drawGrid(); drawHUD(); drawParticlesAndPopups(); drawGameOver(); break;
+    case 'PAUSED':
+      drawGrid(); drawHUD(); drawPaused(); break;
+  }
+
+  // 전환 오버레이
+  if (isTransitioning || transitionAlpha > 0) {
+    ctx.fillStyle = 'rgba(10,10,26,' + transitionAlpha + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.restore();
+}
+
+// 배경 (기하학적 퍼즐 패턴)
+function drawBackground() {
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,'#1A1A2E');
+  grd.addColorStop(1,'#16213E');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,0,W,H);
+
+  // 기하학 패턴 오버레이
+  ctx.strokeStyle = 'rgba(0,212,255,0.03)';
+  ctx.lineWidth = 1;
+  const spacing = 40;
+  for (let x = (titleTime*10)%spacing - spacing; x < W+spacing; x += spacing) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let y = (titleTime*8)%spacing - spacing; y < H+spacing; y += spacing) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+}
+
+// 타이틀 화면
+function drawTitle(dt) {
+  titleTime += dt;
+  const cx = W/2, cy = H*0.35;
+
+  // 배경 다이아몬드 파티클
+  ctx.save();
+  for (let i=0;i<12;i++) {
+    const t = titleTime*0.5 + i*0.52;
+    const px = cx + Math.sin(t*1.3+i)*W*0.3;
+    const py = cy + Math.cos(t*0.9+i*2)*H*0.2;
+    const sz = 8 + Math.sin(t*2)*4;
+    const a = 0.15 + Math.sin(t*1.5)*0.1;
+    ctx.fillStyle = GEM_DEFS[i%6].color;
+    ctx.globalAlpha = a;
+    drawDiamond(ctx, px, py, sz);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
-  switch(st){
-    case STATE.TITLE: renderTitle(); break;
-    case STATE.PLAYING: case STATE.ANIMATING: case STATE.CASCADE: case STATE.PAUSED:
-      renderGame(); if(st===STATE.PAUSED) renderPause(); break;
-    case STATE.STAGE_CLEAR: renderGame(); renderStageClear(); break;
-    case STATE.GAME_OVER: renderGame(); renderGameOver(); break;
-    case STATE.VICTORY: renderGame(); renderVictory(); break;
-  }
-  renderParticles();
-  renderPopups();
-  if(transitioning){
-    ctx.fillStyle = '#0a0a1a';
-    ctx.globalAlpha = transitionFadeObj.alpha || 0;
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalAlpha = 1;
-  }
   ctx.restore();
-}
 
-// ─── 타이틀 ───
-function renderTitle() {
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  // 기하학적 그리드 패턴 (퍼즐 장르 — 시안 글로우)
-  ctx.save(); ctx.globalAlpha = 0.12; ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 0.5;
-  for(let i=0;i<12;i++){ const y = (titleAnim*20+i*60)%(H+60)-30; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  for(let i=0;i<8;i++){ const x = (titleAnim*15+i*80)%(W+80)-40; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  ctx.restore();
-  // 장식 보석
-  const demo = [{c:0,x:W*0.15,y:H*0.3},{c:1,x:W*0.85,y:H*0.35},{c:2,x:W*0.1,y:H*0.6},{c:3,x:W*0.9,y:H*0.65},{c:4,x:W*0.2,y:H*0.8},{c:5,x:W*0.8,y:H*0.25}];
-  for(const d of demo){
-    const by = Math.sin(titleAnim*2+d.c)*8;
-    drawGem(ctx, d.x, d.y+by, cellSize||40, {color:d.c,special:SPECIAL.NONE,alpha:0.5,scale:0.7});
-  }
-  // 제목
-  const ty = H*0.28;
-  ctx.save();
-  ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 20;
-  ctx.font = 'bold '+Math.min(42,W*0.09)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#00d4ff'; ctx.fillText('GEM MATCH', W/2, ty);
-  ctx.font = 'bold '+Math.min(52,W*0.11)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#6c3cf7'; ctx.shadowBlur = 25;
-  ctx.fillText('BLITZ', W/2, ty+Math.min(50,W*0.1));
-  ctx.restore();
-  // 스캔라인
-  ctx.save(); ctx.globalAlpha = 0.04;
-  for(let y=0;y<H;y+=3){ ctx.fillStyle='#000'; ctx.fillRect(0,y,W,1); }
-  ctx.restore();
-  // 부제
-  ctx.font = Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#8080a0';
-  ctx.fillText('Match-3 Puzzle \u2022 30 Stages', W/2, ty+Math.min(90,W*0.18));
-  // 진행 상태
-  if(starsEarned.length > 0){
-    const cleared = starsEarned.filter(s=>s>0).length;
-    ctx.font = Math.min(14,W*0.03)+'px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = '#ffcc00';
-    ctx.fillText('\uC9C4\uD589: '+cleared+'/'+CONFIG.TOTAL_STAGES+' \uD074\uB9AC\uC5B4', W/2, H*0.55);
-    ctx.fillStyle = '#e0e0ff';
-    ctx.fillText('\uCD5C\uACE0 \uC810\uC218: '+bestScore.toLocaleString(), W/2, H*0.60);
-  }
-  // 시작 버튼
-  const btnW = Math.max(200, W*0.4), btnH = Math.max(CONFIG.MIN_TOUCH_TARGET, 52);
-  const btnX = W/2-btnW/2, btnY = H*0.68;
-  ctx.save(); ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 10;
-  ctx.fillStyle = '#2a2a5a'; roundRect(ctx, btnX, btnY, btnW, btnH, 8); ctx.fill();
-  ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 1.5; roundRect(ctx, btnX, btnY, btnW, btnH, 8); ctx.stroke();
-  ctx.restore();
-  ctx.font = 'bold '+Math.min(18,W*0.04)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#e0e0ff';
-  ctx.fillText(starsEarned.length>0 ? '\uC774\uC5B4\uD558\uAE30 (Stage '+(currentStage+1)+')' : '\uAC8C\uC784 \uC2DC\uC791', W/2, btnY+btnH/2);
-  // 새 게임 버튼
-  if(starsEarned.length > 0){
-    const b2y = btnY+btnH+12;
-    ctx.fillStyle = '#1a1a3a'; roundRect(ctx, btnX, b2y, btnW, btnH, 8); ctx.fill();
-    ctx.strokeStyle = '#505070'; ctx.lineWidth = 1; roundRect(ctx, btnX, b2y, btnW, btnH, 8); ctx.stroke();
-    ctx.font = Math.min(15,W*0.033)+'px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = '#8080a0'; ctx.fillText('\uCC98\uC74C\uBD80\uD130 \uC2DC\uC791', W/2, b2y+btnH/2);
-  }
-  ctx.font = Math.min(12,W*0.025)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#505070';
-  ctx.fillText('\uC2A4\uC640\uC774\uD504/\uB4DC\uB798\uADF8\uB85C \uBCF4\uC11D \uAD50\uD658 | P: \uC77C\uC2DC\uC815\uC9C0 | H: \uD78C\uD2B8', W/2, H*0.94);
-}
-
-// ─── 게임 화면 ───
-function renderGame() {
-  const hudY = 10, fs = Math.min(16, W*0.035);
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'left'; ctx.font = 'bold '+fs+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#e0e0ff'; ctx.fillText('Stage '+(currentStage+1), 12, hudY);
-  ctx.textAlign = 'center'; ctx.fillStyle = '#ffcc00';
-  ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 4;
-  ctx.fillText(score.toLocaleString(), W/2, hudY); ctx.shadowBlur = 0;
-  ctx.textAlign = 'right'; ctx.fillStyle = '#00ccff';
-  ctx.fillText('Moves: '+movesLeft, W-12, hudY);
+  // 제목 — 시안 글로우
+  const titleText = 'GEM MATCH';
+  const subText = 'BLITZ';
   ctx.textAlign = 'center';
-  ctx.font = Math.min(13,W*0.028)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#8080a0'; ctx.fillText(getGoalText(), W/2, hudY+fs+4);
-  // 진행바
-  const barY = hudY+fs+20, barW = Math.min(W*0.6,300), barH = 6, barX = W/2-barW/2;
-  ctx.fillStyle = '#1a1a3a'; roundRect(ctx, barX, barY, barW, barH, 3); ctx.fill();
-  const prog = getGoalProgress(), fillW = Math.min(barW*prog, barW);
-  if(fillW > 0){
-    const grd = ctx.createLinearGradient(barX,0,barX+fillW,0);
-    grd.addColorStop(0,'#33ff66'); grd.addColorStop(1,'#ffcc00');
-    ctx.fillStyle = grd; roundRect(ctx, barX, barY, fillW, barH, 3); ctx.fill();
+  ctx.textBaseline = 'middle';
+
+  // 글로우
+  ctx.shadowColor = '#00D2FF';
+  ctx.shadowBlur = 20 + Math.sin(titleTime*3)*10;
+  ctx.font = 'bold ' + Math.floor(W*0.09) + 'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText(titleText, cx, cy);
+
+  ctx.shadowBlur = 15 + Math.sin(titleTime*3+1)*8;
+  ctx.shadowColor = '#E94560';
+  ctx.font = 'bold ' + Math.floor(W*0.12) + 'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText(subText, cx, cy + W*0.1);
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
+
+  // 스캔라인 효과
+  ctx.fillStyle = 'rgba(0,0,0,0.04)';
+  for (let y=0;y<H;y+=3) ctx.fillRect(0,y,W,1);
+
+  // 안내 텍스트 (깜빡임)
+  if (Math.sin(titleTime*4)>-0.3) {
+    ctx.font = Math.floor(W*0.04)+'px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#00D2FF';
+    ctx.fillText('TAP TO START', cx, H*0.7);
   }
-  // 보석
-  for(let r=0;r<CONFIG.GRID_ROWS;r++) for(let c=0;c<CONFIG.GRID_COLS;c++){
-    const gem = grid[r] ? grid[r][c] : null;
-    if(!gem) continue;
-    const gx = gem.x+(gem.offsetX||0), gy = gem.y+(gem.offsetY||0);
-    if(selectedGem && selectedGem.r===r && selectedGem.c===c){
-      const pulse = 1.05+0.05*Math.sin(selectPulse*Math.PI*2/CONFIG.SELECT_PULSE_PERIOD);
+
+  // 버전
+  ctx.font = Math.floor(W*0.025)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#505070';
+  ctx.fillText('v1.0 — InfiniTriX', cx, H*0.92);
+}
+
+// 스테이지 선택 화면
+function drawStageSelect() {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // 타이틀
+  ctx.font = 'bold '+Math.floor(W*0.06)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#00D2FF';
+  ctx.shadowColor = '#00D2FF'; ctx.shadowBlur = 10;
+  ctx.fillText('STAGE SELECT', W/2, 40);
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+  // 스테이지 그리드 (5열×6행)
+  const cols = 5, rows = 6;
+  const pad = 12;
+  const btnW = touchSafe(Math.floor((W - pad*(cols+1)) / cols));
+  const btnH = touchSafe(btnW * 0.8);
+  const startY = 80 - stageScrollY;
+
+  for (let i=0;i<CONFIG.TOTAL_STAGES;i++) {
+    const col = i % cols, row = Math.floor(i/cols);
+    const x = pad + col*(btnW+pad);
+    const y = startY + row*(btnH+pad);
+    if (y+btnH<0 || y>H) continue;
+
+    const sn = i+1;
+    const unlocked = sn <= saveData.unlockedStage;
+    const stars = saveData.stars[sn] || 0;
+
+    // 버튼 배경
+    ctx.fillStyle = unlocked ? (sn===currentStage?'#E94560':'#0F3460') : '#0a0a1a';
+    ctx.strokeStyle = unlocked ? '#00D2FF' : '#1e1e30';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, x, y, btnW, btnH, 6);
+    ctx.fill(); ctx.stroke();
+
+    // 숫자
+    ctx.font = 'bold '+Math.floor(btnW*0.35)+'px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = unlocked ? '#e0e0f0' : '#505070';
+    ctx.fillText(sn+'', x+btnW/2, y+btnH*0.4);
+
+    // 별
+    if (stars>0) {
+      const starSize = Math.floor(btnW*0.12);
+      for (let s=0;s<3;s++) {
+        ctx.fillStyle = s<stars ? '#FFD700' : '#1e1e30';
+        ctx.font = starSize+'px "Segoe UI"';
+        ctx.fillText('★', x+btnW/2+(s-1)*(starSize+2), y+btnH*0.75);
+      }
+    }
+
+    // 잠금 아이콘
+    if (!unlocked) {
+      ctx.font = Math.floor(btnW*0.25)+'px "Segoe UI"';
+      ctx.fillStyle = '#505070';
+      ctx.fillText('🔒', x+btnW/2, y+btnH*0.75);
+    }
+  }
+
+  // 뒤로가기 버튼
+  const backW = touchSafe(80), backH = touchSafe(36);
+  ctx.fillStyle = '#0F3460';
+  ctx.strokeStyle = '#E94560';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, 10, H-backH-10, backW, backH, 4);
+  ctx.fill(); ctx.stroke();
+  ctx.font = 'bold '+Math.floor(backH*0.45)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('◀ BACK', 10+backW/2, H-backH/2-10);
+}
+
+// 그리드 렌더링
+function drawGrid() {
+  const sz = CONFIG.GRID_SIZE;
+
+  // 그리드 배경
+  ctx.fillStyle = 'rgba(15,52,96,0.4)';
+  roundRect(ctx, gridX-6, gridY-6, sz*cellSize+12, sz*cellSize+12, 8);
+  ctx.fill();
+
+  // 셀
+  for (let r=0;r<sz;r++) {
+    for (let c=0;c<sz;c++) {
+      const x = gridX + c*cellSize;
+      const y = gridY + r*cellSize;
+
+      // 셀 배경
+      ctx.fillStyle = (r+c)%2===0 ? 'rgba(15,52,96,0.3)' : 'rgba(15,52,96,0.15)';
+      ctx.fillRect(x, y, cellSize, cellSize);
+
+      // 셀 테두리
+      ctx.strokeStyle = 'rgba(233,69,96,0.15)';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x, y, cellSize, cellSize);
+
+      // 얼음 타일
+      if (iceTiles[r][c] > 0) {
+        const iceAlpha = 0.15 + iceTiles[r][c]*0.12;
+        ctx.fillStyle = 'rgba(100,180,255,'+iceAlpha+')';
+        ctx.fillRect(x+1, y+1, cellSize-2, cellSize-2);
+        // 빗금
+        ctx.strokeStyle = 'rgba(200,230,255,'+(0.2+iceTiles[r][c]*0.1)+')';
+        ctx.lineWidth = 1;
+        for (let d=-cellSize;d<cellSize;d+=8) {
+          ctx.beginPath();
+          ctx.moveTo(x+Math.max(0,d), y+Math.max(0,-d));
+          ctx.lineTo(x+Math.min(cellSize,d+cellSize), y+Math.min(cellSize,-d+cellSize));
+          ctx.stroke();
+        }
+        if (iceTiles[r][c]>=2) {
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x+2, y+2, cellSize-4, cellSize-4);
+        }
+      }
+
+      // 보석
+      const gem = grid[r][c];
+      if (!gem) continue;
+
       ctx.save();
-      const sv = gem.scale; gem.scale = sv*pulse;
-      ctx.shadowColor = GEM_COLORS[gem.color] ? GEM_COLORS[gem.color].main : '#fff';
-      ctx.shadowBlur = 16; drawGem(ctx, gx, gy, cellSize*0.8, gem);
-      gem.scale = sv; ctx.restore();
-    } else if(hintPair && ((hintPair.r1===r&&hintPair.c1===c)||(hintPair.r2===r&&hintPair.c2===c))){
-      ctx.save(); ctx.globalAlpha = hintAlpha; ctx.shadowColor='#00d4ff'; ctx.shadowBlur=16;
-      drawGem(ctx, gx, gy, cellSize*0.8, gem); ctx.restore();
-      drawGem(ctx, gx, gy, cellSize*0.8, gem);
-    } else {
-      drawGem(ctx, gx, gy, cellSize*0.8, gem);
+      const gx = x + cellSize/2 + (gem.animX||0);
+      const gy = y + cellSize/2 + (gem.animY||0);
+      const sc = gem.animScale||1;
+      const al = gem.animAlpha!==undefined ? gem.animAlpha : 1;
+      ctx.globalAlpha = al;
+      ctx.translate(gx, gy);
+      ctx.scale(sc, sc);
+
+      const gemSize = cellSize*0.38;
+      const def = GEM_DEFS[gem.type % 6];
+
+      // 특수 보석 글로우
+      if (gem.special) {
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 8 + Math.sin(titleTime*4)*4;
+      }
+
+      // 보석 도형
+      ctx.fillStyle = def.color;
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1.5;
+
+      switch(def.shape) {
+        case 'diamond': drawDiamond(ctx,0,0,gemSize); break;
+        case 'circle':
+          ctx.beginPath(); ctx.arc(0,0,gemSize,0,Math.PI*2); break;
+        case 'triangle': drawTriangle(ctx,0,0,gemSize); break;
+        case 'square':
+          ctx.beginPath(); ctx.rect(-gemSize*0.8,-gemSize*0.8,gemSize*1.6,gemSize*1.6); break;
+        case 'star': drawStar(ctx,0,0,gemSize,gemSize*0.5,5); break;
+        case 'hexagon': drawHexagon(ctx,0,0,gemSize); break;
+      }
+      ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+      // 글자 오버레이
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = 'bold '+Math.floor(gemSize*0.7)+'px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(def.letter, 0, 1);
+
+      // 특수 보석 마커
+      if (gem.special===SPECIAL.LINE_H) {
+        ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-gemSize*0.6,0); ctx.lineTo(gemSize*0.6,0); ctx.stroke();
+        ctx.fillStyle='#FFF';ctx.font='bold '+Math.floor(gemSize*0.5)+'px sans-serif';
+        ctx.fillText('↔',0,0);
+      } else if (gem.special===SPECIAL.LINE_V) {
+        ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0,-gemSize*0.6); ctx.lineTo(0,gemSize*0.6); ctx.stroke();
+        ctx.fillStyle='#FFF';ctx.font='bold '+Math.floor(gemSize*0.5)+'px sans-serif';
+        ctx.fillText('↕',0,0);
+      } else if (gem.special===SPECIAL.AREA) {
+        ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-gemSize*0.5,0); ctx.lineTo(gemSize*0.5,0);
+        ctx.moveTo(0,-gemSize*0.5); ctx.lineTo(0,gemSize*0.5); ctx.stroke();
+      } else if (gem.special===SPECIAL.COLOR_BOMB) {
+        // 무지개 원
+        const rainbow = ['#FF4757','#FFA502','#ECCC68','#2ED573','#3742FA','#A55EEA'];
+        for (let i=0;i<6;i++) {
+          ctx.beginPath();
+          ctx.arc(0,0,gemSize*0.5, i*Math.PI/3, (i+1)*Math.PI/3);
+          ctx.lineTo(0,0); ctx.closePath();
+          ctx.fillStyle = rainbow[i]; ctx.fill();
+        }
+      }
+
+      ctx.restore();
+
+      // 선택 하이라이트
+      if (selectedGem && selectedGem.r===r && selectedGem.c===c) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#FFF'; ctx.shadowBlur = 10;
+        ctx.strokeRect(x+2, y+2, cellSize-4, cellSize-4);
+        ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+      }
+
+      // 키보드 커서
+      if (state==='PLAYING' && cursorR===r && cursorC===c) {
+        ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4,4]);
+        ctx.strokeRect(x+1, y+1, cellSize-2, cellSize-2);
+        ctx.setLineDash([]);
+      }
     }
   }
-  // 키보드 커서
-  if(state === STATE.PLAYING){
-    ctx.save(); ctx.strokeStyle='#00d4ff88'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
-    ctx.strokeRect(gridOffsetX+cursorGem.c*cellSize+2, gridOffsetY+cursorGem.r*cellSize+2, cellSize-4, cellSize-4);
-    ctx.setLineDash([]); ctx.restore();
-  }
+}
+
+// HUD 렌더링
+function drawHUD() {
+  const hudH = 38;
+  ctx.fillStyle = 'rgba(10,10,26,0.8)';
+  ctx.fillRect(0,0,W,hudH);
+
+  ctx.textBaseline = 'middle';
+  const fy = hudH/2;
+
   // 일시정지 버튼
-  const pbS = CONFIG.MIN_TOUCH_TARGET, pbx = W-pbS-8, pby = gridOffsetY+cellSize*CONFIG.GRID_ROWS+8;
-  ctx.fillStyle = '#2a2a5a'; roundRect(ctx, pbx, pby, pbS, pbS, 6); ctx.fill();
-  ctx.fillStyle = '#e0e0ff';
-  ctx.fillRect(pbx+pbS*0.3, pby+pbS*0.25, pbS*0.12, pbS*0.5);
-  ctx.fillRect(pbx+pbS*0.55, pby+pbS*0.25, pbS*0.12, pbS*0.5);
+  const btnSz = touchSafe(38);
+  ctx.fillStyle = '#0F3460';
+  ctx.strokeStyle = '#00D2FF';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 6, (hudH-btnSz)/2, btnSz, btnSz, 4);
+  ctx.fill(); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.font = Math.floor(btnSz*0.5)+'px "Segoe UI"';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('⏸', 6+btnSz/2, fy);
+
+  // 음소거 버튼
+  const muteX = W - btnSz - 6;
+  ctx.fillStyle = '#0F3460';
+  ctx.strokeStyle = '#00D2FF';
+  roundRect(ctx, muteX, (hudH-btnSz)/2, btnSz, btnSz, 4);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText(muted?'🔇':'🔊', muteX+btnSz/2, fy);
+
+  // 스테이지 번호
+  ctx.textAlign = 'left';
+  ctx.font = 'bold '+Math.floor(W*0.035)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('Stage '+currentStage, btnSz+16, fy);
+
+  // 점수
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold '+Math.floor(W*0.035)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(score.toLocaleString(), muteX-10, fy);
+
+  // 이동 횟수
+  const movesY = hudH + 4;
+  ctx.textAlign = 'center';
+  ctx.font = 'bold '+Math.floor(W*0.032)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#00D2FF';
+  ctx.fillText('Moves: '+movesLeft, W/2, movesY+10);
+
+  // 목표 표시
+  const goalY = movesY + 24;
+  drawGoalBar(goalY);
 }
 
-function renderPause() {
-  ctx.fillStyle = 'rgba(10,10,26,0.85)'; ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.font='bold '+Math.min(36,W*0.08)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#00d4ff'; ctx.shadowColor='#00d4ff'; ctx.shadowBlur=15;
-  ctx.fillText('PAUSED', W/2, H*0.4); ctx.shadowBlur=0;
-  ctx.font=Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#8080a0'; ctx.fillText('P \uB610\uB294 ESC\uB85C \uC7AC\uAC1C', W/2, H*0.5);
-  const bw=Math.max(160,W*0.35), bh=CONFIG.MIN_TOUCH_TARGET;
-  ctx.fillStyle='#2a2a5a'; roundRect(ctx, W/2-bw/2, H*0.58, bw, bh, 8); ctx.fill();
-  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=1; roundRect(ctx, W/2-bw/2, H*0.58, bw, bh, 8); ctx.stroke();
-  ctx.font='bold '+Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#e0e0ff'; ctx.fillText('\uC7AC\uAC1C', W/2, H*0.58+bh/2);
+// 목표 바 그리기
+function drawGoalBar(y) {
+  if (!stageGoal) return;
+  ctx.textAlign = 'center';
+  ctx.font = Math.floor(W*0.028)+'px "Segoe UI", system-ui, sans-serif';
+
+  const goalText = getGoalText(stageGoal);
+  ctx.fillStyle = 'rgba(10,10,26,0.6)';
+  roundRect(ctx, W*0.1, y, W*0.8, 22, 4);
+  ctx.fill();
+
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText(goalText, W/2, y+12);
 }
 
-function renderStageClear() {
-  ctx.fillStyle='rgba(10,10,26,0.8)'; ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.save(); ctx.shadowColor='#33ff66'; ctx.shadowBlur=20;
-  ctx.font='bold '+Math.min(36,W*0.08)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#33ff66'; ctx.fillText('STAGE CLEAR!', W/2, H*0.28); ctx.restore();
-  const starY=H*0.38, starSz=Math.min(30,W*0.06);
-  for(let i=0;i<3;i++){
-    const sx=W/2+(i-1)*starSz*1.5;
-    ctx.save();
-    if(i<clearStars){ ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=10; }
-    else ctx.fillStyle='#505070';
-    drawStar5(ctx, sx, starY, starSz); ctx.restore();
+// 목표 텍스트 생성
+function getGoalText(goal) {
+  if (goal.type==='score') return '🎯 Score '+goalProgress.score+'/'+goal.target;
+  if (goal.type==='collect') {
+    const def = GEM_DEFS[goal.gemType%6];
+    return '🎯 '+def.name+' '+(goalProgress.collected||0)+'/'+goal.target;
   }
-  ctx.font='bold '+Math.min(24,W*0.05)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#ffcc00'; ctx.fillText('Score: '+score.toLocaleString(), W/2, H*0.50);
-  ctx.font=Math.min(14,W*0.03)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#8080a0'; ctx.fillText('\uC794\uC5EC \uC774\uB3D9: '+movesLeft, W/2, H*0.56);
-  const bw=Math.max(180,W*0.4), bh=CONFIG.MIN_TOUCH_TARGET, by=H*0.64;
-  ctx.fillStyle='#2a2a5a'; roundRect(ctx, W/2-bw/2, by, bw, bh, 8); ctx.fill();
-  ctx.strokeStyle='#33ff66'; ctx.lineWidth=1.5; roundRect(ctx, W/2-bw/2, by, bw, bh, 8); ctx.stroke();
-  ctx.font='bold '+Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#e0e0ff';
-  ctx.fillText(currentStage+1>=CONFIG.TOTAL_STAGES?'\uC5D4\uB529 \uBCF4\uAE30':'\uB2E4\uC74C \uC2A4\uD14C\uC774\uC9C0', W/2, by+bh/2);
-}
-
-function renderGameOver() {
-  ctx.fillStyle='rgba(10,10,26,0.85)'; ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.save(); ctx.shadowColor='#ef4444'; ctx.shadowBlur=20;
-  ctx.font='bold '+Math.min(36,W*0.08)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#ef4444'; ctx.fillText('GAME OVER', W/2, H*0.32); ctx.restore();
-  ctx.font=Math.min(18,W*0.04)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#ffcc00'; ctx.fillText('Score: '+score.toLocaleString(), W/2, H*0.42);
-  ctx.font=Math.min(14,W*0.03)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#8080a0'; ctx.fillText('\uBAA9\uD45C: '+getGoalText(), W/2, H*0.48);
-  const bw=Math.max(160,W*0.35), bh=CONFIG.MIN_TOUCH_TARGET, by=H*0.58;
-  ctx.fillStyle='#2a2a5a'; roundRect(ctx, W/2-bw/2, by, bw, bh, 8); ctx.fill();
-  ctx.strokeStyle='#ef4444'; ctx.lineWidth=1.5; roundRect(ctx, W/2-bw/2, by, bw, bh, 8); ctx.stroke();
-  ctx.font='bold '+Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#e0e0ff'; ctx.fillText('\uB2E4\uC2DC \uC2DC\uB3C4 (R)', W/2, by+bh/2);
-  const b2y=by+bh+12;
-  ctx.fillStyle='#1a1a3a'; roundRect(ctx, W/2-bw/2, b2y, bw, bh, 8); ctx.fill();
-  ctx.strokeStyle='#505070'; ctx.lineWidth=1; roundRect(ctx, W/2-bw/2, b2y, bw, bh, 8); ctx.stroke();
-  ctx.font=Math.min(14,W*0.03)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#8080a0'; ctx.fillText('\uD0C0\uC774\uD2C0\uB85C', W/2, b2y+bh/2);
-}
-
-function renderVictory() {
-  ctx.fillStyle='rgba(10,10,26,0.85)'; ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.save(); ctx.shadowColor='#ffcc00'; ctx.shadowBlur=25;
-  ctx.font='bold '+Math.min(40,W*0.09)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#ffcc00'; ctx.fillText('VICTORY!', W/2, H*0.25); ctx.restore();
-  ctx.font=Math.min(18,W*0.04)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#e0e0ff'; ctx.fillText('30 \uC2A4\uD14C\uC774\uC9C0 \uBAA8\uB450 \uD074\uB9AC\uC5B4!', W/2, H*0.35);
-  ctx.font='bold '+Math.min(24,W*0.05)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#ffcc00'; ctx.fillText('Total: '+totalScore.toLocaleString(), W/2, H*0.44);
-  const ts = starsEarned.reduce((s,v)=>s+(v||0),0);
-  ctx.font=Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#ffcc00'; ctx.fillText('\u2605 '+ts+' / '+(CONFIG.TOTAL_STAGES*3), W/2, H*0.52);
-  const bw=Math.max(160,W*0.35), bh=CONFIG.MIN_TOUCH_TARGET, by=H*0.62;
-  ctx.fillStyle='#2a2a5a'; roundRect(ctx, W/2-bw/2, by, bw, bh, 8); ctx.fill();
-  ctx.strokeStyle='#ffcc00'; ctx.lineWidth=1.5; roundRect(ctx, W/2-bw/2, by, bw, bh, 8); ctx.stroke();
-  ctx.font='bold '+Math.min(16,W*0.035)+'px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle='#e0e0ff'; ctx.fillText('\uD0C0\uC774\uD2C0\uB85C', W/2, by+bh/2);
-}
-
-function renderParticles() {
-  for(const p of particles.items){
-    if(!p.active) continue;
-    ctx.save(); ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color;
-    ctx.shadowColor=p.color; ctx.shadowBlur=4;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.size*(p.scale||1), 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-}
-
-function renderPopups() {
-  for(const p of popups.items){
-    if(!p.active) continue;
-    ctx.save(); ctx.globalAlpha=p.alpha;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.font='bold '+(p.size||16)+'px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle=p.color||'#ffcc00'; ctx.shadowColor=p.color||'#ffcc00'; ctx.shadowBlur=6;
-    ctx.fillText(p.text||'', p.x, p.y); ctx.restore();
-  }
-}
-
-// ─── 목표 텍스트/진행률 ───
-function getGoalText() {
-  const s = STAGES[currentStage];
-  if(!s) return '';
-  if(s.goalType==='score') return '\uC810\uC218 '+s.goalVal.toLocaleString()+' \uB2EC\uC131';
-  if(s.goalType==='color'){
-    const parts = [];
-    for(let i=0;i<s.goalColors.length;i++) parts.push(GEM_COLORS[s.goalColors[i]].name+' '+s.goalAmounts[i]+'\uAC1C');
-    return parts.join(' + ')+' \uC81C\uAC70';
-  }
-  if(s.goalType==='special'){
-    const parts = [];
-    for(let i=0;i<s.goalSpecials.length;i++){
-      const nm = s.goalSpecials[i]==='any'?'\uD2B9\uC218':s.goalSpecials[i]==='line'?'\uB77C\uC778':s.goalSpecials[i]==='blast'?'\uBC94\uC704':'\uC0C9\uC0C1';
-      parts.push(nm+' '+s.goalAmounts[i]+'\uAC1C');
-    }
-    return parts.join(' + ')+' \uC0DD\uC131';
+  if (goal.type==='special') return '🎯 Special '+(goalProgress.specialCreated||0)+'/'+goal.target;
+  if (goal.type==='ice') return '🎯 Ice '+(goalProgress.iceBroken||0)+'/'+goal.target;
+  if (goal.type==='composite') {
+    return goal.sub.map(s=>getGoalText(s)).join(' | ');
   }
   return '';
 }
 
-function getGoalProgress() {
-  const s = STAGES[currentStage];
-  if(!s) return 0;
-  if(s.goalType==='score') return Math.min(1, score/s.goalVal);
-  if(s.goalType==='color'){
-    let total=0, done=0;
-    for(let i=0;i<s.goalColors.length;i++){
-      total += s.goalAmounts[i];
-      done += Math.min(stageProgress.colorCount[s.goalColors[i]]||0, s.goalAmounts[i]);
-    }
-    return total>0 ? done/total : 0;
-  }
-  if(s.goalType==='special'){
-    let total=0, done=0;
-    for(let i=0;i<s.goalSpecials.length;i++){
-      total += s.goalAmounts[i];
-      const k = s.goalSpecials[i];
-      if(k==='any') done += Math.min((stageProgress.lineCount||0)+(stageProgress.blastCount||0)+(stageProgress.colorCount2||0), s.goalAmounts[i]);
-      else if(k==='line') done += Math.min(stageProgress.lineCount||0, s.goalAmounts[i]);
-      else if(k==='blast') done += Math.min(stageProgress.blastCount||0, s.goalAmounts[i]);
-      else if(k==='color') done += Math.min(stageProgress.colorCount2||0, s.goalAmounts[i]);
-    }
-    return total>0 ? done/total : 0;
-  }
-  return 0;
+// 파티클과 팝업 렌더링
+function drawParticlesAndPopups() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*p.scale, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  popups.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold '+Math.floor(W*0.04*p.scale)+'px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  });
+  ctx.globalAlpha = 1;
 }
 
-// ─── 입력 유틸 ───
-function pixelToCell(px, py) {
-  const c = Math.floor((px-gridOffsetX)/cellSize);
-  const r = Math.floor((py-gridOffsetY)/cellSize);
-  if(r>=0&&r<CONFIG.GRID_ROWS&&c>=0&&c<CONFIG.GRID_COLS) return {r,c};
+// 스테이지 클리어 화면
+function drawStageClear(dt) {
+  clearTimer += dt;
+  ctx.fillStyle = 'rgba(10,10,26,0.7)';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const cy = H*0.35;
+
+  // 타이틀
+  ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 15;
+  ctx.font = 'bold '+Math.floor(W*0.08)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText('STAGE CLEAR!', W/2, cy);
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+  // 별
+  const starSize = Math.floor(W*0.08);
+  for (let i=0;i<3;i++) {
+    const delay = i*0.2;
+    const appear = Math.min(1, Math.max(0, (clearTimer-0.3-delay)/0.3));
+    ctx.globalAlpha = appear;
+    ctx.font = Math.floor(starSize*(0.8+appear*0.2))+'px "Segoe UI"';
+    ctx.fillStyle = i<clearStars ? '#FFD700' : '#505070';
+    ctx.fillText('★', W/2+(i-1)*(starSize+8), cy+starSize*1.5);
+  }
+  ctx.globalAlpha = 1;
+
+  // 점수
+  ctx.font = Math.floor(W*0.04)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('Score: '+score.toLocaleString(), W/2, cy+starSize*2.8);
+  ctx.fillStyle = '#00D2FF';
+  ctx.fillText('Bonus: +'+clearBonusScore, W/2, cy+starSize*3.5);
+
+  // 버튼들
+  if (clearTimer > 1) {
+    const btnW = touchSafe(W*0.35), btnH = touchSafe(40);
+    const gap = 20;
+    // 다음 스테이지
+    if (currentStage < CONFIG.TOTAL_STAGES) {
+      ctx.fillStyle = '#E94560'; ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
+      roundRect(ctx, W/2-btnW-gap/2, H*0.72, btnW, btnH, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.font = 'bold '+Math.floor(btnH*0.4)+'px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#FFF';
+      ctx.fillText('NEXT ▶', W/2-gap/2-btnW/2, H*0.72+btnH/2);
+    }
+    // 스테이지 선택
+    ctx.fillStyle = '#0F3460'; ctx.strokeStyle = '#00D2FF'; ctx.lineWidth = 2;
+    const selectX = currentStage<CONFIG.TOTAL_STAGES ? W/2+gap/2 : W/2-btnW/2;
+    roundRect(ctx, selectX, H*0.72, btnW, btnH, 6);
+    ctx.fill(); ctx.stroke();
+    ctx.font = 'bold '+Math.floor(btnH*0.4)+'px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#e0e0f0';
+    ctx.fillText('SELECT', selectX+btnW/2, H*0.72+btnH/2);
+  }
+}
+
+// 게임오버 화면
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(10,10,26,0.75)';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  ctx.shadowColor = '#E94560'; ctx.shadowBlur = 15;
+  ctx.font = 'bold '+Math.floor(W*0.08)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#E94560';
+  ctx.fillText('GAME OVER', W/2, H*0.35);
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+  ctx.font = Math.floor(W*0.04)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('Score: '+score.toLocaleString(), W/2, H*0.45);
+
+  const best = saveData.highScores[currentStage]||0;
+  if (score > best) {
+    ctx.fillStyle = '#FFD700';
+    ctx.fillText('NEW BEST!', W/2, H*0.5);
+  }
+
+  // 버튼
+  const btnW = touchSafe(W*0.35), btnH = touchSafe(40);
+  const gap = 20;
+
+  ctx.fillStyle = '#E94560'; ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
+  roundRect(ctx, W/2-btnW-gap/2, H*0.6, btnW, btnH, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.font = 'bold '+Math.floor(btnH*0.4)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#FFF';
+  ctx.fillText('RETRY', W/2-gap/2-btnW/2, H*0.6+btnH/2);
+
+  ctx.fillStyle = '#0F3460'; ctx.strokeStyle = '#00D2FF'; ctx.lineWidth = 2;
+  roundRect(ctx, W/2+gap/2, H*0.6, btnW, btnH, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('SELECT', W/2+gap/2+btnW/2, H*0.6+btnH/2);
+}
+
+// 일시정지 화면
+function drawPaused() {
+  ctx.fillStyle = 'rgba(10,10,26,0.8)';
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  ctx.shadowColor = '#00D2FF'; ctx.shadowBlur = 12;
+  ctx.font = 'bold '+Math.floor(W*0.07)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#00D2FF';
+  ctx.fillText('PAUSED', W/2, H*0.35);
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+  const btnW = touchSafe(W*0.4), btnH = touchSafe(44);
+
+  // Resume
+  ctx.fillStyle = '#E94560'; ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
+  roundRect(ctx, W/2-btnW/2, H*0.48, btnW, btnH, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.font = 'bold '+Math.floor(btnH*0.4)+'px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#FFF';
+  ctx.fillText('RESUME', W/2, H*0.48+btnH/2);
+
+  // Title
+  ctx.fillStyle = '#0F3460'; ctx.strokeStyle = '#00D2FF'; ctx.lineWidth = 2;
+  roundRect(ctx, W/2-btnW/2, H*0.58, btnW, btnH, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText('TITLE', W/2, H*0.58+btnH/2);
+}
+
+/* ============================================================
+   도형 헬퍼
+   ============================================================ */
+function drawDiamond(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y-s); ctx.lineTo(x+s*0.7, y);
+  ctx.lineTo(x, y+s); ctx.lineTo(x-s*0.7, y); ctx.closePath();
+}
+
+function drawTriangle(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y-s); ctx.lineTo(x+s*0.866, y+s*0.5);
+  ctx.lineTo(x-s*0.866, y+s*0.5); ctx.closePath();
+}
+
+function drawStar(ctx, x, y, outer, inner, pts) {
+  ctx.beginPath();
+  for (let i=0;i<pts*2;i++) {
+    const a = -Math.PI/2 + i*Math.PI/pts;
+    const r = i%2===0 ? outer : inner;
+    if (i===0) ctx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+    else ctx.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+  }
+  ctx.closePath();
+}
+
+function drawHexagon(ctx, x, y, s) {
+  ctx.beginPath();
+  for (let i=0;i<6;i++) {
+    const a = -Math.PI/2 + i*Math.PI/3;
+    if (i===0) ctx.moveTo(x+Math.cos(a)*s, y+Math.sin(a)*s);
+    else ctx.lineTo(x+Math.cos(a)*s, y+Math.sin(a)*s);
+  }
+  ctx.closePath();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+/* ============================================================
+   입력 처리 — init() 내부에서만 등록 (F3)
+   ============================================================ */
+
+function getGridCell(px, py) {
+  const c = Math.floor((px - gridX) / cellSize);
+  const r = Math.floor((py - gridY) / cellSize);
+  if (r>=0&&r<CONFIG.GRID_SIZE&&c>=0&&c<CONFIG.GRID_SIZE) return {r,c};
   return null;
 }
-function hitButton(px, py, bx, by, bw, bh) { return px>=bx&&px<=bx+bw&&py>=by&&py<=by+bh; }
-function getPointerPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const touch = e.touches ? e.touches[0]||e.changedTouches[0] : e;
-  return { x: (touch.clientX-rect.left)*(W/rect.width), y: (touch.clientY-rect.top)*(H/rect.height) };
+
+function handlePointerDown(px, py) {
+  // 사운드 resume
+  if (!audioResumed) { sound.resume(); audioResumed = true; }
+
+  if (isTransitioning) return;
+
+  if (state==='TITLE') {
+    beginTransition('STAGE_SELECT');
+    return;
+  }
+
+  if (state==='STAGE_SELECT') {
+    handleStageSelectClick(px, py);
+    return;
+  }
+
+  if (state==='PAUSED') {
+    handlePausedClick(px, py);
+    return;
+  }
+
+  if (state==='STAGE_CLEAR') {
+    handleStageClearClick(px, py);
+    return;
+  }
+
+  if (state==='GAMEOVER') {
+    handleGameOverClick(px, py);
+    return;
+  }
+
+  if (state!=='PLAYING' || isResolving || isSwapping) return;
+
+  // HUD 버튼 체크
+  const hudH = 38;
+  const btnSz = touchSafe(38);
+  if (py < hudH) {
+    if (px < btnSz+12) { enterState('PAUSED'); prevState = 'PLAYING'; return; }
+    if (px > W-btnSz-12) { muted = !muted; saveMuted(); return; }
+    return;
+  }
+
+  // 그리드 터치
+  const cell = getGridCell(px, py);
+  if (!cell) return;
+
+  isDragging = true;
+  touchStartX = px; touchStartY = py;
+  touchStartR = cell.r; touchStartC = cell.c;
+
+  if (selectedGem) {
+    // 두 번째 클릭 — 인접 보석 교환
+    if (Math.abs(selectedGem.r-cell.r)+Math.abs(selectedGem.c-cell.c)===1) {
+      trySwap(selectedGem, cell);
+      selectedGem = null;
+    } else {
+      sound.gemSelect();
+      selectedGem = cell;
+    }
+  } else {
+    sound.gemSelect();
+    selectedGem = cell;
+  }
 }
 
-// ─── 클릭 핸들러 ───
-function handleTitleClick(px, py) {
-  const bw=Math.max(200,W*0.4), bh=Math.max(CONFIG.MIN_TOUCH_TARGET,52);
-  const bx=W/2-bw/2, by=H*0.68;
-  if(hitButton(px,py,bx,by,bw,bh)){ startStage(currentStage); return; }
-  if(starsEarned.length>0){
-    const b2y=by+bh+12;
-    if(hitButton(px,py,bx,b2y,bw,bh)){ currentStage=0; starsEarned=[]; totalScore=0; saveProgress(); startStage(0); }
-  }
-}
-function handleStageClearClick(px, py) {
-  const bw=Math.max(180,W*0.4), bh=CONFIG.MIN_TOUCH_TARGET, by=H*0.64;
-  if(hitButton(px,py,W/2-bw/2,by,bw,bh)){
-    currentStage++;
-    if(currentStage>=CONFIG.TOTAL_STAGES) beginTransition(STATE.VICTORY);
-    else startStage(currentStage);
-  }
-}
-function handleGameOverClick(px, py) {
-  const bw=Math.max(160,W*0.35), bh=CONFIG.MIN_TOUCH_TARGET, by=H*0.58;
-  if(hitButton(px,py,W/2-bw/2,by,bw,bh)){ startStage(currentStage); return; }
-  if(hitButton(px,py,W/2-bw/2,by+bh+12,bw,bh)) beginTransition(STATE.TITLE);
-}
-function handleVictoryClick(px, py) {
-  const bw=Math.max(160,W*0.35), bh=CONFIG.MIN_TOUCH_TARGET, by=H*0.62;
-  if(hitButton(px,py,W/2-bw/2,by,bw,bh)) beginTransition(STATE.TITLE);
-}
-function handlePauseClick(px, py) {
-  const bw=Math.max(160,W*0.35), bh=CONFIG.MIN_TOUCH_TARGET;
-  if(hitButton(px,py,W/2-bw/2,H*0.58,bw,bh)) togglePause();
-}
-function togglePause() {
-  if(state===STATE.PAUSED){ state=pausedFromState; sound.setMute(false); }
-  else if(state===STATE.PLAYING||state===STATE.ANIMATING||state===STATE.CASCADE){
-    pausedFromState=state; state=STATE.PAUSED; sound.setMute(true);
-  }
-}
-function isPauseButtonHit(px, py) {
-  const s=CONFIG.MIN_TOUCH_TARGET;
-  return hitButton(px, py, W-s-8, gridOffsetY+cellSize*CONFIG.GRID_ROWS+8, s, s);
-}
-
-// ─── 이벤트 핸들러 ───
-function onPointerDown(e) {
-  e.preventDefault(); sound.resume();
-  const pos = getPointerPos(e);
-  if(e.touches) touchId = e.touches[0].identifier;
-  if(transitioning) return;
-  switch(state){
-    case STATE.TITLE: handleTitleClick(pos.x,pos.y); break;
-    case STATE.PLAYING:
-      if(isPauseButtonHit(pos.x,pos.y)){ togglePause(); return; }
-      const cell = pixelToCell(pos.x, pos.y);
-      if(!cell){ dragStart=null; return; }
-      dragStart = { r:cell.r, c:cell.c, x:pos.x, y:pos.y };
-      if(selectedGem){
-        const sr=selectedGem.r, sc=selectedGem.c;
-        if(Math.abs(sr-cell.r)+Math.abs(sc-cell.c)===1){ handleSwap(sr,sc,cell.r,cell.c); dragStart=null; return; }
-      }
-      selectedGem = {r:cell.r, c:cell.c};
-      cursorGem = {r:cell.r, c:cell.c};
-      hintTimer=0; hintPair=null;
-      break;
-    case STATE.STAGE_CLEAR: handleStageClearClick(pos.x,pos.y); break;
-    case STATE.GAME_OVER: handleGameOverClick(pos.x,pos.y); break;
-    case STATE.VICTORY: handleVictoryClick(pos.x,pos.y); break;
-    case STATE.PAUSED: handlePauseClick(pos.x,pos.y); break;
-  }
-}
-function onPointerMove(e) {
-  e.preventDefault();
-  if(!dragStart||state!==STATE.PLAYING) return;
-  const pos = getPointerPos(e);
-  const dx=pos.x-dragStart.x, dy=pos.y-dragStart.y;
+function handlePointerMove(px, py) {
+  if (!isDragging || state!=='PLAYING' || isResolving || isSwapping) return;
+  const dx = px - touchStartX, dy = py - touchStartY;
   const dist = Math.sqrt(dx*dx+dy*dy);
-  const threshold = Math.max(CONFIG.MIN_SWIPE_DIST, cellSize*CONFIG.MIN_DRAG_RATIO);
-  if(dist >= threshold){
-    let dr=0,dc=0;
-    if(Math.abs(dx)>Math.abs(dy)) dc=dx>0?1:-1; else dr=dy>0?1:-1;
-    handleSwap(dragStart.r, dragStart.c, dragStart.r+dr, dragStart.c+dc);
-    dragStart=null;
+  if (dist >= CONFIG.SWIPE_THRESHOLD) {
+    isDragging = false;
+    // 방향 결정
+    let dr=0, dc=0;
+    if (Math.abs(dx)>Math.abs(dy)) dc = dx>0?1:-1;
+    else dr = dy>0?1:-1;
+    const from = {r:touchStartR, c:touchStartC};
+    const to = {r:touchStartR+dr, c:touchStartC+dc};
+    if (to.r>=0&&to.r<CONFIG.GRID_SIZE&&to.c>=0&&to.c<CONFIG.GRID_SIZE) {
+      selectedGem = null;
+      trySwap(from, to);
+    }
   }
 }
-function onPointerUp(e) { e.preventDefault(); dragStart=null; touchId=null; }
 
-const keys = {};
-function onKeyDown(e) {
-  if(keys[e.code]) return; keys[e.code]=true;
-  if(transitioning) return;
-  switch(state){
-    case STATE.TITLE:
-      if(e.code==='Space'||e.code==='Enter') startStage(currentStage); break;
-    case STATE.PLAYING:
-      if(e.code==='ArrowUp') cursorGem.r=Math.max(0,cursorGem.r-1);
-      if(e.code==='ArrowDown') cursorGem.r=Math.min(CONFIG.GRID_ROWS-1,cursorGem.r+1);
-      if(e.code==='ArrowLeft') cursorGem.c=Math.max(0,cursorGem.c-1);
-      if(e.code==='ArrowRight') cursorGem.c=Math.min(CONFIG.GRID_COLS-1,cursorGem.c+1);
-      if(e.code==='Space'||e.code==='Enter'){
-        if(selectedGem){
-          if(Math.abs(selectedGem.r-cursorGem.r)+Math.abs(selectedGem.c-cursorGem.c)===1)
-            handleSwap(selectedGem.r,selectedGem.c,cursorGem.r,cursorGem.c);
-          else selectedGem={r:cursorGem.r,c:cursorGem.c};
-        } else selectedGem={r:cursorGem.r,c:cursorGem.c};
-        hintTimer=0; hintPair=null;
+function handlePointerUp() { isDragging = false; }
+
+function handleStageSelectClick(px, py) {
+  const cols = 5, pad = 12;
+  const btnW = touchSafe(Math.floor((W - pad*(cols+1)) / cols));
+  const btnH = touchSafe(btnW * 0.8);
+  const startY = 80 - stageScrollY;
+
+  // 뒤로가기
+  const backW = touchSafe(80), backH = touchSafe(36);
+  if (px>=10&&px<=10+backW&&py>=H-backH-10&&py<=H-10) {
+    beginTransition('TITLE');
+    return;
+  }
+
+  for (let i=0;i<CONFIG.TOTAL_STAGES;i++) {
+    const col = i%cols, row = Math.floor(i/cols);
+    const x = pad + col*(btnW+pad);
+    const y = startY + row*(btnH+pad);
+    const sn = i+1;
+    if (px>=x&&px<=x+btnW&&py>=y&&py<=y+btnH) {
+      if (sn <= saveData.unlockedStage) {
+        beginTransition('PLAYING', () => startStage(sn));
       }
-      if(e.code==='KeyP'||e.code==='Escape') togglePause();
-      if(e.code==='KeyH'){ hintPair=findHint(grid); hintTimer=CONFIG.HINT_IDLE_TIME; }
-      break;
-    case STATE.GAME_OVER:
-      if(e.code==='KeyR') startStage(currentStage);
-      if(e.code==='Escape') beginTransition(STATE.TITLE); break;
-    case STATE.STAGE_CLEAR:
-      if(e.code==='Space'||e.code==='Enter'){
-        currentStage++;
-        if(currentStage>=CONFIG.TOTAL_STAGES) beginTransition(STATE.VICTORY);
-        else startStage(currentStage);
-      } break;
-    case STATE.VICTORY:
-      if(e.code==='Space'||e.code==='Enter') beginTransition(STATE.TITLE); break;
-    case STATE.PAUSED:
-      if(e.code==='KeyP'||e.code==='Escape') togglePause(); break;
+      return;
+    }
   }
 }
-function onKeyUp(e) { keys[e.code]=false; }
 
-// ─── 리사이즈 ───
-function resizeCanvas() {
-  dpr = window.devicePixelRatio||1;
-  W = window.innerWidth; H = window.innerHeight;
-  canvas.width = W*dpr; canvas.height = H*dpr;
-  canvas.style.width = W+'px'; canvas.style.height = H+'px';
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  calcGridLayout();
-  if(grid.length>0) updateGemPositions(grid);
-  bgCacheDirty=true; initBgStars();
+function handlePausedClick(px, py) {
+  const btnW = touchSafe(W*0.4), btnH = touchSafe(44);
+  // Resume
+  if (px>=W/2-btnW/2&&px<=W/2+btnW/2&&py>=H*0.48&&py<=H*0.48+btnH) {
+    enterState('PLAYING');
+    return;
+  }
+  // Title
+  if (px>=W/2-btnW/2&&px<=W/2+btnW/2&&py>=H*0.58&&py<=H*0.58+btnH) {
+    beginTransition('TITLE');
+    return;
+  }
 }
 
-// ─── 게임 루프 (§5.2, F15) ───
+function handleStageClearClick(px, py) {
+  if (clearTimer < 1) return;
+  const btnW = touchSafe(W*0.35), btnH = touchSafe(40);
+  const gap = 20;
+
+  // Next
+  if (currentStage < CONFIG.TOTAL_STAGES) {
+    if (px>=W/2-btnW-gap/2&&px<=W/2-gap/2&&py>=H*0.72&&py<=H*0.72+btnH) {
+      beginTransition('PLAYING', () => startStage(currentStage+1));
+      return;
+    }
+  }
+  // Select
+  const selectX = currentStage<CONFIG.TOTAL_STAGES ? W/2+gap/2 : W/2-btnW/2;
+  if (px>=selectX&&px<=selectX+btnW&&py>=H*0.72&&py<=H*0.72+btnH) {
+    beginTransition('STAGE_SELECT');
+    return;
+  }
+}
+
+function handleGameOverClick(px, py) {
+  const btnW = touchSafe(W*0.35), btnH = touchSafe(40);
+  const gap = 20;
+
+  // Retry
+  if (px>=W/2-btnW-gap/2&&px<=W/2-gap/2&&py>=H*0.6&&py<=H*0.6+btnH) {
+    beginTransition('PLAYING', () => startStage(currentStage));
+    return;
+  }
+  // Select
+  if (px>=W/2+gap/2&&px<=W/2+gap/2+btnW&&py>=H*0.6&&py<=H*0.6+btnH) {
+    beginTransition('STAGE_SELECT');
+    return;
+  }
+}
+
+/* ============================================================
+   캔버스 리사이즈
+   ============================================================ */
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // 레이아웃 계산
+  cellSize = Math.floor(Math.min(W*0.85, H*0.55) / CONFIG.GRID_SIZE);
+  cellSize = Math.max(touchSafe(40), Math.min(70, cellSize));
+  gridX = Math.floor((W - cellSize*CONFIG.GRID_SIZE) / 2);
+  gridY = Math.floor(H*0.18);
+}
+
+/* ============================================================
+   게임 루프 (§5.1 — try-catch, F13)
+   ============================================================ */
 function gameLoop(timestamp) {
   try {
-    const dt = Math.min((timestamp-lastTime)/1000, 0.033);
+    const dt = Math.min((timestamp - lastTime) / 1000, CONFIG.DT_CAP);
     lastTime = timestamp;
-    tw.update(dt);
-    if(state !== STATE.PAUSED){ particles.update(dt); popups.update(dt); updateBgStars(dt); }
-    switch(state){
-      case STATE.TITLE: updateTitle(dt); break;
-      case STATE.PLAYING: updatePlaying(dt); break;
-      case STATE.ANIMATING: updateAnimating(dt); break;
-      case STATE.CASCADE: updateCascade(dt); break;
-      case STATE.STAGE_CLEAR: updateStageClear(dt); break;
-      case STATE.GAME_OVER: updateGameOver(dt); break;
-      case STATE.VICTORY: updateVictory(dt); break;
-      case STATE.PAUSED: break;
+
+    titleTime += dt * 0.5; // 전역 시간
+
+    // 상태별 시스템 업데이트 (§6.2 매트릭스)
+    if (state !== 'PAUSED') {
+      tweens.update(dt);
     }
+    if (state !== 'PAUSED' && state !== 'STAGE_SELECT') {
+      particles.update(dt);
+    }
+    if (state !== 'PAUSED' && state !== 'STAGE_SELECT' && state !== 'TITLE') {
+      popups.update(dt);
+    }
+
     render(state, dt);
-  } catch(e) { console.error('GameLoop Error:', e); }
+  } catch (e) {
+    console.error('[GameLoop Error]', e);
+  }
   requestAnimationFrame(gameLoop);
 }
 
-// ─── init (§5.1 — 이벤트 리스너 반드시 여기서, F7) ───
+/* ============================================================
+   init() — DOMContentLoaded 후 실행 (§5.2)
+   ============================================================ */
 function init() {
-  canvas = document.getElementById('gameCanvas');
+  // 6a. canvas 할당
+  canvas = document.getElementById('gc');
+  // 6b. 2d context
   ctx = canvas.getContext('2d');
+
+  // 6c. 리사이즈
   resizeCanvas();
-  particles = createPool(CONFIG.PARTICLE_POOL_SIZE, () => ({
-    active:false,x:0,y:0,vx:0,vy:0,gravity:0,life:0,maxLife:1,color:'#fff',size:3,scale:1,scaleDecay:false,alpha:1
+
+  // ObjectPool 생성
+  particles = new ObjectPool(CONFIG.PARTICLE_POOL_SIZE, () => ({
+    active:false, x:0, y:0, vx:0, vy:0, gravity:0,
+    life:0, maxLife:1, alpha:1, scale:1, color:'#FFF', size:3
   }));
-  popups = createPool(CONFIG.POPUP_POOL_SIZE, () => ({
-    active:false,x:0,y:0,vx:0,vy:0,gravity:0,life:0,maxLife:1,color:'#ffcc00',text:'',size:16,scale:1,scaleDecay:false,alpha:1
+  popups = new ObjectPool(CONFIG.POPUP_POOL_SIZE, () => ({
+    active:false, x:0, y:0, vx:0, vy:0, gravity:0,
+    life:0, maxLife:1, alpha:1, scale:1, text:'', color:'#FFF'
   }));
+
+  // SoundManager
   sound.init();
-  loadProgress();
-  // ★ 이벤트 리스너 — init 내부에서만 등록 (F7)
-  canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('mousemove', onPointerMove);
-  canvas.addEventListener('mouseup', onPointerUp);
-  canvas.addEventListener('touchstart', onPointerDown, {passive:false});
-  canvas.addEventListener('touchmove', onPointerMove, {passive:false});
-  canvas.addEventListener('touchend', onPointerUp, {passive:false});
-  window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('keyup', onKeyUp);
+  loadMuted();
+
+  // 저장 데이터 로드
+  loadSave();
+
+  // 6d. 이벤트 리스너 등록 — init() 내부에서만 (F3)
   window.addEventListener('resize', resizeCanvas);
-  enterState(STATE.TITLE);
+
+  // 키보드
+  window.addEventListener('keydown', e => {
+    if (isTransitioning) return;
+
+    if (state==='TITLE') {
+      if (e.code==='Space'||e.code==='Enter') {
+        e.preventDefault();
+        beginTransition('STAGE_SELECT');
+      }
+      return;
+    }
+
+    if (state==='PLAYING' && !isResolving && !isSwapping) {
+      if (e.code==='ArrowLeft') { cursorC = Math.max(0, cursorC-1); e.preventDefault(); }
+      else if (e.code==='ArrowRight') { cursorC = Math.min(CONFIG.GRID_SIZE-1, cursorC+1); e.preventDefault(); }
+      else if (e.code==='ArrowUp') { cursorR = Math.max(0, cursorR-1); e.preventDefault(); }
+      else if (e.code==='ArrowDown') { cursorR = Math.min(CONFIG.GRID_SIZE-1, cursorR+1); e.preventDefault(); }
+      else if (e.code==='Space'||e.code==='Enter') {
+        e.preventDefault();
+        const cell = {r:cursorR, c:cursorC};
+        if (selectedGem) {
+          if (Math.abs(selectedGem.r-cell.r)+Math.abs(selectedGem.c-cell.c)===1) {
+            trySwap(selectedGem, cell);
+            selectedGem = null;
+          } else {
+            selectedGem = cell;
+          }
+        } else {
+          sound.gemSelect();
+          selectedGem = cell;
+        }
+      }
+    }
+
+    if (e.code==='KeyP'||e.code==='Escape') {
+      e.preventDefault();
+      if (state==='PLAYING') { prevState='PLAYING'; enterState('PAUSED'); }
+      else if (state==='PAUSED') { enterState(prevState==='PLAYING'?'PLAYING':'TITLE'); }
+    }
+
+    if (e.code==='KeyR' && state==='PAUSED') {
+      e.preventDefault();
+      beginTransition('PLAYING', () => startStage(currentStage));
+    }
+  });
+
+  // 마우스
+  canvas.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    handlePointerDown(e.clientX - rect.left, e.clientY - rect.top);
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    handlePointerMove(e.clientX - rect.left, e.clientY - rect.top);
+  });
+  canvas.addEventListener('mouseup', handlePointerUp);
+
+  // 터치 (F1, F4 — passive:false, touch-action:none)
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    handlePointerDown(t.clientX - rect.left, t.clientY - rect.top);
+  }, {passive:false});
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    handlePointerMove(t.clientX - rect.left, t.clientY - rect.top);
+  }, {passive:false});
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    handlePointerUp();
+  }, {passive:false});
+
+  // 6f. 초기 상태
+  enterState('TITLE');
+
+  // 6g. 게임 루프 시작
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
 
-window.addEventListener('load', init);
+// DOMContentLoaded → init()
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
