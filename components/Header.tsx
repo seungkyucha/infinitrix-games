@@ -2,15 +2,17 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useTranslations } from '@/lib/i18n-client'
+import LocaleSwitcher from './LocaleSwitcher'
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { t } = useTranslations()
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border-dim bg-bg-primary/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* 로고 */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple to-accent-cyan flex items-center justify-center text-white font-bold text-sm shadow-glow-purple">
               IX
@@ -20,12 +22,11 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* 네비게이션 */}
           <nav className="hidden md:flex items-center gap-6">
-            <NavLink href="/">게임</NavLink>
-            <NavLink href="/about">소개</NavLink>
-            <NavLink href="/dashboard">현황판</NavLink>
-            <NavLink href="/dev-log">제작 일지</NavLink>
+            <NavLink href="/">{t.nav.games}</NavLink>
+            <NavLink href="/about">{t.nav.about}</NavLink>
+            <NavLink href="/dashboard">{t.nav.dashboard}</NavLink>
+            <NavLink href="/dev-log">{t.nav.devlog}</NavLink>
             <a
               href="https://github.com/seungkyucha/infinitrix-games"
               target="_blank"
@@ -35,26 +36,28 @@ export default function Header() {
               <GithubIcon />
               GitHub
             </a>
+            <LocaleSwitcher />
           </nav>
 
-          {/* 모바일 메뉴 버튼 */}
-          <button
-            className="md:hidden text-text-secondary hover:text-text-primary p-2"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="메뉴"
-          >
-            {menuOpen ? '✕' : '☰'}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <LocaleSwitcher />
+            <button
+              className="text-text-secondary hover:text-text-primary p-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={t.nav.menu}
+            >
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 모바일 드롭다운 */}
       {menuOpen && (
         <div className="md:hidden border-t border-border-dim bg-bg-secondary px-4 py-4 space-y-3">
-          <MobileNavLink href="/" onClick={() => setMenuOpen(false)}>🎮 게임</MobileNavLink>
-          <MobileNavLink href="/about" onClick={() => setMenuOpen(false)}>ℹ️ 소개</MobileNavLink>
-          <MobileNavLink href="/dashboard" onClick={() => setMenuOpen(false)}>📡 현황판</MobileNavLink>
-          <MobileNavLink href="/dev-log" onClick={() => setMenuOpen(false)}>📓 제작 일지</MobileNavLink>
+          <MobileNavLink href="/" onClick={() => setMenuOpen(false)}>🎮 {t.nav.games}</MobileNavLink>
+          <MobileNavLink href="/about" onClick={() => setMenuOpen(false)}>ℹ️ {t.nav.about}</MobileNavLink>
+          <MobileNavLink href="/dashboard" onClick={() => setMenuOpen(false)}>📡 {t.nav.dashboard}</MobileNavLink>
+          <MobileNavLink href="/dev-log" onClick={() => setMenuOpen(false)}>📓 {t.nav.devlog}</MobileNavLink>
         </div>
       )}
     </header>

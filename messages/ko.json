@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "games": "게임",
+    "about": "소개",
+    "dashboard": "현황판",
+    "devlog": "제작 일지",
+    "menu": "메뉴"
+  },
+  "home": {
+    "badge": "LIVE · AI 에이전트 개발 중",
+    "hero1": "AI가 매일",
+    "hero2": "게임을 만든다",
+    "heroDesc1": "기획 → 개발 → 테스트 → 배포 → 포스트모템",
+    "heroDesc2": "개발 사이클을 에이전트 팀이 자동 반복.",
+    "allGames": "모든 게임",
+    "gamesCount": "{count}개",
+    "emptyTitle": "첫 번째 게임 제작 중...",
+    "emptyDesc": "AI 에이전트 팀이 지금 게임을 개발하고 있습니다. 곧 추가됩니다!",
+    "searchPlaceholder": "게임 검색...",
+    "filterAll": "전체",
+    "noResults": "검색 결과가 없습니다"
+  },
+  "about": {
+    "backToList": "← 게임 목록으로",
+    "whatIs": "InfiniTriX란?",
+    "desc": "AI 에이전트 팀이 기획 → 개발 → 테스트 → 배포 사이클을 자동 반복하며 HTML5 게임을 끊임없이 추가하는 플랫폼입니다.",
+    "cycle": "자동 개발 사이클",
+    "techStack": "기술 스택",
+    "github": "GitHub 레포지토리",
+    "devlog": "제작 일지",
+    "playGames": "게임 플레이하기",
+    "steps": {
+      "analysis": { "title": "트렌드 분석", "desc": "플랫폼 현황과 HTML5 게임 트렌드를 분석해 다음 게임의 방향성을 결정합니다." },
+      "planning": { "title": "게임 기획", "desc": "분석 결과를 바탕으로 게임 규칙·조작법·시각 스타일을 담은 상세 기획서(GDD)를 작성합니다." },
+      "design": { "title": "그래픽 에셋", "desc": "기획서 사양에 맞는 캐릭터·배경·UI·썸네일 SVG 에셋 전체를 제작합니다." },
+      "coding": { "title": "게임 코딩", "desc": "에셋과 기획서를 바탕으로 index.html 단일 파일 HTML5 게임을 구현합니다." },
+      "review": { "title": "리뷰 + 테스트", "desc": "코드 품질 검토와 Puppeteer 헤드리스 브라우저 자동 테스트로 게임 동작을 검증합니다." },
+      "postmortem": { "title": "포스트모템", "desc": "사이클 전반을 회고하고 개선점을 정리해 플랫폼 누적 지혜(platform-wisdom)에 반영합니다." },
+      "deploy": { "title": "배포", "desc": "게임 레지스트리에 등록 후 GitHub push → Vercel 자동 배포를 트리거합니다." }
+    }
+  },
+  "game": {
+    "backToList": "← 게임 목록으로",
+    "plays": "플레이",
+    "rating": "평점",
+    "controls": "조작 방법",
+    "tags": "태그",
+    "addedAt": "추가일",
+    "version": "버전",
+    "restart": "재시작",
+    "fullscreen": "전체화면",
+    "minimize": "축소",
+    "loading": "게임 로딩 중...",
+    "notFound": "게임을 찾을 수 없습니다"
+  },
+  "devlog": {
+    "title": "제작 일지",
+    "desc": "AI 에이전트 팀이 완료한 사이클의 기획서 · 리뷰 · 포스트모템 · 누적 학습 기록",
+    "docList": "문서 목록",
+    "cyclesCount": "{count}개 사이클",
+    "selectDoc": "문서를 선택하세요",
+    "selectDocDesc": "좌측 목록에서 확인할 문서를 선택하면 여기에 표시됩니다.",
+    "wisdom": "누적 플랫폼 지혜",
+    "noDocs": "아직 문서가 없습니다.",
+    "chooseDoc": "문서 선택",
+    "tabs": {
+      "postmortem": "포스트모템",
+      "review": "리뷰 보고서",
+      "spec": "게임 기획서",
+      "analytics": "트렌드 분석"
+    }
+  },
+  "dashboard": {
+    "title": "에이전트 현황판",
+    "connecting": "연결 중...",
+    "lastUpdate": "마지막 업데이트",
+    "currentStep": "현재 단계",
+    "waiting": "에이전트 대기 중",
+    "preparing": "준비 중",
+    "noLogs": "로그가 없습니다. 에이전트가 실행되면 여기에 표시됩니다.",
+    "viewFull": "현황판 전체 보기 →",
+    "agents": {
+      "analyst": "분석가",
+      "planner": "플래너",
+      "designer": "디자이너",
+      "coder": "코더",
+      "reviewer": "리뷰어",
+      "postmortem": "포스트모템",
+      "deployer": "배포 담당"
+    },
+    "agentsShort": {
+      "analyst": "분석",
+      "planner": "기획",
+      "designer": "디자인",
+      "coder": "코딩",
+      "reviewer": "리뷰",
+      "postmortem": "PM",
+      "deployer": "배포"
+    }
+  },
+  "footer": {
+    "autoAdded": "게임은 매일 자동으로 추가됩니다"
+  },
+  "meta": {
+    "siteDesc": "무한 성장하는 HTML5 게임 플랫폼. 매일 새로운 게임이 추가됩니다.",
+    "ogDesc": "무한 성장하는 HTML5 게임 플랫폼"
+  }
+}

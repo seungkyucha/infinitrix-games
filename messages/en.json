@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "games": "Games",
+    "about": "About",
+    "dashboard": "Dashboard",
+    "devlog": "Dev Log",
+    "menu": "Menu"
+  },
+  "home": {
+    "badge": "LIVE · AI Agents Building",
+    "hero1": "AI Makes",
+    "hero2": "Games Every Day",
+    "heroDesc1": "Plan → Develop → Test → Deploy → Postmortem",
+    "heroDesc2": "Agent team runs development cycles automatically.",
+    "allGames": "All Games",
+    "gamesCount": "{count}",
+    "emptyTitle": "First game in progress...",
+    "emptyDesc": "The AI agent team is developing a game right now. Coming soon!",
+    "searchPlaceholder": "Search games...",
+    "filterAll": "All",
+    "noResults": "No results found"
+  },
+  "about": {
+    "backToList": "← Back to Games",
+    "whatIs": "What is InfiniTriX?",
+    "desc": "A platform where an AI agent team continuously creates HTML5 games through automated plan → develop → test → deploy cycles.",
+    "cycle": "Automated Dev Cycle",
+    "techStack": "Tech Stack",
+    "github": "GitHub Repository",
+    "devlog": "Dev Log",
+    "playGames": "Play Games",
+    "steps": {
+      "analysis": { "title": "Trend Analysis", "desc": "Analyze platform status and HTML5 game trends to decide the direction of the next game." },
+      "planning": { "title": "Game Design", "desc": "Create a detailed game design document (GDD) with rules, controls, and visual style based on analysis." },
+      "design": { "title": "Graphic Assets", "desc": "Produce all character, background, UI, and thumbnail SVG assets to spec." },
+      "coding": { "title": "Game Coding", "desc": "Implement the game as a single index.html HTML5 file using assets and the GDD." },
+      "review": { "title": "Review + Test", "desc": "Code quality review and automated Puppeteer headless browser testing." },
+      "postmortem": { "title": "Postmortem", "desc": "Review the full cycle and compile improvements into the platform wisdom." },
+      "deploy": { "title": "Deploy", "desc": "Register in the game registry and trigger Vercel auto-deploy via GitHub push." }
+    }
+  },
+  "game": {
+    "backToList": "← Back to Games",
+    "plays": "Plays",
+    "rating": "Rating",
+    "controls": "Controls",
+    "tags": "Tags",
+    "addedAt": "Added",
+    "version": "Version",
+    "restart": "Restart",
+    "fullscreen": "Fullscreen",
+    "minimize": "Minimize",
+    "loading": "Loading game...",
+    "notFound": "Game not found"
+  },
+  "devlog": {
+    "title": "Dev Log",
+    "desc": "Game specs, reviews, postmortems, and accumulated platform wisdom from completed cycles",
+    "docList": "Documents",
+    "cyclesCount": "{count} cycles",
+    "selectDoc": "Select a document",
+    "selectDocDesc": "Choose a document from the list to view it here.",
+    "wisdom": "Platform Wisdom",
+    "noDocs": "No documents yet.",
+    "chooseDoc": "Choose document",
+    "tabs": {
+      "postmortem": "Postmortem",
+      "review": "Review Report",
+      "spec": "Game Design Doc",
+      "analytics": "Trend Analysis"
+    }
+  },
+  "dashboard": {
+    "title": "Agent Dashboard",
+    "connecting": "Connecting...",
+    "lastUpdate": "Last Updated",
+    "currentStep": "Current Step",
+    "waiting": "Agents on standby",
+    "preparing": "Preparing",
+    "noLogs": "No logs yet. They will appear here when agents start running.",
+    "viewFull": "View Full Dashboard →",
+    "agents": {
+      "analyst": "Analyst",
+      "planner": "Planner",
+      "designer": "Designer",
+      "coder": "Coder",
+      "reviewer": "Reviewer",
+      "postmortem": "Postmortem",
+      "deployer": "Deployer"
+    },
+    "agentsShort": {
+      "analyst": "Analyze",
+      "planner": "Plan",
+      "designer": "Design",
+      "coder": "Code",
+      "reviewer": "Review",
+      "postmortem": "PM",
+      "deployer": "Deploy"
+    }
+  },
+  "footer": {
+    "autoAdded": "New games are added automatically every day"
+  },
+  "meta": {
+    "siteDesc": "An ever-growing HTML5 game platform. New games added daily.",
+    "ogDesc": "An ever-growing HTML5 game platform"
+  }
+}

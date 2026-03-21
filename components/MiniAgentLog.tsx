@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from '@/lib/i18n-client'
 
 type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
 type CycleStatus = 'idle' | 'running' | 'completed' | 'error'
@@ -27,14 +28,8 @@ interface StatusData {
   recentLogs: string[]
 }
 
-const AGENTS: { id: keyof StatusData['agents']; label: string }[] = [
-  { id: 'analyst',    label: '분석' },
-  { id: 'planner',    label: '기획' },
-  { id: 'designer',   label: '디자인' },
-  { id: 'coder',      label: '코딩' },
-  { id: 'reviewer',   label: '리뷰' },
-  { id: 'postmortem', label: 'PM'   },
-  { id: 'deployer',   label: '배포' },
+const AGENT_IDS: (keyof StatusData['agents'])[] = [
+  'analyst', 'planner', 'designer', 'coder', 'reviewer', 'postmortem', 'deployer',
 ]
 
 function dotClass(status: AgentStatus) {
@@ -57,6 +52,7 @@ function logColor(msg: string, idx: number) {
 export default function MiniAgentLog() {
   const [data,  setData]  = useState<StatusData | null>(null)
   const [blink, setBlink] = useState(true)
+  const { t } = useTranslations()
 
   useEffect(() => {
     let dead = false
@@ -74,9 +70,10 @@ export default function MiniAgentLog() {
 
   const isRunning = data?.cycleStatus === 'running'
   const logs      = data?.recentLogs?.slice(0, 4) ?? []
+  const agentLabels = t.dashboard.agentsShort
 
   return (
-    <Link href="/dashboard" aria-label="에이전트 현황판" className="block group">
+    <Link href="/dashboard" aria-label={t.dashboard.title} className="block group">
       <div className={`
         rounded-xl overflow-hidden font-mono text-[11px]
         border transition-all duration-300
@@ -87,10 +84,7 @@ export default function MiniAgentLog() {
         bg-zinc-950/80 backdrop-blur-sm
       `}>
 
-        {/* ── 상단 바: 타이틀 · 에이전트 도트 · 사이클 정보 ──────── */}
         <div className="flex items-center gap-0 border-b border-zinc-800/80">
-
-          {/* 맥 버튼 + 타이틀 */}
           <div className="flex items-center gap-2.5 px-4 py-3 bg-zinc-900/50 border-r border-zinc-800/80 shrink-0">
             <div className="flex gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
@@ -100,10 +94,10 @@ export default function MiniAgentLog() {
             <span className="text-zinc-500 tracking-[0.2em] text-[9px] font-semibold">AGENT CONSOLE</span>
           </div>
 
-          {/* 에이전트 도트 */}
           <div className="flex items-center gap-4 px-5 py-3 border-r border-zinc-800/80 shrink-0">
-            {AGENTS.map(({ id, label }) => {
+            {AGENT_IDS.map(id => {
               const status = data?.agents[id]?.status ?? 'idle'
+              const label = agentLabels[id as keyof typeof agentLabels]
               return (
                 <div key={id} className="flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full transition-all duration-500 ${dotClass(status)}`} />
@@ -116,7 +110,6 @@ export default function MiniAgentLog() {
             })}
           </div>
 
-          {/* 사이클 정보 */}
           <div className="flex items-center gap-2 px-4 py-3 flex-1 min-w-0">
             {data && data.cycleStatus !== 'idle' ? (
               <>
@@ -124,7 +117,7 @@ export default function MiniAgentLog() {
                 <span className="text-white font-semibold shrink-0">#{data.cycleNumber}</span>
                 <span className="text-zinc-700 shrink-0">·</span>
                 <span className={`shrink-0 truncate max-w-[160px] ${isRunning ? 'text-green-400' : 'text-zinc-400'}`}>
-                  {data.stepName || '준비 중'}
+                  {data.stepName || t.dashboard.preparing}
                 </span>
                 {data.gameTitle && (
                   <>
@@ -135,13 +128,12 @@ export default function MiniAgentLog() {
               </>
             ) : (
               <span className="text-zinc-600">
-                에이전트 대기 중
+                {t.dashboard.waiting}
                 <span className={`ml-px transition-opacity duration-100 ${blink ? 'opacity-100' : 'opacity-0'}`}>▋</span>
               </span>
             )}
           </div>
 
-          {/* LIVE 뱃지 */}
           <div className="flex items-center gap-1.5 px-4 py-3 border-l border-zinc-800/80 shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isRunning ? 'bg-green-400 animate-pulse' : 'bg-zinc-700'}`} />
             <span className={`font-semibold tracking-widest text-[9px] ${isRunning ? 'text-green-400' : 'text-zinc-600'}`}>
@@ -150,11 +142,10 @@ export default function MiniAgentLog() {
           </div>
         </div>
 
-        {/* ── 하단: 최근 로그 3줄 ─────────────────────────────────── */}
         <div className="relative px-4 py-2.5 space-y-1 min-h-[62px]">
           {logs.length === 0 ? (
             <p className="text-zinc-700 italic text-[10px] leading-relaxed pt-0.5">
-              로그가 없습니다. 에이전트가 실행되면 여기에 표시됩니다.
+              {t.dashboard.noLogs}
               <span className={`ml-px transition-opacity duration-100 ${blink ? 'opacity-100' : 'opacity-0'}`}>_</span>
             </p>
           ) : (
@@ -174,17 +165,15 @@ export default function MiniAgentLog() {
               )
             })
           )}
-          {/* 우측 페이드 */}
           <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-zinc-950/80 to-transparent pointer-events-none" />
         </div>
 
-        {/* ── 푸터 ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-800/60 bg-zinc-900/30">
           <span className="text-zinc-600 text-[9px] tracking-wider">
             {data?.recentLogs?.length ?? 0} log entries
           </span>
           <span className="text-zinc-500 text-[10px] group-hover:text-zinc-200 transition-colors duration-200">
-            현황판 전체 보기 →
+            {t.dashboard.viewFull}
           </span>
         </div>
       </div>

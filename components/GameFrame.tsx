@@ -2,26 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import type { Game } from '@/lib/types'
+import { useTranslations } from '@/lib/i18n-client'
 
 export default function GameFrame({ game }: { game: Game }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isLoading,    setIsLoading]    = useState(true)
+  const { t } = useTranslations()
 
-  // 플레이 카운트 증가 (localStorage 기반)
   useEffect(() => {
     const key = `play_${game.id}`
     const last = localStorage.getItem(key)
     const now  = Date.now()
-    // 같은 게임은 1시간에 한 번만 카운트
     if (!last || now - Number(last) > 3600_000) {
       localStorage.setItem(key, String(now))
-      // TODO: API 호출로 서버 카운트 증가
     }
   }, [game.id])
 
   return (
     <div className={`bg-bg-card border border-border-dim rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
-      {/* 툴바 */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-dim bg-bg-secondary">
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
@@ -39,27 +37,26 @@ export default function GameFrame({ game }: { game: Game }) {
               iframe?.contentWindow?.location.reload()
             }}
             className="text-text-muted hover:text-text-primary text-xs px-2 py-1 rounded hover:bg-bg-card transition-colors"
-            title="재시작"
+            title={t.game.restart}
           >
-            ↺ 재시작
+            ↺ {t.game.restart}
           </button>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="text-text-muted hover:text-text-primary text-xs px-2 py-1 rounded hover:bg-bg-card transition-colors"
-            title="전체화면"
+            title={t.game.fullscreen}
           >
-            {isFullscreen ? '⊡ 축소' : '⊞ 전체화면'}
+            {isFullscreen ? `⊡ ${t.game.minimize}` : `⊞ ${t.game.fullscreen}`}
           </button>
         </div>
       </div>
 
-      {/* 게임 iframe */}
       <div className="relative">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary z-10">
             <div className="text-center">
               <div className="w-10 h-10 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-text-muted text-sm">게임 로딩 중...</p>
+              <p className="text-text-muted text-sm">{t.game.loading}</p>
             </div>
           </div>
         )}

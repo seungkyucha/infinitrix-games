@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import GameCard from './GameCard'
 import type { Game } from '@/lib/types'
+import { useTranslations } from '@/lib/i18n-client'
 
 interface Props {
   games:      Game[]
@@ -13,6 +14,7 @@ interface Props {
 export default function GameGrid({ games, genres = [], showFilter = false }: Props) {
   const [activeGenre, setActiveGenre] = useState<string>('all')
   const [query,       setQuery]       = useState('')
+  const { t } = useTranslations()
 
   const filtered = useMemo(() => {
     let result = games
@@ -34,23 +36,21 @@ export default function GameGrid({ games, genres = [], showFilter = false }: Pro
     <div>
       {showFilter && (
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          {/* 검색창 */}
           <div className="relative flex-1 max-w-sm">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">🔍</span>
             <input
               type="text"
-              placeholder="게임 검색..."
+              placeholder={t.home.searchPlaceholder}
               value={query}
               onChange={e => setQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-bg-card border border-border-dim rounded-lg text-text-primary placeholder:text-text-muted text-sm focus:outline-none focus:border-accent-purple/50 transition-colors"
             />
           </div>
 
-          {/* 장르 필터 */}
           {genres.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               <GenreBtn
-                label="전체"
+                label={t.home.filterAll}
                 active={activeGenre === 'all'}
                 onClick={() => setActiveGenre('all')}
               />
@@ -70,7 +70,7 @@ export default function GameGrid({ games, genres = [], showFilter = false }: Pro
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-text-muted">
           <div className="text-4xl mb-3">🎮</div>
-          <p>검색 결과가 없습니다</p>
+          <p>{t.home.noResults}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
