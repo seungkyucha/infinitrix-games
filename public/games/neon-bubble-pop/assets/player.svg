@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="baseGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#555555"/>
+      <stop offset="50%" stop-color="#aaaaaa"/>
+      <stop offset="100%" stop-color="#cccccc"/>
+    </linearGradient>
+    <linearGradient id="barrelGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#888888"/>
+      <stop offset="50%" stop-color="#dddddd"/>
+      <stop offset="100%" stop-color="#888888"/>
+    </linearGradient>
+    <radialGradient id="bubbleGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#33ffee" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#33ffee" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#33ffee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bubbleInner" cx="35%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#33ffee" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#33ffee" stop-opacity="1"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="cyanGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 발사대 베이스 (반원형 토대) -->
+  <g id="launcher-base">
+    <path d="M16 58 Q16 46 32 42 Q48 46 48 58 Z" fill="url(#baseGrad)" stroke="#666666" stroke-width="1"/>
+    <path d="M20 56 Q20 48 32 45 Q44 48 44 56 Z" fill="#999999" opacity="0.5"/>
+    <!-- 베이스 장식선 -->
+    <line x1="18" y1="55" x2="46" y2="55" stroke="#33ffee" stroke-width="0.8" opacity="0.6" filter="url(#glow)"/>
+    <line x1="20" y1="52" x2="44" y2="52" stroke="#33ffee" stroke-width="0.5" opacity="0.4"/>
+  </g>
+  <!-- 포신 (배럴) -->
+  <g id="launcher-barrel">
+    <rect x="29" y="12" width="6" height="32" rx="2" ry="2" fill="url(#barrelGrad)" stroke="#777777" stroke-width="0.5"/>
+    <!-- 포신 내부 라인 -->
+    <line x1="31" y1="14" x2="31" y2="42" stroke="#aaaaaa" stroke-width="0.5" opacity="0.5"/>
+    <line x1="33" y1="14" x2="33" y2="42" stroke="#666666" stroke-width="0.5" opacity="0.5"/>
+    <!-- 포구 링 -->
+    <ellipse cx="32" cy="12" rx="5" ry="2" fill="none" stroke="#33ffee" stroke-width="1" opacity="0.8" filter="url(#glow)"/>
+  </g>
+  <!-- 장전된 버블 -->
+  <g id="loaded-bubble" filter="url(#cyanGlow)">
+    <circle cx="32" cy="10" r="7" fill="url(#bubbleInner)"/>
+    <circle cx="32" cy="10" r="9" fill="url(#bubbleGlow)" opacity="0.5"/>
+    <!-- 하이라이트 -->
+    <ellipse cx="30" cy="8" rx="2.5" ry="1.5" fill="#ffffff" opacity="0.6"/>
+  </g>
+  <!-- 회전 피벗 장식 -->
+  <g id="pivot">
+    <circle cx="32" cy="44" r="4" fill="#444444" stroke="#33ffee" stroke-width="0.8" filter="url(#glow)"/>
+    <circle cx="32" cy="44" r="2" fill="#33ffee" opacity="0.7"/>
+  </g>
+  <!-- 좌우 조준 가이드 (작은 삼각형) -->
+  <polygon points="12,48 16,44 16,52" fill="#33ffee" opacity="0.3" filter="url(#glow)"/>
+  <polygon points="52,48 48,44 48,52" fill="#33ffee" opacity="0.3" filter="url(#glow)"/>
+</svg>

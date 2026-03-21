@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T18:00:00Z",
-  "totalGames": 19,
+  "lastUpdated": "2026-03-22T21:00:00Z",
+  "totalGames": 20,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -979,6 +979,29 @@
       ],
       "difficulty": "medium",
       "version": "1.0.0"
+    },
+    {
+      "id": "neon-bubble-pop",
+      "title": "네온 버블 팝",
+      "description": "네온 버블을 조준·발사해 같은 색 3개를 터뜨리세요!",
+      "genre": ["arcade", "casual"],
+      "thumbnail": "/games/neon-bubble-pop/assets/thumbnail.svg",
+      "path": "/games/neon-bubble-pop/index.html",
+      "addedAt": "2026-03-22T21:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["아케이드", "캐주얼", "버블슈터", "네온", "퍼즐", "중독성"],
+      "controls": [
+        "←/→ 방향키 또는 A/D: 조준 각도 조절",
+        "Space/↑/W: 버블 발사",
+        "마우스 이동+클릭: 조준 및 발사",
+        "터치 드래그+릴리스: 조준 및 발사 (모바일)",
+        "P/Esc: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
     }
   ]
 }

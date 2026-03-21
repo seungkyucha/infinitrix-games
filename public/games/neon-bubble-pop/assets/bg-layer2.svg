@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="panelGradL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a3a" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1a1a3a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="panelGradR" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#1a1a3a" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1a1a3a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0d2a" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#0d0d2a" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#1a1a3a" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <filter id="lineGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 좌측 패널 그림자 -->
+  <rect x="0" y="0" width="120" height="600" fill="url(#panelGradL)"/>
+  <!-- 우측 패널 그림자 -->
+  <rect x="680" y="0" width="120" height="600" fill="url(#panelGradR)"/>
+  <!-- 바닥 그라디언트 -->
+  <rect x="0" y="400" width="800" height="200" fill="url(#floorGrad)"/>
+  <!-- 좌측 네온 프레임 라인 -->
+  <g id="left-frame" filter="url(#lineGlow)">
+    <line x1="60" y1="20" x2="60" y2="580" stroke="#33ffee" stroke-width="0.8" opacity="0.25"/>
+    <line x1="55" y1="20" x2="65" y2="20" stroke="#33ffee" stroke-width="0.8" opacity="0.3"/>
+    <line x1="55" y1="580" x2="65" y2="580" stroke="#33ffee" stroke-width="0.8" opacity="0.3"/>
+    <!-- 좌측 장식 원 -->
+    <circle cx="60" cy="100" r="3" fill="none" stroke="#33ffee" stroke-width="0.5" opacity="0.2"/>
+    <circle cx="60" cy="200" r="2" fill="#33ffee" opacity="0.15"/>
+    <circle cx="60" cy="400" r="3" fill="none" stroke="#33ffee" stroke-width="0.5" opacity="0.2"/>
+    <circle cx="60" cy="500" r="2" fill="#33ffee" opacity="0.15"/>
+  </g>
+  <!-- 우측 네온 프레임 라인 -->
+  <g id="right-frame" filter="url(#lineGlow)">
+    <line x1="740" y1="20" x2="740" y2="580" stroke="#bb44ff" stroke-width="0.8" opacity="0.25"/>
+    <line x1="735" y1="20" x2="745" y2="20" stroke="#bb44ff" stroke-width="0.8" opacity="0.3"/>
+    <line x1="735" y1="580" x2="745" y2="580" stroke="#bb44ff" stroke-width="0.8" opacity="0.3"/>
+    <!-- 우측 장식 원 -->
+    <circle cx="740" cy="100" r="3" fill="none" stroke="#bb44ff" stroke-width="0.5" opacity="0.2"/>
+    <circle cx="740" cy="300" r="2" fill="#bb44ff" opacity="0.15"/>
+    <circle cx="740" cy="500" r="3" fill="none" stroke="#bb44ff" stroke-width="0.5" opacity="0.2"/>
+  </g>
+  <!-- 떠다니는 장식 버블 (반투명, 배경 장식용) -->
+  <g id="deco-bubbles" opacity="0.12">
+    <circle cx="100" cy="150" r="25" fill="none" stroke="#3388ff" stroke-width="0.8"/>
+    <circle cx="700" cy="250" r="18" fill="none" stroke="#ff3366" stroke-width="0.8"/>
+    <circle cx="150" cy="450" r="15" fill="none" stroke="#33ff88" stroke-width="0.8"/>
+    <circle cx="650" cy="480" r="22" fill="none" stroke="#ffdd33" stroke-width="0.8"/>
+    <circle cx="80" cy="350" r="10" fill="none" stroke="#bb44ff" stroke-width="0.6"/>
+    <circle cx="720" cy="120" r="12" fill="none" stroke="#33ffee" stroke-width="0.6"/>
+  </g>
+  <!-- 하단 데드라인 힌트 (매우 희미) -->
+  <g id="deadline-hint" opacity="0.08">
+    <line x1="80" y1="520" x2="720" y2="520" stroke="#ff3366" stroke-width="1" stroke-dasharray="8,4"/>
+  </g>
+  <!-- 헥사곤 그리드 힌트 (중앙 상단, 매우 희미) -->
+  <g id="hex-grid-hint" opacity="0.05" stroke="#1a1a3a" stroke-width="0.5" fill="none">
+    <path d="M370,50 L390,40 L410,50 L410,70 L390,80 L370,70 Z"/>
+    <path d="M410,50 L430,40 L450,50 L450,70 L430,80 L410,70 Z"/>
+    <path d="M390,80 L410,70 L430,80 L430,100 L410,110 L390,100 Z"/>
+    <path d="M350,80 L370,70 L390,80 L390,100 L370,110 L350,100 Z"/>
+    <path d="M330,50 L350,40 L370,50 L370,70 L350,80 L330,70 Z"/>
+  </g>
+</svg>

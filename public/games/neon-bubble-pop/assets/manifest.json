@@ -1,0 +1,14 @@
+{
+  "gameId": "neon-bubble-pop",
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 64,  "height": 64,  "desc": "발사대 (런처)" },
+    "enemy":       { "file": "enemy.svg",        "width": 64,  "height": 64,  "desc": "적 버블 (스파이크)" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 800, "height": 600, "desc": "배경 원경 — 별 필드 + 성운" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 800, "height": 600, "desc": "배경 근경 — 네온 프레임 + 장식" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 32,  "height": 32,  "desc": "생명력 하트 아이콘" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 32,  "height": 32,  "desc": "점수 별 아이콘" },
+    "powerup":     { "file": "powerup.svg",      "width": 48,  "height": 48,  "desc": "파워업 — 번개 오브" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 96,  "height": 96,  "desc": "버블 팝 이펙트" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "플랫폼 썸네일" }
+  }
+}

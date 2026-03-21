@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <radialGradient id="heartGlow" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#ff6688" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#ff3366" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#cc1144" stop-opacity="1"/>
+    </radialGradient>
+    <radialGradient id="heartOuter" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#ff3366" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="heartShine" cx="35%" cy="30%" r="25%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="heartNeon">
+      <feGaussianBlur stdDeviation="1.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 외곽 글로우 -->
+  <circle cx="16" cy="15" r="14" fill="url(#heartOuter)"/>
+  <!-- 하트 본체 -->
+  <g filter="url(#heartNeon)">
+    <path d="M16 27 C12 23 3 17 3 11 C3 6.5 6.5 3 10.5 3 C13 3 15 4.5 16 6.5 C17 4.5 19 3 21.5 3 C25.5 3 29 6.5 29 11 C29 17 20 23 16 27 Z" fill="url(#heartGlow)"/>
+  </g>
+  <!-- 광택 -->
+  <path d="M10 10 Q12 6 15 8 Q12 7 10 10 Z" fill="#ffffff" opacity="0.5"/>
+  <ellipse cx="11" cy="10" rx="3" ry="2" fill="url(#heartShine)"/>
+  <!-- 하단 반사 -->
+  <ellipse cx="18" cy="20" rx="2" ry="1" fill="#ffffff" opacity="0.1"/>
+</svg>
