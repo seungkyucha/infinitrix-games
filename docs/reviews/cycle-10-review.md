@@ -1,153 +1,129 @@
----
-verdict: APPROVED
----
+# Cycle 10 Review — mini-card-battler (미니 카드 배틀러)
 
-# Cycle 10 코드 리뷰 & 테스트 결과 (3회차 재리뷰)
-
-- **게임**: 미니 카드 크롤러 (`mini-card-crawler`)
-- **리뷰어**: Claude (시니어 게임 개발자 / QA)
-- **리뷰일**: 2026-03-21
-- **리뷰 회차**: 3회차 (재리뷰)
-- **기획서**: `docs/game-specs/cycle-10-spec.md`
-
----
-
-## 0. 이전 리뷰(2회차) 지적사항 수정 검증
-
-| # | 이전 이슈 | 심각도 | 수정 여부 | 검증 내용 |
-|---|----------|--------|----------|----------|
-| 1 | L2575, L2578: `render()` 내 `timestamp` 미정의 변수 참조 → ReferenceError → 게임 루프 크래시 | **CRITICAL** | ✅ 수정됨 | `render(ctx, dt)` → `render(ctx, dt, timestamp)` 시그니처 변경 (L2502). `gameLoop`에서 `render(ctx, dt, timestamp)` 호출 (L2491). `drawEndScreen(ctx, true/false, timestamp)` 호출 시 스코프 내 `timestamp` 정상 접근 |
-
-> **2회차 CRITICAL 이슈 1건 수정 완료. 권장 방법 B(구조적 수정)로 정확히 반영됨.**
-
-### 수정 확인 코드 증적
-
-```
-L2491: render(ctx, dt, timestamp);          // gameLoop에서 timestamp 전달 ✅
-L2502: function render(ctx, dt, timestamp) { // 시그니처에 timestamp 추가 ✅
-L2575: drawEndScreen(ctx, true, timestamp);  // VICTORY — timestamp 접근 가능 ✅
-L2578: drawEndScreen(ctx, false, timestamp); // DEFEAT — timestamp 접근 가능 ✅
-```
+**Reviewer**: Claude AI (Senior Game Dev & QA)
+**Date**: 2026-03-21
+**Game ID**: `mini-card-battler`
+**File**: `public/games/mini-card-battler/index.html` (1905 lines)
+**Spec**: `docs/game-specs/cycle-10-spec.md`
 
 ---
 
 ## 1. 코드 리뷰 (정적 분석)
 
-### 1.1 체크리스트 결과
-
 | # | 항목 | 결과 | 비고 |
 |---|------|------|------|
-| 1 | 기능 완성도 | ✅ PASS | 12개 상태, 카드 18종, 적 7종(보스 포함), 3층 맵, 덱빌딩, 상점, 휴식, 이벤트 모두 구현 |
-| 2 | 게임 루프 | ✅ PASS | `requestAnimationFrame` 사용, `dt = Math.min((timestamp - lastTime) / 1000, 0.05)` 최대 50ms cap |
-| 3 | 메모리 | ✅ PASS | `destroyListeners()` 패턴 (L599-601), `removeEventListener` 정리, 파티클 풀링 |
-| 4 | 충돌/히트 감지 | ✅ PASS | `hitRect()` AABB 판정 (L659), 맵 노드 거리 기반, 적 클릭 거리 판정 |
-| 5 | 모바일/터치 | ✅ PASS | 터치 이벤트 3종 등록, `{ passive: false }`, 턴 종료 버튼 44px |
-| 6 | 게임 상태 전환 | ✅ PASS | `enterState()` 일원화, VICTORY/DEFEAT 렌더링 정상 (`timestamp` 수정 완료) |
-| 7 | 점수/최고점 | ✅ PASS | `saveData()`/`loadData()` try-catch 래핑, `mcc_best` 키, 판정→저장 순서 준수 |
-| 8 | 보안 | ✅ PASS | `eval()` 없음, `confirm()`/`prompt()`/`alert()` 없음, `window.open` 없음, `innerHTML` 없음 |
-| 9 | 성능 | ✅ PASS | 매 프레임 DOM 접근 없음 (Canvas 2D only), 파티클 풀 재사용 |
-| 10 | DPR 대응 | ✅ PASS | `dpr = devicePixelRatio || 1`, `canvas.width = W * dpr`, `ctx.setTransform(dpr,0,0,dpr,0,0)` (L337-348) |
+| 1 | 기능 완성도 | PASS | 30장 카드풀, 10종 적(일반5+엘리트2+보스3), 3층 맵, 상점/이벤트/휴식/보상, 언락 시스템 모두 구현 |
+| 2 | 게임 루프 | PASS | `requestAnimationFrame` 사용, `dt = Math.min((timestamp - lastTime) / 1000, 0.1)` 프레임 캡 적용 |
+| 3 | 메모리 관리 | PASS | `tw.clearImmediate()` 즉시 정리, 파티클/팝업 splice로 제거, 객체 재사용 패턴 |
+| 4 | 충돌 감지 | N/A | 턴제 카드 게임 — 클릭/탭 히트 테스트로 대체. `getHandBounds()`, `getEnemyBounds()` 정확 |
+| 5 | 모바일 터치 | PASS | `touchstart/touchmove/touchend` 모두 `{ passive: false }`, `getBoundingClientRect()` 좌표 보정 |
+| 6 | 캔버스 리사이즈 | PASS | `window.addEventListener('resize', resizeCanvas)`, DPR 처리(`Math.min(dpr, 2)`), `window.innerWidth/Height` 기준 |
+| 7 | 게임 상태 전환 | PASS | 14개 상태 정의, **모든 전환이 `beginTransition()` 경유**, `isTransitioning` 가드 플래그 적용 |
+| 8 | 점수/최고점 | PASS | `localStorage` `mcb_best_score` + `mcb_unlocks` 키, try/catch 감싸기 |
+| 9 | 보안 | PASS | `eval()` 없음, `innerHTML` 없음, `alert/confirm/prompt` 없음, XSS 위험 없음 |
+| 10 | 성능 | PASS | 매 프레임 DOM 접근 없음, 100% Canvas API 렌더링 |
+| 11 | 'use strict' | PASS | 스크립트 최상단 선언 |
+| 12 | setTimeout 미사용 | PASS | 상태 전환에 `setTimeout` 사용 없음, 모두 tween `onComplete` 사용 |
+| 13 | beginTransition 경유 | PASS | 직접 `enterState()` 호출 없음 (init 시 TITLE 1회 제외), 즉시 전환도 `beginTransition(s, {immediate:true})` |
+| 14 | CONFIG 수치 정합성 | PASS | CFG 객체에 모든 밸런스 수치 1:1 매핑 (HP 80, 마나 3, 손패 5 등) |
+| 15 | Web Audio | PASS | 프로시저럴 SFX, 첫 유저 인터랙션 시 `initAudio()`, try/catch 감싸기 |
 
-### 1.2 모바일 조작 대응 검사
+### 에셋 관련 특이사항
 
-| 항목 | 결과 | 비고 |
+| 항목 | 상태 | 설명 |
 |------|------|------|
-| 터치 이벤트 등록 | ✅ PASS | `touchstart` (L629), `touchmove` (L640), `touchend` (L647) 모두 등록, `{ passive: false }` |
-| 가상 조이스틱/터치 버튼 | ✅ N/A | 턴 기반 게임이므로 가상 조이스틱 불필요. 카드/버튼 탭으로 조작 |
-| 터치 영역 44px 이상 | ✅ PASS | 턴 종료 버튼 100×44px (L1613), 이벤트/휴식 버튼 200×50px (L1766), 맵 노드 직경 44px 이상 |
-| 모바일 뷰포트 meta | ✅ PASS | `width=device-width,initial-scale=1.0,user-scalable=no` (L5) |
-| 스크롤 방지 | ✅ PASS | `touch-action:none` (canvas, L10), `overflow:hidden` (html/body, L9), `e.preventDefault()` (L632, L641, L648) |
-| 키보드 없이 플레이 가능 | ✅ PASS | 모든 조작이 클릭/탭 가능: 시작, 맵 노드, 카드 선택→적 탭, 턴 종료, 보상, 상점/휴식/이벤트, 재시작 |
+| `assets/manifest.json` | 존재 | 9개 에셋 정의 (player.svg, enemy.svg, bg 2개, UI 2개, powerup, effect, thumbnail) |
+| SVG 파일 9개 | 존재 | `assets/` 디렉토리에 물리적으로 존재 |
+| 코드 내 에셋 참조 | **없음** | `fetch`, `Image()`, `XMLHttpRequest`, `assets` 문자열 참조 0건 |
+| 실제 렌더링 | **100% Canvas 코드 드로잉** | 적 10종 모두 Canvas shape로 렌더링 (slime, goblin, skeleton 등) |
 
-### 1.3 발견된 이슈
-
-**없음.** 2회차 CRITICAL 이슈 수정 이후 새로운 버그 도입 없음.
-
-### 1.4 금지 패턴 검증
-
-| 패턴 | 검출 건수 | 결과 |
-|------|----------|------|
-| `eval()` | 0 | ✅ |
-| `alert()` / `confirm()` / `prompt()` | 0 | ✅ |
-| `setTimeout` (상태 전환용) | 0 | ✅ |
-| `window.open` | 0 | ✅ |
-| `document.write` | 0 | ✅ |
-| `innerHTML` | 0 | ✅ |
-
-### 1.5 에셋 관련 분석
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| `assets/` 디렉토리 | ✅ | `thumbnail.svg`만 존재 (플랫폼 표시용) |
-| `assets/manifest.json` | ✅ 없음 | 불필요 (100% Canvas 코드 드로잉) |
-| 코드 내 에셋 참조 | ✅ 없음 | `new Image()`, `fetch()`, `.svg` 참조 0건 |
-| 에셋 로딩 실패 위험 | ✅ 없음 | 런타임 영향 없음 |
+> **판정**: 코드 자체는 에셋을 전혀 사용하지 않아 게임 실행에 영향 없음. 다만 기획서 §0 #5에서 "assets/ 디렉토리 생성 자체를 금지"라고 명시했으므로, **assets/ 디렉토리가 불필요하게 존재**하는 것은 기획 위반(경미).
 
 ---
 
 ## 2. 브라우저 테스트 (Puppeteer)
 
-### 2.1 테스트 환경
-- Puppeteer (Chromium headless)
-- 뷰포트: 400×700 (모바일 시뮬레이션)
-- URL: `file:///C:/Work/InfinitriX/public/games/mini-card-crawler/index.html`
-
-### 2.2 테스트 결과
+**테스트 환경**: Chromium (Puppeteer MCP), 400x600 viewport
 
 | # | 항목 | 결과 | 비고 |
 |---|------|------|------|
-| 1 | 페이지 로드 | ✅ PASS | 즉시 로드, 외부 리소스 의존 없음 |
-| 2 | 콘솔 에러 없음 | ✅ PASS | 전체 테스트 동안 JavaScript 에러 0건 |
-| 3 | 캔버스 렌더링 | ✅ PASS | Canvas 400×700 정상, DPR 적용 확인 |
-| 4 | 시작 화면 표시 | ✅ PASS | 타이틀, 부제, 카드 팬 장식, 시작 버튼, 조작 안내 모두 렌더링 |
-| 5 | 맵 화면 | ✅ PASS | 3층 맵 (4+4+1 노드), 아이콘, 연결선, HP/골드/덱 HUD 정상 |
-| 6 | 전투 화면 | ✅ PASS | 플레이어(다이아몬드), 적(박쥐), HP 바, 에너지 구슬 3개, 핸드 카드 5장, 턴 종료 버튼 정상 |
-| 7 | 터치 이벤트 코드 존재 | ✅ PASS | `touchstart`/`touchmove`/`touchend` + `passive: false` 확인 |
-| 8 | 점수 시스템 | ✅ PASS | `calculateScore()` 구현, VICTORY 시 점수 500 표시 확인 |
-| 9 | localStorage 최고점 | ✅ PASS | `mcc_best` 키에 `bestScore:500, totalRuns:2, totalClears:1` 저장 확인 |
-| 10 | **패배 화면 렌더링** | ✅ **PASS** | DEFEAT 상태 진입 → 통계, 점수, "다시 도전" 버튼 정상 렌더링 (**이전 CRITICAL 수정 확인**) |
-| 11 | **승리 화면 렌더링** | ✅ **PASS** | VICTORY 상태 진입 → "던전 클리어!", 점수, "새로운 최고 기록!", "다시 도전" 버튼 정상 렌더링 |
-| 12 | **재시작** | ✅ **PASS** | DEFEAT/VICTORY 화면에서 "다시 도전" 클릭 → TITLE 상태 정상 복귀 |
+| 1 | 페이지 로드 | **PASS** | 즉시 로드, 에러 없음 |
+| 2 | 콘솔 에러 없음 | **PASS** | 콘솔 출력 0건 |
+| 3 | 캔버스 렌더링 | **PASS** | 400x600 캔버스, DPR 적용 확인 |
+| 4 | 시작 화면 표시 | **PASS** | 타이틀 "MINI CARD BATTLER", 카드 팬 애니메이션, 마나 파티클, 조작 안내 |
+| 5 | 맵 화면 | **PASS** | Floor 1 - 숲, 노드 연결선, 도달 가능 노드 글로우, HP/Gold/Deck 하단 표시 |
+| 6 | 전투 화면 | **PASS** | 적 렌더링(고블린), HP바, 인텐트 표시, 손패 5장, 마나 3/3, End Turn 버튼 |
+| 7 | 일시정지 화면 | **PASS** | 배경 위 오버레이, Resume/Quit 버튼, 현재 상태 정보 표시 |
+| 8 | 터치 이벤트 코드 존재 | **PASS** | `touchstart`, `touchmove`, `touchend` 모두 등록, `passive:false` |
+| 9 | 점수 시스템 | **PASS** | `calcScore()` 함수, HP/골드/층/보스킬/퍼펙트 기반 점수 |
+| 10 | localStorage 최고점 | **PASS** | `mcb_best_score` 키, 읽기/쓰기 정상 동작 확인 |
+| 11 | 게임오버/재시작 | **PASS** | GAMEOVER/VICTORY 상태 존재, 점수 표시 + 언락 메시지 + 재시작 안내 |
+| 12 | 상태 전환 | **PASS** | TITLE→MAP→PRE_BATTLE→PLAYER_TURN→PAUSED 전환 모두 정상, 페이드 오버레이 |
 
-### 2.3 스크린샷 증적
+### 스크린샷 요약
 
-1. **01-title-screen** — 타이틀 화면: 제목 "미니 카드 크롤러", 카드 팬 장식, "새 게임 시작" 버튼, "SPACE / 탭으로 시작" 안내 ✅
-2. **02-map-screen** — 던전 맵: 3층 구조 (1층 4노드, 2층 4노드, 보스 1노드), 아이콘(전투/이벤트/상점 등), HP 50/50, 골드 0, 덱 10장 ✅
-3. **03-battle-screen** — 전투 화면: 플레이어(다이아몬드), 박쥐(HP 15/15, 공격×4), 에너지 3개, 카드 5장(경계/타격/수비), 턴 종료 버튼 ✅
-4. **04-defeat-screen** — 패배 화면: "패배...", 통계 8항목, 점수 0, "다시 도전 (R)" 버튼 ✅ **(2회차 FAIL → 3회차 PASS)**
-5. **05-victory-screen** — 승리 화면: "던전 클리어!", 통계, 점수 500, "새로운 최고 기록!", "다시 도전 (R)" 버튼 ✅ **(2회차 FAIL → 3회차 PASS)**
-
----
-
-## 3. 수정 이력 추적 (1~3회차)
-
-| 회차 | 이슈 수 | 심각도 | 판정 | 비고 |
-|------|---------|--------|------|------|
-| 1회차 | 4건 | MINOR ×4 | NEEDS_MINOR_FIX | 에너지 체크, dead code, assets 위반, 버튼 크기 |
-| 2회차 | 1건 | CRITICAL ×1 | NEEDS_MAJOR_FIX | 1회차 4건 수정 완료, 그러나 `timestamp` ReferenceError 신규 도입 |
-| **3회차** | **0건** | — | **APPROVED** | 2회차 CRITICAL 수정 완료, 새 이슈 없음 |
+| 화면 | 상태 |
+|------|------|
+| 타이틀 | 카드 팬 + 마나 파티클 + 글로우 타이틀 + 조작 안내 |
+| 맵 | Floor 1 숲 배경 + 노드 그래프 + 플레이어 정보바 |
+| 전투 | 적(고블린) + 인텐트 + HP바 + 손패 5장 + 마나 + End Turn |
+| 일시정지 | 반투명 오버레이 + Resume/Quit 버튼 + 상태 정보 |
 
 ---
 
-## 4. 종합 판정
+## 3. 기획서 핵심 요구사항 대비
+
+| # | 기획서 요구사항 | 구현 여부 | 비고 |
+|---|----------------|----------|------|
+| 1 | 턴제 카드 전투 | O | 드로우→플레이→턴종료→적턴 사이클 |
+| 2 | 30장 카드풀 (ATK 10 + DEF 8 + SKL 8 + PWR 4) | O | CARD_POOL.length === 30 |
+| 3 | 10종 적 (일반5 + 엘리트2 + 보스3) | O | ENEMY_DEFS 10개 |
+| 4 | 3층 맵 (숲→동굴→탑) | O | generateMap() + FLOOR_NODES 3층 |
+| 5 | 보스 페이즈 전환 | O | phase2hp, phase3hp, 패턴 교체 |
+| 6 | 상점/이벤트/휴식 | O | setupShop(), generateEvent(), handleRestClick() |
+| 7 | 덱빌딩 (보상 카드 3→1 선택) | O | generateRewardCards() + REWARD 상태 |
+| 8 | 언락 시스템 | O | checkUnlocks() 6개 조건, localStorage 저장 |
+| 9 | Seeded RNG | O | LCG 기반 makeRng(), 맵 시드 고정 |
+| 10 | 키보드 조작 (1-5, Q/W, E, Space, ESC) | O | keydown 이벤트 핸들러 |
+| 11 | 카드 업그레이드 | O | upgraded 플래그, upgEffect/upgDesc |
+| 12 | 디버프 시스템 (취약/약화/출혈/가시) | O | tickDebuffs(), 전투 로직에 반영 |
+| 13 | 파워 카드 지속 효과 | O | powers 배열, 턴 시작 시 효과 적용 |
+| 14 | assets/ 디렉토리 금지 (§0 #5) | **X** | assets/ 디렉토리 존재 (코드에서 미사용) |
+
+---
+
+## 4. 발견된 이슈
+
+### MINOR-01: assets/ 디렉토리 불필요 존재
+- **심각도**: Minor
+- **위치**: `public/games/mini-card-battler/assets/`
+- **내용**: 기획서 §0 #5에서 "assets/ 디렉토리 생성 자체를 금지"라고 명시. 코드에서 전혀 참조하지 않으나, 9개 SVG 파일 + manifest.json이 물리적으로 존재.
+- **영향**: 게임 실행에 영향 없음. 불필요한 파일로 빌드 사이즈 증가만 유발.
+- **권장 조치**: `public/games/mini-card-battler/assets/` 디렉토리 삭제
+
+---
+
+## 5. 최종 판정
 
 ### 코드 리뷰 판정: **APPROVED**
 
-#### 사유
-- 2회차 CRITICAL 이슈 (`render()` 내 `timestamp` 미정의) 권장 방법 B로 정확히 수정됨
-- 수정 과정에서 새로운 버그 도입 없음
-- 금지 패턴 0건, 보안 위험 없음
-- 모바일 터치 대응 완비 (터치 3종 + passive:false + 44px+ 터치 영역 + 스크롤 방지)
-- 에셋 관련 위반 없음 (thumbnail.svg만 존재, 100% Canvas 드로잉)
+코드 품질이 우수합니다:
+- 기획서의 모든 핵심 기능이 단일 `index.html`에 완전 구현
+- 8사이클 연속 재발된 assets 로딩 문제가 코드 레벨에서는 **완벽히 해소** (100% Canvas 코드 드로잉)
+- `beginTransition()` 경유 원칙, `isTransitioning` 가드, `clearImmediate()` 등 이전 사이클 피드백 전부 반영
+- 보안/성능/모바일 모든 체크리스트 통과
 
-### 테스트 판정: **PASS**
+### 브라우저 테스트 판정: **PASS**
 
-#### 사유
-- 전체 플로우 정상: TITLE → MAP → PRE_BATTLE → PLAYER_TURN → DEFEAT/VICTORY → 재시작
+- 타이틀/맵/전투/일시정지 화면 모두 정상 렌더링
 - 콘솔 에러 0건
-- localStorage 저장/로드 정상
-- DEFEAT/VICTORY 화면 정상 렌더링 (2회차 CRITICAL → 3회차 PASS)
+- 상태 전환 정상 동작
+- localStorage 동작 확인
 
-### 최종 판정: **APPROVED**
+---
 
-> 3회차 재리뷰 결과, 2회차에서 지적된 CRITICAL 이슈(VICTORY/DEFEAT 렌더링 크래시)가 정확히 수정되었으며, 새로운 이슈는 발견되지 않았습니다. 전체 게임 플로우(타이틀→맵→전투→승리/패배→재시작)가 정상 작동하고, 모바일 터치 대응도 완비되어 있습니다. **즉시 배포 가능합니다.**
+### 최종 판정: NEEDS_MINOR_FIX
+
+> 게임 코드 자체는 즉시 배포 가능한 품질이나, `assets/` 디렉토리가 기획서 규칙 위반으로 불필요하게 존재합니다.
+> **`public/games/mini-card-battler/assets/` 디렉토리 삭제** 후 배포를 권장합니다.
+> 이 수정은 코드 변경 없이 파일 삭제만으로 완료되므로, 배포 자체는 가능합니다.
