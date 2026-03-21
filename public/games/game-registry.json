@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-21T21:00:00Z",
-  "totalGames": 14,
+  "lastUpdated": "2026-03-21T23:00:00Z",
+  "totalGames": 15,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -824,6 +824,27 @@
         "터치: 화면 내 가상 키보드 터치"
       ],
       "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "mini-idle-farm",
+      "title": "미니 아이들 팜",
+      "description": "빈 땅에서 작물·가축·가공으로 농장 제국을 키우는 방치형 시뮬레이션!",
+      "genre": ["casual", "strategy"],
+      "thumbnail": "/games/mini-idle-farm/assets/thumbnail.svg",
+      "path": "/games/mini-idle-farm/index.html",
+      "addedAt": "2026-03-21T23:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["아이들", "농장", "시뮬레이션", "방치형"],
+      "controls": [
+        "마우스: 클릭으로 수확/구매/탭 전환",
+        "터치: 탭으로 수확/구매, 스와이프로 탭 전환",
+        "키보드: 1~3 탭 전환 / Space 수동 수확 / P 일시정지"
+      ],
+      "difficulty": "easy",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }

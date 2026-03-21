@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>미니 아이들 팜</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#87CEEB;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// CONFIG — §8.1 기획서 수치와 1:1 대응
+// ═══════════════════════════════════════════════════════════
+const CONFIG = {
+  CROPS: {
+    wheat:  { growTime:3, baseYield:1, sellPrice:2,  unlockCost:0,    name:'밀',   color:'#F5DEB3' },
+    carrot: { growTime:5, baseYield:1, sellPrice:3,  unlockCost:50,   name:'당근', color:'#FF8C00' },
+    tomato: { growTime:8, baseYield:1, sellPrice:5,  unlockCost:200,  name:'토마토',color:'#FF4444' },
+    corn:   { growTime:6, baseYield:1, sellPrice:4,  unlockCost:120,  name:'옥수수',color:'#FFD700' },
+  },
+  ANIMALS: {
+    chicken:{ growTime:10,baseYield:1, sellPrice:8,  unlockCost:500,  name:'닭',   color:'#FFFFFF' },
+    cow:    { growTime:15,baseYield:1, sellPrice:12, unlockCost:1500, name:'젖소', color:'#F5F5F5' },
+    sheep:  { growTime:12,baseYield:1, sellPrice:15, unlockCost:2000, name:'양',   color:'#FFFAF0' },
+  },
+  FACTORY: {
+    bread:  { growTime:20,baseYield:1, sellPrice:25, unlockCost:8000, name:'빵',   color:'#DEB887' },
+    cheese: { growTime:25,baseYield:1, sellPrice:35, unlockCost:15000,name:'치즈', color:'#FAFAD2' },
+    sweater:{ growTime:30,baseYield:1, sellPrice:50, unlockCost:25000,name:'스웨터',color:'#FFB6C1' },
+  },
+  SPEED_UPGRADE: { baseMult:1.5, maxLevel:10, reductionPerLevel:[0.10,0.10,0.10,0.10,0.10,0.08,0.08,0.08,0.08,0.08] },
+  YIELD_UPGRADE: { baseMult:2.0, maxLevel:5 },
+  AUTO_HARVEST_COST: [500, 5000, 30000],
+  AUTO_SELL_COST: 2000,
+  FERTILIZER_COST: [10000, 100000],
+  FERTILIZER_MULT: [1.5, 2.0],
+  PRESTIGE_THRESHOLD: 10000,
+  PRESTIGE_SPEED_BONUS: 0.10,
+  OFFLINE_MAX_HOURS: 4,
+  OFFLINE_MULT: 0.5,
+  AUTO_SAVE_INTERVAL: 30,
+  MIN_TOUCH_TARGET: 48,
+  MANUAL_HARVEST_BONUS: 1.5,
+  RANCH_UNLOCK: 5000,
+  FACTORY_UNLOCK: 50000,
+  MILESTONES: [
+    { threshold:1000,     title:'초보 농부' },
+    { threshold:10000,    title:'숙련 농부' },
+    { threshold:100000,   title:'농장주' },
+    { threshold:1000000,  title:'농장 마스터' },
+    { threshold:10000000, title:'농업 제왕' },
+  ],
+  PRESTIGE_UPGRADES: {
+    fertSoil:  { name:'비옥한 토양', desc:'작물 생산 -15%', starCost:1, maxLv:5, effect:0.15 },
+    goodFeed:  { name:'좋은 사료',   desc:'가축 생산 -15%', starCost:2, maxLv:5, effect:0.15 },
+    artisan:   { name:'장인 기술',   desc:'가공 판매 +20%', starCost:3, maxLv:5, effect:0.20 },
+    luckyHarv: { name:'행운의 수확', desc:'2배 확률 10%',   starCost:2, maxLv:5, effect:0.10 },
+    bigFarm:   { name:'큰 농장',     desc:'시작 +1칸',      starCost:5, maxLv:3, effect:1 },
+    fastStart: { name:'빠른 시작',   desc:'시작 +500G',     starCost:3, maxLv:5, effect:500 },
+  },
+};
+
+// 모든 자원 타입을 하나의 맵으로
+const ALL_RESOURCES = Object.assign({}, CONFIG.CROPS, CONFIG.ANIMALS, CONFIG.FACTORY);
+
+// ═══════════════════════════════════════════════════════════
+// 유틸 함수 — 순수 함수
+// ═══════════════════════════════════════════════════════════
+
+// 숫자 포맷: 1234 -> "1.2K"
+function formatNumber(n) {
+  if (n < 0) return '-' + formatNumber(-n);
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return Math.floor(n).toString();
+}
+
+// 초를 "M:SS" 포맷으로
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// 구매 가능 여부
+function canAfford(gold, cost) {
+  return gold >= cost;
+}
+
+// 업그레이드 비용 계산
+function calculateUpgradeCost(baseCost, level, multiplier) {
+  return Math.floor(baseCost * Math.pow(multiplier, level));
+}
+
+// 성장 시간 계산 (순수 함수)
+function calculateGrowthTime(baseTime, speedLevel, prestigeUpgrades, fertilizerLevel, resourceType) {
+  let time = baseTime;
+  for (let i = 0; i < speedLevel && i < CONFIG.SPEED_UPGRADE.reductionPerLevel.length; i++) {
+    time *= (1 - CONFIG.SPEED_UPGRADE.reductionPerLevel[i]);
+  }
+  // 프레스티지: 비옥한 토양(작물), 좋은 사료(가축)
+  if (prestigeUpgrades) {
+    const cat = getResourceCategory(resourceType);
+    if (cat === 'crop') {
+      const lv = prestigeUpgrades.fertSoil || 0;
+      time *= Math.pow(1 - 0.15, lv);
+    } else if (cat === 'animal') {
+      const lv = prestigeUpgrades.goodFeed || 0;
+      time *= Math.pow(1 - 0.15, lv);
+    }
+  }
+  // 비료
+  if (fertilizerLevel >= 2) time /= 2.0;
+  else if (fertilizerLevel >= 1) time /= 1.5;
+  return Math.max(time, 0.5);
+}
+
+// 수확량 계산 (순수 함수)
+function calculateYield(baseYield, yieldLevel) {
+  return baseYield + yieldLevel;
+}
+
+// 판매 수입 계산 (순수 함수)
+function sellResource(sellPrice, amount, prestigeUpgrades, resourceCategory) {
+  let price = sellPrice * amount;
+  if (resourceCategory === 'factory' && prestigeUpgrades) {
+    const artLv = prestigeUpgrades.artisan || 0;
+    price *= (1 + 0.20 * artLv);
+  }
+  return Math.floor(price);
+}
+
+// 프레스티지 별 계산
+function calculatePrestigeStars(totalEarned) {
+  return Math.floor(Math.sqrt(totalEarned / 1000));
+}
+
+// 프레스티지 배율 계산
+function calculatePrestigeMult(stars) {
+  return 1 + stars * CONFIG.PRESTIGE_SPEED_BONUS;
+}
+
+// 오프라인 수입 계산 (순수 함수)
+function calculateOfflineEarnings(elapsedSec, plots, prestigeMult, fertilizerLevel, prestigeUpgrades) {
+  const maxSec = CONFIG.OFFLINE_MAX_HOURS * 3600;
+  const capped = Math.min(elapsedSec, maxSec);
+  let totalGold = 0;
+  for (let i = 0; i < plots.length; i++) {
+    const p = plots[i];
+    if (!p || !p.type) continue;
+    const res = ALL_RESOURCES[p.type];
+    if (!res) continue;
+    const gt = calculateGrowthTime(res.growTime, p.speedLevel || 0, prestigeUpgrades, fertilizerLevel, p.type);
+    const cycles = capped / gt;
+    const yld = calculateYield(res.baseYield, p.yieldLevel || 0);
+    const cat = getResourceCategory(p.type);
+    totalGold += sellResource(res.sellPrice, yld * cycles, prestigeUpgrades, cat);
+  }
+  return Math.floor(totalGold * CONFIG.OFFLINE_MULT);
+}
+
+// 자원의 카테고리 판별
+function getResourceCategory(type) {
+  if (CONFIG.CROPS[type]) return 'crop';
+  if (CONFIG.ANIMALS[type]) return 'animal';
+  if (CONFIG.FACTORY[type]) return 'factory';
+  return 'unknown';
+}
+
+// 선형 보간
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// 클램프
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// ═══════════════════════════════════════════════════════════
+// TweenManager — clearImmediate() API 포함 [Cycle 4]
+// ═══════════════════════════════════════════════════════════
+const TweenManager = {
+  _tweens: [],
+  // 트윈 추가
+  add: function(obj, props, duration, easing, onComplete) {
+    const tw = { obj: obj, props: {}, duration: duration, elapsed: 0, easing: easing || 'easeOut', onComplete: onComplete || null };
+    for (const k in props) {
+      tw.props[k] = { from: obj[k], to: props[k] };
+    }
+    this._tweens.push(tw);
+    return tw;
+  },
+  // 즉시 전체 정리 [Cycle 4 교훈]
+  clearImmediate: function() {
+    this._tweens.length = 0;
+  },
+  // 매 프레임 업데이트
+  update: function(dt) {
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      tw.elapsed += dt;
+      let t = clamp(tw.elapsed / tw.duration, 0, 1);
+      if (tw.easing === 'easeOut') t = 1 - Math.pow(1 - t, 3);
+      else if (tw.easing === 'easeIn') t = t * t * t;
+      else if (tw.easing === 'easeInOut') t = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+      for (const k in tw.props) {
+        tw.obj[k] = lerp(tw.props[k].from, tw.props[k].to, t);
+      }
+      if (tw.elapsed >= tw.duration) {
+        for (const k in tw.props) { tw.obj[k] = tw.props[k].to; }
+        this._tweens.splice(i, 1);
+        if (tw.onComplete) tw.onComplete();
+      }
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// ObjectPool — 파티클 사전 할당, GC 방지
+// ═══════════════════════════════════════════════════════════
+function ObjectPool(factory, maxSize) {
+  this.pool = [];
+  this.active = [];
+  this.maxSize = maxSize;
+  for (let i = 0; i < maxSize; i++) this.pool.push(factory());
+}
+ObjectPool.prototype.get = function() {
+  if (this.pool.length === 0) return null;
+  const obj = this.pool.pop();
+  this.active.push(obj);
+  return obj;
+};
+ObjectPool.prototype.release = function(obj) {
+  const idx = this.active.indexOf(obj);
+  if (idx !== -1) { this.active.splice(idx, 1); this.pool.push(obj); }
+};
+ObjectPool.prototype.releaseAll = function() {
+  while (this.active.length > 0) this.pool.push(this.active.pop());
+};
+
+// ═══════════════════════════════════════════════════════════
+// SoundManager — Web Audio 절차적 사운드 §8.4
+// ═══════════════════════════════════════════════════════════
+const SoundManager = {
+  ctx: null,
+  muted: false,
+  // 사용자 인터랙션 후 초기화
+  init: function() {
+    if (this.ctx) return;
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { /* no audio */ }
+  },
+  // 톤 재생 헬퍼
+  _tone: function(freq, dur, type, vol, startOffset) {
+    if (!this.ctx || this.muted) return;
+    try {
+      const now = this.ctx.currentTime + (startOffset || 0);
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(now); o.stop(now + dur + 0.01);
+    } catch(e) { /* ignore */ }
+  },
+  // §8.4 수확 "팝" — Sine 880Hz, 0.05s
+  harvestPop: function() { this._tone(880, 0.05, 'sine', 0.15); },
+  // 자동 수확 "틱" — Sine 440Hz, 0.03s, vol 0.08
+  autoTick: function() { this._tone(440, 0.03, 'sine', 0.06); },
+  // 구매 차임 — C5->E5->G5
+  buyChime: function() {
+    [523.25, 659.25, 783.99].forEach(function(f, i) { SoundManager._tone(f, 0.08, 'sine', 0.12, i*0.08); });
+  },
+  // 해금 팡파르 — C4->E4->G4->C5
+  unlockFanfare: function() {
+    [261.63, 329.63, 392.00, 523.25].forEach(function(f, i) { SoundManager._tone(f, 0.12, 'sine', 0.15, i*0.1); });
+  },
+  // 프레스티지 장엄한 상승음 — C4->G4->C5->E5->G5
+  prestigeSound: function() {
+    [261.63, 392.00, 523.25, 659.25, 783.99].forEach(function(f, i) { SoundManager._tone(f, 0.2, 'sine', 0.18, i*0.12); });
+  },
+  // 마일스톤 축하
+  milestoneChime: function() {
+    [523.25, 659.25, 783.99].forEach(function(f) { SoundManager._tone(f, 0.3, 'sine', 0.10); });
+    SoundManager._tone(130.81, 0.4, 'triangle', 0.08);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// TransitionGuard — 상태 전환 보호 [Cycle 5, 8]
+// ═══════════════════════════════════════════════════════════
+const TransitionGuard = {
+  _transitioning: false,
+  // 전환 — 가드 플래그로 중복 차단
+  beginTransition: function(nextState, options) {
+    if (this._transitioning) return false;
+    const opts = options || {};
+    if (opts.immediate) {
+      gameState = nextState;
+      return true;
+    }
+    this._transitioning = true;
+    TweenManager.clearImmediate();
+    transitionFade.alpha = 1;
+    TweenManager.add(transitionFade, { alpha: 0 }, 0.3, 'easeOut', function() {
+      gameState = nextState;
+      TweenManager.add(transitionFade, { alpha: 1 }, 0.3, 'easeOut', function() {
+        TransitionGuard._transitioning = false;
+      });
+    });
+    return true;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 게임 상태 변수 — §12.7 단계 4
+// ═══════════════════════════════════════════════════════════
+let gameState = 'LOADING';
+let transitionFade = { alpha: 1 };
+let lastTime = 0;
+let autoSaveTimer = 0;
+let currentTab = 0; // 0=농장, 1=업그레이드, 2=프레스티지
+let scrollY = 0;
+let maxScrollY = 0;
+let placementMenuOpen = false;
+let placementMenuSlot = -1;
+let placementMenuItems = [];
+let offlinePopup = null;
+let milestonePopup = null;
+
+// 파티클 풀
+const particlePool = new ObjectPool(function() {
+  return { x:0, y:0, vx:0, vy:0, life:0, maxLife:1, color:'#FFD700', size:4, type:'star' };
+}, 70);
+// 골드 팝업 풀
+const popupPool = new ObjectPool(function() {
+  return { x:0, y:0, text:'', life:0, maxLife:0.8, color:'#FFD700', size:16 };
+}, 20);
+
+// 세이브 데이터 (인메모리 — localStorage 접근은 저장 시점만 [Cycle 12])
+const SAVE_KEY = 'miniIdleFarm_v1';
+let saveData = null;
+
+// UI 상수
+let dpr = 1;
+let canvasW = 960;
+let canvasH = 640;
+const topBarH = 48;
+const tabBarH = 56;
+let farmDirty = true;
+
+// 타이틀 애니메이션
+let titleAnim = { time: 0 };
+
+// 입력 상태
+let swipeStartX = 0;
+let swipeStartY = 0;
+let lastTouchY = 0;
+let isSwiping = false;
+let longPressTimer = null;
+let longPressRepeat = null;
+let longPressTarget = null;
+
+// 애니메이션 상태
+let animalBob = 0;
+let gearAngle = 0;
+
+// ═══════════════════════════════════════════════════════════
+// Canvas 초기화 — §12.7 단계 5
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let bgCache = null;
+let bgCacheW = 0;
+let bgCacheH = 0;
+
+// 캔버스 리사이즈 (DPR 대응)
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  canvasW = window.innerWidth;
+  canvasH = window.innerHeight;
+  canvas.width = canvasW * dpr;
+  canvas.height = canvasH * dpr;
+  canvas.style.width = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bgCache = null;
+  farmDirty = true;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════════════════════════
+// 세이브/로드 — try-catch 래핑
+// ═══════════════════════════════════════════════════════════
+function createDefaultSave() {
+  return {
+    gold: 0,
+    totalEarned: 0,
+    plots: [{ type:'wheat', growthTimer:0, speedLevel:0, yieldLevel:0 }],
+    maxPlots: 6,
+    upgrades: { autoHarvest:0, autoSell:false, fertilizer:0 },
+    prestige: { stars:0, totalStars:0, count:0, upgrades:{} },
+    stats: { fastestPrestige:Infinity, totalClicks:0, runStartTime:Date.now() },
+    lastSaveTime: Date.now(),
+    unlockedRanch: false,
+    unlockedFactory: false,
+    achievedMilestones: [],
+  };
+}
+
+// 세이브 로드
+function loadSaveData() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const def = createDefaultSave();
+      for (const k in def) { if (parsed[k] === undefined) parsed[k] = def[k]; }
+      if (!parsed.prestige) parsed.prestige = def.prestige;
+      if (!parsed.prestige.upgrades) parsed.prestige.upgrades = {};
+      if (!parsed.upgrades) parsed.upgrades = def.upgrades;
+      if (!parsed.stats) parsed.stats = def.stats;
+      if (!parsed.achievedMilestones) parsed.achievedMilestones = [];
+      saveData = parsed;
+      return true;
+    }
+  } catch(e) { console.error('[MiniIdleFarm] Load error:', e); }
+  return false;
+}
+
+// 세이브 저장
+function writeSave() {
+  if (!saveData) return;
+  saveData.lastSaveTime = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch(e) { /* ignore */ }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 그리기 헬퍼 — 100% Canvas 코드 드로잉 (외부 에셋 0개)
+// ═══════════════════════════════════════════════════════════
+
+// 둥근 사각형
+function drawRoundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.lineTo(x+w-r, y); c.quadraticCurveTo(x+w, y, x+w, y+r);
+  c.lineTo(x+w, y+h-r); c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  c.lineTo(x+r, y+h); c.quadraticCurveTo(x, y+h, x, y+h-r);
+  c.lineTo(x, y+r); c.quadraticCurveTo(x, y, x+r, y);
+  c.closePath();
+}
+
+// 진행 바 (순수 함수)
+function drawProgressBar(c, x, y, w, h, progress, color) {
+  c.fillStyle = 'rgba(0,0,0,0.25)';
+  drawRoundRect(c, x, y, w, h, h/2); c.fill();
+  if (progress > 0.01) {
+    c.fillStyle = color;
+    drawRoundRect(c, x+1, y+1, (w-2) * clamp(progress, 0, 1), h-2, (h-2)/2); c.fill();
+  }
+}
+
+// 별 그리기
+function drawStar(c, x, y, r, pts, color) {
+  c.fillStyle = color;
+  c.beginPath();
+  for (let i = 0; i < pts * 2; i++) {
+    const a = (i * Math.PI / pts) - Math.PI/2;
+    const rad = i % 2 === 0 ? r : r * 0.4;
+    if (i === 0) c.moveTo(x + Math.cos(a)*rad, y + Math.sin(a)*rad);
+    else c.lineTo(x + Math.cos(a)*rad, y + Math.sin(a)*rad);
+  }
+  c.closePath(); c.fill();
+}
+
+// 구름
+function drawCloud(c, x, y, sz) {
+  c.fillStyle = 'rgba(255,255,255,0.8)';
+  c.beginPath();
+  c.arc(x, y, sz*0.55, 0, Math.PI*2);
+  c.arc(x+sz*0.5, y-sz*0.15, sz*0.45, 0, Math.PI*2);
+  c.arc(x+sz, y, sz*0.5, 0, Math.PI*2);
+  c.arc(x+sz*0.5, y+sz*0.12, sz*0.35, 0, Math.PI*2);
+  c.fill();
+}
+
+// 배경 캐시 생성
+function createBgCache(w, h) {
+  const oc = document.createElement('canvas');
+  oc.width = w * dpr; oc.height = h * dpr;
+  const c = oc.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // 하늘 그라디언트
+  const sg = c.createLinearGradient(0, 0, 0, h*0.6);
+  sg.addColorStop(0, '#87CEEB'); sg.addColorStop(0.7, '#B0E0FF'); sg.addColorStop(1, '#E0F0E0');
+  c.fillStyle = sg; c.fillRect(0, 0, w, h*0.6);
+  // 태양
+  c.fillStyle = '#FFE066'; c.beginPath(); c.arc(w*0.82, h*0.10, 26, 0, Math.PI*2); c.fill();
+  c.fillStyle = 'rgba(255,224,102,0.25)'; c.beginPath(); c.arc(w*0.82, h*0.10, 40, 0, Math.PI*2); c.fill();
+  // 구름
+  drawCloud(c, w*0.12, h*0.07, 35);
+  drawCloud(c, w*0.42, h*0.04, 30);
+  drawCloud(c, w*0.72, h*0.12, 25);
+  // 먼 언덕
+  c.fillStyle = '#8FBC8F'; c.beginPath();
+  c.moveTo(0, h*0.54);
+  c.quadraticCurveTo(w*0.2, h*0.42, w*0.38, h*0.51);
+  c.quadraticCurveTo(w*0.58, h*0.43, w*0.78, h*0.49);
+  c.quadraticCurveTo(w*0.93, h*0.44, w, h*0.51);
+  c.lineTo(w, h*0.58); c.lineTo(0, h*0.58); c.fill();
+  // 잔디
+  const gg = c.createLinearGradient(0, h*0.54, 0, h);
+  gg.addColorStop(0, '#7EC850'); gg.addColorStop(0.4, '#6AB840'); gg.addColorStop(1, '#5AA030');
+  c.fillStyle = gg; c.fillRect(0, h*0.54, w, h*0.46);
+  // 잔디 줄무늬 (텍스처)
+  c.strokeStyle = 'rgba(255,255,255,0.06)'; c.lineWidth = 1.5;
+  for (let gy = h*0.58; gy < h; gy += 18) {
+    c.beginPath(); c.moveTo(0, gy); c.lineTo(w, gy); c.stroke();
+  }
+  // 울타리
+  c.strokeStyle = '#C4A06A'; c.lineWidth = 2.5;
+  const fy = h*0.56;
+  c.beginPath(); c.moveTo(0, fy); c.lineTo(w, fy); c.stroke();
+  c.beginPath(); c.moveTo(0, fy+9); c.lineTo(w, fy+9); c.stroke();
+  for (let fx = 15; fx < w; fx += 45) {
+    c.beginPath(); c.moveTo(fx, fy-7); c.lineTo(fx, fy+16); c.stroke();
+  }
+  // 작은 꽃 장식
+  for (let i = 0; i < 12; i++) {
+    const fx2 = 20 + (i * 73 + 17) % (w - 40);
+    const fy2 = h*0.62 + (i*37 % 60);
+    const fc = ['#FF69B4','#FFD700','#FF6347','#87CEEB','#DDA0DD'][i%5];
+    c.fillStyle = fc;
+    c.beginPath(); c.arc(fx2, fy2, 3, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#7EC850';
+    c.fillRect(fx2-0.5, fy2, 1, 5);
+  }
+  bgCache = oc; bgCacheW = w; bgCacheH = h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 작물/가축/가공품 아이콘 — Canvas 코드 드로잉
+// ═══════════════════════════════════════════════════════════
+
+// 작물 아이콘 (성장 3단계)
+function drawCropIcon(c, cx, cy, sz, type, growth) {
+  const s = sz * 0.28;
+  if (growth < 0.33) {
+    // 씨앗
+    c.fillStyle = '#6B4226';
+    c.beginPath(); c.arc(cx, cy+s*0.3, s*0.18, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#7EC850';
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx-2, cy+s*0.2); c.lineTo(cx+2, cy+s*0.2); c.closePath(); c.fill();
+  } else if (growth < 0.66) {
+    // 싹
+    c.strokeStyle = '#5A9030'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(cx, cy+s*0.4); c.lineTo(cx, cy-s*0.15); c.stroke();
+    c.fillStyle = '#7EC850';
+    c.beginPath(); c.moveTo(cx, cy-s*0.2); c.lineTo(cx-s*0.18, cy+s*0.05); c.lineTo(cx+s*0.18, cy+s*0.05); c.closePath(); c.fill();
+  } else {
+    // 수확 단계
+    if (type === 'wheat') {
+      c.strokeStyle = '#B8963A'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(cx, cy+s*0.5); c.lineTo(cx, cy-s*0.3); c.stroke();
+      c.fillStyle = '#F5DEB3';
+      for (let k = -2; k <= 2; k++) {
+        c.beginPath(); c.arc(cx+k*3, cy-s*0.4, 3, 0, Math.PI*2); c.fill();
+      }
+    } else if (type === 'carrot') {
+      c.fillStyle = '#FF8C00';
+      c.beginPath(); c.moveTo(cx, cy+s*0.6); c.lineTo(cx-s*0.3, cy-s*0.15); c.lineTo(cx+s*0.3, cy-s*0.15); c.closePath(); c.fill();
+      c.fillStyle = '#7EC850';
+      c.beginPath(); c.moveTo(cx-3, cy-s*0.2); c.quadraticCurveTo(cx, cy-s*0.55, cx+3, cy-s*0.2); c.fill();
+    } else if (type === 'tomato') {
+      c.fillStyle = '#FF4444';
+      c.beginPath(); c.arc(cx, cy, s*0.45, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#CC2222';
+      c.beginPath(); c.arc(cx-s*0.1, cy+s*0.05, s*0.15, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#7EC850';
+      c.beginPath(); c.moveTo(cx-4, cy-s*0.35); c.lineTo(cx, cy-s*0.55); c.lineTo(cx+4, cy-s*0.35); c.closePath(); c.fill();
+    } else if (type === 'corn') {
+      c.fillStyle = '#FFD700';
+      drawRoundRect(c, cx-s*0.2, cy-s*0.4, s*0.4, s*0.8, 4); c.fill();
+      c.fillStyle = '#DAA520';
+      for (let r = 0; r < 3; r++) {
+        for (let cc2 = 0; cc2 < 2; cc2++) {
+          c.beginPath(); c.arc(cx-s*0.05+cc2*s*0.1, cy-s*0.2+r*s*0.2, 2, 0, Math.PI*2); c.fill();
+        }
+      }
+      c.fillStyle = '#7EC850';
+      c.beginPath(); c.moveTo(cx+s*0.2, cy-s*0.15); c.quadraticCurveTo(cx+s*0.5, cy-s*0.35, cx+s*0.4, cy-s*0.5);
+      c.lineTo(cx+s*0.15, cy-s*0.25); c.closePath(); c.fill();
+    }
+    // 수확 준비 글로우
+    if (growth >= 1.0) {
+      c.fillStyle = 'rgba(255,255,200,' + (0.2 + 0.2 * Math.sin(Date.now()*0.005)) + ')';
+      c.beginPath(); c.arc(cx, cy, s*1.1, 0, Math.PI*2); c.fill();
+    }
+  }
+}
+
+// 가축 아이콘 (대기 모션 bob)
+function drawAnimalIcon(c, cx, cy, sz, type, bob) {
+  const s = sz * 0.26;
+  const by = Math.sin(bob) * 1.5;
+  if (type === 'chicken') {
+    c.fillStyle = '#FFFFFF';
+    c.beginPath(); c.arc(cx, cy+by, s*0.45, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(cx+s*0.25, cy-s*0.25+by, s*0.22, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#FF3333';
+    c.beginPath(); c.arc(cx+s*0.25, cy-s*0.48+by, s*0.10, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#FFA500';
+    c.beginPath(); c.moveTo(cx+s*0.47, cy-s*0.25+by); c.lineTo(cx+s*0.6, cy-s*0.15+by); c.lineTo(cx+s*0.47, cy-s*0.1+by); c.closePath(); c.fill();
+    c.fillStyle = '#222';
+    c.beginPath(); c.arc(cx+s*0.32, cy-s*0.3+by, 1.2, 0, Math.PI*2); c.fill();
+  } else if (type === 'cow') {
+    c.fillStyle = '#F0F0F0';
+    drawRoundRect(c, cx-s*0.45, cy-s*0.15+by, s*0.9, s*0.55, 5); c.fill();
+    c.fillStyle = '#333';
+    c.beginPath(); c.arc(cx-s*0.1, cy+s*0.02+by, s*0.10, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(cx+s*0.2, cy+s*0.08+by, s*0.08, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#F0F0F0';
+    c.beginPath(); c.arc(cx-s*0.4, cy-s*0.1+by, s*0.20, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#DEB887';
+    c.beginPath(); c.arc(cx-s*0.5, cy-s*0.3+by, s*0.07, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(cx-s*0.32, cy-s*0.3+by, s*0.07, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#222';
+    c.beginPath(); c.arc(cx-s*0.42, cy-s*0.14+by, 1.2, 0, Math.PI*2); c.fill();
+  } else if (type === 'sheep') {
+    c.fillStyle = '#FFFAF0';
+    for (let k = 0; k < 5; k++) {
+      c.beginPath(); c.arc(cx + Math.cos(k*1.3)*s*0.25, cy + Math.sin(k*1.3)*s*0.15 + by, s*0.22, 0, Math.PI*2); c.fill();
+    }
+    c.fillStyle = '#444';
+    c.beginPath(); c.arc(cx-s*0.35, cy-s*0.05+by, s*0.15, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#FFF';
+    c.beginPath(); c.arc(cx-s*0.37, cy-s*0.1+by, 1.5, 0, Math.PI*2); c.fill();
+  }
+}
+
+// 가공품 아이콘
+function drawFactoryIcon(c, cx, cy, sz, type) {
+  const s = sz * 0.26;
+  if (type === 'bread') {
+    c.fillStyle = '#DEB887';
+    c.beginPath(); c.arc(cx, cy-s*0.05, s*0.4, Math.PI, 0); c.lineTo(cx+s*0.4, cy+s*0.15); c.lineTo(cx-s*0.4, cy+s*0.15); c.closePath(); c.fill();
+    c.strokeStyle = '#C4A570'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(cx-s*0.1, cy-s*0.15); c.lineTo(cx-s*0.1, cy+s*0.1); c.stroke();
+    c.beginPath(); c.moveTo(cx+s*0.1, cy-s*0.15); c.lineTo(cx+s*0.1, cy+s*0.1); c.stroke();
+  } else if (type === 'cheese') {
+    c.fillStyle = '#FFD700';
+    c.beginPath(); c.moveTo(cx-s*0.4, cy+s*0.15); c.lineTo(cx+s*0.4, cy+s*0.15); c.lineTo(cx+s*0.15, cy-s*0.25); c.closePath(); c.fill();
+    c.fillStyle = '#FFC107';
+    c.beginPath(); c.arc(cx-s*0.08, cy+s*0.02, s*0.07, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(cx+s*0.12, cy+s*0.08, s*0.05, 0, Math.PI*2); c.fill();
+  } else if (type === 'sweater') {
+    c.fillStyle = '#FFB6C1';
+    drawRoundRect(c, cx-s*0.3, cy-s*0.25, s*0.6, s*0.5, 3); c.fill();
+    c.fillRect(cx-s*0.48, cy-s*0.2, s*0.2, s*0.12);
+    c.fillRect(cx+s*0.28, cy-s*0.2, s*0.2, s*0.12);
+    c.strokeStyle = '#FF8FAA'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(cx-s*0.25, cy-s*0.05); c.lineTo(cx+s*0.25, cy-s*0.05); c.stroke();
+    c.beginPath(); c.moveTo(cx-s*0.25, cy+s*0.1); c.lineTo(cx+s*0.25, cy+s*0.1); c.stroke();
+  }
+}
+
+// 아이콘 디스패치
+function drawSlotIcon(c, cx, cy, sz, type, growth, bob) {
+  const cat = getResourceCategory(type);
+  if (cat === 'crop') drawCropIcon(c, cx, cy, sz, type, growth);
+  else if (cat === 'animal') drawAnimalIcon(c, cx, cy, sz, type, bob);
+  else if (cat === 'factory') drawFactoryIcon(c, cx, cy, sz, type);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 렌더링
+// ═══════════════════════════════════════════════════════════
+
+// 배경 (offscreen 캐시)
+function drawBackground(c) {
+  if (!bgCache || bgCacheW !== canvasW || bgCacheH !== canvasH) createBgCache(canvasW, canvasH);
+  c.drawImage(bgCache, 0, 0, canvasW, canvasH);
+}
+
+// 상단 바
+function drawTopBar(c) {
+  c.fillStyle = 'rgba(250,235,215,0.93)';
+  drawRoundRect(c, 4, 4, canvasW-8, topBarH-4, 8); c.fill();
+  c.strokeStyle = '#C4A06A'; c.lineWidth = 1.5;
+  drawRoundRect(c, 4, 4, canvasW-8, topBarH-4, 8); c.stroke();
+  // 별
+  const stars = (saveData.prestige && saveData.prestige.totalStars) || 0;
+  drawStar(c, 22, topBarH/2, 9, 5, '#FFB347');
+  c.fillStyle = '#555'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.fillText(stars.toString(), 35, topBarH/2);
+  // 제목
+  c.fillStyle = '#4A7C3F'; c.font = 'bold 14px sans-serif'; c.textAlign = 'center';
+  c.fillText('미니 아이들 팜', canvasW/2, topBarH/2);
+  // 골드
+  c.fillStyle = '#B8860B'; c.font = 'bold 13px sans-serif'; c.textAlign = 'right';
+  c.fillText(formatNumber(saveData.gold) + 'G', canvasW - 56, topBarH/2);
+  // 일시정지 (48x48 터치 타겟)
+  const px = canvasW - 28; const py = topBarH/2;
+  c.fillStyle = gameState === 'PAUSED' ? '#4CAF50' : 'rgba(0,0,0,0.1)';
+  c.beginPath(); c.arc(px, py, 16, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#555';
+  if (gameState === 'PAUSED') {
+    c.beginPath(); c.moveTo(px-4, py-6); c.lineTo(px+6, py); c.lineTo(px-4, py+6); c.closePath(); c.fill();
+  } else {
+    c.fillRect(px-4, py-5, 3, 10); c.fillRect(px+1, py-5, 3, 10);
+  }
+}
+
+// 하단 탭 바
+function drawTabBar(c) {
+  const y = canvasH - tabBarH;
+  c.fillStyle = 'rgba(250,235,215,0.95)';
+  drawRoundRect(c, 4, y, canvasW-8, tabBarH-4, 8); c.fill();
+  c.strokeStyle = '#C4A06A'; c.lineWidth = 1;
+  drawRoundRect(c, 4, y, canvasW-8, tabBarH-4, 8); c.stroke();
+  const tabs = ['🌾 농장', '⬆ 업그레이드', '⭐ 프레스티지'];
+  const tw = (canvasW-16) / 3;
+  for (let i = 0; i < 3; i++) {
+    const tx = 8 + tw * i;
+    const sel = currentTab === i;
+    if (sel) {
+      c.fillStyle = '#4CAF50'; drawRoundRect(c, tx+3, y+5, tw-6, tabBarH-14, 6); c.fill();
+    }
+    c.fillStyle = sel ? '#FFF' : '#666';
+    c.font = (sel ? 'bold ' : '') + '12px sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(tabs[i], tx + tw/2, y + tabBarH/2);
+  }
+}
+
+// 농장 영역 계산
+function getFarmArea() {
+  const mp = saveData.maxPlots;
+  const cols = mp <= 6 ? 3 : (mp <= 9 ? 3 : 4);
+  const rows = Math.ceil(mp / cols);
+  const aW = canvasW - 24;
+  const aH = canvasH - topBarH - tabBarH - 32;
+  const gap = 8;
+  const slotW = Math.min(110, (aW - gap*(cols-1)) / cols);
+  const slotH = Math.min(110, (aH - gap*(rows-1)) / rows);
+  const tW = cols * slotW + (cols-1)*gap;
+  const tH = rows * slotH + (rows-1)*gap;
+  return { cols:cols, rows:rows, slotW:slotW, slotH:slotH, ox:(canvasW-tW)/2, oy:topBarH + (canvasH-topBarH-tabBarH-tH)/2, gap:gap };
+}
+
+// 최대 해금 슬롯
+function getMaxUnlockedSlots() {
+  let max = 6 + ((saveData.prestige.upgrades && saveData.prestige.upgrades.bigFarm) || 0);
+  if (saveData.unlockedRanch) max = Math.max(max, 10);
+  if (saveData.unlockedFactory) max = Math.max(max, 12);
+  return Math.min(max, 12);
+}
+
+// 성장 시간 (플롯 기준)
+function getPlotGrowTime(p) {
+  if (!p || !p.type) return 999;
+  const res = ALL_RESOURCES[p.type];
+  if (!res) return 999;
+  return calculateGrowthTime(res.growTime, p.speedLevel||0, saveData.prestige.upgrades, saveData.upgrades.fertilizer, p.type);
+}
+
+// 농장 탭
+function drawFarmTab(c) {
+  const a = getFarmArea();
+  const maxSlots = getMaxUnlockedSlots();
+  for (let i = 0; i < saveData.maxPlots; i++) {
+    const col = i % a.cols;
+    const row = Math.floor(i / a.cols);
+    const sx = a.ox + col*(a.slotW+a.gap);
+    const sy = a.oy + row*(a.slotH+a.gap);
+    const p = saveData.plots[i];
+    const isReady = p && p.type && p.growthTimer >= getPlotGrowTime(p);
+    const locked = i >= maxSlots;
+    // 슬롯 배경
+    c.fillStyle = locked ? 'rgba(80,80,80,0.3)' : (isReady ? 'rgba(255,215,0,0.12)' : 'rgba(107,66,38,0.18)');
+    drawRoundRect(c, sx, sy, a.slotW, a.slotH, 8); c.fill();
+    c.strokeStyle = isReady ? '#DAA520' : (locked ? '#888' : '#A0845A');
+    c.lineWidth = isReady ? 2 : 1;
+    drawRoundRect(c, sx, sy, a.slotW, a.slotH, 8); c.stroke();
+    if (locked) {
+      c.fillStyle = 'rgba(0,0,0,0.45)'; drawRoundRect(c, sx, sy, a.slotW, a.slotH, 8); c.fill();
+      c.fillStyle = '#DDD'; c.font = '10px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      const need = i < 10 ? formatNumber(CONFIG.RANCH_UNLOCK) + 'G' : formatNumber(CONFIG.FACTORY_UNLOCK) + 'G';
+      c.fillText('🔒 ' + need, sx+a.slotW/2, sy+a.slotH/2);
+      continue;
+    }
+    if (p && p.type) {
+      const res = ALL_RESOURCES[p.type];
+      if (!res) continue;
+      const gt = getPlotGrowTime(p);
+      const growth = clamp(p.growthTimer / gt, 0, 1);
+      drawSlotIcon(c, sx+a.slotW/2, sy+a.slotH*0.38, Math.min(a.slotW, a.slotH), p.type, growth, animalBob);
+      c.fillStyle = '#444'; c.font = '10px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'top';
+      c.fillText(res.name, sx+a.slotW/2, sy+a.slotH*0.66);
+      drawProgressBar(c, sx+6, sy+a.slotH-13, a.slotW-12, 7, growth, isReady ? '#DAA520' : '#4CAF50');
+      if (isReady) {
+        c.fillStyle = '#DAA520'; c.font = 'bold 11px sans-serif'; c.textAlign = 'center';
+        c.fillText('✋ 수확!', sx+a.slotW/2, sy+5);
+      }
+    } else {
+      c.fillStyle = '#AAA'; c.font = 'bold 22px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('+', sx+a.slotW/2, sy+a.slotH/2);
+    }
+  }
+  // 자동화 상태 표시
+  const infoY = getFarmArea().oy - 16;
+  let infoText = '';
+  if (saveData.upgrades.autoHarvest > 0) infoText += '자동수확 Lv' + saveData.upgrades.autoHarvest + '  ';
+  if (saveData.upgrades.autoSell) infoText += '자동판매  ';
+  if (saveData.upgrades.fertilizer > 0) infoText += '비료 x' + CONFIG.FERTILIZER_MULT[saveData.upgrades.fertilizer-1];
+  if (infoText) {
+    c.fillStyle = 'rgba(76,175,80,0.8)'; c.font = '10px sans-serif'; c.textAlign = 'center';
+    c.fillText(infoText.trim(), canvasW/2, infoY);
+  }
+}
+
+// 업그레이드 목록 생성
+function getUpgradeList() {
+  const list = [];
+  for (let i = 0; i < saveData.plots.length; i++) {
+    const p = saveData.plots[i];
+    if (!p || !p.type) continue;
+    const res = ALL_RESOURCES[p.type];
+    if (!res) continue;
+    const slv = p.speedLevel || 0;
+    const sm = slv < 5 ? CONFIG.SPEED_UPGRADE.baseMult : 1.8;
+    list.push({ id:'sp_'+i, name:res.name+' 속도', desc:'생산 시간 감소', emoji:'⚡', color:'#FF9800',
+      level:slv, maxLevel:CONFIG.SPEED_UPGRADE.maxLevel, cost:calculateUpgradeCost(res.sellPrice*20, slv, sm),
+      plotIdx:i, upgradeType:'speed' });
+    const ylv = p.yieldLevel || 0;
+    list.push({ id:'yl_'+i, name:res.name+' 수확량', desc:'수확량 +1', emoji:'🌾', color:'#8BC34A',
+      level:ylv, maxLevel:CONFIG.YIELD_UPGRADE.maxLevel, cost:calculateUpgradeCost(res.sellPrice*30, ylv, CONFIG.YIELD_UPGRADE.baseMult),
+      plotIdx:i, upgradeType:'yield' });
+  }
+  if (saveData.upgrades.autoHarvest < 3) {
+    const lv = saveData.upgrades.autoHarvest;
+    list.push({ id:'ah', name:['밭 자동수확','목장 자동수확','공장 자동수확'][lv], desc:'자동으로 수확', emoji:'🤖', color:'#2196F3',
+      level:lv, maxLevel:3, cost:CONFIG.AUTO_HARVEST_COST[lv], upgradeType:'autoHarvest' });
+  }
+  if (!saveData.upgrades.autoSell) {
+    list.push({ id:'as', name:'자동 판매기', desc:'수확물 즉시 판매', emoji:'💰', color:'#FFD700',
+      cost:CONFIG.AUTO_SELL_COST, upgradeType:'autoSell' });
+  }
+  if (saveData.upgrades.fertilizer < 2) {
+    const lv = saveData.upgrades.fertilizer;
+    list.push({ id:'ft', name:['비료','황금 비료'][lv], desc:'전체 생산 x'+CONFIG.FERTILIZER_MULT[lv], emoji:'🌿', color:'#4CAF50',
+      level:lv, maxLevel:2, cost:CONFIG.FERTILIZER_COST[lv], upgradeType:'fertilizer' });
+  }
+  return list;
+}
+
+// 업그레이드 탭
+function drawUpgradeTab(c) {
+  const items = getUpgradeList();
+  const itemH = 58;
+  const ox = 12; const aw = canvasW - 24; const oy = topBarH + 8;
+  maxScrollY = Math.max(0, items.length*(itemH+5) - (canvasH - topBarH - tabBarH - 16));
+  c.save();
+  c.beginPath(); c.rect(0, topBarH, canvasW, canvasH-topBarH-tabBarH); c.clip();
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const iy = oy + i*(itemH+5) - scrollY;
+    if (iy+itemH < topBarH || iy > canvasH-tabBarH) continue;
+    c.fillStyle = 'rgba(250,235,215,0.9)'; drawRoundRect(c, ox, iy, aw, itemH, 7); c.fill();
+    c.strokeStyle = '#DDD'; c.lineWidth = 0.5; drawRoundRect(c, ox, iy, aw, itemH, 7); c.stroke();
+    // 아이콘 뱃지
+    c.fillStyle = item.color || '#4CAF50'; drawRoundRect(c, ox+5, iy+5, itemH-10, itemH-10, 5); c.fill();
+    c.fillStyle = '#FFF'; c.font = '16px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(item.emoji || '?', ox+itemH/2, iy+itemH/2);
+    // 텍스트
+    c.fillStyle = '#333'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+    c.fillText(item.name, ox+itemH+2, iy+17);
+    c.fillStyle = '#777'; c.font = '10px sans-serif';
+    c.fillText(item.desc, ox+itemH+2, iy+32);
+    if (item.maxLevel !== undefined) c.fillText('Lv '+item.level+'/'+item.maxLevel, ox+itemH+2, iy+46);
+    // 버튼
+    const btnW = 68; const btnH = 32; const bx = ox+aw-btnW-8; const by = iy+(itemH-btnH)/2;
+    const maxed = item.maxLevel !== undefined && item.level >= item.maxLevel;
+    const afford = canAfford(saveData.gold, item.cost);
+    c.fillStyle = maxed ? '#999' : (afford ? '#4CAF50' : '#C44');
+    drawRoundRect(c, bx, by, btnW, btnH, 5); c.fill();
+    c.fillStyle = '#FFF'; c.font = 'bold 11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(maxed ? 'MAX' : formatNumber(item.cost)+'G', bx+btnW/2, by+btnH/2);
+  }
+  c.restore();
+}
+
+// 프레스티지 업그레이드 목록
+function getPrestigeUpgradeList() {
+  const list = [];
+  for (const key in CONFIG.PRESTIGE_UPGRADES) {
+    const cfg = CONFIG.PRESTIGE_UPGRADES[key];
+    const lv = (saveData.prestige.upgrades && saveData.prestige.upgrades[key]) || 0;
+    list.push({ id:key, name:cfg.name, desc:cfg.desc, cost:cfg.starCost, level:lv, maxLevel:cfg.maxLv });
+  }
+  return list;
+}
+
+// 프레스티지 탭
+function drawPrestigeTab(c) {
+  const ox = 16; const aw = canvasW-32;
+  const items = getPrestigeUpgradeList();
+  maxScrollY = Math.max(0, (items.length*52+300) - (canvasH-topBarH-tabBarH-20));
+  c.save();
+  c.beginPath(); c.rect(0, topBarH, canvasW, canvasH-topBarH-tabBarH); c.clip();
+  let y = topBarH + 16 - scrollY;
+  // 상태 패널
+  c.fillStyle = 'rgba(250,235,215,0.93)'; drawRoundRect(c, ox, y, aw, 96, 10); c.fill();
+  c.strokeStyle = '#FFB347'; c.lineWidth = 1.5; drawRoundRect(c, ox, y, aw, 96, 10); c.stroke();
+  c.fillStyle = '#444'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center';
+  c.fillText('⭐ 프레스티지', ox+aw/2, y+20);
+  c.fillStyle = '#777'; c.font = '11px sans-serif';
+  c.fillText('총 수입: '+formatNumber(saveData.totalEarned)+'G', ox+aw/2, y+38);
+  const newStars = Math.max(0, calculatePrestigeStars(saveData.totalEarned) - (saveData.prestige.totalStars||0));
+  const canPrest = saveData.totalEarned >= CONFIG.PRESTIGE_THRESHOLD && newStars > 0;
+  c.fillStyle = canPrest ? '#FF6B35' : '#AAA'; c.font = 'bold 12px sans-serif';
+  c.fillText(canPrest ? '리셋하면 '+newStars+'개 별 획득!' : '총 수입 10,000G 이상 필요', ox+aw/2, y+56);
+  // 리셋 버튼
+  const rbW = 130; const rbH = 30; const rbx = ox+(aw-rbW)/2; const rby = y+66;
+  c.fillStyle = canPrest ? '#FF6B35' : '#999'; drawRoundRect(c, rbx, rby, rbW, rbH, 5); c.fill();
+  c.fillStyle = '#FFF'; c.font = 'bold 12px sans-serif';
+  c.fillText('농장 리셋', rbx+rbW/2, rby+rbH/2+1);
+  y += 108;
+  // 보유 별
+  c.fillStyle = 'rgba(250,235,215,0.88)'; drawRoundRect(c, ox, y, aw, 32, 6); c.fill();
+  drawStar(c, ox+20, y+16, 10, 5, '#FFB347');
+  c.fillStyle = '#444'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+  c.fillText('보유: '+(saveData.prestige.stars||0)+'★  전체 생산 x'+calculatePrestigeMult(saveData.prestige.totalStars||0).toFixed(1), ox+38, y+17);
+  y += 40;
+  // 통계
+  c.fillStyle = '#888'; c.font = '10px sans-serif'; c.textAlign = 'left';
+  c.fillText('프레스티지 '+(saveData.prestige.count||0)+'회', ox, y);
+  if (saveData.stats.fastestPrestige < Infinity) c.fillText('  최단: '+formatTime(saveData.stats.fastestPrestige), ox+90, y);
+  y += 22;
+  // 업그레이드
+  c.fillStyle = '#444'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+  c.fillText('프레스티지 업그레이드', ox, y); y += 18;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i]; const iy = y + i*52;
+    if (iy+48 < topBarH || iy > canvasH-tabBarH) continue;
+    c.fillStyle = 'rgba(250,235,215,0.85)'; drawRoundRect(c, ox, iy, aw, 46, 6); c.fill();
+    c.fillStyle = '#444'; c.font = 'bold 11px sans-serif'; c.textAlign = 'left';
+    c.fillText(it.name, ox+8, iy+16);
+    c.fillStyle = '#777'; c.font = '10px sans-serif';
+    c.fillText(it.desc+' (Lv'+it.level+'/'+it.maxLevel+')', ox+8, iy+32);
+    const pbW = 58; const pbH = 26; const pbx = ox+aw-pbW-6; const pby = iy+10;
+    const pMax = it.level >= it.maxLevel; const pOk = (saveData.prestige.stars||0) >= it.cost;
+    c.fillStyle = pMax ? '#999' : (pOk ? '#FF6B35' : '#C44');
+    drawRoundRect(c, pbx, pby, pbW, pbH, 4); c.fill();
+    c.fillStyle = '#FFF'; c.font = 'bold 10px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(pMax ? 'MAX' : it.cost+'★', pbx+pbW/2, pby+pbH/2);
+  }
+  c.restore();
+}
+
+// 배치 메뉴
+function drawPlacementMenu(c) {
+  if (!placementMenuOpen) return;
+  c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0,0,canvasW,canvasH);
+  const items = placementMenuItems;
+  const itemH = 52;
+  const mW = Math.min(270, canvasW-32); const mH = Math.min(items.length*itemH+40, canvasH-60);
+  const mx = (canvasW-mW)/2; const my = (canvasH-mH)/2;
+  c.fillStyle = 'rgba(250,235,215,0.97)'; drawRoundRect(c, mx, my, mW, mH, 12); c.fill();
+  c.strokeStyle = '#C4A06A'; c.lineWidth = 2; drawRoundRect(c, mx, my, mW, mH, 12); c.stroke();
+  c.fillStyle = '#444'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center';
+  c.fillText('자원 선택', mx+mW/2, my+20);
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i]; const iy = my+32+i*itemH;
+    const ok = canAfford(saveData.gold, it.cost);
+    c.fillStyle = ok ? 'rgba(76,175,80,0.08)' : 'rgba(200,200,200,0.15)';
+    drawRoundRect(c, mx+6, iy, mW-12, itemH-4, 5); c.fill();
+    drawSlotIcon(c, mx+30, iy+itemH/2-2, 36, it.type, 1, 0);
+    c.fillStyle = ok ? '#333' : '#AAA'; c.font = 'bold 11px sans-serif'; c.textAlign = 'left';
+    c.fillText(it.name, mx+54, iy+18);
+    c.fillStyle = '#777'; c.font = '10px sans-serif';
+    c.fillText(it.cost > 0 ? formatNumber(it.cost)+'G' : '무료', mx+54, iy+34);
+    c.fillStyle = '#B8860B'; c.textAlign = 'right';
+    c.fillText('+'+it.sellPrice+'G/'+it.growTime+'s', mx+mW-12, iy+26);
+  }
+}
+
+// 프레스티지 확인 모달
+function drawModal(c) {
+  if (gameState !== 'PRESTIGE_CONFIRM') return;
+  c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(0,0,canvasW,canvasH);
+  const mw = Math.min(320, canvasW-32); const mh = 170;
+  const mx = (canvasW-mw)/2; const my = (canvasH-mh)/2;
+  c.fillStyle = 'rgba(250,235,215,0.97)'; drawRoundRect(c, mx, my, mw, mh, 12); c.fill();
+  c.strokeStyle = '#FFB347'; c.lineWidth = 2; drawRoundRect(c, mx, my, mw, mh, 12); c.stroke();
+  const ns = Math.max(0, calculatePrestigeStars(saveData.totalEarned)-(saveData.prestige.totalStars||0));
+  c.fillStyle = '#333'; c.font = 'bold 14px sans-serif'; c.textAlign = 'center';
+  c.fillText('농장을 리셋하시겠습니까?', mx+mw/2, my+32);
+  c.fillStyle = '#FFB347'; c.font = 'bold 13px sans-serif';
+  c.fillText(ns+'개 별 획득!', mx+mw/2, my+56);
+  c.fillStyle = '#888'; c.font = '10px sans-serif';
+  c.fillText('모든 작물/업그레이드/골드가 초기화됩니다', mx+mw/2, my+76);
+  const bw = 90; const bh = 34;
+  // 확인
+  c.fillStyle = '#FF6B35'; drawRoundRect(c, mx+mw/2-bw-8, my+mh-50, bw, bh, 6); c.fill();
+  c.fillStyle = '#FFF'; c.font = 'bold 12px sans-serif';
+  c.fillText('확인', mx+mw/2-bw/2-8, my+mh-50+bh/2+1);
+  // 취소
+  c.fillStyle = '#999'; drawRoundRect(c, mx+mw/2+8, my+mh-50, bw, bh, 6); c.fill();
+  c.fillStyle = '#FFF';
+  c.fillText('취소', mx+mw/2+bw/2+8, my+mh-50+bh/2+1);
+}
+
+// 파티클 렌더
+function drawParticles(c) {
+  for (let i = 0; i < particlePool.active.length; i++) {
+    const p = particlePool.active[i];
+    const a = 1 - p.life / p.maxLife;
+    c.globalAlpha = clamp(a, 0, 1);
+    if (p.type === 'star') {
+      drawStar(c, p.x, p.y, p.size, 5, p.color);
+    } else if (p.type === 'coin') {
+      c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#8B6914'; c.font = 'bold '+Math.max(7, p.size)+'px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('G', p.x, p.y);
+    } else {
+      c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size, 0, Math.PI*2); c.fill();
+    }
+  }
+  c.globalAlpha = 1;
+}
+
+// 골드 팝업 렌더
+function drawPopups(c) {
+  for (let i = 0; i < popupPool.active.length; i++) {
+    const p = popupPool.active[i];
+    const a = 1 - p.life / p.maxLife;
+    c.globalAlpha = clamp(a, 0, 1);
+    c.fillStyle = p.color; c.font = 'bold '+p.size+'px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    // 그림자 (글로우 대체)
+    c.shadowColor = p.color; c.shadowBlur = 6;
+    c.fillText(p.text, p.x, p.y);
+    c.shadowBlur = 0;
+  }
+  c.globalAlpha = 1;
+}
+
+// 오프라인/마일스톤 팝업
+function drawSpecialPopup(c) {
+  if (offlinePopup) {
+    const t = offlinePopup.timer;
+    const a = t < 0.5 ? t*2 : (t > 2.5 ? (3-t)*2 : 1);
+    c.globalAlpha = clamp(a,0,1);
+    const pw = Math.min(280,canvasW-32); const ph = 70; const px = (canvasW-pw)/2; const py = canvasH*0.3;
+    c.fillStyle = 'rgba(0,0,0,0.65)'; drawRoundRect(c, px, py, pw, ph, 10); c.fill();
+    c.fillStyle = '#FFD700'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center';
+    c.fillText('환영합니다!', px+pw/2, py+24);
+    c.fillStyle = '#FFF'; c.font = 'bold 15px sans-serif';
+    c.fillText('오프라인 수입: +'+formatNumber(offlinePopup.gold)+'G', px+pw/2, py+48);
+    c.globalAlpha = 1;
+  }
+  if (milestonePopup) {
+    const t = milestonePopup.timer;
+    const a = t < 0.5 ? t*2 : (t > 2.5 ? (3-t)*2 : 1);
+    c.globalAlpha = clamp(a,0,1);
+    const pw = Math.min(260,canvasW-32); const ph = 44; const px = (canvasW-pw)/2; const py = topBarH+8;
+    c.fillStyle = 'rgba(255,215,0,0.92)'; drawRoundRect(c, px, py, pw, ph, 8); c.fill();
+    c.fillStyle = '#333'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('🎉 '+milestonePopup.title+' 달성!', px+pw/2, py+ph/2);
+    c.globalAlpha = 1;
+  }
+}
+
+// 일시정지 오버레이
+function drawPausedOverlay(c) {
+  if (gameState !== 'PAUSED') return;
+  c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0,0,canvasW,canvasH);
+  c.fillStyle = '#FFF'; c.font = 'bold 26px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('일시정지', canvasW/2, canvasH/2-12);
+  c.fillStyle = '#CCC'; c.font = '13px sans-serif';
+  c.fillText('P 또는 탭하여 계속', canvasW/2, canvasH/2+18);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 타이틀 화면 — 시그니처: 떠다니는 구름 + 파스텔 농장 비주얼
+// ═══════════════════════════════════════════════════════════
+function drawTitle(c) {
+  drawBackground(c);
+  // 떠다니는 구름
+  const t = titleAnim.time;
+  c.globalAlpha = 0.45;
+  drawCloud(c, ((t*18) % (canvasW+120)) - 60, canvasH*0.14, 32);
+  drawCloud(c, ((t*12+canvasW*0.5) % (canvasW+120)) - 60, canvasH*0.09, 26);
+  c.globalAlpha = 1;
+  // 패널
+  const pw = Math.min(360, canvasW-28); const ph = 270;
+  const px = (canvasW-pw)/2; const py = (canvasH-ph)/2-15;
+  // 패널 그림자
+  c.fillStyle = 'rgba(0,0,0,0.12)'; drawRoundRect(c, px+4, py+4, pw, ph, 16); c.fill();
+  c.fillStyle = 'rgba(250,235,215,0.96)'; drawRoundRect(c, px, py, pw, ph, 16); c.fill();
+  c.strokeStyle = '#C4A06A'; c.lineWidth = 2.5; drawRoundRect(c, px, py, pw, ph, 16); c.stroke();
+  // 태양 장식
+  const sunR = 22 + Math.sin(t*2)*2;
+  c.fillStyle = '#FFE066'; c.beginPath(); c.arc(px+pw/2, py+42, sunR, 0, Math.PI*2); c.fill();
+  c.fillStyle = 'rgba(255,224,102,0.25)'; c.beginPath(); c.arc(px+pw/2, py+42, sunR+12, 0, Math.PI*2); c.fill();
+  // 제목
+  c.fillStyle = '#4A7C3F'; c.font = 'bold 24px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('🌾 미니 아이들 팜', px+pw/2, py+90);
+  c.fillStyle = '#888'; c.font = '11px sans-serif';
+  c.fillText('작물을 심고, 키우고, 수확하세요!', px+pw/2, py+115);
+  // 마일스톤 칭호
+  if (saveData && saveData.totalEarned > 0) {
+    const ms = getCurrentMilestone(saveData.totalEarned);
+    if (ms) { c.fillStyle = '#B8860B'; c.font = '10px sans-serif'; c.fillText('칭호: '+ms, px+pw/2, py+133); }
+  }
+  // 시작 버튼 (맥동)
+  const hasSave = saveData && saveData.totalEarned > 0;
+  const bw = 170; const bh = 46;
+  const bx = px+(pw-bw)/2; const by = py+150;
+  const pulse = 1 + Math.sin(t*3)*0.025;
+  c.save(); c.translate(bx+bw/2, by+bh/2); c.scale(pulse, pulse);
+  c.fillStyle = '#4CAF50'; drawRoundRect(c, -bw/2, -bh/2, bw, bh, 10); c.fill();
+  c.fillStyle = '#FFF'; c.font = 'bold 15px sans-serif';
+  c.fillText(hasSave ? '이어하기' : '시작하기', 0, 2); c.restore();
+  // 새 게임
+  if (hasSave) {
+    const nbw = 110; const nby = by+bh+10;
+    c.fillStyle = 'rgba(0,0,0,0.08)'; drawRoundRect(c, px+(pw-nbw)/2, nby, nbw, 30, 5); c.fill();
+    c.fillStyle = '#888'; c.font = '11px sans-serif'; c.textAlign = 'center';
+    c.fillText('새 게임', px+pw/2, nby+16);
+  }
+  c.fillStyle = '#BBB'; c.font = '9px sans-serif'; c.textAlign = 'center';
+  c.fillText('Space / 탭으로 시작', px+pw/2, py+ph-12);
+}
+
+// 현재 마일스톤
+function getCurrentMilestone(te) {
+  let title = null;
+  for (let i = 0; i < CONFIG.MILESTONES.length; i++) {
+    if (te >= CONFIG.MILESTONES[i].threshold) title = CONFIG.MILESTONES[i].title;
+  }
+  return title;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 게임 로직 업데이트
+// ═══════════════════════════════════════════════════════════
+
+// 생산 업데이트 — PLAYING 상태에서만, UI 탭과 무관 [Cycle 11]
+function updateProduction(dt) {
+  const prestigeMult = calculatePrestigeMult(saveData.prestige.totalStars || 0);
+  const maxSlots = getMaxUnlockedSlots();
+  for (let i = 0; i < saveData.plots.length; i++) {
+    const p = saveData.plots[i];
+    if (!p || !p.type || i >= maxSlots) continue;
+    const res = ALL_RESOURCES[p.type];
+    if (!res) continue;
+    const gt = getPlotGrowTime(p);
+    p.growthTimer += dt * prestigeMult;
+    // 자동 수확
+    if (p.growthTimer >= gt) {
+      const cat = getResourceCategory(p.type);
+      const aLv = saveData.upgrades.autoHarvest;
+      let doAuto = false;
+      if (cat === 'crop' && aLv >= 1) doAuto = true;
+      if (cat === 'animal' && aLv >= 2) doAuto = true;
+      if (cat === 'factory' && aLv >= 3) doAuto = true;
+      if (doAuto) {
+        const yld = calculateYield(res.baseYield, p.yieldLevel||0);
+        const earned = sellResource(res.sellPrice, yld, saveData.prestige.upgrades, cat);
+        saveData.gold += earned;
+        saveData.totalEarned += earned;
+        p.growthTimer = 0;
+        farmDirty = true;
+        SoundManager.autoTick();
+        spawnHarvestParticles(i, earned, true);
+        checkMilestones();
+      }
+    }
+  }
+}
+
+// 자동 저장
+function updateAutoSave(dt) {
+  autoSaveTimer += dt;
+  if (autoSaveTimer >= CONFIG.AUTO_SAVE_INTERVAL) { autoSaveTimer = 0; writeSave(); }
+}
+
+// 파티클 업데이트
+function updateParticles(dt) {
+  for (let i = particlePool.active.length-1; i >= 0; i--) {
+    const p = particlePool.active[i];
+    p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 50*dt;
+    p.life += dt;
+    if (p.life >= p.maxLife) particlePool.release(p);
+  }
+  for (let i = popupPool.active.length-1; i >= 0; i--) {
+    const p = popupPool.active[i];
+    p.y -= 35*dt; p.life += dt;
+    if (p.life >= p.maxLife) popupPool.release(p);
+  }
+}
+
+// 애니메이션
+function updateAnimations(dt) { animalBob += dt*3; gearAngle += dt*2; }
+
+// 수확 파티클 스폰
+function spawnHarvestParticles(plotIdx, gold, isAuto) {
+  const a = getFarmArea();
+  const col = plotIdx % a.cols; const row = Math.floor(plotIdx / a.cols);
+  const cx = a.ox + col*(a.slotW+a.gap) + a.slotW/2;
+  const cy = a.oy + row*(a.slotH+a.gap) + a.slotH/2;
+  const cnt = isAuto ? 2 : 5;
+  for (let i = 0; i < cnt; i++) {
+    const p = particlePool.get(); if (!p) break;
+    p.x = cx; p.y = cy; p.vx = (Math.random()-0.5)*100; p.vy = -50-Math.random()*70;
+    p.life = 0; p.maxLife = 0.5+Math.random()*0.3; p.color = '#FFD700'; p.size = 3+Math.random()*3; p.type = 'star';
+  }
+  const pop = popupPool.get();
+  if (pop) { pop.x = cx; pop.y = cy-8; pop.text = '+'+formatNumber(gold)+'G'; pop.life = 0; pop.maxLife = 0.8; pop.color = '#FFD700'; pop.size = isAuto?11:15; }
+}
+
+// 프레스티지 파티클
+function spawnPrestigeParticles() {
+  for (let i = 0; i < 20; i++) {
+    const p = particlePool.get(); if (!p) break;
+    p.x = canvasW/2+(Math.random()-0.5)*canvasW*0.6; p.y = canvasH/2+(Math.random()-0.5)*canvasH*0.3;
+    p.vx = (Math.random()-0.5)*100; p.vy = -80-Math.random()*80;
+    p.life = 0; p.maxLife = 1.5; p.color = '#FFB347'; p.size = 5+Math.random()*4; p.type = 'star';
+  }
+}
+
+// 마일스톤 체크 (판정 먼저, 저장 나중 [Cycle 2])
+function checkMilestones() {
+  for (let i = 0; i < CONFIG.MILESTONES.length; i++) {
+    const ms = CONFIG.MILESTONES[i];
+    if (saveData.totalEarned >= ms.threshold && saveData.achievedMilestones.indexOf(ms.threshold) === -1) {
+      saveData.achievedMilestones.push(ms.threshold);
+      milestonePopup = { title: ms.title, timer: 0 };
+      SoundManager.milestoneChime();
+      if (ms.threshold >= 1000000) {
+        for (let j = 0; j < 15; j++) {
+          const p = particlePool.get(); if (!p) break;
+          p.x = Math.random()*canvasW; p.y = -10; p.vx = (Math.random()-0.5)*20; p.vy = 70+Math.random()*50;
+          p.life = 0; p.maxLife = 2; p.color = '#FFD700'; p.size = 4; p.type = 'coin';
+        }
+      }
+    }
+  }
+}
+
+// 해금 체크
+function checkUnlocks() {
+  if (!saveData.unlockedRanch && saveData.totalEarned >= CONFIG.RANCH_UNLOCK) {
+    saveData.unlockedRanch = true; saveData.maxPlots = Math.max(saveData.maxPlots, 10);
+    SoundManager.unlockFanfare(); milestonePopup = { title:'목장 해금!', timer:0 }; farmDirty = true;
+  }
+  if (!saveData.unlockedFactory && saveData.totalEarned >= CONFIG.FACTORY_UNLOCK) {
+    saveData.unlockedFactory = true; saveData.maxPlots = Math.max(saveData.maxPlots, 12);
+    SoundManager.unlockFanfare(); milestonePopup = { title:'가공공장 해금!', timer:0 }; farmDirty = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 입력 처리
+// ═══════════════════════════════════════════════════════════
+function getCanvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(canvasW/r.width), y:(e.clientY-r.top)*(canvasH/r.height) };
+}
+function getTouchPos(t) {
+  const r = canvas.getBoundingClientRect();
+  return { x:(t.clientX-r.left)*(canvasW/r.width), y:(t.clientY-r.top)*(canvasH/r.height) };
+}
+
+// 수동 수확
+function handleManualHarvest(idx) {
+  const p = saveData.plots[idx]; if (!p || !p.type || idx >= getMaxUnlockedSlots()) return;
+  const res = ALL_RESOURCES[p.type]; if (!res) return;
+  if (p.growthTimer < getPlotGrowTime(p)) return;
+  const yld = calculateYield(res.baseYield, p.yieldLevel||0);
+  const cat = getResourceCategory(p.type);
+  const luckyLv = (saveData.prestige.upgrades && saveData.prestige.upgrades.luckyHarv) || 0;
+  let mult = CONFIG.MANUAL_HARVEST_BONUS;
+  if (luckyLv > 0 && Math.random() < luckyLv * 0.10) mult *= 2;
+  const earned = Math.floor(sellResource(res.sellPrice, yld, saveData.prestige.upgrades, cat) * mult);
+  saveData.gold += earned; saveData.totalEarned += earned;
+  saveData.stats.totalClicks = (saveData.stats.totalClicks||0) + 1;
+  p.growthTimer = 0; farmDirty = true;
+  SoundManager.harvestPop(); spawnHarvestParticles(idx, earned, false);
+  checkMilestones(); checkUnlocks();
+}
+
+// 일괄 수확
+function handleBulkHarvest() {
+  const max = getMaxUnlockedSlots();
+  for (let i = 0; i < saveData.plots.length && i < max; i++) {
+    const p = saveData.plots[i]; if (!p || !p.type) continue;
+    if (p.growthTimer >= getPlotGrowTime(p)) handleManualHarvest(i);
+  }
+}
+
+// 배치 메뉴
+function openPlacementMenu(slotIdx) {
+  placementMenuSlot = slotIdx; placementMenuItems = [];
+  const addRes = function(type, res) {
+    const existing = saveData.plots[slotIdx];
+    const cost = existing && existing.type ? Math.floor(res.unlockCost*0.5) : res.unlockCost;
+    placementMenuItems.push({ type:type, name:res.name, cost:cost, sellPrice:res.sellPrice, growTime:res.growTime });
+  };
+  for (const k in CONFIG.CROPS) addRes(k, CONFIG.CROPS[k]);
+  if (saveData.unlockedRanch) { for (const k in CONFIG.ANIMALS) addRes(k, CONFIG.ANIMALS[k]); }
+  if (saveData.unlockedFactory) { for (const k in CONFIG.FACTORY) addRes(k, CONFIG.FACTORY[k]); }
+  placementMenuOpen = true;
+}
+
+function handlePlacementSelect(idx) {
+  const it = placementMenuItems[idx]; if (!it || !canAfford(saveData.gold, it.cost)) return;
+  saveData.gold -= it.cost;
+  saveData.plots[placementMenuSlot] = { type:it.type, growthTimer:0, speedLevel:0, yieldLevel:0 };
+  placementMenuOpen = false; farmDirty = true; SoundManager.buyChime(); writeSave();
+}
+
+// 업그레이드 구매
+function handleUpgradePurchase(item) {
+  if (!canAfford(saveData.gold, item.cost)) return;
+  if (item.maxLevel !== undefined && item.level >= item.maxLevel) return;
+  saveData.gold -= item.cost; SoundManager.buyChime();
+  if (item.upgradeType === 'speed') saveData.plots[item.plotIdx].speedLevel = (saveData.plots[item.plotIdx].speedLevel||0)+1;
+  else if (item.upgradeType === 'yield') saveData.plots[item.plotIdx].yieldLevel = (saveData.plots[item.plotIdx].yieldLevel||0)+1;
+  else if (item.upgradeType === 'autoHarvest') saveData.upgrades.autoHarvest++;
+  else if (item.upgradeType === 'autoSell') saveData.upgrades.autoSell = true;
+  else if (item.upgradeType === 'fertilizer') saveData.upgrades.fertilizer++;
+  farmDirty = true; writeSave();
+}
+
+// 프레스티지 업그레이드
+function handlePrestigeUpgrade(item) {
+  if ((saveData.prestige.stars||0) < item.cost || item.level >= item.maxLevel) return;
+  saveData.prestige.stars -= item.cost;
+  if (!saveData.prestige.upgrades) saveData.prestige.upgrades = {};
+  saveData.prestige.upgrades[item.id] = (saveData.prestige.upgrades[item.id]||0)+1;
+  SoundManager.buyChime(); writeSave();
+}
+
+// 프레스티지 실행
+function executePrestige() {
+  const ns = calculatePrestigeStars(saveData.totalEarned) - (saveData.prestige.totalStars||0);
+  if (ns <= 0) return;
+  const elapsed = (Date.now() - (saveData.stats.runStartTime||Date.now()))/1000;
+  if (elapsed < (saveData.stats.fastestPrestige||Infinity)) saveData.stats.fastestPrestige = elapsed;
+  saveData.prestige.stars = (saveData.prestige.stars||0) + ns;
+  saveData.prestige.totalStars = (saveData.prestige.totalStars||0) + ns;
+  saveData.prestige.count = (saveData.prestige.count||0) + 1;
+  const fsLv = (saveData.prestige.upgrades && saveData.prestige.upgrades.fastStart)||0;
+  const bfLv = (saveData.prestige.upgrades && saveData.prestige.upgrades.bigFarm)||0;
+  saveData.gold = fsLv*500; saveData.totalEarned = 0;
+  saveData.plots = [{type:'wheat',growthTimer:0,speedLevel:0,yieldLevel:0}];
+  saveData.maxPlots = 6 + bfLv;
+  saveData.upgrades = {autoHarvest:0,autoSell:false,fertilizer:0};
+  saveData.unlockedRanch = false; saveData.unlockedFactory = false; saveData.achievedMilestones = [];
+  saveData.stats.runStartTime = Date.now();
+  SoundManager.prestigeSound(); spawnPrestigeParticles();
+  farmDirty = true; scrollY = 0; currentTab = 0; writeSave();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 클릭/터치 히트 테스트
+// ═══════════════════════════════════════════════════════════
+function handleClick(x, y) {
+  SoundManager.init();
+  if (gameState === 'TITLE') { handleTitleClick(x, y); return; }
+  if (gameState === 'PRESTIGE_CONFIRM') { handleModalClick(x, y); return; }
+  if (gameState === 'PAUSED') { TransitionGuard.beginTransition('PLAYING',{immediate:true}); return; }
+  if (placementMenuOpen) { handlePlacementMenuClick(x, y); return; }
+  // 정지 버튼 (히트 영역 48x48 WCAG)
+  if (y < topBarH && Math.hypot(x-(canvasW-28), y-topBarH/2) < 24) {
+    TransitionGuard.beginTransition('PAUSED',{immediate:true}); return;
+  }
+  // 탭 바
+  if (y > canvasH-tabBarH) {
+    const tw = (canvasW-16)/3; const ti = Math.floor((x-8)/tw);
+    if (ti >= 0 && ti <= 2 && ti !== currentTab) { currentTab = clamp(ti,0,2); scrollY = 0; farmDirty = true; }
+    return;
+  }
+  if (currentTab === 0) handleFarmClick(x, y);
+  else if (currentTab === 1) handleUpgradeClick(x, y);
+  else if (currentTab === 2) handlePrestigeClick(x, y);
+}
+
+function handleTitleClick(x, y) {
+  const pw = Math.min(360,canvasW-28); const ph = 270;
+  const px = (canvasW-pw)/2; const py = (canvasH-ph)/2-15;
+  const bw = 170; const bh = 46; const bx = px+(pw-bw)/2; const by = py+150;
+  if (x >= bx && x <= bx+bw && y >= by && y <= by+bh) { startGame(false); return; }
+  if (saveData && saveData.totalEarned > 0) {
+    const nbw = 110; const nby = by+bh+10; const nbx = px+(pw-nbw)/2;
+    if (x >= nbx && x <= nbx+nbw && y >= nby && y <= nby+30) { startGame(true); return; }
+  }
+}
+
+function handleModalClick(x, y) {
+  const mw = Math.min(320,canvasW-32); const mh = 170;
+  const mx = (canvasW-mw)/2; const my = (canvasH-mh)/2;
+  const bw = 90; const bh = 34;
+  const cbx = mx+mw/2-bw-8; const cby = my+mh-50;
+  if (x >= cbx && x <= cbx+bw && y >= cby && y <= cby+bh) { executePrestige(); TransitionGuard.beginTransition('PLAYING',{immediate:true}); return; }
+  if (x >= mx+mw/2+8 && x <= mx+mw/2+8+bw && y >= cby && y <= cby+bh) { TransitionGuard.beginTransition('PLAYING',{immediate:true}); return; }
+}
+
+function handlePlacementMenuClick(x, y) {
+  const items = placementMenuItems; const itemH = 52;
+  const mW = Math.min(270,canvasW-32); const mH = Math.min(items.length*itemH+40,canvasH-60);
+  const mx = (canvasW-mW)/2; const my = (canvasH-mH)/2;
+  if (x < mx || x > mx+mW || y < my || y > my+mH) { placementMenuOpen = false; return; }
+  for (let i = 0; i < items.length; i++) {
+    const iy = my+32+i*itemH;
+    if (y >= iy && y < iy+itemH) { handlePlacementSelect(i); return; }
+  }
+}
+
+function handleFarmClick(x, y) {
+  const a = getFarmArea(); const max = getMaxUnlockedSlots();
+  for (let i = 0; i < saveData.maxPlots && i < max; i++) {
+    const col = i%a.cols; const row = Math.floor(i/a.cols);
+    const sx = a.ox+col*(a.slotW+a.gap); const sy = a.oy+row*(a.slotH+a.gap);
+    if (x >= sx && x <= sx+a.slotW && y >= sy && y <= sy+a.slotH) {
+      const p = saveData.plots[i];
+      if (p && p.type) { if (p.growthTimer >= getPlotGrowTime(p)) handleManualHarvest(i); }
+      else { if (!saveData.plots[i]) saveData.plots[i] = null; openPlacementMenu(i); }
+      return;
+    }
+  }
+}
+
+function handleUpgradeClick(x, y) {
+  const items = getUpgradeList(); const itemH = 58;
+  const ox = 12; const aw = canvasW-24; const oy = topBarH+8;
+  for (let i = 0; i < items.length; i++) {
+    const iy = oy+i*(itemH+5)-scrollY;
+    const btnW = 68; const btnH = 32; const bx = ox+aw-btnW-8; const by = iy+(itemH-btnH)/2;
+    if (x >= bx && x <= bx+btnW && y >= by && y <= by+btnH) { handleUpgradePurchase(items[i]); return; }
+  }
+}
+
+function handlePrestigeClick(x, y) {
+  const ox = 16; const aw = canvasW-32;
+  const startY = topBarH+16-scrollY;
+  const rbW = 130; const rbH = 30; const rbx = ox+(aw-rbW)/2; const rby = startY+66;
+  if (x >= rbx && x <= rbx+rbW && y >= rby && y <= rby+rbH) {
+    const ns = Math.max(0, calculatePrestigeStars(saveData.totalEarned)-(saveData.prestige.totalStars||0));
+    if (saveData.totalEarned >= CONFIG.PRESTIGE_THRESHOLD && ns > 0) TransitionGuard.beginTransition('PRESTIGE_CONFIRM',{immediate:true});
+    return;
+  }
+  const items = getPrestigeUpgradeList();
+  const ioy = startY+236;
+  for (let i = 0; i < items.length; i++) {
+    const iy = ioy+i*52; const pbW = 58; const pbH = 26; const pbx = ox+aw-pbW-6; const pby = iy+10;
+    if (x >= pbx && x <= pbx+pbW && y >= pby && y <= pby+pbH) { handlePrestigeUpgrade(items[i]); return; }
+  }
+}
+
+// 게임 시작
+function startGame(isNew) {
+  if (isNew || !saveData || saveData.totalEarned === 0) {
+    saveData = createDefaultSave(); writeSave();
+  } else {
+    // 오프라인 수입
+    const elapsed = (Date.now()-saveData.lastSaveTime)/1000;
+    if (elapsed > 60) {
+      const offGold = calculateOfflineEarnings(elapsed, saveData.plots,
+        calculatePrestigeMult(saveData.prestige.totalStars||0), saveData.upgrades.fertilizer, saveData.prestige.upgrades);
+      if (offGold > 0) {
+        saveData.gold += offGold; saveData.totalEarned += offGold;
+        offlinePopup = {gold:offGold, timer:0};
+        for (let i = 0; i < 10; i++) {
+          const p = particlePool.get(); if (!p) break;
+          p.x = canvasW/2+(Math.random()-0.5)*180; p.y = canvasH+10;
+          p.vx = (Math.random()-0.5)*25; p.vy = -100-Math.random()*70;
+          p.life = 0; p.maxLife = 1.5; p.color = '#FFD700'; p.size = 5; p.type = 'coin';
+        }
+      }
+    }
+  }
+  currentTab = 0; scrollY = 0; farmDirty = true;
+  TransitionGuard.beginTransition('PLAYING',{immediate:true});
+}
+
+// ═══════════════════════════════════════════════════════════
+// 이벤트 리스너 — §12.7 단계 6
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('keydown', function(e) {
+  if (gameState === 'TITLE') {
+    if (e.code === 'Space') { e.preventDefault(); handleClick(canvasW/2, canvasH/2); }
+    return;
+  }
+  if (e.code === 'KeyP') {
+    if (gameState === 'PLAYING') TransitionGuard.beginTransition('PAUSED',{immediate:true});
+    else if (gameState === 'PAUSED') TransitionGuard.beginTransition('PLAYING',{immediate:true});
+    return;
+  }
+  if (gameState !== 'PLAYING') return;
+  if (e.code === 'Digit1') { currentTab = 0; scrollY = 0; farmDirty = true; }
+  if (e.code === 'Digit2') { currentTab = 1; scrollY = 0; }
+  if (e.code === 'Digit3') { currentTab = 2; scrollY = 0; }
+  if (e.code === 'Space') { e.preventDefault(); handleBulkHarvest(); }
+  if (e.code === 'KeyS') writeSave();
+});
+
+canvas.addEventListener('mousedown', function(e) {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  handleClick(pos.x, pos.y);
+});
+
+canvas.addEventListener('wheel', function(e) {
+  if (currentTab > 0 && gameState === 'PLAYING') {
+    scrollY = clamp(scrollY + e.deltaY*0.5, 0, maxScrollY); e.preventDefault();
+  }
+}, {passive:false});
+
+// 터치
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault(); SoundManager.init();
+  const pos = getTouchPos(e.touches[0]);
+  swipeStartX = pos.x; swipeStartY = pos.y; lastTouchY = pos.y; isSwiping = false;
+  clearTimeout(longPressTimer); clearInterval(longPressRepeat);
+  longPressTarget = {x:pos.x, y:pos.y};
+  longPressTimer = setTimeout(function() {
+    if (currentTab === 1 && gameState === 'PLAYING') {
+      longPressRepeat = setInterval(function() {
+        handleUpgradeClick(longPressTarget.x, longPressTarget.y);
+      }, 100);
+    }
+  }, 500);
+  handleClick(pos.x, pos.y);
+}, {passive:false});
+
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  const pos = getTouchPos(e.touches[0]);
+  if (currentTab > 0 && gameState === 'PLAYING') scrollY = clamp(scrollY-(pos.y-lastTouchY), 0, maxScrollY);
+  if (Math.abs(pos.x-swipeStartX) > 20 || Math.abs(pos.y-swipeStartY) > 20) {
+    clearTimeout(longPressTimer); clearInterval(longPressRepeat); isSwiping = true;
+  }
+  lastTouchY = pos.y;
+}, {passive:false});
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault(); clearTimeout(longPressTimer); clearInterval(longPressRepeat);
+  if (isSwiping && gameState === 'PLAYING') {
+    const dx = lastTouchY; // use last known position
+    const swipeDx = getTouchEndX(e) - swipeStartX;
+    if (Math.abs(swipeDx) > 60) {
+      if (swipeDx < 0 && currentTab < 2) { currentTab++; scrollY = 0; farmDirty = true; }
+      if (swipeDx > 0 && currentTab > 0) { currentTab--; scrollY = 0; farmDirty = true; }
+    }
+  }
+  isSwiping = false;
+}, {passive:false});
+
+// 터치 종료 시 마지막 위치 (changedTouches)
+function getTouchEndX(e) {
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    return getTouchPos(e.changedTouches[0]).x;
+  }
+  return swipeStartX;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 메인 게임 루프 — try-catch 래핑 [Cycle 10]
+// ═══════════════════════════════════════════════════════════
+function loop(timestamp) {
+  try {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+
+    // ─── 상태 x 시스템 매트릭스 (§5.3) ───
+    // 시스템         | LOADING | TITLE | PLAYING | PAUSED | PRESTIGE_CONFIRM
+    // TweenManager   |    X    |   O   |    O    |    O   |        O
+    // Production     |    X    |   X   |    O    |    X   |        X
+    // Particles      |    X    |   O   |    O    |    X   |        O
+    // AutoSave       |    X    |   X   |    O    |    X   |        X
+    // Animations     |    X    |   O   |    O    |    X   |        O
+    // Render         |    O    |   O   |    O    |    O   |        O
+
+    if (gameState !== 'LOADING') TweenManager.update(dt);
+    if (gameState === 'PLAYING') { updateProduction(dt); updateAutoSave(dt); checkUnlocks(); }
+    if (gameState === 'PLAYING' || gameState === 'TITLE' || gameState === 'PRESTIGE_CONFIRM') {
+      updateParticles(dt); updateAnimations(dt);
+    }
+
+    // 특수 팝업 타이머
+    if (offlinePopup) { offlinePopup.timer += dt; if (offlinePopup.timer >= 3) offlinePopup = null; }
+    if (milestonePopup) { milestonePopup.timer += dt; if (milestonePopup.timer >= 3) milestonePopup = null; }
+    if (gameState === 'TITLE') titleAnim.time += dt;
+
+    // ─── 렌더 ───
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    if (gameState === 'TITLE') {
+      drawTitle(ctx);
+    } else if (gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'PRESTIGE_CONFIRM') {
+      drawBackground(ctx);
+      drawTopBar(ctx);
+      if (currentTab === 0) drawFarmTab(ctx);
+      else if (currentTab === 1) drawUpgradeTab(ctx);
+      else if (currentTab === 2) drawPrestigeTab(ctx);
+      drawTabBar(ctx);
+      drawParticles(ctx);
+      drawPopups(ctx);
+      drawSpecialPopup(ctx);
+      drawPlacementMenu(ctx);
+      drawModal(ctx);
+      drawPausedOverlay(ctx);
+    }
+
+    // 전환 페이드
+    if (TransitionGuard._transitioning && transitionFade.alpha < 0.99) {
+      ctx.globalAlpha = 1 - clamp(transitionFade.alpha, 0, 1);
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvasW, canvasH);
+      ctx.globalAlpha = 1;
+    }
+  } catch (e) {
+    console.error('[MiniIdleFarm] Loop error:', e);
+  }
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 초기화 — §12.7 순서 준수
+// ═══════════════════════════════════════════════════════════
+(function init() {
+  // 1~6: CONFIG, 유틸, 엔진, 상태변수, Canvas, 이벤트 — 이미 선언 완료
+  // 7. loadSaveData
+  if (!loadSaveData()) saveData = createDefaultSave();
+  // 8. enterState(TITLE)
+  gameState = 'TITLE';
+  // 9. 게임 루프 시작
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

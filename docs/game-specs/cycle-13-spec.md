@@ -1,11 +1,11 @@
 ---
-game-id: hangul-word-quest
-title: 한글 워드 퀘스트
-genre: puzzle
-difficulty: medium
+game-id: mini-idle-farm
+title: 미니 아이들 팜
+genre: casual
+difficulty: easy
 ---
 
-# 한글 워드 퀘스트 — 상세 기획서 (Cycle 13)
+# 미니 아이들 팜 — 상세 기획서 (Cycle 13)
 
 ---
 
@@ -13,73 +13,72 @@ difficulty: medium
 
 | # | 출처 | 문제/제안 | 이번 기획 반영 방법 |
 |---|------|----------|-------------------|
-| 1 | Cycle 13 분석 보고서 | **워드 퍼즐 장르 0% — 최대 시장 격차** | ✅ 본 게임으로 플랫폼 최초 워드 퍼즐 장르 추가. 시장 CAGR 9% |
-| 2 | Cycle 13 분석 보고서 | **arcade 53.8% 과잉 편중** | ✅ 순수 puzzle 태그. arcade 비중 자연 하락 (7/14 = 50%) |
-| 3 | Cycle 13 분석 보고서 | **puzzle 장르 부족 (23.1%)** | ✅ puzzle 3→4개 (4/14 = 28.6%)로 보강 |
-| 4 | Cycle 12 포스트모템 | **assets/ 디렉토리 12사이클 연속 재발** | §11.1 — 100% Canvas 텍스트 렌더링. 이미지/SVG 에셋 0개. assets/ 디렉토리 생성 절대 금지 |
-| 5 | Cycle 12 포스트모템 | **CI pre-commit 훅 실제 배포** | §11.2 — `.git/hooks/pre-commit`에 assets/ 검증 스크립트 등록 + 등록 여부 자체를 검증 항목에 포함 |
-| 6 | Cycle 12 포스트모템 | **시뮬레이션 장르 도전 제안** | 검토 후 우선순위 변경 — 분석 보고서 기준 워드 퍼즐이 시장 격차가 더 큼 |
-| 7 | Cycle 12 포스트모템 | **공용 엔진 모듈 분리 제안** | §11.10 — 본 기획 범위 외(별도 태스크). 동일 인터페이스(TweenManager, TransitionGuard) 유지 |
-| 8 | Cycle 12 포스트모템 | **WCAG 터치 타겟 44×44px 미달** | §4.6 — 모든 터치 인터랙션 최소 48×48px 강제 (44px 이상 보장) |
-| 9 | Cycle 12 포스트모템 | **데드 코드(빈 if 블록) 잔존** | §11.3 — 빈 블록 금지. 임시 코드 시 `// TODO:` 주석 필수, 최종 빌드 전 TODO 전수 제거 |
-| 10 | Cycle 12 포스트모템 | **2회 리뷰 소요 → 1회차 통과 목표** | §11 전체 — 사전 검증 체크리스트 34항목으로 1회차 APPROVED 목표 |
-| 11 | platform-wisdom [Cycle 1~12] | **assets/ 13사이클 연속 재발 차단** | §11.1 — 텍스트 기반 게임이므로 에셋 자체가 불필요. Canvas drawText/fillRect만 사용 |
-| 12 | platform-wisdom [Cycle 1] | **iframe 내 confirm()/alert() 금지** | 모든 모달은 Canvas 기반 커스텀 UI. `confirm()`/`alert()` 사용 0건 |
-| 13 | platform-wisdom [Cycle 2] | **상태×시스템 매트릭스 필수** | §5.3 — 5상태 × 4시스템 매트릭스 포함 |
-| 14 | platform-wisdom [Cycle 3] | **tween onComplete 가드 플래그** | §5.2 — `_transitioning` 가드 플래그. 이중 호출 차단 |
-| 15 | platform-wisdom [Cycle 4] | **cancelAll+add 경쟁 조건** | §11.4 — clearImmediate() 즉시 정리 후 add |
-| 16 | platform-wisdom [Cycle 2] | **setTimeout 상태 전환 금지** | §5 — 턴 기반이라 타이머 불필요. 지연 전환은 tween onComplete 전용 |
-| 17 | platform-wisdom [Cycle 5] | **단일 값 갱신 경로 통일** | 하나의 값은 tween OR 직접 대입 중 하나만 사용 |
-| 18 | platform-wisdom [Cycle 6-7] | **순수 함수 원칙** | §10 — 모든 게임 로직 함수는 파라미터 기반 순수 함수 |
-| 19 | platform-wisdom [Cycle 7] | **기획-구현 수치 정합성** | §6 — CONFIG 객체에 상수 집중. 기획서 수치와 1:1 대조 |
-| 20 | platform-wisdom [Cycle 8] | **beginTransition() 경유 원칙** | §5.2 — 모든 전환이 beginTransition() 경유. 즉시 전환도 `immediate:true` |
-| 21 | platform-wisdom [Cycle 10] | **수정 회귀 방지** | §11.8 — 함수 시그니처 변경 시 호출부 전수 검증 |
-| 22 | platform-wisdom [Cycle 11] | **let/const TDZ 크래시 방지** | §11.7 — 모든 변수는 최초 참조 이전에 선언 |
-| 23 | platform-wisdom [Cycle 2-3] | **유령 변수 방지** | §11.3 — 선언 변수 사용처 전수 검증 |
-| 24 | platform-wisdom [Cycle 10] | **게임 루프 try-catch 래핑** | §11.9 — `try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` |
-| 25 | platform-wisdom [Cycle 11] | **dt 파라미터 전달** | 모든 렌더/업데이트 함수에 dt 파라미터 전달 |
-| 26 | platform-wisdom [Cycle 12] | **반복 호출 내 I/O 접근 금지** | localStorage 읽기는 화면 진입 시 1회 캐싱 |
-| 27 | platform-wisdom [Cycle 12] | **"절반 구현" 방지** | §11.5 — 기능별 세부 체크리스트(A: ☐, B: ☐) 항목 분리 |
+| 1 | Cycle 13 분석 보고서 | **arcade 장르 53.8% 과잉 편중** | ✅ casual + strategy 조합. arcade 미포함 |
+| 2 | Cycle 13 분석 보고서 | **아이들/클리커 장르 0개 — 완전한 공백** | ✅ 플랫폼 최초 아이들 팜 장르 추가 |
+| 3 | Cycle 13 분석 보고서 | **hard 난이도 게임 0개** | △ easy 기본 + 프레스티지로 실질 난이도 상승. 별도 hard 모드는 scope 외 |
+| 4 | Cycle 12 포스트모템 | **"시뮬레이션 장르 도전" 직접 제안** | ✅ 아이들 농장 시뮬레이션으로 직접 반영 |
+| 5 | Cycle 12 포스트모템 | **"아이들(Cycle 11) + 경영(Cycle 8) 노하우 결합"** | ✅ Cycle 11 아이들 생산 파이프라인 + Cycle 8 타이쿤 업그레이드 경제 결합 |
+| 6 | Cycle 12 포스트모템 | **"공용 엔진 모듈 분리" 제안** | §12.10 — 본 기획 범위 외. TweenManager/ObjectPool/SoundManager 동일 인터페이스 유지 |
+| 7 | Cycle 12 포스트모템 | **assets/ 디렉토리 12사이클 연속 재발** | §12.1 — Canvas API 전용. assets/ 디렉토리 **생성 자체 절대 금지**. 모든 그래픽은 코드 드로잉 |
+| 8 | Cycle 12 포스트모템 | **일시정지 버튼 WCAG 44×44px 미달** | §4.5 — 모든 터치 타겟 최소 48×48px (WCAG AAA 수준) |
+| 9 | Cycle 12 포스트모템 | **데드 코드(빈 if 블록) 잔존** | §12.2 — 임시 코드 블록 금지. 모든 블록에 실행 코드 또는 TODO 주석 필수 |
+| 10 | Cycle 12 포스트모템 | **2회 리뷰 소요 — 1회차 APPROVED 목표** | §12 전체 — 30항목+ 사전 검증 체크리스트로 1회차 통과 목표 |
+| 11 | platform-wisdom [Cycle 1~13] | **assets/ 디렉토리 13사이클 연속 재발** | §12.1 — 100% Canvas 코드 드로잉. assets/ 생성 절대 금지. 템플릿 복사 금지 |
+| 12 | platform-wisdom [Cycle 13] | **index.html 미생성 — 구현 0%로 리뷰 제출** | §12.0 — 리뷰 제출 전 스모크 테스트 필수 게이트 |
+| 13 | platform-wisdom [Cycle 13] | **보일러플레이트 복사 시 장르 무관 에셋 생성** | §12.1 — 템플릿 복사 금지. 빈 index.html에서 처음부터 작성 |
+| 14 | platform-wisdom [Cycle 1] | **iframe 내 confirm()/alert() 금지** | 모든 모달/다이얼로그는 Canvas 기반 커스텀 UI |
+| 15 | platform-wisdom [Cycle 2] | **상태 x 시스템 매트릭스 필수** | §5.3 — 5상태 x 6시스템 매트릭스 포함 |
+| 16 | platform-wisdom [Cycle 3] | **tween onComplete 가드 플래그** | §5.2 — 모든 상태 전환에 `_transitioning` 가드 플래그 적용 |
+| 17 | platform-wisdom [Cycle 4] | **cancelAll+add 경쟁 조건** | §8.3 — clearImmediate() 즉시 정리 API 사용 |
+| 18 | platform-wisdom [Cycle 2] | **setTimeout 상태 전환 금지** | §5 — 모든 지연 전환은 tween onComplete. setTimeout 사용 0건 목표 |
+| 19 | platform-wisdom [Cycle 5] | **단일 값 갱신 경로 통일** | 하나의 값은 tween OR 직접 대입 중 하나만 사용 |
+| 20 | platform-wisdom [Cycle 6-7] | **순수 함수 원칙** | §10 — 모든 게임 로직 함수는 파라미터 기반 순수 함수 |
+| 21 | platform-wisdom [Cycle 7] | **기획-구현 수치 불일치** | §6, §7 — CONFIG 객체에 모든 수치 집중. 기획서 수치표와 1:1 대조 |
+| 22 | platform-wisdom [Cycle 8] | **beginTransition() 미경유** | §5.2 — 모든 전환이 `beginTransition()` 경유. 즉시 전환도 `{immediate:true}` |
+| 23 | platform-wisdom [Cycle 10] | **수정 회귀 — 시그니처 변경 시 호출부 전파 누락** | §12.4 — 함수 시그니처 변경 시 모든 호출부 전수 검증 |
+| 24 | platform-wisdom [Cycle 11] | **let/const TDZ 크래시** | §12.7 — 모든 변수는 최초 참조 이전에 선언. 초기화 순서 명시적 검증 |
+| 25 | platform-wisdom [Cycle 11] | **아이들 게임 탭 전환 시 생산 멈춤** | §5.3 — 백그라운드 시스템(생산/자동 수확)은 UI 탭과 무관하게 항상 동작 |
+| 26 | platform-wisdom [Cycle 2-3] | **유령 변수 방지** | §12.2 — 선언된 변수 사용처 전수 검증 체크리스트 |
+| 27 | platform-wisdom [Cycle 10] | **게임 루프 try-catch 래핑 필수** | §12.9 — `try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` 패턴 |
+| 28 | platform-wisdom [Cycle 12] | **매 프레임 localStorage 접근 금지** | §8.2 — saveData는 인메모리 객체 참조. 저장은 30초 자동 + 이벤트 시점만 |
+| 29 | platform-wisdom [Cycle 12] | **"절반 구현" 방지 — 세부 체크리스트** | §12.6 — 각 기능의 A+B 명세를 개별 항목으로 분리하여 검증 |
+| 30 | platform-wisdom [Cycle 12] | **터치 타겟 최소 44x44px** | §4.5 — 모든 터치 타겟 48x48px 이상 (WCAG AAA) |
 
 ---
 
 ## §1. 게임 개요 및 핵심 재미 요소
 
 ### 컨셉
-한국어 단어를 자모(초성·중성·종성) 단위로 풀어서 맞추는 **턴 기반 워드 퍼즐**. Wordle의 검증된 게임 루프(추측→색상 피드백→추론)에 **한글 자모 분해**라는 독자적 메카닉을 결합한다. 매일 바뀌는 일일 챌린지와 무제한 연습 모드를 제공하며, 결과를 이모지 그리드로 공유하여 바이럴을 유도한다. 1판 약 2~5분, 짧고 중독성 있는 세션.
+작은 빈 땅에서 시작해 **작물 재배 -> 가축 사육 -> 가공 -> 판매**로 농장 제국을 키우는 **아이들 시뮬레이션**. 탭으로 수확하면 즉시 보상, 자동화 업그레이드를 구매하면 놓고 있어도 수익이 쌓인다. 프레스티지(농장 리셋)로 영구 성장 배율을 얻어 "매번 더 빠른 성장"을 체감하는 것이 장기 목표다. 1세션 1분~무제한, 총 컨텐츠 소모 약 60~90분(프레스티지 3~4회).
 
 ### 핵심 재미 3요소
-1. **추론의 쾌감**: 색상 피드백(초록/노랑/회색)으로 자모 위치를 좁혀가는 논리적 추론 과정이 "유레카" 순간을 만든다
-2. **한글 자모 탐험**: "가" → ㄱ+ㅏ, "한" → ㅎ+ㅏ+ㄴ 으로 풀어쓰기 하면서 한글 구조를 자연스럽게 체감. 외국인 학습자에게도 어필 가능
-3. **일일 의식(Ritual)**: 매일 같은 단어로 전 세계 플레이어와 경쟁 → 통계 누적 → "N일 연속" 스트릭이 재방문을 유도
+1. **탭->보상의 즉각적 쾌감**: 작물/가축을 탭하면 골드 팝업 + 수확 파티클이 터지며 즉시 보상. "한 번만 더 탭" 중독성
+2. **자동화의 최적화 쾌감**: 자동 수확기/자동 급식기 등 업그레이드를 사면 플레이어 개입 없이 수입이 발생. "어떤 자동화를 먼저 사야 효율적인가?" 전략적 선택
+3. **프레스티지 리셋의 성장 루프**: 농장을 리셋하면 영구 배율(star)이 쌓여 다음 회차가 기하급수적으로 빨라짐. "언제 리셋하면 최적인가?" 의사결정
 
 ### 레퍼런스
-- **Wordle (NYT)**: 5글자 영단어 맞추기의 원조. 색상 피드백 + 6회 시도 + 일일 1문제 + 이모지 공유
-- **꼬들 (kordle.kr)**: 한국어 풀어쓰기 워들. 6칸 자모 분해 방식
-- **한들 (handle)**: 한국어 워들 변형. 음절 단위 피드백
-
-### 차별화 포인트
-- **이중 피드백 시스템**: 자모 단위 색상 + 음절 단위 보조 힌트(해당 음절의 자모가 모두 맞으면 음절 테두리 강조)
-- **초성 퀴즈 모드**: 초성 N개가 주어지고 단어를 맞추는 보너스 모드 (예: ㅎㄱ → 한글)
-- **난이도 선택**: 2글자(쉬움) / 3글자(보통) / 4글자(어려움) — 입문자부터 고수까지
+- **Cookie Clicker**: 아이들 장르의 교과서. 클릭 -> 자동화 -> 프레스티지의 3단 루프
+- **AdVenture Capitalist**: 복수 사업체 병렬 성장 + 엔젤 프레스티지 시스템
+- **Idle Miner Tycoon**: 채굴->운반->판매 파이프라인과 매니저 자동화
+- **Cell to Singularity**: 기하급수적 성장 곡선과 메타 프레스티지
 
 ### 게임 페이지 사이드바 정보
 ```yaml
-title: "한글 워드 퀘스트"
-description: "한글 자모를 풀어서 숨겨진 단어를 맞춰라! 매일 새로운 단어 도전, 이모지로 결과를 공유하세요."
-genre: ["puzzle"]
+title: "미니 아이들 팜"
+description: "빈 땅에서 시작해 작물, 가축, 가공으로 농장 제국을 키우는 아이들 시뮬레이션. 탭으로 수확하고, 자동화하고, 프레스티지로 더 빠르게 성장하라!"
+genre: ["casual", "strategy"]
 playCount: 0
 rating: 0
 controls:
-  - "키보드: 한글 자모 직접 입력 / Enter 제출 / Backspace 삭제"
-  - "마우스: 화면 내 가상 키보드 클릭"
-  - "터치: 화면 내 가상 키보드 터치"
+  - "마우스: 클릭으로 수확/구매/탭 전환"
+  - "터치: 탭으로 수확/구매, 스와이프로 탭 전환"
+  - "키보드: 1~3 탭 전환 / Space 수동 수확 / P 일시정지"
 tags:
-  - "#워드퍼즐"
-  - "#한글"
-  - "#데일리챌린지"
-  - "#퍼즐"
-  - "#두뇌게임"
+  - "#아이들"
+  - "#농장"
+  - "#시뮬레이션"
+  - "#방치형"
+  - "#프레스티지"
 addedAt: "2026-03-21"
 version: "1.0.0"
 featured: true
@@ -90,574 +89,643 @@ featured: true
 ## §2. 게임 규칙 및 목표
 
 ### 2.1 기본 규칙
-- 숨겨진 한국어 단어를 **자모(초성·중성·종성) 단위로 풀어서** 맞춘다
-- 한국어 2~4글자 단어 → 자모로 풀어쓰면 **4~12칸** (난이도별 상이)
-- **시도 횟수**: 6회 (모든 난이도 동일)
-- 각 시도 후 칸별 색상 피드백이 즉시 표시된다
+- 플레이어는 **6칸 농장 그리드**(2행 x 3열)를 운영한다
+- 각 칸에 **작물** 또는 **가축**을 배치하여 자원을 생산한다
+- 생산된 자원을 **판매**하여 골드(G)를 벌고, 골드로 **업그레이드**를 구매한다
+- 모든 자원은 자동 생산되며, 탭하면 즉시 수확(보너스 +50%)
 
-### 2.2 자모 분해 규칙
+### 2.2 3단계 농장 확장
+| 단계 | 해금 조건 | 추가 요소 | 칸 수 |
+|------|----------|----------|------|
+| **1단계: 밭** | 시작 시 | 작물 4종 (밀, 당근, 토마토, 옥수수) | 6칸 |
+| **2단계: 목장** | 총 수입 5,000G | 가축 3종 (닭, 젖소, 양) | +4칸 (총 10칸) |
+| **3단계: 가공공장** | 총 수입 50,000G | 가공품 3종 (빵, 치즈, 스웨터) | +2칸 (총 12칸) |
+
+### 2.3 자원 생산 체인
 ```
-"한글" → ㅎ ㅏ ㄴ ㄱ ㅡ ㄹ  (6칸)
-"사과" → ㅅ ㅏ ㄱ ㅘ         (4칸) — ㅘ는 복합 모음으로 1칸
-"닭"  → ㄷ ㅏ ㄹ ㄱ         (4칸) — 겹받침 분리
+[밀] -----------> 판매 (2G/개)
+[밀] + [젖소->우유] -> [빵] -> 판매 (25G/개)
+[당근] ----------> 판매 (3G/개)
+[토마토] ---------> 판매 (5G/개)
+[옥수수] ---------> 판매 (4G/개)
+[닭->계란] -------> 판매 (8G/개)
+[젖소->우유] -----> 판매 (12G/개)
+[젖소->우유] -> [치즈] -> 판매 (35G/개)
+[양->양모] -------> 판매 (15G/개)
+[양->양모] ------> [스웨터] -> 판매 (50G/개)
 ```
-- 복합 모음(ㅘ, ㅙ, ㅚ, ㅝ, ㅞ, ㅟ, ㅢ)은 **1칸**으로 취급
-- 겹받침(ㄳ, ㄵ, ㄶ, ㄺ, ㄻ, ㄼ, ㄽ, ㄾ, ㄿ, ㅀ, ㅄ)은 **2칸으로 분리**
-- 쌍자음(ㄲ, ㄸ, ㅃ, ㅆ, ㅉ)은 **1칸** (단일 자소)
 
-### 2.3 색상 피드백 시스템
-| 색상 | 의미 | HEX |
-|------|------|-----|
-| 🟩 **초록** | 정확한 위치에 정확한 자모 | `#538D4E` |
-| 🟨 **노랑** | 단어에 포함되지만 다른 위치 | `#B59F3B` |
-| ⬛ **회색** | 단어에 포함되지 않음 | `#3A3A3C` |
-| 🔲 **빈 칸** | 아직 미입력 | `#121213` (테두리 `#3A3A3C`) |
-| ✏️ **입력 중** | 현재 행에 입력된 자모 | `#121213` (테두리 `#565656`) |
+### 2.4 승리 조건
+- **명시적 승리 없음** — 아이들 장르 특성상 무한 진행
+- **마일스톤 목표**: 총 수입 100만G 달성 시 "농장 마스터" 칭호 + 특별 파티클
 
-### 2.4 음절 보조 힌트
-- 한 음절을 구성하는 모든 자모가 🟩(정확한 위치)이면 → 해당 음절 영역에 **밝은 테두리 글로우** 표시
-- 시각적 보상 + 진행 상황 파악 보조
-
-### 2.5 승리/패배 조건
-- **승리**: 6회 이내에 모든 자모를 정확한 위치에 맞춤
-- **패배**: 6회 시도 소진 후에도 미완성 → 정답 공개
-
-### 2.6 게임 모드
-| 모드 | 설명 | 단어 수 |
-|------|------|---------|
-| **일일 챌린지** | 매일 자정(KST) 기준 1문제. 시드 = `YYYYMMDD`. 전 플레이어 동일 단어 | 1/일 |
-| **무한 모드** | 랜덤 단어. 연습용 무제한 | 무제한 |
-| **초성 퀴즈** | 초성 N개가 힌트로 주어짐. 해당 초성으로 시작하는 단어 맞추기 | 무제한 |
+### 2.5 프레스티지 시스템
+- 총 수입 10,000G 이상일 때 프레스티지 가능
+- 프레스티지 시 모든 작물/가축/업그레이드/골드 초기화
+- **별** 획득: `floor(sqrt(totalEarned / 1000))`
+- 별 1개당 **전체 생산 속도 +10%** 영구 배율
+- 프레스티지 횟수, 최대 별, 최단 시간 등 통계 기록
 
 ---
 
 ## §3. 조작 방법
 
-### 3.1 키보드
-| 키 | 동작 |
+### 3.1 마우스
+| 동작 | 기능 |
+|------|------|
+| **좌클릭 - 작물/가축** | 즉시 수확 (기본 수확 + 50% 보너스) |
+| **좌클릭 - 빈 칸** | 작물/가축 배치 메뉴 오픈 |
+| **좌클릭 - 업그레이드 버튼** | 업그레이드 구매 |
+| **좌클릭 - 탭 버튼** | 탭 전환 (농장 / 업그레이드 / 프레스티지) |
+| **호버 - 업그레이드** | 툴팁 표시 (효과, 비용, 현재 레벨) |
+
+### 3.2 터치
+| 동작 | 기능 |
+|------|------|
+| **탭 - 작물/가축** | 즉시 수확 (마우스 좌클릭과 동일) |
+| **탭 - 빈 칸** | 배치 메뉴 오픈 |
+| **탭 - 버튼** | 업그레이드 구매 / 탭 전환 |
+| **롱프레스(500ms) - 업그레이드** | 연속 구매 (100ms 간격 자동 반복) |
+| **좌우 스와이프** | 탭 전환 (농장 <-> 업그레이드 <-> 프레스티지) |
+
+### 3.3 키보드
+| 키 | 기능 |
 |----|------|
-| **한글 자모 키** (ㄱ~ㅎ, ㅏ~ㅣ) | 현재 칸에 자모 입력 |
-| **Enter** | 현재 행 제출 (칸이 모두 채워진 경우) |
-| **Backspace** | 마지막 입력 자모 삭제 |
-| **Escape** | 일시정지 메뉴 (PLAYING 상태에서만) |
-
-### 3.2 마우스
-| 동작 | 설명 |
-|------|------|
-| **가상 키보드 클릭** | 자모 입력 (물리 키보드 없는 데스크톱) |
-| **Enter/Backspace 버튼 클릭** | 제출/삭제 |
-| **메뉴 버튼 클릭** | 모드 선택, 난이도 변경, 통계 확인 |
-
-### 3.3 터치 (모바일)
-| 동작 | 설명 |
-|------|------|
-| **가상 키보드 탭** | 자모 입력 |
-| **Enter/Backspace 탭** | 제출/삭제 |
-| **스와이프 업** | 통계 패널 열기 |
-| **메뉴 버튼 탭** | 모드/난이도/설정 |
-
-> ⚠️ 모든 터치 타겟: **최소 48×48px** (WCAG 2.1 AA 준수, Cycle 12 교훈 반영)
+| **1, 2, 3** | 탭 전환 (1=농장, 2=업그레이드, 3=프레스티지) |
+| **Space** | 모든 준비된 작물/가축 일괄 수확 |
+| **P** | 일시정지 토글 |
+| **S** | 즉시 저장 |
 
 ---
 
 ## §4. 시각적 스타일 가이드
 
-### 4.1 전체 톤
-- **다크 모드 기본**: 어두운 배경 위에 밝은 텍스트와 색상 피드백이 돋보이는 구성
-- Wordle의 검증된 시각 언어를 기반으로, 네온 악센트로 InfiniTriX 브랜드 통일감
+### 4.1 전체 테마
+**픽셀풍 파스텔 농장** — 부드러운 파스텔 색상 + 단순한 기하학적 도형으로 귀여운 농장을 표현. 모든 그래픽은 Canvas API (drawRect, fillText, arc, beginPath)로 100% 코드 드로잉. **외부 에셋 0개.**
 
 ### 4.2 색상 팔레트
+
+| 용도 | HEX | 설명 |
+|------|-----|------|
+| 배경 - 하늘 | `#87CEEB` | 밝은 하늘색 |
+| 배경 - 땅 | `#8B7355` | 따뜻한 갈색 |
+| 배경 - 잔디 | `#7EC850` | 선명한 초록 |
+| 밭 - 흙 | `#6B4226` | 진한 갈색 |
+| 밭 - 작물 (밀) | `#F5DEB3` | 밀색 |
+| 밭 - 작물 (당근) | `#FF8C00` | 오렌지 |
+| 밭 - 작물 (토마토) | `#FF4444` | 빨강 |
+| 밭 - 작물 (옥수수) | `#FFD700` | 금색 |
+| 목장 - 울타리 | `#DEB887` | 연한 나무색 |
+| 목장 - 닭 | `#FFFFFF` | 흰색 + 빨간 벼슬 |
+| 목장 - 젖소 | `#F5F5F5` | 흰색 + 검은 반점 |
+| 목장 - 양 | `#FFFAF0` | 크림색 솜뭉치 |
+| 공장 - 건물 | `#B0C4DE` | 밝은 회청색 |
+| UI - 골드 | `#FFD700` | 금색 |
+| UI - 프레스티지 별 | `#FFB347` | 주황별 |
+| UI - 버튼 기본 | `#4CAF50` | 초록 |
+| UI - 버튼 비활성 | `#9E9E9E` | 회색 |
+| UI - 텍스트 | `#333333` | 진한 회색 |
+| UI - 배경 패널 | `#FAEBD7` | 앤틱 화이트 (alpha 0.9) |
+
+### 4.3 오브젝트 형태
+- **작물**: 성장 단계 3단계(씨앗=작은 원, 싹=초록 삼각형, 수확=컬러 원+잎). 성장률 0~1을 기반으로 보간
+- **가축**: 단순 기하학 (닭=삼각+원, 소=큰 사각+원+뿔, 양=원+물결 외곽선). 2프레임 대기 애니메이션(좌우 미세 이동)
+- **가공공장**: 사각형 건물 + 굴뚝(연기 파티클) + 회전 기어 아이콘
+- **수확 이펙트**: 골드 숫자 팝업(+NNG, 위로 떠오르며 fade) + 작은 별 파티클 4~6개
+- **프레스티지 이펙트**: 화면 전체 황금빛 플래시 + 별 소용돌이 파티클 20개
+
+### 4.4 레이아웃 (Canvas 960x640 기준, DPR 대응)
 ```
-배경:        #121213 (거의 블랙)
-카드/패널:   #1A1A1B
-테두리:      #3A3A3C (비활성) / #565656 (활성)
-정답(초록):  #538D4E
-포함(노랑):  #B59F3B
-미포함(회색): #3A3A3C
-텍스트:      #FFFFFF (주) / #818384 (보조)
-악센트:      #00D4FF (네온 시안 — 타이틀, 버튼 하이라이트)
-악센트2:     #FF6B9D (네온 핑크 — 스트릭 카운터, 공유 버튼)
++---------------------------------------------------+
+| [*3] 미니 아이들 팜    G 12,345G    [PAUSE 48x48] |  <- 상단 바 (48px)
++---------------------------------------------------+
+|                                                   |
+|    +------+ +------+ +------+                     |
+|    | 밀   | | 당근 | | 토마 |                     |
+|    +------+ +------+ +------+                     |
+|    +------+ +------+ +------+                     |  <- 농장 그리드 (메인 영역)
+|    | 옥수 | | 닭   | | 소   |                     |
+|    +------+ +------+ +------+                     |
+|    +------+ +------+ +------+ +------+            |
+|    | 양   | | 빵   | | 치즈 | | 스웨 |            |  <- 확장 시
+|    +------+ +------+ +------+ +------+            |
+|                                                   |
++---------------------------------------------------+
+|  [농장]  [업그레이드]  [프레스티지]                 |  <- 하단 탭 바 (56px)
++---------------------------------------------------+
 ```
 
-### 4.3 타이포그래피 (Canvas 렌더링)
-- **시스템 폰트 스택**: `'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif`
-- 외부 폰트 로드 0건 (Cycle 1 교훈)
-- 자모 칸 내 글자: **bold 24px** (2글자 모드) ~ **bold 18px** (4글자 모드)
-- 가상 키보드 글자: **bold 14px**
-
-### 4.4 그리드 레이아웃
-```
-┌─────────────────────┐
-│     한글 워드 퀘스트    │  ← 타이틀 바 (40px)
-├─────────────────────┤
-│  ┌──┬──┬──┬──┬──┬──┐ │
-│  │ㅎ│ㅏ│ㄴ│ㄱ│ㅡ│ㄹ│ │  ← 자모 그리드 (6행 × N열)
-│  ├──┼──┼──┼──┼──┼──┤ │     N = 자모 수 (4~12)
-│  │  │  │  │  │  │  │ │
-│  ├──┼──┼──┼──┼──┼──┤ │
-│  │  │  │  │  │  │  │ │
-│  ├──┼──┼──┼──┼──┼──┤ │
-│  │  │  │  │  │  │  │ │
-│  ├──┼──┼──┼──┼──┼──┤ │
-│  │  │  │  │  │  │  │ │
-│  ├──┼──┼──┼──┼──┼──┤ │
-│  │  │  │  │  │  │  │ │
-│  └──┴──┴──┴──┴──┴──┘ │
-│                       │
-│  ┌─────────────────┐  │
-│  │ 가상 키보드 (3행)  │  │  ← 자모 키보드
-│  │ ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ│  │
-│  │  ㅁㄴㅇㄹㅎㅗㅓㅏㅣ │  │
-│  │ ⇧ㅋㅌㅊㅍㅠㅜㅡ ⌫ │  │
-│  │     [  확인  ]     │  │
-│  └─────────────────┘  │
-└─────────────────────┘
-```
-
-### 4.5 애니메이션 (tween 기반)
-| 애니메이션 | 지속시간 | 이징 | 설명 |
-|-----------|---------|------|------|
-| **타일 입력** | 100ms | easeOutBack | 약간 커졌다 원래 크기로 (scale 1.1→1.0) |
-| **타일 플립** | 300ms | easeInOutCubic | Y축 회전 효과(scaleY 1→0→1). 0일 때 색상 변경 |
-| **행 흔들림** | 400ms | easeOutElastic | 유효하지 않은 단어 제출 시 좌우 진동 |
-| **승리 바운스** | 500ms | easeOutBounce | 정답 행의 각 타일이 순차적으로 점프 (50ms 딜레이) |
-| **화면 전환** | 250ms | easeInOutQuad | fade in/out via beginTransition() |
-
-### 4.6 UI 요소 크기 제약
-| 요소 | 최소 크기 | 비고 |
-|------|----------|------|
-| 가상 키보드 키 | 48×48px | WCAG 터치 타겟 (Cycle 12 반영) |
-| 자모 그리드 셀 | 48×48px | 가독성 + 터치 |
-| 메뉴 버튼 | 48×48px | 아이콘 버튼 포함 |
-| 모달 닫기 버튼 | 48×48px | Canvas 기반 모달 |
+### 4.5 터치 타겟 규격
+| UI 요소 | 최소 크기 | 적용 |
+|---------|----------|------|
+| 일시정지 버튼 | 48x48px | WCAG AAA |
+| 탭 전환 버튼 | 높이 56px, 너비 균등분할 | 터치 친화 |
+| 업그레이드 항목 | 높이 64px | 롱프레스 영역 확보 |
+| 농장 칸 | 최소 80x80px | 탭 수확 편의 |
+| 배치 메뉴 항목 | 높이 56px | 터치 선택 |
 
 ---
 
-## §5. 핵심 게임 루프 및 상태 머신
+## §5. 핵심 게임 루프
 
-### 5.1 상태 정의
+### 5.1 프레임 단위 로직 흐름 (60fps 기준)
 ```
-TITLE → MODE_SELECT → PLAYING → RESULT → STATS
-                         ↕
-                       PAUSED
+requestAnimationFrame(loop)
+|
++-- 1. dt 계산 (deltaTime, cap: 100ms)
++-- 2. if (state === PAUSED) -> renderOnly(); return
++-- 3. TweenManager.update(dt)
++-- 4. updateProduction(dt, farmState)        <- 모든 UI 탭에서 호출 (백그라운드 시스템)
+|     +-- 각 칸의 growthTimer += dt * speedMult * prestigeMult
+|     +-- growthTimer >= growthTime -> readyToHarvest = true
+|     +-- autoHarvest 활성 시 -> 자동 수확 + 골드 추가
++-- 5. updateAutoSave(dt)                     <- 30초 간격 자동 저장
++-- 6. updateParticles(dt)                    <- ObjectPool 기반 파티클 시스템
++-- 7. updateAnimations(dt)                   <- 가축 대기 모션, 공장 기어 회전
++-- 8. render(ctx, farmState, uiState)
+|     +-- drawBackground(ctx)
+|     +-- drawFarmGrid(ctx, farmState)
+|     +-- drawUI(ctx, uiState)                <- 현재 탭에 맞는 UI 렌더
+|     +-- drawParticles(ctx, particles)
+|     +-- drawPopups(ctx, popups)             <- 골드 팝업 숫자
++-- 9. try-catch 래핑 + requestAnimationFrame(loop)
 ```
 
-| 상태 | 설명 |
-|------|------|
-| `TITLE` | 타이틀 화면. 게임 이름 + "시작" 버튼 |
-| `MODE_SELECT` | 모드(일일/무한/초성퀴즈) + 난이도(2/3/4글자) 선택 |
-| `PLAYING` | 자모 입력 → 제출 → 피드백 루프 |
-| `PAUSED` | 일시정지. ESC 또는 일시정지 버튼 |
-| `RESULT` | 승리/패배 결과 + 정답 표시 + 공유 버튼 |
-| `STATS` | 누적 통계 (승률, 시도 분포, 스트릭) |
-
-### 5.2 상태 전환 규칙
-- **모든 전환은 `beginTransition(targetState, options)` 경유** (Cycle 5~8 교훈)
-- 즉시 전환이 필요한 경우: `beginTransition(state, { immediate: true })` (PAUSED ↔ PLAYING)
-- 전환 중 `_transitioning = true` 가드 플래그로 이중 전환 차단 (Cycle 3 교훈)
-- tween 기반 전환의 onComplete에서만 `enterState()` 호출
-- `clearImmediate()` 후 신규 tween 추가 (Cycle 4 교훈)
-
-### 5.3 상태 × 시스템 매트릭스 (Cycle 2 필수 교훈)
-
-| 시스템＼상태 | TITLE | MODE_SELECT | PLAYING | PAUSED | RESULT | STATS |
-|-------------|:-----:|:-----------:|:-------:|:------:|:------:|:-----:|
-| **TweenManager.update()** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| **InputHandler** | menu | menu | game | esc_only | share | menu |
-| **Renderer** | ✅ | ✅ | ✅ | ✅(overlay) | ✅ | ✅ |
-| **SoundManager** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-
-> PAUSED에서는 TweenManager와 SoundManager를 멈추되, Renderer는 반투명 오버레이와 함께 계속 그린다.
-
-### 5.4 게임 루프 (PLAYING 상태)
+### 5.2 상태 머신
 ```
-매 프레임 (requestAnimationFrame):
-  1. dt 계산 (이전 프레임과의 차이, cap 100ms)
-  2. try {
-       if (state !== PAUSED) tweenManager.update(dt)
-       handleInput(inputQueue, gameState)      // 순수 함수
-       if (state === PLAYING) {
-         updateAnimations(gameState, dt)        // 타일 플립 등
-       }
-       render(ctx, gameState, dt)               // 순수 함수
-     } catch(e) {
-       console.error('[HangulWordQuest]', e)
-     }
-  3. requestAnimationFrame(loop)
+LOADING -> TITLE -> PLAYING -> PAUSED
+                     |   ^       |  ^
+                     v   |       v  |
+                   PRESTIGE_CONFIRM
+                     |
+                     v
+                   PLAYING (리셋 후)
 ```
+
+| 상태 | 설명 | 진입 조건 |
+|------|------|----------|
+| `LOADING` | 초기화, 저장 데이터 로드 | 페이지 로드 |
+| `TITLE` | 타이틀 화면, "시작" / "이어하기" 선택 | 초기 상태 / 메뉴 이동 |
+| `PLAYING` | 메인 게임 루프 (생산, 수확, 구매) | 타이틀에서 시작 |
+| `PAUSED` | 일시정지 (생산 정지, UI 오버레이) | P키 / 정지 버튼 |
+| `PRESTIGE_CONFIRM` | 프레스티지 확인 Canvas 모달 | 프레스티지 탭에서 "리셋" 클릭 |
+
+**상태 전환 규칙:**
+- 모든 전환은 `beginTransition(nextState, options)` 경유
+- PAUSED <-> PLAYING은 `{immediate: true}` 옵션
+- PRESTIGE_CONFIRM -> PLAYING은 fade-out(300ms) -> 리셋 -> fade-in(300ms)
+- 전환 중 `_transitioning = true` 가드로 중복 전환 차단
+
+### 5.3 상태 x 시스템 업데이트 매트릭스
+
+| 시스템 | LOADING | TITLE | PLAYING | PAUSED | PRESTIGE_CONFIRM |
+|--------|---------|-------|---------|--------|-----------------|
+| **TweenManager** | X | O | O | O | O |
+| **생산(Production)** | X | X | O | X | X |
+| **파티클(Particles)** | X | O | O | X | O |
+| **자동저장(AutoSave)** | X | X | O | X | X |
+| **입력(Input)** | X | O | O | O | O |
+| **렌더(Render)** | O | O | O | O | O |
+
+**핵심: `updateProduction()`은 PLAYING 상태에서만 호출되지만, UI 탭(농장/업그레이드/프레스티지) 전환과 무관하게 항상 실행된다. [Cycle 11 교훈: 아이들 게임에서 탭 전환 시 생산이 멈추면 안 된다]**
 
 ---
 
 ## §6. 난이도 시스템
 
-### 6.1 난이도별 설정 (CONFIG 객체 — 기획-구현 1:1 대조)
+### 6.1 자원 생산 수치 (CONFIG 객체 1:1 매핑)
 
-```javascript
-const CONFIG = {
-  DIFFICULTY: {
-    EASY:   { syllables: 2, maxJamo: 6,  label: '쉬움 (2글자)' },
-    MEDIUM: { syllables: 3, maxJamo: 9,  label: '보통 (3글자)' },
-    HARD:   { syllables: 4, maxJamo: 12, label: '어려움 (4글자)' },
-  },
-  MAX_ATTEMPTS: 6,           // 모든 난이도 동일
-  CELL_SIZE: 48,             // px, 최소 터치 타겟
-  CELL_GAP: 4,               // px
-  KEYBOARD_KEY_SIZE: 48,     // px, WCAG 준수
-  FLIP_DURATION: 300,        // ms
-  FLIP_DELAY_PER_TILE: 150,  // ms (순차 플립)
-  BOUNCE_DURATION: 500,      // ms (승리 바운스)
-  SHAKE_DURATION: 400,       // ms (오류 흔들림)
-  TRANSITION_DURATION: 250,  // ms (화면 전환)
-};
-```
+| 자원 | 기본 생산 시간 | 기본 수확량 | 판매가 | 해금 비용 |
+|------|--------------|-----------|--------|----------|
+| 밀 | 3초 | 1개 | 2G | 0G (시작) |
+| 당근 | 5초 | 1개 | 3G | 50G |
+| 토마토 | 8초 | 1개 | 5G | 200G |
+| 옥수수 | 6초 | 1개 | 4G | 120G |
+| 닭(계란) | 10초 | 1개 | 8G | 500G |
+| 젖소(우유) | 15초 | 1개 | 12G | 1,500G |
+| 양(양모) | 12초 | 1개 | 15G | 2,000G |
+| 빵 | 20초 | 1개 | 25G | 8,000G |
+| 치즈 | 25초 | 1개 | 35G | 15,000G |
+| 스웨터 | 30초 | 1개 | 50G | 25,000G |
 
-### 6.2 단어 사전 구성
-- **코드 내 JSON 배열로 내장** (외부 API 0건, 외부 파일 로드 0건)
-- 난이도별 사전:
-  - EASY: 2글자 단어 ~200개 (예: 사과, 하늘, 바다, 구름, 나비, 별빛, ...)
-  - MEDIUM: 3글자 단어 ~300개 (예: 고양이, 무지개, 도서관, 수박씨, ...)
-  - HARD: 4글자 단어 ~200개 (예: 인공지능, 프로그램, 도서관에, ...)
-- 일일 챌린지 단어 선정: `seed = parseInt(dateStr) % dictLength` (결정론적)
+### 6.2 업그레이드 트리
+
+#### 생산 속도 업그레이드 (각 자원별)
+| 레벨 | 비용 공식 | 효과 |
+|------|----------|------|
+| 1~5 | `baseCost * 1.5^level` | 생산 시간 -10% (누적) |
+| 6~10 | `baseCost * 1.8^level` | 생산 시간 -8% (누적) |
+| 최대 레벨: 10 | -- | 최종 생산 시간 = 기본 x 0.43 |
+
+#### 수확량 업그레이드 (각 자원별)
+| 레벨 | 비용 공식 | 효과 |
+|------|----------|------|
+| 1~5 | `baseCost * 2.0^level` | 수확량 +1개 (누적) |
+| 최대 레벨: 5 | -- | 최종 수확량 = 기본 + 5개 |
+
+#### 자동화 업그레이드 (글로벌)
+| 업그레이드 | 비용 | 효과 |
+|-----------|------|------|
+| 자동 수확기 Lv1 | 500G | 밭 작물 자동 수확 (수동 보너스 없음) |
+| 자동 수확기 Lv2 | 5,000G | 목장 가축 자동 수확 |
+| 자동 수확기 Lv3 | 30,000G | 가공공장 자동 수확 |
+| 자동 판매기 | 2,000G | 수확물 즉시 자동 판매 (수동: 판매 버튼 클릭 필요) |
+| 비료 | 10,000G | 전체 생산 속도 x1.5 |
+| 황금 비료 | 100,000G | 전체 생산 속도 x2.0 (비료와 중첩) |
+
+### 6.3 프레스티지 업그레이드 (별 소비)
+
+| 업그레이드 | 별 비용 | 효과 | 최대 레벨 |
+|-----------|--------|------|----------|
+| 비옥한 토양 | 1 | 작물 생산 시간 -15% | 5 |
+| 좋은 사료 | 2 | 가축 생산 시간 -15% | 5 |
+| 장인 기술 | 3 | 가공 판매가 +20% | 5 |
+| 행운의 수확 | 2 | 수동 수확 시 2배 확률 10% | 5 |
+| 큰 농장 | 5 | 시작 시 추가 칸 +1 | 3 |
+| 빠른 시작 | 3 | 프레스티지 후 시작 골드 +500G | 5 |
+
+### 6.4 시간에 따른 난이도 곡선
+- **0~5분**: 밭 작물로 기초 경제 구축. 수동 탭이 주 수입원
+- **5~15분**: 목장 해금. 자동 수확기 구매로 아이들 전환 시작
+- **15~30분**: 가공공장 해금. 가공품이 주 수입원. 프레스티지 1차 가능
+- **30분~**: 프레스티지 반복. 매 회차 2배+ 빠른 성장. 프레스티지 업그레이드로 전략적 특화
+
+### 6.5 오프라인 수입 계산
+- 게임 재접속 시 `경과 시간(최대 4시간) * 자동 생산율 * 0.5` 오프라인 수입 지급
+- 오프라인 배율 0.5는 온라인 플레이 동기 유지를 위한 의도적 설계
+- 접속 시 "오프라인 수입: +N,NNNG!" 팝업 + 골드 셔워 파티클
 
 ---
 
 ## §7. 점수 시스템
 
-### 7.1 점수 계산
-```
-기본 점수 = (MAX_ATTEMPTS - usedAttempts + 1) × 100
-난이도 보너스 = { EASY: ×1.0, MEDIUM: ×1.5, HARD: ×2.0 }
-시간 보너스 = max(0, 300 - elapsedSeconds) (일일 모드 전용)
-초성퀴즈 보너스 = ×1.3
+### 7.1 점수 = 총 수입(totalEarned)
+- 아이들 장르 특성상 별도 "점수"보다 **총 수입(G)**이 진행도 지표
+- localStorage에 기록: `totalEarned`, `maxPrestigeStars`, `prestigeCount`, `fastestPrestige`
 
-최종 점수 = floor(기본 점수 × 난이도 보너스 + 시간 보너스)
-```
-
-### 7.2 점수 예시
-| 시나리오 | 계산 | 점수 |
+### 7.2 마일스톤 표시
+| 총 수입 | 칭호 | 보상 |
 |---------|------|------|
-| MEDIUM, 1회 만에 정답 | (6-1+1)×100×1.5 = 900 | 900 |
-| MEDIUM, 3회 만에 정답 | (6-3+1)×100×1.5 = 600 | 600 |
-| HARD, 6회 만에 정답 | (6-6+1)×100×2.0 = 200 | 200 |
-| EASY, 패배 | 0 | 0 |
+| 1,000G | 초보 농부 | -- |
+| 10,000G | 숙련 농부 | 프레스티지 해금 |
+| 100,000G | 농장주 | -- |
+| 1,000,000G | 농장 마스터 | 특별 파티클 (황금 빗줄기) |
+| 10,000,000G | 농업 제왕 | 특별 배경 (황금 하늘) |
 
-### 7.3 통계 저장 (localStorage)
+### 7.3 숫자 표시 형식
+- 1,000 이상: `1.2K`
+- 1,000,000 이상: `1.5M`
+- 1,000,000,000 이상: `2.1B`
+- 소수점 첫째 자리까지 (예: `12.3K`)
+
+### 7.4 저장 데이터 구조
 ```javascript
-const STATS_KEY = 'hangul-word-quest-stats';
-// 저장 구조:
-{
-  totalPlayed: number,
-  totalWon: number,
-  currentStreak: number,
-  maxStreak: number,
-  distribution: [0,0,0,0,0,0],  // 1~6회차 정답 분포
-  bestScore: number,
-  lastDaily: 'YYYY-MM-DD',       // 마지막 일일 챌린지 날짜
-}
+const SAVE_KEY = 'miniIdleFarm_v1';
+const defaultSaveData = {
+  gold: 0,
+  totalEarned: 0,
+  plots: [], // [{type, level, growthTimer, speedLevel, yieldLevel}]
+  upgrades: { autoHarvest: 0, autoSell: false, fertilizer: 0 },
+  prestige: { stars: 0, totalStars: 0, count: 0, upgrades: {} },
+  stats: { fastestPrestige: Infinity, totalClicks: 0, startTime: 0 },
+  lastSaveTime: Date.now()
+};
 ```
-
-> ⚠️ **판정 먼저 → 저장 나중에** (Cycle 2 교훈): `checkNewBest()` → `saveStats()` 순서 엄수
 
 ---
 
-## §8. 핵심 메카닉 상세
+## §8. 기술 사양
 
-### 8.1 자모 분해 알고리즘
+### 8.1 CONFIG 객체 (기획서 §6 수치와 1:1 대응)
 ```javascript
-// 순수 함수 — 전역 참조 0건 (Cycle 6-7 교훈)
-function decomposeHangul(char) {
-  const code = char.charCodeAt(0) - 0xAC00;
-  if (code < 0 || code > 11171) return [char]; // 비한글 문자
-  const cho  = Math.floor(code / 588);
-  const jung = Math.floor((code % 588) / 28);
-  const jong = code % 28;
-  const result = [CHO[cho], JUNG[jung]];
-  if (jong > 0) {
-    const jongJamo = JONG[jong];
-    if (DOUBLE_JONG[jongJamo]) {
-      result.push(...DOUBLE_JONG[jongJamo]); // 겹받침 분리
-    } else {
-      result.push(jongJamo);
-    }
-  }
-  return result;
-}
+const CONFIG = {
+  // §6.1 자원 수치
+  CROPS: {
+    wheat:   { growTime: 3, baseYield: 1, sellPrice: 2,  unlockCost: 0 },
+    carrot:  { growTime: 5, baseYield: 1, sellPrice: 3,  unlockCost: 50 },
+    tomato:  { growTime: 8, baseYield: 1, sellPrice: 5,  unlockCost: 200 },
+    corn:    { growTime: 6, baseYield: 1, sellPrice: 4,  unlockCost: 120 },
+  },
+  ANIMALS: {
+    chicken: { growTime: 10, baseYield: 1, sellPrice: 8,  unlockCost: 500 },
+    cow:     { growTime: 15, baseYield: 1, sellPrice: 12, unlockCost: 1500 },
+    sheep:   { growTime: 12, baseYield: 1, sellPrice: 15, unlockCost: 2000 },
+  },
+  FACTORY: {
+    bread:   { growTime: 20, baseYield: 1, sellPrice: 25, unlockCost: 8000 },
+    cheese:  { growTime: 25, baseYield: 1, sellPrice: 35, unlockCost: 15000 },
+    sweater: { growTime: 30, baseYield: 1, sellPrice: 50, unlockCost: 25000 },
+  },
 
-function decomposeWord(word) {
-  return [...word].flatMap(decomposeHangul);
-}
+  // §6.2 업그레이드 수치
+  SPEED_UPGRADE: {
+    baseMult: 1.5,
+    maxLevel: 10,
+    reductionPerLevel: [0.10, 0.10, 0.10, 0.10, 0.10, 0.08, 0.08, 0.08, 0.08, 0.08]
+  },
+  YIELD_UPGRADE: { baseMult: 2.0, maxLevel: 5 },
+  AUTO_HARVEST_COST: [500, 5000, 30000],
+  AUTO_SELL_COST: 2000,
+  FERTILIZER_COST: [10000, 100000],
+  FERTILIZER_MULT: [1.5, 2.0],
+
+  // §6.3 프레스티지 수치
+  PRESTIGE_THRESHOLD: 10000,
+  PRESTIGE_STAR_FORMULA: function(totalEarned) {
+    return Math.floor(Math.sqrt(totalEarned / 1000));
+  },
+  PRESTIGE_SPEED_BONUS: 0.10,   // 별 1개당 +10%
+
+  // §6.5 오프라인
+  OFFLINE_MAX_HOURS: 4,
+  OFFLINE_MULT: 0.5,
+
+  // §8.2 저장
+  AUTO_SAVE_INTERVAL: 30,  // 초
+
+  // §4.5 UI
+  MIN_TOUCH_TARGET: 48,    // px
+  MANUAL_HARVEST_BONUS: 1.5,
+
+  // §2.2 확장 조건
+  RANCH_UNLOCK: 5000,
+  FACTORY_UNLOCK: 50000,
+
+  // §7.2 마일스톤
+  MILESTONES: [
+    { threshold: 1000,     title: '초보 농부' },
+    { threshold: 10000,    title: '숙련 농부' },
+    { threshold: 100000,   title: '농장주' },
+    { threshold: 1000000,  title: '농장 마스터' },
+    { threshold: 10000000, title: '농업 제왕' },
+  ],
+};
 ```
 
-### 8.2 피드백 판정 알고리즘
-```javascript
-// 순수 함수 (guessJamo, answerJamo를 파라미터로 받음)
-function evaluateGuess(guessJamo, answerJamo) {
-  const result = new Array(guessJamo.length).fill('absent');
-  const answerUsed = new Array(answerJamo.length).fill(false);
+### 8.2 저장 정책
+- **자동 저장**: 30초 간격 (`AUTO_SAVE_INTERVAL`)
+- **이벤트 저장**: 업그레이드 구매, 프레스티지 실행, 칸 배치 변경 시
+- **인메모리 객체 참조**: `saveData` 객체를 메모리에 유지, localStorage 접근은 저장 시점에만 수행 [Cycle 12 교훈]
+- **try-catch 래핑**: localStorage 접근 실패 시 게임 계속 진행 가능
+- **판정 먼저, 저장 나중**: 마일스톤 달성 판정 -> 팝업 표시 -> 저장 순서 [Cycle 2 교훈]
 
-  // 1차: 정확한 위치 (초록)
-  for (let i = 0; i < guessJamo.length; i++) {
-    if (guessJamo[i] === answerJamo[i]) {
-      result[i] = 'correct';
-      answerUsed[i] = true;
-    }
-  }
+### 8.3 공유 엔진 모듈 (동일 인터페이스)
+- **TweenManager**: UI 전환, 골드 팝업, 프레스티지 이펙트. `clearImmediate()` API 포함 [Cycle 4-5]
+- **ObjectPool**: 파티클(수확 별 50개, 골드 숫자 20개) 사전 할당
+- **SoundManager**: Web Audio 절차적 사운드 (수확 팝, 구매 차임, 레벨업 팡파르, 프레스티지 사운드)
+- **TransitionGuard**: `beginTransition()` + `STATE_PRIORITY` + `_transitioning` 가드
 
-  // 2차: 포함되지만 다른 위치 (노랑)
-  for (let i = 0; i < guessJamo.length; i++) {
-    if (result[i] === 'correct') continue;
-    for (let j = 0; j < answerJamo.length; j++) {
-      if (!answerUsed[j] && guessJamo[i] === answerJamo[j]) {
-        result[i] = 'present';
-        answerUsed[j] = true;
-        break;
-      }
-    }
-  }
-
-  return result; // ['correct', 'present', 'absent', ...]
-}
-```
-
-### 8.3 가상 키보드 상태 관리
-- 각 자모 키에 최고 상태를 누적: `absent` < `present` < `correct`
-- 한번 `correct`로 판정된 자모는 이후 시도에서도 초록 유지
-- 키보드 렌더링 시 해당 상태의 배경색 적용
-
-### 8.4 일일 챌린지 시드
-```javascript
-function getDailyWord(dictionary, dateStr) {
-  // dateStr: 'YYYYMMDD' (예: '20260321')
-  const seed = parseInt(dateStr, 10);
-  const index = seed % dictionary.length;
-  return dictionary[index];
-}
-```
-
-### 8.5 이모지 공유
-```javascript
-function generateShareText(results, attemptCount, maxAttempts, date) {
-  const header = `한글 워드 퀘스트 ${date} ${attemptCount}/${maxAttempts}\n\n`;
-  const grid = results.map(row =>
-    row.map(r => r === 'correct' ? '🟩' : r === 'present' ? '🟨' : '⬛').join('')
-  ).join('\n');
-  return header + grid;
-}
-```
-- 클립보드 복사: `navigator.clipboard.writeText()` (iframe 환경에서는 Canvas 기반 "복사됨" 토스트 표시)
+### 8.4 사운드 디자인 (Web Audio 절차적)
+| 이벤트 | 사운드 | 구현 |
+|--------|--------|------|
+| 수동 수확 | 밝은 "팝" | Sine 880Hz, 0.05s decay |
+| 자동 수확 | 부드러운 "틱" | Sine 440Hz, 0.03s decay, vol 0.3 |
+| 업그레이드 구매 | 상승 차임 | Sine C5->E5->G5, 각 0.08s |
+| 칸 해금 | 팡파르 | Sine C4->E4->G4->C5, 각 0.1s |
+| 프레스티지 | 장엄한 상승음 | Sine C4->G4->C5->E5->G5, 각 0.12s + reverb |
+| 마일스톤 달성 | 축하 효과음 | Sine 화음(C+E+G) 0.3s + Triangle 베이스 |
 
 ---
 
-## §9. 초성 퀴즈 모드 상세
+## §9. UI 상세
 
-### 9.1 규칙
-- 화면 상단에 초성 힌트가 표시됨 (예: `ㅎ ㄱ` → 정답: "한글")
-- 자모 그리드에는 초성 위치가 미리 채워지고 **초록색으로 고정**
-- 나머지 중성·종성만 추론하여 입력
-- 시도 횟수: 4회 (일반 모드보다 적음 — 힌트가 있으므로)
+### 9.1 탭 구성
 
-### 9.2 점수
-- 기본 점수에 초성퀴즈 보너스 ×1.3 적용
+#### 탭 1: 농장 (기본)
+- 상단: 골드 표시 + 일시정지 버튼(48x48) + 프레스티지 별 수
+- 중앙: 2x3 (확장 시 3x4) 농장 그리드
+  - 각 칸: 작물/가축 아이콘 + 성장 진행 바(하단) + 준비 완료 시 반짝 표시
+  - 빈 칸: "+" 아이콘 (탭하면 배치 메뉴)
+- 하단: 탭 전환 바 (높이 56px)
 
----
+#### 탭 2: 업그레이드
+- 스크롤 가능한 업그레이드 목록 (각 항목 높이 64px)
+- 각 항목: 아이콘 | 이름 | 현재 레벨/최대 | 효과 설명 | 비용 버튼
+- 구매 불가 시 버튼 회색 + 비용 빨간색
+- 카테고리: 생산 속도 / 수확량 / 자동화 / 특수
 
-## §10. 코드 아키텍처 원칙
+#### 탭 3: 프레스티지
+- 현재 총 수입 표시
+- 리셋 시 획득할 별 수 미리보기: "리셋하면 N개 획득!"
+- 현재 보유 별 + 프레스티지 업그레이드 목록
+- "농장 리셋" 버튼 (totalEarned < PRESTIGE_THRESHOLD이면 비활성)
+- 통계: 프레스티지 횟수, 최대 별, 최단 프레스티지 시간
 
-### 10.1 파일 구조
-```
-public/games/hangul-word-quest/
-  └── index.html          ← 단일 파일 (HTML + CSS + JS)
-                             assets/ 디렉토리 없음 (§11.1)
-```
+### 9.2 Canvas 모달 (confirm/alert 대체)
+- 프레스티지 확인: "정말 농장을 리셋하시겠습니까?\nN개 별을 획득합니다." + [확인] [취소]
+- 반투명 검정 오버레이(alpha 0.7) + 중앙 패널(400x200px) + tween fade-in
+- 모달 활성 시에도 TweenManager.update() 호출 [Cycle 2 교훈]
 
-### 10.2 순수 함수 원칙 (Cycle 6-7)
-모든 게임 로직 함수는 **파라미터를 통해 데이터를 받는 순수 함수**로 작성:
-- `decomposeHangul(char)` → `[자모 배열]`
-- `decomposeWord(word)` → `[자모 배열]`
-- `evaluateGuess(guessJamo, answerJamo)` → `[결과 배열]`
-- `calculateScore(attempts, difficulty, elapsed)` → `number`
-- `getDailyWord(dictionary, dateStr)` → `string`
-- `generateShareText(results, attempts, max, date)` → `string`
-- `renderGrid(ctx, grid, cellSize, colors)` → `void`
-- `renderKeyboard(ctx, keys, keyStates, keySize)` → `void`
-- `checkWin(results)` → `boolean`
+### 9.3 배치 메뉴
+- 빈 칸 클릭 시 해당 칸 위에 팝업 메뉴 표시
+- 현재 해금된 작물/가축/가공품 목록
+- 각 항목: 아이콘 + 이름 + 배치 비용(첫 배치 무료, 변경 시 비용의 50%)
+- 메뉴 외부 클릭 시 닫기
 
-> 전역 객체 직접 참조 0건 목표. 모든 함수는 테스트 가능해야 한다.
-
-### 10.3 공용 인프라 (동일 인터페이스 유지)
-- **TweenManager**: `add()`, `update(dt)`, `clearImmediate()` — 타일 애니메이션 전용
-- **TransitionGuard**: `beginTransition(state, opts)` — 화면 전환 보호
-- **SoundManager**: Web Audio API 기반 — 키 입력음, 플립음, 정답/오답 효과음
-- `createGameLoop(updateFn, renderFn)` — try-catch 래핑된 루프 (Cycle 10-11 교훈)
-
-### 10.4 변수 선언 순서 (Cycle 11 TDZ 교훈)
-```javascript
-// 1. 상수 (CONFIG, 사전 데이터)
-// 2. Canvas/Context 참조
-// 3. 게임 상태 객체
-// 4. TweenManager, SoundManager 인스턴스
-// 5. 유틸리티 함수 정의
-// 6. 게임 로직 함수 정의
-// 7. 렌더링 함수 정의
-// 8. 이벤트 리스너 등록
-// 9. 초기화 함수 호출
-```
-> `let`/`const` 변수는 반드시 최초 참조 이전에 선언. resizeCanvas() 등 초기화 함수 호출 전에 관련 변수 모두 선언 완료.
+### 9.4 오프라인 수입 팝업
+- 재접속 시 화면 중앙에 팝업: "환영합니다! 오프라인 수입: +N,NNNG"
+- 골드 색상 텍스트 + 아래에서 위로 날아오는 코인 파티클 10개
+- 3초 후 자동 닫힘 또는 탭으로 즉시 닫기
 
 ---
 
-## §11. 구현 검증 체크리스트 (1회차 APPROVED 목표)
+## §10. 순수 함수 설계 원칙
 
-### 11.1 에셋 제로 원칙 (13사이클 연속 재발 근본 차단)
-- [ ] `public/games/hangul-word-quest/` 하위에 `assets/` 디렉토리 없음
-- [ ] `index.html` 내 `<img>`, `new Image()`, `fetch('assets/` 문자열 0건
-- [ ] `ASSET_MAP`, `SPRITES`, `preloadAssets` 패턴 0건
-- [ ] 외부 폰트(Google Fonts 등) 로드 0건
-- [ ] SVG 인라인 또는 외부 참조 0건
-- [ ] `feGaussianBlur` 등 SVG 필터 0건
+모든 게임 로직 함수는 **파라미터를 통해 데이터를 받는 순수 함수**로 작성한다. 전역 상태 직접 참조 금지. [Cycle 6-7 교훈]
 
-### 11.2 CI pre-commit 훅 (Cycle 12 제안 실행)
-```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-if [ -d "public/games/hangul-word-quest/assets" ]; then
-  echo "ERROR: assets/ directory exists. Delete before committing."
-  exit 1
-fi
-for dir in public/games/*/assets; do
-  if [ -d "$dir" ]; then
-    echo "ERROR: $dir exists."
-    exit 1
-  fi
-done
-```
-- [ ] 위 스크립트가 `.git/hooks/pre-commit`에 **실제 등록**되어 있음
-- [ ] `chmod +x .git/hooks/pre-commit` 실행됨
-- [ ] 테스트: 임시로 assets/ 생성 → 커밋 시도 → 실패 확인 → 삭제
-
-### 11.3 코드 품질
-- [ ] 빈 if/else 블록 0건 (데드 코드 금지, Cycle 12 교훈)
-- [ ] `// TODO:` 주석 0건 (최종 빌드 전 전수 제거)
-- [ ] 선언되었으나 미사용 변수 0건 (유령 변수 금지, Cycle 2-3 교훈)
-- [ ] `confirm()`, `alert()`, `prompt()` 사용 0건
-- [ ] `setTimeout` 상태 전환 0건 (tween onComplete 전용)
-- [ ] 전역 객체 직접 참조 함수 0건 (순수 함수, Cycle 6-7)
-
-### 11.4 인프라 패턴
-- [ ] TweenManager `clearImmediate()` 사용 (cancelAll 경쟁 조건 방지, Cycle 4)
-- [ ] 모든 상태 전환이 `beginTransition()` 경유 (Cycle 5-8)
-- [ ] `_transitioning` 가드 플래그 동작 확인 (Cycle 3)
-- [ ] 게임 루프 try-catch 래핑 (Cycle 10-11)
-- [ ] dt 파라미터가 모든 update/render에 전달 (Cycle 11)
-
-### 11.5 기능 세부 체크리스트 ("절반 구현" 방지, Cycle 12 교훈)
-| 기능 | 세부 항목 A | 세부 항목 B | 세부 항목 C |
-|------|-----------|-----------|-----------|
-| 자모 분해 | ☐ 기본 초중종 분리 | ☐ 겹받침 2칸 분리 | ☐ 복합모음 1칸 처리 |
-| 색상 피드백 | ☐ 정확(초록) | ☐ 포함(노랑) | ☐ 미포함(회색) |
-| 키보드 상태 | ☐ 게임→키보드 색상 반영 | ☐ 최고 상태 누적 | ☐ 쌍자음 shift 처리 |
-| 일일 챌린지 | ☐ 시드 기반 단어 선택 | ☐ 하루 1회 제한 | ☐ 날짜 변경 감지 |
-| 통계 | ☐ 승률 계산 | ☐ 시도 분포 막대 | ☐ 스트릭 카운터 |
-| 공유 | ☐ 이모지 그리드 생성 | ☐ 클립보드 복사 | ☐ "복사됨" 토스트 |
-| 음절 보조 힌트 | ☐ 자모 전체 맞음 감지 | ☐ 글로우 테두리 표시 | — |
-
-### 11.6 WCAG / 접근성
-- [ ] 모든 터치 타겟 ≥ 48×48px
-- [ ] 색상 피드백에 추가 텍스트 힌트 (색맹 대응: 타일 내 작은 아이콘 ✓/→/✗)
-- [ ] 가상 키보드 키 간 간격 ≥ 4px
-
-### 11.7 변수 선언 순서 (Cycle 11 TDZ)
-- [ ] 모든 `let`/`const` 변수가 최초 참조 이전에 선언됨
-- [ ] `resizeCanvas()` 호출 전 canvas/ctx/gameState 변수 선언 완료
-
-### 11.8 수정 회귀 방지 (Cycle 10)
-- [ ] 함수 시그니처 변경 시 모든 호출부 전수 검증
-- [ ] 수정 후 전체 플로우 테스트: TITLE → MODE_SELECT → PLAYING → RESULT → STATS
-
-### 11.9 게임 루프 방어적 코딩
+### 함수 시그니처 목록
 ```javascript
-function gameLoop(timestamp) {
+// 생산 시스템
+function updateProduction(dt, plots, config, prestigeMult) // -> updatedPlots
+function calculateYield(plot, config, prestigeUpgrades) // -> number
+function calculateGrowthTime(plot, config, prestigeUpgrades, fertilizerMult) // -> number
+
+// 경제 시스템
+function canAfford(gold, cost) // -> boolean
+function purchaseUpgrade(gold, upgrade, level, config) // -> {newGold, newLevel}
+function calculateUpgradeCost(baseCost, level, multiplier) // -> number
+function sellResource(resource, amount, config, prestigeUpgrades) // -> goldEarned
+
+// 프레스티지 시스템
+function calculatePrestigeStars(totalEarned, config) // -> number
+function applyPrestigeReset(saveData, newStars) // -> newSaveData
+function calculatePrestigeMult(stars, config) // -> number
+
+// 오프라인 수입
+function calculateOfflineEarnings(lastSaveTime, plots, config, prestigeMult) // -> gold
+
+// 숫자 포맷
+function formatNumber(n) // -> string  (1234 -> "1.2K")
+function formatTime(seconds) // -> string  (125 -> "2:05")
+
+// 렌더링 (순수 함수 - ctx만 side-effect)
+function drawPlot(ctx, x, y, w, h, plot, config) // -> void
+function drawUpgradeItem(ctx, x, y, w, h, upgrade, canBuy) // -> void
+function drawProgressBar(ctx, x, y, w, h, progress, color) // -> void
+```
+
+---
+
+## §11. 성능 최적화
+
+### 11.1 렌더링 최적화
+- **변경 감지 렌더링**: farmDirty 플래그가 true일 때만 농장 그리드 재렌더. 매 프레임 full redraw 회피
+- **offscreen canvas 캐시**: 배경(하늘+잔디+땅)은 리사이즈 시에만 재생성하여 캐시 [Cycle 5 패턴]
+- **파티클 ObjectPool**: 수확 파티클 50개 + 골드 팝업 20개 사전 할당. GC 스파이크 방지
+
+### 11.2 연산 최적화
+- **인메모리 saveData**: localStorage 접근은 저장 시점에만 수행 (30초 간격 + 이벤트)
+- **생산 계산 배치**: 매 프레임 개별 plot 순회하되 비용 O(N) (N=최대 12칸으로 경량)
+- **타이머 기반**: 물리 엔진/충돌 판정 없음. delta-time 기반 타이머만 사용하여 CPU 부하 최소
+
+### 11.3 메모리 최적화
+- 전체 객체 수 상한: plot 12 + particle 70 + popup 20 + tween 10 = 약 112개
+- 대규모 배열/맵 없음. 가벼운 메모리 풋프린트
+
+---
+
+## §12. 구현 체크리스트 및 품질 게이트
+
+### §12.0 리뷰 제출 전 스모크 테스트 (MANDATORY) [Cycle 13 CRITICAL 교훈]
+- [ ] `index.html` 파일 존재 확인 (`test -f index.html`)
+- [ ] 브라우저에서 페이지 로드 성공 (빈 화면 아님)
+- [ ] 콘솔 에러 0건, 경고 0건
+- [ ] 타이틀 화면 표시 -> 클릭 -> 게임 시작 확인
+- [ ] 최소 1회 수확 -> 골드 증가 확인
+
+### §12.1 에셋 제로 정책 (13사이클 연속 재발 대응)
+- [ ] `assets/` 디렉토리 **존재하지 않음** 확인
+- [ ] `manifest.json` 파일 **존재하지 않음** 확인
+- [ ] 코드 내 `fetch(`, `Image(`, `new Image`, `.svg`, `.png`, `.jpg` 문자열 0건
+- [ ] 코드 내 `ASSET_MAP`, `SPRITES`, `preloadAssets` 문자열 0건
+- [ ] Google Fonts, CDN 등 외부 리소스 로드 0건
+- [ ] **템플릿/보일러플레이트 복사 금지** - 빈 파일에서 처음부터 작성
+
+### §12.2 코드 품질
+- [ ] `'use strict'` 최상단 선언
+- [ ] 모든 변수는 최초 참조 이전에 `let`/`const` 선언 [Cycle 11 TDZ]
+- [ ] 선언된 변수 사용처 전수 검증 - 유령 변수 0건 [Cycle 2-3]
+- [ ] 빈 if/else 블록 0건 - 데드 코드 금지 [Cycle 12]
+- [ ] `setTimeout`으로 상태 전환하는 코드 0건 [Cycle 2]
+- [ ] `confirm()`, `alert()`, `prompt()` 사용 0건 [Cycle 1]
+- [ ] 게임 루프 `try-catch` 래핑 [Cycle 10]
+
+### §12.3 아키텍처 검증
+- [ ] 모든 상태 전환이 `beginTransition()` 경유 [Cycle 5, 8]
+- [ ] `clearImmediate()` API - cancelAll 대신 사용 [Cycle 4]
+- [ ] 상태x시스템 매트릭스(§5.3) 코드 주석으로 이중 포함
+- [ ] PLAYING 상태의 모든 UI 탭에서 `updateProduction()` 호출 확인 [Cycle 11]
+- [ ] 하나의 값에 대한 갱신 경로가 1개(tween OR 직접 대입) [Cycle 5]
+
+### §12.4 순수 함수 검증
+- [ ] §10의 모든 함수가 전역 상태 직접 참조 0건
+- [ ] 모든 함수의 파라미터 -> 반환값 추적 가능
+- [ ] 함수 시그니처 변경 시 모든 호출부 전수 검증 [Cycle 10]
+
+### §12.5 기획-구현 정합성 (세부 항목별)
+- [ ] CONFIG 객체 수치 <-> §6 수치표 1:1 대조 [Cycle 7]
+  - [ ] 작물 4종 growTime/sellPrice 일치
+  - [ ] 가축 3종 growTime/sellPrice 일치
+  - [ ] 가공품 3종 growTime/sellPrice 일치
+  - [ ] 업그레이드 비용 공식 일치
+  - [ ] 프레스티지 공식 일치
+  - [ ] 오프라인 배율 0.5 일치
+- [ ] 마일스톤 5개 threshold 일치
+- [ ] 터치 타겟 모든 요소 48px 이상 [Cycle 12]
+
+### §12.6 기능 완성도 (A+B 분리 검증) [Cycle 12 교훈]
+- [ ] 수동 수확: (A) 탭 시 즉시 수확 + (B) 50% 보너스 적용
+- [ ] 자동 수확: (A) 자동 수확 동작 + (B) 수동 보너스 미적용
+- [ ] 프레스티지: (A) 골드/업그레이드 초기화 + (B) 별 계산 정확 + (C) 영구 배율 적용
+- [ ] 오프라인 수입: (A) 경과 시간 계산 + (B) 0.5 배율 적용 + (C) 최대 4시간 캡
+- [ ] 롱프레스 연속 구매: (A) 500ms 후 시작 + (B) 100ms 간격 반복
+- [ ] 농장 확장: (A) 5,000G에 목장 해금 + (B) 50,000G에 공장 해금
+
+### §12.7 초기화 순서 검증
+```
+1. CONFIG 객체 선언
+2. 유틸 함수 선언 (formatNumber, etc.)
+3. TweenManager, ObjectPool, SoundManager, TransitionGuard 선언
+4. 게임 상태 변수 선언 (saveData, uiState, etc.)
+5. Canvas/ctx 초기화 + resizeCanvas()
+6. 입력 이벤트 리스너 등록
+7. loadSaveData() - localStorage -> saveData
+8. enterState(TITLE)
+9. requestAnimationFrame(loop)
+```
+**모든 let/const 변수는 4단계 이전에 선언 완료. resizeCanvas()가 참조하는 변수도 3단계 이전에 선언. [Cycle 11 TDZ 교훈]**
+
+### §12.8 브라우저 호환성
+- [ ] Chrome 90+ 정상 동작
+- [ ] Firefox 90+ 정상 동작
+- [ ] Safari 15+ 정상 동작
+- [ ] 모바일 Chrome/Safari 터치 정상
+- [ ] iframe 내 동작 확인 (localStorage try-catch)
+
+### §12.9 게임 루프 방어 패턴
+```javascript
+function loop(timestamp) {
   try {
-    const dt = Math.min(timestamp - lastTime, 100);
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
     lastTime = timestamp;
     // ... update & render ...
   } catch (e) {
-    console.error('[HangulWordQuest] Loop error:', e);
+    console.error('[MiniIdleFarm] Loop error:', e);
   }
-  requestAnimationFrame(gameLoop);
+  requestAnimationFrame(loop);
 }
 ```
 
-### 11.10 범위 외 사항 (별도 태스크)
-- 공용 엔진 모듈(`shared/engine.js`) 분리 — Cycle 12 제안, 본 기획 범위 외
-- CI 파이프라인 통합 — pre-commit 훅으로 대체
+### §12.10 범위 외 항목 (명시적 제외)
+- 공용 엔진 모듈 분리 (`shared/engine.js`) - 별도 태스크
+- CI pre-commit 훅 등록 - 별도 인프라 태스크
+- 멀티플레이어 / 리더보드 - 서버 필요
+- 일일 챌린지 - scope creep 방지, 코어 루프 집중
 
 ---
 
-## §12. 사운드 디자인
+## §13. 금지 패턴 자동 검증 스크립트
 
-### 12.1 효과음 (Web Audio API 전용, 외부 파일 0건)
-| 이벤트 | 파형 | 주파수 | 지속 | 설명 |
-|--------|------|--------|------|------|
-| 키 입력 | square | 440Hz | 30ms | 짧고 명확한 클릭음 |
-| 자모 삭제 | square | 330Hz | 30ms | 입력보다 낮은 톤 |
-| 타일 플립 | triangle | 520→660Hz | 150ms | 상승 스윕 |
-| 정답 (승리) | sine | C5→E5→G5 | 300ms | 밝은 3화음 아르페지오 |
-| 오답 (패배) | sawtooth | 220→110Hz | 400ms | 하강 톤 |
-| 유효하지 않은 입력 | noise | — | 100ms | 짧은 버즈 |
-| 행 제출 | triangle | 440Hz | 50ms | 확인음 |
+### §13.1 검증 항목 (구현 완료 후 실행)
+```bash
+#!/bin/bash
+echo "=== Mini Idle Farm 금지 패턴 검증 ==="
+FAIL=0
 
-> `o.start(startT)` / `o.stop(startT + dur)` 파라미터 기반 스케줄링 (setTimeout 0건, Cycle 12 기술)
+# 1. assets/ 디렉토리 존재 확인
+if [ -d "assets" ]; then echo "FAIL: assets/ 디렉토리 존재"; FAIL=1; fi
+
+# 2. manifest.json 존재 확인
+if [ -f "manifest.json" ]; then echo "FAIL: manifest.json 존재"; FAIL=1; fi
+
+# 3. 외부 에셋 참조
+if grep -qiE '(fetch\(|new Image|\.svg|\.png|\.jpg|\.gif|\.mp3|\.wav)' index.html; then
+  echo "FAIL: 외부 에셋 참조 발견"; FAIL=1; fi
+
+# 4. 금지 패턴
+if grep -qE '(ASSET_MAP|SPRITES|preloadAssets)' index.html; then
+  echo "FAIL: 에셋 관련 코드 잔존"; FAIL=1; fi
+
+# 5. confirm/alert/prompt
+if grep -qE '\b(confirm|alert|prompt)\s*\(' index.html; then
+  echo "FAIL: confirm/alert/prompt 사용"; FAIL=1; fi
+
+# 6. setTimeout 상태 전환
+if grep -qE 'setTimeout.*state\s*=' index.html; then
+  echo "FAIL: setTimeout 상태 전환"; FAIL=1; fi
+
+# 7. Google Fonts / CDN
+if grep -qiE '(fonts\.googleapis|cdn\.)' index.html; then
+  echo "FAIL: 외부 CDN 참조"; FAIL=1; fi
+
+# 8. 빈 블록
+if grep -qE '\{\s*\}' index.html; then
+  echo "WARN: 빈 블록 발견 (수동 확인 필요)"; fi
+
+if [ $FAIL -eq 0 ]; then echo "ALL PASS"; else echo "VERIFICATION FAILED"; exit 1; fi
+```
 
 ---
 
-## §13. 반응형 레이아웃
-
-### 13.1 Canvas 크기 전략
-```javascript
-function resizeCanvas(canvas, gameState) {
-  const w = Math.min(window.innerWidth, 500);  // 최대 500px (모바일 최적화)
-  const h = window.innerHeight;
-  canvas.width = w * devicePixelRatio;
-  canvas.height = h * devicePixelRatio;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  ctx.scale(devicePixelRatio, devicePixelRatio);
-  // 그리드/키보드 레이아웃 재계산
-  gameState.layout = calculateLayout(w, h, gameState.difficulty);
-}
-```
-
-### 13.2 레이아웃 분기
-| 화면 너비 | 그리드 셀 크기 | 키보드 키 크기 | 폰트 조정 |
-|-----------|---------------|---------------|----------|
-| ≥ 420px | 52×52px | 48×48px | 기본 |
-| 360~419px | 48×48px | 44×48px | -2px |
-| < 360px | 40×40px | 40×44px | -4px |
-
-> 모든 경우에서 터치 타겟은 최소 40×44px 이상 유지 (WCAG 최소 기준)
-
----
-
-## §14. localStorage 관리
-
-### 14.1 키 구조
-```
-hangul-word-quest-stats     → 통계 JSON
-hangul-word-quest-daily     → 일일 챌린지 진행 상태 JSON
-hangul-word-quest-settings  → 설정 (난이도, 사운드 on/off)
-```
-
-### 14.2 읽기 최적화 (Cycle 12 교훈)
-- localStorage 읽기는 **화면 진입 시 1회** 캐싱하여 메모리 변수에 저장
-- 매 프레임 localStorage 접근 금지 (Cycle 12: 초당 300회 읽기 이슈)
-- 저장 시점: 게임 종료 시, 설정 변경 시 (최소한의 I/O)
-
-### 14.3 판정→저장 순서 (Cycle 2 교훈)
-```javascript
-// 올바른 순서
-const isNewBest = score > cachedStats.bestScore;  // 1. 판정 먼저
-cachedStats.bestScore = Math.max(cachedStats.bestScore, score);
-saveStats(cachedStats);                            // 2. 저장 나중
-if (isNewBest) showNewBestAnimation();             // 3. UI 반영
-```
+_InfiniTriX Game Design / Cycle #13 / 2026-03-21_
+_기획자: Claude Agent_
