@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>아케인 바스티온 — Arcane Bastion</title>
+<title>Arcane Bastion</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -13,125 +13,194 @@ canvas{display:block;width:100%;height:100%}
 <body>
 <canvas id="gameCanvas"></canvas>
 <script>
-'use strict';
 // ============================================================
-// CONFIG — 게임 상수 (기획서 §2~§9 수치 정합)
+// ARCANE BASTION — Roguelike Tower Defense
+// 100% Canvas code drawing, no external assets
 // ============================================================
+
+// --- CONFIG (game constants at top) ---
 const CONFIG = {
   MIN_TOUCH_TARGET: 48,
-  BASTION_HP: 100, BASTION_RADIUS: 36,
-  WIZARD_SPEED: 160, WIZARD_RADIUS: 14,
-  MANA_MAX: 100, MANA_REGEN: 3,
-  MAX_TOWERS: 8, MAX_PARTICLES: 80, MAX_PROJECTILES: 30,
-  MAX_WAVES: 15,
-  BOLT_DMG: 8, BOLT_CD: 0.3, BOLT_SPEED: 400, BOLT_RANGE: 200,
-  FIREBALL_COST: 15, FIREBALL_DMG: 25, FIREBALL_CD: 1.5, FIREBALL_RADIUS: 50, FIREBALL_SPEED: 280,
-  FROST_COST: 20, FROST_DMG: 10, FROST_CD: 3.0, FROST_RADIUS: 120, FROST_SLOW: 0.5, FROST_DUR: 3,
+  WIZARD_SPEED: 150,
+  WIZARD_RADIUS: 16,
+  BASTION_RADIUS: 40,
+  BASTION_HP: 100,
+  INITIAL_MANA: 100,
+  MAX_MANA: 100,
+  MANA_REGEN: 3,
+  MAX_TOWERS: 8,
+  TOWER_PLACE_MIN_DIST: 50,
+  PROJECTILE_SPEED: 300,
+  FIREBALL_SPEED: 200,
+  PARTICLE_POOL_SIZE: 200,
+  PROJECTILE_POOL_SIZE: 50,
+  MAX_WAVE: 15,
+  JOYSTICK_BASE: 60,
+  JOYSTICK_KNOB: 25,
 };
 
-// ============================================================
-// STATE enum & priority (§6)
-// ============================================================
+// --- STATE ENUM ---
 const STATE = { TITLE:0, PLAYING:1, UPGRADE:2, PAUSED:3, GAMEOVER:4 };
 const STATE_PRIORITY = { 0:20, 1:40, 2:60, 3:80, 4:100 };
 
+// --- ENEMY DATA (7 types + 3 bosses) ---
+const ENEMY_TYPES = {
+  slime:      { hp:20, speed:1.0, atk:5, color:'#44ff44', radius:12, score:10, mana:2 },
+  skeleton:   { hp:35, speed:1.5, atk:8, color:'#dddddd', radius:14, score:20, mana:4 },
+  spider:     { hp:25, speed:2.0, atk:6, color:'#884488', radius:10, score:15, mana:3 },
+  golem:      { hp:80, speed:0.5, atk:15, color:'#aa7744', radius:20, score:40, mana:8 },
+  wraith:     { hp:40, speed:1.2, atk:10, color:'#6666ff', radius:14, score:25, mana:5 },
+  darknight:  { hp:60, speed:1.0, atk:12, color:'#666666', radius:16, score:35, mana:7 },
+  dragonkin:  { hp:50, speed:0.8, atk:10, color:'#ff4444', radius:15, score:30, mana:6 },
+};
+const BOSS_TYPES = {
+  golemKing:  { hp:300, speed:0.3, atk:20, color:'#cc8833', radius:40, score:200, mana:40, name:'골렘 킹' },
+  wraithKing: { hp:250, speed:0.8, atk:25, color:'#4444ff', radius:35, score:300, mana:60, name:'레이스 킹' },
+  dragon:     { hp:500, speed:0.4, atk:30, color:'#ff2222', radius:50, score:500, mana:100, name:'고대 드래곤' },
+};
+
+// --- WAVE DATA (15 waves) ---
+const WAVE_DATA = [
+  { types:['slime'], count:5, boss:null, biome:'forest' },
+  { types:['slime'], count:8, boss:null, biome:'forest' },
+  { types:['slime','skeleton'], count:10, boss:null, biome:'forest' },
+  { types:['skeleton','spider'], count:12, boss:null, biome:'forest' },
+  { types:['slime','skeleton','spider'], count:15, boss:'golemKing', biome:'forest' },
+  { types:['wraith','spider'], count:14, boss:null, biome:'cave' },
+  { types:['wraith','golem'], count:16, boss:null, biome:'cave' },
+  { types:['skeleton','wraith','golem'], count:18, boss:null, biome:'cave' },
+  { types:['slime','skeleton','spider','golem','wraith','darknight','dragonkin'], count:20, boss:null, biome:'cave' },
+  { types:['slime','skeleton','spider','golem','wraith','darknight','dragonkin'], count:22, boss:'wraithKing', biome:'cave' },
+  { types:['slime','skeleton','spider','golem','wraith','darknight','dragonkin'], count:20, boss:null, biome:'volcano' },
+  { types:['slime','skeleton','spider','golem','wraith','darknight','dragonkin'], count:22, boss:null, biome:'volcano' },
+  { types:['darknight','dragonkin','golem'], count:18, boss:null, biome:'volcano' },
+  { types:['slime','skeleton','spider','golem','wraith','darknight','dragonkin'], count:25, boss:null, biome:'volcano' },
+  { types:['darknight','dragonkin','golem','wraith'], count:20, boss:'dragon', biome:'volcano' },
+];
+
+// --- DIFFICULTY SCALING ---
+const DIFF_SCALE = [
+  {hpMul:1.0,spdMul:1.0,interval:1500},
+  {hpMul:1.0,spdMul:1.0,interval:1500},
+  {hpMul:1.0,spdMul:1.0,interval:1500},
+  {hpMul:1.2,spdMul:1.1,interval:1200},
+  {hpMul:1.2,spdMul:1.1,interval:1200},
+  {hpMul:1.4,spdMul:1.2,interval:1000},
+  {hpMul:1.4,spdMul:1.2,interval:1000},
+  {hpMul:1.4,spdMul:1.2,interval:1000},
+  {hpMul:1.6,spdMul:1.3,interval:800},
+  {hpMul:1.6,spdMul:1.3,interval:800},
+  {hpMul:1.8,spdMul:1.4,interval:700},
+  {hpMul:1.8,spdMul:1.4,interval:700},
+  {hpMul:1.8,spdMul:1.4,interval:700},
+  {hpMul:2.0,spdMul:1.5,interval:600},
+  {hpMul:2.0,spdMul:1.5,interval:600},
+];
+
+// --- TOWER DATA (5 types) ---
+const TOWER_TYPES = {
+  arcane:  { cost:30, range:120, atk:10, cooldown:1.0, color:'#00ffff', name:'아케인', special:'single' },
+  fire:    { cost:50, range:100, atk:15, cooldown:1.5, color:'#ff6600', name:'화염', special:'aoe', aoeRadius:40 },
+  ice:     { cost:40, range:130, atk:8, cooldown:1.2, color:'#88ddff', name:'냉기', special:'slow', slowAmt:0.3, slowDur:2 },
+  lightning:{ cost:60, range:150, atk:20, cooldown:2.0, color:'#ffff44', name:'번개', special:'chain', chainCount:3 },
+  heal:    { cost:45, range:80, atk:0, cooldown:3.0, color:'#44ff44', name:'치유', special:'heal', healAmt:5 },
+};
+
+// --- SPELL DATA ---
+const SPELLS = {
+  bolt:  { manaCost:0, range:200, atk:8, cooldown:0.3 },
+  fireball: { manaCost:15, range:180, atk:25, cooldown:1.5, aoeRadius:50 },
+  frost: { manaCost:20, range:0, atk:10, cooldown:3.0, aoeRadius:100, slowAmt:0.5, slowDur:3 },
+};
+
+// --- UPGRADE POOL (18 types) ---
+const UPGRADE_POOL = [
+  { id:1, cat:'attack', name:'볼트 강화', desc:'아케인 볼트 공격력 +25%', max:3, color:'#ff4444' },
+  { id:2, cat:'attack', name:'멀티샷', desc:'아케인 볼트 2발 동시 발사', max:1, color:'#ff4444' },
+  { id:3, cat:'attack', name:'파이어 마스터리', desc:'파이어볼 범위+30%, 쿨-20%', max:2, color:'#ff4444' },
+  { id:4, cat:'attack', name:'연쇄 번개', desc:'아케인 볼트 체인 1회 추가', max:2, color:'#ff4444' },
+  { id:5, cat:'defense', name:'바스티온 강화', desc:'바스티온 최대 HP +20', max:3, color:'#44ff44' },
+  { id:6, cat:'defense', name:'가시 보호막', desc:'근접 공격자에게 반사 5', max:2, color:'#44ff44' },
+  { id:7, cat:'defense', name:'보호 결계', desc:'30% 확률 피해 무시', max:2, color:'#44ff44' },
+  { id:8, cat:'resource', name:'마나 샘', desc:'마나 회복 +2/초', max:3, color:'#4488ff' },
+  { id:9, cat:'resource', name:'마나 약탈', desc:'적 처치 시 마나 +50%', max:2, color:'#4488ff' },
+  { id:10, cat:'resource', name:'확장 마나풀', desc:'최대 마나 +30', max:2, color:'#4488ff' },
+  { id:11, cat:'tower', name:'타워 강화', desc:'전 타워 공격력 +20%', max:3, color:'#ffaa00' },
+  { id:12, cat:'tower', name:'빠른 장전', desc:'전 타워 공격속도 +15%', max:3, color:'#ffaa00' },
+  { id:13, cat:'tower', name:'추가 배치', desc:'타워 최대 배치 수 +2', max:2, color:'#ffaa00' },
+  { id:14, cat:'move', name:'신속', desc:'마법사 이동속도 +20%', max:3, color:'#44ffff' },
+  { id:15, cat:'move', name:'순간이동', desc:'Space/더블탭으로 텔레포트', max:1, color:'#44ffff' },
+  { id:16, cat:'special', name:'냉기 마스터리', desc:'노바 범위+40%, 감속+1초', max:2, color:'#ff44ff' },
+  { id:17, cat:'special', name:'크리티컬', desc:'모든 공격 20% 확률 2배', max:2, color:'#ff44ff' },
+  { id:18, cat:'special', name:'재생', desc:'웨이브 시작 시 바스티온 HP+10', max:3, color:'#ff44ff' },
+];
+
+// --- ACHIEVEMENT DATA ---
+const ACHIEVEMENT_DATA = [
+  { id:1, name:'첫 방어', desc:'웨이브 1 클리어', icon:'shield' },
+  { id:2, name:'타워 마스터', desc:'타워 5종 모두 배치', icon:'castle' },
+  { id:3, name:'백 킬', desc:'100킬 달성', icon:'skull' },
+  { id:4, name:'골렘 슬레이어', desc:'골렘 킹 처치', icon:'sword' },
+  { id:5, name:'레이스 밴퀴셔', desc:'레이스 킹 처치', icon:'ghost' },
+  { id:6, name:'드래곤 슬레이어', desc:'고대 드래곤 처치', icon:'dragon' },
+  { id:7, name:'무타워 클리어', desc:'타워 0개로 웨이브 5', icon:'mage' },
+  { id:8, name:'무피격 웨이브', desc:'바스티온 무피격 웨이브 클리어', icon:'star' },
+  { id:9, name:'마나 부자', desc:'마나 300 이상 보유', icon:'gem' },
+  { id:10, name:'바스티온 수호자', desc:'HP 100%로 15웨이브 클리어', icon:'crown' },
+];
+
 // ============================================================
-// Canvas setup with devicePixelRatio
+// CANVAS SETUP
 // ============================================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let W, H, dpr;
 
-// Resize canvas to fill viewport
+// Resize canvas to fill window
 function resizeCanvas() {
-  dpr = window.devicePixelRatio || 1;
-  W = window.innerWidth; H = window.innerHeight;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  buildBgCache();
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  if (bgCacheDirty !== undefined) bgCacheDirty = true;
 }
+resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // ============================================================
-// Asset Preloader — SVG assets with Canvas fallback
-// ============================================================
-const SPRITES = {};
-const ASSET_MAP = {
-  player:    'assets/player.svg',
-  enemy:     'assets/enemy.svg',
-  bgLayer1:  'assets/bg-layer1.svg',
-  bgLayer2:  'assets/bg-layer2.svg',
-  uiHeart:   'assets/ui-heart.svg',
-  uiStar:    'assets/ui-star.svg',
-  powerup:   'assets/powerup.svg',
-  effectHit: 'assets/effect-hit.svg',
-};
-
-// Preload all SVG assets before game init
-async function preloadAssets() {
-  await Promise.all(
-    Object.entries(ASSET_MAP).map(([key, src]) =>
-      new Promise(resolve => {
-        const img = new Image();
-        img.onload  = () => { SPRITES[key] = img; resolve(); };
-        img.onerror = resolve;
-        img.src = src;
-      })
-    )
-  );
-}
-
-// ============================================================
-// TweenManager with clearImmediate() (F6)
+// TWEEN MANAGER (F6: clearImmediate separated)
 // ============================================================
 class TweenManager {
-  constructor() { this._tweens = []; this._pendingCancel = false; }
-  // Add a new tween animation
+  constructor() { this._tweens = []; this._pending = []; this._clearing = false; }
+  // Add a tween
   add(opts) {
-    const t = { target:opts.target, prop:opts.prop, from:opts.from, to:opts.to,
-      duration:opts.duration/1000, elapsed:0, ease:opts.ease||'easeOutCubic',
-      onComplete:opts.onComplete||null, done:false };
-    if (t.target && t.prop != null) t.target[t.prop] = t.from;
-    this._tweens.push(t); return t;
+    const t = { target:opts.target, prop:opts.prop, from:opts.from, to:opts.to, duration:opts.duration/1000, elapsed:0, ease:opts.ease||'linear', onComplete:opts.onComplete||null };
+    if (opts.target && opts.prop) opts.target[opts.prop] = opts.from;
+    if (this._clearing) this._pending.push(t);
+    else this._tweens.push(t);
+    return t;
   }
-  // Update all active tweens each frame
+  // Update all tweens by dt seconds
   update(dt) {
-    if (this._pendingCancel) { this._tweens.length = 0; this._pendingCancel = false; return; }
     for (let i = this._tweens.length - 1; i >= 0; i--) {
       const t = this._tweens[i];
       t.elapsed += dt;
       let p = Math.min(t.elapsed / t.duration, 1);
-      p = this._ease(p, t.ease);
-      if (t.target && t.prop != null) t.target[t.prop] = t.from + (t.to - t.from) * p;
-      if (t.elapsed >= t.duration) {
-        t.done = true;
-        if (t.target && t.prop != null) t.target[t.prop] = t.to;
+      if (t.ease === 'easeOut') p = 1 - (1 - p) * (1 - p);
+      else if (t.ease === 'easeIn') p = p * p;
+      else if (t.ease === 'easeInOut') p = p < 0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+      if (t.target && t.prop) t.target[t.prop] = t.from + (t.to - t.from) * p;
+      if (p >= 1) {
         this._tweens.splice(i, 1);
         if (t.onComplete) t.onComplete();
       }
     }
   }
-  // Deferred cancel for safe mid-update calls
-  cancelAll() { this._pendingCancel = true; }
-  // Immediate clear - safe to add() right after
-  clearImmediate() { this._tweens.length = 0; this._pendingCancel = false; }
-  // Easing functions
-  _ease(t, type) {
-    if (type === 'linear') return t;
-    if (type === 'easeOutCubic') return 1 - Math.pow(1 - t, 3);
-    if (type === 'easeInOutQuad') return t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
-    if (type === 'easeOutBounce') {
-      if(t<1/2.75)return 7.5625*t*t;if(t<2/2.75)return 7.5625*(t-=1.5/2.75)*t+0.75;
-      if(t<2.5/2.75)return 7.5625*(t-=2.25/2.75)*t+0.9375;return 7.5625*(t-=2.625/2.75)*t+0.984375;
-    }
-    return 1 - Math.pow(1 - t, 3);
-  }
+  // Deferred cancel
+  cancelAll() { this._clearing = true; this._tweens.length = 0; }
+  // Immediate flush after cancelAll (F6)
+  clearImmediate() { this._clearing = false; this._tweens.length = 0; if (this._pending.length) { this._tweens.push(...this._pending); this._pending.length = 0; } }
 }
-const tw = new TweenManager();
 
 // ============================================================
-// ObjectPool — reuse particles and projectiles
+// OBJECT POOL (particles, projectiles)
 // ============================================================
 class ObjectPool {
   constructor(createFn, resetFn, size) {
@@ -143,836 +212,2395 @@ class ObjectPool {
 }
 
 // ============================================================
-// SoundManager — Web Audio API synth (§12)
+// SOUND MANAGER (Web Audio API, no setTimeout)
 // ============================================================
 class SoundManager {
-  constructor() { this._ctx = null; this._vol = 0.3; this._bgmGain = null; this._bgmOsc = null; }
+  constructor() { this._ctx = null; this._gainBGM = null; this._gainSFX = null; this._bgmOsc = null; this._vol = 0.3; }
+  // Initialize audio context on user gesture
   _init() {
     if (this._ctx) return;
     this._ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this._bgmGain = this._ctx.createGain();
-    this._bgmGain.gain.value = this._vol * 0.15;
-    this._bgmGain.connect(this._ctx.destination);
+    this._gainBGM = this._ctx.createGain(); this._gainBGM.gain.value = this._vol * 0.4; this._gainBGM.connect(this._ctx.destination);
+    this._gainSFX = this._ctx.createGain(); this._gainSFX.gain.value = this._vol; this._gainSFX.connect(this._ctx.destination);
   }
-  // Play looping BGM by biome type
-  playBGM(type) {
-    this._init(); this.stopBGM();
-    const freqs = {forest:[262,330,392,330],cave:[220,262,330,262],volcano:[165,220,262,220],boss:[196,262,330,392]};
-    const notes = freqs[type] || freqs.forest;
-    const osc = this._ctx.createOscillator();
-    osc.type = type==='boss'?'square':'triangle';
-    osc.frequency.value = notes[0];
-    const now = this._ctx.currentTime, dur = type==='boss'?0.25:0.5;
-    for (let i = 0; i < 64; i++) osc.frequency.setValueAtTime(notes[i%notes.length], now+i*dur);
-    osc.connect(this._bgmGain); osc.start(now); osc.stop(now+64*dur);
-    this._bgmOsc = osc;
-    osc.onended = () => { if (this._bgmOsc === osc) this.playBGM(type); };
-  }
-  stopBGM() { if(this._bgmOsc){try{this._bgmOsc.onended=null;this._bgmOsc.stop();}catch(e){}this._bgmOsc=null;} }
-  // Play one-shot sound effect
+  // Play a short SFX
   playSFX(type) {
-    this._init();
-    const c = this._ctx, now = c.currentTime, g = c.createGain(), o = c.createOscillator();
-    g.gain.value = this._vol; g.connect(c.destination); o.connect(g);
-    if(type==='shoot'){o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.2,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.1);o.start(now);o.stop(now+0.1);}
-    else if(type==='hit'){o.type='square';o.frequency.value=220;o.frequency.exponentialRampToValueAtTime(80,now+0.15);g.gain.exponentialRampToValueAtTime(0.001,now+0.15);o.start(now);o.stop(now+0.15);}
-    else if(type==='kill'){o.type='square';o.frequency.value=440;o.frequency.exponentialRampToValueAtTime(110,now+0.2);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);o.start(now);o.stop(now+0.2);}
-    else if(type==='fireball'){o.type='sawtooth';o.frequency.value=150;o.frequency.exponentialRampToValueAtTime(60,now+0.3);g.gain.exponentialRampToValueAtTime(0.001,now+0.3);o.start(now);o.stop(now+0.3);}
-    else if(type==='frost'){o.type='triangle';o.frequency.value=1200;o.frequency.exponentialRampToValueAtTime(400,now+0.4);g.gain.exponentialRampToValueAtTime(0.001,now+0.4);o.start(now);o.stop(now+0.4);}
-    else if(type==='tower_place'){o.type='sine';o.frequency.setValueAtTime(523,now);o.frequency.setValueAtTime(659,now+0.1);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);o.start(now);o.stop(now+0.2);}
-    else if(type==='boss_spawn'){o.type='sine';o.frequency.value=80;o.frequency.exponentialRampToValueAtTime(200,now+1);g.gain.exponentialRampToValueAtTime(0.001,now+1);o.start(now);o.stop(now+1);}
-    else if(type==='level_up'){o.type='sine';o.frequency.setValueAtTime(523,now);o.frequency.setValueAtTime(659,now+0.1);o.frequency.setValueAtTime(784,now+0.2);g.gain.exponentialRampToValueAtTime(0.001,now+0.35);o.start(now);o.stop(now+0.35);}
-    else if(type==='game_over'){o.type='sawtooth';o.frequency.value=300;o.frequency.exponentialRampToValueAtTime(50,now+0.8);g.gain.exponentialRampToValueAtTime(0.001,now+0.8);o.start(now);o.stop(now+0.8);}
-    else{o.type='sine';o.frequency.value=440;g.gain.exponentialRampToValueAtTime(0.001,now+0.1);o.start(now);o.stop(now+0.1);}
+    if (!this._ctx) return;
+    const now = this._ctx.currentTime;
+    const osc = this._ctx.createOscillator();
+    const g = this._ctx.createGain();
+    osc.connect(g); g.connect(this._gainSFX);
+    switch(type) {
+      case 'shoot': osc.type='sine'; osc.frequency.setValueAtTime(880,now); osc.frequency.exponentialRampToValueAtTime(440,now+0.1); g.gain.setValueAtTime(0.3,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.1); osc.start(now); osc.stop(now+0.1); break;
+      case 'fireball': osc.type='sawtooth'; osc.frequency.setValueAtTime(200,now); osc.frequency.exponentialRampToValueAtTime(80,now+0.3); g.gain.setValueAtTime(0.4,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.3); osc.start(now); osc.stop(now+0.3); break;
+      case 'frost': osc.type='triangle'; osc.frequency.setValueAtTime(600,now); osc.frequency.exponentialRampToValueAtTime(200,now+0.4); g.gain.setValueAtTime(0.3,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.4); osc.start(now); osc.stop(now+0.4); break;
+      case 'hit': osc.type='square'; osc.frequency.setValueAtTime(150,now); g.gain.setValueAtTime(0.2,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.15); osc.start(now); osc.stop(now+0.15); break;
+      case 'kill': osc.type='square'; osc.frequency.setValueAtTime(300,now); osc.frequency.exponentialRampToValueAtTime(100,now+0.15); g.gain.setValueAtTime(0.25,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.15); osc.start(now); osc.stop(now+0.15); break;
+      case 'boss_spawn': osc.type='sine'; osc.frequency.setValueAtTime(60,now); osc.frequency.exponentialRampToValueAtTime(200,now+1.0); g.gain.setValueAtTime(0.5,now); g.gain.exponentialRampToValueAtTime(0.01,now+1.0); osc.start(now); osc.stop(now+1.0); break;
+      case 'tower_place': osc.type='sine'; osc.frequency.setValueAtTime(523,now); osc.frequency.setValueAtTime(659,now+0.05); g.gain.setValueAtTime(0.2,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.2); osc.start(now); osc.stop(now+0.2); break;
+      case 'game_over': osc.type='sawtooth'; osc.frequency.setValueAtTime(400,now); osc.frequency.exponentialRampToValueAtTime(60,now+0.8); g.gain.setValueAtTime(0.4,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.8); osc.start(now); osc.stop(now+0.8); break;
+      case 'upgrade': osc.type='sine'; osc.frequency.setValueAtTime(523,now); osc.frequency.setValueAtTime(659,now+0.1); osc.frequency.setValueAtTime(784,now+0.2); g.gain.setValueAtTime(0.3,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.4); osc.start(now); osc.stop(now+0.4); break;
+      default: osc.type='sine'; osc.frequency.setValueAtTime(440,now); g.gain.setValueAtTime(0.1,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.1); osc.start(now); osc.stop(now+0.1);
+    }
   }
+  // Simple BGM loop
+  playBGM(type) { this.stopBGM(); if(!this._ctx) return; /* BGM stub - could add oscillator patterns */ }
+  stopBGM() { if(this._bgmOsc){ try{this._bgmOsc.stop();}catch(e){} this._bgmOsc=null; } }
   stopAll() { this.stopBGM(); }
-  setVolume(v) { this._vol = v; if(this._bgmGain) this._bgmGain.gain.value = v*0.15; }
-}
-const sfx = new SoundManager();
-
-// ============================================================
-// ENEMY DATA (§2.3 — 기획서 수치 정확 대조)
-// ============================================================
-const ENEMY_TYPES = {
-  slime:     {hp:20, speed:1.0, atk:5,  score:10,  color:'#44ff44', radius:12, special:null},
-  skeleton:  {hp:35, speed:1.5, atk:8,  score:20,  color:'#dddddd', radius:12, special:'fast'},
-  spider:    {hp:25, speed:2.0, atk:6,  score:15,  color:'#884488', radius:10, special:'swarm'},
-  golem:     {hp:80, speed:0.5, atk:15, score:40,  color:'#aa7744', radius:18, special:'tank'},
-  wraith:    {hp:40, speed:1.2, atk:10, score:25,  color:'#6666ff', radius:12, special:'phase'},
-  darkknight:{hp:60, speed:1.0, atk:12, score:35,  color:'#666666', radius:14, special:'armor'},
-  dragonkin: {hp:50, speed:0.8, atk:10, score:30,  color:'#ff4444', radius:13, special:'ranged'},
-};
-const BOSS_TYPES = {
-  golemKing:     {hp:300, speed:0.3, atk:20, score:200, color:'#cc8833', radius:36, patterns:['charge','shockwave','throw']},
-  wraithKing:    {hp:250, speed:0.8, atk:25, score:300, color:'#4444ff', radius:30, patterns:['teleport','summon','drain']},
-  ancientDragon: {hp:500, speed:0.4, atk:30, score:500, color:'#ff2222', radius:44, patterns:['breath','fly','carpet']},
-};
-
-// ============================================================
-// TOWER DATA (§2.4)
-// ============================================================
-const TOWER_TYPES = [
-  {id:'arcane',  name:'아케인',cost:30, range:120,dmg:10, rate:1.0, color:'#00ffff',special:null},
-  {id:'fire',    name:'화염',  cost:50, range:100,dmg:15, rate:1.5, color:'#ff6600',special:'aoe'},
-  {id:'ice',     name:'냉기',  cost:40, range:130,dmg:8,  rate:1.2, color:'#88ddff',special:'slow'},
-  {id:'lightning',name:'번개', cost:60, range:150,dmg:20, rate:2.0, color:'#ffff44',special:'chain'},
-  {id:'heal',    name:'치유',  cost:45, range:80, dmg:0,  rate:3.0, color:'#44ff88',special:'heal'},
-];
-
-// ============================================================
-// WAVE DATA (§2.2 — 15 waves)
-// ============================================================
-const WAVE_DATA = [
-  {types:['slime'],count:5,boss:null,biome:'forest'},
-  {types:['slime'],count:8,boss:null,biome:'forest'},
-  {types:['slime','skeleton'],count:10,boss:null,biome:'forest'},
-  {types:['skeleton','spider'],count:12,boss:null,biome:'forest'},
-  {types:['slime','skeleton','spider'],count:15,boss:'golemKing',biome:'forest'},
-  {types:['wraith','spider'],count:14,boss:null,biome:'cave'},
-  {types:['wraith','golem'],count:16,boss:null,biome:'cave'},
-  {types:['skeleton','wraith','golem'],count:18,boss:null,biome:'cave'},
-  {types:['slime','skeleton','spider','golem','wraith'],count:20,boss:null,biome:'cave'},
-  {types:['slime','skeleton','spider','golem','wraith','darkknight'],count:22,boss:'wraithKing',biome:'cave'},
-  {types:['slime','skeleton','spider','golem','wraith','darkknight','dragonkin'],count:20,boss:null,biome:'volcano'},
-  {types:['slime','skeleton','spider','golem','wraith','darkknight','dragonkin'],count:22,boss:null,biome:'volcano'},
-  {types:['darkknight','dragonkin','golem'],count:18,boss:null,biome:'volcano'},
-  {types:['slime','skeleton','spider','golem','wraith','darkknight','dragonkin'],count:25,boss:null,biome:'volcano'},
-  {types:['darkknight','dragonkin','golem','wraith'],count:20,boss:'ancientDragon',biome:'volcano'},
-];
-
-// Wave difficulty scaling (§8.1)
-function getWaveScale(wn) {
-  if(wn<=3) return {hp:1.0,spd:1.0,interval:1500};
-  if(wn<=5) return {hp:1.2,spd:1.1,interval:1200};
-  if(wn<=8) return {hp:1.4,spd:1.2,interval:1000};
-  if(wn<=10)return {hp:1.6,spd:1.3,interval:800};
-  if(wn<=13)return {hp:1.8,spd:1.4,interval:700};
-  return {hp:2.0,spd:1.5,interval:600};
+  setVolume(v) { this._vol = v; if(this._gainBGM) this._gainBGM.gain.value = v*0.4; if(this._gainSFX) this._gainSFX.gain.value = v; }
 }
 
 // ============================================================
-// UPGRADE POOL (§9.1 — 18 upgrades)
+// UTILITY FUNCTIONS (pure, no global refs)
 // ============================================================
-const UPGRADES = [
-  {id:1,cat:'atk',name:'볼트 강화',desc:'아케인 볼트 공격력 +25%',max:3,color:'#ff4444'},
-  {id:2,cat:'atk',name:'멀티샷',desc:'아케인 볼트 2발 동시 발사',max:1,color:'#ff4444'},
-  {id:3,cat:'atk',name:'파이어 마스터리',desc:'파이어볼 범위+30% 쿨-20%',max:2,color:'#ff4444'},
-  {id:4,cat:'atk',name:'연쇄 번개',desc:'볼트 체인 1회 추가',max:2,color:'#ff4444'},
-  {id:5,cat:'def',name:'바스티온 강화',desc:'최대 HP +20',max:3,color:'#44ff44'},
-  {id:6,cat:'def',name:'가시 보호막',desc:'근접 공격 반사 피해 5',max:2,color:'#44ff44'},
-  {id:7,cat:'def',name:'보호 결계',desc:'30% 확률 피해 무시',max:2,color:'#44ff44'},
-  {id:8,cat:'res',name:'마나 샘',desc:'마나 자동 회복 +2/초',max:3,color:'#4488ff'},
-  {id:9,cat:'res',name:'마나 약탈',desc:'처치 마나 보상 +50%',max:2,color:'#4488ff'},
-  {id:10,cat:'res',name:'확장 마나풀',desc:'최대 마나 +30',max:2,color:'#4488ff'},
-  {id:11,cat:'twr',name:'타워 강화',desc:'전 타워 공격력 +20%',max:3,color:'#ffaa00'},
-  {id:12,cat:'twr',name:'빠른 장전',desc:'전 타워 공격속도 +15%',max:3,color:'#ffaa00'},
-  {id:13,cat:'twr',name:'추가 배치',desc:'타워 최대 배치 수 +2',max:2,color:'#ffaa00'},
-  {id:14,cat:'mov',name:'신속',desc:'마법사 이동속도 +20%',max:3,color:'#44ffff'},
-  {id:15,cat:'mov',name:'순간이동',desc:'Space로 짧은 텔레포트',max:1,color:'#44ffff'},
-  {id:16,cat:'spc',name:'냉기 마스터리',desc:'노바 범위+40% 감속+1초',max:2,color:'#ff44ff'},
-  {id:17,cat:'spc',name:'크리티컬',desc:'20% 확률 2배 데미지',max:2,color:'#ff44ff'},
-  {id:18,cat:'spc',name:'재생',desc:'웨이브 시작 시 HP 10 회복',max:3,color:'#ff44ff'},
-];
-
-// ============================================================
-// ACHIEVEMENTS (§11 — 10 achievements)
-// ============================================================
-const ACH_DEFS = [
-  {id:0,name:'첫 방어',icon:'🛡️'},{id:1,name:'타워 마스터',icon:'🏰'},
-  {id:2,name:'백 킬',icon:'💀'},{id:3,name:'골렘 슬레이어',icon:'⚔️'},
-  {id:4,name:'레이스 밴퀴셔',icon:'👻'},{id:5,name:'드래곤 슬레이어',icon:'🐉'},
-  {id:6,name:'무타워 클리어',icon:'🧙'},{id:7,name:'무피격 웨이브',icon:'✨'},
-  {id:8,name:'마나 부자',icon:'💎'},{id:9,name:'바스티온 수호자',icon:'👑'},
-];
+// Distance between two points
+function dist(x1, y1, x2, y2) { return Math.sqrt((x2-x1)**2 + (y2-y1)**2); }
+// Circle collision check
+function checkCollision(a, b) { return dist(a.x, a.y, b.x, b.y) < (a.radius||12) + (b.radius||12); }
+// Find enemies within radius of position
+function findEnemiesInRadius(px, py, radius, enemies) { return enemies.filter(e => e.alive && dist(px, py, e.x, e.y) < radius); }
+// Clamp value
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+// Ensure touch target minimum size
+function touchSafe(w, h) { return { w: Math.max(CONFIG.MIN_TOUCH_TARGET, w), h: Math.max(CONFIG.MIN_TOUCH_TARGET, h) }; }
+// Random int [min, max]
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+// Normalize angle
+function normalizeAngle(a) { while (a > Math.PI) a -= Math.PI*2; while (a < -Math.PI) a += Math.PI*2; return a; }
 
 // ============================================================
 // GAME STATE VARIABLES
 // ============================================================
+let tweenManager = new TweenManager();
+let soundManager = new SoundManager();
+let particlePool = new ObjectPool(
+  () => ({x:0,y:0,vx:0,vy:0,life:0,maxLife:1,color:'#fff',size:3,alive:false}),
+  (p) => { p.alive = false; p.life = 0; },
+  CONFIG.PARTICLE_POOL_SIZE
+);
+
 let state = STATE.TITLE;
-let _isTransitioning = false, _waveClearing = false, _isBossActive = false, _isPlacingTower = false;
-let screenFade = {alpha:0};
-let shakeIntensity = 0, shakeOffX = 0, shakeOffY = 0;
-let timeScaleObj = {s:1.0};
-let lastTime = 0, titleTime = 0;
-let wizard, bastion, enemies, towers;
-let mana, manaMax, manaRegen, score, waveNum, killCount;
-let currentUpgrades, towerTypesPlaced, achievementsUnlocked;
-let waveSpawnTimer, waveSpawnQueue, waveEnemiesTotal;
-let selectedTowerIdx, upgradeChoices, gameWon, waveDmgTaken;
-let pauseBtnRect, toasts;
-let displayScore, displayHP, displayMana;
-const keys = {};
-let mouseX = 0, mouseY = 0, mouseDown = false;
-let touchJoystick = {active:false, baseX:0, baseY:0, dx:0, dy:0};
+let screenFade = { alpha: 0 };
+let _isTransitioning = false;
+let _waveClearing = false;
+let _isBossActive = false;
+let _isPlacingTower = false;
+let _selectedTowerType = null;
+
+// Game data
+let wizard, bastion, enemies, projectiles, towers, particles;
+let mana, maxMana, manaRegen, score, waveNum, totalKills;
+let upgrades, appliedUpgrades;
+let spawnTimer, spawnQueue, waveEnemiesAlive;
+let currentBoss;
+let gameTime;
+let isVictory;
+let achievements, newAchievements, toasts;
+let bgCacheDirty = true;
+let bgCacheCanvas = null;
+let currentBiome = 'forest';
+
+// Upgrade choices for UPGRADE state
+let upgradeChoices = [];
+let upgradeHover = -1;
+
+// Screen effects
+let screenShake = { x:0, y:0, intensity:0, time:0 };
+let slowMotion = { factor:1, time:0 };
+
+// Input state
+let keys = {};
+let mousePos = { x:0, y:0 };
+let mouseDown = { left:false, right:false, middle:false };
+let touchState = { active:false, joystick:null, joystickAngle:0, joystickDist:0, attackTouch:null };
 let isTouchDevice = false;
-let activeParticles = [], activeProjectiles = [], enemyProjectiles = [];
+let isDraggingWizard = false;
+let lastTime = 0;
+
+// Title animation
+let titleTime = 0;
+let titleParticles = [];
+
+// Wave preparation countdown
+let wavePrepTime = 0;
+let wavePrepDuration = 3;
 
 // ============================================================
-// OBJECT POOLS
+// INITIALIZATION
 // ============================================================
-const particlePool = new ObjectPool(
-  () => ({x:0,y:0,vx:0,vy:0,life:0,maxLife:0.3,color:'#fff',size:3,active:false}),
-  (p) => { p.active = false; }, CONFIG.MAX_PARTICLES
-);
-const projPool = new ObjectPool(
-  () => ({x:0,y:0,vx:0,vy:0,dmg:0,radius:4,color:'#0ff',active:false,type:'bolt',aoeRadius:0,chainCount:0,life:1}),
-  (p) => { p.active = false; }, CONFIG.MAX_PROJECTILES
-);
+function initGame() {
+  wizard = { x: canvas.width/2, y: canvas.height/2 + 60, radius: CONFIG.WIZARD_RADIUS, frame: 0, animTime: 0, facing: 0, state: 'idle', hitFlash: 0, castAnim: 0 };
+  bastion = { x: canvas.width/2, y: canvas.height/2, radius: CONFIG.BASTION_RADIUS, hp: CONFIG.BASTION_HP, maxHp: CONFIG.BASTION_HP, hitFlash: 0 };
+  enemies = [];
+  projectiles = [];
+  towers = [];
+  particles = [];
+  mana = CONFIG.INITIAL_MANA;
+  maxMana = CONFIG.MAX_MANA;
+  manaRegen = CONFIG.MANA_REGEN;
+  score = 0;
+  waveNum = 0;
+  totalKills = 0;
+  upgrades = {};
+  appliedUpgrades = {};
+  spawnTimer = 0;
+  spawnQueue = [];
+  waveEnemiesAlive = 0;
+  currentBoss = null;
+  gameTime = 0;
+  isVictory = false;
+  _waveClearing = false;
+  _isBossActive = false;
+  _isPlacingTower = false;
+  _selectedTowerType = null;
+  screenShake = { x:0, y:0, intensity:0, time:0 };
+  slowMotion = { factor:1, time:0 };
+  achievements = loadAchievements();
+  newAchievements = [];
+  toasts = [];
+  upgradeChoices = [];
+  upgradeHover = -1;
+  wavePrepTime = 0;
+  bgCacheDirty = true;
+  currentBiome = 'forest';
+  // Spell cooldowns on wizard
+  wizard.boltCd = 0;
+  wizard.fireballCd = 0;
+  wizard.frostCd = 0;
+  wizard.teleportCd = 0;
+}
 
 // ============================================================
-// OFFSCREEN BACKGROUND CACHE (F10)
+// LOCALSTORAGE (best score & achievements)
 // ============================================================
-let bgCacheCanvas, bgCacheCtx, bgCachedBiome;
+function getBest() {
+  try { return JSON.parse(localStorage.getItem('arcaneBastion_hi')) || {score:0,wave:0,time:0}; } catch(e) { return {score:0,wave:0,time:0}; }
+}
+function saveBest(data) {
+  try { localStorage.setItem('arcaneBastion_hi', JSON.stringify(data)); } catch(e) {}
+}
+function loadAchievements() {
+  try { return JSON.parse(localStorage.getItem('arcaneBastion_achievements')) || {}; } catch(e) { return {}; }
+}
+function saveAchievements(a) {
+  try { localStorage.setItem('arcaneBastion_achievements', JSON.stringify(a)); } catch(e) {}
+}
 
-function buildBgCache(biome) {
-  if (!biome) biome = 'forest';
-  bgCachedBiome = biome;
-  if (!bgCacheCanvas) { bgCacheCanvas = document.createElement('canvas'); bgCacheCtx = bgCacheCanvas.getContext('2d'); }
-  bgCacheCanvas.width = W; bgCacheCanvas.height = H;
-  const c = bgCacheCtx;
-  const colors = {forest:['#0a1a0a','#1a3a1a'],cave:['#0a0a1a','#1a1a3a'],volcano:['#1a0a0a','#3a1a0a']};
-  const [c1,c2] = colors[biome]||colors.forest;
-  const gr = c.createLinearGradient(0,0,0,H); gr.addColorStop(0,c1); gr.addColorStop(1,c2);
-  c.fillStyle = gr; c.fillRect(0,0,W,H);
-  // SVG background layers with parallax offset
-  if (SPRITES.bgLayer1) { c.globalAlpha=0.4; c.drawImage(SPRITES.bgLayer1,0,0,W,H); c.globalAlpha=1; }
-  if (SPRITES.bgLayer2) { c.globalAlpha=0.3; c.drawImage(SPRITES.bgLayer2,0,H*0.3,W,H*0.7); c.globalAlpha=1; }
-  // Canvas fallback terrain layers
-  c.globalAlpha = 0.3;
-  if (biome==='forest') {
-    c.fillStyle='#0d2a0d'; c.beginPath(); c.moveTo(0,H*0.5);
-    for(let x=0;x<W;x+=60) c.lineTo(x,H*0.5-Math.sin(x*0.008)*60-Math.sin(x*0.02)*20);
-    c.lineTo(W,H*0.5);c.lineTo(W,H);c.lineTo(0,H);c.fill();
-    c.fillStyle='#0f3f0f';
-    for(let i=0;i<25;i++){const x=i*(W/25)+Math.sin(i*3)*20,y=H*0.42+Math.sin(i*0.7)*H*0.08;
-      c.beginPath();c.moveTo(x,y);c.lineTo(x-14,y+35);c.lineTo(x+14,y+35);c.fill();c.fillRect(x-2,y+35,4,10);}
-  } else if (biome==='cave') {
-    c.fillStyle='#15153a';
-    for(let i=0;i<30;i++){const x=i*(W/30)+Math.sin(i)*10;c.fillRect(x-3,0,6,20+Math.sin(i*2)*25);}
-    c.fillStyle='#1a1a40';
-    for(let i=0;i<20;i++){const x=i*(W/20)+Math.cos(i)*15;c.fillRect(x-4,H-15-Math.sin(i*1.5)*25,8,40);}
-    c.fillStyle='#4488ff';
-    for(let i=0;i<12;i++){const x=Math.sin(i*5)*W*0.4+W/2,y=Math.cos(i*3)*H*0.3+H/2;c.beginPath();c.arc(x,y,2,0,Math.PI*2);c.fill();}
+// ============================================================
+// STATE TRANSITION (F23: all through beginTransition)
+// ============================================================
+function beginTransition(target, opts) {
+  opts = opts || {};
+  if (_isTransitioning) return;
+  if (STATE_PRIORITY[target] < STATE_PRIORITY[state] && !opts.force) return;
+  if (bastion && bastion.hp <= 0 && target !== STATE.GAMEOVER) return;
+  _isTransitioning = true;
+
+  if (opts.immediate) {
+    state = target;
+    _isTransitioning = false;
+    if (opts.onComplete) opts.onComplete();
+    return;
+  }
+
+  tweenManager.add({
+    target: screenFade, prop: 'alpha',
+    from: 0, to: 1, duration: 250, ease: 'easeIn',
+    onComplete: () => {
+      state = target;
+      tweenManager.add({
+        target: screenFade, prop: 'alpha',
+        from: 1, to: 0, duration: 250, ease: 'easeOut',
+        onComplete: () => { _isTransitioning = false; if (opts.onComplete) opts.onComplete(); }
+      });
+    }
+  });
+}
+
+// ============================================================
+// RESOURCE MANAGEMENT (F16: single update path)
+// ============================================================
+function addScore(amount, source) {
+  score += amount;
+}
+function modifyMana(amount, source) {
+  mana = clamp(mana + amount, 0, maxMana);
+}
+function modifyHP(amount, source) {
+  // Check dodge chance from upgrade
+  if (amount < 0 && upgrades[7]) {
+    const dodgeChance = (upgrades[7] || 0) * 0.3;
+    if (Math.random() < dodgeChance) return; // dodged
+  }
+  bastion.hp = clamp(bastion.hp + amount, 0, bastion.maxHp);
+  if (amount < 0) {
+    bastion.hitFlash = 0.1;
+    screenShake.intensity = 3;
+    screenShake.time = 0.15;
+    // Thorn damage (upgrade 6)
+    if (upgrades[6] && source && source.type === 'enemy') {
+      const thornDmg = (upgrades[6] || 0) * 5;
+      if (source.ref) damageEnemy(source.ref, thornDmg, false);
+    }
+  }
+}
+
+// ============================================================
+// WAVE SYSTEM
+// ============================================================
+function getWaveData(wNum) {
+  if (wNum < 1 || wNum > CONFIG.MAX_WAVE) return null;
+  return WAVE_DATA[wNum - 1];
+}
+
+function startNextWave() {
+  waveNum++;
+  if (waveNum > CONFIG.MAX_WAVE) { triggerVictory(); return; }
+
+  const wd = getWaveData(waveNum);
+  currentBiome = wd.biome;
+  bgCacheDirty = true;
+
+  // Regeneration upgrade (18)
+  if (upgrades[18]) modifyHP((upgrades[18] || 0) * 10, 'regen');
+
+  const diff = DIFF_SCALE[waveNum - 1];
+  const isEliteWave = waveNum >= 10;
+  spawnQueue = [];
+  const count = wd.count;
+  for (let i = 0; i < count; i++) {
+    const typeKey = wd.types[i % wd.types.length];
+    const isElite = isEliteWave && Math.random() < 0.3;
+    spawnQueue.push({ type: typeKey, elite: isElite });
+  }
+  spawnTimer = 0;
+  waveEnemiesAlive = count + (wd.boss ? 1 : 0);
+  _waveClearing = false;
+
+  // Boss spawn
+  if (wd.boss) {
+    const boss = createBoss(wd.boss);
+    enemies.push(boss);
+    _isBossActive = true;
+    currentBoss = boss;
+    soundManager.playSFX('boss_spawn');
+    screenShake.intensity = 8;
+    screenShake.time = 0.5;
+  }
+
+  wavePrepTime = wavePrepDuration;
+}
+
+// ============================================================
+// ENEMY CREATION
+// ============================================================
+function spawnEnemy(typeKey, isElite, bounds) {
+  const base = ENEMY_TYPES[typeKey];
+  const diff = DIFF_SCALE[waveNum - 1];
+  const side = randInt(0, 3);
+  let x, y;
+  switch(side) {
+    case 0: x = Math.random()*bounds.w; y = -20; break;
+    case 1: x = bounds.w+20; y = Math.random()*bounds.h; break;
+    case 2: x = Math.random()*bounds.w; y = bounds.h+20; break;
+    default: x = -20; y = Math.random()*bounds.h;
+  }
+  const hpMul = isElite ? 2 : 1;
+  const spdMul = isElite ? 1.3 : 1;
+  return {
+    type: typeKey, x, y, radius: base.radius * (isElite?1.2:1),
+    hp: base.hp * diff.hpMul * hpMul, maxHp: base.hp * diff.hpMul * hpMul,
+    speed: base.speed * diff.spdMul * spdMul * 50,
+    atk: base.atk, color: base.color, score: base.score * (isElite?2:1),
+    manaReward: base.mana * (isElite?2:1),
+    alive: true, elite: isElite, hitFlash: 0, slowTimer: 0, slowFactor: 1,
+    atkCooldown: 0, specialTimer: 0, isBoss: false,
+    animPhase: Math.random() * Math.PI * 2, // animation phase offset
+    invisible: false, invisTimer: 0,
+    fireTimer: 0, // for dragonkin ranged
+  };
+}
+
+function createBoss(bossKey) {
+  const base = BOSS_TYPES[bossKey];
+  const side = randInt(0, 3);
+  const bw = canvas.width, bh = canvas.height;
+  let x, y;
+  switch(side) {
+    case 0: x = bw/2; y = -60; break;
+    case 1: x = bw+60; y = bh/2; break;
+    case 2: x = bw/2; y = bh+60; break;
+    default: x = -60; y = bh/2;
+  }
+  return {
+    type: bossKey, x, y, radius: base.radius,
+    hp: base.hp, maxHp: base.hp, speed: base.speed * 50,
+    atk: base.atk, color: base.color, score: base.score,
+    manaReward: base.mana, alive: true, elite: false,
+    hitFlash: 0, slowTimer: 0, slowFactor: 1,
+    atkCooldown: 0, specialTimer: 0, isBoss: true,
+    bossName: base.name, patternTimer: 0, currentPattern: 0,
+    animPhase: 0, invisible: false, invisTimer: 0, fireTimer: 0,
+  };
+}
+
+// ============================================================
+// DAMAGE & KILL
+// ============================================================
+function damageEnemy(enemy, damage, isCrit) {
+  if (!enemy.alive) return { killed: false };
+  // Wraith invisibility dodge
+  if (enemy.invisible) return { killed: false };
+  if (isCrit) damage *= 2;
+  enemy.hp -= damage;
+  enemy.hitFlash = 0.1;
+  // Spawn hit particles
+  spawnParticles(enemy.x, enemy.y, 3, enemy.color, 80, 0.3);
+  if (enemy.hp <= 0) {
+    enemy.alive = false;
+    waveEnemiesAlive--;
+    totalKills++;
+    addScore(enemy.score, 'kill');
+    const manaGain = Math.floor(enemy.manaReward * (1 + (upgrades[9]||0)*0.5));
+    modifyMana(manaGain, 'kill');
+    soundManager.playSFX('kill');
+    spawnParticles(enemy.x, enemy.y, 8, enemy.color, 120, 0.5);
+    // Boss kill
+    if (enemy.isBoss) {
+      _isBossActive = false;
+      currentBoss = null;
+      screenShake.intensity = 12;
+      screenShake.time = 0.6;
+      slowMotion.factor = 0.3;
+      slowMotion.time = 0.8;
+      spawnParticles(enemy.x, enemy.y, 30, '#ffd700', 200, 1.0);
+      // Boss achievements
+      if (enemy.type === 'golemKing') unlockAchievement(4);
+      if (enemy.type === 'wraithKing') unlockAchievement(5);
+      if (enemy.type === 'dragon') unlockAchievement(6);
+    }
+    checkAchievements();
+    return { killed: true, score: enemy.score, mana: manaGain };
+  }
+  return { killed: false };
+}
+
+// ============================================================
+// PARTICLE SYSTEM
+// ============================================================
+function spawnParticles(x, y, count, color, speed, life) {
+  for (let i = 0; i < count; i++) {
+    const p = particlePool.acquire();
+    const angle = Math.random() * Math.PI * 2;
+    const spd = (Math.random() * 0.7 + 0.3) * speed;
+    p.x = x; p.y = y;
+    p.vx = Math.cos(angle) * spd;
+    p.vy = Math.sin(angle) * spd;
+    p.life = life;
+    p.maxLife = life;
+    p.color = color;
+    p.size = Math.random() * 3 + 1;
+    p.alive = true;
+    particles.push(p);
+  }
+}
+
+function updateParticles(parts, dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    if (!p.alive) { parts.splice(i, 1); particlePool.release(p); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) { p.alive = false; parts.splice(i, 1); particlePool.release(p); }
+  }
+}
+
+// ============================================================
+// WIZARD UPDATE
+// ============================================================
+function updateWizard(wiz, input, dt, bounds) {
+  let dx = 0, dy = 0;
+  // Keyboard input
+  if (input.keys['KeyW'] || input.keys['ArrowUp']) dy = -1;
+  if (input.keys['KeyS'] || input.keys['ArrowDown']) dy = 1;
+  if (input.keys['KeyA'] || input.keys['ArrowLeft']) dx = -1;
+  if (input.keys['KeyD'] || input.keys['ArrowRight']) dx = 1;
+  // Touch joystick
+  if (input.touch.joystick && input.touch.joystickDist > 10) {
+    dx = Math.cos(input.touch.joystickAngle);
+    dy = Math.sin(input.touch.joystickAngle);
+  }
+  // Mouse drag
+  if (isDraggingWizard && !isTouchDevice) {
+    const mdx = input.mouse.x - wiz.x;
+    const mdy = input.mouse.y - wiz.y;
+    const md = Math.sqrt(mdx*mdx + mdy*mdy);
+    if (md > 5) { dx = mdx/md; dy = mdy/md; }
+  }
+
+  // Normalize diagonal
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len > 0) { dx /= len; dy /= len; }
+
+  const speedMul = 1 + (upgrades[14] || 0) * 0.2;
+  const speed = CONFIG.WIZARD_SPEED * speedMul;
+  wiz.x += dx * speed * dt;
+  wiz.y += dy * speed * dt;
+
+  // Bound to canvas
+  wiz.x = clamp(wiz.x, wiz.radius, bounds.w - wiz.radius);
+  wiz.y = clamp(wiz.y, wiz.radius, bounds.h - wiz.radius);
+
+  // Animation state
+  if (len > 0) { wiz.state = 'walk'; wiz.facing = Math.atan2(dy, dx); wiz.animTime += dt; }
+  else { wiz.state = 'idle'; wiz.animTime += dt * 0.5; }
+
+  // Cooldowns
+  wiz.boltCd = Math.max(0, wiz.boltCd - dt);
+  wiz.fireballCd = Math.max(0, wiz.fireballCd - dt);
+  wiz.frostCd = Math.max(0, wiz.frostCd - dt);
+  wiz.teleportCd = Math.max(0, wiz.teleportCd - dt);
+  wiz.hitFlash = Math.max(0, wiz.hitFlash - dt);
+  wiz.castAnim = Math.max(0, wiz.castAnim - dt);
+}
+
+// ============================================================
+// SPELL CASTING
+// ============================================================
+function fireArcaneBolt(wiz, targetX, targetY, projs, upg) {
+  if (wiz.boltCd > 0) return;
+  const angle = Math.atan2(targetY - wiz.y, targetX - wiz.x);
+  const atkMul = 1 + (upg[1] || 0) * 0.25;
+  const isCrit = (upg[17] || 0) > 0 && Math.random() < (upg[17] * 0.2);
+
+  const createBolt = (a) => {
+    projs.push({
+      x: wiz.x, y: wiz.y, vx: Math.cos(a)*CONFIG.PROJECTILE_SPEED, vy: Math.sin(a)*CONFIG.PROJECTILE_SPEED,
+      damage: SPELLS.bolt.atk * atkMul * (isCrit?2:1), type: 'bolt', radius: 5, alive: true,
+      color: isCrit ? '#ffff00' : '#00ffff', life: 0.8, chain: (upg[4]||0),
+    });
+  };
+
+  createBolt(angle);
+  // Multishot upgrade
+  if (upg[2]) {
+    createBolt(angle - 0.15);
+    createBolt(angle + 0.15);
+  }
+  wiz.boltCd = SPELLS.bolt.cooldown;
+  wiz.castAnim = 0.15;
+  soundManager.playSFX('shoot');
+}
+
+function castFireball(wiz, targetX, targetY, projs, upg) {
+  if (wiz.fireballCd > 0) return;
+  const cost = SPELLS.fireball.manaCost;
+  if (mana < cost) return;
+  modifyMana(-cost, 'fireball');
+  const angle = Math.atan2(targetY - wiz.y, targetX - wiz.x);
+  const rangeMul = 1 + (upg[3] || 0) * 0.3;
+  const isCrit = (upg[17] || 0) > 0 && Math.random() < (upg[17] * 0.2);
+  projs.push({
+    x: wiz.x, y: wiz.y, vx: Math.cos(angle)*CONFIG.FIREBALL_SPEED, vy: Math.sin(angle)*CONFIG.FIREBALL_SPEED,
+    damage: SPELLS.fireball.atk * (isCrit?2:1), type: 'fireball', radius: 8, alive: true,
+    color: '#ff6600', life: 1.2, aoeRadius: SPELLS.fireball.aoeRadius * rangeMul, chain: 0,
+  });
+  const cdMul = 1 - (upg[3] || 0) * 0.2;
+  wiz.fireballCd = SPELLS.fireball.cooldown * cdMul;
+  wiz.castAnim = 0.3;
+  soundManager.playSFX('fireball');
+}
+
+function castFrostNova(wiz, enms, upg) {
+  if (wiz.frostCd > 0) return;
+  const cost = SPELLS.frost.manaCost;
+  if (mana < cost) return;
+  modifyMana(-cost, 'frost');
+  const rangeMul = 1 + (upg[16] || 0) * 0.4;
+  const durAdd = (upg[16] || 0) * 1;
+  const radius = SPELLS.frost.aoeRadius * rangeMul;
+  const affected = findEnemiesInRadius(wiz.x, wiz.y, radius, enms);
+  const isCrit = (upg[17] || 0) > 0 && Math.random() < (upg[17] * 0.2);
+  affected.forEach(e => {
+    damageEnemy(e, SPELLS.frost.atk * (isCrit?2:1), false);
+    e.slowTimer = SPELLS.frost.slowDur + durAdd;
+    e.slowFactor = 1 - SPELLS.frost.slowAmt;
+  });
+  // Frost nova visual
+  spawnParticles(wiz.x, wiz.y, 20, '#88ddff', 150, 0.6);
+  wiz.frostCd = SPELLS.frost.cooldown;
+  wiz.castAnim = 0.3;
+  soundManager.playSFX('frost');
+}
+
+function teleportWizard(wiz, targetX, targetY, bounds) {
+  if (!upgrades[15] || wiz.teleportCd > 0) return;
+  const angle = Math.atan2(targetY - wiz.y, targetX - wiz.x);
+  const teleportDist = 100;
+  wiz.x = clamp(wiz.x + Math.cos(angle)*teleportDist, wiz.radius, bounds.w-wiz.radius);
+  wiz.y = clamp(wiz.y + Math.sin(angle)*teleportDist, wiz.radius, bounds.h-wiz.radius);
+  wiz.teleportCd = 3;
+  spawnParticles(wiz.x, wiz.y, 12, '#aa66ff', 100, 0.4);
+}
+
+// ============================================================
+// PROJECTILE UPDATE
+// ============================================================
+function updateProjectiles(projs, enms, dt) {
+  for (let i = projs.length - 1; i >= 0; i--) {
+    const p = projs[i];
+    if (!p.alive) { projs.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0 || p.x < -50 || p.x > canvas.width+50 || p.y < -50 || p.y > canvas.height+50) {
+      p.alive = false; projs.splice(i, 1); continue;
+    }
+    // Collision with enemies
+    for (let j = 0; j < enms.length; j++) {
+      const e = enms[j];
+      if (!e.alive || e.invisible) continue;
+      if (dist(p.x, p.y, e.x, e.y) < p.radius + e.radius) {
+        // Fireball AOE
+        if (p.type === 'fireball') {
+          const aoeTargets = findEnemiesInRadius(p.x, p.y, p.aoeRadius, enms);
+          aoeTargets.forEach(ae => damageEnemy(ae, p.damage, false));
+          spawnParticles(p.x, p.y, 15, '#ff4400', 150, 0.4);
+        } else {
+          const result = damageEnemy(e, p.damage, false);
+          // Chain bolt
+          if (p.chain > 0 && result.killed === false) {
+            const nearby = findEnemiesInRadius(e.x, e.y, 80, enms).filter(ne => ne !== e);
+            if (nearby.length > 0) {
+              const next = nearby[0];
+              projs.push({
+                x: e.x, y: e.y,
+                vx: (next.x-e.x)/dist(e.x,e.y,next.x,next.y)*CONFIG.PROJECTILE_SPEED,
+                vy: (next.y-e.y)/dist(e.x,e.y,next.x,next.y)*CONFIG.PROJECTILE_SPEED,
+                damage: p.damage*0.7, type:'bolt', radius:4, alive:true,
+                color:'#aaffff', life:0.5, chain: p.chain-1,
+              });
+            }
+          }
+        }
+        p.alive = false;
+        projs.splice(i, 1);
+        break;
+      }
+    }
+  }
+}
+
+// ============================================================
+// TOWER SYSTEM
+// ============================================================
+function placeTower(typeKey, px, py, twrs, currentMana, maxTwrs) {
+  const tData = TOWER_TYPES[typeKey];
+  if (!tData) return { success: false };
+  if (twrs.length >= maxTwrs) return { success: false };
+  if (currentMana < tData.cost) return { success: false };
+  // Must not overlap bastion
+  if (dist(px, py, bastion.x, bastion.y) < CONFIG.BASTION_RADIUS + 30) return { success: false };
+  // Must not overlap other towers
+  for (const t of twrs) { if (dist(px, py, t.x, t.y) < CONFIG.TOWER_PLACE_MIN_DIST) return { success: false }; }
+
+  const tower = {
+    type: typeKey, x: px, y: py, radius: 18,
+    range: tData.range, atk: tData.atk, cooldown: tData.cooldown,
+    color: tData.color, special: tData.special, timer: 0,
+    aoeRadius: tData.aoeRadius || 0, slowAmt: tData.slowAmt || 0,
+    slowDur: tData.slowDur || 0, chainCount: tData.chainCount || 0,
+    healAmt: tData.healAmt || 0,
+  };
+  twrs.push(tower);
+  modifyMana(-tData.cost, 'tower');
+  soundManager.playSFX('tower_place');
+  spawnParticles(px, py, 8, tData.color, 60, 0.3);
+  checkAchievements();
+  return { success: true, tower };
+}
+
+function updateTowers(twrs, enms, projs, dt, upg) {
+  const atkMul = 1 + (upg[11] || 0) * 0.2;
+  const spdMul = 1 - (upg[12] || 0) * 0.15;
+  for (const t of twrs) {
+    t.timer -= dt;
+    if (t.timer > 0) continue;
+    if (t.special === 'heal') {
+      // Heal bastion
+      if (bastion.hp < bastion.maxHp) {
+        modifyHP(TOWER_TYPES.heal.healAmt, 'healTower');
+        spawnParticles(bastion.x, bastion.y, 3, '#44ff44', 40, 0.3);
+        t.timer = t.cooldown * spdMul;
+      }
+      continue;
+    }
+    // Find closest enemy in range
+    let target = null, minD = Infinity;
+    for (const e of enms) {
+      if (!e.alive || e.invisible) continue;
+      const d = dist(t.x, t.y, e.x, e.y);
+      if (d < t.range && d < minD) { minD = d; target = e; }
+    }
+    if (!target) continue;
+    t.timer = t.cooldown * spdMul;
+    const dmg = t.atk * atkMul;
+
+    if (t.special === 'aoe') {
+      const hit = findEnemiesInRadius(target.x, target.y, t.aoeRadius, enms);
+      hit.forEach(e => damageEnemy(e, dmg, false));
+      spawnParticles(target.x, target.y, 6, t.color, 80, 0.3);
+    } else if (t.special === 'slow') {
+      damageEnemy(target, dmg, false);
+      target.slowTimer = t.slowDur; target.slowFactor = 1 - t.slowAmt;
+    } else if (t.special === 'chain') {
+      damageEnemy(target, dmg, false);
+      let prev = target;
+      for (let c = 0; c < 2; c++) {
+        const nearby = findEnemiesInRadius(prev.x, prev.y, 80, enms).filter(e => e !== prev && e.alive);
+        if (nearby.length === 0) break;
+        prev = nearby[0];
+        damageEnemy(prev, dmg * 0.6, false);
+      }
+      spawnParticles(target.x, target.y, 4, '#ffff44', 60, 0.2);
+    } else {
+      // Single target
+      damageEnemy(target, dmg, false);
+    }
+    // Tower attack visual line
+    projs.push({ x:t.x, y:t.y, tx:target.x, ty:target.y, type:'towerBeam', color:t.color, life:0.1, alive:true, vx:0, vy:0, damage:0, radius:0, chain:0 });
+  }
+}
+
+// ============================================================
+// ENEMY UPDATE
+// ============================================================
+function updateEnemies(enms, bast, wiz, dt) {
+  for (const e of enms) {
+    if (!e.alive) continue;
+    e.hitFlash = Math.max(0, e.hitFlash - dt);
+    e.animPhase += dt * 3;
+
+    // Slow effect decay
+    if (e.slowTimer > 0) { e.slowTimer -= dt; if (e.slowTimer <= 0) e.slowFactor = 1; }
+
+    // Type-specific behaviors
+    if (e.type === 'wraith' && !e.isBoss) {
+      e.invisTimer -= dt;
+      if (e.invisTimer <= 0) { e.invisible = !e.invisible; e.invisTimer = e.invisible ? 1.5 : 3; }
+    }
+
+    // Move toward bastion
+    const dx = bast.x - e.x;
+    const dy = bast.y - e.y;
+    const d = Math.sqrt(dx*dx + dy*dy);
+    if (d > bast.radius + e.radius) {
+      const spd = e.speed * e.slowFactor;
+      e.x += (dx/d) * spd * dt;
+      e.y += (dy/d) * spd * dt;
+    } else {
+      // Attack bastion
+      e.atkCooldown -= dt;
+      if (e.atkCooldown <= 0) {
+        modifyHP(-e.atk, { type: 'enemy', ref: e });
+        e.atkCooldown = 1.0;
+      }
+    }
+
+    // Dragonkin ranged attack
+    if (e.type === 'dragonkin' && !e.isBoss) {
+      e.fireTimer -= dt;
+      if (e.fireTimer <= 0 && d < 200 && d > 60) {
+        projectiles.push({
+          x:e.x, y:e.y, vx:(dx/d)*150, vy:(dy/d)*150,
+          damage:5, type:'enemyFire', radius:4, alive:true, color:'#ff4400', life:1.0, chain:0,
+        });
+        e.fireTimer = 2.5;
+      }
+    }
+
+    // Boss patterns
+    if (e.isBoss) updateBossPatterns(e, wiz, bast, enms, dt);
+  }
+
+  // Handle enemy projectiles hitting bastion
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    if (p.type === 'enemyFire' && p.alive) {
+      if (dist(p.x, p.y, bast.x, bast.y) < bast.radius + p.radius) {
+        modifyHP(-p.damage, { type: 'enemyFire' });
+        p.alive = false;
+        spawnParticles(p.x, p.y, 4, '#ff4400', 60, 0.2);
+      }
+    }
+  }
+}
+
+// ============================================================
+// BOSS PATTERNS
+// ============================================================
+function updateBossPatterns(boss, wiz, bast, enms, dt) {
+  boss.patternTimer -= dt;
+  if (boss.patternTimer > 0) return;
+
+  if (boss.type === 'golemKing') {
+    // Shockwave attack
+    boss.patternTimer = 3;
+    const affected = findEnemiesInRadius(boss.x, boss.y, 120, [{ x: bast.x, y: bast.y, alive: true, radius: bast.radius }]);
+    if (dist(boss.x, boss.y, bast.x, bast.y) < 160) {
+      modifyHP(-10, { type: 'bossShockwave' });
+    }
+    spawnParticles(boss.x, boss.y, 20, '#cc8833', 150, 0.5);
+    screenShake.intensity = 6; screenShake.time = 0.3;
+  } else if (boss.type === 'wraithKing') {
+    boss.currentPattern = (boss.currentPattern + 1) % 3;
+    if (boss.currentPattern === 0) {
+      // Teleport
+      boss.x = Math.random() * canvas.width * 0.6 + canvas.width * 0.2;
+      boss.y = Math.random() * canvas.height * 0.6 + canvas.height * 0.2;
+      spawnParticles(boss.x, boss.y, 15, '#4444ff', 100, 0.4);
+      boss.patternTimer = 4;
+    } else if (boss.currentPattern === 1) {
+      // Summon 2 wraiths
+      for (let i = 0; i < 2; i++) {
+        const e = spawnEnemy('wraith', false, {w:canvas.width,h:canvas.height});
+        e.x = boss.x + (Math.random()-0.5)*60;
+        e.y = boss.y + (Math.random()-0.5)*60;
+        enms.push(e);
+        waveEnemiesAlive++;
+      }
+      boss.patternTimer = 8;
+    } else {
+      // Soul drain (heal)
+      boss.hp = Math.min(boss.maxHp, boss.hp + 20);
+      spawnParticles(boss.x, boss.y, 10, '#8844ff', 60, 0.3);
+      boss.patternTimer = 6;
+    }
+  } else if (boss.type === 'dragon') {
+    boss.currentPattern = (boss.currentPattern + 1) % 3;
+    if (boss.currentPattern === 0) {
+      // Fire breath (fan)
+      const angle = Math.atan2(bast.y - boss.y, bast.x - boss.x);
+      for (let a = -0.5; a <= 0.5; a += 0.2) {
+        projectiles.push({
+          x:boss.x, y:boss.y,
+          vx: Math.cos(angle+a)*120, vy: Math.sin(angle+a)*120,
+          damage:8, type:'enemyFire', radius:6, alive:true, color:'#ff2200', life:1.5, chain:0,
+        });
+      }
+      boss.patternTimer = 4;
+    } else if (boss.currentPattern === 1) {
+      // Flight (fast movement toward random side)
+      boss.speed = BOSS_TYPES.dragon.speed * 50 * 4;
+      boss.patternTimer = 2;
+      // Reset speed after
+      const origSpeed = BOSS_TYPES.dragon.speed * 50;
+      tweenManager.add({ target: boss, prop: 'speed', from: boss.speed, to: origSpeed, duration: 2000 });
+    } else {
+      // Carpet bombing (3 lines)
+      for (let l = -1; l <= 1; l++) {
+        const angle = Math.atan2(bast.y - boss.y, bast.x - boss.x) + l * 0.3;
+        for (let d = 0; d < 3; d++) {
+          projectiles.push({
+            x: boss.x + Math.cos(angle)*(d*40), y: boss.y + Math.sin(angle)*(d*40),
+            vx: Math.cos(angle)*100, vy: Math.sin(angle)*100,
+            damage:6, type:'enemyFire', radius:5, alive:true, color:'#ff4400', life:2, chain:0,
+          });
+        }
+      }
+      boss.patternTimer = 5;
+    }
+  }
+}
+
+// ============================================================
+// WAVE COMPLETION CHECK
+// ============================================================
+function checkWaveComplete() {
+  if (_waveClearing || _isTransitioning) return;
+  if (spawnQueue.length > 0) return;
+  const aliveCount = enemies.filter(e => e.alive).length;
+  if (aliveCount > 0) return;
+
+  _waveClearing = true;
+
+  // Wave clear bonus
+  addScore(waveNum * 50, 'waveBonus');
+
+  // Check wave-based achievements
+  if (waveNum === 1) unlockAchievement(1);
+  if (waveNum >= 5 && towers.length === 0) unlockAchievement(7);
+
+  // Check no-damage wave achievement
+  // (simplified: check if bastion at max)
+  if (bastion.hp >= bastion.maxHp) unlockAchievement(8);
+
+  if (waveNum >= CONFIG.MAX_WAVE) {
+    triggerVictory();
+    return;
+  }
+
+  // Go to upgrade selection
+  generateUpgradeChoices();
+  beginTransition(STATE.UPGRADE, { onComplete: () => { _waveClearing = false; } });
+}
+
+// ============================================================
+// GAME OVER / VICTORY
+// ============================================================
+function checkGameOver() {
+  if (bastion.hp <= 0 && state === STATE.PLAYING) {
+    isVictory = false;
+    soundManager.playSFX('game_over');
+    screenShake.intensity = 15;
+    screenShake.time = 1.0;
+    saveResult();
+    beginTransition(STATE.GAMEOVER, { force: true });
+  }
+}
+
+function triggerVictory() {
+  isVictory = true;
+  // Bastion remaining HP bonus
+  addScore(bastion.hp * 10, 'bastionHP');
+  if (bastion.hp >= bastion.maxHp) unlockAchievement(10);
+  saveResult();
+  beginTransition(STATE.GAMEOVER, { force: true });
+}
+
+function saveResult() {
+  const best = getBest();
+  const isNew = score > best.score;
+  saveBest({
+    score: Math.max(score, best.score),
+    wave: Math.max(waveNum, best.wave),
+    time: Math.max(Math.floor(gameTime), best.time)
+  });
+}
+
+// ============================================================
+// UPGRADE SYSTEM
+// ============================================================
+function generateUpgradeChoices() {
+  const available = UPGRADE_POOL.filter(u => (upgrades[u.id] || 0) < u.max);
+  // Shuffle and pick 3
+  for (let i = available.length - 1; i > 0; i--) {
+    const j = randInt(0, i);
+    [available[i], available[j]] = [available[j], available[i]];
+  }
+  upgradeChoices = available.slice(0, Math.min(3, available.length));
+  upgradeHover = -1;
+}
+
+function applyUpgrade(upgradeId) {
+  upgrades[upgradeId] = (upgrades[upgradeId] || 0) + 1;
+  const up = UPGRADE_POOL.find(u => u.id === upgradeId);
+  // Apply immediate effects
+  if (upgradeId === 5) { bastion.maxHp += 20; bastion.hp = Math.min(bastion.hp + 20, bastion.maxHp); }
+  if (upgradeId === 8) manaRegen += 2;
+  if (upgradeId === 10) { maxMana += 30; mana = Math.min(mana + 30, maxMana); }
+  if (upgradeId === 13) { /* maxTowers handled in placeTower check */ }
+
+  soundManager.playSFX('upgrade');
+  spawnParticles(canvas.width/2, canvas.height/2, 20, up.color, 150, 0.6);
+
+  // Start next wave after brief delay via tween
+  beginTransition(STATE.PLAYING, { force: true, onComplete: () => {
+    startNextWave();
+  }});
+}
+
+// ============================================================
+// ACHIEVEMENT SYSTEM
+// ============================================================
+function unlockAchievement(id) {
+  if (achievements[id]) return;
+  achievements[id] = true;
+  saveAchievements(achievements);
+  const ach = ACHIEVEMENT_DATA.find(a => a.id === id);
+  if (ach) {
+    newAchievements.push(ach);
+    toasts.push({ text: ach.name, desc: ach.desc, time: 3 });
+  }
+}
+
+function checkAchievements() {
+  if (totalKills >= 100) unlockAchievement(3);
+  if (mana >= 300) unlockAchievement(9);
+  // Tower master: check all 5 types placed
+  const towerTypes = new Set(towers.map(t => t.type));
+  if (towerTypes.size >= 5) unlockAchievement(2);
+}
+
+// ============================================================
+// BACKGROUND CACHE (offscreen canvas, F10)
+// ============================================================
+function buildBgCache(biome, w, h) {
+  if (!bgCacheCanvas) bgCacheCanvas = document.createElement('canvas');
+  bgCacheCanvas.width = w;
+  bgCacheCanvas.height = h;
+  const bctx = bgCacheCanvas.getContext('2d');
+
+  // Base gradient
+  let grad;
+  if (biome === 'forest') {
+    grad = bctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#0a1a0a');
+    grad.addColorStop(1, '#1a3a1a');
+  } else if (biome === 'cave') {
+    grad = bctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#0a0a1a');
+    grad.addColorStop(1, '#1a1a3a');
   } else {
-    c.fillStyle='#3a1500';c.beginPath();c.moveTo(0,H*0.6);
-    for(let x=0;x<W;x+=40)c.lineTo(x,H*0.6+Math.sin(x*0.01)*30);
-    c.lineTo(W,H);c.lineTo(0,H);c.fill();
-    c.strokeStyle='#ff4400';c.lineWidth=1;
-    for(let i=0;i<15;i++){const x=Math.random()*W,y=H*0.6+Math.random()*H*0.4;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.random()*40-20,y+Math.random()*20);c.stroke();}
-    c.fillStyle='#ff2200';for(let i=0;i<8;i++){const x=Math.random()*W,y=H*0.85+Math.random()*H*0.15;c.beginPath();c.arc(x,y,3+Math.random()*4,0,Math.PI*2);c.fill();}
+    grad = bctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#1a0a0a');
+    grad.addColorStop(1, '#3a1a0a');
   }
-  // Grid overlay
-  c.globalAlpha=0.04;c.strokeStyle='#ffffff';c.lineWidth=0.5;
-  for(let x=0;x<W;x+=40){c.beginPath();c.moveTo(x,0);c.lineTo(x,H);c.stroke();}
-  for(let y=0;y<H;y+=40){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
-  c.globalAlpha=1;
-}
+  bctx.fillStyle = grad;
+  bctx.fillRect(0, 0, w, h);
 
-// ============================================================
-// PURE HELPERS
-// ============================================================
-function dist(x1,y1,x2,y2){return Math.sqrt((x2-x1)**2+(y2-y1)**2);}
-function findEnemiesInRadius(px,py,r,list){return list.filter(e=>e.active&&dist(px,py,e.x,e.y)<r);}
-function touchSafe(w,h){return{w:Math.max(CONFIG.MIN_TOUCH_TARGET,w),h:Math.max(CONFIG.MIN_TOUCH_TARGET,h)};}
-function angleTo(ax,ay,bx,by){return Math.atan2(by-ay,bx-ax);}
-function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
-function randInt(lo,hi){return lo+Math.floor(Math.random()*(hi-lo+1));}
-function randPick(arr){return arr[Math.floor(Math.random()*arr.length)];}
-
-// ============================================================
-// SINGLE-PATH RESOURCE UPDATES (F16)
-// ============================================================
-function addScore(amt){score+=amt;}
-function modifyMana(amt){mana=clamp(mana+amt,0,manaMax);}
-function modifyHP(amt,source){
-  const old=bastion.hp; bastion.hp=clamp(bastion.hp+amt,0,bastion.maxHP);
-  if(amt<0){bastion.flashTimer=0.1;waveDmgTaken+=Math.abs(amt);triggerShake(4);}
-  if(bastion.hp<=0&&old>0)beginTransition(STATE.GAMEOVER);
-}
-
-// ============================================================
-// SCREEN EFFECTS (§14)
-// ============================================================
-function triggerShake(i){shakeIntensity=Math.max(shakeIntensity,i);}
-function triggerSlowMo(dur){timeScaleObj.s=0.3;tw.add({target:timeScaleObj,prop:'s',from:0.3,to:1,duration:dur*1000,ease:'easeOutCubic'});}
-
-// ============================================================
-// STATE TRANSITIONS (§6.2, F17, F23)
-// ============================================================
-function beginTransition(target,opts){
-  opts=opts||{};
-  if(_isTransitioning&&!opts.force)return;
-  if(STATE_PRIORITY[target]<STATE_PRIORITY[state]&&!opts.force)return;
-  if(bastion&&bastion.hp<=0&&target!==STATE.GAMEOVER&&state===STATE.PLAYING)return;
-  _isTransitioning=true;
-  if(opts.immediate){state=target;_isTransitioning=false;onStateEnter(target);return;}
-  tw.add({target:screenFade,prop:'alpha',from:0,to:1,duration:300,ease:'linear',
-    onComplete:()=>{state=target;onStateEnter(target);
-      tw.add({target:screenFade,prop:'alpha',from:1,to:0,duration:300,ease:'linear',
-        onComplete:()=>{_isTransitioning=false;}});}});
-}
-function onStateEnter(s){
-  if(s===STATE.PLAYING&&waveNum>0){const wd=WAVE_DATA[waveNum-1];if(wd){if(bgCachedBiome!==wd.biome)buildBgCache(wd.biome);sfx.playBGM(_isBossActive?'boss':wd.biome);}}
-  if(s===STATE.GAMEOVER){sfx.stopBGM();sfx.playSFX('game_over');gameWon=waveNum>CONFIG.MAX_WAVES;const best=getBest();const isNew=score>best.score;if(isNew)saveBest({score,wave:waveNum,time:Date.now()});}
-  if(s===STATE.UPGRADE){sfx.playSFX('level_up');upgradeChoices=generateUpgradeChoices(UPGRADES,currentUpgrades,3);}
-}
-
-// ============================================================
-// LOCALSTORAGE (§7.4 — judge first, save later)
-// ============================================================
-function getBest(){try{return JSON.parse(localStorage.getItem('arcaneBastion_hi'))||{score:0,wave:0};}catch(e){return{score:0,wave:0};}}
-function saveBest(d){try{localStorage.setItem('arcaneBastion_hi',JSON.stringify(d));}catch(e){}}
-function getAchievements(){try{return JSON.parse(localStorage.getItem('arcaneBastion_achievements'))||[];}catch(e){return[];}}
-function saveAchievements(a){try{localStorage.setItem('arcaneBastion_achievements',JSON.stringify(a));}catch(e){}}
-
-// ============================================================
-// ACHIEVEMENTS
-// ============================================================
-function unlockAch(id){if(achievementsUnlocked.includes(id))return;achievementsUnlocked.push(id);saveAchievements(achievementsUnlocked);showToast(ACH_DEFS[id].icon+' '+ACH_DEFS[id].name);}
-function checkAchievements(){if(waveNum>1)unlockAch(0);if(towerTypesPlaced&&towerTypesPlaced.size>=5)unlockAch(1);if(killCount>=100)unlockAch(2);if(mana>=300)unlockAch(8);}
-function showToast(msg){toasts.push({msg,timer:2.5,y:-30,targetY:10});}
-
-// ============================================================
-// ENEMY CREATION & AI
-// ============================================================
-function spawnEnemy(type,waveN,bounds){
-  const base=ENEMY_TYPES[type];if(!base)return null;
-  const sc=getWaveScale(waveN),elite=waveN>=10&&Math.random()<0.25;
-  const side=randInt(0,3);let x,y;const m=30;
-  if(side===0){x=Math.random()*bounds.w;y=-m;}else if(side===1){x=bounds.w+m;y=Math.random()*bounds.h;}
-  else if(side===2){x=Math.random()*bounds.w;y=bounds.h+m;}else{x=-m;y=Math.random()*bounds.h;}
-  return{x,y,type,hp:Math.round(base.hp*sc.hp*(elite?2:1)),maxHP:Math.round(base.hp*sc.hp*(elite?2:1)),
-    speed:base.speed*sc.spd*60*(elite?1.3:1),atk:base.atk,score:base.score*(elite?2:1),
-    color:base.color,radius:base.radius*(elite?1.2:1),special:base.special,isElite:elite,active:true,
-    slowTimer:0,slowFactor:1,atkCooldown:0,phaseTimer:0,animTimer:Math.random()*6.28,rangedCooldown:0,isBoss:false};
-}
-function spawnBoss(bossId,bounds){
-  const base=BOSS_TYPES[bossId];if(!base)return null;
-  const side=randInt(0,3);let x,y;
-  if(side===0){x=bounds.w/2;y=-60;}else if(side===1){x=bounds.w+60;y=bounds.h/2;}
-  else if(side===2){x=bounds.w/2;y=bounds.h+60;}else{x=-60;y=bounds.h/2;}
-  _isBossActive=true;sfx.playSFX('boss_spawn');sfx.playBGM('boss');triggerSlowMo(1.5);
-  return{x,y,type:bossId,hp:base.hp,maxHP:base.hp,speed:base.speed*60,atk:base.atk,score:base.score,
-    color:base.color,radius:base.radius,isBoss:true,patterns:base.patterns,patternTimer:0,currentPattern:0,
-    active:true,slowTimer:0,slowFactor:1,atkCooldown:0,animTimer:0,phaseTimer:0,flyTimer:0,isElite:false,special:null,rangedCooldown:0};
-}
-function updateEnemy(e,bastPos,dt){
-  if(!e.active)return 0;e.animTimer+=dt*3;e.atkCooldown=Math.max(0,e.atkCooldown-dt);
-  if(e.slowTimer>0){e.slowTimer-=dt;e.slowFactor=e.slowTimer>0?CONFIG.FROST_SLOW:1;}
-  if(e.special==='phase'){e.phaseTimer+=dt;if(Math.sin(e.phaseTimer*2)>0.8)return 0;}
-  const ang=angleTo(e.x,e.y,bastPos.x,bastPos.y),spd=e.speed*e.slowFactor*dt,d=dist(e.x,e.y,bastPos.x,bastPos.y);
-  if(d>CONFIG.BASTION_RADIUS+e.radius){e.x+=Math.cos(ang)*spd;e.y+=Math.sin(ang)*spd;}
-  else if(e.atkCooldown<=0){e.atkCooldown=1.0;return e.atk;}
-  if(e.special==='ranged'&&d<200&&d>60){e.rangedCooldown-=dt;if(e.rangedCooldown<=0){e.rangedCooldown=2.5;return-1;}}
-  return 0;
-}
-function updateBossPatterns(boss,wizPos,bastPos,enemyList,bounds,dt){
-  if(!boss||!boss.active)return;boss.patternTimer+=dt;if(boss.flyTimer>0){boss.flyTimer-=dt;return;}
-  const pi=boss.type==='ancientDragon'?4:boss.type==='wraithKing'?5:3;
-  if(boss.patternTimer<pi)return;boss.patternTimer=0;
-  const pat=boss.patterns[boss.currentPattern%boss.patterns.length];boss.currentPattern++;
-  if(pat==='shockwave'||pat==='charge'){triggerShake(8);spawnParticleBurst(boss.x,boss.y,10,'#cc8833',0.5);modifyHP(-10,'bossAoE');}
-  if(pat==='teleport'){boss.x=60+Math.random()*(bounds.w-120);boss.y=60+Math.random()*(bounds.h-120);spawnParticleBurst(boss.x,boss.y,8,'#4444ff',0.4);}
-  if(pat==='summon'){for(let i=0;i<2;i++){const e=spawnEnemy('wraith',waveNum,bounds);if(e){e.x=boss.x+randInt(-40,40);e.y=boss.y+randInt(-40,40);enemyList.push(e);}}}
-  if(pat==='drain'){boss.hp=Math.min(boss.maxHP,boss.hp+30);spawnParticleBurst(boss.x,boss.y,6,'#ff44ff',0.4);}
-  if(pat==='breath'){triggerShake(6);const a=angleTo(boss.x,boss.y,bastPos.x,bastPos.y);for(let i=-3;i<=3;i++)spawnEnemyProj(boss.x,boss.y,a+i*0.15,15,'#ff4400');}
-  if(pat==='fly'){boss.flyTimer=3;boss.x=60+Math.random()*(bounds.w-120);boss.y=60+Math.random()*(bounds.h-120);spawnParticleBurst(boss.x,boss.y,12,'#ff8800',0.6);}
-  if(pat==='carpet'){triggerShake(10);const a=angleTo(boss.x,boss.y,bastPos.x,bastPos.y);for(let i=0;i<3;i++)for(let j=0;j<3;j++)spawnEnemyProj(boss.x,boss.y,a+(i-1)*0.4,10,'#ff2200');}
-  if(pat==='throw'){const a=angleTo(boss.x,boss.y,bastPos.x,bastPos.y);spawnEnemyProj(boss.x,boss.y,a,15,'#aa7744');}
-}
-function spawnEnemyProj(x,y,angle,dmg,color){enemyProjectiles.push({x,y,vx:Math.cos(angle)*180,vy:Math.sin(angle)*180,dmg,color,radius:5,life:2,active:true});}
-
-// ============================================================
-// DAMAGE SYSTEM
-// ============================================================
-function damageEnemy(e,damage,upgrades){
-  if(!e.active)return{killed:false,score:0,mana:0};
-  let dmg=damage,isCrit=false;const critLvl=upgrades[17]||0;
-  if(critLvl>0&&Math.random()<0.2*critLvl){dmg*=2;isCrit=true;}
-  if(e.special==='armor'&&bastion&&dist(e.x,e.y,bastion.x,bastion.y)<100)dmg=Math.floor(dmg*0.5);
-  e.hp-=dmg;spawnParticleBurst(e.x,e.y,3,e.color,0.2);
-  if(isCrit)spawnParticleBurst(e.x,e.y-10,4,'#ffff00',0.3);
-  if(e.hp<=0){e.active=false;sfx.playSFX('kill');spawnParticleBurst(e.x,e.y,6,e.color,0.3);killCount++;
-    if(e.isBoss){_isBossActive=false;spawnParticleBurst(e.x,e.y,20,'#ffd700',0.8);triggerShake(12);triggerSlowMo(1.5);
-      if(e.type==='golemKing')unlockAch(3);if(e.type==='wraithKing')unlockAch(4);if(e.type==='ancientDragon')unlockAch(5);
-      const wd=WAVE_DATA[waveNum-1];if(wd)sfx.playBGM(wd.biome);}
-    return{killed:true,score:e.score||10,mana:Math.floor((e.score||10)*0.2)};
+  // Far layer: silhouettes
+  bctx.globalAlpha = 0.15;
+  if (biome === 'forest') {
+    // Mountain silhouettes
+    bctx.fillStyle = '#1a4a1a';
+    for (let i = 0; i < 8; i++) {
+      const mx = w * (i/8) + 20;
+      const mw = w/6;
+      const mh = h * 0.3 + Math.sin(i*1.7)*40;
+      bctx.beginPath();
+      bctx.moveTo(mx, h*0.4);
+      bctx.lineTo(mx + mw/2, h*0.4 - mh);
+      bctx.lineTo(mx + mw, h*0.4);
+      bctx.fill();
+    }
+  } else if (biome === 'cave') {
+    // Stalactites
+    bctx.fillStyle = '#2a2a4a';
+    for (let i = 0; i < 12; i++) {
+      const sx = Math.random() * w;
+      const sw = 10 + Math.random()*20;
+      const sh = 30 + Math.random()*60;
+      bctx.beginPath();
+      bctx.moveTo(sx, 0);
+      bctx.lineTo(sx+sw/2, sh);
+      bctx.lineTo(sx+sw, 0);
+      bctx.fill();
+    }
+  } else {
+    // Lava flow background
+    bctx.fillStyle = '#4a1a0a';
+    for (let i = 0; i < 6; i++) {
+      bctx.beginPath();
+      const y = h * 0.3 + i * 40;
+      bctx.moveTo(0, y);
+      for (let x = 0; x < w; x += 30) {
+        bctx.lineTo(x, y + Math.sin(x*0.02+i)*15);
+      }
+      bctx.lineTo(w, h);
+      bctx.lineTo(0, h);
+      bctx.fill();
+    }
   }
-  return{killed:false,score:0,mana:0};
-}
 
-// ============================================================
-// TOWER LOGIC
-// ============================================================
-function placeTower(ti,px,py,list,curMana,maxT,up){
-  const tt=TOWER_TYPES[ti];if(!tt)return{success:false};
-  if(list.length>=maxT+(up[13]||0)*2)return{success:false};
-  if(curMana<tt.cost)return{success:false};
-  if(dist(px,py,bastion.x,bastion.y)<CONFIG.BASTION_RADIUS+20)return{success:false};
-  for(const t of list)if(dist(px,py,t.x,t.y)<30)return{success:false};
-  list.push({x:px,y:py,type:ti,range:tt.range,dmg:tt.dmg,rate:tt.rate,color:tt.color,special:tt.special,cooldown:0,animTimer:0,active:true});
-  towerTypesPlaced.add(ti);sfx.playSFX('tower_place');spawnParticleBurst(px,py,5,'#ffd700',0.4);
-  return{success:true,cost:tt.cost};
-}
-function updateTower(tower,el,dt,up){
-  if(!tower.active)return;tower.animTimer+=dt;tower.cooldown=Math.max(0,tower.cooldown-dt);if(tower.cooldown>0)return;
-  const dm=1+(up[11]||0)*0.2,sm=1+(up[12]||0)*0.15,rate=tower.rate/sm,mb=1+(up[9]||0)*0.5;
-  if(tower.special==='heal'){if(bastion.hp<bastion.maxHP){tower.cooldown=rate;modifyHP(5,'healTower');spawnParticleBurst(bastion.x,bastion.y,3,'#44ff88',0.3);}return;}
-  let cl=null,cd=tower.range;for(const e of el){if(!e.active)continue;const d=dist(tower.x,tower.y,e.x,e.y);if(d<cd){cd=d;cl=e;}}
-  if(!cl)return;tower.cooldown=rate;const dmg=Math.round(tower.dmg*dm);
-  if(tower.special==='aoe'){const h=findEnemiesInRadius(cl.x,cl.y,40,el);for(const e of h){const r=damageEnemy(e,dmg,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}}spawnParticleBurst(cl.x,cl.y,8,'#ff6600',0.4);sfx.playSFX('fireball');}
-  else if(tower.special==='slow'){const r=damageEnemy(cl,dmg,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}cl.slowTimer=2;cl.slowFactor=0.7;}
-  else if(tower.special==='chain'){let tgt=[cl],last=cl;for(let i=0;i<2;i++){let nx=null,nd=80;for(const e of el){if(!e.active||tgt.includes(e))continue;const d=dist(last.x,last.y,e.x,e.y);if(d<nd){nd=d;nx=e;}}if(nx){tgt.push(nx);last=nx;}}for(const t of tgt){const r=damageEnemy(t,dmg,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}}}
-  else{const r=damageEnemy(cl,dmg,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}}
-}
-
-// ============================================================
-// PLAYER SPELLS
-// ============================================================
-function fireArcaneBeam(wiz,tx,ty,projs,up){
-  const ang=angleTo(wiz.x,wiz.y,tx,ty),bDmg=Math.round(CONFIG.BOLT_DMG*(1+(up[1]||0)*0.25)),multi=up[2]?2:1;
-  for(let i=0;i<multi;i++){const spread=multi>1?(i-0.5)*0.15:0,a=ang+spread,p=projPool.acquire();
-    p.x=wiz.x;p.y=wiz.y;p.vx=Math.cos(a)*CONFIG.BOLT_SPEED;p.vy=Math.sin(a)*CONFIG.BOLT_SPEED;
-    p.dmg=bDmg;p.color='#00ffff';p.active=true;p.type='bolt';p.aoeRadius=0;p.life=0.6;p.chainCount=up[4]||0;p.radius=4;projs.push(p);}
-  sfx.playSFX('shoot');spawnParticleBurst(wiz.x+Math.cos(ang)*18,wiz.y+Math.sin(ang)*18,3,'#00ffff',0.2);
-}
-function fireFireball(wiz,tx,ty,projs,up){
-  const ang=angleTo(wiz.x,wiz.y,tx,ty),rm=1+(up[3]||0)*0.3,p=projPool.acquire();
-  p.x=wiz.x;p.y=wiz.y;p.vx=Math.cos(ang)*CONFIG.FIREBALL_SPEED;p.vy=Math.sin(ang)*CONFIG.FIREBALL_SPEED;
-  p.dmg=CONFIG.FIREBALL_DMG;p.color='#ff6600';p.active=true;p.type='fireball';p.aoeRadius=CONFIG.FIREBALL_RADIUS*rm;p.life=1.0;p.radius=6;p.chainCount=0;
-  projs.push(p);sfx.playSFX('fireball');
-}
-function castFrostNova(wiz,el,up){
-  const rm=1+(up[16]||0)*0.4,db=(up[16]||0),range=CONFIG.FROST_RADIUS*rm,mb=1+(up[9]||0)*0.5;
-  const hit=findEnemiesInRadius(wiz.x,wiz.y,range,el);
-  for(const e of hit){e.slowTimer=CONFIG.FROST_DUR+db;e.slowFactor=CONFIG.FROST_SLOW;
-    const r=damageEnemy(e,CONFIG.FROST_DMG,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}}
-  sfx.playSFX('frost');spawnParticleBurst(wiz.x,wiz.y,8,'#88ddff',0.4);
-}
-function updateProjectiles(projs,el,dt,up){
-  const mb=1+(up[9]||0)*0.5;
-  for(let i=projs.length-1;i>=0;i--){const p=projs[i];
-    if(!p.active){projPool.release(p);projs.splice(i,1);continue;}
-    p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
-    if(p.life<=0||p.x<-50||p.x>W+50||p.y<-50||p.y>H+50){p.active=false;projPool.release(p);projs.splice(i,1);continue;}
-    for(const e of el){if(!e.active)continue;if(dist(p.x,p.y,e.x,e.y)<e.radius+(p.radius||4)){
-      if(p.type==='fireball'){const h=findEnemiesInRadius(p.x,p.y,p.aoeRadius,el);for(const he of h){const r=damageEnemy(he,p.dmg,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}}spawnParticleBurst(p.x,p.y,12,'#ff6600',0.5);triggerShake(3);}
-      else{const r=damageEnemy(e,p.dmg,up);if(r.killed){addScore(r.score);modifyMana(r.mana*mb);}
-        if(p.chainCount>0){let nx=null,nd=80;for(const ne of el){if(!ne.active||ne===e)continue;const d=dist(e.x,e.y,ne.x,ne.y);if(d<nd){nd=d;nx=ne;}}if(nx){const r2=damageEnemy(nx,Math.round(p.dmg*0.7),up);if(r2.killed){addScore(r2.score);modifyMana(r2.mana*mb);}spawnParticleBurst(nx.x,nx.y,3,'#ffff44',0.2);}}}
-      p.active=false;projPool.release(p);projs.splice(i,1);break;}}
+  // Mid layer: objects
+  bctx.globalAlpha = 0.2;
+  if (biome === 'forest') {
+    // Trees
+    bctx.fillStyle = '#0d3d0d';
+    for (let i = 0; i < 10; i++) {
+      const tx = Math.random()*w;
+      const ty = h*0.3 + Math.random()*h*0.3;
+      drawTreeSilhouette(bctx, tx, ty, 20+Math.random()*30);
+    }
+  } else if (biome === 'cave') {
+    // Rock pillars
+    bctx.fillStyle = '#3a3a5a';
+    for (let i = 0; i < 6; i++) {
+      const rx = Math.random()*w;
+      const rw = 15+Math.random()*25;
+      bctx.fillRect(rx, h*0.2+Math.random()*h*0.3, rw, h*0.5);
+    }
+  } else {
+    // Volcanic cracks
+    bctx.strokeStyle = '#ff3300';
+    bctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      bctx.beginPath();
+      let cx = Math.random()*w, cy = Math.random()*h;
+      bctx.moveTo(cx, cy);
+      for (let s = 0; s < 5; s++) {
+        cx += (Math.random()-0.5)*40;
+        cy += Math.random()*30;
+        bctx.lineTo(cx, cy);
+      }
+      bctx.stroke();
+    }
   }
+
+  // Grid overlay for tactical feel
+  bctx.globalAlpha = 0.03;
+  bctx.strokeStyle = '#ffffff';
+  bctx.lineWidth = 0.5;
+  const gridSize = 40;
+  for (let x = 0; x < w; x += gridSize) { bctx.beginPath(); bctx.moveTo(x, 0); bctx.lineTo(x, h); bctx.stroke(); }
+  for (let y = 0; y < h; y += gridSize) { bctx.beginPath(); bctx.moveTo(0, y); bctx.lineTo(w, y); bctx.stroke(); }
+
+  bctx.globalAlpha = 1;
+  bgCacheDirty = false;
 }
 
-// ============================================================
-// UPGRADES
-// ============================================================
-function generateUpgradeChoices(pool,cur,n){return pool.filter(u=>(cur[u.id]||0)<u.max).sort(()=>Math.random()-0.5).slice(0,n);}
-function applyUpgrade(uid,up){up[uid]=(up[uid]||0)+1;
-  if(uid===5){bastion.maxHP+=20;bastion.hp=Math.min(bastion.hp+20,bastion.maxHP);}
-  if(uid===8)manaRegen+=2;if(uid===10){manaMax+=30;mana=Math.min(mana+30,manaMax);}
-  if(uid===14)wizard.speed=CONFIG.WIZARD_SPEED*(1+(up[14]||0)*0.2);return up;}
-
-// ============================================================
-// PARTICLES
-// ============================================================
-function spawnParticleBurst(x,y,n,color,life){
-  for(let i=0;i<n;i++){if(activeParticles.length>=CONFIG.MAX_PARTICLES)break;
-    const p=particlePool.acquire(),a=Math.random()*Math.PI*2,s=40+Math.random()*80;
-    p.x=x;p.y=y;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;p.life=life;p.maxLife=life;p.color=color;p.size=2+Math.random()*3;p.active=true;activeParticles.push(p);}
+function drawTreeSilhouette(ctx, x, y, size) {
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - size*0.4, y + size);
+  ctx.lineTo(x + size*0.4, y + size);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(x - size*0.06, y + size, size*0.12, size*0.4);
 }
-function updateParticles(parts,dt){
-  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=60*dt;p.life-=dt;
-    if(p.life<=0){p.active=false;particlePool.release(p);parts.splice(i,1);}}
-}
-
-// ============================================================
-// WAVE MANAGEMENT
-// ============================================================
-function startWave(wn){
-  if(wn>CONFIG.MAX_WAVES){gameWon=true;beginTransition(STATE.GAMEOVER);return;}
-  waveNum=wn;_waveClearing=false;waveDmgTaken=0;
-  const wd=WAVE_DATA[wn-1];if(!wd)return;
-  const rl=currentUpgrades[18]||0;if(rl>0)modifyHP(10*rl,'regen');
-  waveSpawnQueue=[];for(let i=0;i<wd.count;i++)waveSpawnQueue.push(randPick(wd.types));
-  waveEnemiesTotal=wd.count+(wd.boss?1:0);waveSpawnTimer=0;
-  if(wd.boss){const b=spawnBoss(wd.boss,{w:W,h:H});if(b)enemies.push(b);}
-  if(bgCachedBiome!==wd.biome)buildBgCache(wd.biome);
-  sfx.playBGM(_isBossActive?'boss':wd.biome);
-}
-function spawnNextEnemy(){if(waveSpawnQueue.length===0)return;const t=waveSpawnQueue.shift(),e=spawnEnemy(t,waveNum,{w:W,h:H});if(e)enemies.push(e);}
 
 // ============================================================
 // INPUT HANDLING
 // ============================================================
-window.addEventListener('keydown',e=>{
-  keys[e.key]=true;
-  if(state===STATE.TITLE&&(e.key===' '||e.key==='Enter'))startGame();
-  if(state===STATE.GAMEOVER&&(e.key==='r'||e.key==='R'))resetToTitle();
-  if(state===STATE.PLAYING&&e.key==='Escape')beginTransition(STATE.PAUSED,{immediate:true});
-  else if(state===STATE.PAUSED&&e.key==='Escape')beginTransition(STATE.PLAYING,{immediate:true,force:true});
-  if(state===STATE.PLAYING){if(e.key==='q'||e.key==='Q')tryFireball();if(e.key==='e'||e.key==='E')tryFrostNova();
-    if(e.key>='1'&&e.key<='5'){selectedTowerIdx=parseInt(e.key)-1;_isPlacingTower=true;}
-    if(e.key===' '&&currentUpgrades[15]&&wizard)tryTeleport();}
-  if(state===STATE.UPGRADE&&e.key>='1'&&e.key<='3'){const i=parseInt(e.key)-1;if(upgradeChoices&&upgradeChoices[i])selectUpgrade(i);}
+// Keyboard
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  // Prevent scrolling
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+
+  if (state === STATE.TITLE && (e.code === 'Space' || e.code === 'Enter')) {
+    soundManager._init();
+    startGame();
+  }
+  if (state === STATE.PLAYING) {
+    if (e.code === 'KeyQ') castFireball(wizard, mousePos.x, mousePos.y, projectiles, upgrades);
+    if (e.code === 'KeyE') castFrostNova(wizard, enemies, upgrades);
+    if (e.code === 'Space') {
+      if (upgrades[15]) teleportWizard(wizard, mousePos.x, mousePos.y, {w:canvas.width,h:canvas.height});
+      else if (wavePrepTime > 0) wavePrepTime = 0;
+    }
+    if (e.code === 'Escape') beginTransition(STATE.PAUSED, { immediate: true });
+    // Tower selection 1-5
+    if (e.code >= 'Digit1' && e.code <= 'Digit5') {
+      const tKeys = ['arcane','fire','ice','lightning','heal'];
+      const idx = parseInt(e.code.slice(5)) - 1;
+      if (idx >= 0 && idx < 5) { _isPlacingTower = true; _selectedTowerType = tKeys[idx]; }
+    }
+  }
+  if (state === STATE.PAUSED && e.code === 'Escape') {
+    beginTransition(STATE.PLAYING, { immediate: true, force: true });
+  }
+  if (state === STATE.GAMEOVER && (e.code === 'KeyR' || e.code === 'Space')) {
+    initGame();
+    beginTransition(STATE.TITLE, { force: true });
+  }
+});
+window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+// Mouse
+canvas.addEventListener('mousemove', (e) => {
+  mousePos.x = e.clientX; mousePos.y = e.clientY;
+  // Upgrade hover
+  if (state === STATE.UPGRADE) {
+    upgradeHover = getUpgradeCardIndex(mousePos.x, mousePos.y);
+  }
+  // Tower placement preview (already tracked via mousePos)
+});
+
+canvas.addEventListener('mousedown', (e) => {
   e.preventDefault();
-},{passive:false});
-window.addEventListener('keyup',e=>{keys[e.key]=false;});
-canvas.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
-canvas.addEventListener('mousedown',e=>{e.preventDefault();if(e.button===0)mouseDown=true;handleClick(e.clientX,e.clientY,e.button);});
-canvas.addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;});
-canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('touchstart',e=>{e.preventDefault();isTouchDevice=true;const t=e.touches[0];if(!t)return;const tx=t.clientX,ty=t.clientY;
-  if(tx<W*0.35&&ty>H*0.5&&state===STATE.PLAYING){touchJoystick.active=true;touchJoystick.baseX=tx;touchJoystick.baseY=ty;touchJoystick.dx=0;touchJoystick.dy=0;}else{handleClick(tx,ty,0);}},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();if(touchJoystick.active&&e.touches[0]){const t=e.touches[0];touchJoystick.dx=t.clientX-touchJoystick.baseX;touchJoystick.dy=t.clientY-touchJoystick.baseY;const m=Math.sqrt(touchJoystick.dx**2+touchJoystick.dy**2);if(m>50){touchJoystick.dx*=50/m;touchJoystick.dy*=50/m;}}if(e.touches[0]){mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;}},{passive:false});
-canvas.addEventListener('touchend',e=>{e.preventDefault();touchJoystick.active=false;mouseDown=false;},{passive:false});
+  soundManager._init();
+  if (e.button === 0) mouseDown.left = true;
+  if (e.button === 2) mouseDown.right = true;
+  if (e.button === 1) mouseDown.middle = true;
 
-// Click/tap dispatcher
-function handleClick(cx,cy,btn){
-  if(state===STATE.TITLE){startGame();return;}
-  if(state===STATE.GAMEOVER){resetToTitle();return;}
-  if(state===STATE.PAUSED){beginTransition(STATE.PLAYING,{immediate:true,force:true});return;}
-  if(state===STATE.UPGRADE){handleUpgradeClick(cx,cy);return;}
-  if(state!==STATE.PLAYING)return;
-  if(pauseBtnRect&&cx>=pauseBtnRect.x&&cx<=pauseBtnRect.x+pauseBtnRect.w&&cy>=pauseBtnRect.y&&cy<=pauseBtnRect.y+pauseBtnRect.h){beginTransition(STATE.PAUSED,{immediate:true});return;}
-  const tBarY=H-70;if(cy>tBarY&&!_isPlacingTower){const bw=5*60,bx=(W-bw)/2;if(cx>=bx&&cx<=bx+bw){const i=Math.floor((cx-bx)/60);if(i>=0&&i<5){selectedTowerIdx=i;_isPlacingTower=true;}return;}}
-  if(isTouchDevice){if(cx>W-120&&cy>H-140&&cy<H-80){tryFireball();return;}if(cx>W-120&&cy>H-80){tryFrostNova();return;}}
-  if(_isPlacingTower){const r=placeTower(selectedTowerIdx,cx,cy,towers,mana,CONFIG.MAX_TOWERS,currentUpgrades);if(r.success){modifyMana(-r.cost);_isPlacingTower=false;selectedTowerIdx=-1;}return;}
-  if(btn===2){tryFireball();return;}if(btn===1){tryFrostNova();return;}
-  if(wizard&&wizard.boltCD<=0){wizard.boltCD=CONFIG.BOLT_CD;fireArcaneBeam(wizard,cx,cy,activeProjectiles,currentUpgrades);}
+  if (state === STATE.TITLE) { startGame(); return; }
+
+  if (state === STATE.PLAYING) {
+    if (e.button === 0) {
+      // Check UI clicks first
+      const uiAction = checkUIClick(mousePos.x, mousePos.y);
+      if (uiAction) return;
+
+      if (_isPlacingTower) {
+        const maxT = CONFIG.MAX_TOWERS + (upgrades[13]||0)*2;
+        placeTower(_selectedTowerType, mousePos.x, mousePos.y, towers, mana, maxT);
+        _isPlacingTower = false; _selectedTowerType = null;
+        return;
+      }
+      // Check if clicking near wizard for drag
+      if (dist(mousePos.x, mousePos.y, wizard.x, wizard.y) < 40) {
+        isDraggingWizard = true;
+      } else {
+        // Fire arcane bolt
+        fireArcaneBolt(wizard, mousePos.x, mousePos.y, projectiles, upgrades);
+      }
+    }
+    if (e.button === 2) {
+      if (_isPlacingTower) { _isPlacingTower = false; _selectedTowerType = null; return; }
+      castFireball(wizard, mousePos.x, mousePos.y, projectiles, upgrades);
+    }
+    if (e.button === 1) {
+      castFrostNova(wizard, enemies, upgrades);
+    }
+  }
+
+  if (state === STATE.UPGRADE) {
+    const idx = getUpgradeCardIndex(mousePos.x, mousePos.y);
+    if (idx >= 0 && idx < upgradeChoices.length) {
+      applyUpgrade(upgradeChoices[idx].id);
+    }
+  }
+
+  if (state === STATE.PAUSED) {
+    beginTransition(STATE.PLAYING, { immediate: true, force: true });
+  }
+
+  if (state === STATE.GAMEOVER) {
+    initGame();
+    beginTransition(STATE.TITLE, { force: true });
+  }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (e.button === 0) { mouseDown.left = false; isDraggingWizard = false; }
+  if (e.button === 2) mouseDown.right = false;
+  if (e.button === 1) mouseDown.middle = false;
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Touch
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  isTouchDevice = true;
+  soundManager._init();
+
+  if (state === STATE.TITLE) { startGame(); return; }
+  if (state === STATE.GAMEOVER) { initGame(); beginTransition(STATE.TITLE, {force:true}); return; }
+  if (state === STATE.PAUSED) { beginTransition(STATE.PLAYING, {immediate:true, force:true}); return; }
+
+  for (const touch of e.changedTouches) {
+    const tx = touch.clientX, ty = touch.clientY;
+
+    if (state === STATE.UPGRADE) {
+      const idx = getUpgradeCardIndex(tx, ty);
+      if (idx >= 0 && idx < upgradeChoices.length) applyUpgrade(upgradeChoices[idx].id);
+      return;
+    }
+
+    if (state === STATE.PLAYING) {
+      // Check UI buttons first
+      const uiAction = checkUIClick(tx, ty);
+      if (uiAction) return;
+
+      // Tower placement
+      if (_isPlacingTower) {
+        const maxT = CONFIG.MAX_TOWERS + (upgrades[13]||0)*2;
+        placeTower(_selectedTowerType, tx, ty, towers, mana, maxT);
+        _isPlacingTower = false; _selectedTowerType = null;
+        return;
+      }
+
+      // Left side: joystick
+      if (tx < canvas.width * 0.4 && ty > canvas.height * 0.5) {
+        touchState.joystick = { id: touch.identifier, startX: tx, startY: ty };
+        touchState.active = true;
+      } else {
+        // Right side: attack
+        touchState.attackTouch = { id: touch.identifier, x: tx, y: ty };
+        fireArcaneBolt(wizard, tx, ty, projectiles, upgrades);
+      }
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  for (const touch of e.changedTouches) {
+    if (touchState.joystick && touch.identifier === touchState.joystick.id) {
+      const dx = touch.clientX - touchState.joystick.startX;
+      const dy = touch.clientY - touchState.joystick.startY;
+      touchState.joystickAngle = Math.atan2(dy, dx);
+      touchState.joystickDist = Math.min(Math.sqrt(dx*dx+dy*dy), CONFIG.JOYSTICK_BASE);
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  for (const touch of e.changedTouches) {
+    if (touchState.joystick && touch.identifier === touchState.joystick.id) {
+      touchState.joystick = null;
+      touchState.joystickDist = 0;
+      touchState.active = false;
+    }
+    if (touchState.attackTouch && touch.identifier === touchState.attackTouch.id) {
+      touchState.attackTouch = null;
+    }
+  }
+}, { passive: false });
+
+// Auto-fire bolt while mouse held
+function handleAutoFire(dt) {
+  if (state !== STATE.PLAYING) return;
+  if (mouseDown.left && !_isPlacingTower && !isDraggingWizard) {
+    fireArcaneBolt(wizard, mousePos.x, mousePos.y, projectiles, upgrades);
+  }
 }
-function tryFireball(){if(!wizard||wizard.fireballCD>0||mana<CONFIG.FIREBALL_COST)return;const cm=currentUpgrades[3]?(1-(currentUpgrades[3]||0)*0.2):1;wizard.fireballCD=CONFIG.FIREBALL_CD*cm;modifyMana(-CONFIG.FIREBALL_COST);fireFireball(wizard,mouseX,mouseY,activeProjectiles,currentUpgrades);}
-function tryFrostNova(){if(!wizard||wizard.frostCD>0||mana<CONFIG.FROST_COST)return;wizard.frostCD=CONFIG.FROST_CD;modifyMana(-CONFIG.FROST_COST);castFrostNova(wizard,enemies,currentUpgrades);}
-function tryTeleport(){if(!wizard||wizard.teleCD>0)return;wizard.teleCD=3;const a=angleTo(wizard.x,wizard.y,mouseX,mouseY);spawnParticleBurst(wizard.x,wizard.y,6,'#44ffff',0.3);wizard.x=clamp(wizard.x+Math.cos(a)*100,20,W-20);wizard.y=clamp(wizard.y+Math.sin(a)*100,20,H-80);spawnParticleBurst(wizard.x,wizard.y,6,'#44ffff',0.3);}
-function handleUpgradeClick(cx,cy){if(!upgradeChoices)return;const cw=Math.min(150,W/4),ch=210,gap=16,tw2=upgradeChoices.length*(cw+gap)-gap,sx=(W-tw2)/2,sy=(H-ch)/2-10;for(let i=0;i<upgradeChoices.length;i++){const x=sx+i*(cw+gap);if(cx>=x&&cx<=x+cw&&cy>=sy&&cy<=sy+ch){selectUpgrade(i);return;}}}
-function selectUpgrade(i){if(!upgradeChoices||!upgradeChoices[i])return;currentUpgrades=applyUpgrade(upgradeChoices[i].id,currentUpgrades);upgradeChoices=null;_waveClearing=false;startWave(waveNum+1);beginTransition(STATE.PLAYING,{force:true});}
 
 // ============================================================
-// GAME START / RESET
+// UI CLICK DETECTION
 // ============================================================
-function startGame(){
-  if(_isTransitioning)return;sfx._init();
-  wizard={x:W/2,y:H/2+40,speed:CONFIG.WIZARD_SPEED,radius:CONFIG.WIZARD_RADIUS,boltCD:0,fireballCD:0,frostCD:0,teleCD:0,animTimer:0,facing:1};
-  bastion={x:W/2,y:H/2,hp:CONFIG.BASTION_HP,maxHP:CONFIG.BASTION_HP,radius:CONFIG.BASTION_RADIUS,flashTimer:0,glowPhase:0};
-  enemies=[];activeProjectiles=[];towers=[];activeParticles=[];enemyProjectiles=[];
-  mana=CONFIG.MANA_MAX;manaMax=CONFIG.MANA_MAX;manaRegen=CONFIG.MANA_REGEN;score=0;waveNum=0;killCount=0;
-  currentUpgrades={};towerTypesPlaced=new Set();achievementsUnlocked=getAchievements();
-  selectedTowerIdx=-1;_isPlacingTower=false;_isBossActive=false;_waveClearing=false;
-  gameWon=false;waveDmgTaken=0;displayScore=0;displayHP=CONFIG.BASTION_HP;displayMana=CONFIG.MANA_MAX;
-  toasts=[];timeScaleObj.s=1;shakeIntensity=0;tw.clearImmediate();
-  waveSpawnQueue=[];waveSpawnTimer=0;buildBgCache('forest');
-  beginTransition(STATE.PLAYING,{force:true});
-  const wr=()=>{if(state===STATE.PLAYING)startWave(1);else requestAnimationFrame(wr);};requestAnimationFrame(wr);
+function checkUIClick(x, y) {
+  // Pause button (top-right)
+  if (x > canvas.width - 56 && y < 56) {
+    if (state === STATE.PLAYING) beginTransition(STATE.PAUSED, { immediate: true });
+    return true;
+  }
+
+  // Tower bar (bottom center)
+  const towerBarY = canvas.height - 70;
+  const towerBarX = canvas.width/2 - 5*30;
+  if (y > towerBarY && y < canvas.height - 10) {
+    const tKeys = ['arcane','fire','ice','lightning','heal'];
+    for (let i = 0; i < 5; i++) {
+      const bx = towerBarX + i*60;
+      if (x > bx && x < bx + 56) {
+        _isPlacingTower = true;
+        _selectedTowerType = tKeys[i];
+        return true;
+      }
+    }
+  }
+
+  // Mobile skill buttons (right side)
+  if (isTouchDevice) {
+    const skillBtnSize = 56;
+    // Fireball button
+    const fbX = canvas.width - 70;
+    const fbY = canvas.height - 190;
+    if (x > fbX && x < fbX+skillBtnSize && y > fbY && y < fbY+skillBtnSize) {
+      castFireball(wizard, bastion.x, bastion.y - 100, projectiles, upgrades);
+      return true;
+    }
+    // Frost nova button
+    const fnY = canvas.height - 125;
+    if (x > fbX && x < fbX+skillBtnSize && y > fnY && y < fnY+skillBtnSize) {
+      castFrostNova(wizard, enemies, upgrades);
+      return true;
+    }
+  }
+
+  return false;
 }
-function resetToTitle(){if(_isTransitioning)return;tw.clearImmediate();sfx.stopAll();enemies=[];activeProjectiles=[];towers=[];activeParticles=[];enemyProjectiles=[];beginTransition(STATE.TITLE,{force:true});}
+
+function getUpgradeCardIndex(x, y) {
+  const cw = 160, ch = 220, gap = 20;
+  const totalW = upgradeChoices.length * cw + (upgradeChoices.length - 1) * gap;
+  const startX = (canvas.width - totalW) / 2;
+  const startY = canvas.height/2 - ch/2;
+  for (let i = 0; i < upgradeChoices.length; i++) {
+    const cx = startX + i*(cw+gap);
+    if (x >= cx && x <= cx+cw && y >= startY && y <= startY+ch) return i;
+  }
+  return -1;
+}
+
+// ============================================================
+// START GAME
+// ============================================================
+function startGame() {
+  initGame();
+  beginTransition(STATE.PLAYING, { force: true, onComplete: () => {
+    startNextWave();
+  }});
+}
 
 // ============================================================
 // UPDATE FUNCTIONS
 // ============================================================
-function updatePlaying(dt){
-  if(!wizard||!bastion)return;const ed=dt*timeScaleObj.s;
-  modifyMana(manaRegen*ed);
-  // Wizard movement from keyboard + joystick
-  let dx=0,dy=0;
-  if(keys['w']||keys['W']||keys['ArrowUp'])dy=-1;if(keys['s']||keys['S']||keys['ArrowDown'])dy=1;
-  if(keys['a']||keys['A']||keys['ArrowLeft'])dx=-1;if(keys['d']||keys['D']||keys['ArrowRight'])dx=1;
-  if(touchJoystick.active){const m=Math.sqrt(touchJoystick.dx**2+touchJoystick.dy**2);if(m>10){dx=touchJoystick.dx/m;dy=touchJoystick.dy/m;}}
-  if(dx||dy){const m=Math.sqrt(dx*dx+dy*dy);dx/=m;dy/=m;wizard.x+=dx*wizard.speed*ed;wizard.y+=dy*wizard.speed*ed;wizard.x=clamp(wizard.x,20,W-20);wizard.y=clamp(wizard.y,20,H-80);wizard.facing=dx>0?1:dx<0?-1:wizard.facing;wizard.animTimer+=ed*8;}
-  wizard.boltCD=Math.max(0,wizard.boltCD-ed);wizard.fireballCD=Math.max(0,wizard.fireballCD-ed);wizard.frostCD=Math.max(0,wizard.frostCD-ed);wizard.teleCD=Math.max(0,wizard.teleCD-ed);
-  bastion.flashTimer=Math.max(0,bastion.flashTimer-ed);bastion.glowPhase+=ed*2;
-  // Auto-fire while mouse held
-  if(mouseDown&&wizard.boltCD<=0&&!_isPlacingTower){wizard.boltCD=CONFIG.BOLT_CD;fireArcaneBeam(wizard,mouseX,mouseY,activeProjectiles,currentUpgrades);}
-  // Spawn wave enemies
-  const wd=WAVE_DATA[waveNum-1];
-  if(wd&&waveSpawnQueue.length>0){waveSpawnTimer+=ed*1000;const iv=getWaveScale(waveNum).interval;if(waveSpawnTimer>=iv){waveSpawnTimer-=iv;spawnNextEnemy();}}
-  // Update all enemies
-  for(const e of enemies){if(!e.active)continue;
-    if(e.isBoss)updateBossPatterns(e,wizard,bastion,enemies,{w:W,h:H},ed);
-    const dmg=updateEnemy(e,bastion,ed);
-    if(dmg>0){const tl=currentUpgrades[6]||0;if(tl>0){const r=damageEnemy(e,tl*5,currentUpgrades);if(r.killed){addScore(r.score);modifyMana(r.mana);}}const pl=currentUpgrades[7]||0;if(pl>0&&Math.random()<pl*0.3){}else modifyHP(-dmg,e.type);}
-    if(dmg===-1){spawnEnemyProj(e.x,e.y,angleTo(e.x,e.y,bastion.x,bastion.y),e.atk,'#ff4444');}
+function updateTitle(dt) {
+  titleTime += dt;
+  // Title particles
+  if (Math.random() < 0.3) {
+    titleParticles.push({
+      x: Math.random()*canvas.width, y: canvas.height + 10,
+      vx: (Math.random()-0.5)*30, vy: -50 - Math.random()*80,
+      life: 2+Math.random()*2, maxLife: 4, size: 1+Math.random()*2,
+      color: ['#6c3cf7','#00d4ff','#ffd700','#ff4444'][randInt(0,3)],
+    });
   }
-  // Enemy projectiles hit bastion
-  for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.x+=p.vx*ed;p.y+=p.vy*ed;p.life-=ed;
-    if(p.life<=0){enemyProjectiles.splice(i,1);continue;}
-    if(dist(p.x,p.y,bastion.x,bastion.y)<CONFIG.BASTION_RADIUS){modifyHP(-p.dmg,'ep');spawnParticleBurst(p.x,p.y,4,p.color,0.2);enemyProjectiles.splice(i,1);}}
-  enemies=enemies.filter(e=>e.active);
-  for(const t of towers)updateTower(t,enemies,ed,currentUpgrades);
-  updateProjectiles(activeProjectiles,enemies,ed,currentUpgrades);
-  updateParticles(activeParticles,ed);
-  // Screen shake decay
-  if(shakeIntensity>0){shakeIntensity=Math.max(0,shakeIntensity-ed*20);shakeOffX=(Math.random()-0.5)*shakeIntensity*2;shakeOffY=(Math.random()-0.5)*shakeIntensity*2;}else{shakeOffX=0;shakeOffY=0;}
-  // Wave complete guard (F5)
-  if(!_waveClearing&&waveSpawnQueue.length===0&&enemies.filter(e=>e.active).length===0&&waveNum>0){
-    _waveClearing=true;addScore(waveNum*50);
-    if(waveDmgTaken===0)unlockAch(7);if(waveNum>=5&&towers.length===0)unlockAch(6);
-    if(waveNum>=CONFIG.MAX_WAVES){gameWon=true;if(bastion.hp>=bastion.maxHP)unlockAch(9);addScore(bastion.hp*10);beginTransition(STATE.GAMEOVER);}
-    else beginTransition(STATE.UPGRADE);
+  for (let i = titleParticles.length-1; i >= 0; i--) {
+    const p = titleParticles[i];
+    p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt;
+    if (p.life <= 0) titleParticles.splice(i, 1);
   }
-  checkAchievements();
-  displayScore+=(score-displayScore)*Math.min(1,ed*8);displayHP+=(bastion.hp-displayHP)*Math.min(1,ed*8);displayMana+=(mana-displayMana)*Math.min(1,ed*8);
-  for(let i=toasts.length-1;i>=0;i--){toasts[i].timer-=ed;toasts[i].y+=(toasts[i].targetY-toasts[i].y)*Math.min(1,ed*6);if(toasts[i].timer<=0)toasts.splice(i,1);}
 }
-function updateGameOver(dt){updateParticles(activeParticles,dt);displayScore+=(score-displayScore)*Math.min(1,dt*8);}
+
+function updatePlaying(dt) {
+  const effectiveDt = dt * slowMotion.factor;
+  gameTime += effectiveDt;
+
+  // Mana regen
+  modifyMana(manaRegen * effectiveDt, 'regen');
+
+  // Wave prep countdown
+  if (wavePrepTime > 0) {
+    wavePrepTime -= effectiveDt;
+    // Don't spawn enemies during prep
+  } else {
+    // Spawn enemies from queue
+    if (spawnQueue.length > 0) {
+      const diff = DIFF_SCALE[waveNum - 1];
+      spawnTimer -= effectiveDt * 1000;
+      if (spawnTimer <= 0) {
+        const sp = spawnQueue.shift();
+        const e = spawnEnemy(sp.type, sp.elite, {w:canvas.width,h:canvas.height});
+        enemies.push(e);
+        spawnTimer = diff.interval;
+      }
+    }
+  }
+
+  // Update wizard
+  updateWizard(wizard, { keys, mouse: mousePos, touch: touchState }, effectiveDt, {w:canvas.width,h:canvas.height});
+
+  // Auto-fire
+  handleAutoFire(effectiveDt);
+
+  // Update projectiles
+  updateProjectiles(projectiles, enemies, effectiveDt);
+
+  // Update towers
+  updateTowers(towers, enemies, projectiles, effectiveDt, upgrades);
+
+  // Update enemies
+  updateEnemies(enemies, bastion, wizard, effectiveDt);
+
+  // Clean dead enemies
+  for (let i = enemies.length-1; i >= 0; i--) {
+    if (!enemies[i].alive) enemies.splice(i, 1);
+  }
+
+  // Update particles
+  updateParticles(particles, effectiveDt);
+
+  // Screen effects
+  if (screenShake.time > 0) {
+    screenShake.time -= dt;
+    screenShake.x = (Math.random()-0.5)*screenShake.intensity*2;
+    screenShake.y = (Math.random()-0.5)*screenShake.intensity*2;
+  } else { screenShake.x = 0; screenShake.y = 0; }
+
+  if (slowMotion.time > 0) {
+    slowMotion.time -= dt;
+    if (slowMotion.time <= 0) slowMotion.factor = 1;
+  }
+
+  // Update toasts
+  for (let i = toasts.length-1; i >= 0; i--) {
+    toasts[i].time -= dt;
+    if (toasts[i].time <= 0) toasts.splice(i, 1);
+  }
+
+  // Check wave complete
+  checkWaveComplete();
+
+  // Check game over
+  checkGameOver();
+
+  // Bastion hit flash
+  bastion.hitFlash = Math.max(0, bastion.hitFlash - dt);
+}
+
+function updateUpgrade(dt) {
+  tweenManager.update(dt);
+  updateParticles(particles, dt);
+}
+
+function updateGameOver(dt) {
+  updateParticles(particles, dt);
+  if (screenShake.time > 0) {
+    screenShake.time -= dt;
+    screenShake.x = (Math.random()-0.5)*screenShake.intensity*2;
+    screenShake.y = (Math.random()-0.5)*screenShake.intensity*2;
+  } else { screenShake.x = 0; screenShake.y = 0; }
+}
 
 // ============================================================
-// RENDER MAIN
+// RENDER FUNCTIONS
 // ============================================================
-function render(dt){
+function render(currentState, dt) {
+  const w = canvas.width, h = canvas.height;
+
+  // Build background cache if needed
+  if (bgCacheDirty) buildBgCache(currentBiome, w, h);
+
   ctx.save();
-  if(shakeIntensity>0)ctx.translate(shakeOffX,shakeOffY);
-  ctx.fillStyle='#0a0a0f';ctx.fillRect(-10,-10,W+20,H+20);
-  if(state===STATE.TITLE)renderTitle(dt);
-  else if(state===STATE.PLAYING||state===STATE.PAUSED||state===STATE.UPGRADE)renderGame(dt);
-  if(state===STATE.UPGRADE)renderUpgradeUI();
-  if(state===STATE.PAUSED)renderPause();
-  if(state===STATE.GAMEOVER)renderGameOver();
-  if(screenFade.alpha>0){ctx.fillStyle=`rgba(0,0,0,${screenFade.alpha})`;ctx.fillRect(-10,-10,W+20,H+20);}
-  renderToasts();ctx.restore();
+  // Screen shake offset
+  if (screenShake.x || screenShake.y) ctx.translate(screenShake.x, screenShake.y);
+
+  // Background
+  if (bgCacheCanvas) ctx.drawImage(bgCacheCanvas, 0, 0, w, h);
+
+  switch(currentState) {
+    case STATE.TITLE: renderTitle(dt); break;
+    case STATE.PLAYING: renderPlaying(dt); break;
+    case STATE.UPGRADE: renderPlaying(dt); renderUpgradeOverlay(dt); break;
+    case STATE.PAUSED: renderPlaying(dt); renderPauseOverlay(); break;
+    case STATE.GAMEOVER: renderPlaying(dt); renderGameOverOverlay(dt); break;
+  }
+
+  // Screen fade
+  if (screenFade.alpha > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${screenFade.alpha})`;
+    ctx.fillRect(-20, -20, w+40, h+40);
+  }
+
+  // Toasts
+  renderToasts(dt);
+
+  ctx.restore();
 }
 
-// ============================================================
-// TITLE SCREEN — rotating arcane glyph
-// ============================================================
-function renderTitle(dt){
-  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,W,H);
-  const cx=W/2,cy=H/2-30;
-  ctx.save();ctx.translate(cx,cy);ctx.rotate(titleTime*0.3);
-  ctx.strokeStyle='#6c3cf7';ctx.lineWidth=2;ctx.globalAlpha=0.6+Math.sin(titleTime*2)*0.3;
-  ctx.beginPath();ctx.arc(0,0,100,0,Math.PI*2);ctx.stroke();
-  for(let i=0;i<6;i++){ctx.save();ctx.rotate(i*Math.PI/3);ctx.strokeStyle='#9944ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(80,0);ctx.lineTo(95,10);ctx.lineTo(95,-10);ctx.closePath();ctx.stroke();ctx.restore();}
-  ctx.strokeStyle='#00ffff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,60,0,Math.PI*2);ctx.stroke();
-  ctx.strokeStyle='#ffd700';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(-40,0);ctx.lineTo(40,0);ctx.moveTo(0,-40);ctx.lineTo(0,40);ctx.stroke();
-  ctx.restore();ctx.globalAlpha=1;
-  // Scanlines
-  ctx.fillStyle='rgba(0,0,0,0.03)';for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='900 '+(W<500?26:42)+'px Cinzel, Georgia, serif';
-  ctx.shadowColor='#6c3cf7';ctx.shadowBlur=30;ctx.fillStyle='#e0e0f0';
-  ctx.fillText('ARCANE BASTION',W/2,H/2-100);ctx.shadowBlur=0;
-  ctx.font=(W<500?12:16)+'px Cinzel, Georgia, serif';ctx.fillStyle='#8080a0';
-  ctx.fillText('로그라이크 포지 디펜스',W/2,H/2-65);
-  // Mini bastion + wizard
-  ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(W/2,H/2+10,28,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-  ctx.strokeStyle='#9944ff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(W/2,H/2+10,16,0,Math.PI*2);ctx.stroke();
-  // Mini wizard
-  const wx=W/2-50,wy=H/2+25,bob=Math.sin(titleTime*3)*2;
-  ctx.fillStyle='#9944ff';ctx.beginPath();ctx.ellipse(wx,wy+bob,8,11,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#ddbbee';ctx.beginPath();ctx.arc(wx,wy-11+bob,5,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#6622cc';ctx.beginPath();ctx.moveTo(wx-7,wy-11+bob);ctx.lineTo(wx,wy-22+bob);ctx.lineTo(wx+7,wy-11+bob);ctx.fill();
-  // Floating particles
-  ctx.globalAlpha=0.5;
-  for(let i=0;i<12;i++){const px=W/2+Math.cos(titleTime*0.5+i*0.52)*140*Math.sin(i),py=H/2+Math.sin(titleTime*0.7+i*0.73)*80,s=2+Math.sin(titleTime+i);
-    ctx.fillStyle=i%3===0?'#6c3cf7':i%3===1?'#00ffff':'#ffd700';ctx.fillRect(px-s/2,py-s/2,s,s);}
-  ctx.globalAlpha=1;
-  const al=0.5+Math.sin(titleTime*3)*0.5;ctx.globalAlpha=al;
-  ctx.font=(W<500?13:18)+'px Cinzel, Georgia, serif';ctx.fillStyle='#ffd700';
-  ctx.fillText(isTouchDevice?'탭하여 시작':'SPACE / CLICK TO START',W/2,H/2+100);ctx.globalAlpha=1;
-  const best=getBest();if(best.score>0){ctx.font='14px Cinzel, sans-serif';ctx.fillStyle='#505070';ctx.fillText('최고: '+best.score+' (W'+best.wave+')',W/2,H/2+130);}
-  ctx.font='11px sans-serif';ctx.fillStyle='#404060';
-  ctx.fillText('WASD 이동 · 클릭 공격 · Q 파이어볼 · E 프로스트 · 1~5 타워',W/2,H-20);
-  ctx.textAlign='left';
+function renderTitle(dt) {
+  const w = canvas.width, h = canvas.height;
+
+  // Title particles
+  for (const p of titleParticles) {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Arcane rune circle behind title
+  const cx = w/2, cy = h/2 - 40;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(titleTime * 0.3);
+  ctx.strokeStyle = '#6c3cf7';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.3 + Math.sin(titleTime*2)*0.1;
+  ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, 100, 0, Math.PI*2); ctx.stroke();
+  // Rune marks
+  for (let i = 0; i < 8; i++) {
+    const a = (i/8)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*95, Math.sin(a)*95);
+    ctx.lineTo(Math.cos(a)*125, Math.sin(a)*125);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Title text with glow
+  ctx.save();
+  ctx.shadowColor = '#6c3cf7';
+  ctx.shadowBlur = 30 + Math.sin(titleTime*3)*10;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '900 42px Cinzel, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ARCANE', cx, cy - 25);
+  ctx.fillText('BASTION', cx, cy + 25);
+  ctx.restore();
+
+  // Subtitle
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '400 14px Orbitron, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('로그라이크 포지 디펜스', cx, cy + 70);
+
+  // Best score
+  const best = getBest();
+  if (best.score > 0) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '400 13px Orbitron, sans-serif';
+    ctx.fillText(`BEST: ${best.score}  WAVE: ${best.wave}`, cx, cy + 95);
+  }
+
+  // Start prompt (blinking)
+  ctx.globalAlpha = 0.5 + Math.sin(titleTime*4)*0.5;
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '700 16px Orbitron, sans-serif';
+  ctx.fillText(isTouchDevice ? '탭하여 시작' : 'SPACE / 클릭하여 시작', cx, h - 60);
+  ctx.globalAlpha = 1;
+
+  // Scanline effect
+  ctx.fillStyle = 'rgba(0,0,0,0.03)';
+  for (let y = 0; y < h; y += 3) ctx.fillRect(0, y, w, 1);
 }
 
-// ============================================================
-// GAME RENDER
-// ============================================================
-function renderGame(dt){
-  if(bgCacheCanvas)ctx.drawImage(bgCacheCanvas,0,0);
-  // Ambient particles
-  const wd=WAVE_DATA[(waveNum||1)-1];if(wd){ctx.globalAlpha=0.2;for(let i=0;i<8;i++){const t=titleTime+i*2,px=(t*20+i*130)%W,py=wd.biome==='volcano'?H-Math.abs(Math.sin(t))*60:(t*15+i*80)%H;ctx.fillStyle=wd.biome==='forest'?'#44aa44':wd.biome==='cave'?'#4488ff':'#ff6600';ctx.fillRect(px,py,2,2);}ctx.globalAlpha=1;}
-  for(const t of towers)drawTower(ctx,t);
-  // Tower placement preview ghost
-  if(_isPlacingTower&&selectedTowerIdx>=0){const tt=TOWER_TYPES[selectedTowerIdx];ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(mouseX,mouseY,tt.range,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=0.5;drawTowerShape(ctx,mouseX,mouseY,tt.color,8);ctx.globalAlpha=1;}
-  if(bastion)drawBastion(ctx,bastion.x,bastion.y,bastion);
-  for(const e of enemies)if(e.active)drawEnemy(ctx,e);
-  if(wizard)drawWizard(ctx,wizard);
-  for(const p of activeProjectiles)if(p.active)drawProjectile(ctx,p);
-  for(const p of enemyProjectiles)drawEnemyProjectile(ctx,p);
-  for(const p of activeParticles)if(p.active)drawParticle(ctx,p);
-  renderHUD();
+function renderPlaying(dt) {
+  const w = canvas.width, h = canvas.height;
+
+  // Foreground particles (biome specific ambient)
+  if (state === STATE.PLAYING && Math.random() < 0.1) {
+    let color = '#44aa44';
+    if (currentBiome === 'cave') color = '#4466aa';
+    if (currentBiome === 'volcano') color = '#ff6600';
+    spawnParticles(Math.random()*w, Math.random()*h, 1, color, 20, 2);
+  }
+
+  // Draw towers
+  for (const t of towers) drawTower(ctx, t, dt);
+
+  // Tower placement preview
+  if (_isPlacingTower && _selectedTowerType) {
+    const tData = TOWER_TYPES[_selectedTowerType];
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = tData.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(mousePos.x, mousePos.y, tData.range, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle = tData.color;
+    ctx.beginPath();
+    ctx.arc(mousePos.x, mousePos.y, 18, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw bastion
+  drawBastion(ctx, bastion, dt);
+
+  // Draw enemies
+  for (const e of enemies) { if (e.alive) drawEnemy(ctx, e, dt); }
+
+  // Draw projectiles
+  for (const p of projectiles) { if (p.alive) drawProjectile(ctx, p); }
+
+  // Draw wizard
+  drawWizard(ctx, wizard, dt);
+
+  // Draw particles
+  for (const p of particles) {
+    if (!p.alive) continue;
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Draw HUD
+  drawHUD(ctx, w, h);
 }
 
-// ============================================================
-// DRAW FUNCTIONS — sprite with canvas fallback
-// ============================================================
-function drawBastion(c,x,y,b){
-  c.save();c.translate(x,y);
-  c.globalAlpha=0.3;c.save();c.rotate(b.glowPhase*0.5);c.strokeStyle='#ffd700';c.lineWidth=1;
-  c.beginPath();c.arc(0,0,b.radius+15,0,Math.PI*2);c.stroke();
-  for(let i=0;i<8;i++){const a=i*Math.PI/4;c.beginPath();c.moveTo(Math.cos(a)*(b.radius+8),Math.sin(a)*(b.radius+8));c.lineTo(Math.cos(a)*(b.radius+18),Math.sin(a)*(b.radius+18));c.stroke();}
-  c.restore();c.globalAlpha=1;
-  const hr=b.hp/b.maxHP;c.shadowColor='#ffd700';c.shadowBlur=10+hr*15;
-  c.fillStyle=b.flashTimer>0?'#ff4444':`hsl(45,${60+hr*40}%,${20+hr*40}%)`;
-  c.beginPath();c.arc(0,0,b.radius,0,Math.PI*2);c.fill();c.shadowBlur=0;
-  c.strokeStyle='#9944ff';c.lineWidth=1.5;c.globalAlpha=0.6;c.beginPath();c.arc(0,0,b.radius*0.6,0,Math.PI*2);c.stroke();
-  c.beginPath();c.moveTo(-b.radius*0.4,0);c.lineTo(b.radius*0.4,0);c.moveTo(0,-b.radius*0.4);c.lineTo(0,b.radius*0.4);c.stroke();c.globalAlpha=1;
-  c.strokeStyle='#ffd700';c.lineWidth=2;c.beginPath();c.arc(0,0,b.radius,0,Math.PI*2);c.stroke();
-  for(let i=0;i<8;i++){const a=i*Math.PI/4;c.fillStyle='#aa8822';c.fillRect(Math.cos(a)*b.radius-4,Math.sin(a)*b.radius-4,8,8);}
+function drawBastion(c, bast, dt) {
+  const hpRatio = bast.hp / bast.maxHp;
+
+  // Glow based on HP
+  c.save();
+  c.shadowColor = bast.hitFlash > 0 ? '#ff0000' : '#ffd700';
+  c.shadowBlur = 15 + hpRatio * 15;
+
+  // Outer ring
+  c.strokeStyle = `rgb(${Math.floor(255*hpRatio)},${Math.floor(180*hpRatio)},0)`;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.arc(bast.x, bast.y, bast.radius, 0, Math.PI*2);
+  c.stroke();
+
+  // Inner fill
+  c.fillStyle = bast.hitFlash > 0 ? '#ff4444' : `rgba(${Math.floor(100+80*hpRatio)},${Math.floor(50+50*hpRatio)},${Math.floor(150+50*hpRatio)},0.6)`;
+  c.beginPath();
+  c.arc(bast.x, bast.y, bast.radius - 3, 0, Math.PI*2);
+  c.fill();
+  c.restore();
+
+  // Magic circle inside
+  c.save();
+  c.translate(bast.x, bast.y);
+  c.rotate(gameTime * 0.5);
+  c.strokeStyle = `rgba(108,60,247,${0.3+hpRatio*0.3})`;
+  c.lineWidth = 1;
+  // Hexagram
+  for (let i = 0; i < 6; i++) {
+    const a1 = (i/6)*Math.PI*2;
+    const a2 = ((i+2)/6)*Math.PI*2;
+    c.beginPath();
+    c.moveTo(Math.cos(a1)*(bast.radius-8), Math.sin(a1)*(bast.radius-8));
+    c.lineTo(Math.cos(a2)*(bast.radius-8), Math.sin(a2)*(bast.radius-8));
+    c.stroke();
+  }
+  c.restore();
+
+  // HP bar above bastion
+  const barW = bast.radius*2;
+  const barH = 6;
+  const barX = bast.x - barW/2;
+  const barY = bast.y - bast.radius - 14;
+  c.fillStyle = 'rgba(0,0,0,0.5)';
+  c.fillRect(barX, barY, barW, barH);
+  const hpGrad = c.createLinearGradient(barX, barY, barX+barW*hpRatio, barY);
+  hpGrad.addColorStop(0, '#ff4444');
+  hpGrad.addColorStop(1, '#44ff44');
+  c.fillStyle = hpGrad;
+  c.fillRect(barX, barY, barW * hpRatio, barH);
+}
+
+function drawWizard(c, wiz, dt) {
+  c.save();
+  c.translate(wiz.x, wiz.y);
+
+  // Hit flash
+  if (wiz.hitFlash > 0) { c.shadowColor = '#ff0000'; c.shadowBlur = 20; }
+  else if (wiz.castAnim > 0) { c.shadowColor = '#00ffff'; c.shadowBlur = 15; }
+
+  // Body (robe)
+  c.fillStyle = '#9944ff';
+  c.beginPath();
+  c.moveTo(0, -18);
+  c.lineTo(-12, 14);
+  // Walk animation
+  const walkOffset = wiz.state === 'walk' ? Math.sin(wiz.animTime * 8) * 3 : 0;
+  c.lineTo(-8, 16 + walkOffset);
+  c.lineTo(8, 16 - walkOffset);
+  c.lineTo(12, 14);
+  c.closePath();
+  c.fill();
+
+  // Hood
+  c.fillStyle = '#7722cc';
+  c.beginPath();
+  c.arc(0, -12, 10, Math.PI, 0);
+  c.closePath();
+  c.fill();
+
+  // Head
+  c.fillStyle = '#ddb893';
+  c.beginPath();
+  c.arc(0, -10, 7, 0, Math.PI*2);
+  c.fill();
+
+  // Eyes (face direction)
+  const eyeDir = wiz.facing;
+  c.fillStyle = '#44ddff';
+  c.beginPath();
+  c.arc(-3 + Math.cos(eyeDir)*2, -11 + Math.sin(eyeDir), 1.5, 0, Math.PI*2);
+  c.arc(3 + Math.cos(eyeDir)*2, -11 + Math.sin(eyeDir), 1.5, 0, Math.PI*2);
+  c.fill();
+
+  // Staff
+  c.strokeStyle = '#aa8855';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(10, -8);
+  c.lineTo(14, -24);
+  c.stroke();
+  // Staff orb (pulsing)
+  c.fillStyle = '#00ffff';
+  c.shadowColor = '#00ffff';
+  c.shadowBlur = 8 + Math.sin(gameTime*5)*4;
+  c.beginPath();
+  c.arc(14, -26, 3 + Math.sin(gameTime*3)*0.5, 0, Math.PI*2);
+  c.fill();
+
   c.restore();
 }
-function drawWizard(c,w){
-  const bob=Math.sin(w.animTimer)*2;
-  if(SPRITES.player){c.drawImage(SPRITES.player,w.x-32,w.y-32+bob,64,64);}
-  else{c.save();c.translate(w.x,w.y);
-    c.fillStyle='#9944ff';c.beginPath();c.ellipse(0,bob,10,14,0,0,Math.PI*2);c.fill();
-    c.fillStyle='#ddbbee';c.beginPath();c.arc(0,-14+bob,7,0,Math.PI*2);c.fill();
-    c.fillStyle='#6622cc';c.beginPath();c.moveTo(-10,-14+bob);c.lineTo(0,-30+bob);c.lineTo(10,-14+bob);c.fill();
-    const sx=w.facing*12;c.strokeStyle='#aa8844';c.lineWidth=2;c.beginPath();c.moveTo(sx,-10+bob);c.lineTo(sx,16+bob);c.stroke();
-    c.fillStyle='#00ffff';c.shadowColor='#00ffff';c.shadowBlur=8;c.beginPath();c.arc(sx,-12+bob,3,0,Math.PI*2);c.fill();c.shadowBlur=0;
-    c.restore();}
+
+function drawEnemy(c, e, dt) {
+  c.save();
+  c.translate(e.x, e.y);
+
+  // Invisibility
+  if (e.invisible) c.globalAlpha = 0.2;
+
+  // Elite glow
+  if (e.elite) {
+    c.shadowColor = '#ffd700';
+    c.shadowBlur = 10;
+  }
+
+  // Hit flash override
+  if (e.hitFlash > 0) c.fillStyle = '#ffffff';
+  else c.fillStyle = e.color;
+
+  // Type-specific shapes
+  switch(e.type) {
+    case 'slime':
+      // Bouncy blob
+      const squish = 1 + Math.sin(e.animPhase) * 0.15;
+      c.beginPath();
+      c.ellipse(0, 2, e.radius * squish, e.radius / squish, 0, 0, Math.PI*2);
+      c.fill();
+      // Eyes
+      if (e.hitFlash <= 0) {
+        c.fillStyle = '#ffffff';
+        c.beginPath(); c.arc(-4, -2, 2.5, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(4, -2, 2.5, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#000';
+        c.beginPath(); c.arc(-3, -2, 1, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(5, -2, 1, 0, Math.PI*2); c.fill();
+      }
+      break;
+    case 'skeleton':
+      // Skull body
+      c.fillRect(-6, -e.radius, 12, e.radius*2);
+      // Skull
+      if (e.hitFlash <= 0) c.fillStyle = '#eeeeee';
+      c.beginPath(); c.arc(0, -e.radius+4, 8, 0, Math.PI*2); c.fill();
+      // Eyes
+      c.fillStyle = '#ff0000';
+      c.beginPath(); c.arc(-3, -e.radius+3, 2, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(3, -e.radius+3, 2, 0, Math.PI*2); c.fill();
+      // Sword
+      c.strokeStyle = '#cccccc';
+      c.lineWidth = 2;
+      c.beginPath();
+      const sAngle = Math.sin(e.animPhase*2)*0.4;
+      c.moveTo(8, 0);
+      c.lineTo(8+Math.cos(sAngle)*16, Math.sin(sAngle)*16);
+      c.stroke();
+      break;
+    case 'spider':
+      // Body
+      c.beginPath(); c.ellipse(0, 0, e.radius, e.radius*0.7, 0, 0, Math.PI*2); c.fill();
+      // Legs
+      c.strokeStyle = e.hitFlash > 0 ? '#fff' : e.color;
+      c.lineWidth = 1.5;
+      for (let i = 0; i < 4; i++) {
+        const la = (i/4)*Math.PI - Math.PI/2 + Math.sin(e.animPhase + i)*0.3;
+        c.beginPath();
+        c.moveTo(Math.cos(la)*e.radius*0.7, Math.sin(la)*e.radius*0.7);
+        c.lineTo(Math.cos(la)*e.radius*2, Math.sin(la)*e.radius*2);
+        c.stroke();
+        c.beginPath();
+        c.moveTo(Math.cos(-la+Math.PI)*e.radius*0.7, Math.sin(-la+Math.PI)*e.radius*0.7);
+        c.lineTo(Math.cos(-la+Math.PI)*e.radius*2, Math.sin(-la+Math.PI)*e.radius*2);
+        c.stroke();
+      }
+      // Eyes
+      c.fillStyle = '#ff0000';
+      for (let i = -2; i <= 2; i++) c.fillRect(i*3-1, -4, 2, 2);
+      break;
+    case 'golem':
+      // Rocky body
+      c.fillRect(-e.radius*0.7, -e.radius, e.radius*1.4, e.radius*2);
+      // Crack lines
+      c.strokeStyle = 'rgba(0,0,0,0.3)';
+      c.lineWidth = 1;
+      c.beginPath(); c.moveTo(-3,-e.radius); c.lineTo(2,0); c.lineTo(-5,e.radius); c.stroke();
+      // Eyes
+      c.fillStyle = '#ff8800';
+      c.beginPath(); c.arc(-5, -e.radius+8, 3, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(5, -e.radius+8, 3, 0, Math.PI*2); c.fill();
+      break;
+    case 'wraith':
+      // Ghostly body
+      c.globalAlpha *= (0.5 + Math.sin(e.animPhase)*0.2);
+      c.beginPath();
+      c.moveTo(0, -e.radius);
+      c.quadraticCurveTo(e.radius, -e.radius*0.5, e.radius*0.8, e.radius*0.5);
+      // Wavy bottom
+      for (let i = 3; i >= -3; i--) {
+        c.lineTo(i*e.radius*0.3, e.radius + Math.sin(e.animPhase+i)*4);
+      }
+      c.quadraticCurveTo(-e.radius, -e.radius*0.5, 0, -e.radius);
+      c.fill();
+      // Glowing eyes
+      c.fillStyle = '#aaaaff';
+      c.beginPath(); c.arc(-4, -4, 2, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(4, -4, 2, 0, Math.PI*2); c.fill();
+      break;
+    case 'darknight':
+      // Armored body
+      c.fillRect(-e.radius*0.5, -e.radius, e.radius, e.radius*2);
+      // Helmet
+      c.fillStyle = e.hitFlash > 0 ? '#fff' : '#444444';
+      c.beginPath(); c.arc(0, -e.radius+5, 9, 0, Math.PI*2); c.fill();
+      // Shield (glows when close to bastion)
+      const distToBastion = dist(e.x, e.y, bastion.x, bastion.y);
+      c.fillStyle = distToBastion < 100 ? '#aaaaff' : '#555555';
+      c.fillRect(-e.radius*0.7, -5, 6, 14);
+      // Eyes
+      c.fillStyle = '#ff4444';
+      c.fillRect(-3, -e.radius+3, 2, 3);
+      c.fillRect(1, -e.radius+3, 2, 3);
+      break;
+    case 'dragonkin':
+      // Dragon body
+      c.beginPath();
+      c.moveTo(0, -e.radius);
+      c.lineTo(e.radius*0.8, e.radius*0.5);
+      c.lineTo(0, e.radius);
+      c.lineTo(-e.radius*0.8, e.radius*0.5);
+      c.closePath();
+      c.fill();
+      // Wings
+      c.fillStyle = e.hitFlash > 0 ? '#fff' : '#cc3333';
+      const wingFlap = Math.sin(e.animPhase*2)*0.3;
+      c.beginPath();
+      c.moveTo(-5, -5);
+      c.lineTo(-e.radius*1.5, -e.radius*0.8 + wingFlap*10);
+      c.lineTo(-e.radius, 0);
+      c.closePath();
+      c.fill();
+      c.beginPath();
+      c.moveTo(5, -5);
+      c.lineTo(e.radius*1.5, -e.radius*0.8 + wingFlap*10);
+      c.lineTo(e.radius, 0);
+      c.closePath();
+      c.fill();
+      // Eye
+      c.fillStyle = '#ffff00';
+      c.beginPath(); c.arc(0, -e.radius*0.4, 2, 0, Math.PI*2); c.fill();
+      break;
+    default:
+      // Boss fallback / generic
+      if (e.isBoss) {
+        // Large glowing boss
+        c.shadowColor = e.color;
+        c.shadowBlur = 20;
+        c.beginPath(); c.arc(0, 0, e.radius, 0, Math.PI*2); c.fill();
+        // Crown
+        c.fillStyle = '#ffd700';
+        c.beginPath();
+        c.moveTo(-e.radius*0.5, -e.radius+3);
+        c.lineTo(-e.radius*0.3, -e.radius-8);
+        c.lineTo(0, -e.radius+3);
+        c.lineTo(e.radius*0.3, -e.radius-8);
+        c.lineTo(e.radius*0.5, -e.radius+3);
+        c.fill();
+        // Boss name
+        c.shadowBlur = 0;
+        c.fillStyle = '#ffffff';
+        c.font = '700 11px Orbitron, sans-serif';
+        c.textAlign = 'center';
+        c.fillText(e.bossName || '', 0, e.radius + 18);
+      }
+      break;
+  }
+
+  // Boss: draw specific boss visuals on top
+  if (e.isBoss) {
+    c.shadowColor = e.color;
+    c.shadowBlur = 15;
+    if (e.type === 'golemKing') {
+      // Large golem
+      c.fillStyle = e.hitFlash > 0 ? '#fff' : e.color;
+      c.fillRect(-e.radius*0.7, -e.radius, e.radius*1.4, e.radius*2);
+      c.fillStyle = '#ffd700';
+      c.beginPath();
+      c.moveTo(-15, -e.radius); c.lineTo(-10,-e.radius-12); c.lineTo(0,-e.radius);
+      c.lineTo(10,-e.radius-12); c.lineTo(15,-e.radius); c.fill();
+      c.fillStyle = '#ff8800';
+      c.beginPath(); c.arc(-8,-e.radius+12,5,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(8,-e.radius+12,5,0,Math.PI*2); c.fill();
+    } else if (e.type === 'wraithKing') {
+      c.fillStyle = e.hitFlash > 0 ? '#fff' : e.color;
+      c.globalAlpha *= 0.7;
+      c.beginPath(); c.arc(0,0,e.radius,0,Math.PI*2); c.fill();
+      c.fillStyle = '#ffd700';
+      c.beginPath();
+      c.moveTo(-12,-e.radius); c.lineTo(-8,-e.radius-10); c.lineTo(0,-e.radius);
+      c.lineTo(8,-e.radius-10); c.lineTo(12,-e.radius); c.fill();
+      c.fillStyle = '#aaaaff';
+      c.beginPath(); c.arc(-6,-8,4,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(6,-8,4,0,Math.PI*2); c.fill();
+    } else if (e.type === 'dragon') {
+      c.fillStyle = e.hitFlash > 0 ? '#fff' : e.color;
+      // Dragon body
+      c.beginPath(); c.ellipse(0,0,e.radius,e.radius*0.7,0,0,Math.PI*2); c.fill();
+      // Wings
+      c.fillStyle = '#cc1111';
+      const wf = Math.sin(e.animPhase*2)*8;
+      c.beginPath(); c.moveTo(-10,-5); c.lineTo(-e.radius*1.8,-e.radius+wf); c.lineTo(-e.radius*0.8,5); c.fill();
+      c.beginPath(); c.moveTo(10,-5); c.lineTo(e.radius*1.8,-e.radius+wf); c.lineTo(e.radius*0.8,5); c.fill();
+      // Head
+      c.fillStyle = e.color;
+      c.beginPath(); c.arc(0,-e.radius*0.5,15,0,Math.PI*2); c.fill();
+      c.fillStyle = '#ffff00';
+      c.beginPath(); c.arc(-5,-e.radius*0.5-2,3,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(5,-e.radius*0.5-2,3,0,Math.PI*2); c.fill();
+      // Crown
+      c.fillStyle = '#ffd700';
+      c.beginPath();
+      c.moveTo(-10,-e.radius*0.5-12); c.lineTo(-6,-e.radius*0.5-22);
+      c.lineTo(0,-e.radius*0.5-14); c.lineTo(6,-e.radius*0.5-22);
+      c.lineTo(10,-e.radius*0.5-12); c.fill();
+    }
+    c.shadowBlur = 0;
+    // Boss name under
+    c.fillStyle = '#fff';
+    c.font = '700 11px Orbitron, sans-serif';
+    c.textAlign = 'center';
+    c.fillText(e.bossName || '', 0, e.radius + 18);
+  }
+
+  // Slow indicator
+  if (e.slowTimer > 0) {
+    c.strokeStyle = '#88ddff';
+    c.lineWidth = 1;
+    c.beginPath(); c.arc(0, 0, e.radius + 4, 0, Math.PI*2); c.stroke();
+  }
+
+  c.restore();
+
+  // HP bar (above enemy)
+  if (e.hp < e.maxHp) {
+    const barW = e.radius * 2;
+    const barH = 3;
+    const barX = e.x - barW/2;
+    const barY = e.y - e.radius - 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = e.isBoss ? '#ff4444' : '#44ff44';
+    ctx.fillRect(barX, barY, barW * (e.hp/e.maxHp), barH);
+  }
+
+  // Elite border
+  if (e.elite) {
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.radius + 3, 0, Math.PI*2);
+    ctx.stroke();
+  }
 }
-function drawEnemy(c,e){
-  if(!e.isBoss&&e.type==='slime'&&SPRITES.enemy){const sz=e.radius*2.5,bob=Math.sin(e.animTimer)*2;
-    if(e.isElite){c.shadowColor='#ffd700';c.shadowBlur=12;}if(e.slowTimer>0){c.shadowColor='#88ddff';c.shadowBlur=8;}
-    c.drawImage(SPRITES.enemy,e.x-sz/2,e.y-sz/2+bob,sz,sz);c.shadowBlur=0;
-    if(e.hp<e.maxHP){const bw=e.radius*2;c.fillStyle='#333';c.fillRect(e.x-bw/2,e.y-e.radius-12+bob,bw,3);c.fillStyle='#44ff44';c.fillRect(e.x-bw/2,e.y-e.radius-12+bob,bw*(e.hp/e.maxHP),3);}return;}
-  c.save();c.translate(e.x,e.y);const bob=Math.sin(e.animTimer)*2,r=e.radius;
-  if(e.isElite){c.shadowColor='#ffd700';c.shadowBlur=12;}if(e.isBoss){c.shadowColor=e.color;c.shadowBlur=20;}
-  if(e.special==='phase'){c.globalAlpha=0.4+Math.sin(e.phaseTimer*2)*0.3;}if(e.slowTimer>0){c.shadowColor='#88ddff';c.shadowBlur=8;}
-  if(e.type==='slime'||e.type==='golemKing'){c.fillStyle=e.color;c.beginPath();c.ellipse(0,bob,r,r*0.8+Math.sin(e.animTimer*2)*2,0,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(-r*0.3,-r*0.2+bob,2,0,Math.PI*2);c.fill();c.beginPath();c.arc(r*0.3,-r*0.2+bob,2,0,Math.PI*2);c.fill();c.fillStyle='#000';c.beginPath();c.arc(-r*0.3,-r*0.2+bob,1,0,Math.PI*2);c.fill();c.beginPath();c.arc(r*0.3,-r*0.2+bob,1,0,Math.PI*2);c.fill();}
-  else if(e.type==='skeleton'){c.fillStyle=e.color;c.fillRect(-r*0.4,-r+bob,r*0.8,r*2);c.beginPath();c.arc(0,-r+bob,r*0.5,0,Math.PI*2);c.fill();c.fillStyle='#333';c.fillRect(-r*0.2,-r*0.7+bob,3,3);c.fillRect(r*0.1,-r*0.7+bob,3,3);}
-  else if(e.type==='spider'){c.fillStyle=e.color;c.beginPath();c.ellipse(0,bob,r,r*0.6,0,0,Math.PI*2);c.fill();c.strokeStyle=e.color;c.lineWidth=1;for(let i=0;i<4;i++){const a=(i-1.5)*0.6;c.beginPath();c.moveTo(Math.cos(a)*r*0.5,bob);c.lineTo(Math.cos(a)*r*1.5,r*0.8+Math.sin(e.animTimer+i)*3+bob);c.stroke();c.beginPath();c.moveTo(-Math.cos(a)*r*0.5,bob);c.lineTo(-Math.cos(a)*r*1.5,r*0.8+Math.sin(e.animTimer+i)*3+bob);c.stroke();}}
-  else if(e.type==='golem'){c.fillStyle=e.color;c.fillRect(-r,-r+bob,r*2,r*2);c.fillStyle='#886633';c.fillRect(-r*0.6,-r*0.6+bob,r*0.3,r*0.3);c.fillRect(r*0.3,-r*0.6+bob,r*0.3,r*0.3);}
-  else if(e.type==='wraith'||e.type==='wraithKing'){c.fillStyle=e.color;c.beginPath();c.moveTo(0,-r+bob);c.lineTo(-r,r*0.5+bob);c.quadraticCurveTo(-r*0.5,r+bob+3,0,r*0.8+bob);c.quadraticCurveTo(r*0.5,r+bob+3,r,r*0.5+bob);c.closePath();c.fill();c.fillStyle='#fff';c.beginPath();c.arc(-3,-r*0.3+bob,2,0,Math.PI*2);c.fill();c.beginPath();c.arc(3,-r*0.3+bob,2,0,Math.PI*2);c.fill();}
-  else if(e.type==='darkknight'){c.fillStyle=e.color;c.fillRect(-r*0.5,-r+bob,r,r*2);c.fillStyle='#888';c.fillRect(-r*0.6,-r*0.8+bob,r*1.2,r*0.6);if(bastion&&dist(e.x,e.y,bastion.x,bastion.y)<100){c.strokeStyle='#ffaa00';c.lineWidth=2;c.beginPath();c.arc(0,0,r+3,0,Math.PI*2);c.stroke();}}
-  else if(e.type==='dragonkin'||e.type==='ancientDragon'){c.fillStyle=e.color;c.beginPath();c.moveTo(0,-r+bob);c.lineTo(-r,r*0.5+bob);c.lineTo(r,r*0.5+bob);c.closePath();c.fill();const ws=Math.sin(e.animTimer*4)*8;c.fillStyle=e.type==='ancientDragon'?'#cc1111':'#cc3333';c.beginPath();c.moveTo(-r*0.3,-r*0.3+bob);c.lineTo(-r*1.5,-r*0.8+bob+ws);c.lineTo(-r*0.5,bob);c.fill();c.beginPath();c.moveTo(r*0.3,-r*0.3+bob);c.lineTo(r*1.5,-r*0.8+bob+ws);c.lineTo(r*0.5,bob);c.fill();}
-  if(e.isBoss){c.fillStyle='#ffd700';c.beginPath();c.moveTo(-8,-r-8+bob);c.lineTo(-5,-r-2+bob);c.lineTo(0,-r-10+bob);c.lineTo(5,-r-2+bob);c.lineTo(8,-r-8+bob);c.lineTo(8,-r+bob);c.lineTo(-8,-r+bob);c.closePath();c.fill();}
-  c.shadowBlur=0;c.globalAlpha=1;
-  if(e.hp<e.maxHP){const bw=r*2;c.fillStyle='#333';c.fillRect(-bw/2,-r-12+bob,bw,3);c.fillStyle=e.isBoss?'#ff4444':'#44ff44';c.fillRect(-bw/2,-r-12+bob,bw*(e.hp/e.maxHP),3);}
+
+function drawTower(c, t, dt) {
+  c.save();
+  c.translate(t.x, t.y);
+
+  // Base
+  c.fillStyle = 'rgba(0,0,0,0.3)';
+  c.beginPath(); c.arc(0, 4, 20, 0, Math.PI*2); c.fill();
+
+  // Tower body
+  c.fillStyle = '#1a1a2e';
+  c.fillRect(-10, -20, 20, 30);
+  // Top
+  c.fillStyle = t.color;
+  c.shadowColor = t.color;
+  c.shadowBlur = 8;
+  c.beginPath(); c.arc(0, -20, 10, 0, Math.PI*2); c.fill();
+
+  // Type indicator
+  c.fillStyle = '#ffffff';
+  c.font = '700 8px Orbitron, sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  const symbols = {arcane:'A',fire:'F',ice:'I',lightning:'L',heal:'+'};
+  c.fillText(symbols[t.type]||'?', 0, -20);
+
   c.restore();
 }
-function drawTower(c,t){drawTowerShape(c,t.x,t.y,t.color,8);c.globalAlpha=0.05;c.fillStyle=t.color;c.beginPath();c.arc(t.x,t.y,t.range,0,Math.PI*2);c.fill();c.globalAlpha=1;}
-function drawTowerShape(c,x,y,color,s){c.fillStyle='#1a1a2e';c.fillRect(x-s,y-s,s*2,s*2);c.strokeStyle=color;c.lineWidth=2;c.strokeRect(x-s,y-s,s*2,s*2);c.fillStyle=color;c.beginPath();c.arc(x,y,s*0.4,0,Math.PI*2);c.fill();}
-function drawProjectile(c,p){c.fillStyle=p.color;c.shadowColor=p.color;c.shadowBlur=6;if(p.type==='fireball'){c.beginPath();c.arc(p.x,p.y,p.radius,0,Math.PI*2);c.fill();c.fillStyle='#ffaa00';c.beginPath();c.arc(p.x,p.y,p.radius*0.5,0,Math.PI*2);c.fill();}else{c.fillRect(p.x-2,p.y-2,4,4);}c.shadowBlur=0;}
-function drawEnemyProjectile(c,p){c.fillStyle=p.color;c.shadowColor=p.color;c.shadowBlur=4;c.beginPath();c.arc(p.x,p.y,p.radius,0,Math.PI*2);c.fill();c.shadowBlur=0;}
-function drawParticle(c,p){const a=p.life/p.maxLife;c.globalAlpha=a;c.fillStyle=p.color;c.fillRect(p.x-p.size/2,p.y-p.size/2,p.size*a,p.size*a);c.globalAlpha=1;}
 
-// ============================================================
-// HUD
-// ============================================================
-function renderHUD(){
-  const pd=12;ctx.textAlign='left';
-  // HP panel with heart icon
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(pd,pd,200,52);ctx.strokeStyle='#1e1e30';ctx.lineWidth=1;ctx.strokeRect(pd,pd,200,52);
-  if(SPRITES.uiHeart)ctx.drawImage(SPRITES.uiHeart,pd+4,pd+4,20,20);else{ctx.fillStyle='#ff4444';ctx.font='16px sans-serif';ctx.fillText('♥',pd+8,pd+20);}
-  ctx.fillStyle='#e0e0f0';ctx.font='12px Cinzel,sans-serif';ctx.fillText('바스티온 HP',pd+28,pd+18);
-  ctx.fillStyle='#222';ctx.fillRect(pd+14,pd+28,165,8);
-  const hr=clamp(displayHP/(bastion?bastion.maxHP:100),0,1);
-  ctx.fillStyle=hr>0.5?'#44ff44':hr>0.25?'#ffaa00':'#ff4444';ctx.fillRect(pd+14,pd+28,165*hr,8);
-  ctx.fillStyle='#aaa';ctx.font='10px sans-serif';ctx.fillText(Math.round(displayHP)+'/'+(bastion?bastion.maxHP:100),pd+182,pd+36);
-  // Mana bar
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(pd,pd+58,200,24);
-  ctx.fillStyle='#4488ff';ctx.font='12px sans-serif';ctx.fillText('✦ 마나',pd+8,pd+74);
-  ctx.fillStyle='#222';ctx.fillRect(pd+62,pd+64,128,8);ctx.fillStyle='#4488ff';ctx.fillRect(pd+62,pd+64,128*clamp(displayMana/manaMax,0,1),8);
-  ctx.fillStyle='#aaa';ctx.font='10px sans-serif';ctx.fillText(Math.round(displayMana)+'/'+manaMax,pd+194,pd+74);
-  // Score + wave
-  ctx.textAlign='right';ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(W-pd-170,pd,170,46);
-  if(SPRITES.uiStar)ctx.drawImage(SPRITES.uiStar,W-pd-166,pd+2,18,18);else{ctx.fillStyle='#ffd700';ctx.font='14px sans-serif';ctx.textAlign='right';ctx.fillText('★',W-pd-148,pd+16);}
-  ctx.fillStyle='#ffd700';ctx.font='bold 14px Cinzel,sans-serif';ctx.textAlign='right';ctx.fillText(Math.round(displayScore),W-pd-8,pd+18);
-  ctx.fillStyle='#e0e0f0';ctx.font='12px Cinzel,sans-serif';ctx.fillText('웨이브 '+waveNum+'/'+CONFIG.MAX_WAVES,W-pd-8,pd+38);
-  // Boss HP
-  if(_isBossActive){const boss=enemies.find(e=>e.isBoss&&e.active);if(boss){const bw=Math.min(300,W-40),bx=(W-bw)/2;ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(bx-4,4,bw+8,26);ctx.textAlign='center';ctx.fillStyle='#ff4444';ctx.font='bold 11px Cinzel,sans-serif';ctx.fillText('⚠ BOSS: '+(boss.type==='golemKing'?'골렘 킹':boss.type==='wraithKing'?'레이스 킹':'고대 드래곤')+' ⚠',W/2,16);ctx.fillStyle='#333';ctx.fillRect(bx,20,bw,8);ctx.fillStyle='#ff2222';ctx.fillRect(bx,20,bw*(boss.hp/boss.maxHP),8);}}
-  // Pause button (48x48 touch safe)
-  const pb=touchSafe(36,36);pauseBtnRect={x:W-pd-pb.w,y:pd+52,w:pb.w,h:pb.h};
-  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(pauseBtnRect.x,pauseBtnRect.y,pb.w,pb.h);ctx.strokeStyle='#8080a0';ctx.lineWidth=1;ctx.strokeRect(pauseBtnRect.x,pauseBtnRect.y,pb.w,pb.h);
-  ctx.fillStyle='#e0e0f0';ctx.textAlign='center';ctx.font='18px sans-serif';ctx.fillText('⏸',pauseBtnRect.x+pb.w/2,pauseBtnRect.y+pb.h/2+5);
-  // Tower bar
-  ctx.textAlign='center';const bW=5*60,bX=(W-bW)/2,bY=H-68;
-  ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(bX-6,bY-4,bW+12,64);ctx.strokeStyle='#1e1e30';ctx.lineWidth=1;ctx.strokeRect(bX-6,bY-4,bW+12,64);
-  for(let i=0;i<5;i++){const tt=TOWER_TYPES[i],tx=bX+i*60+2,ty=bY,sel=_isPlacingTower&&selectedTowerIdx===i;
-    ctx.fillStyle=sel?'rgba(255,255,255,0.12)':'rgba(18,18,30,0.9)';ctx.fillRect(tx,ty,54,54);ctx.strokeStyle=mana>=tt.cost?tt.color:'#333';ctx.lineWidth=sel?2:1;ctx.strokeRect(tx,ty,54,54);
-    drawTowerShape(ctx,tx+27,ty+20,mana>=tt.cost?tt.color:'#444',7);ctx.fillStyle=mana>=tt.cost?'#e0e0f0':'#555';ctx.font='9px sans-serif';ctx.fillText(tt.name,tx+27,ty+40);ctx.fillStyle='#4488ff';ctx.font='8px sans-serif';ctx.fillText(tt.cost+'♦',tx+27,ty+52);}
-  // Skill buttons
-  if(wizard){const spX=isTouchDevice?W-64:pd,spY=isTouchDevice?H-150:H-150;
-    const fb=wizard.fireballCD<=0&&mana>=CONFIG.FIREBALL_COST,fn=wizard.frostCD<=0&&mana>=CONFIG.FROST_COST;
-    const bs=touchSafe(52,52);
-    ctx.fillStyle=fb?'rgba(255,102,0,0.25)':'rgba(40,40,40,0.5)';ctx.fillRect(spX,spY,bs.w,bs.h);ctx.strokeStyle=fb?'#ff6600':'#444';ctx.lineWidth=1;ctx.strokeRect(spX,spY,bs.w,bs.h);
-    ctx.fillStyle=fb?'#ff6600':'#666';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('🔥Q',spX+bs.w/2,spY+20);ctx.font='9px sans-serif';ctx.fillText(CONFIG.FIREBALL_COST+'♦',spX+bs.w/2,spY+36);
-    if(wizard.fireballCD>0){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(spX,spY,bs.w,bs.h*(wizard.fireballCD/CONFIG.FIREBALL_CD));}
-    ctx.fillStyle=fn?'rgba(136,221,255,0.25)':'rgba(40,40,40,0.5)';ctx.fillRect(spX,spY+58,bs.w,bs.h);ctx.strokeStyle=fn?'#88ddff':'#444';ctx.lineWidth=1;ctx.strokeRect(spX,spY+58,bs.w,bs.h);
-    ctx.fillStyle=fn?'#88ddff':'#666';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('❄E',spX+bs.w/2,spY+78);ctx.font='9px sans-serif';ctx.fillText(CONFIG.FROST_COST+'♦',spX+bs.w/2,spY+94);
-    if(wizard.frostCD>0){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(spX,spY+58,bs.w,bs.h*(wizard.frostCD/CONFIG.FROST_CD));}}
-  ctx.textAlign='left';ctx.fillStyle='#8080a0';ctx.font='11px sans-serif';ctx.fillText('처치: '+killCount,pd,H-75);
-  // Touch joystick
-  if(isTouchDevice&&touchJoystick.active){ctx.globalAlpha=0.3;ctx.strokeStyle='#8080a0';ctx.lineWidth=2;ctx.beginPath();ctx.arc(touchJoystick.baseX,touchJoystick.baseY,50,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#e0e0f0';ctx.beginPath();ctx.arc(touchJoystick.baseX+touchJoystick.dx,touchJoystick.baseY+touchJoystick.dy,18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
-  ctx.textAlign='left';
+function drawProjectile(c, p) {
+  if (p.type === 'towerBeam') {
+    c.strokeStyle = p.color;
+    c.lineWidth = 2;
+    c.globalAlpha = p.life / 0.1;
+    c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.tx, p.ty); c.stroke();
+    c.globalAlpha = 1;
+    return;
+  }
+  c.save();
+  c.shadowColor = p.color;
+  c.shadowBlur = p.type === 'fireball' ? 12 : 6;
+  c.fillStyle = p.color;
+  c.beginPath();
+  c.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+  c.fill();
+  c.restore();
+}
+
+function drawHUD(c, w, h) {
+  // Top-left: HP bar
+  c.fillStyle = 'rgba(0,0,0,0.6)';
+  c.fillRect(10, 10, 200, 20);
+  const hpR = bastion.hp / bastion.maxHp;
+  const hpGrad = c.createLinearGradient(10, 10, 210, 10);
+  hpGrad.addColorStop(0, '#ff4444');
+  hpGrad.addColorStop(1, '#44ff44');
+  c.fillStyle = hpGrad;
+  c.fillRect(12, 12, 196 * hpR, 16);
+  c.fillStyle = '#ffffff';
+  c.font = '700 11px Orbitron, sans-serif';
+  c.textAlign = 'left';
+  c.fillText(`HP ${Math.ceil(bastion.hp)}/${bastion.maxHp}`, 16, 24);
+
+  // Mana bar below HP
+  c.fillStyle = 'rgba(0,0,0,0.6)';
+  c.fillRect(10, 34, 200, 16);
+  c.fillStyle = '#4488ff';
+  c.fillRect(12, 36, 196 * (mana/maxMana), 12);
+  c.fillStyle = '#ffffff';
+  c.font = '400 10px Orbitron, sans-serif';
+  c.fillText(`MP ${Math.floor(mana)}/${maxMana}`, 16, 46);
+
+  // Score (top right area)
+  c.textAlign = 'right';
+  c.fillStyle = '#ffd700';
+  c.font = '700 14px Orbitron, sans-serif';
+  c.fillText(`${score}`, w - 64, 24);
+  c.fillStyle = '#8080a0';
+  c.font = '400 10px Orbitron, sans-serif';
+  c.fillText(`SCORE`, w - 64, 12);
+
+  // Wave number
+  c.fillStyle = '#00d4ff';
+  c.font = '700 13px Orbitron, sans-serif';
+  c.textAlign = 'left';
+  c.fillText(`WAVE ${waveNum}/${CONFIG.MAX_WAVE}`, 10, 68);
+
+  // Wave prep countdown
+  if (wavePrepTime > 0) {
+    c.textAlign = 'center';
+    c.fillStyle = '#ffd700';
+    c.font = '900 28px Cinzel, serif';
+    c.fillText(`${Math.ceil(wavePrepTime)}`, w/2, 80);
+    c.font = '400 12px Orbitron, sans-serif';
+    c.fillStyle = '#8080a0';
+    c.fillText('다음 웨이브 준비', w/2, 100);
+  }
+
+  // Boss HP bar (top center)
+  if (_isBossActive && currentBoss && currentBoss.alive) {
+    const bw = Math.min(300, w-40);
+    const bx = w/2 - bw/2;
+    c.fillStyle = 'rgba(0,0,0,0.7)';
+    c.fillRect(bx, h - 100, bw, 20);
+    c.fillStyle = '#ff2222';
+    c.fillRect(bx+2, h - 98, (bw-4)*(currentBoss.hp/currentBoss.maxHp), 16);
+    c.fillStyle = '#ffffff';
+    c.textAlign = 'center';
+    c.font = '700 10px Orbitron, sans-serif';
+    c.fillText(currentBoss.bossName || 'BOSS', w/2, h - 86);
+  }
+
+  // Pause button (top-right)
+  const pbSize = touchSafe(48, 48);
+  c.fillStyle = 'rgba(0,0,0,0.5)';
+  c.fillRect(w - pbSize.w - 8, 8, pbSize.w, pbSize.h);
+  c.fillStyle = '#e0e0f0';
+  c.fillRect(w - pbSize.w + 4, 18, 8, 28);
+  c.fillRect(w - pbSize.w + 18, 18, 8, 28);
+
+  // Tower selection bar (bottom center)
+  const tKeys = ['arcane','fire','ice','lightning','heal'];
+  const tBarW = 5 * 60;
+  const tBarX = w/2 - tBarW/2;
+  const tBarY = h - 70;
+  c.fillStyle = 'rgba(0,0,0,0.6)';
+  c.fillRect(tBarX - 5, tBarY - 5, tBarW + 10, 66);
+  for (let i = 0; i < 5; i++) {
+    const tk = tKeys[i];
+    const td = TOWER_TYPES[tk];
+    const bx = tBarX + i*60;
+    const isSelected = _isPlacingTower && _selectedTowerType === tk;
+    const canAfford = mana >= td.cost;
+    c.fillStyle = isSelected ? td.color : (canAfford ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)');
+    c.fillRect(bx, tBarY, 52, 52);
+    c.strokeStyle = td.color;
+    c.lineWidth = isSelected ? 2 : 1;
+    c.strokeRect(bx, tBarY, 52, 52);
+    // Tower icon
+    c.fillStyle = canAfford ? td.color : '#555';
+    c.font = '700 16px Orbitron, sans-serif';
+    c.textAlign = 'center';
+    const syms = {arcane:'A',fire:'F',ice:'I',lightning:'L',heal:'+'};
+    c.fillText(syms[tk], bx+26, tBarY+25);
+    // Cost
+    c.fillStyle = canAfford ? '#4488ff' : '#664444';
+    c.font = '400 9px Orbitron, sans-serif';
+    c.fillText(`${td.cost}`, bx+26, tBarY+42);
+    // Hotkey
+    c.fillStyle = '#505070';
+    c.font = '400 8px Orbitron, sans-serif';
+    c.fillText(`${i+1}`, bx+26, tBarY+52);
+  }
+
+  // Spell cooldowns (left side)
+  const spellY = h - 140;
+  const spellData = [
+    { name:'Q', cd: wizard.boltCd, max: SPELLS.bolt.cooldown, color:'#00ffff', label:'볼트' },
+    { name:'Q', cd: wizard.fireballCd, max: SPELLS.fireball.cooldown, color:'#ff6600', label:'파이어볼' },
+    { name:'E', cd: wizard.frostCd, max: SPELLS.frost.cooldown, color:'#88ddff', label:'노바' },
+  ];
+  c.textAlign = 'left';
+  for (let i = 0; i < 3; i++) {
+    const sp = spellData[i];
+    const sy = spellY + i * 28;
+    c.fillStyle = sp.cd > 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.25)';
+    c.fillRect(10, sy, 80, 24);
+    c.fillStyle = sp.color;
+    c.fillRect(10, sy, 80 * (1 - sp.cd/sp.max), 24);
+    c.globalAlpha = sp.cd > 0 ? 0.5 : 1;
+    c.fillStyle = '#fff';
+    c.font = '400 9px Orbitron, sans-serif';
+    c.fillText(sp.label, 15, sy + 16);
+    c.globalAlpha = 1;
+  }
+
+  // Touch controls
+  if (isTouchDevice) {
+    // Joystick
+    if (touchState.joystick) {
+      c.globalAlpha = 0.4;
+      c.fillStyle = '#ffffff';
+      c.beginPath();
+      c.arc(touchState.joystick.startX, touchState.joystick.startY, CONFIG.JOYSTICK_BASE, 0, Math.PI*2);
+      c.fill();
+      c.globalAlpha = 0.7;
+      const kx = touchState.joystick.startX + Math.cos(touchState.joystickAngle)*touchState.joystickDist;
+      const ky = touchState.joystick.startY + Math.sin(touchState.joystickAngle)*touchState.joystickDist;
+      c.beginPath();
+      c.arc(kx, ky, CONFIG.JOYSTICK_KNOB, 0, Math.PI*2);
+      c.fill();
+      c.globalAlpha = 1;
+    }
+
+    // Skill buttons (right side)
+    const sbSize = 56;
+    const sbX = w - 70;
+    // Fireball
+    c.fillStyle = wizard.fireballCd > 0 ? 'rgba(255,102,0,0.3)' : 'rgba(255,102,0,0.6)';
+    c.fillRect(sbX, h - 190, sbSize, sbSize);
+    c.strokeStyle = '#ff6600'; c.lineWidth = 2;
+    c.strokeRect(sbX, h - 190, sbSize, sbSize);
+    c.fillStyle = '#fff'; c.font = '700 20px Orbitron'; c.textAlign = 'center';
+    c.fillText('F', sbX + sbSize/2, h - 190 + sbSize/2 + 7);
+
+    // Frost nova
+    c.fillStyle = wizard.frostCd > 0 ? 'rgba(136,221,255,0.3)' : 'rgba(136,221,255,0.6)';
+    c.fillRect(sbX, h - 125, sbSize, sbSize);
+    c.strokeStyle = '#88ddff'; c.lineWidth = 2;
+    c.strokeRect(sbX, h - 125, sbSize, sbSize);
+    c.fillStyle = '#fff'; c.font = '700 20px Orbitron'; c.textAlign = 'center';
+    c.fillText('N', sbX + sbSize/2, h - 125 + sbSize/2 + 7);
+  }
+
+  // Kill counter
+  c.textAlign = 'left';
+  c.fillStyle = '#8080a0';
+  c.font = '400 10px Orbitron, sans-serif';
+  c.fillText(`KILLS: ${totalKills}`, 10, 84);
+}
+
+function renderUpgradeOverlay(dt) {
+  const w = canvas.width, h = canvas.height;
+
+  // Dim overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Title
+  ctx.fillStyle = '#ffd700';
+  ctx.font = '900 24px Cinzel, serif';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 15;
+  ctx.fillText('업그레이드 선택', w/2, h/2 - 140);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '400 12px Orbitron, sans-serif';
+  ctx.fillText(`웨이브 ${waveNum} 클리어!`, w/2, h/2 - 115);
+
+  // Cards
+  const cw = 150, ch = 210, gap = 16;
+  const totalW = upgradeChoices.length * cw + (upgradeChoices.length - 1) * gap;
+  const startX = (w - totalW) / 2;
+  const startY = h/2 - ch/2 + 10;
+
+  for (let i = 0; i < upgradeChoices.length; i++) {
+    const uc = upgradeChoices[i];
+    const cx = startX + i*(cw+gap);
+    const isHov = (upgradeHover === i);
+    const scale = isHov ? 1.05 : 1;
+
+    ctx.save();
+    ctx.translate(cx + cw/2, startY + ch/2);
+    ctx.scale(scale, scale);
+    ctx.translate(-cw/2, -ch/2);
+
+    // Card background
+    ctx.fillStyle = isHov ? '#1e1e30' : '#12121e';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Border with category color
+    ctx.strokeStyle = uc.color;
+    ctx.lineWidth = isHov ? 3 : 1.5;
+    if (isHov) { ctx.shadowColor = uc.color; ctx.shadowBlur = 12; }
+    ctx.strokeRect(0, 0, cw, ch);
+    ctx.shadowBlur = 0;
+
+    // Category badge
+    ctx.fillStyle = uc.color;
+    ctx.fillRect(10, 10, cw-20, 4);
+
+    // Icon area (simple geometric)
+    ctx.fillStyle = uc.color;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.arc(cw/2, 55, 25, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.font = '700 22px Orbitron, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = uc.color;
+    const icons = {attack:'⚔',defense:'🛡',resource:'💎',tower:'🏰',move:'💨',special:'✨'};
+    ctx.fillText(icons[uc.cat]||'★', cw/2, 62);
+
+    // Name
+    ctx.fillStyle = '#e0e0f0';
+    ctx.font = '700 13px Orbitron, sans-serif';
+    ctx.fillText(uc.name, cw/2, 100);
+
+    // Description
+    ctx.fillStyle = '#8080a0';
+    ctx.font = '400 10px Orbitron, sans-serif';
+    // Word wrap
+    const words = uc.desc.split('');
+    let line = '';
+    let ly = 120;
+    for (const ch2 of words) {
+      const testLine = line + ch2;
+      if (ctx.measureText(testLine).width > cw - 20) {
+        ctx.fillText(line, cw/2, ly);
+        line = ch2; ly += 14;
+      } else line = testLine;
+    }
+    ctx.fillText(line, cw/2, ly);
+
+    // Stack count
+    const current = upgrades[uc.id] || 0;
+    ctx.fillStyle = '#505070';
+    ctx.font = '400 9px Orbitron, sans-serif';
+    ctx.fillText(`${current}/${uc.max}`, cw/2, ch - 12);
+
+    ctx.restore();
+  }
+}
+
+function renderPauseOverlay() {
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '900 36px Cinzel, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('일시정지', w/2, h/2 - 20);
+
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '400 14px Orbitron, sans-serif';
+  ctx.fillText(isTouchDevice ? '탭하여 계속' : 'ESC / 클릭하여 계속', w/2, h/2 + 20);
+}
+
+function renderGameOverOverlay(dt) {
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Title
+  ctx.shadowColor = isVictory ? '#ffd700' : '#ff4444';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = isVictory ? '#ffd700' : '#ff4444';
+  ctx.font = '900 40px Cinzel, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(isVictory ? '승리!' : 'GAME OVER', w/2, h/2 - 80);
+  ctx.shadowBlur = 0;
+
+  // Stats
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '700 18px Orbitron, sans-serif';
+  ctx.fillText(`SCORE: ${score}`, w/2, h/2 - 30);
+
+  const best = getBest();
+  if (score >= best.score) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '700 14px Orbitron, sans-serif';
+    ctx.fillText('NEW BEST!', w/2, h/2 - 5);
+  }
+
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '400 13px Orbitron, sans-serif';
+  ctx.fillText(`WAVE: ${waveNum}  KILLS: ${totalKills}  TIME: ${Math.floor(gameTime)}s`, w/2, h/2 + 20);
+  ctx.fillText(`BEST: ${best.score}`, w/2, h/2 + 42);
+
+  // Achievements earned this run
+  if (newAchievements.length > 0) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '700 12px Orbitron, sans-serif';
+    ctx.fillText('달성 업적:', w/2, h/2 + 68);
+    ctx.fillStyle = '#e0e0f0';
+    ctx.font = '400 11px Orbitron, sans-serif';
+    for (let i = 0; i < newAchievements.length && i < 3; i++) {
+      ctx.fillText(newAchievements[i].name, w/2, h/2 + 85 + i*16);
+    }
+  }
+
+  // Restart prompt
+  ctx.globalAlpha = 0.5 + Math.sin(gameTime*4)*0.5;
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '700 14px Orbitron, sans-serif';
+  ctx.fillText(isTouchDevice ? '탭하여 재시작' : 'R키 / 클릭하여 재시작', w/2, h - 50);
+  ctx.globalAlpha = 1;
+}
+
+function renderToasts(dt) {
+  for (let i = 0; i < toasts.length; i++) {
+    const t = toasts[i];
+    const alpha = Math.min(1, t.time);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(255,215,0,0.9)';
+    ctx.font = '700 13px Orbitron, sans-serif';
+    ctx.textAlign = 'center';
+    const ty = 50 + i * 30;
+    ctx.fillText(`🏆 ${t.text}`, canvas.width/2, ty);
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ============================================================
-// UPGRADE UI (§9.2)
+// MAIN GAME LOOP (F12: try-catch)
 // ============================================================
-function renderUpgradeUI(){
-  ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillRect(0,0,W,H);if(!upgradeChoices||!upgradeChoices.length)return;
-  ctx.textAlign='center';ctx.font='bold '+(W<500?20:26)+'px Cinzel,Georgia,serif';ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=10;ctx.fillText('업그레이드 선택',W/2,H/2-145);ctx.shadowBlur=0;
-  ctx.font='12px sans-serif';ctx.fillStyle='#8080a0';ctx.fillText('카드 클릭 또는 1~3 키',W/2,H/2-120);
-  const cw=Math.min(150,W/4),ch=210,gap=16,tw2=upgradeChoices.length*(cw+gap)-gap,sx=(W-tw2)/2,sy=(H-ch)/2-10;
-  for(let i=0;i<upgradeChoices.length;i++){const u=upgradeChoices[i],x=sx+i*(cw+gap),y=sy;
-    ctx.fillStyle='#12121e';ctx.fillRect(x,y,cw,ch);ctx.strokeStyle=u.color;ctx.lineWidth=2;ctx.strokeRect(x,y,cw,ch);
-    ctx.fillStyle=u.color;ctx.globalAlpha=0.12;ctx.fillRect(x,y,cw,28);ctx.globalAlpha=1;
-    ctx.fillStyle=u.color;ctx.font='bold 11px sans-serif';
-    ctx.fillText(u.cat==='atk'?'공격':u.cat==='def'?'방어':u.cat==='res'?'자원':u.cat==='twr'?'타워':u.cat==='mov'?'이동':'특수',x+cw/2,y+19);
-    if(SPRITES.powerup)ctx.drawImage(SPRITES.powerup,x+cw/2-20,y+38,40,40);
-    else{ctx.font='30px sans-serif';ctx.fillText(u.cat==='atk'?'⚔️':u.cat==='def'?'🛡️':u.cat==='res'?'💎':u.cat==='twr'?'🏰':u.cat==='mov'?'⚡':'✨',x+cw/2,y+68);}
-    ctx.fillStyle='#e0e0f0';ctx.font='bold 13px Cinzel,sans-serif';ctx.fillText(u.name,x+cw/2,y+100);
-    ctx.fillStyle='#8080a0';ctx.font='11px sans-serif';wrapText(ctx,u.desc,x+cw/2,y+122,cw-12,14);
-    ctx.fillStyle='#505070';ctx.font='10px sans-serif';ctx.fillText((currentUpgrades[u.id]||0)+'/'+u.max,x+cw/2,y+ch-22);
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px sans-serif';ctx.fillText('['+(i+1)+']',x+cw/2,y+ch-6);}
-  ctx.textAlign='left';
-}
-function wrapText(c,t,x,y,mw,lh){let l='',cy=y;for(let i=0;i<t.length;i++){const ts=l+t[i];if(c.measureText(ts).width>mw&&l.length>0){c.fillText(l,x,cy);l=t[i];cy+=lh;}else l=ts;}if(l)c.fillText(l,x,cy);}
+function gameLoop(timestamp) {
+  try {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05); // 50ms cap
+    lastTime = timestamp;
 
-// ============================================================
-// PAUSE / GAMEOVER
-// ============================================================
-function renderPause(){ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.font='bold 36px Cinzel,Georgia,serif';ctx.fillStyle='#e0e0f0';ctx.shadowColor='#6c3cf7';ctx.shadowBlur=15;ctx.fillText('일시정지',W/2,H/2-20);ctx.shadowBlur=0;ctx.font='16px Cinzel,sans-serif';ctx.fillStyle='#8080a0';ctx.fillText(isTouchDevice?'탭하여 계속':'ESC로 계속',W/2,H/2+20);ctx.textAlign='left';}
+    tweenManager.update(dt);
 
-function renderGameOver(){
-  if(bgCacheCanvas){ctx.globalAlpha=0.3;ctx.drawImage(bgCacheCanvas,0,0);ctx.globalAlpha=1;}
-  ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
-  if(gameWon){ctx.font='bold '+(W<500?28:42)+'px Cinzel,Georgia,serif';ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=20;ctx.fillText('승리!',W/2,H/2-80);}
-  else{ctx.font='bold '+(W<500?28:42)+'px Cinzel,Georgia,serif';ctx.fillStyle='#ff4444';ctx.shadowColor='#ff4444';ctx.shadowBlur=20;ctx.fillText('게임 오버',W/2,H/2-80);}
-  ctx.shadowBlur=0;ctx.font='18px Cinzel,sans-serif';ctx.fillStyle='#e0e0f0';
-  ctx.fillText('점수: '+Math.round(displayScore),W/2,H/2-30);ctx.fillText('웨이브: '+waveNum+'/'+CONFIG.MAX_WAVES,W/2,H/2);ctx.fillText('처치: '+killCount,W/2,H/2+30);
-  const best=getBest();if(score>=best.score&&score>0){ctx.fillStyle='#ffd700';ctx.font='bold 16px Cinzel,sans-serif';ctx.fillText('★ 최고 기록! ★',W/2,H/2+60);}else{ctx.fillStyle='#8080a0';ctx.font='14px sans-serif';ctx.fillText('최고 점수: '+best.score,W/2,H/2+60);}
-  if(achievementsUnlocked&&achievementsUnlocked.length>0){ctx.fillStyle='#ffd700';ctx.font='12px sans-serif';ctx.fillText('업적: '+achievementsUnlocked.map(id=>ACH_DEFS[id]?ACH_DEFS[id].icon:'').join(' '),W/2,H/2+90);}
-  const al=0.5+Math.sin(titleTime*3)*0.5;ctx.globalAlpha=al;ctx.font='16px Cinzel,sans-serif';ctx.fillStyle='#ffd700';ctx.fillText(isTouchDevice?'탭하여 재시작':'R키 / 클릭으로 재시작',W/2,H/2+130);ctx.globalAlpha=1;ctx.textAlign='left';
-}
+    switch (state) {
+      case STATE.TITLE:    updateTitle(dt);    break;
+      case STATE.PLAYING:  updatePlaying(dt);  break;
+      case STATE.UPGRADE:  updateUpgrade(dt);  break;
+      case STATE.PAUSED:   /* nothing */       break;
+      case STATE.GAMEOVER: updateGameOver(dt); break;
+    }
 
-// ============================================================
-// TOASTS
-// ============================================================
-function renderToasts(){if(!toasts)return;ctx.textAlign='center';for(const t of toasts){ctx.globalAlpha=Math.min(1,t.timer);const tw2=ctx.measureText(t.msg).width+28;ctx.fillStyle='rgba(255,215,0,0.15)';ctx.fillRect(W/2-tw2/2,t.y,tw2,28);ctx.strokeStyle='#ffd700';ctx.lineWidth=1;ctx.strokeRect(W/2-tw2/2,t.y,tw2,28);ctx.fillStyle='#ffd700';ctx.font='bold 13px Cinzel,sans-serif';ctx.fillText(t.msg,W/2,t.y+18);ctx.globalAlpha=1;}ctx.textAlign='left';}
-
-// ============================================================
-// LOADING SCREEN
-// ============================================================
-function drawLoading(){ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='20px Cinzel,Georgia,serif';ctx.fillStyle='#6c3cf7';ctx.fillText('로딩 중...',W/2,H/2);const t=performance.now()/1000;ctx.strokeStyle='#6c3cf7';ctx.lineWidth=2;ctx.beginPath();ctx.arc(W/2,H/2+40,15,t*4,t*4+Math.PI*1.5);ctx.stroke();}
-
-// ============================================================
-// GAME LOOP (F12: try-catch + dt 50ms cap)
-// ============================================================
-function gameLoop(ts){
-  try{
-    const dt=Math.min((ts-lastTime)/1000,0.05);lastTime=ts;titleTime+=dt;
-    if(state!==STATE.PAUSED)tw.update(dt);
-    if(state===STATE.PLAYING)updatePlaying(dt);
-    else if(state===STATE.GAMEOVER)updateGameOver(dt);
-    render(dt);
-  }catch(e){console.error('[GameLoop]',e);}
+    render(state, dt);
+  } catch (e) {
+    console.error('[GameLoop Error]', e);
+  }
   requestAnimationFrame(gameLoop);
 }
 
 // ============================================================
-// INIT — preload then start loop
+// INIT & START
 // ============================================================
-async function init(){
-  resizeCanvas();drawLoading();
-  await preloadAssets();
-  toasts=[];achievementsUnlocked=getAchievements();
-  lastTime=performance.now();
-  requestAnimationFrame(gameLoop);
+initGame();
+// Initialize title particles
+for (let i = 0; i < 30; i++) {
+  titleParticles.push({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    vx: (Math.random()-0.5)*20, vy: -30-Math.random()*50,
+    life: Math.random()*3, maxLife: 3+Math.random()*2, size: 1+Math.random()*2,
+    color: ['#6c3cf7','#00d4ff','#ffd700','#ff4444'][randInt(0,3)],
+  });
 }
-init();
+buildBgCache('forest', canvas.width, canvas.height);
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
