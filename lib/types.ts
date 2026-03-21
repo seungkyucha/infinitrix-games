@@ -11,6 +11,7 @@ export interface Game {
   rating:      number      // 평균 평점 (0~5)
   tags:        string[]    // 추가 태그
   controls?:   string[]    // 조작 방법 설명
+  i18n?:       Record<string, { title: string; description: string; tags: string[]; controls?: string[] }>  // 다국어 번역
   version?:    string      // 버전 (예: "1.0.0")
   author?:     string      // 제작자
   difficulty?: 'easy' | 'medium' | 'hard'

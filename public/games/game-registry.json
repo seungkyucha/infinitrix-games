@@ -20,6 +20,56 @@
         "마우스 드래그: 블록 이동",
         "R키: 재시작"
       ],
+      "i18n": {
+        "en": {
+          "title": "Color Merge Puzzle",
+          "description": "Merge same-colored blocks to complete the rainbow!",
+          "tags": ["puzzle", "merge", "2048", "casual", "rainbow", "addictive"],
+          "controls": ["Arrow/WASD: Move blocks", "Touch swipe: Move blocks (mobile)", "Mouse drag: Move blocks", "R: Restart"]
+        },
+        "ja": {
+          "title": "カラーマージパズル",
+          "description": "同じ色のブロックを合体させて虹を完成させよう！",
+          "tags": ["パズル", "マージ", "2048", "カジュアル", "虹", "中毒性"],
+          "controls": ["矢印キー/WASD: ブロック移動", "タッチスワイプ: ブロック移動（モバイル）", "マウスドラッグ: ブロック移動", "Rキー: リスタート"]
+        },
+        "zh-CN": {
+          "title": "颜色合并拼图",
+          "description": "合并相同颜色的方块，完成彩虹！",
+          "tags": ["拼图", "合并", "2048", "休闲", "彩虹", "上瘾"],
+          "controls": ["方向键/WASD: 移动方块", "触摸滑动: 移动方块（手机）", "鼠标拖动: 移动方块", "R键: 重新开始"]
+        },
+        "zh-TW": {
+          "title": "顏色合併拼圖",
+          "description": "合併相同顏色的方塊，完成彩虹！",
+          "tags": ["拼圖", "合併", "2048", "休閒", "彩虹", "上癮"],
+          "controls": ["方向鍵/WASD: 移動方塊", "觸控滑動: 移動方塊（手機）", "滑鼠拖曳: 移動方塊", "R鍵: 重新開始"]
+        },
+        "es": {
+          "title": "Puzzle de Fusión de Colores",
+          "description": "¡Fusiona bloques del mismo color para completar el arcoíris!",
+          "tags": ["puzzle", "fusión", "2048", "casual", "arcoíris", "adictivo"],
+          "controls": ["Flechas/WASD: Mover bloques", "Deslizar: Mover bloques (móvil)", "Arrastrar ratón: Mover bloques", "R: Reiniciar"]
+        },
+        "fr": {
+          "title": "Puzzle de Fusion de Couleurs",
+          "description": "Fusionnez les blocs de même couleur pour compléter l'arc-en-ciel !",
+          "tags": ["puzzle", "fusion", "2048", "casual", "arc-en-ciel", "addictif"],
+          "controls": ["Flèches/WASD: Déplacer les blocs", "Glisser: Déplacer les blocs (mobile)", "Glisser souris: Déplacer les blocs", "R: Recommencer"]
+        },
+        "de": {
+          "title": "Farbverschmelzungs-Puzzle",
+          "description": "Verschmelze gleichfarbige Blöcke und vervollständige den Regenbogen!",
+          "tags": ["Puzzle", "Verschmelzung", "2048", "Casual", "Regenbogen", "Suchtfaktor"],
+          "controls": ["Pfeiltasten/WASD: Blöcke bewegen", "Wischen: Blöcke bewegen (Mobil)", "Maus ziehen: Blöcke bewegen", "R: Neustart"]
+        },
+        "pt": {
+          "title": "Puzzle de Fusão de Cores",
+          "description": "Funda blocos da mesma cor para completar o arco-íris!",
+          "tags": ["puzzle", "fusão", "2048", "casual", "arco-íris", "viciante"],
+          "controls": ["Setas/WASD: Mover blocos", "Deslizar: Mover blocos (celular)", "Arrastar mouse: Mover blocos", "R: Reiniciar"]
+        }
+      },
       "difficulty": "easy",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -44,6 +94,56 @@
         "터치: 가상 조이스틱+오토파이어",
         "R: 재시작 (확인 후)"
       ],
+      "i18n": {
+        "en": {
+          "title": "Star Guardian",
+          "description": "Become a starfighter pilot defending the universe against endless enemy waves!",
+          "tags": ["shooter", "arcade", "space", "boss battle", "power-up", "neon"],
+          "controls": ["Arrow/WASD: Move", "Space/Z: Fire", "P/Esc: Pause", "Mouse: Move + left-click to fire", "Touch: Virtual joystick + auto-fire", "R: Restart (after confirm)"]
+        },
+        "ja": {
+          "title": "スターガーディアン",
+          "description": "宇宙を守る戦闘機パイロットとなり、終わりなき敵ウェーブを撃破せよ！",
+          "tags": ["シューティング", "アーケード", "宇宙", "ボス戦", "パワーアップ", "ネオン"],
+          "controls": ["矢印キー/WASD: 移動", "Space/Z: 発射", "P/Esc: 一時停止", "マウス: 移動＋左クリックで発射", "タッチ: 仮想ジョイスティック＋オートファイア", "R: リスタート（確認後）"]
+        },
+        "zh-CN": {
+          "title": "星际守护者",
+          "description": "成为保卫宇宙的战机飞行员，击退无尽的敌人波次！",
+          "tags": ["射击", "街机", "太空", "Boss战", "强化道具", "霓虹"],
+          "controls": ["方向键/WASD: 移动", "Space/Z: 射击", "P/Esc: 暂停", "鼠标: 移动+左键射击", "触摸: 虚拟摇杆+自动射击", "R: 重新开始（确认后）"]
+        },
+        "zh-TW": {
+          "title": "星際守護者",
+          "description": "成為保衛宇宙的戰機飛行員，擊退無盡的敵人波次！",
+          "tags": ["射擊", "街機", "太空", "Boss戰", "強化道具", "霓虹"],
+          "controls": ["方向鍵/WASD: 移動", "Space/Z: 射擊", "P/Esc: 暫停", "滑鼠: 移動+左鍵射擊", "觸控: 虛擬搖桿+自動射擊", "R: 重新開始（確認後）"]
+        },
+        "es": {
+          "title": "Guardián Estelar",
+          "description": "¡Conviértete en piloto de combate espacial y destruye oleadas interminables de enemigos!",
+          "tags": ["disparos", "arcade", "espacio", "jefe", "potenciador", "neón"],
+          "controls": ["Flechas/WASD: Mover", "Space/Z: Disparar", "P/Esc: Pausa", "Ratón: Mover + clic izquierdo para disparar", "Táctil: Joystick virtual + auto-disparo", "R: Reiniciar (tras confirmar)"]
+        },
+        "fr": {
+          "title": "Gardien des Étoiles",
+          "description": "Devenez pilote de chasse spatiale et repoussez les vagues d'ennemis sans fin !",
+          "tags": ["tir", "arcade", "espace", "boss", "bonus", "néon"],
+          "controls": ["Flèches/WASD: Déplacer", "Space/Z: Tirer", "P/Esc: Pause", "Souris: Déplacer + clic gauche pour tirer", "Tactile: Joystick virtuel + tir auto", "R: Recommencer (après confirmation)"]
+        },
+        "de": {
+          "title": "Sternenwächter",
+          "description": "Werde zum Kampfpiloten und verteidige das Universum gegen endlose Feindwellen!",
+          "tags": ["Shooter", "Arcade", "Weltraum", "Bosskampf", "Power-up", "Neon"],
+          "controls": ["Pfeiltasten/WASD: Bewegen", "Space/Z: Feuern", "P/Esc: Pause", "Maus: Bewegen + Linksklick zum Feuern", "Touch: Virtueller Joystick + Auto-Feuer", "R: Neustart (nach Bestätigung)"]
+        },
+        "pt": {
+          "title": "Guardião Estelar",
+          "description": "Torne-se um piloto de caça espacial e destrua ondas infinitas de inimigos!",
+          "tags": ["tiro", "arcade", "espaço", "chefe", "power-up", "neon"],
+          "controls": ["Setas/WASD: Mover", "Space/Z: Atirar", "P/Esc: Pausar", "Mouse: Mover + clique esquerdo para atirar", "Toque: Joystick virtual + tiro automático", "R: Reiniciar (após confirmar)"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -68,6 +168,56 @@
         "Space: 웨이브 조기 시작",
         "터치: 탭으로 모든 조작"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Tower Defense",
+          "description": "Place 3 types of towers to survive 20 waves of enemies!",
+          "tags": ["tower defense", "strategy", "wave survival", "upgrade", "fantasy"],
+          "controls": ["Mouse click: Place/select/upgrade tower", "1/2/3: Select tower type", "U: Upgrade, S: Sell", "P: Pause", "Space: Start wave early", "Touch: Tap for all actions"]
+        },
+        "ja": {
+          "title": "ミニタワーディフェンス",
+          "description": "3種のタワーを配置して20ウェーブの敵を食い止めろ！",
+          "tags": ["タワーディフェンス", "戦略", "ウェーブサバイバル", "アップグレード", "ファンタジー"],
+          "controls": ["マウスクリック: タワー配置/選択/アップグレード", "1/2/3キー: タワー種類選択", "Uキー: アップグレード、Sキー: 売却", "Pキー: 一時停止", "Space: ウェーブ早期開始", "タッチ: タップで全操作"]
+        },
+        "zh-CN": {
+          "title": "迷你塔防",
+          "description": "部署3种塔楼，抵御20波敌人进攻！",
+          "tags": ["塔防", "策略", "波次生存", "升级", "奇幻"],
+          "controls": ["鼠标点击: 放置/选择/升级塔楼", "1/2/3键: 选择塔楼类型", "U键: 升级, S键: 出售", "P键: 暂停", "Space: 提前开始波次", "触摸: 点击进行所有操作"]
+        },
+        "zh-TW": {
+          "title": "迷你塔防",
+          "description": "部署3種塔樓，抵禦20波敵人進攻！",
+          "tags": ["塔防", "策略", "波次生存", "升級", "奇幻"],
+          "controls": ["滑鼠點擊: 放置/選擇/升級塔樓", "1/2/3鍵: 選擇塔樓類型", "U鍵: 升級, S鍵: 出售", "P鍵: 暫停", "Space: 提前開始波次", "觸控: 點擊進行所有操作"]
+        },
+        "es": {
+          "title": "Mini Defensa de Torres",
+          "description": "¡Coloca 3 tipos de torres para sobrevivir a 20 oleadas de enemigos!",
+          "tags": ["tower defense", "estrategia", "supervivencia por oleadas", "mejoras", "fantasía"],
+          "controls": ["Clic: Colocar/seleccionar/mejorar torre", "1/2/3: Seleccionar tipo de torre", "U: Mejorar, S: Vender", "P: Pausa", "Space: Iniciar oleada anticipada", "Táctil: Tocar para todas las acciones"]
+        },
+        "fr": {
+          "title": "Mini Défense de Tours",
+          "description": "Placez 3 types de tours pour résister à 20 vagues d'ennemis !",
+          "tags": ["tower defense", "stratégie", "survie par vagues", "améliorations", "fantaisie"],
+          "controls": ["Clic souris: Placer/sélectionner/améliorer tour", "1/2/3: Choisir type de tour", "U: Améliorer, S: Vendre", "P: Pause", "Space: Lancer la vague en avance", "Tactile: Appuyer pour toutes les actions"]
+        },
+        "de": {
+          "title": "Mini Tower Defense",
+          "description": "Platziere 3 Turmarten und überstehe 20 Feindwellen!",
+          "tags": ["Tower Defense", "Strategie", "Wellenüberleben", "Upgrade", "Fantasy"],
+          "controls": ["Mausklick: Turm platzieren/auswählen/upgraden", "1/2/3: Turmtyp wählen", "U: Upgraden, S: Verkaufen", "P: Pause", "Space: Welle vorzeitig starten", "Touch: Tippen für alle Aktionen"]
+        },
+        "pt": {
+          "title": "Mini Tower Defense",
+          "description": "Posicione 3 tipos de torres para sobreviver a 20 ondas de inimigos!",
+          "tags": ["tower defense", "estratégia", "sobrevivência por ondas", "upgrade", "fantasia"],
+          "controls": ["Clique: Posicionar/selecionar/melhorar torre", "1/2/3: Selecionar tipo de torre", "U: Melhorar, S: Vender", "P: Pausar", "Space: Iniciar onda antecipada", "Toque: Tocar para todas as ações"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -91,6 +241,56 @@
         "터치: 스와이프(레인) / 탭(점프)",
         "마우스: 영역 클릭(레인/점프)"
       ],
+      "i18n": {
+        "en": {
+          "title": "Neon Dash Runner",
+          "description": "Sprint through a neon cyberpunk city, dodge obstacles and collect coins!",
+          "tags": ["endless runner", "neon", "cyberpunk", "casual", "arcade", "procedural"],
+          "controls": ["Up/Down / W/S: Switch lanes", "Space: Jump", "P / ESC: Pause", "Touch: Swipe (lane) / Tap (jump)", "Mouse: Click area (lane/jump)"]
+        },
+        "ja": {
+          "title": "ネオンダッシュランナー",
+          "description": "ネオンサイバーパンクの街を駆け抜け、障害物を避けてコインを集めろ！",
+          "tags": ["エンドレスラン", "ネオン", "サイバーパンク", "カジュアル", "アーケード", "自動生成"],
+          "controls": ["↑↓ / W・S: レーン切替", "Space: ジャンプ", "P / ESC: 一時停止", "タッチ: スワイプ（レーン）/ タップ（ジャンプ）", "マウス: エリアクリック（レーン/ジャンプ）"]
+        },
+        "zh-CN": {
+          "title": "霓虹冲刺跑者",
+          "description": "在霓虹赛博朋克城市中疾驰，躲避障碍收集金币！",
+          "tags": ["无尽跑酷", "霓虹", "赛博朋克", "休闲", "街机", "程序生成"],
+          "controls": ["↑↓ / W·S: 切换跑道", "Space: 跳跃", "P / ESC: 暂停", "触摸: 滑动（跑道）/ 点击（跳跃）", "鼠标: 点击区域（跑道/跳跃）"]
+        },
+        "zh-TW": {
+          "title": "霓虹衝刺跑者",
+          "description": "在霓虹賽博龐克城市中疾馳，躲避障礙收集金幣！",
+          "tags": ["無盡跑酷", "霓虹", "賽博龐克", "休閒", "街機", "程序生成"],
+          "controls": ["↑↓ / W·S: 切換跑道", "Space: 跳躍", "P / ESC: 暫停", "觸控: 滑動（跑道）/ 點擊（跳躍）", "滑鼠: 點擊區域（跑道/跳躍）"]
+        },
+        "es": {
+          "title": "Neon Dash Runner",
+          "description": "¡Corre por una ciudad cyberpunk neón, esquiva obstáculos y recoge monedas!",
+          "tags": ["runner infinito", "neón", "cyberpunk", "casual", "arcade", "procedural"],
+          "controls": ["↑↓ / W·S: Cambiar carril", "Space: Saltar", "P / ESC: Pausa", "Táctil: Deslizar (carril) / Tocar (saltar)", "Ratón: Clic en área (carril/saltar)"]
+        },
+        "fr": {
+          "title": "Neon Dash Runner",
+          "description": "Sprintez dans une ville cyberpunk néon, évitez les obstacles et collectez les pièces !",
+          "tags": ["runner infini", "néon", "cyberpunk", "casual", "arcade", "procédural"],
+          "controls": ["↑↓ / W·S: Changer de voie", "Space: Sauter", "P / ESC: Pause", "Tactile: Glisser (voie) / Appuyer (sauter)", "Souris: Cliquer zone (voie/sauter)"]
+        },
+        "de": {
+          "title": "Neon Dash Runner",
+          "description": "Sprinte durch eine Neon-Cyberpunk-Stadt, weiche Hindernissen aus und sammle Münzen!",
+          "tags": ["Endlos-Runner", "Neon", "Cyberpunk", "Casual", "Arcade", "Prozedural"],
+          "controls": ["↑↓ / W·S: Spur wechseln", "Space: Springen", "P / ESC: Pause", "Touch: Wischen (Spur) / Tippen (Springen)", "Maus: Bereich klicken (Spur/Springen)"]
+        },
+        "pt": {
+          "title": "Neon Dash Runner",
+          "description": "Corra por uma cidade cyberpunk neon, desvie de obstáculos e colete moedas!",
+          "tags": ["corrida infinita", "neon", "cyberpunk", "casual", "arcade", "procedural"],
+          "controls": ["↑↓ / W·S: Trocar faixa", "Space: Pular", "P / ESC: Pausar", "Toque: Deslizar (faixa) / Tocar (pular)", "Mouse: Clicar área (faixa/pular)"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -114,6 +314,56 @@
         "터치: 레인 영역 탭/홀드",
         "마우스: 레인 영역 클릭"
       ],
+      "i18n": {
+        "en": {
+          "title": "Beat Rush",
+          "description": "Hit 4-lane notes to the beat in this rhythm arcade game!",
+          "tags": ["rhythm game", "beat", "music", "arcade", "casual", "procedural music", "WebAudio"],
+          "controls": ["D/F/J/K: 4-lane input", "Hold key: Sustain long notes", "P / ESC: Pause", "Touch: Tap/hold lane areas", "Mouse: Click lane areas"]
+        },
+        "ja": {
+          "title": "ビートラッシュ",
+          "description": "ビートに合わせて4レーンのノートをタイミングよく入力するリズムアーケード！",
+          "tags": ["リズムゲーム", "ビート", "音楽", "アーケード", "カジュアル", "自動生成音楽", "WebAudio"],
+          "controls": ["D・F・J・K: 4レーン入力", "キー長押し: ロングノート維持", "P / ESC: 一時停止", "タッチ: レーンエリアをタップ/ホールド", "マウス: レーンエリアをクリック"]
+        },
+        "zh-CN": {
+          "title": "节拍冲刺",
+          "description": "跟着节拍在4条轨道上精准输入音符的节奏街机游戏！",
+          "tags": ["节奏游戏", "节拍", "音乐", "街机", "休闲", "程序音乐", "WebAudio"],
+          "controls": ["D·F·J·K: 4轨道输入", "长按: 维持长音符", "P / ESC: 暂停", "触摸: 点击/长按轨道区域", "鼠标: 点击轨道区域"]
+        },
+        "zh-TW": {
+          "title": "節拍衝刺",
+          "description": "跟著節拍在4條軌道上精準輸入音符的節奏街機遊戲！",
+          "tags": ["節奏遊戲", "節拍", "音樂", "街機", "休閒", "程序音樂", "WebAudio"],
+          "controls": ["D·F·J·K: 4軌道輸入", "長按: 維持長音符", "P / ESC: 暫停", "觸控: 點擊/長按軌道區域", "滑鼠: 點擊軌道區域"]
+        },
+        "es": {
+          "title": "Beat Rush",
+          "description": "¡Pulsa notas en 4 carriles al ritmo en este juego de arcade rítmico!",
+          "tags": ["juego de ritmo", "beat", "música", "arcade", "casual", "música procedural", "WebAudio"],
+          "controls": ["D/F/J/K: Entrada de 4 carriles", "Mantener tecla: Sostener notas largas", "P / ESC: Pausa", "Táctil: Tocar/mantener áreas de carril", "Ratón: Clic en áreas de carril"]
+        },
+        "fr": {
+          "title": "Beat Rush",
+          "description": "Frappez les notes sur 4 voies en rythme dans ce jeu d'arcade musical !",
+          "tags": ["jeu de rythme", "beat", "musique", "arcade", "casual", "musique procédurale", "WebAudio"],
+          "controls": ["D/F/J/K: Entrée 4 voies", "Maintenir touche: Tenir les longues notes", "P / ESC: Pause", "Tactile: Appuyer/maintenir zones de voie", "Souris: Cliquer zones de voie"]
+        },
+        "de": {
+          "title": "Beat Rush",
+          "description": "Triff 4-Spur-Noten im Takt in diesem Rhythmus-Arcade-Spiel!",
+          "tags": ["Rhythmusspiel", "Beat", "Musik", "Arcade", "Casual", "Prozedurale Musik", "WebAudio"],
+          "controls": ["D/F/J/K: 4-Spur-Eingabe", "Taste halten: Lange Noten halten", "P / ESC: Pause", "Touch: Spurbereich tippen/halten", "Maus: Spurbereich klicken"]
+        },
+        "pt": {
+          "title": "Beat Rush",
+          "description": "Acerte notas em 4 faixas no ritmo neste jogo de arcade rítmico!",
+          "tags": ["jogo de ritmo", "beat", "música", "arcade", "casual", "música procedural", "WebAudio"],
+          "controls": ["D/F/J/K: Entrada de 4 faixas", "Segurar tecla: Manter notas longas", "P / ESC: Pausar", "Toque: Tocar/segurar áreas de faixa", "Mouse: Clicar áreas de faixa"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -138,6 +388,56 @@
         "터치 : 스와이프 이동 / 열 탭",
         "마우스 : 열 클릭으로 배치"
       ],
+      "i18n": {
+        "en": {
+          "title": "Beat Crafter",
+          "description": "Place note blocks to create harmonies in this rhythm puzzle!",
+          "tags": ["rhythm puzzle", "music", "puzzle", "blocks", "casual", "procedural music", "WebAudio"],
+          "controls": ["Left/Right: Move block sideways", "Down: Soft drop", "Space: Hard drop (instant land)", "P / ESC: Pause", "Touch: Swipe to move / tap column", "Mouse: Click column to place"]
+        },
+        "ja": {
+          "title": "ビートクラフター",
+          "description": "音符ブロックを配置してハーモニーを作るリズムパズル！",
+          "tags": ["リズムパズル", "音楽", "パズル", "ブロック", "カジュアル", "自動生成音楽", "WebAudio"],
+          "controls": ["← →: ブロック左右移動", "↓: ソフトドロップ", "Space: ハードドロップ（即着地）", "P / ESC: 一時停止", "タッチ: スワイプ移動 / 列タップ", "マウス: 列クリックで配置"]
+        },
+        "zh-CN": {
+          "title": "节拍工匠",
+          "description": "放置音符方块，创造和弦的节奏拼图游戏！",
+          "tags": ["节奏拼图", "音乐", "拼图", "方块", "休闲", "程序音乐", "WebAudio"],
+          "controls": ["← →: 左右移动方块", "↓: 慢速下落", "Space: 快速下落（立即着陆）", "P / ESC: 暂停", "触摸: 滑动移动 / 点击列", "鼠标: 点击列放置"]
+        },
+        "zh-TW": {
+          "title": "節拍工匠",
+          "description": "放置音符方塊，創造和弦的節奏拼圖遊戲！",
+          "tags": ["節奏拼圖", "音樂", "拼圖", "方塊", "休閒", "程序音樂", "WebAudio"],
+          "controls": ["← →: 左右移動方塊", "↓: 慢速下落", "Space: 快速下落（立即著陸）", "P / ESC: 暫停", "觸控: 滑動移動 / 點擊列", "滑鼠: 點擊列放置"]
+        },
+        "es": {
+          "title": "Beat Crafter",
+          "description": "¡Coloca bloques de notas para crear armonías en este puzzle rítmico!",
+          "tags": ["puzzle rítmico", "música", "puzzle", "bloques", "casual", "música procedural", "WebAudio"],
+          "controls": ["← →: Mover bloque lateralmente", "↓: Caída suave", "Space: Caída rápida (aterrizaje instantáneo)", "P / ESC: Pausa", "Táctil: Deslizar para mover / tocar columna", "Ratón: Clic en columna para colocar"]
+        },
+        "fr": {
+          "title": "Beat Crafter",
+          "description": "Placez des blocs de notes pour créer des harmonies dans ce puzzle rythmique !",
+          "tags": ["puzzle rythmique", "musique", "puzzle", "blocs", "casual", "musique procédurale", "WebAudio"],
+          "controls": ["← →: Déplacer le bloc latéralement", "↓: Descente douce", "Space: Descente rapide (atterrissage immédiat)", "P / ESC: Pause", "Tactile: Glisser pour déplacer / appuyer colonne", "Souris: Cliquer colonne pour placer"]
+        },
+        "de": {
+          "title": "Beat Crafter",
+          "description": "Platziere Notenblöcke und erschaffe Harmonien in diesem Rhythmus-Puzzle!",
+          "tags": ["Rhythmus-Puzzle", "Musik", "Puzzle", "Blöcke", "Casual", "Prozedurale Musik", "WebAudio"],
+          "controls": ["← →: Block seitlich bewegen", "↓: Sanftes Fallen", "Space: Hartes Fallen (sofortige Landung)", "P / ESC: Pause", "Touch: Wischen zum Bewegen / Spalte tippen", "Maus: Spalte klicken zum Platzieren"]
+        },
+        "pt": {
+          "title": "Beat Crafter",
+          "description": "Posicione blocos de notas para criar harmonias neste puzzle rítmico!",
+          "tags": ["puzzle rítmico", "música", "puzzle", "blocos", "casual", "música procedural", "WebAudio"],
+          "controls": ["← →: Mover bloco lateralmente", "↓: Queda suave", "Space: Queda rápida (pouso instantâneo)", "P / ESC: Pausar", "Toque: Deslizar para mover / tocar coluna", "Mouse: Clicar coluna para posicionar"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -162,6 +462,56 @@
         "ESC: 일시 정지",
         "Space: 공 이동 가속"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Golf Adventure",
+          "description": "Drag to aim and shoot the ball — aim for a hole-in-one with minimum strokes!",
+          "tags": ["mini golf", "physics puzzle", "drag aiming", "level-based", "wall bounce", "3 stars"],
+          "controls": ["Mouse drag: Aim + adjust power", "Mouse release: Shoot ball", "Touch drag: Mobile aiming", "R: Restart level", "ESC: Pause", "Space: Speed up ball"]
+        },
+        "ja": {
+          "title": "ミニゴルフアドベンチャー",
+          "description": "ドラッグでボールを打って最少打数でホールインワンを狙おう！",
+          "tags": ["ミニゴルフ", "物理パズル", "ドラッグエイム", "レベル制", "壁反射", "星3つ"],
+          "controls": ["マウスドラッグ: エイム＋パワー調整", "マウスリリース: ボール発射", "タッチドラッグ: モバイルエイム", "R: レベルリスタート", "ESC: 一時停止", "Space: ボール加速"]
+        },
+        "zh-CN": {
+          "title": "迷你高尔夫冒险",
+          "description": "拖动瞄准击球，用最少杆数实现一杆进洞！",
+          "tags": ["迷你高尔夫", "物理拼图", "拖动瞄准", "关卡制", "墙壁反弹", "三星"],
+          "controls": ["鼠标拖动: 瞄准+调整力度", "释放鼠标: 发球", "触摸拖动: 手机瞄准", "R: 重新开始关卡", "ESC: 暂停", "Space: 加速球移动"]
+        },
+        "zh-TW": {
+          "title": "迷你高爾夫冒險",
+          "description": "拖動瞄準擊球，用最少桿數實現一桿進洞！",
+          "tags": ["迷你高爾夫", "物理拼圖", "拖動瞄準", "關卡制", "牆壁反彈", "三星"],
+          "controls": ["滑鼠拖曳: 瞄準+調整力道", "釋放滑鼠: 發球", "觸控拖曳: 手機瞄準", "R: 重新開始關卡", "ESC: 暫停", "Space: 加速球移動"]
+        },
+        "es": {
+          "title": "Mini Golf Aventura",
+          "description": "¡Arrastra para apuntar y golpear — intenta un hoyo en uno con el mínimo de golpes!",
+          "tags": ["mini golf", "puzzle físico", "apuntar arrastrando", "niveles", "rebote en paredes", "3 estrellas"],
+          "controls": ["Arrastrar ratón: Apuntar + ajustar potencia", "Soltar ratón: Lanzar bola", "Arrastrar táctil: Apuntar en móvil", "R: Reiniciar nivel", "ESC: Pausa", "Space: Acelerar bola"]
+        },
+        "fr": {
+          "title": "Mini Golf Aventure",
+          "description": "Glissez pour viser et frapper la balle — visez le trou en un avec un minimum de coups !",
+          "tags": ["mini golf", "puzzle physique", "visée par glissement", "niveaux", "rebond sur murs", "3 étoiles"],
+          "controls": ["Glisser souris: Viser + ajuster la puissance", "Relâcher souris: Lancer la balle", "Glisser tactile: Viser sur mobile", "R: Recommencer le niveau", "ESC: Pause", "Space: Accélérer la balle"]
+        },
+        "de": {
+          "title": "Mini Golf Abenteuer",
+          "description": "Ziehe zum Zielen und schlage den Ball — schaffe ein Hole-in-One mit minimalen Schlägen!",
+          "tags": ["Minigolf", "Physik-Puzzle", "Zieh-Zielen", "Levelbasiert", "Wandabpraller", "3 Sterne"],
+          "controls": ["Maus ziehen: Zielen + Kraft einstellen", "Maus loslassen: Ball schlagen", "Touch ziehen: Mobiles Zielen", "R: Level neustarten", "ESC: Pause", "Space: Ball beschleunigen"]
+        },
+        "pt": {
+          "title": "Mini Golfe Aventura",
+          "description": "Arraste para mirar e acertar a bola — tente um hole-in-one com o mínimo de tacadas!",
+          "tags": ["mini golfe", "puzzle físico", "mira por arrasto", "baseado em fases", "rebote na parede", "3 estrelas"],
+          "controls": ["Arrastar mouse: Mirar + ajustar força", "Soltar mouse: Lançar bola", "Arrastar toque: Mira no celular", "R: Reiniciar fase", "ESC: Pausar", "Space: Acelerar bola"]
+        }
+      },
       "difficulty": "easy",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -184,6 +534,56 @@
         "P / ESC: 일시정지",
         "터치: 가상 조이스틱 이동"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Survivor Arena",
+          "description": "Survive 360-degree monster waves with auto-attacks and skill builds!",
+          "tags": ["survivor", "auto-attack", "skill build", "wave survival", "vampire survivors-like", "roguelite"],
+          "controls": ["WASD / Arrows: Move", "1/2/3: Choose level-up skill", "P / ESC: Pause", "Touch: Virtual joystick movement"]
+        },
+        "ja": {
+          "title": "ミニサバイバーアリーナ",
+          "description": "360度のモンスターウェーブの中でオート攻撃とスキルビルドで生き延びろ！",
+          "tags": ["サバイバー", "オート攻撃", "スキルビルド", "ウェーブサバイバル", "ヴァンサバ系", "ローグライト"],
+          "controls": ["WASD / 矢印キー: 移動", "1/2/3: レベルアップスキル選択", "P / ESC: 一時停止", "タッチ: 仮想ジョイスティック移動"]
+        },
+        "zh-CN": {
+          "title": "迷你幸存者竞技场",
+          "description": "在360度怪物波次中靠自动攻击和技能构筑生存下去！",
+          "tags": ["幸存者", "自动攻击", "技能构筑", "波次生存", "吸血鬼幸存者类", "肉鸽轻度"],
+          "controls": ["WASD / 方向键: 移动", "1/2/3: 选择升级技能", "P / ESC: 暂停", "触摸: 虚拟摇杆移动"]
+        },
+        "zh-TW": {
+          "title": "迷你倖存者競技場",
+          "description": "在360度怪物波次中靠自動攻擊和技能構築生存下去！",
+          "tags": ["倖存者", "自動攻擊", "技能構築", "波次生存", "吸血鬼倖存者類", "肉鴿輕度"],
+          "controls": ["WASD / 方向鍵: 移動", "1/2/3: 選擇升級技能", "P / ESC: 暫停", "觸控: 虛擬搖桿移動"]
+        },
+        "es": {
+          "title": "Mini Arena de Supervivencia",
+          "description": "¡Sobrevive a oleadas de monstruos en 360 grados con ataques automáticos y builds de habilidades!",
+          "tags": ["supervivencia", "ataque automático", "build de habilidades", "supervivencia por oleadas", "tipo Vampire Survivors", "roguelite"],
+          "controls": ["WASD / Flechas: Mover", "1/2/3: Elegir habilidad al subir de nivel", "P / ESC: Pausa", "Táctil: Joystick virtual para moverse"]
+        },
+        "fr": {
+          "title": "Mini Arène de Survie",
+          "description": "Survivez aux vagues de monstres à 360 degrés avec des attaques auto et des builds de compétences !",
+          "tags": ["survie", "attaque auto", "build de compétences", "survie par vagues", "type Vampire Survivors", "roguelite"],
+          "controls": ["WASD / Flèches: Se déplacer", "1/2/3: Choisir compétence de montée de niveau", "P / ESC: Pause", "Tactile: Joystick virtuel pour se déplacer"]
+        },
+        "de": {
+          "title": "Mini Überlebensarena",
+          "description": "Überlebe 360-Grad-Monsterwellen mit Auto-Angriffen und Skill-Builds!",
+          "tags": ["Überlebende", "Auto-Angriff", "Skill-Build", "Wellenüberleben", "Vampire-Survivors-artig", "Roguelite"],
+          "controls": ["WASD / Pfeiltasten: Bewegen", "1/2/3: Level-Up-Fähigkeit wählen", "P / ESC: Pause", "Touch: Virtueller Joystick zum Bewegen"]
+        },
+        "pt": {
+          "title": "Mini Arena de Sobrevivência",
+          "description": "Sobreviva a ondas de monstros em 360 graus com ataques automáticos e builds de habilidades!",
+          "tags": ["sobrevivência", "ataque automático", "build de habilidades", "sobrevivência por ondas", "tipo Vampire Survivors", "roguelite"],
+          "controls": ["WASD / Setas: Mover", "1/2/3: Escolher habilidade ao subir de nível", "P / ESC: Pausar", "Toque: Joystick virtual para mover"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -207,6 +607,56 @@
         "P/Esc: 일시정지",
         "Tab: 업그레이드 카테고리 전환"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Coffee Shop Tycoon",
+          "description": "Start from a small coffee stand and build the city's greatest coffee chain! Brew drinks and expand your shops.",
+          "tags": ["coffee shop", "tycoon", "business simulation", "idle", "casual", "strategy"],
+          "controls": ["Mouse/Touch: Click ingredient slots to brew", "1-6: Ingredient slot shortcuts", "Space: Complete/serve drink", "P/Esc: Pause", "Tab: Switch upgrade category"]
+        },
+        "ja": {
+          "title": "ミニコーヒーショップタイクーン",
+          "description": "小さなコーヒー屋台から始めて街一番のコーヒーチェーンへ！ドリンクを自分で作って店舗を拡大しよう。",
+          "tags": ["コーヒーショップ", "タイクーン", "経営シミュレーション", "放置系", "カジュアル", "戦略"],
+          "controls": ["マウス/タッチ: 材料スロットをクリックして調理", "1〜6キー: 材料スロットショートカット", "Space: ドリンク完成/提供", "P/Esc: 一時停止", "Tab: アップグレードカテゴリ切替"]
+        },
+        "zh-CN": {
+          "title": "迷你咖啡店大亨",
+          "description": "从小咖啡摊起步，打造城市最强咖啡连锁！亲手制作饮品，扩张店铺。",
+          "tags": ["咖啡店", "大亨", "经营模拟", "放置", "休闲", "策略"],
+          "controls": ["鼠标/触摸: 点击材料槽制作饮品", "1~6键: 材料槽快捷键", "Space: 完成/送出饮品", "P/Esc: 暂停", "Tab: 切换升级类别"]
+        },
+        "zh-TW": {
+          "title": "迷你咖啡店大亨",
+          "description": "從小咖啡攤起步，打造城市最強咖啡連鎖！親手製作飲品，擴張店鋪。",
+          "tags": ["咖啡店", "大亨", "經營模擬", "放置", "休閒", "策略"],
+          "controls": ["滑鼠/觸控: 點擊材料槽製作飲品", "1~6鍵: 材料槽快捷鍵", "Space: 完成/送出飲品", "P/Esc: 暫停", "Tab: 切換升級類別"]
+        },
+        "es": {
+          "title": "Mini Magnate del Café",
+          "description": "¡Empieza con un pequeño puesto de café y construye la mayor cadena de cafeterías de la ciudad! Prepara bebidas y expande tus tiendas.",
+          "tags": ["cafetería", "magnate", "simulación de negocios", "idle", "casual", "estrategia"],
+          "controls": ["Ratón/Táctil: Clic en ranuras de ingredientes para preparar", "1-6: Atajos de ranuras", "Space: Completar/servir bebida", "P/Esc: Pausa", "Tab: Cambiar categoría de mejora"]
+        },
+        "fr": {
+          "title": "Mini Coffee Shop Tycoon",
+          "description": "Partez d'un petit stand de café et bâtissez la plus grande chaîne de cafés de la ville ! Préparez des boissons et développez vos boutiques.",
+          "tags": ["café", "tycoon", "simulation de gestion", "idle", "casual", "stratégie"],
+          "controls": ["Souris/Tactile: Cliquer les emplacements d'ingrédients", "1-6: Raccourcis d'emplacements", "Space: Terminer/servir la boisson", "P/Esc: Pause", "Tab: Changer catégorie d'amélioration"]
+        },
+        "de": {
+          "title": "Mini Kaffee-Tycoon",
+          "description": "Starte mit einem kleinen Kaffeestand und baue die größte Kaffeekette der Stadt! Bereite Getränke zu und erweitere deine Filialen.",
+          "tags": ["Café", "Tycoon", "Wirtschaftssimulation", "Idle", "Casual", "Strategie"],
+          "controls": ["Maus/Touch: Zutatenfächer klicken zum Brauen", "1-6: Zutatenfach-Shortcuts", "Space: Getränk fertigstellen/servieren", "P/Esc: Pause", "Tab: Upgrade-Kategorie wechseln"]
+        },
+        "pt": {
+          "title": "Mini Magnata do Café",
+          "description": "Comece com uma pequena barraca de café e construa a maior rede de cafeterias da cidade! Prepare bebidas e expanda suas lojas.",
+          "tags": ["cafeteria", "magnata", "simulação de negócios", "idle", "casual", "estratégia"],
+          "controls": ["Mouse/Toque: Clicar slots de ingredientes para preparar", "1-6: Atalhos de slots", "Space: Completar/servir bebida", "P/Esc: Pausar", "Tab: Trocar categoria de melhoria"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -228,6 +678,56 @@
         "터치: 카드 탭으로 플레이, 적 탭으로 타겟 선택",
         "키보드: 1~5 카드 선택, E 턴 종료, Space 진행, ESC 일시정지"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Card Battler",
+          "description": "Wield cards as weapons to conquer the Dark Tower! A turn-based deck-building roguelike.",
+          "tags": ["deck building", "card battle", "roguelike", "turn-based strategy", "single player"],
+          "controls": ["Mouse: Click card to play, click enemy to target", "Touch: Tap card to play, tap enemy to target", "Keyboard: 1-5 select card, E end turn, Space proceed, ESC pause"]
+        },
+        "ja": {
+          "title": "ミニカードバトラー",
+          "description": "カードを武器に闇の塔を突破せよ！ターン制デッキビルディング・ローグライク。",
+          "tags": ["デッキビルディング", "カードバトル", "ローグライク", "ターン制戦略", "シングルプレイ"],
+          "controls": ["マウス: カードクリックでプレイ、敵クリックでターゲット選択", "タッチ: カードタップでプレイ、敵タップでターゲット選択", "キーボード: 1〜5カード選択、Eターン終了、Space進行、ESC一時停止"]
+        },
+        "zh-CN": {
+          "title": "迷你卡牌战士",
+          "description": "以卡牌为武器突破黑暗之塔！回合制构筑卡牌肉鸽。",
+          "tags": ["构筑卡组", "卡牌对战", "肉鸽", "回合制策略", "单人"],
+          "controls": ["鼠标: 点击卡牌出牌，点击敌人选择目标", "触摸: 点击卡牌出牌，点击敌人选择目标", "键盘: 1~5选卡，E结束回合，Space继续，ESC暂停"]
+        },
+        "zh-TW": {
+          "title": "迷你卡牌戰士",
+          "description": "以卡牌為武器突破黑暗之塔！回合制構築卡牌肉鴿。",
+          "tags": ["構築牌組", "卡牌對戰", "肉鴿", "回合制策略", "單人"],
+          "controls": ["滑鼠: 點擊卡牌出牌，點擊敵人選擇目標", "觸控: 點擊卡牌出牌，點擊敵人選擇目標", "鍵盤: 1~5選卡，E結束回合，Space繼續，ESC暫停"]
+        },
+        "es": {
+          "title": "Mini Batallador de Cartas",
+          "description": "¡Usa cartas como armas para conquistar la Torre Oscura! Un roguelike de construcción de mazos por turnos.",
+          "tags": ["construcción de mazos", "batalla de cartas", "roguelike", "estrategia por turnos", "un jugador"],
+          "controls": ["Ratón: Clic en carta para jugar, clic en enemigo para seleccionar objetivo", "Táctil: Tocar carta para jugar, tocar enemigo para objetivo", "Teclado: 1-5 seleccionar carta, E fin de turno, Space avanzar, ESC pausa"]
+        },
+        "fr": {
+          "title": "Mini Combattant de Cartes",
+          "description": "Utilisez les cartes comme armes pour conquérir la Tour Sombre ! Un roguelike de construction de deck au tour par tour.",
+          "tags": ["construction de deck", "combat de cartes", "roguelike", "stratégie au tour par tour", "solo"],
+          "controls": ["Souris: Cliquer carte pour jouer, cliquer ennemi pour cibler", "Tactile: Appuyer carte pour jouer, appuyer ennemi pour cibler", "Clavier: 1-5 sélectionner carte, E fin de tour, Space continuer, ESC pause"]
+        },
+        "de": {
+          "title": "Mini Kartenkämpfer",
+          "description": "Nutze Karten als Waffen und erobere den Dunklen Turm! Ein rundenbasiertes Deckbuilding-Roguelike.",
+          "tags": ["Deckbuilding", "Kartenkampf", "Roguelike", "Rundenbasierte Strategie", "Einzelspieler"],
+          "controls": ["Maus: Karte klicken zum Spielen, Feind klicken zum Zielen", "Touch: Karte tippen zum Spielen, Feind tippen zum Zielen", "Tastatur: 1-5 Karte wählen, E Zug beenden, Space weiter, ESC Pause"]
+        },
+        "pt": {
+          "title": "Mini Batalha de Cartas",
+          "description": "Use cartas como armas para conquistar a Torre Sombria! Um roguelike de construção de deck por turnos.",
+          "tags": ["construção de deck", "batalha de cartas", "roguelike", "estratégia por turnos", "single player"],
+          "controls": ["Mouse: Clicar carta para jogar, clicar inimigo para mirar", "Toque: Tocar carta para jogar, tocar inimigo para mirar", "Teclado: 1-5 selecionar carta, E encerrar turno, Space prosseguir, ESC pausar"]
+        }
+      },
       "difficulty": "easy",
       "version": "1.0.0",
       "author": "InfiniTriX AI"

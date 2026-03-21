@@ -427,10 +427,29 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     startAgent('deployer', 7, '레지스트리 등록 + 배포')
     await runAgent('deployer', `
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
+
       1. public/games/game-registry.json에 새 게임을 추가해줘
          ⚠️ thumbnail 경로는 반드시 "/games/[game-id]/assets/thumbnail.svg" 형식으로 등록할 것
          (assets/ 폴더 포함 — 빠뜨리면 썸네일이 표시되지 않음)
-      2. 아래 git 명령을 실행해줘:
+
+      2. ⚠️ 반드시 "i18n" 필드를 포함하여 다국어 메타데이터를 추가해줘!
+         i18n 필드에 en, ja, zh-CN, zh-TW, es, fr, de, pt 8개 언어로
+         title, description, tags, controls를 번역해서 넣을 것.
+         예시 구조:
+         "i18n": {
+           "en": { "title": "Game Title", "description": "...", "tags": [...], "controls": [...] },
+           "ja": { "title": "ゲームタイトル", "description": "...", "tags": [...], "controls": [...] },
+           "zh-CN": { "title": "游戏标题", ... },
+           "zh-TW": { "title": "遊戲標題", ... },
+           "es": { "title": "Título del juego", ... },
+           "fr": { "title": "Titre du jeu", ... },
+           "de": { "title": "Spieltitel", ... },
+           "pt": { "title": "Título do jogo", ... }
+         }
+         기본(ko) 데이터는 최상위 필드에 그대로 유지.
+         번역은 자연스러운 현지 표현을 사용할 것.
+
+      3. 아래 git 명령을 실행해줘:
          git add public/games/ docs/game-specs/ docs/reviews/ docs/post-mortem/ docs/analytics/ docs/meta/
          git commit -m "feat: add game from cycle #${cycleNumber}"
          git push origin main

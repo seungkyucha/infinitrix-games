@@ -2,12 +2,13 @@ import { getAllGames, getAllGenres } from '@/lib/games'
 import GameGrid from '@/components/GameGrid'
 import HeroSection from '@/components/HeroSection'
 import MiniAgentLog from '@/components/MiniAgentLog'
-import { getTranslations } from '@/lib/i18n'
+import { getTranslations, getLocale } from '@/lib/i18n'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const allGames = getAllGames()
+  const locale   = await getLocale()
+  const allGames = getAllGames(locale)
   const genres   = getAllGenres()
   const { t }    = await getTranslations()
 

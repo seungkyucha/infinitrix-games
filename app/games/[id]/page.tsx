@@ -15,7 +15,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params
-  const game = getGameById(id)
+  const locale = await getLocale()
+  const game = getGameById(id, locale)
   const { t } = await getTranslations()
   if (!game) return { title: t.game.notFound }
   return { title: `${game.title} — InfiniTriX`, description: game.description }
@@ -23,11 +24,10 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function GamePage({ params }: Props) {
   const { id } = await params
-  const game = getGameById(id)
+  const locale = await getLocale()
+  const game = getGameById(id, locale)
   if (!game) notFound()
-
-  const { t }   = await getTranslations()
-  const locale   = await getLocale()
+  const { t } = await getTranslations()
 
   const genreColors: Record<string, string> = {
     arcade:   'bg-accent-purple/20 text-accent-purple border-accent-purple/30',
@@ -44,32 +44,24 @@ export default async function GamePage({ params }: Props) {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <GameFrame game={game} />
-        </div>
+        <div className="lg:col-span-3"><GameFrame game={game} /></div>
 
         <aside className="space-y-4">
           <div className="bg-bg-card border border-border-dim rounded-xl p-5">
             <h1 className="text-xl font-bold text-text-primary mb-1">{game.title}</h1>
             <p className="text-text-secondary text-sm mb-4">{game.description}</p>
-
             <div className="flex flex-wrap gap-1.5 mb-4">
               {game.genre.map(g => (
-                <span key={g} className={`genre-badge border ${genreColors[g] ?? 'bg-white/10 text-text-secondary border-white/10'}`}>
-                  {g}
-                </span>
+                <span key={g} className={`genre-badge border ${genreColors[g] ?? 'bg-white/10 text-text-secondary border-white/10'}`}>{g}</span>
               ))}
             </div>
-
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="bg-bg-secondary rounded-lg p-3">
                 <div className="text-accent-cyan font-bold text-lg">{game.playCount.toLocaleString()}</div>
                 <div className="text-text-muted text-xs mt-0.5">{t.game.plays}</div>
               </div>
               <div className="bg-bg-secondary rounded-lg p-3">
-                <div className="text-accent-yellow font-bold text-lg">
-                  {game.rating > 0 ? game.rating.toFixed(1) : '—'}
-                </div>
+                <div className="text-accent-yellow font-bold text-lg">{game.rating > 0 ? game.rating.toFixed(1) : '—'}</div>
                 <div className="text-text-muted text-xs mt-0.5">{t.game.rating}</div>
               </div>
             </div>
@@ -94,9 +86,7 @@ export default async function GamePage({ params }: Props) {
               <h3 className="text-sm font-semibold text-text-primary mb-3">{t.game.tags}</h3>
               <div className="flex flex-wrap gap-1.5">
                 {game.tags.map(tag => (
-                  <span key={tag} className="text-xs px-2 py-1 rounded-md bg-bg-secondary text-text-muted">
-                    #{tag}
-                  </span>
+                  <span key={tag} className="text-xs px-2 py-1 rounded-md bg-bg-secondary text-text-muted">#{tag}</span>
                 ))}
               </div>
             </div>
