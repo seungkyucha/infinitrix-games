@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="gridLineH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0d2b3e" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#0d2b3e" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#0d3b4e" stop-opacity="0.6"/>
+      <stop offset="80%" stop-color="#0d2b3e" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#0d2b3e" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gridLineV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d2b3e" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#0d2b3e" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#0d3b4e" stop-opacity="0.6"/>
+      <stop offset="80%" stop-color="#0d2b3e" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#0d2b3e" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00ffff" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#00aacc" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#006688" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nodeCenter" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#00ffff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00ffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="gridGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="nodeGlowF">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Grid lines - horizontal -->
+  <g opacity="0.35">
+    <line x1="0" y1="100" x2="800" y2="100" stroke="url(#gridLineH)" stroke-width="0.8"/>
+    <line x1="0" y1="200" x2="800" y2="200" stroke="url(#gridLineH)" stroke-width="0.8"/>
+    <line x1="0" y1="300" x2="800" y2="300" stroke="url(#gridLineH)" stroke-width="1"/>
+    <line x1="0" y1="400" x2="800" y2="400" stroke="url(#gridLineH)" stroke-width="0.8"/>
+    <line x1="0" y1="500" x2="800" y2="500" stroke="url(#gridLineH)" stroke-width="0.8"/>
+  </g>
+  <!-- Grid lines - vertical -->
+  <g opacity="0.35">
+    <line x1="100" y1="0" x2="100" y2="600" stroke="url(#gridLineV)" stroke-width="0.8"/>
+    <line x1="200" y1="0" x2="200" y2="600" stroke="url(#gridLineV)" stroke-width="0.8"/>
+    <line x1="300" y1="0" x2="300" y2="600" stroke="url(#gridLineV)" stroke-width="0.8"/>
+    <line x1="400" y1="0" x2="400" y2="600" stroke="url(#gridLineV)" stroke-width="1"/>
+    <line x1="500" y1="0" x2="500" y2="600" stroke="url(#gridLineV)" stroke-width="0.8"/>
+    <line x1="600" y1="0" x2="600" y2="600" stroke="url(#gridLineV)" stroke-width="0.8"/>
+    <line x1="700" y1="0" x2="700" y2="600" stroke="url(#gridLineV)" stroke-width="0.8"/>
+  </g>
+  <!-- Sub-grid (finer lines) -->
+  <g opacity="0.12">
+    <line x1="0" y1="50" x2="800" y2="50" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="0" y1="150" x2="800" y2="150" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="0" y1="250" x2="800" y2="250" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="0" y1="350" x2="800" y2="350" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="0" y1="450" x2="800" y2="450" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="0" y1="550" x2="800" y2="550" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="50" y1="0" x2="50" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="150" y1="0" x2="150" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="250" y1="0" x2="250" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="350" y1="0" x2="350" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="450" y1="0" x2="450" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="550" y1="0" x2="550" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="650" y1="0" x2="650" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+    <line x1="750" y1="0" x2="750" y2="600" stroke="#0d2b3e" stroke-width="0.3"/>
+  </g>
+  <!-- Glowing intersection nodes -->
+  <g filter="url(#nodeGlowF)">
+    <circle cx="200" cy="200" r="8" fill="url(#nodeGlow)"/>
+    <circle cx="200" cy="200" r="2" fill="url(#nodeCenter)"/>
+    <circle cx="400" cy="300" r="10" fill="url(#nodeGlow)"/>
+    <circle cx="400" cy="300" r="2.5" fill="url(#nodeCenter)"/>
+    <circle cx="600" cy="200" r="8" fill="url(#nodeGlow)"/>
+    <circle cx="600" cy="200" r="2" fill="url(#nodeCenter)"/>
+    <circle cx="300" cy="400" r="7" fill="url(#nodeGlow)"/>
+    <circle cx="300" cy="400" r="1.5" fill="url(#nodeCenter)"/>
+    <circle cx="500" cy="500" r="7" fill="url(#nodeGlow)"/>
+    <circle cx="500" cy="500" r="1.5" fill="url(#nodeCenter)"/>
+    <circle cx="100" cy="100" r="6" fill="url(#nodeGlow)"/>
+    <circle cx="100" cy="100" r="1.5" fill="url(#nodeCenter)"/>
+    <circle cx="700" cy="400" r="7" fill="url(#nodeGlow)"/>
+    <circle cx="700" cy="400" r="1.5" fill="url(#nodeCenter)"/>
+    <circle cx="200" cy="500" r="6" fill="url(#nodeGlow)"/>
+    <circle cx="200" cy="500" r="1.5" fill="url(#nodeCenter)"/>
+    <circle cx="600" cy="100" r="6" fill="url(#nodeGlow)"/>
+    <circle cx="600" cy="100" r="1.5" fill="url(#nodeCenter)"/>
+  </g>
+  <!-- Floating energy wisps -->
+  <g opacity="0.2" filter="url(#gridGlow)">
+    <path d="M100 300 Q150 280 200 300 Q250 320 300 300" stroke="#00ffff" stroke-width="0.8" fill="none"/>
+    <path d="M500 150 Q550 130 600 150 Q650 170 700 150" stroke="#0088cc" stroke-width="0.6" fill="none"/>
+    <path d="M300 480 Q380 460 450 480 Q520 500 600 480" stroke="#006699" stroke-width="0.5" fill="none"/>
+  </g>
+</svg>

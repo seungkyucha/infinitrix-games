@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>룬 서바이버</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:'Orbitron',sans-serif;}
+canvas{display:block;touch-action:none;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ========================================================
+// 룬 서바이버 — Vampire Survivors Style Survivorlike Action
+// Cycle #18 | InfiniTriX Platform
+// ========================================================
+
+// === GAME CONSTANTS ===
+const STATES = { TITLE:0, PLAYING:1, LEVEL_UP:2, BOSS_INTRO:3, PAUSED:4, GAMEOVER:5, RESULT:6 };
+const STATE_PRIORITY = { 0:10, 1:20, 2:60, 3:80, 4:40, 5:100, 6:30 };
+
+const CONFIG = {
+  PLAYER_HP: 100, PLAYER_MAX_HP: 200, PLAYER_SPEED: 3.0,
+  MAGNET_RANGE: 60, MAX_MAGNET: 200, MAX_SPEED: 6.0,
+  WORLD_W: 2400, WORLD_H: 2400,
+  MIN_TOUCH_TARGET: 48,
+  JOYSTICK_OUTER: 60, JOYSTICK_INNER: 24, JOYSTICK_DEADZONE: 10,
+};
+
+// Color palette
+const COL = {
+  BG:'#1a1a2e', GRID:'#16213e', PLAYER:'#00d4ff', ROBE:'#4a00e0',
+  SLIME:'#39ff14', BAT:'#8b00ff', GOLEM:'#ff6600', MAGE:'#ff0066', SKEL:'#cccccc',
+  BOSS1:'#ff3300', BOSS2:'#9900ff', GEM_XP:'#00ff88', GEM_HP:'#ff4444',
+  BOLT:'#00d4ff', FIRE:'#ff4400', ICE:'#66ccff', LIGHTNING:'#ffff00', SHIELD:'#00ffaa',
+  UI_BG:'rgba(0,0,0,0.7)', CARD_BG:'#2a2a4a', CARD_BORDER:'#00d4ff',
+  TEXT:'#e0e0f0', TEXT2:'#8080a0', GOLD:'#ffd700',
+};
+
+// Enemy type definitions (§7.1)
+const ENEMY_TYPES = {
+  slime:    { hp:15, speed:1.2, damage:8,  xp:5,  radius:10, color:COL.SLIME,  score:10 },
+  bat:      { hp:10, speed:3.0, damage:5,  xp:8,  radius:8,  color:COL.BAT,    score:15 },
+  golem:    { hp:60, speed:0.6, damage:20, xp:15, radius:16, color:COL.GOLEM,  score:30 },
+  mage:     { hp:25, speed:1.0, damage:12, xp:20, radius:11, color:COL.MAGE,   score:35 },
+  skeleton: { hp:35, speed:1.5, damage:15, xp:12, radius:12, color:COL.SKEL,   score:20 },
+};
+
+// Boss definitions (§7.3)
+const BOSS_TYPES = {
+  crimsonWarden: { hp:500, speed:0.8, damage:30, xp:100, radius:32, color:COL.BOSS1, score:500 },
+  elderLich:     { hp:1000, speed:1.2, damage:25, xp:200, radius:28, color:COL.BOSS2, score:1000 },
+};
+
+// Weapon definitions (§8.1)
+const WEAPON_TYPES = {
+  runeBolt:       { damage:10, cooldown:0.8, range:400, speed:6.0, type:'projectile', color:COL.BOLT },
+  fireAura:       { damage:5, cooldown:1.5, tickRate:0.3, range:80, type:'area', color:COL.FIRE },
+  iceLance:       { damage:18, cooldown:1.2, range:350, speed:5.0, type:'projectile', color:COL.ICE, slowDur:1.5, slowPct:0.5 },
+  lightningChain: { damage:8, cooldown:2.0, range:120, chains:3, type:'chain', color:COL.LIGHTNING },
+  shield:         { damage:3, cooldown:0, range:40, orbs:3, knockback:50, dmgReduce:0.15, type:'defense', color:COL.SHIELD },
+};
+
+// Weapon level upgrades (§8.2)
+const WEAPON_UPGRADES = {
+  runeBolt: [
+    null,
+    { damage:15 },
+    { projectiles:2 },
+    { cooldown:0.64 },
+    { pierce:1 },
+  ],
+  fireAura: [
+    null,
+    { range:100 },
+    { damage:8 },
+    { range:120 },
+    { damage:13 },
+  ],
+  iceLance: [
+    null,
+    { slowPct:0.7 },
+    { pierce:2 },
+    { cooldown:0.9 },
+    { slowDmgMult:2 },
+  ],
+  lightningChain: [
+    null,
+    { chains:5 },
+    { damage:12 },
+    { cooldown:1.4 },
+    { chainDecay:0 },
+  ],
+  shield: [
+    null,
+    { orbs:4 },
+    { knockback:80 },
+    { dmgReduce:0.25 },
+    { orbs:6, rotSpeed:2 },
+  ],
+};
+
+// Damage multiplier table (§2.5)
+const DMG_TABLE = {
+  runeBolt:       { slime:1, bat:1, golem:0.5, mage:1, skeleton:1, boss:1 },
+  fireAura:       { slime:1.5, bat:1, golem:0.5, mage:1, skeleton:1.5, boss:0.8 },
+  iceLance:       { slime:1, bat:1.5, golem:1, mage:1, skeleton:1, boss:0.8 },
+  lightningChain: { slime:1, bat:1, golem:1.5, mage:0.5, skeleton:1, boss:0.8 },
+};
+
+// Wave spawn table (§10.1)
+const WAVE_TABLE = [
+  { duration:30, spawnInterval:2.0, composition:{slime:1}, maxEnemies:15 },
+  { duration:35, spawnInterval:1.8, composition:{slime:0.8,bat:0.2}, maxEnemies:20 },
+  { duration:40, spawnInterval:1.5, composition:{slime:0.5,bat:0.3,skeleton:0.2}, maxEnemies:25 },
+  { duration:45, spawnInterval:1.3, composition:{slime:0.3,bat:0.2,golem:0.2,skeleton:0.3}, maxEnemies:30 },
+  { duration:60, spawnInterval:1.0, composition:{slime:0.5,bat:0.5}, maxEnemies:35, boss:'crimsonWarden' },
+  { duration:45, spawnInterval:1.2, composition:{bat:0.3,golem:0.3,mage:0.2,skeleton:0.2}, maxEnemies:35 },
+  { duration:50, spawnInterval:1.0, composition:{slime:0.2,bat:0.2,golem:0.2,mage:0.2,skeleton:0.2}, maxEnemies:40 },
+  { duration:50, spawnInterval:0.8, composition:{golem:0.3,mage:0.3,skeleton:0.4}, maxEnemies:45 },
+  { duration:55, spawnInterval:0.7, composition:{slime:0.2,bat:0.2,golem:0.2,mage:0.2,skeleton:0.2}, maxEnemies:50, elite:0.2 },
+  { duration:90, spawnInterval:0.8, composition:{slime:0.2,bat:0.2,golem:0.2,mage:0.2,skeleton:0.2}, maxEnemies:50, boss:'elderLich' },
+];
+
+// XP table (§10.3)
+const XP_TABLE = [0, 20, 35, 55, 80, 110, 150, 200, 260, 330];
+function xpForLevel(lv) { return lv <= 10 ? (XP_TABLE[lv-1]||330) : 330 + (lv-10)*50; }
+
+// Card rarity probabilities (§9.2)
+const CARD_RARITY = { common:0.70, rare:0.25, legendary:0.05 };
+
+// === GLOBAL VARIABLES ===
+let canvas, ctx, dpr;
+let W, H; // canvas logical size
+let gameState = STATES.TITLE;
+let lastTime = 0, timeScale = 1.0, gameTime = 0;
+let inputMode = 'keyboard';
+
+// Player state
+let player = {};
+// Game objects
+let enemies = [], projectiles = [], particles = [], gems = [], scorePopups = [], bossBullets = [];
+let boss = null;
+// Weapons the player owns
+let weapons = {};
+// Wave state
+let wave = {};
+// Score state
+let scoreState = { score:0, kills:0, bestScore:0, isNewBest:false };
+// Upgrade cards
+let upgradeCards = [];
+let selectedCardIndex = -1;
+// Screen shake
+let shake = { x:0, y:0, intensity:0, duration:0, timer:0 };
+// Guard flags (F5)
+let waveClearing = false, isTransitioning = false, isLevelingUp = false, isDying = false;
+// Camera offset (follows player in world)
+let camera = { x:0, y:0 };
+// Input state
+let keys = {};
+let joystick = { active:false, baseX:0, baseY:0, tipX:0, tipY:0, dx:0, dy:0 };
+// Achievement state
+let achievements = {};
+const ACH_LIST = [
+  { id:'ACH_FIRST_CLEAR', name:'첫 클리어', desc:'10웨이브 돌파' },
+  { id:'ACH_NO_DAMAGE', name:'무적 웨이브', desc:'피격 0 웨이브 클리어' },
+  { id:'ACH_100_KILLS', name:'학살자', desc:'100킬 달성' },
+  { id:'ACH_ALL_WEAPONS', name:'룬 마스터', desc:'5종 무기 획득' },
+  { id:'ACH_BOSS_FAST', name:'속전속결', desc:'보스 30초 이내 처치' },
+  { id:'ACH_LEVEL_10', name:'초월자', desc:'레벨 10 달성' },
+  { id:'ACH_5000_SCORE', name:'점수왕', desc:'5000점 달성' },
+  { id:'ACH_SURVIVE_5MIN', name:'끈질긴 생존자', desc:'5분 이상 생존' },
+];
+let achNotifications = [];
+let waveDamageTaken = 0;
+let bossSpawnTime = 0;
+// Offscreen background cache
+let bgCache = null;
+// Sound manager
+let soundMgr = null;
+// Title animation time
+let titleTime = 0;
+// Transition overlay
+let transitionAlpha = 0;
+let transitionTarget = -1;
+// Result screen stats
+let resultStats = {};
+// Loading state (removed assetsLoaded — unused variable F15)
+
+// === TWEEN MANAGER (F6: clearImmediate) ===
+class TweenManager {
+  constructor() { this._tweens = []; }
+  // Add a new tween animation
+  add(obj, props, duration, easing, onComplete) {
+    const tw = { obj, props:{}, duration, elapsed:0, easing: easing||'linear', onComplete };
+    for (const k in props) { tw.props[k] = { from: obj[k], to: props[k] }; }
+    this._tweens.push(tw);
+    return tw;
+  }
+  // Update all active tweens
+  update(dt) {
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      tw.elapsed += dt;
+      let t = Math.min(tw.elapsed / tw.duration, 1);
+      t = this._ease(t, tw.easing);
+      for (const k in tw.props) {
+        const p = tw.props[k];
+        tw.obj[k] = p.from + (p.to - p.from) * t;
+      }
+      if (tw.elapsed >= tw.duration) {
+        for (const k in tw.props) tw.obj[k] = tw.props[k].to;
+        if (tw.onComplete) tw.onComplete();
+        this._tweens.splice(i, 1);
+      }
+    }
+  }
+  // Immediately clear all tweens (F6)
+  clearImmediate() { this._tweens.length = 0; }
+  // Easing functions
+  _ease(t, type) {
+    if (type === 'easeOutBack') { const c = 1.70158; return 1 + (--t)*t*((c+1)*t + c); }
+    if (type === 'easeOutCubic') return 1 - Math.pow(1-t,3);
+    if (type === 'easeInOut') return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    return t;
+  }
+}
+let tweenMgr = new TweenManager();
+
+// === OBJECT POOL (§17) ===
+class ObjectPool {
+  constructor(createFn, resetFn, size) {
+    this._create = createFn; this._reset = resetFn;
+    this._pool = [];
+    for (let i = 0; i < (size||20); i++) this._pool.push(createFn());
+  }
+  // Acquire object from pool
+  acquire() {
+    if (this._pool.length > 0) { const o = this._pool.pop(); this._reset(o); return o; }
+    const o = this._create(); this._reset(o); return o;
+  }
+  // Release object back to pool
+  release(obj) { obj.active = false; this._pool.push(obj); }
+}
+
+// Pool factories
+const enemyPool = new ObjectPool(
+  () => ({ x:0,y:0,hp:0,maxHp:0,speed:0,damage:0,xp:0,radius:0,color:'',type:'',active:false,hitTimer:0,slowTimer:0,slowPct:1,isElite:false,isBoss:false,bossType:'',phase:1,attackTimer:0,chargeTimer:0,isCharging:false,teleportTimer:0,spiralAngle:0,summonTimer:0 }),
+  (o) => { o.active=true; o.hitTimer=0; o.slowTimer=0; o.slowPct=1; o.isElite=false; o.isBoss=false; o.phase=1; o.attackTimer=0; o.chargeTimer=0; o.isCharging=false; o.teleportTimer=0; o.spiralAngle=0; o.summonTimer=0; },
+  60
+);
+const projPool = new ObjectPool(
+  () => ({ x:0,y:0,vx:0,vy:0,damage:0,speed:0,radius:4,color:'',type:'',active:false,life:0,pierce:0,slowDur:0,slowPct:1 }),
+  (o) => { o.active=true; o.life=3; o.pierce=0; o.slowDur=0; o.slowPct=1; },
+  30
+);
+const particlePool = new ObjectPool(
+  () => ({ x:0,y:0,vx:0,vy:0,life:0,maxLife:0,radius:2,color:'',active:false,alpha:1 }),
+  (o) => { o.active=true; o.alpha=1; },
+  200
+);
+const gemPool = new ObjectPool(
+  () => ({ x:0,y:0,value:0,type:'xp',radius:5,active:false,bobOffset:0 }),
+  (o) => { o.active=true; },
+  100
+);
+const popupPool = new ObjectPool(
+  () => ({ x:0,y:0,text:'',alpha:1,life:0,vy:-40,color:COL.TEXT,active:false }),
+  (o) => { o.active=true; o.alpha=1; o.life=0; o.vy=-40; },
+  20
+);
+const bulletPool = new ObjectPool(
+  () => ({ x:0,y:0,vx:0,vy:0,damage:0,speed:0,radius:5,active:false,life:0 }),
+  (o) => { o.active=true; o.life=5; },
+  30
+);
+
+// === SOUND MANAGER (§13) ===
+class SoundManager {
+  constructor() { this.ctx = null; this.initialized = false; this.bgmGain = null; this.currentBgm = null; }
+  // Initialize audio context on first user interaction
+  init() {
+    if (this.initialized) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.5;
+      this.masterGain.connect(this.ctx.destination);
+      this.bgmGain = this.ctx.createGain();
+      this.bgmGain.gain.value = 0.15;
+      this.bgmGain.connect(this.masterGain);
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.4;
+      this.sfxGain.connect(this.masterGain);
+      this.initialized = true;
+    } catch(e) { console.warn('Audio init failed:', e); }
+  }
+  // Play a sound effect
+  playSfx(type) {
+    if (!this.initialized || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    try {
+      if (type === 'bolt') {
+        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(800,t); o.frequency.linearRampToValueAtTime(400,t+0.1);
+        g.gain.setValueAtTime(0.3,t); g.gain.linearRampToValueAtTime(0,t+0.1);
+        o.connect(g); g.connect(this.sfxGain); o.start(t); o.stop(t+0.1);
+      } else if (type === 'ice') {
+        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+        o.type='triangle'; o.frequency.setValueAtTime(1200,t); o.frequency.linearRampToValueAtTime(1800,t+0.12);
+        g.gain.setValueAtTime(0.25,t); g.gain.linearRampToValueAtTime(0,t+0.12);
+        o.connect(g); g.connect(this.sfxGain); o.start(t); o.stop(t+0.12);
+      } else if (type === 'lightning') {
+        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+        o.type='square'; o.frequency.setValueAtTime(100,t); o.frequency.exponentialRampToValueAtTime(2000,t+0.08);
+        g.gain.setValueAtTime(0.2,t); g.gain.linearRampToValueAtTime(0,t+0.08);
+        o.connect(g); g.connect(this.sfxGain); o.start(t); o.stop(t+0.08);
+      } else if (type === 'hit') {
+        const buf = this.ctx.createBuffer(1, this.ctx.sampleRate*0.2, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*0.15));
+        const s = this.ctx.createBufferSource(); s.buffer=buf;
+        const g = this.ctx.createGain(); g.gain.setValueAtTime(0.3,t); g.gain.linearRampToValueAtTime(0,t+0.2);
+        s.connect(g); g.connect(this.sfxGain); s.start(t);
+      } else if (type === 'levelup') {
+        const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+        notes.forEach((f,i) => {
+          const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+          o.type='triangle'; o.frequency.value=f;
+          g.gain.setValueAtTime(0.25,t+i*0.1); g.gain.linearRampToValueAtTime(0,t+i*0.1+0.15);
+          o.connect(g); g.connect(this.sfxGain); o.start(t+i*0.1); o.stop(t+i*0.1+0.15);
+        });
+      } else if (type === 'gem') {
+        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(1000,t); o.frequency.linearRampToValueAtTime(1500,t+0.05);
+        g.gain.setValueAtTime(0.15,t); g.gain.linearRampToValueAtTime(0,t+0.05);
+        o.connect(g); g.connect(this.sfxGain); o.start(t); o.stop(t+0.05);
+      } else if (type === 'fire') {
+        const buf = this.ctx.createBuffer(1, this.ctx.sampleRate*0.15, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.5*Math.exp(-i/(d.length*0.3));
+        const s = this.ctx.createBufferSource(); s.buffer=buf;
+        const o = this.ctx.createOscillator(); o.type='sine'; o.frequency.value=200;
+        const g = this.ctx.createGain(); g.gain.setValueAtTime(0.15,t); g.gain.linearRampToValueAtTime(0,t+0.15);
+        const g2 = this.ctx.createGain(); g2.gain.setValueAtTime(0.1,t); g2.gain.linearRampToValueAtTime(0,t+0.15);
+        s.connect(g); g.connect(this.sfxGain); o.connect(g2); g2.connect(this.sfxGain);
+        s.start(t); o.start(t); o.stop(t+0.15);
+      }
+    } catch(e) {}
+  }
+  // Start background music loop
+  startBgm(type) {
+    this.stopBgm();
+    if (!this.initialized) return;
+    this._bgmType = type;
+    this._bgmInterval = null;
+    this._playBgmBar(type);
+  }
+  // Play a single bar of BGM
+  _playBgmBar(type) {
+    if (!this.initialized || this._bgmType !== type) return;
+    const t = this.ctx.currentTime;
+    let notes, bpm, wave1, wave2;
+    if (type === 'title') { notes=[261.63,329.63,392,523.25]; bpm=80; wave1='triangle'; wave2='sine'; }
+    else if (type === 'battle') { notes=[220,261.63,329.63,440]; bpm=140; wave1='square'; wave2='triangle'; }
+    else if (type === 'boss') { notes=[146.83,174.61,220,293.66]; bpm=160; wave1='sawtooth'; wave2='square'; }
+    else return;
+    const beatDur = 60/bpm;
+    notes.forEach((f,i) => {
+      try {
+        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+        o.type=wave1; o.frequency.value=f;
+        g.gain.setValueAtTime(0.08,t+i*beatDur); g.gain.linearRampToValueAtTime(0.02,t+(i+0.8)*beatDur);
+        g.gain.linearRampToValueAtTime(0,t+(i+1)*beatDur);
+        o.connect(g); g.connect(this.bgmGain); o.start(t+i*beatDur); o.stop(t+(i+1)*beatDur);
+        const o2 = this.ctx.createOscillator(); const g2 = this.ctx.createGain();
+        o2.type=wave2; o2.frequency.value=f/2;
+        g2.gain.setValueAtTime(0.06,t+i*beatDur); g2.gain.linearRampToValueAtTime(0,t+(i+1)*beatDur);
+        o2.connect(g2); g2.connect(this.bgmGain); o2.start(t+i*beatDur); o2.stop(t+(i+1)*beatDur);
+      } catch(e){}
+    });
+    const barDur = notes.length * beatDur * 1000;
+    this._bgmInterval = window.setInterval(() => {
+      if (this._bgmType !== type) { clearInterval(this._bgmInterval); return; }
+      this._playBgmBar(type);
+    }, barDur);
+    // NOTE: setInterval here is only for audio scheduling, not game logic (F2 exemption)
+  }
+  // Stop current BGM
+  stopBgm() {
+    this._bgmType = null;
+    if (this._bgmInterval) { clearInterval(this._bgmInterval); this._bgmInterval = null; }
+  }
+  // Mute/unmute BGM
+  setBgmVolume(v) { if (this.bgmGain) this.bgmGain.gain.value = v; }
+}
+
+// === UTILITY FUNCTIONS ===
+// Normalize direction vector
+function normalizeDir(dx, dy) {
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 0.001) return {x:0, y:0};
+  return {x: dx/len, y: dy/len};
+}
+// Circle-circle collision check
+function circleCollision(ax, ay, ar, bx, by, br) {
+  const dx = ax-bx, dy = ay-by;
+  return dx*dx + dy*dy <= (ar+br)*(ar+br);
+}
+// Distance between two points
+function dist(ax, ay, bx, by) {
+  const dx = ax-bx, dy = ay-by;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+// Clamp value
+function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
+// Random in range
+function randRange(a, b) { return a + Math.random()*(b-a); }
+// Ensure touch-safe dimensions (F20, F24)
+function touchSafe(w, h) {
+  return { w: Math.max(CONFIG.MIN_TOUCH_TARGET, w), h: Math.max(CONFIG.MIN_TOUCH_TARGET, h) };
+}
+// localStorage wrapper (try-catch for iframe safety — F8)
+function saveBest(score) { try { localStorage.setItem('runeSurvivorBest', score); } catch(e){} }
+function getBest() { try { return parseInt(localStorage.getItem('runeSurvivorBest'))||0; } catch(e){ return 0; } }
+function saveAchievements(achs) { try { localStorage.setItem('runeSurvivorAchs', JSON.stringify(achs)); } catch(e){} }
+function loadAchievements() { try { return JSON.parse(localStorage.getItem('runeSurvivorAchs'))||{}; } catch(e){ return {}; } }
+
+// === INITIALIZE GAME STATE ===
+function initGame() {
+  // Reset player
+  player = {
+    x: CONFIG.WORLD_W/2, y: CONFIG.WORLD_H/2,
+    hp: CONFIG.PLAYER_HP, maxHp: CONFIG.PLAYER_HP,
+    speed: CONFIG.PLAYER_SPEED, magnetRange: CONFIG.MAGNET_RANGE,
+    level: 1, xp: 0, xpNeeded: xpForLevel(1),
+    luck: 0, cooldownReduce: 0, dmgMult: 1.0, xpBoost: 0,
+    radius: 12, invTimer: 0, angle: 0,
+  };
+  // Reset arrays
+  enemies.length = 0; projectiles.length = 0; particles.length = 0;
+  gems.length = 0; scorePopups.length = 0; bossBullets.length = 0;
+  boss = null;
+  // Start with rune bolt weapon
+  weapons = { runeBolt: { level:1, timer:0 } };
+  // Wave reset
+  wave = { num:1, timer:0, spawnTimer:0, totalTime:0, restTimer:0, isResting:false, completed:false, alertTimer:0 };
+  // Score reset
+  scoreState = { score:0, kills:0, bestScore: getBest(), isNewBest:false };
+  // Guards
+  waveClearing = false; isTransitioning = false; isLevelingUp = false; isDying = false;
+  // Time
+  timeScale = 1.0; gameTime = 0;
+  // Achievements
+  achievements = loadAchievements();
+  waveDamageTaken = 0; bossSpawnTime = 0;
+  // Camera
+  camera.x = player.x - W/2;
+  camera.y = player.y - H/2;
+  // Shake reset
+  shake = { x:0, y:0, intensity:0, duration:0, timer:0 };
+  // Transition
+  transitionAlpha = 0; transitionTarget = -1;
+  // Tween
+  tweenMgr.clearImmediate();
+  // Upgrade cards
+  upgradeCards = []; selectedCardIndex = -1;
+  // Notification
+  achNotifications = [];
+  // Build background
+  buildBgCache();
+}
+
+// === BACKGROUND CACHE (F10 — offscreen canvas) ===
+function buildBgCache() {
+  const oc = document.createElement('canvas');
+  oc.width = W * dpr; oc.height = H * dpr;
+  const octx = oc.getContext('2d');
+  octx.scale(dpr, dpr);
+  // Layer 1: dark background + stars
+  octx.fillStyle = COL.BG;
+  octx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 60; i++) {
+    const sx = Math.random() * W, sy = Math.random() * H;
+    const sr = randRange(1, 2.5);
+    octx.fillStyle = `rgba(255,255,255,${randRange(0.2,0.6)})`;
+    octx.beginPath(); octx.arc(sx, sy, sr, 0, Math.PI*2); octx.fill();
+  }
+  // Layer 2: grid pattern
+  octx.strokeStyle = COL.GRID; octx.lineWidth = 0.5;
+  for (let gx = 0; gx < W; gx += 32) { octx.beginPath(); octx.moveTo(gx,0); octx.lineTo(gx,H); octx.stroke(); }
+  for (let gy = 0; gy < H; gy += 32) { octx.beginPath(); octx.moveTo(0,gy); octx.lineTo(W,gy); octx.stroke(); }
+  bgCache = oc;
+}
+
+// === RESIZE CANVAS ===
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  buildBgCache();
+}
+
+// === STATE TRANSITIONS (F23: all via beginTransition) ===
+function beginTransition(target, options) {
+  if (isTransitioning && !(options && options.immediate)) return false;
+  // Priority check (F17)
+  if (player.hp <= 0 && target !== STATES.GAMEOVER && target !== STATES.RESULT) return false;
+  if (options && options.immediate) {
+    enterState(target);
+    return true;
+  }
+  isTransitioning = true;
+  tweenMgr.add({v:0}, {v:1}, 0.3, 'easeInOut', () => {
+    enterState(target);
+    tweenMgr.add({v:0}, {v:1}, 0.3, 'easeInOut', () => {
+      isTransitioning = false;
+      transitionAlpha = 0;
+    });
+  });
+  return true;
+}
+
+// Enter a specific game state
+function enterState(target) {
+  const prevState = gameState;
+  gameState = target;
+  if (target === STATES.TITLE) {
+    titleTime = 0;
+    if (soundMgr) soundMgr.startBgm('title');
+  } else if (target === STATES.PLAYING) {
+    waveClearing = false;
+    isLevelingUp = false;
+    if (prevState === STATES.BOSS_INTRO && soundMgr) soundMgr.startBgm('boss');
+    else if (prevState === STATES.TITLE && soundMgr) soundMgr.startBgm('battle');
+    else if (prevState === STATES.LEVEL_UP && soundMgr) soundMgr.setBgmVolume(0.15);
+  } else if (target === STATES.LEVEL_UP) {
+    if (soundMgr) soundMgr.setBgmVolume(0.06);
+  } else if (target === STATES.BOSS_INTRO) {
+    if (soundMgr) { soundMgr.stopBgm(); }
+  } else if (target === STATES.PAUSED) {
+    if (soundMgr) soundMgr.setBgmVolume(0);
+  } else if (target === STATES.GAMEOVER) {
+    isDying = false;
+    if (soundMgr) soundMgr.stopBgm();
+    // Check new best (F2: judge first, save later)
+    scoreState.isNewBest = scoreState.score > scoreState.bestScore;
+    if (scoreState.isNewBest) saveBest(scoreState.score);
+    scoreState.bestScore = Math.max(scoreState.score, scoreState.bestScore);
+    // Prepare result stats
+    resultStats = {
+      score: scoreState.score, kills: scoreState.kills,
+      level: player.level, wave: wave.num,
+      time: gameTime, isNewBest: scoreState.isNewBest,
+      bestScore: scoreState.bestScore,
+    };
+    triggerShake(8, 0.5);
+    // Achievement checks
+    checkAchievement('ACH_5000_SCORE', scoreState.score >= 5000);
+    checkAchievement('ACH_100_KILLS', scoreState.kills >= 100);
+    checkAchievement('ACH_SURVIVE_5MIN', gameTime >= 300);
+    checkAchievement('ACH_LEVEL_10', player.level >= 10);
+    const allWeapons = ['runeBolt','fireAura','iceLance','lightningChain','shield'].every(w => weapons[w]);
+    checkAchievement('ACH_ALL_WEAPONS', allWeapons);
+    if (wave.num > 10) checkAchievement('ACH_FIRST_CLEAR', true);
+  } else if (target === STATES.RESULT) {
+    // Results screen
+  }
+}
+
+// Trigger screen shake effect
+function triggerShake(intensity, duration) {
+  shake.intensity = intensity;
+  shake.duration = duration;
+  shake.timer = 0;
+}
+
+// === PLAYER MOVEMENT (§3, F3 — pure function with params) ===
+function updatePlayerMovement(p, inp, dt, cfg) {
+  let dx = 0, dy = 0;
+  // Keyboard input
+  if (inp.keys['KeyW'] || inp.keys['ArrowUp']) dy = -1;
+  if (inp.keys['KeyS'] || inp.keys['ArrowDown']) dy = 1;
+  if (inp.keys['KeyA'] || inp.keys['ArrowLeft']) dx = -1;
+  if (inp.keys['KeyD'] || inp.keys['ArrowRight']) dx = 1;
+  // Joystick input
+  if (inp.joystick.active) {
+    dx = inp.joystick.dx;
+    dy = inp.joystick.dy;
+  }
+  // Normalize diagonal movement
+  const dir = normalizeDir(dx, dy);
+  const spd = p.speed * 60 * dt;
+  p.x += dir.x * spd;
+  p.y += dir.y * spd;
+  // Clamp to world bounds
+  p.x = clamp(p.x, p.radius, cfg.WORLD_W - p.radius);
+  p.y = clamp(p.y, p.radius, cfg.WORLD_H - p.radius);
+  // Tilt angle toward movement direction
+  if (Math.abs(dir.x) > 0.01 || Math.abs(dir.y) > 0.01) {
+    p.angle = Math.atan2(dir.y, dir.x);
+  }
+  // Invincibility timer
+  if (p.invTimer > 0) p.invTimer -= dt;
+}
+
+// === WEAPON SYSTEMS (§8) ===
+function updateWeapons(wpns, ens, p, dt, dmgTbl, pools) {
+  const cdMult = 1 - (p.cooldownReduce || 0);
+  // Rune Bolt
+  if (wpns.runeBolt) {
+    wpns.runeBolt.timer -= dt;
+    if (wpns.runeBolt.timer <= 0 && ens.length > 0) {
+      const cd = (WEAPON_TYPES.runeBolt.cooldown) * cdMult;
+      const upgrades = getWeaponStats('runeBolt', wpns.runeBolt.level);
+      const numProj = upgrades.projectiles || 1;
+      for (let i = 0; i < numProj; i++) {
+        const target = findClosestEnemy(ens, p.x, p.y, WEAPON_TYPES.runeBolt.range);
+        if (target) fireRuneBolt(p, target, wpns.runeBolt.level, pools.proj);
+      }
+      wpns.runeBolt.timer = cd;
+      if (soundMgr) soundMgr.playSfx('bolt');
+    }
+  }
+  // Fire Aura
+  if (wpns.fireAura) {
+    wpns.fireAura.timer -= dt;
+    if (wpns.fireAura.timer <= 0) {
+      const stats = getWeaponStats('fireAura', wpns.fireAura.level);
+      const range = stats.range || WEAPON_TYPES.fireAura.range;
+      const dmg = (stats.damage || WEAPON_TYPES.fireAura.damage) * p.dmgMult;
+      for (let i = ens.length - 1; i >= 0; i--) {
+        const e = ens[i];
+        if (!e.active) continue;
+        if (dist(p.x, p.y, e.x, e.y) <= range + e.radius) {
+          const mult = getDmgMultiplier('fireAura', e.type, dmgTbl);
+          applyDamage(e, dmg * mult, ens, pools, i);
+        }
+      }
+      wpns.fireAura.timer = WEAPON_TYPES.fireAura.tickRate * cdMult;
+      // Spawn fire particles around player
+      for (let i = 0; i < 3; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = range * (0.6 + Math.random() * 0.4);
+        spawnParticle(p.x + Math.cos(a)*r, p.y + Math.sin(a)*r, Math.cos(a)*20, -30-Math.random()*20, COL.FIRE, 0.4, 3);
+      }
+      if (soundMgr) soundMgr.playSfx('fire');
+    }
+  }
+  // Ice Lance
+  if (wpns.iceLance) {
+    wpns.iceLance.timer -= dt;
+    const stats = getWeaponStats('iceLance', wpns.iceLance.level);
+    const cd = (stats.cooldown || WEAPON_TYPES.iceLance.cooldown) * cdMult;
+    if (wpns.iceLance.timer <= 0 && ens.length > 0) {
+      const target = findClosestEnemy(ens, p.x, p.y, WEAPON_TYPES.iceLance.range);
+      if (target) fireIceLance(p, target, wpns.iceLance.level, pools.proj);
+      wpns.iceLance.timer = cd;
+      if (soundMgr) soundMgr.playSfx('ice');
+    }
+  }
+  // Lightning Chain
+  if (wpns.lightningChain) {
+    wpns.lightningChain.timer -= dt;
+    const stats = getWeaponStats('lightningChain', wpns.lightningChain.level);
+    const cd = (stats.cooldown || WEAPON_TYPES.lightningChain.cooldown) * cdMult;
+    if (wpns.lightningChain.timer <= 0 && ens.length > 0) {
+      fireLightningChain(p, ens, wpns.lightningChain.level, dmgTbl, pools);
+      wpns.lightningChain.timer = cd;
+      if (soundMgr) soundMgr.playSfx('lightning');
+    }
+  }
+  // Shield
+  if (wpns.shield) {
+    wpns.shield.angle = (wpns.shield.angle || 0) + dt * Math.PI * (wpns.shield.rotSpeedMult || 1);
+    const stats = getWeaponStats('shield', wpns.shield.level);
+    const numOrbs = stats.orbs || WEAPON_TYPES.shield.orbs;
+    const knockback = stats.knockback || WEAPON_TYPES.shield.knockback;
+    const shieldDmg = WEAPON_TYPES.shield.damage * p.dmgMult;
+    for (let oi = 0; oi < numOrbs; oi++) {
+      const oa = wpns.shield.angle + (Math.PI * 2 / numOrbs) * oi;
+      const ox = p.x + Math.cos(oa) * WEAPON_TYPES.shield.range;
+      const oy = p.y + Math.sin(oa) * WEAPON_TYPES.shield.range;
+      for (let i = ens.length - 1; i >= 0; i--) {
+        const e = ens[i]; if (!e.active) continue;
+        if (circleCollision(ox, oy, 8, e.x, e.y, e.radius)) {
+          applyDamage(e, shieldDmg, ens, pools, i);
+          // Knockback
+          const dir = normalizeDir(e.x - p.x, e.y - p.y);
+          e.x += dir.x * knockback;
+          e.y += dir.y * knockback;
+        }
+      }
+    }
+  }
+}
+
+// Get merged weapon stats for a level
+function getWeaponStats(wType, level) {
+  const base = {...WEAPON_TYPES[wType]};
+  const ups = WEAPON_UPGRADES[wType];
+  if (!ups) return base;
+  for (let i = 0; i < level - 1 && i < ups.length; i++) {
+    if (ups[i]) Object.assign(base, ups[i]);
+  }
+  return base;
+}
+
+// Find closest enemy within range
+function findClosestEnemy(ens, x, y, range) {
+  let closest = null, minD = range + 1;
+  for (const e of ens) {
+    if (!e.active) continue;
+    const d = dist(x, y, e.x, e.y);
+    if (d < minD) { minD = d; closest = e; }
+  }
+  return closest;
+}
+
+// Fire rune bolt projectile
+function fireRuneBolt(p, target, level, pool) {
+  const proj = pool.acquire();
+  const dir = normalizeDir(target.x - p.x, target.y - p.y);
+  const stats = getWeaponStats('runeBolt', level);
+  proj.x = p.x; proj.y = p.y;
+  proj.vx = dir.x * WEAPON_TYPES.runeBolt.speed * 60;
+  proj.vy = dir.y * WEAPON_TYPES.runeBolt.speed * 60;
+  proj.damage = (stats.damage || WEAPON_TYPES.runeBolt.damage) * p.dmgMult;
+  proj.color = COL.BOLT; proj.type = 'runeBolt';
+  proj.pierce = stats.pierce || 0;
+  proj.radius = 5; proj.life = 3;
+  projectiles.push(proj);
+}
+
+// Fire ice lance projectile
+function fireIceLance(p, target, level, pool) {
+  const proj = pool.acquire();
+  const dir = normalizeDir(target.x - p.x, target.y - p.y);
+  const stats = getWeaponStats('iceLance', level);
+  proj.x = p.x; proj.y = p.y;
+  proj.vx = dir.x * WEAPON_TYPES.iceLance.speed * 60;
+  proj.vy = dir.y * WEAPON_TYPES.iceLance.speed * 60;
+  proj.damage = (stats.damage || WEAPON_TYPES.iceLance.damage) * p.dmgMult;
+  proj.color = COL.ICE; proj.type = 'iceLance';
+  proj.pierce = stats.pierce || 0;
+  proj.slowDur = stats.slowDur || WEAPON_TYPES.iceLance.slowDur;
+  proj.slowPct = stats.slowPct || WEAPON_TYPES.iceLance.slowPct;
+  proj.radius = 6; proj.life = 3;
+  projectiles.push(proj);
+}
+
+// Fire lightning chain weapon
+function fireLightningChain(p, ens, level, dmgTbl, pools) {
+  const stats = getWeaponStats('lightningChain', level);
+  const chains = stats.chains || WEAPON_TYPES.lightningChain.chains;
+  const baseDmg = (stats.damage || WEAPON_TYPES.lightningChain.damage) * p.dmgMult;
+  const range = WEAPON_TYPES.lightningChain.range;
+  const decay = stats.chainDecay !== undefined ? stats.chainDecay : 0.8;
+  let target = findClosestEnemy(ens, p.x, p.y, 300);
+  if (!target) return;
+  const hit = new Set();
+  let prevX = p.x, prevY = p.y;
+  let dmg = baseDmg;
+  for (let i = 0; i <= chains && target; i++) {
+    hit.add(target);
+    const mult = getDmgMultiplier('lightningChain', target.type, dmgTbl);
+    const idx = ens.indexOf(target);
+    applyDamage(target, dmg * mult, ens, pools, idx);
+    // Spawn lightning line particles
+    spawnLightningLine(prevX, prevY, target.x, target.y);
+    prevX = target.x; prevY = target.y;
+    dmg *= decay;
+    // Find next chain target
+    let nextTarget = null, minD = range + 1;
+    for (const e of ens) {
+      if (!e.active || hit.has(e)) continue;
+      const d = dist(prevX, prevY, e.x, e.y);
+      if (d < minD) { minD = d; nextTarget = e; }
+    }
+    target = nextTarget;
+  }
+}
+
+// Get damage multiplier from table
+function getDmgMultiplier(wType, eType, table) {
+  if (!table[wType]) return 1;
+  if (eType === 'crimsonWarden' || eType === 'elderLich') return table[wType].boss || 1;
+  return table[wType][eType] || 1;
+}
+
+// Apply damage to enemy (F16: single update path)
+function applyDamage(e, dmg, ens, pools, idx) {
+  e.hp -= dmg;
+  e.hitTimer = 0.1;
+  // Spawn hit particles
+  spawnParticle(e.x, e.y, randRange(-40,40), randRange(-40,40), e.color, 0.3, 2);
+  spawnParticle(e.x, e.y, randRange(-40,40), randRange(-40,40), '#ffffff', 0.2, 1.5);
+  if (e.hp <= 0) {
+    killEnemy(e, ens, idx);
+  }
+}
+
+// Kill an enemy and drop gems
+function killEnemy(e, ens, idx) {
+  // Score
+  addScore(scoreState, e.isBoss ? (BOSS_TYPES[e.bossType]||{}).score||500 : (e.isElite ? (ENEMY_TYPES[e.type]||{}).score*2||20 : (ENEMY_TYPES[e.type]||{}).score||10));
+  scoreState.kills++;
+  // Spawn death particles
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI*2/8)*i;
+    spawnParticle(e.x, e.y, Math.cos(a)*80+randRange(-20,20), Math.sin(a)*80+randRange(-20,20), e.color, 0.5, randRange(2,4));
+  }
+  // Score popup
+  const amt = e.isBoss ? (BOSS_TYPES[e.bossType]||{}).score||500 : (ENEMY_TYPES[e.type]||{}).score||10;
+  spawnScorePopup(e.x, e.y - 10, '+' + (e.isElite ? amt*2 : amt), COL.GOLD);
+  // Drop XP gem
+  const gemObj = gemPool.acquire();
+  gemObj.x = e.x + randRange(-10,10); gemObj.y = e.y + randRange(-10,10);
+  gemObj.value = e.isBoss ? (BOSS_TYPES[e.bossType]||{}).xp||100 : (e.isElite ? (ENEMY_TYPES[e.type]||{}).xp*2||10 : (ENEMY_TYPES[e.type]||{}).xp||5);
+  gemObj.type = 'xp'; gemObj.radius = 5; gemObj.bobOffset = Math.random()*Math.PI*2;
+  gems.push(gemObj);
+  // 5% chance HP gem
+  if (Math.random() < 0.05) {
+    const hpGem = gemPool.acquire();
+    hpGem.x = e.x + randRange(-15,15); hpGem.y = e.y + randRange(-15,15);
+    hpGem.value = 15; hpGem.type = 'hp'; hpGem.radius = 5; hpGem.bobOffset = Math.random()*Math.PI*2;
+    gems.push(hpGem);
+  }
+  // Boss specific
+  if (e.isBoss) {
+    triggerShake(12, 0.8);
+    timeScale = 0.3;
+    tweenMgr.add({v:0.3}, {v:1}, 0.8, 'easeOutCubic', () => { timeScale = 1.0; });
+    // Boss fast kill achievement
+    if (gameTime - bossSpawnTime <= 30) checkAchievement('ACH_BOSS_FAST', true);
+    boss = null;
+  }
+  // Remove enemy
+  e.active = false;
+  if (idx >= 0 && idx < ens.length) ens.splice(idx, 1);
+  else {
+    const i2 = ens.indexOf(e);
+    if (i2 >= 0) ens.splice(i2, 1);
+  }
+}
+
+// === ENEMY AI (§7) ===
+function updateEnemies(ens, p, dt) {
+  for (let i = ens.length - 1; i >= 0; i--) {
+    const e = ens[i];
+    if (!e.active) { ens.splice(i, 1); continue; }
+    // Hit flash timer
+    if (e.hitTimer > 0) e.hitTimer -= dt;
+    // Slow debuff
+    if (e.slowTimer > 0) { e.slowTimer -= dt; }
+    else { e.slowPct = 1; }
+    const speedMult = e.slowPct;
+    // Boss AI
+    if (e.isBoss) {
+      updateBossAI(e, p, dt);
+      continue;
+    }
+    // Standard enemy movement toward player
+    const dir = normalizeDir(p.x - e.x, p.y - e.y);
+    const spd = e.speed * 60 * dt * speedMult;
+    // Type-specific behavior
+    if (e.type === 'bat') {
+      // Zigzag movement
+      const zigzag = Math.sin(gameTime * 3 + e.x) * 30;
+      const perp = { x: -dir.y, y: dir.x };
+      e.x += (dir.x * spd) + perp.x * zigzag * dt;
+      e.y += (dir.y * spd) + perp.y * zigzag * dt;
+    } else if (e.type === 'skeleton') {
+      // Charge when close
+      const d = dist(e.x, e.y, p.x, p.y);
+      if (d < 150 && !e.isCharging && e.chargeTimer <= 0) {
+        e.isCharging = true;
+        e.chargeTimer = 1.5;
+        e.chargeDx = dir.x; e.chargeDy = dir.y;
+      }
+      if (e.isCharging) {
+        e.chargeTimer -= dt;
+        e.x += e.chargeDx * spd * 3;
+        e.y += e.chargeDy * spd * 3;
+        if (e.chargeTimer <= 0) { e.isCharging = false; e.chargeTimer = 4; }
+      } else {
+        e.chargeTimer -= dt;
+        e.x += dir.x * spd; e.y += dir.y * spd;
+      }
+    } else if (e.type === 'mage') {
+      // Keep distance and shoot
+      const d = dist(e.x, e.y, p.x, p.y);
+      if (d > 200) { e.x += dir.x * spd; e.y += dir.y * spd; }
+      else if (d < 150) { e.x -= dir.x * spd * 0.5; e.y -= dir.y * spd * 0.5; }
+      // Shoot bullets
+      e.attackTimer -= dt;
+      if (e.attackTimer <= 0) {
+        const bDir = normalizeDir(p.x - e.x, p.y - e.y);
+        const b = bulletPool.acquire();
+        b.x = e.x; b.y = e.y;
+        b.vx = bDir.x * 4 * 60; b.vy = bDir.y * 4 * 60;
+        b.damage = e.damage; b.radius = 4; b.life = 3;
+        bossBullets.push(b);
+        e.attackTimer = 3;
+      }
+    } else {
+      // Default: move toward player (slime, golem)
+      e.x += dir.x * spd; e.y += dir.y * spd;
+    }
+    // Keep in world bounds
+    e.x = clamp(e.x, 0, CONFIG.WORLD_W);
+    e.y = clamp(e.y, 0, CONFIG.WORLD_H);
+  }
+}
+
+// Boss AI (§7.3)
+function updateBossAI(b, p, dt) {
+  const speedMult = b.slowPct;
+  b.phase = getBossPhase(b);
+  const dir = normalizeDir(p.x - b.x, p.y - b.y);
+  const spd = b.speed * 60 * dt * speedMult;
+  if (b.bossType === 'crimsonWarden') {
+    // Crimson Warden - Giant Golem
+    const phaseMult = b.phase === 2 ? 1.5 : 1;
+    b.x += dir.x * spd * phaseMult;
+    b.y += dir.y * spd * phaseMult;
+    // Shockwave attack
+    b.attackTimer -= dt;
+    const interval = b.phase === 2 ? 3 : 5;
+    if (b.attackTimer <= 0) {
+      // 8-directional shockwave bullets
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI * 2 / 8) * i;
+        const bl = bulletPool.acquire();
+        bl.x = b.x; bl.y = b.y;
+        bl.vx = Math.cos(a) * 2.5 * 60;
+        bl.vy = Math.sin(a) * 2.5 * 60;
+        bl.damage = 15; bl.radius = 6; bl.life = 4;
+        bossBullets.push(bl);
+      }
+      triggerShake(5, 0.3);
+      b.attackTimer = interval;
+      // Spawn shockwave visual
+      for (let i = 0; i < 12; i++) {
+        const a = (Math.PI*2/12)*i;
+        spawnParticle(b.x, b.y, Math.cos(a)*120, Math.sin(a)*120, COL.BOSS1, 0.6, 4);
+      }
+    }
+    // Phase 2: summon slimes
+    if (b.phase === 2) {
+      b.summonTimer -= dt;
+      if (b.summonTimer <= 0) {
+        for (let i = 0; i < 2; i++) spawnSpecificEnemy('slime', b.x + randRange(-50,50), b.y + randRange(-50,50));
+        b.summonTimer = 10;
+      }
+    }
+  } else if (b.bossType === 'elderLich') {
+    // Elder Lich
+    b.x += dir.x * spd;
+    b.y += dir.y * spd;
+    // Teleport
+    const teleInterval = b.phase >= 2 ? 2 : 3;
+    b.teleportTimer -= dt;
+    if (b.teleportTimer <= 0) {
+      // Spawn afterimage particles
+      for (let i = 0; i < 6; i++) spawnParticle(b.x, b.y, randRange(-30,30), randRange(-30,30), COL.BOSS2, 0.5, b.radius*0.8);
+      // Teleport to random position near player
+      const a = Math.random() * Math.PI * 2;
+      const r = 200 + Math.random() * 150;
+      b.x = p.x + Math.cos(a) * r;
+      b.y = p.y + Math.sin(a) * r;
+      b.x = clamp(b.x, 50, CONFIG.WORLD_W - 50);
+      b.y = clamp(b.y, 50, CONFIG.WORLD_H - 50);
+      b.teleportTimer = teleInterval;
+    }
+    // Spiral bullet pattern
+    b.attackTimer -= dt;
+    const spiralInterval = b.phase >= 3 ? 1 : 2;
+    if (b.attackTimer <= 0) {
+      const numBullets = 12;
+      for (let i = 0; i < numBullets; i++) {
+        const a = b.spiralAngle + (Math.PI * 2 / numBullets) * i;
+        const bl = bulletPool.acquire();
+        bl.x = b.x; bl.y = b.y;
+        bl.vx = Math.cos(a) * 3 * 60;
+        bl.vy = Math.sin(a) * 3 * 60;
+        bl.damage = 10; bl.radius = 4; bl.life = 4;
+        bossBullets.push(bl);
+      }
+      b.spiralAngle += 0.3;
+      b.attackTimer = spiralInterval;
+    }
+    // Phase 2: summon skeletons
+    if (b.phase >= 2) {
+      b.summonTimer -= dt;
+      if (b.summonTimer <= 0) {
+        for (let i = 0; i < 2; i++) spawnSpecificEnemy('skeleton', b.x + randRange(-60,60), b.y + randRange(-60,60));
+        b.summonTimer = 8;
+      }
+    }
+  }
+}
+
+// Get boss phase based on HP ratio
+function getBossPhase(b) {
+  const ratio = b.hp / b.maxHp;
+  if (b.bossType === 'crimsonWarden') return ratio > 0.5 ? 1 : 2;
+  // Elder Lich has 3 phases
+  if (ratio > 0.66) return 1;
+  if (ratio > 0.33) return 2;
+  return 3;
+}
+
+// Spawn a specific enemy type at position
+function spawnSpecificEnemy(type, x, y) {
+  const def = ENEMY_TYPES[type];
+  if (!def) return;
+  const e = enemyPool.acquire();
+  Object.assign(e, { x, y, hp:def.hp, maxHp:def.hp, speed:def.speed, damage:def.damage, xp:def.xp, radius:def.radius, color:def.color, type:type, chargeTimer:4, attackTimer:3, summonTimer:10, teleportTimer:3 });
+  enemies.push(e);
+}
+
+// === PROJECTILE UPDATE ===
+function updateProjectiles(projs, dt) {
+  for (let i = projs.length - 1; i >= 0; i--) {
+    const p = projs[i];
+    if (!p.active) { projs.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    // Trail particle
+    if (Math.random() < 0.3) {
+      spawnParticle(p.x, p.y, randRange(-10,10), randRange(-10,10), p.color, 0.15, 2);
+    }
+    if (p.life <= 0 || p.x < 0 || p.x > CONFIG.WORLD_W || p.y < 0 || p.y > CONFIG.WORLD_H) {
+      projPool.release(p); projs.splice(i, 1);
+    }
+  }
+}
+
+// === COLLISION DETECTION ===
+function checkProjectileHits(projs, ens, dmgTbl) {
+  for (let i = projs.length - 1; i >= 0; i--) {
+    const p = projs[i];
+    if (!p.active) continue;
+    for (let j = ens.length - 1; j >= 0; j--) {
+      const e = ens[j];
+      if (!e.active) continue;
+      if (circleCollision(p.x, p.y, p.radius, e.x, e.y, e.radius)) {
+        const mult = getDmgMultiplier(p.type, e.type, dmgTbl);
+        // Ice lance slow effect
+        if (p.type === 'iceLance' && p.slowDur > 0) {
+          e.slowTimer = p.slowDur;
+          e.slowPct = p.slowPct;
+          // Check slowDmgMult upgrade
+          const stats = weapons.iceLance ? getWeaponStats('iceLance', weapons.iceLance.level) : {};
+          const slowMult = stats.slowDmgMult || 1;
+          const finalDmg = p.damage * mult * (e.slowTimer > 0 ? slowMult : 1);
+          applyDamage(e, finalDmg, ens, {}, j);
+        } else {
+          applyDamage(e, p.damage * mult, ens, {}, j);
+        }
+        // Hit effect sprite
+        spawnHitEffect(p.x, p.y);
+        if (p.pierce > 0) { p.pierce--; }
+        else { projPool.release(p); projs.splice(i, 1); break; }
+      }
+    }
+  }
+}
+
+// Check enemy-player collisions
+function checkEnemyPlayerHits(ens, p, dt) {
+  if (isDying || p.invTimer > 0) return;
+  for (const e of ens) {
+    if (!e.active) continue;
+    if (circleCollision(p.x, p.y, p.radius, e.x, e.y, e.radius)) {
+      let dmg = e.damage;
+      // Shield damage reduction
+      if (weapons.shield) {
+        const stats = getWeaponStats('shield', weapons.shield.level);
+        dmg *= (1 - (stats.dmgReduce || WEAPON_TYPES.shield.dmgReduce));
+      }
+      modifyHP(p, -dmg);
+      waveDamageTaken += dmg;
+      p.invTimer = 0.5;
+      triggerShake(3, 0.15);
+      if (soundMgr) soundMgr.playSfx('hit');
+      // Knockback player away from enemy
+      const dir = normalizeDir(p.x - e.x, p.y - e.y);
+      p.x += dir.x * 30; p.y += dir.y * 30;
+      // Hit particles
+      for (let i = 0; i < 4; i++) spawnParticle(p.x, p.y, randRange(-50,50), randRange(-50,50), COL.GEM_HP, 0.3, 2);
+      break;
+    }
+  }
+  // Boss bullets
+  for (let i = bossBullets.length - 1; i >= 0; i--) {
+    const b = bossBullets[i];
+    if (!b.active) { bossBullets.splice(i, 1); continue; }
+    if (circleCollision(p.x, p.y, p.radius, b.x, b.y, b.radius)) {
+      let dmg = b.damage;
+      if (weapons.shield) {
+        const stats = getWeaponStats('shield', weapons.shield.level);
+        dmg *= (1 - (stats.dmgReduce || WEAPON_TYPES.shield.dmgReduce));
+      }
+      modifyHP(p, -dmg);
+      waveDamageTaken += dmg;
+      p.invTimer = 0.3;
+      triggerShake(3, 0.15);
+      if (soundMgr) soundMgr.playSfx('hit');
+      bulletPool.release(b); bossBullets.splice(i, 1);
+    }
+  }
+}
+
+// === GEM COLLECTION ===
+function updateGems(gms, p, dt) {
+  for (let i = gms.length - 1; i >= 0; i--) {
+    const g = gms[i];
+    if (!g.active) { gms.splice(i, 1); continue; }
+    const d = dist(g.x, g.y, p.x, p.y);
+    if (d < p.magnetRange) {
+      // Attract toward player
+      const dir = normalizeDir(p.x - g.x, p.y - g.y);
+      const speed = Math.max(200, (p.magnetRange - d) * 5);
+      g.x += dir.x * speed * dt;
+      g.y += dir.y * speed * dt;
+    }
+    if (d < p.radius + g.radius + 5) {
+      // Collect
+      if (g.type === 'xp') {
+        addXP(p, g.value);
+      } else if (g.type === 'hp') {
+        modifyHP(p, g.value);
+        spawnScorePopup(p.x, p.y - 20, '+' + g.value + ' HP', COL.GEM_HP);
+      }
+      if (soundMgr) soundMgr.playSfx('gem');
+      // Collect particles
+      for (let j = 0; j < 4; j++) {
+        spawnParticle(g.x, g.y, randRange(-20,20), randRange(-20,20), g.type === 'xp' ? COL.GEM_XP : COL.GEM_HP, 0.3, 2);
+      }
+      gemPool.release(g); gms.splice(i, 1);
+    }
+  }
+}
+
+// === SINGLE UPDATE PATHS (F16) ===
+function addScore(st, amount) { st.score += amount; }
+function modifyHP(p, amount) {
+  p.hp = clamp(p.hp + amount, 0, p.maxHp);
+}
+function addXP(p, amount) {
+  p.xp += Math.floor(amount * (1 + (p.xpBoost || 0)));
+}
+
+// === LEVEL UP CHECK ===
+function checkLevelUp(p) {
+  if (isLevelingUp) return;
+  if (p.xp >= p.xpNeeded) {
+    isLevelingUp = true;
+    p.xp -= p.xpNeeded;
+    p.level++;
+    p.xpNeeded = xpForLevel(p.level);
+    // Generate upgrade cards
+    upgradeCards = generateUpgradeCards(p, weapons);
+    selectedCardIndex = -1;
+    // Level up particles
+    for (let i = 0; i < 12; i++) {
+      const a = (Math.PI*2/12)*i;
+      spawnParticle(p.x, p.y, Math.cos(a)*100, Math.sin(a)*100, COL.PLAYER, 0.8, 3);
+    }
+    if (soundMgr) soundMgr.playSfx('levelup');
+    // Achievement
+    checkAchievement('ACH_LEVEL_10', p.level >= 10);
+    beginTransition(STATES.LEVEL_UP, { immediate: true });
+  }
+}
+
+// Generate 3 upgrade cards (§9)
+function generateUpgradeCards(p, wpns) {
+  const pool = [];
+  // Weapon acquisition cards
+  const availableWeapons = ['fireAura','iceLance','lightningChain','shield'];
+  for (const w of availableWeapons) {
+    if (!wpns[w]) {
+      pool.push({ type:'weapon_get', weapon:w, name:getWeaponName(w), desc:'무기 획득', rarity: w==='shield'?'legendary':'rare', icon:w });
+    }
+  }
+  // Weapon upgrade cards (for owned weapons)
+  for (const w in wpns) {
+    if (wpns[w].level < 5) {
+      pool.push({ type:'weapon_up', weapon:w, name:getWeaponName(w)+' 강화', desc:'Lv'+wpns[w].level+'→'+(wpns[w].level+1), rarity:'common', icon:w });
+    }
+  }
+  // Stat cards
+  pool.push({ type:'stat', stat:'heal', name:'HP 회복', desc:'HP +30 회복', rarity:'common', icon:'heal' });
+  if (p.maxHp < CONFIG.PLAYER_MAX_HP) pool.push({ type:'stat', stat:'maxHp', name:'최대 HP', desc:'최대 HP +20', rarity:'common', icon:'maxHp' });
+  if (p.speed < CONFIG.MAX_SPEED) pool.push({ type:'stat', stat:'speed', name:'이동 속도', desc:'속도 +0.5', rarity:'common', icon:'speed' });
+  if (p.magnetRange < CONFIG.MAX_MAGNET) pool.push({ type:'stat', stat:'magnet', name:'자석 범위', desc:'자석 +30px', rarity:'common', icon:'magnet' });
+  if (p.cooldownReduce < 0.4) pool.push({ type:'stat', stat:'cooldown', name:'쿨다운 감소', desc:'쿨다운 -8%', rarity:'rare', icon:'cooldown' });
+  if (p.dmgMult < 2.5) pool.push({ type:'stat', stat:'damage', name:'데미지 배율', desc:'데미지 ×1.15', rarity:'rare', icon:'damage' });
+  if (p.luck < 0.5) pool.push({ type:'stat', stat:'luck', name:'행운의 주문', desc:'행운 +10%', rarity:'rare', icon:'luck' });
+  if (p.xpBoost < 0.6) pool.push({ type:'stat', stat:'xpBoost', name:'경험치 부스트', desc:'XP +20%', rarity:'legendary', icon:'xpBoost' });
+
+  // Weight by rarity with luck
+  const luckBonus = p.luck || 0;
+  const weights = {
+    common: Math.max(0.2, CARD_RARITY.common - luckBonus * 0.5),
+    rare: CARD_RARITY.rare + luckBonus * 0.3,
+    legendary: CARD_RARITY.legendary + luckBonus * 0.2,
+  };
+
+  // Select 3 cards
+  const selected = [];
+  const remaining = [...pool];
+  for (let i = 0; i < 3 && remaining.length > 0; i++) {
+    // Weight the selection
+    const weighted = remaining.map(c => ({ card:c, weight: weights[c.rarity] || 0.5 }));
+    const totalW = weighted.reduce((s,w) => s + w.weight, 0);
+    let r = Math.random() * totalW;
+    let pick = weighted[0].card;
+    for (const w of weighted) {
+      r -= w.weight;
+      if (r <= 0) { pick = w.card; break; }
+    }
+    selected.push({...pick, animY: -300, alpha: 0, scale: 0.8});
+    remaining.splice(remaining.indexOf(pick), 1);
+  }
+  // Fill with heal if less than 3
+  while (selected.length < 3) {
+    selected.push({ type:'stat', stat:'heal', name:'HP 회복', desc:'HP +30', rarity:'common', icon:'heal', animY:-300, alpha:0, scale:0.8 });
+  }
+  // Animate cards in
+  selected.forEach((c, i) => {
+    const delay = i * 0.1;
+    const targetY = H/2 - 110;
+    tweenMgr.add(c, { animY: targetY, alpha: 1, scale: 1 }, 0.4, 'easeOutBack');
+  });
+  return selected;
+}
+
+// Get weapon display name
+function getWeaponName(w) {
+  const names = { runeBolt:'룬볼트', fireAura:'화염 오라', iceLance:'얼음 창', lightningChain:'번개 체인', shield:'보호 실드' };
+  return names[w] || w;
+}
+
+// Apply selected upgrade
+function applyUpgrade(p, wpns, card) {
+  if (card.type === 'weapon_get') {
+    wpns[card.weapon] = { level:1, timer:0, angle:0, rotSpeedMult:1 };
+  } else if (card.type === 'weapon_up') {
+    if (wpns[card.weapon]) wpns[card.weapon].level++;
+  } else if (card.type === 'stat') {
+    if (card.stat === 'heal') modifyHP(p, 30);
+    else if (card.stat === 'maxHp') { p.maxHp = Math.min(CONFIG.PLAYER_MAX_HP, p.maxHp + 20); }
+    else if (card.stat === 'speed') { p.speed = Math.min(CONFIG.MAX_SPEED, p.speed + 0.5); }
+    else if (card.stat === 'magnet') { p.magnetRange = Math.min(CONFIG.MAX_MAGNET, p.magnetRange + 30); }
+    else if (card.stat === 'cooldown') { p.cooldownReduce = Math.min(0.4, (p.cooldownReduce||0) + 0.08); }
+    else if (card.stat === 'damage') { p.dmgMult = Math.min(2.5, (p.dmgMult||1) * 1.15); }
+    else if (card.stat === 'luck') { p.luck = Math.min(0.5, (p.luck||0) + 0.1); }
+    else if (card.stat === 'xpBoost') { p.xpBoost = Math.min(0.6, (p.xpBoost||0) + 0.2); }
+  }
+  isLevelingUp = false;
+  beginTransition(STATES.PLAYING, { immediate: true });
+}
+
+// === WAVE SYSTEM (§10) ===
+function updateWaveTimer(w, dt) {
+  if (w.isResting) {
+    w.restTimer -= dt;
+    w.alertTimer = Math.max(0, w.alertTimer - dt);
+    if (w.restTimer <= 0) {
+      w.isResting = false;
+      waveDamageTaken = 0;
+      // Check for boss wave
+      const waveConfig = WAVE_TABLE[w.num - 1];
+      if (waveConfig && waveConfig.boss) {
+        bossSpawnTime = gameTime;
+        beginTransition(STATES.BOSS_INTRO, { immediate: true });
+        return;
+      }
+    }
+    return;
+  }
+  w.timer += dt;
+  w.totalTime += dt;
+  w.spawnTimer -= dt;
+  const waveConfig = WAVE_TABLE[w.num - 1];
+  if (!waveConfig) return;
+  // Spawn enemies
+  if (w.spawnTimer <= 0 && enemies.length < waveConfig.maxEnemies) {
+    spawnWaveEnemy(waveConfig, player);
+    w.spawnTimer = waveConfig.spawnInterval;
+  }
+}
+
+// Check wave completion
+function checkWaveComplete(w, ens) {
+  if (waveClearing) return;
+  const waveConfig = WAVE_TABLE[w.num - 1];
+  if (!waveConfig) return;
+  // Wave completes when timer exceeds duration and all enemies dead (or boss dead)
+  if (w.timer >= waveConfig.duration && (ens.length === 0 || (!boss && waveConfig.boss))) {
+    waveClearing = true;
+    // Wave clear bonus
+    const bonus = w.num * 50;
+    addScore(scoreState, bonus);
+    spawnScorePopup(player.x, player.y - 40, 'Wave ' + w.num + ' Clear! +' + bonus, COL.GOLD);
+    // No damage bonus
+    if (waveDamageTaken === 0) {
+      addScore(scoreState, 200);
+      spawnScorePopup(player.x, player.y - 60, 'No Damage! +200', COL.PLAYER);
+      checkAchievement('ACH_NO_DAMAGE', true);
+    }
+    if (w.num >= 10) {
+      // Victory!
+      checkAchievement('ACH_FIRST_CLEAR', true);
+      scoreState.isNewBest = scoreState.score > scoreState.bestScore;
+      if (scoreState.isNewBest) saveBest(scoreState.score);
+      scoreState.bestScore = Math.max(scoreState.score, scoreState.bestScore);
+      resultStats = {
+        score: scoreState.score, kills: scoreState.kills,
+        level: player.level, wave: w.num,
+        time: gameTime, isNewBest: scoreState.isNewBest,
+        bestScore: scoreState.bestScore, victory: true,
+      };
+      beginTransition(STATES.RESULT, { immediate: true });
+      return;
+    }
+    // Advance to next wave
+    w.num++;
+    w.timer = 0;
+    w.spawnTimer = 0;
+    w.isResting = true;
+    w.restTimer = 3;
+    w.alertTimer = 3;
+    waveClearing = false;
+  }
+}
+
+// Spawn an enemy from wave config
+function spawnWaveEnemy(waveConfig, p) {
+  // Pick enemy type based on composition
+  const roll = Math.random();
+  let cumulative = 0;
+  let type = 'slime';
+  for (const [t, pct] of Object.entries(waveConfig.composition)) {
+    cumulative += pct;
+    if (roll <= cumulative) { type = t; break; }
+  }
+  // Random spawn position outside view
+  const angle = Math.random() * Math.PI * 2;
+  const r = 500 + Math.random() * 100;
+  const x = p.x + Math.cos(angle) * r;
+  const y = p.y + Math.sin(angle) * r;
+  const def = ENEMY_TYPES[type];
+  if (!def) return;
+  const e = enemyPool.acquire();
+  const isElite = waveConfig.elite && Math.random() < waveConfig.elite;
+  const hpMult = isElite ? 1.5 : 1;
+  const dmgMult = isElite ? 1.2 : 1;
+  Object.assign(e, {
+    x: clamp(x, 10, CONFIG.WORLD_W - 10), y: clamp(y, 10, CONFIG.WORLD_H - 10),
+    hp: def.hp * hpMult, maxHp: def.hp * hpMult, speed: def.speed, damage: def.damage * dmgMult,
+    xp: def.xp * (isElite ? 2 : 1), radius: def.radius, color: def.color, type: type,
+    isElite: isElite, chargeTimer: 4, attackTimer: 3, summonTimer: 10, teleportTimer: 3,
+  });
+  enemies.push(e);
+}
+
+// Spawn a boss
+function spawnBoss(bossType) {
+  const def = BOSS_TYPES[bossType];
+  if (!def) return;
+  boss = enemyPool.acquire();
+  const angle = Math.random() * Math.PI * 2;
+  Object.assign(boss, {
+    x: player.x + Math.cos(angle) * 400, y: player.y + Math.sin(angle) * 400,
+    hp: def.hp, maxHp: def.hp, speed: def.speed, damage: def.damage,
+    xp: def.xp, radius: def.radius, color: def.color, type: bossType,
+    isBoss: true, bossType: bossType, phase: 1,
+    attackTimer: 3, summonTimer: 10, teleportTimer: 3, spiralAngle: 0,
+  });
+  enemies.push(boss);
+}
+
+// Check game over
+function checkGameOver(p) {
+  if (isDying) return;
+  if (p.hp <= 0) {
+    isDying = true;
+    triggerShake(10, 0.6);
+    // Death particles
+    for (let i = 0; i < 20; i++) {
+      const a = (Math.PI*2/20)*i;
+      spawnParticle(p.x, p.y, Math.cos(a)*120+randRange(-30,30), Math.sin(a)*120+randRange(-30,30), COL.PLAYER, 0.8, randRange(2,5));
+    }
+    tweenMgr.add({v:0},{v:1}, 1.0, 'easeOutCubic', () => {
+      beginTransition(STATES.GAMEOVER, { immediate: true });
+    });
+  }
+}
+
+// === BOSS BULLET UPDATE ===
+function updateBossBullets(bullets, dt) {
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    if (!b.active) { bullets.splice(i, 1); continue; }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.life -= dt;
+    if (b.life <= 0) { bulletPool.release(b); bullets.splice(i, 1); }
+  }
+}
+
+// === PARTICLE HELPERS ===
+function spawnParticle(x, y, vx, vy, color, life, radius) {
+  const p = particlePool.acquire();
+  p.x = x; p.y = y; p.vx = vx; p.vy = vy;
+  p.color = color; p.life = life; p.maxLife = life; p.radius = radius; p.alpha = 1;
+  particles.push(p);
+}
+function spawnLightningLine(x1, y1, x2, y2) {
+  const steps = 5;
+  for (let i = 0; i < steps; i++) {
+    const t = i / steps;
+    const x = x1 + (x2-x1)*t + randRange(-8,8);
+    const y = y1 + (y2-y1)*t + randRange(-8,8);
+    spawnParticle(x, y, randRange(-10,10), randRange(-10,10), COL.LIGHTNING, 0.3, 2);
+  }
+}
+function spawnHitEffect(x, y) {
+  for (let i = 0; i < 3; i++) {
+    spawnParticle(x, y, randRange(-40,40), randRange(-40,40), '#ffffff', 0.2, randRange(1.5,3));
+  }
+}
+function spawnScorePopup(x, y, text, color) {
+  const p = popupPool.acquire();
+  p.x = x; p.y = y; p.text = text; p.color = color || COL.TEXT; p.alpha = 1; p.life = 0; p.vy = -40;
+  scorePopups.push(p);
+}
+
+// Update particles
+function updateParticles(parts, dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    if (!p.active) { parts.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt;
+    p.alpha = Math.max(0, p.life / p.maxLife);
+    if (p.life <= 0) { particlePool.release(p); parts.splice(i, 1); }
+  }
+}
+// Update score popups
+function updateScorePopups(pops, dt) {
+  for (let i = pops.length - 1; i >= 0; i--) {
+    const p = pops[i];
+    if (!p.active) { pops.splice(i, 1); continue; }
+    p.y += p.vy * dt;
+    p.life += dt;
+    p.alpha = Math.max(0, 1 - p.life / 0.8);
+    if (p.life >= 0.8) { popupPool.release(p); pops.splice(i, 1); }
+  }
+}
+// Update screen shake
+function updateScreenShake(s, dt) {
+  if (s.duration <= 0) { s.x = 0; s.y = 0; return; }
+  s.timer += dt;
+  if (s.timer >= s.duration) { s.x = 0; s.y = 0; s.duration = 0; s.timer = 0; return; }
+  const prog = 1 - s.timer / s.duration;
+  s.x = (Math.random()*2-1) * s.intensity * prog;
+  s.y = (Math.random()*2-1) * s.intensity * prog;
+}
+
+// === ACHIEVEMENT SYSTEM (§12) ===
+function checkAchievement(id, condition) {
+  if (achievements[id] || !condition) return;
+  achievements[id] = true;
+  saveAchievements(achievements);
+  // Show notification
+  const ach = ACH_LIST.find(a => a.id === id);
+  if (ach) {
+    achNotifications.push({ name: ach.name, timer: 3.5, y: -60 });
+    tweenMgr.add(achNotifications[achNotifications.length-1], {y: 10}, 0.3, 'easeOutBack');
+  }
+}
+
+// === MAIN UPDATE (§5.2) ===
+function update(dt) {
+  const scaledDt = dt * timeScale;
+  // Transition overlay alpha (moved from render — F26)
+  if (isTransitioning) transitionAlpha = Math.min(1, transitionAlpha + dt * 3.33);
+  // Always update (all states)
+  tweenMgr.update(dt); // Tweens use real dt
+  updateScreenShake(shake, dt);
+  updateScorePopups(scorePopups, scaledDt);
+  // Achievement notification timers
+  for (let i = achNotifications.length - 1; i >= 0; i--) {
+    achNotifications[i].timer -= dt;
+    if (achNotifications[i].timer <= 0.3 && achNotifications[i].y < 0) {} // already hidden
+    if (achNotifications[i].timer <= 0.5 && achNotifications[i].y >= 0) {
+      tweenMgr.add(achNotifications[i], {y:-60}, 0.3, 'easeInOut');
+    }
+    if (achNotifications[i].timer <= 0) achNotifications.splice(i, 1);
+  }
+
+  if (gameState === STATES.TITLE) {
+    titleTime += dt;
+  }
+  else if (gameState === STATES.PLAYING) {
+    gameTime += scaledDt;
+    updatePlayerMovement(player, {keys, joystick}, scaledDt, CONFIG);
+    updateWeapons(weapons, enemies, player, scaledDt, DMG_TABLE, {proj:projPool});
+    updateProjectiles(projectiles, scaledDt);
+    updateEnemies(enemies, player, scaledDt);
+    updateBossBullets(bossBullets, scaledDt);
+    checkProjectileHits(projectiles, enemies, DMG_TABLE);
+    checkEnemyPlayerHits(enemies, player, scaledDt);
+    updateGems(gems, player, scaledDt);
+    updateParticles(particles, scaledDt);
+    updateWaveTimer(wave, scaledDt);
+    checkLevelUp(player);
+    checkWaveComplete(wave, enemies);
+    checkGameOver(player);
+    // Camera follow
+    camera.x += (player.x - W/2 - camera.x) * 5 * scaledDt;
+    camera.y += (player.y - H/2 - camera.y) * 5 * scaledDt;
+    // Achievement checks
+    checkAchievement('ACH_5000_SCORE', scoreState.score >= 5000);
+    checkAchievement('ACH_100_KILLS', scoreState.kills >= 100);
+    checkAchievement('ACH_SURVIVE_5MIN', gameTime >= 300);
+  }
+  else if (gameState === STATES.LEVEL_UP) {
+    updateParticles(particles, scaledDt);
+  }
+  else if (gameState === STATES.BOSS_INTRO) {
+    updateParticles(particles, dt);
+    updateScreenShake(shake, dt);
+    // Boss intro animation timer
+    if (!wave._bossIntroTimer) wave._bossIntroTimer = 0;
+    wave._bossIntroTimer += dt;
+    if (wave._bossIntroTimer >= 2.5) {
+      wave._bossIntroTimer = 0;
+      const waveConfig = WAVE_TABLE[wave.num - 1];
+      if (waveConfig && waveConfig.boss) {
+        spawnBoss(waveConfig.boss);
+        if (soundMgr) soundMgr.startBgm('boss');
+      }
+      enterState(STATES.PLAYING);
+    }
+    // Spawn boss intro particles
+    if (Math.random() < 0.3) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.max(W, H) * 0.6;
+      spawnParticle(player.x + Math.cos(a)*r, player.y + Math.sin(a)*r,
+        -Math.cos(a)*200, -Math.sin(a)*200,
+        WAVE_TABLE[wave.num-1]?.boss === 'elderLich' ? COL.BOSS2 : COL.BOSS1, 1.5, 3);
+    }
+  }
+  else if (gameState === STATES.GAMEOVER) {
+    updateParticles(particles, dt);
+  }
+}
+
+// === MAIN RENDER (§5.3 — pure output, no state changes) ===
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  // Apply screen shake
+  ctx.translate(shake.x, shake.y);
+
+  if (gameState === STATES.TITLE) {
+    drawTitleScreen(ctx, titleTime);
+  } else if (gameState >= STATES.PLAYING) {
+    // Draw game world
+    drawBackground(ctx);
+    ctx.save();
+    ctx.translate(-camera.x, -camera.y);
+    // Draw gems
+    drawGems(ctx, gems, gameTime);
+    // Draw enemies
+    drawEnemiesAll(ctx, enemies, gameTime);
+    // Draw boss bullets
+    drawBossBullets(ctx, bossBullets);
+    // Draw projectiles
+    drawProjectilesAll(ctx, projectiles, gameTime);
+    // Draw player
+    drawPlayer(ctx, player, gameTime);
+    // Draw particles
+    drawParticlesAll(ctx, particles);
+    // Draw score popups
+    drawScorePopupsAll(ctx, scorePopups);
+    ctx.restore();
+    // Draw UI overlay
+    drawUI(ctx);
+    // State-specific overlays
+    if (gameState === STATES.LEVEL_UP) drawUpgradeCards(ctx, upgradeCards);
+    if (gameState === STATES.BOSS_INTRO) drawBossIntro(ctx, wave);
+    if (gameState === STATES.PAUSED) drawPauseOverlay(ctx);
+    if (gameState === STATES.GAMEOVER) drawGameOverScreen(ctx);
+    if (gameState === STATES.RESULT) drawResultScreen(ctx);
+    // Virtual joystick
+    if (inputMode === 'touch') drawJoystick(ctx, joystick);
+  }
+  ctx.restore();
+  // Achievement notifications (always on top)
+  drawAchNotifications(ctx);
+  // Transition overlay
+  if (isTransitioning) {
+    ctx.fillStyle = `rgba(0,0,0,${transitionAlpha})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// === DRAW FUNCTIONS ===
+
+// Draw parallax background
+function drawBackground(c) {
+  // Layer 1: cached bg with parallax
+  if (bgCache) {
+    const px = -(camera.x * 0.1) % W;
+    const py = -(camera.y * 0.1) % H;
+    c.drawImage(bgCache, px, py, W, H);
+  }
+  // Layer 2: Canvas parallax rune pattern overlay
+  c.save();
+  const px2 = -(camera.x * 0.15) % 64;
+  const py2 = -(camera.y * 0.15) % 64;
+  c.globalAlpha = 0.08;
+  c.strokeStyle = '#6c3cf7';
+  c.lineWidth = 0.5;
+  for (let x = px2 - 64; x <= W + 64; x += 64) {
+    for (let y = py2 - 64; y <= H + 64; y += 64) {
+      c.beginPath(); c.arc(x, y, 12, 0, Math.PI*2); c.stroke();
+      c.beginPath(); c.moveTo(x-8,y); c.lineTo(x+8,y); c.moveTo(x,y-8); c.lineTo(x,y+8); c.stroke();
+    }
+  }
+  c.restore();
+  // Grid overlay
+  c.save();
+  c.translate(-camera.x % 32, -camera.y % 32);
+  c.strokeStyle = COL.GRID; c.lineWidth = 0.3; c.globalAlpha = 0.4;
+  for (let x = -32; x <= W + 32; x += 32) { c.beginPath(); c.moveTo(x,0); c.lineTo(x,H); c.stroke(); }
+  for (let y = -32; y <= H + 32; y += 32) { c.beginPath(); c.moveTo(0,y); c.lineTo(W,y); c.stroke(); }
+  c.restore();
+}
+
+// Draw player character
+function drawPlayer(c, p, time) {
+  const sx = p.x, sy = p.y;
+  // Invincibility flash
+  if (p.invTimer > 0 && Math.floor(p.invTimer * 10) % 2 === 0) return;
+  c.save();
+  c.translate(sx, sy);
+  // Slight tilt based on movement
+  const tilt = Math.sin(time * 2) * 0.05;
+  c.rotate(tilt);
+
+  // Canvas drawing: robe + head + rune glow
+  c.shadowColor = COL.PLAYER; c.shadowBlur = 15;
+  // Robe body (triangle)
+  c.fillStyle = COL.ROBE;
+  c.beginPath();
+  c.moveTo(0, -16); c.lineTo(-12, 16); c.lineTo(12, 16);
+  c.closePath(); c.fill();
+  // Head (circle)
+  c.fillStyle = COL.PLAYER;
+  c.beginPath(); c.arc(0, -12, 8, 0, Math.PI*2); c.fill();
+  // Rune glow effect
+  c.strokeStyle = COL.PLAYER; c.lineWidth = 1.5;
+  const glowR = 18 + Math.sin(time * 3) * 3;
+  c.beginPath(); c.arc(0, 0, glowR, 0, Math.PI*2); c.stroke();
+  c.shadowBlur = 0;
+
+  // Fire aura visual
+  if (weapons.fireAura) {
+    const stats = getWeaponStats('fireAura', weapons.fireAura.level);
+    const range = stats.range || WEAPON_TYPES.fireAura.range;
+    c.strokeStyle = COL.FIRE; c.lineWidth = 2;
+    c.globalAlpha = 0.3 + Math.sin(time*4)*0.1;
+    c.shadowColor = COL.FIRE; c.shadowBlur = 10;
+    c.beginPath(); c.arc(0, 0, range, 0, Math.PI*2); c.stroke();
+    c.globalAlpha = 1; c.shadowBlur = 0;
+  }
+  // Shield orbs
+  if (weapons.shield) {
+    const stats = getWeaponStats('shield', weapons.shield.level);
+    const numOrbs = stats.orbs || WEAPON_TYPES.shield.orbs;
+    c.shadowColor = COL.SHIELD; c.shadowBlur = 8;
+    for (let i = 0; i < numOrbs; i++) {
+      const a = weapons.shield.angle + (Math.PI*2/numOrbs)*i;
+      const ox = Math.cos(a) * WEAPON_TYPES.shield.range;
+      const oy = Math.sin(a) * WEAPON_TYPES.shield.range;
+      c.fillStyle = COL.SHIELD;
+      c.beginPath(); c.arc(ox, oy, 6, 0, Math.PI*2); c.fill();
+    }
+    c.shadowBlur = 0;
+  }
+  c.restore();
+}
+
+// Draw a single enemy
+function drawEnemy(c, e, time) {
+  if (!e.active) return;
+  c.save();
+  c.translate(e.x, e.y);
+  // Hit flash
+  if (e.hitTimer > 0) { c.globalAlpha = 0.6; }
+  // Slow effect (blue tint overlay)
+  const isSlowed = e.slowTimer > 0;
+
+  if (e.isBoss) {
+    drawBoss(c, e, time);
+    c.restore();
+    return;
+  }
+
+  // Canvas drawing for all enemy types
+  {
+    c.shadowColor = e.color; c.shadowBlur = 6;
+    if (e.type === 'slime') {
+      const bounce = Math.sin(time * 4 + e.x) * 3;
+      c.fillStyle = e.color;
+      c.beginPath();
+      c.arc(0, -3 + bounce, e.radius, Math.PI, 0);
+      c.quadraticCurveTo(e.radius, e.radius + bounce, 0, e.radius + bounce + 2);
+      c.quadraticCurveTo(-e.radius, e.radius + bounce, -e.radius, 0 + bounce);
+      c.fill();
+      // Eyes
+      c.fillStyle = '#000'; c.beginPath(); c.arc(-4, -4+bounce, 2, 0, Math.PI*2); c.arc(4, -4+bounce, 2, 0, Math.PI*2); c.fill();
+    } else if (e.type === 'bat') {
+      const wingAngle = Math.sin(time * 8 + e.y) * 0.5;
+      c.fillStyle = e.color;
+      // Body
+      c.beginPath(); c.arc(0, 0, 5, 0, Math.PI*2); c.fill();
+      // Wings
+      c.save(); c.rotate(wingAngle);
+      c.beginPath(); c.moveTo(0,0); c.lineTo(-18,-8); c.lineTo(-10,2); c.closePath(); c.fill();
+      c.restore();
+      c.save(); c.rotate(-wingAngle);
+      c.beginPath(); c.moveTo(0,0); c.lineTo(18,-8); c.lineTo(10,2); c.closePath(); c.fill();
+      c.restore();
+      // Eyes
+      c.fillStyle = '#ff0'; c.beginPath(); c.arc(-3,-2,1.5,0,Math.PI*2); c.arc(3,-2,1.5,0,Math.PI*2); c.fill();
+    } else if (e.type === 'golem') {
+      c.fillStyle = e.color;
+      // Body (large rectangle)
+      c.fillRect(-e.radius, -e.radius, e.radius*2, e.radius*2);
+      // Arms (small rectangles, wobble)
+      const wobble = Math.sin(time * 2 + e.y) * 3;
+      c.fillRect(-e.radius - 6, -4 + wobble, 6, 12);
+      c.fillRect(e.radius, -4 - wobble, 6, 12);
+      // Eyes
+      c.fillStyle = '#ff0'; c.fillRect(-6,-6,4,4); c.fillRect(2,-6,4,4);
+    } else if (e.type === 'mage') {
+      c.fillStyle = e.color;
+      // Hat (triangle)
+      c.beginPath(); c.moveTo(0,-18); c.lineTo(-10,-4); c.lineTo(10,-4); c.closePath(); c.fill();
+      // Body (circle)
+      c.beginPath(); c.arc(0, 4, 8, 0, Math.PI*2); c.fill();
+      // Eyes
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(-3,2,2,0,Math.PI*2); c.arc(3,2,2,0,Math.PI*2); c.fill();
+      // Staff
+      c.strokeStyle = '#ddd'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(8,0); c.lineTo(14,14); c.stroke();
+    } else if (e.type === 'skeleton') {
+      c.fillStyle = e.color;
+      // Head (hollow circle)
+      c.strokeStyle = e.color; c.lineWidth = 2;
+      c.beginPath(); c.arc(0, -8, 7, 0, Math.PI*2); c.stroke();
+      // Eyes
+      c.fillStyle = '#f00'; c.beginPath(); c.arc(-3,-9,2,0,Math.PI*2); c.arc(3,-9,2,0,Math.PI*2); c.fill();
+      // Body
+      c.fillStyle = e.color; c.fillRect(-6, -1, 12, 16);
+      // Sword
+      const swordAngle = e.isCharging ? -0.5 : Math.sin(time*2)*0.3;
+      c.save(); c.translate(8, 2); c.rotate(swordAngle);
+      c.strokeStyle = '#fff'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(0,0); c.lineTo(14,-4); c.stroke();
+      c.restore();
+    }
+    c.shadowBlur = 0;
+  }
+  // Elite golden border
+  if (e.isElite) {
+    c.strokeStyle = COL.GOLD; c.lineWidth = 2;
+    c.beginPath(); c.arc(0, 0, e.radius + 3, 0, Math.PI*2); c.stroke();
+  }
+  // Slow overlay
+  if (isSlowed) {
+    c.fillStyle = 'rgba(100,200,255,0.2)';
+    c.beginPath(); c.arc(0, 0, e.radius + 2, 0, Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+
+// Draw boss character
+function drawBoss(c, b, time) {
+  const phase = getBossPhase(b);
+  if (b.bossType === 'crimsonWarden') {
+    // Giant golem with gradient
+    const grad = c.createLinearGradient(-b.radius, -b.radius, b.radius, b.radius);
+    grad.addColorStop(0, COL.GOLEM); grad.addColorStop(1, COL.BOSS1);
+    c.shadowColor = COL.BOSS1; c.shadowBlur = 20;
+    c.fillStyle = grad;
+    c.fillRect(-b.radius, -b.radius, b.radius*2, b.radius*2);
+    // Arms
+    const wobble = Math.sin(time * 1.5) * 5;
+    c.fillRect(-b.radius - 12, -8 + wobble, 12, 20);
+    c.fillRect(b.radius, -8 - wobble, 12, 20);
+    // Eyes (angry)
+    c.fillStyle = '#ff0';
+    c.fillRect(-12, -12, 8, 6);
+    c.fillRect(4, -12, 8, 6);
+    c.shadowBlur = 0;
+    // Phase indicator aura
+    if (phase === 2) {
+      c.strokeStyle = COL.BOSS1; c.lineWidth = 3;
+      c.globalAlpha = 0.4 + Math.sin(time*4)*0.2;
+      c.beginPath(); c.arc(0, 0, b.radius + 10 + Math.sin(time*3)*5, 0, Math.PI*2); c.stroke();
+      c.globalAlpha = 1;
+    }
+  } else if (b.bossType === 'elderLich') {
+    c.shadowColor = COL.BOSS2; c.shadowBlur = 25;
+    // Flowing robe
+    c.fillStyle = '#3d0066';
+    c.beginPath();
+    c.moveTo(0, -24); c.lineTo(-20, 20); c.lineTo(20, 20); c.closePath();
+    c.fill();
+    // Head
+    c.fillStyle = COL.BOSS2;
+    c.beginPath(); c.arc(0, -18, 12, 0, Math.PI*2); c.fill();
+    // Crown
+    c.fillStyle = COL.GOLD;
+    for (let i = 0; i < 5; i++) {
+      const cx = -8 + i * 4;
+      c.beginPath(); c.moveTo(cx, -28); c.lineTo(cx-2, -24); c.lineTo(cx+2, -24); c.closePath(); c.fill();
+    }
+    // Eyes
+    c.fillStyle = phase === 3 ? '#ff0000' : '#ff00ff';
+    c.beginPath(); c.arc(-5, -19, 3, 0, Math.PI*2); c.arc(5, -19, 3, 0, Math.PI*2); c.fill();
+    // Aura based on phase
+    const auraColors = ['#9900ff', '#cc00ff', '#ff0066'];
+    c.strokeStyle = auraColors[phase-1]; c.lineWidth = 2;
+    c.globalAlpha = 0.5 + Math.sin(time*3)*0.2;
+    c.beginPath(); c.arc(0, 0, b.radius + 8, 0, Math.PI*2); c.stroke();
+    c.globalAlpha = 1;
+    c.shadowBlur = 0;
+  }
+  // HP bar above boss
+  const barW = b.radius * 2.5;
+  const barH = 6;
+  const barY = -b.radius - 18;
+  c.fillStyle = '#333'; c.fillRect(-barW/2, barY, barW, barH);
+  const hpRatio = Math.max(0, b.hp / b.maxHp);
+  const hpGrad = c.createLinearGradient(-barW/2, barY, -barW/2+barW*hpRatio, barY);
+  hpGrad.addColorStop(0, '#ff0000'); hpGrad.addColorStop(1, '#ff4400');
+  c.fillStyle = hpGrad;
+  c.fillRect(-barW/2, barY, barW * hpRatio, barH);
+  c.strokeStyle = '#fff'; c.lineWidth = 1;
+  c.strokeRect(-barW/2, barY, barW, barH);
+}
+
+// Draw all enemies
+function drawEnemiesAll(c, ens, time) {
+  for (const e of ens) drawEnemy(c, e, time);
+}
+
+// Draw projectiles
+function drawProjectilesAll(c, projs, time) {
+  for (const p of projs) {
+    if (!p.active) continue;
+    c.save();
+    c.translate(p.x, p.y);
+    c.shadowColor = p.color; c.shadowBlur = 8;
+    c.fillStyle = p.color;
+    if (p.type === 'iceLance') {
+      // Diamond shape
+      c.beginPath();
+      const a = Math.atan2(p.vy, p.vx);
+      c.rotate(a);
+      c.moveTo(8,0); c.lineTo(0,-3); c.lineTo(-4,0); c.lineTo(0,3); c.closePath();
+      c.fill();
+    } else {
+      c.beginPath(); c.arc(0, 0, p.radius, 0, Math.PI*2); c.fill();
+    }
+    c.shadowBlur = 0;
+    c.restore();
+  }
+}
+
+// Draw boss bullets
+function drawBossBullets(c, bullets) {
+  for (const b of bullets) {
+    if (!b.active) continue;
+    c.fillStyle = '#ff3366';
+    c.shadowColor = '#ff0044'; c.shadowBlur = 6;
+    c.beginPath(); c.arc(b.x, b.y, b.radius, 0, Math.PI*2); c.fill();
+    c.shadowBlur = 0;
+  }
+}
+
+// Draw gems
+function drawGems(c, gms, time) {
+  for (const g of gms) {
+    if (!g.active) continue;
+    const bob = Math.sin(time * 3 + g.bobOffset) * 2;
+    c.save();
+    c.translate(g.x, g.y + bob);
+    c.shadowColor = g.type === 'xp' ? COL.GEM_XP : COL.GEM_HP;
+    c.shadowBlur = 6;
+    if (g.type === 'xp') {
+      // Diamond shape
+      c.fillStyle = COL.GEM_XP;
+      c.beginPath();
+      c.moveTo(0,-6); c.lineTo(5,0); c.lineTo(0,6); c.lineTo(-5,0);
+      c.closePath(); c.fill();
+    } else {
+      c.fillStyle = COL.GEM_HP;
+      c.beginPath(); c.arc(0, 0, 5, 0, Math.PI*2); c.fill();
+    }
+    c.shadowBlur = 0;
+    c.restore();
+  }
+}
+
+// Draw particles
+function drawParticlesAll(c, parts) {
+  for (const p of parts) {
+    if (!p.active) continue;
+    c.globalAlpha = p.alpha;
+    c.fillStyle = p.color;
+    c.beginPath(); c.arc(p.x, p.y, p.radius * p.alpha, 0, Math.PI*2); c.fill();
+  }
+  c.globalAlpha = 1;
+}
+
+// Draw score popups
+function drawScorePopupsAll(c, pops) {
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.textAlign = 'center';
+  for (const p of pops) {
+    if (!p.active) continue;
+    c.globalAlpha = p.alpha;
+    c.fillStyle = p.color;
+    c.shadowColor = p.color; c.shadowBlur = 4;
+    c.fillText(p.text, p.x, p.y);
+    c.shadowBlur = 0;
+  }
+  c.globalAlpha = 1;
+}
+
+// === UI DRAWING ===
+function drawUI(c) {
+  const pad = 16;
+  // HP bar (top left)
+  const hpW = 180, hpH = 14;
+  c.fillStyle = COL.UI_BG; c.fillRect(pad-2, pad-2, hpW+4, hpH+4);
+  const hpRatio = player.hp / player.maxHp;
+  const hpColor = hpRatio > 0.5 ? '#00ff66' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
+  c.fillStyle = '#333'; c.fillRect(pad, pad, hpW, hpH);
+  c.fillStyle = hpColor; c.fillRect(pad, pad, hpW * hpRatio, hpH);
+  // HP icon (canvas heart)
+  c.fillStyle = '#ff4444';
+  c.save(); c.translate(pad + hpW + 17, pad + 7);
+  c.beginPath(); c.moveTo(0,-5); c.bezierCurveTo(5,-10,10,-5,0,5); c.bezierCurveTo(-10,-5,-5,-10,0,-5); c.fill();
+  c.restore();
+  c.font = 'bold 10px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT; c.textAlign = 'left';
+  c.fillText(Math.ceil(player.hp) + '/' + player.maxHp, pad + 4, pad + 11);
+
+  // XP bar (below HP)
+  const xpY = pad + hpH + 6;
+  const xpW = 180, xpH = 8;
+  c.fillStyle = '#333'; c.fillRect(pad, xpY, xpW, xpH);
+  const xpRatio = Math.min(1, player.xp / player.xpNeeded);
+  c.fillStyle = COL.PLAYER; c.fillRect(pad, xpY, xpW * xpRatio, xpH);
+  c.font = '9px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  c.fillText('Lv.' + player.level + ' (' + player.xp + '/' + player.xpNeeded + ')', pad + 2, xpY + 7);
+
+  // Score (top right)
+  c.textAlign = 'right';
+  c.font = 'bold 20px Orbitron, sans-serif';
+  c.shadowColor = COL.GOLD; c.shadowBlur = 4;
+  c.fillStyle = COL.TEXT;
+  c.fillText(scoreState.score.toLocaleString(), W - pad, pad + 20);
+  c.shadowBlur = 0;
+  // Star icon (canvas star)
+  c.save();
+  const starX = W - pad - c.measureText(scoreState.score.toLocaleString()).width - 17;
+  c.translate(starX, pad + 13);
+  c.fillStyle = COL.GOLD; c.shadowColor = COL.GOLD; c.shadowBlur = 4;
+  c.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI/2 + i * Math.PI*2/5;
+    const ai = a + Math.PI/5;
+    c.lineTo(Math.cos(a)*8, Math.sin(a)*8);
+    c.lineTo(Math.cos(ai)*3.5, Math.sin(ai)*3.5);
+  }
+  c.closePath(); c.fill(); c.shadowBlur = 0;
+  c.restore();
+
+  // Wave indicator (top center)
+  c.textAlign = 'center';
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT;
+  c.fillText('WAVE ' + wave.num + '/10', W/2, pad + 14);
+  // Wave timer bar
+  const waveConfig = WAVE_TABLE[wave.num - 1];
+  if (waveConfig && !wave.isResting) {
+    const wtW = 120, wtH = 4;
+    c.fillStyle = '#333'; c.fillRect(W/2 - wtW/2, pad + 20, wtW, wtH);
+    const wtRatio = Math.min(1, wave.timer / waveConfig.duration);
+    c.fillStyle = COL.PLAYER; c.fillRect(W/2 - wtW/2, pad + 20, wtW * wtRatio, wtH);
+  }
+  // Wave rest alert
+  if (wave.isResting && wave.alertTimer > 0) {
+    const alertScale = 1 + Math.max(0, (3 - wave.alertTimer)) * 0.1;
+    c.save();
+    c.translate(W/2, H/2 - 80);
+    c.scale(alertScale, alertScale);
+    c.font = 'bold 28px Orbitron, sans-serif';
+    c.fillStyle = COL.GOLD;
+    c.shadowColor = COL.GOLD; c.shadowBlur = 10;
+    c.fillText('WAVE ' + wave.num, 0, 0);
+    c.shadowBlur = 0;
+    c.font = '14px Orbitron, sans-serif';
+    c.fillStyle = COL.TEXT2;
+    c.fillText('준비하세요...', 0, 25);
+    c.restore();
+  }
+
+  // Minimap (bottom right)
+  const mmSize = 90, mmPad = 10;
+  const mmX = W - mmSize - mmPad, mmY = H - mmSize - mmPad;
+  c.fillStyle = 'rgba(0,0,0,0.5)';
+  c.fillRect(mmX, mmY, mmSize, mmSize);
+  c.strokeStyle = COL.GRID; c.lineWidth = 1;
+  c.strokeRect(mmX, mmY, mmSize, mmSize);
+  // Player on minimap
+  const mmScale = mmSize / CONFIG.WORLD_W;
+  c.fillStyle = COL.PLAYER;
+  c.fillRect(mmX + player.x * mmScale - 2, mmY + player.y * mmScale - 2, 4, 4);
+  // Enemies on minimap
+  c.fillStyle = '#ff4444';
+  for (const e of enemies) {
+    if (!e.active) continue;
+    c.fillRect(mmX + e.x * mmScale - 1, mmY + e.y * mmScale - 1, 2, 2);
+  }
+  // Gems on minimap
+  c.fillStyle = COL.GEM_XP;
+  for (const g of gems) {
+    if (!g.active) continue;
+    c.fillRect(mmX + g.x * mmScale, mmY + g.y * mmScale, 1, 1);
+  }
+
+  // Weapon icons (bottom left)
+  const wiY = H - 50;
+  let wiX = pad;
+  c.font = '9px Orbitron, sans-serif';
+  c.textAlign = 'center';
+  for (const wName in weapons) {
+    const wDef = WEAPON_TYPES[wName];
+    if (!wDef) continue;
+    c.fillStyle = 'rgba(0,0,0,0.5)';
+    c.fillRect(wiX, wiY, 36, 36);
+    c.strokeStyle = wDef.color; c.lineWidth = 1.5;
+    c.strokeRect(wiX, wiY, 36, 36);
+    // Weapon icon (simple colored circle)
+    c.fillStyle = wDef.color;
+    c.beginPath(); c.arc(wiX+18, wiY+16, 8, 0, Math.PI*2); c.fill();
+    // Level
+    c.fillStyle = COL.TEXT;
+    c.fillText('Lv' + weapons[wName].level, wiX+18, wiY+33);
+    wiX += 42;
+  }
+
+  // Pause button (top right, below score)
+  const pbSize = touchSafe(36, 36);
+  const pbX = W - pad - pbSize.w, pbY = pad + 34;
+  c.fillStyle = 'rgba(0,0,0,0.4)';
+  c.fillRect(pbX, pbY, pbSize.w, pbSize.h);
+  c.fillStyle = COL.TEXT; c.font = 'bold 16px Orbitron, sans-serif';
+  c.textAlign = 'center';
+  c.fillText('⏸', pbX + pbSize.w/2, pbY + pbSize.h/2 + 6);
+
+  // Kill counter
+  c.textAlign = 'right';
+  c.font = '11px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  c.fillText('KILLS: ' + scoreState.kills, W - pad, pad + 40);
+  // Time
+  const mins = Math.floor(gameTime / 60);
+  const secs = Math.floor(gameTime % 60);
+  c.fillText(mins + ':' + (secs < 10 ? '0' : '') + secs, W - pad, pad + 55);
+}
+
+// Draw upgrade cards (§9.3)
+function drawUpgradeCards(c, cards) {
+  // Dim overlay
+  c.fillStyle = 'rgba(0,0,0,0.6)';
+  c.fillRect(0, 0, W, H);
+  // Title
+  c.font = 'bold 24px Orbitron, sans-serif';
+  c.fillStyle = COL.GOLD; c.textAlign = 'center';
+  c.shadowColor = COL.GOLD; c.shadowBlur = 10;
+  c.fillText('LEVEL UP!', W/2, H/2 - 140);
+  c.shadowBlur = 0;
+  c.font = '12px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  c.fillText('업그레이드를 선택하세요 (1/2/3 또는 클릭)', W/2, H/2 - 118);
+
+  const cardW = 150, cardH = 200, gap = 20;
+  const startX = W/2 - (cardW * 3 + gap * 2) / 2;
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i];
+    const cx = startX + (cardW + gap) * i;
+    const cy = card.animY || (H/2 - 100);
+    c.save();
+    c.globalAlpha = card.alpha !== undefined ? card.alpha : 1;
+    const sc = card.scale || 1;
+    c.translate(cx + cardW/2, cy + cardH/2);
+    c.scale(sc, sc);
+    c.translate(-(cx + cardW/2), -(cy + cardH/2));
+    // Card background
+    c.fillStyle = COL.CARD_BG;
+    c.fillRect(cx, cy, cardW, cardH);
+    // Border by rarity
+    const borderColor = card.rarity === 'legendary' ? COL.GOLD : card.rarity === 'rare' ? COL.CARD_BORDER : '#888888';
+    c.strokeStyle = borderColor; c.lineWidth = 2;
+    c.strokeRect(cx, cy, cardW, cardH);
+    // Rarity glow
+    if (card.rarity === 'legendary') {
+      c.shadowColor = COL.GOLD; c.shadowBlur = 12;
+      c.strokeRect(cx, cy, cardW, cardH);
+      c.shadowBlur = 0;
+    }
+    // Icon area
+    c.fillStyle = borderColor; c.globalAlpha *= 0.2;
+    c.fillRect(cx + cardW/2 - 24, cy + 20, 48, 48);
+    c.globalAlpha = card.alpha !== undefined ? card.alpha : 1;
+    // Draw weapon icon
+    drawCardIcon(c, cx + cardW/2, cy + 44, card.icon);
+    // Name
+    c.font = 'bold 13px Orbitron, sans-serif';
+    c.fillStyle = COL.TEXT; c.textAlign = 'center';
+    c.fillText(card.name, cx + cardW/2, cy + 90);
+    // Description
+    c.font = '11px Orbitron, sans-serif';
+    c.fillStyle = COL.TEXT2;
+    c.fillText(card.desc, cx + cardW/2, cy + 112);
+    // Rarity label
+    c.font = '10px Orbitron, sans-serif';
+    c.fillStyle = borderColor;
+    const rarityName = card.rarity === 'legendary' ? '전설' : card.rarity === 'rare' ? '희귀' : '일반';
+    c.fillText('[' + rarityName + ']', cx + cardW/2, cy + 135);
+    // Key hint
+    c.font = 'bold 18px Orbitron, sans-serif';
+    c.fillStyle = COL.TEXT;
+    c.fillText((i+1).toString(), cx + cardW/2, cy + cardH - 20);
+    c.restore();
+  }
+}
+
+// Draw a small icon for upgrade card
+function drawCardIcon(c, x, y, icon) {
+  c.save();
+  c.translate(x, y);
+  const colors = {
+    runeBolt: COL.BOLT, fireAura: COL.FIRE, iceLance: COL.ICE,
+    lightningChain: COL.LIGHTNING, shield: COL.SHIELD,
+    heal: COL.GEM_HP, maxHp: COL.GEM_HP, speed: '#00ff88',
+    magnet: '#aa88ff', cooldown: COL.PLAYER, damage: '#ff8800',
+    luck: COL.GOLD, xpBoost: COL.GEM_XP,
+  };
+  c.fillStyle = colors[icon] || COL.TEXT;
+  c.shadowColor = colors[icon] || COL.TEXT;
+  c.shadowBlur = 6;
+  c.beginPath(); c.arc(0, 0, 14, 0, Math.PI*2); c.fill();
+  c.shadowBlur = 0;
+  // Inner symbol
+  c.fillStyle = '#000';
+  c.font = 'bold 12px Orbitron, sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  const symbols = {
+    runeBolt:'⚡', fireAura:'🔥', iceLance:'❄', lightningChain:'⚡',
+    shield:'🛡', heal:'♥', maxHp:'♥+', speed:'→', magnet:'◎',
+    cooldown:'⏱', damage:'⚔', luck:'★', xpBoost:'▲',
+  };
+  c.fillText(symbols[icon] || '?', 0, 1);
+  c.restore();
+}
+
+// Draw title screen
+function drawTitleScreen(c, time) {
+  // Dark background
+  c.fillStyle = '#0a0a0f';
+  c.fillRect(0, 0, W, H);
+  // Animated star field
+  for (let i = 0; i < 80; i++) {
+    const sx = (i * 73.7 + time * 20 * (i%3+1)) % W;
+    const sy = (i * 43.3 + time * 10 * (i%2+1)) % H;
+    c.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(time*2 + i)*0.3})`;
+    c.beginPath(); c.arc(sx, sy, 1 + (i%3)*0.5, 0, Math.PI*2); c.fill();
+  }
+  // Rune circle effect (signature effect!)
+  c.save();
+  c.translate(W/2, H/2 - 30);
+  const runeRadius = 120 + Math.sin(time * 0.8) * 10;
+  // Outer rune circle
+  c.strokeStyle = COL.PLAYER; c.lineWidth = 2;
+  c.globalAlpha = 0.3 + Math.sin(time * 1.5) * 0.15;
+  c.shadowColor = COL.PLAYER; c.shadowBlur = 20;
+  c.beginPath(); c.arc(0, 0, runeRadius, 0, Math.PI*2); c.stroke();
+  // Inner rotating rune symbols
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI*2/8)*i + time * 0.3;
+    const rx = Math.cos(a) * (runeRadius - 20);
+    const ry = Math.sin(a) * (runeRadius - 20);
+    c.fillStyle = COL.PLAYER;
+    c.font = 'bold 16px Orbitron, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('◆', rx, ry);
+  }
+  // Second smaller ring
+  c.beginPath(); c.arc(0, 0, runeRadius * 0.6, time * -0.5, time * -0.5 + Math.PI * 1.5); c.stroke();
+  c.shadowBlur = 0;
+  c.globalAlpha = 1;
+  c.restore();
+
+  // Title text with scanline effect
+  c.save();
+  c.translate(W/2, H/2 - 30);
+  c.font = 'bold 42px Orbitron, sans-serif';
+  c.textAlign = 'center';
+  // Glitch effect
+  const glitch = Math.random() < 0.05 ? randRange(-3, 3) : 0;
+  // Shadow layers
+  c.fillStyle = COL.ROBE; c.globalAlpha = 0.5;
+  c.fillText('룬 서바이버', 3 + glitch, 3);
+  c.globalAlpha = 1;
+  c.shadowColor = COL.PLAYER; c.shadowBlur = 20;
+  c.fillStyle = COL.TEXT;
+  c.fillText('룬 서바이버', glitch, 0);
+  c.shadowBlur = 0;
+  // Subtitle
+  c.font = '14px Orbitron, sans-serif';
+  c.fillStyle = COL.PLAYER;
+  c.fillText('RUNE SURVIVOR', 0, 35);
+  c.restore();
+  // Scanline overlay
+  c.fillStyle = 'rgba(0,0,0,0.03)';
+  for (let y = 0; y < H; y += 3) c.fillRect(0, y, W, 1);
+
+  // Start instruction (pulsing)
+  const pulse = 0.5 + Math.sin(time * 3) * 0.3;
+  c.globalAlpha = pulse;
+  c.font = 'bold 16px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT; c.textAlign = 'center';
+  c.fillText('PRESS SPACE / TAP TO START', W/2, H/2 + 100);
+  c.globalAlpha = 1;
+  // Controls hint
+  c.font = '11px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  c.fillText('WASD 이동 | 자동 공격 | 레벨업 시 업그레이드 선택', W/2, H/2 + 130);
+  // Best score
+  const best = getBest();
+  if (best > 0) {
+    c.fillStyle = COL.GOLD;
+    c.fillText('BEST: ' + best.toLocaleString(), W/2, H/2 + 155);
+  }
+}
+
+// Draw boss intro screen
+function drawBossIntro(c, w) {
+  c.fillStyle = 'rgba(0,0,0,0.5)';
+  c.fillRect(0, 0, W, H);
+  const waveConfig = WAVE_TABLE[w.num - 1];
+  if (!waveConfig || !waveConfig.boss) return;
+  const bossName = waveConfig.boss === 'crimsonWarden' ? '크림슨 워든' : '엘더 리치';
+  const bossColor = waveConfig.boss === 'crimsonWarden' ? COL.BOSS1 : COL.BOSS2;
+  // Dramatic boss name reveal
+  const t = w._bossIntroTimer || 0;
+  const scale = t < 0.5 ? 2 - t * 2 : 1;
+  c.save();
+  c.translate(W/2, H/2);
+  c.scale(scale, scale);
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2; c.textAlign = 'center';
+  c.fillText('⚠ WARNING ⚠', 0, -30);
+  c.font = 'bold 32px Orbitron, sans-serif';
+  c.shadowColor = bossColor; c.shadowBlur = 20;
+  c.fillStyle = bossColor;
+  c.fillText(bossName, 0, 10);
+  c.shadowBlur = 0;
+  c.font = '14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT;
+  c.fillText('WAVE ' + w.num + ' BOSS', 0, 40);
+  c.restore();
+  // Red vignette
+  const grad = c.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)/2);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(255,0,0,0.2)');
+  c.fillStyle = grad;
+  c.fillRect(0, 0, W, H);
+}
+
+// Draw pause overlay
+function drawPauseOverlay(c) {
+  c.fillStyle = 'rgba(0,0,0,0.6)';
+  c.fillRect(0, 0, W, H);
+  c.font = 'bold 32px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT; c.textAlign = 'center';
+  c.fillText('PAUSED', W/2, H/2 - 20);
+  c.font = '14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  c.fillText('ESC 또는 탭하여 계속', W/2, H/2 + 20);
+  // Resume button
+  const bw = 200, bh = 48;
+  c.fillStyle = COL.ROBE;
+  c.fillRect(W/2 - bw/2, H/2 + 40, bw, bh);
+  c.strokeStyle = COL.PLAYER; c.lineWidth = 2;
+  c.strokeRect(W/2 - bw/2, H/2 + 40, bw, bh);
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT;
+  c.fillText('계속하기', W/2, H/2 + 68);
+  // Title button
+  c.fillStyle = '#333';
+  c.fillRect(W/2 - bw/2, H/2 + 100, bw, bh);
+  c.strokeStyle = COL.TEXT2; c.lineWidth = 1;
+  c.strokeRect(W/2 - bw/2, H/2 + 100, bw, bh);
+  c.fillStyle = COL.TEXT2;
+  c.fillText('타이틀로', W/2, H/2 + 128);
+}
+
+// Draw game over screen
+function drawGameOverScreen(c) {
+  c.fillStyle = 'rgba(0,0,0,0.7)';
+  c.fillRect(0, 0, W, H);
+  c.font = 'bold 36px Orbitron, sans-serif';
+  c.fillStyle = COL.GEM_HP; c.textAlign = 'center';
+  c.shadowColor = COL.GEM_HP; c.shadowBlur = 15;
+  c.fillText('GAME OVER', W/2, H/2 - 60);
+  c.shadowBlur = 0;
+  c.font = 'bold 20px Orbitron, sans-serif';
+  c.fillStyle = COL.GOLD;
+  c.fillText(resultStats.score ? resultStats.score.toLocaleString() : '0', W/2, H/2 - 20);
+  if (resultStats.isNewBest) {
+    c.font = 'bold 14px Orbitron, sans-serif';
+    c.fillStyle = COL.GOLD; c.shadowColor = COL.GOLD; c.shadowBlur = 8;
+    c.fillText('★ NEW BEST! ★', W/2, H/2 + 5);
+    c.shadowBlur = 0;
+  }
+  // Stats
+  c.font = '12px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  c.fillText('Wave: ' + (resultStats.wave||1) + ' | Kills: ' + (resultStats.kills||0) + ' | Level: ' + (resultStats.level||1), W/2, H/2 + 30);
+  // Restart prompt
+  const pulse = 0.5 + Math.sin(gameTime * 4) * 0.3;
+  c.globalAlpha = pulse;
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT;
+  c.fillText('R키 / 탭하여 재시작', W/2, H/2 + 70);
+  c.globalAlpha = 1;
+  // Restart button for touch
+  const bw = touchSafe(200, 48);
+  c.fillStyle = COL.ROBE;
+  c.fillRect(W/2 - bw.w/2, H/2 + 85, bw.w, bw.h);
+  c.strokeStyle = COL.PLAYER; c.lineWidth = 2;
+  c.strokeRect(W/2 - bw.w/2, H/2 + 85, bw.w, bw.h);
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT; c.textAlign = 'center';
+  c.fillText('재시작', W/2, H/2 + 113);
+}
+
+// Draw result screen (victory)
+function drawResultScreen(c) {
+  c.fillStyle = 'rgba(0,0,0,0.8)';
+  c.fillRect(0, 0, W, H);
+  const isVictory = resultStats.victory;
+  c.font = 'bold 36px Orbitron, sans-serif';
+  c.textAlign = 'center';
+  if (isVictory) {
+    c.shadowColor = COL.GOLD; c.shadowBlur = 20;
+    c.fillStyle = COL.GOLD;
+    c.fillText('VICTORY!', W/2, H/2 - 80);
+  } else {
+    c.shadowColor = COL.GEM_HP; c.shadowBlur = 15;
+    c.fillStyle = COL.GEM_HP;
+    c.fillText('GAME OVER', W/2, H/2 - 80);
+  }
+  c.shadowBlur = 0;
+  // Score
+  c.font = 'bold 24px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT;
+  c.fillText('SCORE: ' + (resultStats.score||0).toLocaleString(), W/2, H/2 - 35);
+  if (resultStats.isNewBest) {
+    c.font = 'bold 14px Orbitron, sans-serif';
+    c.fillStyle = COL.GOLD;
+    c.fillText('★ NEW BEST SCORE! ★', W/2, H/2 - 12);
+  }
+  // Stats grid
+  c.font = '13px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT2;
+  const stats = [
+    'Wave: ' + (resultStats.wave||1) + '/10',
+    'Kills: ' + (resultStats.kills||0),
+    'Level: ' + (resultStats.level||1),
+    'Time: ' + Math.floor((resultStats.time||0)/60) + ':' + String(Math.floor((resultStats.time||0)%60)).padStart(2,'0'),
+  ];
+  stats.forEach((s, i) => c.fillText(s, W/2, H/2 + 15 + i * 22));
+  // Achievements earned
+  c.font = 'bold 12px Orbitron, sans-serif';
+  c.fillStyle = COL.GOLD;
+  const earned = ACH_LIST.filter(a => achievements[a.id]);
+  if (earned.length > 0) {
+    c.fillText('업적: ' + earned.length + '/' + ACH_LIST.length, W/2, H/2 + 110);
+  }
+  // Restart
+  c.font = 'bold 14px Orbitron, sans-serif';
+  c.fillStyle = COL.TEXT;
+  const pulse = 0.5 + Math.sin(gameTime * 3) * 0.3;
+  c.globalAlpha = pulse;
+  c.fillText('R키 / 탭하여 타이틀로', W/2, H/2 + 145);
+  c.globalAlpha = 1;
+  // Button
+  const bw = touchSafe(200, 48);
+  c.fillStyle = COL.ROBE;
+  c.fillRect(W/2 - bw.w/2, H/2 + 155, bw.w, bw.h);
+  c.strokeStyle = COL.PLAYER; c.lineWidth = 2;
+  c.strokeRect(W/2 - bw.w/2, H/2 + 155, bw.w, bw.h);
+  c.fillStyle = COL.TEXT;
+  c.fillText('타이틀로', W/2, H/2 + 183);
+}
+
+// Draw virtual joystick
+function drawJoystick(c, js) {
+  const alpha = js.active ? 0.7 : 0.3;
+  c.globalAlpha = alpha;
+  // Base
+  c.strokeStyle = COL.TEXT; c.lineWidth = 2;
+  c.beginPath();
+  c.arc(js.baseX || W * 0.2, js.baseY || H * 0.75, CONFIG.JOYSTICK_OUTER, 0, Math.PI*2);
+  c.stroke();
+  // Tip
+  c.fillStyle = COL.PLAYER;
+  c.beginPath();
+  const tipX = js.active ? js.tipX : (js.baseX || W * 0.2);
+  const tipY = js.active ? js.tipY : (js.baseY || H * 0.75);
+  c.arc(tipX, tipY, CONFIG.JOYSTICK_INNER, 0, Math.PI*2);
+  c.fill();
+  c.globalAlpha = 1;
+}
+
+// Draw achievement notifications
+function drawAchNotifications(c) {
+  for (const n of achNotifications) {
+    c.fillStyle = 'rgba(0,0,0,0.85)';
+    c.fillRect(W/2 - 150, n.y, 300, 50);
+    c.strokeStyle = COL.GOLD; c.lineWidth = 2;
+    c.strokeRect(W/2 - 150, n.y, 300, 50);
+    c.font = 'bold 13px Orbitron, sans-serif';
+    c.fillStyle = COL.GOLD; c.textAlign = 'center';
+    c.fillText('🏆 ' + n.name + ' 달성!', W/2, n.y + 30);
+  }
+}
+
+// === INPUT HANDLING ===
+function handleKeyDown(e) {
+  if (isTransitioning) return;
+  keys[e.code] = true;
+  inputMode = 'keyboard';
+  // Init audio on first interaction
+  if (!soundMgr) { soundMgr = new SoundManager(); }
+  soundMgr.init();
+
+  if (gameState === STATES.TITLE) {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      initGame();
+      enterState(STATES.PLAYING);
+    }
+  } else if (gameState === STATES.PLAYING) {
+    if (e.code === 'Escape' || e.code === 'KeyP') {
+      beginTransition(STATES.PAUSED, { immediate: true });
+    }
+  } else if (gameState === STATES.LEVEL_UP) {
+    if (e.code === 'Digit1' || e.code === 'Numpad1') selectUpgradeCard(0);
+    else if (e.code === 'Digit2' || e.code === 'Numpad2') selectUpgradeCard(1);
+    else if (e.code === 'Digit3' || e.code === 'Numpad3') selectUpgradeCard(2);
+  } else if (gameState === STATES.PAUSED) {
+    if (e.code === 'Escape' || e.code === 'KeyP') {
+      beginTransition(STATES.PLAYING, { immediate: true });
+    }
+  } else if (gameState === STATES.GAMEOVER || gameState === STATES.RESULT) {
+    if (e.code === 'KeyR' || e.code === 'Space') {
+      initGame();
+      enterState(STATES.TITLE);
+    }
+  }
+}
+function handleKeyUp(e) { keys[e.code] = false; }
+
+function handleMouseMove(e) {
+  if (inputMode !== 'touch') inputMode = 'mouse';
+}
+
+// Select an upgrade card
+function selectUpgradeCard(idx) {
+  if (idx < 0 || idx >= upgradeCards.length || !isLevelingUp) return;
+  const card = upgradeCards[idx];
+  applyUpgrade(player, weapons, card);
+}
+
+// Handle click for UI buttons
+function handleClick(e) {
+  if (isTransitioning) return;
+  if (!soundMgr) { soundMgr = new SoundManager(); }
+  soundMgr.init();
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left);
+  const my = (e.clientY - rect.top);
+
+  if (gameState === STATES.TITLE) {
+    initGame();
+    enterState(STATES.PLAYING);
+  } else if (gameState === STATES.LEVEL_UP) {
+    // Check card clicks
+    const cardW = 150, cardH = 200, gap = 20;
+    const startX = W/2 - (cardW * 3 + gap * 2) / 2;
+    for (let i = 0; i < upgradeCards.length; i++) {
+      const cx = startX + (cardW + gap) * i;
+      const cy = (upgradeCards[i].animY || (H/2 - 100));
+      if (mx >= cx && mx <= cx + cardW && my >= cy && my <= cy + cardH) {
+        selectUpgradeCard(i);
+        break;
+      }
+    }
+  } else if (gameState === STATES.PLAYING) {
+    // Pause button
+    const pbSize = touchSafe(36, 36);
+    const pbX = W - 16 - pbSize.w, pbY = 16 + 34;
+    if (mx >= pbX && mx <= pbX + pbSize.w && my >= pbY && my <= pbY + pbSize.h) {
+      beginTransition(STATES.PAUSED, { immediate: true });
+    }
+  } else if (gameState === STATES.PAUSED) {
+    const bw = 200, bh = 48;
+    // Resume button
+    if (mx >= W/2 - bw/2 && mx <= W/2 + bw/2 && my >= H/2 + 40 && my <= H/2 + 40 + bh) {
+      beginTransition(STATES.PLAYING, { immediate: true });
+    }
+    // Title button
+    if (mx >= W/2 - bw/2 && mx <= W/2 + bw/2 && my >= H/2 + 100 && my <= H/2 + 100 + bh) {
+      initGame();
+      enterState(STATES.TITLE);
+    }
+  } else if (gameState === STATES.GAMEOVER) {
+    const bw = touchSafe(200, 48);
+    if (mx >= W/2 - bw.w/2 && mx <= W/2 + bw.w/2 && my >= H/2 + 85 && my <= H/2 + 85 + bw.h) {
+      initGame();
+      enterState(STATES.TITLE);
+    }
+  } else if (gameState === STATES.RESULT) {
+    const bw = touchSafe(200, 48);
+    if (mx >= W/2 - bw.w/2 && mx <= W/2 + bw.w/2 && my >= H/2 + 155 && my <= H/2 + 155 + bw.h) {
+      initGame();
+      enterState(STATES.TITLE);
+    }
+  }
+}
+
+// === TOUCH HANDLING (§3.2) ===
+let touchId = null;
+function handleTouchStart(e) {
+  e.preventDefault();
+  if (isTransitioning) return;
+  inputMode = 'touch';
+  if (!soundMgr) { soundMgr = new SoundManager(); }
+  soundMgr.init();
+
+  const rect = canvas.getBoundingClientRect();
+  for (const touch of e.changedTouches) {
+    const tx = touch.clientX - rect.left;
+    const ty = touch.clientY - rect.top;
+
+    if (gameState === STATES.TITLE) {
+      initGame(); enterState(STATES.PLAYING);
+      return;
+    }
+    if (gameState === STATES.GAMEOVER || gameState === STATES.RESULT) {
+      initGame(); enterState(STATES.TITLE);
+      return;
+    }
+    if (gameState === STATES.LEVEL_UP) {
+      // Card selection
+      const cardW = 150, cardH = 200, gap = 20;
+      const startX = W/2 - (cardW * 3 + gap * 2) / 2;
+      for (let i = 0; i < upgradeCards.length; i++) {
+        const cx = startX + (cardW + gap) * i;
+        const cy = (upgradeCards[i].animY || (H/2 - 100));
+        if (tx >= cx && tx <= cx + cardW && ty >= cy && ty <= cy + cardH) {
+          selectUpgradeCard(i); return;
+        }
+      }
+      return;
+    }
+    if (gameState === STATES.PAUSED) {
+      const bw = 200, bh = 48;
+      if (tx >= W/2 - bw/2 && tx <= W/2 + bw/2 && ty >= H/2 + 40 && ty <= H/2 + 40 + bh) {
+        beginTransition(STATES.PLAYING, { immediate: true }); return;
+      }
+      if (tx >= W/2 - bw/2 && tx <= W/2 + bw/2 && ty >= H/2 + 100 && ty <= H/2 + 100 + bh) {
+        initGame(); enterState(STATES.TITLE); return;
+      }
+      return;
+    }
+    if (gameState === STATES.PLAYING) {
+      // Pause button check
+      const pbSize = touchSafe(36, 36);
+      const pbX = W - 16 - pbSize.w, pbY = 16 + 34;
+      if (tx >= pbX && tx <= pbX + pbSize.w && ty >= pbY && ty <= pbY + pbSize.h) {
+        beginTransition(STATES.PAUSED, { immediate: true }); return;
+      }
+      // Joystick activation
+      if (touchId === null) {
+        touchId = touch.identifier;
+        joystick.active = true;
+        joystick.baseX = tx;
+        joystick.baseY = ty;
+        joystick.tipX = tx;
+        joystick.tipY = ty;
+        joystick.dx = 0; joystick.dy = 0;
+      }
+    }
+  }
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  for (const touch of e.changedTouches) {
+    if (touch.identifier === touchId) {
+      const rect = canvas.getBoundingClientRect();
+      const tx = touch.clientX - rect.left;
+      const ty = touch.clientY - rect.top;
+      const dx = tx - joystick.baseX;
+      const dy = ty - joystick.baseY;
+      const dist2 = Math.sqrt(dx*dx + dy*dy);
+      const maxDist = CONFIG.JOYSTICK_OUTER;
+      if (dist2 > maxDist) {
+        joystick.tipX = joystick.baseX + (dx/dist2) * maxDist;
+        joystick.tipY = joystick.baseY + (dy/dist2) * maxDist;
+      } else {
+        joystick.tipX = tx;
+        joystick.tipY = ty;
+      }
+      if (dist2 > CONFIG.JOYSTICK_DEADZONE) {
+        joystick.dx = (joystick.tipX - joystick.baseX) / maxDist;
+        joystick.dy = (joystick.tipY - joystick.baseY) / maxDist;
+      } else {
+        joystick.dx = 0; joystick.dy = 0;
+      }
+    }
+  }
+}
+
+function handleTouchEnd(e) {
+  e.preventDefault();
+  for (const touch of e.changedTouches) {
+    if (touch.identifier === touchId) {
+      touchId = null;
+      joystick.active = false;
+      joystick.dx = 0; joystick.dy = 0;
+    }
+  }
+}
+
+// === GAME LOOP (§5.1, F12) ===
+function gameLoop(timestamp) {
+  try {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+    update(dt);
+    render();
+  } catch (e) {
+    console.error('GameLoop error:', e);
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// === LOADING SCREEN ===
+function drawLoadingScreen(progress) {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = 'bold 20px Orbitron, sans-serif';
+  ctx.fillStyle = COL.TEXT;
+  ctx.textAlign = 'center';
+  ctx.fillText('LOADING...', W/2, H/2 - 10);
+  // Progress bar
+  const bw = 200, bh = 6;
+  ctx.fillStyle = '#333';
+  ctx.fillRect(W/2 - bw/2, H/2 + 10, bw, bh);
+  ctx.fillStyle = COL.PLAYER;
+  ctx.fillRect(W/2 - bw/2, H/2 + 10, bw * progress, bh);
+}
+
+// === INITIALIZATION ===
+async function main() {
+  // Step 1: Get canvas and context
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Step 2: Show loading screen (no external assets — 100% Canvas drawing)
+  drawLoadingScreen(1);
+
+  // Step 3: Build background cache
+  buildBgCache();
+
+  // Step 4: Register event listeners
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+  window.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener('click', handleClick);
+  canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+  canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+  window.addEventListener('resize', resizeCanvas);
+
+  // Step 5: Enter title state and start game loop
+  gameState = STATES.TITLE;
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+// Start the game
+main();
+</script>
+</body>
+</html>

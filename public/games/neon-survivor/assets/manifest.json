@@ -1,0 +1,14 @@
+{
+  "gameId": "neon-survivor",
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 64,  "height": 64,  "desc": "플레이어 우주선 (시안 네온 글로우)" },
+    "enemy":       { "file": "enemy.svg",        "width": 64,  "height": 64,  "desc": "적 5종 (졸개/돌진/원거리/분열/탱커)" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 800, "height": 600, "desc": "배경 원경 - 심우주 성운과 별" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 800, "height": 600, "desc": "배경 근경 - 네온 격자 + 발광 노드" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 32,  "height": 32,  "desc": "생명력 하트 아이콘" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 32,  "height": 32,  "desc": "XP 젬 아이콘" },
+    "powerup":     { "file": "powerup.svg",      "width": 48,  "height": 48,  "desc": "파워업 실드 아이템" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 96,  "height": 96,  "desc": "충돌/피격 폭발 이펙트" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "게임 썸네일 - 전투 장면" }
+  }
+}

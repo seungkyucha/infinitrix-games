@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <radialGradient id="bgBase" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0d0d2a"/>
+      <stop offset="60%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#050510"/>
+    </radialGradient>
+    <radialGradient id="nebula1" cx="25%" cy="30%" r="35%">
+      <stop offset="0%" stop-color="#1a0033" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#110022" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0a0a1a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula2" cx="75%" cy="65%" r="30%">
+      <stop offset="0%" stop-color="#001a33" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#001122" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a0a1a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula3" cx="60%" cy="20%" r="25%">
+      <stop offset="0%" stop-color="#0a2233" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0a0a1a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="starGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="bigStarGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Deep space background -->
+  <rect width="800" height="600" fill="url(#bgBase)"/>
+  <!-- Nebula clouds -->
+  <rect width="800" height="600" fill="url(#nebula1)"/>
+  <rect width="800" height="600" fill="url(#nebula2)"/>
+  <rect width="800" height="600" fill="url(#nebula3)"/>
+  <!-- Distant star field - tiny dots -->
+  <g opacity="0.4">
+    <circle cx="45" cy="23" r="0.5" fill="#ffffff"/>
+    <circle cx="120" cy="67" r="0.4" fill="#ccccff"/>
+    <circle cx="198" cy="145" r="0.5" fill="#ffffff"/>
+    <circle cx="312" cy="34" r="0.3" fill="#aabbff"/>
+    <circle cx="456" cy="89" r="0.5" fill="#ffffff"/>
+    <circle cx="534" cy="178" r="0.4" fill="#ccddff"/>
+    <circle cx="623" cy="56" r="0.5" fill="#ffffff"/>
+    <circle cx="711" cy="123" r="0.3" fill="#bbccff"/>
+    <circle cx="89" cy="234" r="0.4" fill="#ffffff"/>
+    <circle cx="267" cy="289" r="0.5" fill="#ccccff"/>
+    <circle cx="389" cy="198" r="0.3" fill="#ffffff"/>
+    <circle cx="501" cy="345" r="0.5" fill="#aabbff"/>
+    <circle cx="678" cy="267" r="0.4" fill="#ffffff"/>
+    <circle cx="756" cy="389" r="0.5" fill="#ccddff"/>
+    <circle cx="34" cy="456" r="0.3" fill="#ffffff"/>
+    <circle cx="156" cy="512" r="0.5" fill="#bbccff"/>
+    <circle cx="345" cy="467" r="0.4" fill="#ffffff"/>
+    <circle cx="478" cy="534" r="0.5" fill="#ccccff"/>
+    <circle cx="589" cy="445" r="0.3" fill="#ffffff"/>
+    <circle cx="723" cy="523" r="0.5" fill="#aabbff"/>
+    <circle cx="167" cy="378" r="0.4" fill="#ffffff"/>
+    <circle cx="445" cy="412" r="0.5" fill="#ccddff"/>
+    <circle cx="600" cy="512" r="0.4" fill="#ffffff"/>
+    <circle cx="78" cy="567" r="0.5" fill="#bbccff"/>
+  </g>
+  <!-- Medium stars with slight glow -->
+  <g filter="url(#starGlow)" opacity="0.6">
+    <circle cx="78" cy="123" r="1" fill="#ffffff"/>
+    <circle cx="234" cy="67" r="1.2" fill="#ccddff"/>
+    <circle cx="456" cy="234" r="1" fill="#ffffff"/>
+    <circle cx="623" cy="345" r="1.1" fill="#aaccff"/>
+    <circle cx="345" cy="512" r="1" fill="#ffffff"/>
+    <circle cx="567" cy="89" r="0.9" fill="#ccddff"/>
+    <circle cx="712" cy="478" r="1.2" fill="#ffffff"/>
+    <circle cx="123" cy="456" r="1" fill="#bbccff"/>
+    <circle cx="489" cy="567" r="1.1" fill="#ffffff"/>
+    <circle cx="289" cy="345" r="0.9" fill="#ccddff"/>
+  </g>
+  <!-- Bright feature stars -->
+  <g filter="url(#bigStarGlow)">
+    <circle cx="200" cy="150" r="1.5" fill="#ffffff" opacity="0.8"/>
+    <path d="M200 146 L200 154 M196 150 L204 150" stroke="#ffffff" stroke-width="0.3" opacity="0.4"/>
+    <circle cx="600" cy="200" r="2" fill="#aaddff" opacity="0.7"/>
+    <path d="M600 195 L600 205 M595 200 L605 200" stroke="#aaddff" stroke-width="0.4" opacity="0.3"/>
+    <circle cx="400" cy="400" r="1.8" fill="#ffddaa" opacity="0.6"/>
+    <path d="M400 396 L400 404 M396 400 L404 400" stroke="#ffddaa" stroke-width="0.3" opacity="0.3"/>
+    <circle cx="100" cy="500" r="1.5" fill="#ddccff" opacity="0.7"/>
+    <circle cx="700" cy="100" r="1.8" fill="#ffffff" opacity="0.75"/>
+    <path d="M700 96 L700 104 M696 100 L704 100" stroke="#ffffff" stroke-width="0.3" opacity="0.35"/>
+  </g>
+  <!-- Subtle dust lane -->
+  <path d="M0 300 Q200 280 400 310 Q600 340 800 290" stroke="#1a1a3e" stroke-width="40" fill="none" opacity="0.15"/>
+  <path d="M0 320 Q250 350 500 320 Q700 290 800 340" stroke="#0d1a2e" stroke-width="25" fill="none" opacity="0.1"/>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="heartGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff6688"/>
+      <stop offset="50%" stop-color="#ff3355"/>
+      <stop offset="100%" stop-color="#cc1133"/>
+    </linearGradient>
+    <radialGradient id="heartShine" cx="35%" cy="30%" r="30%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="heartGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff3366" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#ff3366" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="neonGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Outer glow -->
+  <ellipse cx="16" cy="17" rx="12" ry="11" fill="url(#heartGlow)"/>
+  <!-- Heart shape -->
+  <g filter="url(#neonGlow)">
+    <path d="M16 28 C6 20 2 14 2 10 C2 6 5 3 9 3 C12 3 14 5 16 8 C18 5 20 3 23 3 C27 3 30 6 30 10 C30 14 26 20 16 28 Z" fill="url(#heartGrad)" stroke="#ff6688" stroke-width="0.5"/>
+  </g>
+  <!-- Shine highlight -->
+  <path d="M10 9 C10 7 12 5 14 7 C13 6 11 7 10 9 Z" fill="#ffffff" opacity="0.6"/>
+  <ellipse cx="11" cy="10" rx="3" ry="2.5" fill="url(#heartShine)"/>
+  <!-- Inner detail -->
+  <path d="M16 24 C10 18 7 14 7 11 C7 9 8 7 10 7" stroke="#ff8899" stroke-width="0.3" fill="none" opacity="0.4"/>
+</svg>

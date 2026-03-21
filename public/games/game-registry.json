@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T22:00:00Z",
-  "totalGames": 21,
+  "lastUpdated": "2026-03-22T23:00:00Z",
+  "totalGames": 22,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -1473,6 +1473,77 @@
         }
       },
       "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "rune-survivor",
+      "title": "룬 서바이버",
+      "description": "룬 마법사로 몬스터 무리 속에서 살아남으세요!",
+      "genre": ["action"],
+      "thumbnail": "/games/rune-survivor/assets/thumbnail.svg",
+      "path": "/games/rune-survivor/index.html",
+      "addedAt": "2026-03-22T23:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["액션", "서바이버", "로그라이크", "뱀서라이크", "룬", "마법"],
+      "controls": [
+        "WASD / 방향키: 이동",
+        "공격은 자동 발사",
+        "터치: 가상 조이스틱 이동"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Rune Survivor",
+          "description": "Survive endless monster hordes as a rune mage!",
+          "tags": ["action", "survivor", "roguelike", "vampire-survivors", "rune", "magic"],
+          "controls": ["WASD / Arrow keys: Move", "Attacks fire automatically", "Touch: Virtual joystick to move"]
+        },
+        "ja": {
+          "title": "ルーン・サバイバー",
+          "description": "ルーン魔法使いとなりモンスターの大群を生き延びろ！",
+          "tags": ["アクション", "サバイバー", "ローグライク", "ヴァンサバ系", "ルーン", "魔法"],
+          "controls": ["WASD / 矢印キー: 移動", "攻撃は自動発射", "タッチ: 仮想ジョイスティックで移動"]
+        },
+        "zh-CN": {
+          "title": "符文幸存者",
+          "description": "化身符文法师，在怪物潮中存活下来！",
+          "tags": ["动作", "幸存者", "肉鸽", "吸血鬼幸存者", "符文", "魔法"],
+          "controls": ["WASD / 方向键: 移动", "自动攻击", "触摸: 虚拟摇杆移动"]
+        },
+        "zh-TW": {
+          "title": "符文倖存者",
+          "description": "化身符文法師，在怪物潮中存活下來！",
+          "tags": ["動作", "倖存者", "肉鴿", "吸血鬼倖存者", "符文", "魔法"],
+          "controls": ["WASD / 方向鍵: 移動", "自動攻擊", "觸控: 虛擬搖桿移動"]
+        },
+        "es": {
+          "title": "Rune Survivor",
+          "description": "¡Sobrevive a hordas de monstruos como un mago de runas!",
+          "tags": ["acción", "supervivencia", "roguelike", "vampire survivors", "runas", "magia"],
+          "controls": ["WASD / Flechas: Mover", "Ataques automáticos", "Táctil: Joystick virtual para moverse"]
+        },
+        "fr": {
+          "title": "Rune Survivor",
+          "description": "Survivez aux hordes de monstres en tant que mage runique !",
+          "tags": ["action", "survie", "roguelike", "vampire survivors", "runes", "magie"],
+          "controls": ["WASD / Flèches: Se déplacer", "Attaques automatiques", "Tactile: Joystick virtuel pour se déplacer"]
+        },
+        "de": {
+          "title": "Rune Survivor",
+          "description": "Überlebe als Runenmagier endlose Monsterhorden!",
+          "tags": ["Action", "Survivor", "Roguelike", "Vampire Survivors", "Runen", "Magie"],
+          "controls": ["WASD / Pfeiltasten: Bewegen", "Angriffe erfolgen automatisch", "Touch: Virtueller Joystick zum Bewegen"]
+        },
+        "pt": {
+          "title": "Rune Survivor",
+          "description": "Sobreviva a hordas de monstros como um mago de runas!",
+          "tags": ["ação", "sobrevivência", "roguelike", "vampire survivors", "runas", "magia"],
+          "controls": ["WASD / Setas: Mover", "Ataques automáticos", "Toque: Joystick virtual para mover"]
+        }
+      },
+      "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }
