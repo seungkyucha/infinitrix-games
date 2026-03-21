@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="gemBodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="40%" stop-color="#F39C12"/>
+      <stop offset="100%" stop-color="#E67E22"/>
+    </linearGradient>
+    <radialGradient id="gemShine" cx="40%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gemOuter" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#F1C40F" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#F1C40F" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="gGlow">
+      <feGaussianBlur stdDeviation="1.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Outer glow -->
+  <path d="M16 2 L20 10 L28 10 L22 16 L24 24 L16 20 L8 24 L10 16 L4 10 L12 10 Z" fill="url(#gemOuter)" filter="url(#gGlow)"/>
+  <!-- Diamond gem body -->
+  <path d="M16 3 L20 11 L28 12 L22 17 L24 25 L16 20 L8 25 L10 17 L4 12 L12 11 Z" fill="url(#gemBodyGrad)" stroke="#D4AC0D" stroke-width="0.5" filter="url(#gGlow)"/>
+  <!-- Facet lines -->
+  <path d="M16 3 L16 20" stroke="#FFE066" stroke-width="0.4" opacity="0.3"/>
+  <path d="M4 12 L16 20 L28 12" stroke="#FFE066" stroke-width="0.4" opacity="0.3" fill="none"/>
+  <!-- Inner highlight -->
+  <path d="M16 3 L12 11 L4 12 L10 17 L16 12 Z" fill="url(#gemShine)" opacity="0.5"/>
+  <!-- Center sparkle -->
+  <circle cx="14" cy="11" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+  <line x1="14" y1="9" x2="14" y2="13" stroke="#FFFFFF" stroke-width="0.4" opacity="0.5"/>
+  <line x1="12" y1="11" x2="16" y2="11" stroke="#FFFFFF" stroke-width="0.4" opacity="0.5"/>
+  <!-- Bottom facet reflection -->
+  <path d="M8 25 L16 20 L24 25 L16 28 Z" fill="#D4AC0D" opacity="0.3"/>
+</svg>

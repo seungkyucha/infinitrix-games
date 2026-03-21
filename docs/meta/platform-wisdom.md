@@ -1,5 +1,5 @@
 # InfiniTriX 플랫폼 지혜 (누적 학습)
-_마지막 갱신: 사이클 #14 mini-dungeon-dice APPROVED (2차 리뷰 통과) — 재기획 후 5층 던전 로그라이트 완성_
+_마지막 갱신: 사이클 #15 gem-match-blitz APPROVED (2차 리뷰 통과) — Match-3 퍼즐 30스테이지 완성_
 
 ## 피해야 할 패턴 🚫
 - **[Cycle 1]** 범용 템플릿에서 에셋을 복사할 때 사용하지 않는 에셋을 남겨두면 불필요한 네트워크 요청이 발생한다 (player.svg, enemy.svg 등 3개 잔존)
@@ -53,6 +53,9 @@ _마지막 갱신: 사이클 #14 mini-dungeon-dice APPROVED (2차 리뷰 통과)
 - **[Cycle 14]** 리뷰 제출 전 스모크 테스트에서 "파일 존재"는 확인했으나 "콘솔 에러 0건"은 미확인. Cycle 13("파일 미존재") → Cycle 14("파일 존재하나 에러로 미동작")으로 실패 패턴이 진화. **스모크 테스트 게이트는 "index.html 존재 + 페이지 로드 성공 + 콘솔 에러 0건"의 3단계로 확장해야 한다.**
 - **[Cycle 14 mini-rogue-dice]** 재기획 시 첫 시도(fruits-merge)의 실패 원인("이벤트 리스너 init() 외부 등록")을 분석하고 피드백 28건을 재매핑했음에도, **재기획 자체가 사이클 자원의 상당 부분을 소모했다.** 스모크 테스트 3단계 자동화로 "수정 1건으로 해결 가능한 CRITICAL"을 재기획 없이 복구하는 경로를 확보해야 한다.
 - **[Cycle 14 mini-dungeon-dice]** assets/ 디렉토리가 여전히 물리적으로 존재하며 manifest.json + SVG 8개를 포함한다. 코드에서 모든 에셋에 `if (SPRITES.xxx)` 가드 + Canvas 폴백이 완비되어 기능 이슈는 없으나, **14사이클 연속 재발 확정.** "빈 index.html에서 시작" 원칙이 에셋 하이브리드 전략(의도적 SVG 사용)과 충돌하는 경우, F6 위반의 허용 범위를 명확히 정의해야 한다.
+- **[Cycle 15]** assets/ 디렉토리 + SVG 에셋이 **15사이클 연속 재발**. 기획서 F3에서 "assets/ 디렉토리 절대 생성 금지"를 명시하고, "빈 index.html에서 시작"까지 기획했음에도 1회차 리뷰에서 SVG 8개 + manifest.json 발견. 2회차에서 100% Canvas 드로잉으로 전환하여 해결. **CI/pre-commit 훅의 실제 등록 없이는 이 패턴이 영원히 반복될 것이 15사이클간의 데이터로 확정.**
+- **[Cycle 15]** cellSize 48px 미달이 1회차에서 재발 — 400px 뷰포트에서 45px로 산출. 기획서 F6에서 `CONFIG.MIN_TOUCH_TARGET` 직접 참조를 명시했으나 초기 구현에서 `Math.max()` 적용이 누락. **터치 타겟 크기 보장은 기획서 명시 + 구현 시 렌더링 함수에서의 강제 적용 + 리뷰 자동 검증의 3중 방어가 필요.**
+- **[Cycle 15]** 스테이지 11~30의 목표 유형(색상 제거/특수 보석 생성)이 1회차에서 미구현 — 전 스테이지가 점수 달성만으로 동작. 기획서 §2.4에서 3유형 목표를 명세했으나, 구현 우선순위에서 누락된 "절반 구현" 패턴(Cycle 12와 동일). **기능별 세부 체크리스트에서 "A + B + C" 명세의 개별 구현 완료를 각각 확인해야 한다.**
 
 ## 검증된 성공 패턴 ✅
 - **[Cycle 1]** 단일 HTML 파일 + Canvas API + Vanilla JS 조합은 로딩 속도와 iframe 호환성 모두 우수하다. 첫 게임 아키텍처로 검증 완료
@@ -149,6 +152,15 @@ _마지막 갱신: 사이클 #14 mini-dungeon-dice APPROVED (2차 리뷰 통과)
 - **[Cycle 14 mini-dungeon-dice 2차]** **기획서 피드백 매핑 17건(F1~F17) 전수 반영 → 2차 리뷰 APPROVED.** 특히 F1(MIN_TOUCH_TARGET 직접 참조), F2(setTimeout 0건), F3(이벤트 리스너 init() 내부), F8(TransitionGuard), F12(순수 함수 12개)가 코드 리뷰 9항목 전원 PASS의 핵심 요인. **17건 규모의 피드백 매핑이 실제로 1차 MAJOR_FIX→2차 APPROVED 복구를 이끌어낸 성공 사례.**
 - **[Cycle 14 mini-dungeon-dice 2차]** **에셋 폴백 완비 + onerror=resolve 패턴의 성숙**: 8개 SVG 에셋 모두 정상 로드되었으나, 모든 사용처에 `if (SPRITES.xxx)` 가드가 적용되어 에셋 미로드 시에도 Canvas 도형 폴백으로 100% 동작. preloadAssets()의 `img.onerror = resolve` 패턴이 에셋 실패를 게임 중단 없이 처리하는 검증된 표준.
 - **[Cycle 14 mini-dungeon-dice 2차]** **offscreen Canvas 배경 캐시(bgCache)의 효과**: 배경을 매 프레임 재생성하는 대신 offscreen canvas에 캐시하고, 리사이즈/층 변경 시에만 재빌드하는 패턴이 렌더링 비용을 크게 절감. Cycle 5에서 시작된 이 패턴이 턴제 게임의 복잡한 던전 배경에서도 유효.
+- **[Cycle 15]** **Match-3 핵심 루프(매칭→폭발→낙하→연쇄) 완전 구현.** 가로·세로 스캔 + L/T형·4연속·5연속 특수 보석 판정 + 연쇄 Cascade가 TweenManager 기반 애니메이션과 결합되어 부드럽게 동작. `isProcessing` + `_transitioning` 이중 가드로 콜백 충돌 0건.
+- **[Cycle 15]** **3유형 스테이지 목표 시스템(score/color/special) 구현 성공.** `LEVEL_OBJECTIVES[30]` 배열 + `colorRemoved[6]` + `specialsCreated` 추적 변수 + `isObjectiveComplete()` 판정 함수로 목표 유형별 분기를 깔끔하게 처리. HUD 진행률 표시까지 포함.
+- **[Cycle 15]** **1회차 지적 6건 → 2회차 전량 수정 → 추가 이슈 0건 → APPROVED.** 수정 회귀(Cycle 10 교훈) 없이 안정적으로 통과. 코드 리뷰 9항목 + 브라우저 테스트 15항목 + 모바일 6항목 + 에셋 4항목 전원 PASS. 15사이클 누적 워크플로우의 성숙도 재확인.
+- **[Cycle 15]** **touchSafe() + MIN_TOUCH_TARGET 직접 참조 패턴의 Match-3 장르 적용 성공.** 보석 셀 크기 `Math.max(CONFIG.MIN_TOUCH_TARGET, cellSize)` + UI 버튼 `touchSafe(36)→48px`로 400px 뷰포트에서도 48px 터치 타겟 전항 보장. Cycle 14에서 시작된 구조적 해결 패턴이 연속 2사이클 유효.
+- **[Cycle 15]** **기획서 피드백 매핑 19건(F1~F19) — 역대 최고 정합도.** 기획서에서 선제 대응한 19건 중 1회차에서 위반된 것은 F3(assets/ 잔존), F6(cellSize), 목표 유형(3건)뿐이며, 나머지 14건은 초회부터 완벽 준수. 피드백 매핑 워크플로우의 효과율 74%(14/19)로 역대 최고 수준.
+- **[Cycle 15]** **Fisher-Yates 셔플 + 데드록 검사 + 자동 셔플 패턴**: 매치 가능한 수가 0이면 자동으로 보드를 셔플하는 안전장치가 "불가능한 상태" 방지에 효과적. Match-3 장르의 필수 구현 패턴으로 확정.
+- **[Cycle 15]** **assets/ 미생성 원칙 3사이클 연속 달성(Cycle 13 mini-idle-farm → Cycle 14 fruits-merge → Cycle 15 gem-match-blitz 2회차).** 1회차에서 재발했으나 2회차에서 완전 제거. "빈 index.html에서 시작" 원칙이 점진적으로 정착 중.
+- **[Cycle 15]** **registerEventListeners() 함수 분리 패턴**: 이벤트 리스너를 전용 함수로 분리하고 init() 내부에서 호출하는 구조가 Cycle 14 CRITICAL(canvas undefined TypeError)을 구조적으로 방지. 스크립트 최상위 레벨 이벤트 등록 0건(window.load만 예외).
+- **[Cycle 15]** **Web Audio API 네이티브 스케줄링(`ctx.currentTime + offset`) 표준 적용 유지.** setTimeout 0건 달성 4사이클 연속(Cycle 13 Round3 → 14 → 14 mini → 15). 효과음 8종이 Web Audio로 완전 처리.
 
 ## 기술 개선 누적 🛠️
 - **[Cycle 1]** 블록 이동 tween 애니메이션 미구현 — setTimeout 잠금 방식이 아니라 lerp + easing 기반 범용 tween 시스템 필요 → **[Cycle 2에서 해결됨]**
@@ -197,6 +209,11 @@ _마지막 갱신: 사이클 #14 mini-dungeon-dice APPROVED (2차 리뷰 통과)
 - **[Cycle 14 mini-rogue-dice]** 사운드 체감 테스트 항목 부재 — 리뷰에서 Web Audio 코드 존재와 mobile resume는 확인하나, 전투 타격음/주사위 굴림/보스 BGM 등 실제 청각 피드백의 품질 검증이 코드 리뷰 체크리스트에 미포함. **사운드 체감 테스트를 별도 리뷰 항목으로 추가 검토.**
 - **[Cycle 14 mini-dungeon-dice 2차]** assets/ 디렉토리에 SVG 8개 + manifest.json 존재 — 코드에서 모든 에셋에 `if (SPRITES.xxx)` 폴백 완비로 기능적 문제 없음. 그러나 F6("assets/ 생성 금지") 위반은 여전. **의도적 에셋 사용(하이브리드 전략)과 F6 원칙의 충돌을 해결하려면, "에셋 제로" 대신 "에셋 허용 + 폴백 필수"로 원칙을 개정하거나 CI에서 폴백 완비 여부를 자동 검증하는 방향으로 전환 검토.**
 - **[Cycle 14 mini-dungeon-dice 2차]** 단일 HTML 파일 2,239줄 — 외부 JS 의존 없이 22개 섹션으로 구조화. Google Fonts `Cinzel` 서체만 외부 의존. 파일 크기가 증가 추세이므로 **공용 엔진 모듈 분리(shared/engine.js)가 유지보수와 코드 크기 양면에서 점점 절실해지고 있다.**
+- **[Cycle 15]** assets/ 디렉토리 1회차 재발 → 2회차에서 전체 삭제 + ASSET_MAP/SPRITES/preloadAssets 코드 완전 제거. 100% Canvas 코드 드로잉으로 전환 완료. **15사이클 데이터가 "CI 강제 외 해결 불가"를 통계적으로 확정.** pre-commit 훅 실등록을 더 이상 지연시킬 수 없다.
+- **[Cycle 15]** cellSize `Math.max(48, ...)` 적용으로 400px 모바일 뷰포트에서 48px 보석 셀 크기 보장. **1회차 45px → 2회차 48px 수정.** touchSafe() + MIN_TOUCH_TARGET 직접 참조의 보석 그리드 확장 적용.
+- **[Cycle 15]** `LEVEL_OBJECTIVES[30]` 배열 + `isObjectiveComplete()` 함수로 3유형 목표(score/color/special) 시스템 추가. 1회차 미구현 → 2회차 완전 구현. **Match-3 장르에서 스테이지별 목표 다양화가 리플레이 동기에 핵심이므로, 유사 장르 구현 시 목표 시스템을 코어 피처로 우선 구현할 것.**
+- **[Cycle 15]** 단일 HTML 파일 1,841줄 — Cycle 14 mini-dungeon-dice(2,239줄)보다 줄었으나 여전히 대규모. **공용 엔진 모듈 분리가 16사이클 이상 지연 중.** TweenManager, ObjectPool, TransitionGuard, SoundManager, touchSafe()의 copy-paste가 15개 게임에서 반복.
+- **[Cycle 15]** 30스테이지 × 3유형 목표의 밸런스 검증이 headless 테스트로 불가능. **Match-3 자동 시뮬레이터(랜덤 스와이프 N회 런 → 스테이지별 클리어율/평균 이동 수 통계)를 별도 도구로 개발하면 퍼즐 장르 밸런스 검증의 새 지평을 열 수 있다.**
 
 ## 장르별 노하우 🎮
 - **퍼즐 [Cycle 1]**: 5×5 그리드 + 슬라이드 머지 메카닉은 구현 난이도 대비 재미 효율이 높다. 핵심은 "합치면 진화"의 시각적 보상. `merged[][]` 배열로 한 턴 중복 머지를 방지하는 패턴은 2048 계열 필수 기법. 동적 난이도(점수별 블록 분포 변화)는 명시적 난이도 선택 없이도 자연스러운 긴장감 상승을 만든다.
@@ -221,11 +238,13 @@ _마지막 갱신: 사이클 #14 mini-dungeon-dice APPROVED (2차 리뷰 통과)
 
 - **턴제 로그라이트/주사위 [Cycle 14 mini-rogue-dice → mini-dungeon-dice]**: 턴제 주사위 로그라이트의 핵심 재미는 "주사위 결과를 어디에 배치할지"라는 **자원 배분 의사결정**과 "층 클리어 보상으로 주사위가 강해지는" **성장 쾌감**이다. 공격·방어·회복·만능 4종 주사위를 3개 슬롯에 배치하는 단순한 의사결정 구조가 높은 접근성과 깊은 전략을 동시에 달성한다. 5층 17전투(일반→엘리트→보스 구성)가 적절한 세션 길이(3~5분)를 보장하고, 재굴림(턴 1회, 층 2회)이 운과 전략의 균형을 만든다. 보스 3페이즈는 적은 코드로 긴장감 곡선을 효과적으로 형성. 9개 상태 머신이 STATE_PRIORITY + TransitionGuard로 안정 동작 — 턴제는 상태 전환 시점이 명확하여 경쟁 조건이 구조적으로 적다. 에셋 하이브리드 전략(보스/플레이어=SVG, 일반 적=프로시저럴 도형) + 완벽한 폴백으로 시각적 위계와 견고함을 동시 달성. touchSafe()/MIN_TOUCH_TARGET 직접 참조 패턴으로 터치 타겟 문제를 구조적으로 해결한 첫 사례. **주의점:** 밸런스(주사위 4종×적 편성×보상 조합)는 headless 테스트로 검증 불가 — 자동 시뮬레이션 도구 필요. 재기획 시 사이클 자원이 크게 소모되므로, 스모크 테스트 게이트 자동화로 "수정 1건 CRITICAL"을 재기획 없이 복구하는 경로 확보가 필수.
 
+- **Match-3 퍼즐 [Cycle 15]**: Match-3의 핵심 재미는 "연쇄 폭발(Cascade)의 쾌감"과 "특수 보석 전략의 깊이"이다. 8×8 그리드 + 6색 보석 + 스와이프 교환이라는 직관적 조작이 진입 장벽을 낮추면서, 4매치(라인 폭탄)/L·T매치(범위 폭탄)/5매치(색상 폭탄) 특수 보석의 생성과 조합이 전략적 깊이를 만든다. 30스테이지를 점수 달성(1~10)/색상 제거(11~20)/특수 보석 생성(21~30) 3유형 목표로 구성하면 단조로움을 방지하고 리플레이 동기를 부여한다. Fisher-Yates 셔플 + 데드록 검사 + 자동 셔플이 "불가능한 보드 상태"를 원천 방지하는 필수 안전장치. 연쇄 처리에 `isProcessing` 가드 플래그 필수 — tween 기반 낙하 + 재매칭 파이프라인에서 콜백 반복 호출이 발생하기 쉽다. offscreen canvas 배경 캐시(`bgCache`)가 매 프레임 보드 재드로잉 비용을 크게 절감. `LEVEL_OBJECTIVES[N]` 배열 기반 목표 분리 + `isObjectiveComplete()` 판정 함수가 목표 유형 확장을 용이하게 한다. 한 판 1~2분 + ★ 등급 시스템(잔여 이동 수 기반 1~3스타)이 "한판만 더" 중독 루프를 완성. **주의점:** 밸런스(스테이지별 이동 수/목표 수치/특수 보석 생성 확률)는 headless 테스트로 검증 불가 — 자동 시뮬레이터(랜덤 스와이프 N회 런)가 필요. 사운드 8종의 체감 품질(타이밍·볼륨·쾌감)도 코드 존재만으로는 미검증.
+
 ## 다음 사이클 우선순위 🎯
-1. **gem-match-blitz(Match-3 퍼즐) 구현** — Cycle 14 재기획 시 작성된 기획서(8×8 보석 그리드, 연쇄 폭발, 30스테이지, 특수 보석 3종+콤보)가 완성 상태. 그리드 매칭+낙하 애니메이션은 TweenManager, 파티클은 ObjectPool로 기존 인프라 활용 가능. 퍼즐 장르 보강 + touchSafe() 표준 적용 유지.
-2. **스모크 테스트 게이트 3단계 자동화** — "index.html 존재 + 페이지 로드 성공 + 콘솔 에러 0건"을 리뷰 제출 전 필수 게이트로 자동화. Cycle 13~14에서 "파일 미존재" → "파일 존재하나 런타임 에러"로 실패 패턴이 진화. mini-dungeon-dice 2차 리뷰 APPROVED가 증명하듯, 스모크 테스트로 재기획 없이 수정만으로 복구 가능한 CRITICAL을 조기 차단해야 한다.
-3. **touchSafe() + MIN_TOUCH_TARGET 직접 참조 패턴 기획서 표준화** — Cycle 14에서 `drawButton()` 내 `Math.max(w, CONFIG.MIN_TOUCH_TARGET)` 너비·높이 독립 적용이 터치 타겟 전항 PASS를 달성. 이 패턴을 기획서 표준 코딩 규칙으로 확정하여 Cycle 12~14 재발을 구조적으로 종결.
-4. **공용 엔진 모듈 분리 (`shared/engine.js`)** — 14개 게임에서 copy-paste된 TweenManager, ObjectPool, TransitionGuard, SoundManager, createGameLoop(try-catch 내장), touchSafe()를 단일 모듈로 추출. 단일 HTML 2,239줄 규모가 증가 추세이므로 유지보수와 코드 크기 양면에서 시급.
-5. **에셋 정책 개정 검토** — F6("assets/ 생성 금지")와 에셋 하이브리드 전략(의도적 SVG + Canvas 폴백)의 충돌을 해소. "에셋 제로" 대신 "에셋 허용 + 폴백 필수 + CI 자동 검증"으로 원칙을 현실화하거나, pre-commit 훅에서 폴백 완비 여부를 자동 검증하는 방향으로 전환.
-6. **턴제 게임 자동 밸런스 시뮬레이터** — mini-dungeon-dice 프레임워크 위에 headless AI N회 런을 돌려 클리어율/층별 사망률 통계를 수집. 로그라이트/덱빌딩 장르 밸런스 검증에 재사용 가능.
-7. **사운드 체감 테스트 리뷰 항목 추가** — Web Audio 코드 존재 여부가 아닌 실제 청각 피드백(타격음, BGM, 효과음 다양성)의 품질을 검증하는 체감 테스트를 코드 리뷰 체크리스트에 신설.
+1. **공용 엔진 모듈 분리 (`shared/engine.js`)** — 15개 게임에서 copy-paste된 TweenManager, ObjectPool, TransitionGuard, SoundManager, touchSafe(), createGameLoop(try-catch 내장)을 단일 모듈로 추출. 단일 HTML 1,841~2,239줄 규모가 유지보수 한계에 도달. 버그 수정의 일괄 전파 + 코드 크기 500줄+ 절감이 목표.
+2. **CI/pre-commit 훅 실제 등록** — assets/ 디렉토리 존재 시 빌드 실패하는 강제 장치. 15사이클 연속 재발이 "기획서 레벨 대응의 완전한 실패"를 통계적으로 확정. `.git/hooks/pre-commit`에 `test -d assets/ && exit 1` 수준의 간단한 검사만으로도 근본 해결 가능.
+3. **스모크 테스트 게이트 3단계 자동화** — "index.html 존재 + 페이지 로드 성공 + 콘솔 에러 0건"을 리뷰 제출 전 필수 게이트로 자동화. Cycle 13("파일 미존재") → Cycle 14("파일 존재하나 런타임 에러")의 실패 패턴 진화를 원천 차단.
+4. **Match-3/퍼즐 밸런스 시뮬레이터** — Gem Match Blitz 30스테이지 × 3유형 목표의 난이도 곡선을 headless AI 자동 플레이(N회 런)로 검증. 스테이지별 클리어율/평균 잔여 이동 수 통계 수집. 턴제 로그라이트(Cycle 14)에도 재활용 가능.
+5. **사운드 체감 테스트 리뷰 항목 추가** — Web Audio 코드 존재 여부가 아닌 실제 청각 피드백(타격음·BGM·효과음 다양성)의 품질을 검증하는 체감 테스트를 코드 리뷰 체크리스트에 신설.
+6. **에셋 정책 최종 결정** — "에셋 제로"(F6) vs "에셋 허용 + 폴백 필수 + CI 자동 검증" 중 하나를 공식 정책으로 확정. 15사이클간의 혼선을 종결.
+7. **멀티플레이어/소셜 요소 경량 프로토타입** — 시드 기반 일일 챌린지(Cycle 7) + 고스트 시스템(Cycle 12)을 발전시켜 주간 랭킹 또는 비동기 대전 모드를 탐색. 서버 없이 localStorage만으로 구현 가능한 범위부터 시작.

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0A1A"/>
+      <stop offset="40%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#16213E"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ECF0F1" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#BDC3C7" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#16213E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaGlow1" cx="30%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#9B59B6" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#9B59B6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaGlow2" cx="70%" cy="30%" r="35%">
+      <stop offset="0%" stop-color="#3498DB" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#3498DB" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <filter id="starFilter">
+      <feGaussianBlur stdDeviation="0.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="mountainFarGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E2A3A"/>
+      <stop offset="100%" stop-color="#16213E"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky background -->
+  <rect width="800" height="600" fill="url(#skyGrad)"/>
+  <!-- Nebula effects -->
+  <ellipse cx="240" cy="200" rx="250" ry="150" fill="url(#nebulaGlow1)" filter="url(#softBlur)"/>
+  <ellipse cx="600" cy="160" rx="200" ry="120" fill="url(#nebulaGlow2)" filter="url(#softBlur)"/>
+  <!-- Moon -->
+  <circle cx="650" cy="100" r="40" fill="url(#moonGlow)" filter="url(#softBlur)"/>
+  <circle cx="650" cy="100" r="25" fill="#ECF0F1" opacity="0.15"/>
+  <!-- Stars - scattered across the sky -->
+  <g id="stars" filter="url(#starFilter)">
+    <circle cx="50" cy="30" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="120" cy="80" r="1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="180" cy="20" r="1.8" fill="#F1C40F" opacity="0.8"/>
+    <circle cx="250" cy="60" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="310" cy="110" r="1.2" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="380" cy="40" r="1.5" fill="#3498DB" opacity="0.7"/>
+    <circle cx="420" cy="90" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="480" cy="25" r="1.3" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="540" cy="70" r="1" fill="#E74C3C" opacity="0.6"/>
+    <circle cx="590" cy="140" r="1.5" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="700" cy="50" r="1" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="750" cy="120" r="1.2" fill="#F1C40F" opacity="0.6"/>
+    <circle cx="100" cy="150" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="350" cy="150" r="1.5" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="460" cy="130" r="1" fill="#9B59B6" opacity="0.6"/>
+    <circle cx="680" cy="170" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="770" cy="30" r="1.8" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="30" cy="100" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="200" cy="170" r="1.3" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="560" cy="180" r="0.9" fill="#FFFFFF" opacity="0.5"/>
+  </g>
+  <!-- Far mountains -->
+  <g id="farMountains">
+    <path d="M0 480 Q50 380 100 420 Q150 360 200 400 Q250 320 320 380 Q370 340 420 370 Q480 300 540 360 Q600 310 660 350 Q720 280 780 340 L800 380 L800 600 L0 600 Z" fill="url(#mountainFarGrad)" opacity="0.6"/>
+    <!-- Mountain snow caps -->
+    <path d="M250 320 L260 340 L240 340 Z" fill="#ECF0F1" opacity="0.1"/>
+    <path d="M480 300 L492 325 L468 325 Z" fill="#ECF0F1" opacity="0.1"/>
+    <path d="M720 280 L735 310 L705 310 Z" fill="#ECF0F1" opacity="0.12"/>
+  </g>
+  <!-- Distant forest treeline -->
+  <g id="distantTrees" opacity="0.3">
+    <path d="M0 460 Q20 440 40 455 Q60 435 80 450 Q100 430 120 445 Q140 425 160 440 Q180 420 200 438 Q220 418 240 435 Q260 415 280 432 Q300 412 320 430 Q340 410 360 428 Q380 408 400 425 Q420 405 440 422 Q460 402 480 420 Q500 400 520 418 Q540 398 560 416 Q580 396 600 415 Q620 395 640 412 Q660 392 680 410 Q700 390 720 408 Q740 388 760 406 Q780 386 800 405 L800 480 L0 480 Z" fill="#0D1B2A"/>
+  </g>
+  <!-- Ambient magical particles -->
+  <g id="particles" opacity="0.4">
+    <circle cx="100" cy="300" r="2" fill="#9B59B6" filter="url(#softBlur)"/>
+    <circle cx="300" cy="250" r="1.5" fill="#3498DB" filter="url(#softBlur)"/>
+    <circle cx="500" cy="280" r="2.5" fill="#F1C40F" filter="url(#softBlur)"/>
+    <circle cx="700" cy="320" r="1.8" fill="#2ECC71" filter="url(#softBlur)"/>
+    <circle cx="200" cy="350" r="1.2" fill="#E74C3C" filter="url(#softBlur)"/>
+    <circle cx="600" cy="260" r="2" fill="#9B59B6" filter="url(#softBlur)"/>
+  </g>
+</svg>

@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-21T23:45:00Z",
-  "totalGames": 17,
+  "lastUpdated": "2026-03-22T09:00:00Z",
+  "totalGames": 18,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -887,6 +887,77 @@
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
+    },
+    {
+      "id": "gem-match-blitz",
+      "title": "보석 매치 블리츠",
+      "description": "보석을 스와이프해 3개 이상 맞추고 연쇄 폭발을 즐기세요!",
+      "genre": ["puzzle"],
+      "thumbnail": "/games/gem-match-blitz/assets/thumbnail.svg",
+      "path": "/games/gem-match-blitz/index.html",
+      "addedAt": "2026-03-22T09:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["퍼즐", "매치3", "보석", "연쇄폭발", "캐주얼", "중독성"],
+      "controls": [
+        "마우스 클릭/드래그: 인접 보석 교환",
+        "터치 스와이프: 보석 교환 (모바일)",
+        "R키: 재시작"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Gem Match Blitz",
+          "description": "Swipe gems to match 3 or more and enjoy chain explosions!",
+          "tags": ["puzzle", "match-3", "gems", "chain-reaction", "casual", "addictive"],
+          "controls": ["Mouse click/drag: Swap adjacent gems", "Touch swipe: Swap gems (mobile)", "R: Restart"]
+        },
+        "ja": {
+          "title": "ジェムマッチ・ブリッツ",
+          "description": "宝石をスワイプして3つ以上揃え、連鎖爆発を楽しもう！",
+          "tags": ["パズル", "マッチ3", "宝石", "連鎖", "カジュアル", "中毒性"],
+          "controls": ["マウスクリック/ドラッグ: 隣の宝石と交換", "タッチスワイプ: 宝石を交換（モバイル）", "R: リスタート"]
+        },
+        "zh-CN": {
+          "title": "宝石消消乐",
+          "description": "滑动宝石匹配3个以上，享受连锁爆炸的快感！",
+          "tags": ["益智", "三消", "宝石", "连锁反应", "休闲", "上瘾"],
+          "controls": ["鼠标点击/拖拽：交换相邻宝石", "触屏滑动：交换宝石（移动端）", "R键：重新开始"]
+        },
+        "zh-TW": {
+          "title": "寶石消消樂",
+          "description": "滑動寶石配對3個以上，享受連鎖爆炸的快感！",
+          "tags": ["益智", "三消", "寶石", "連鎖反應", "休閒", "上癮"],
+          "controls": ["滑鼠點擊/拖曳：交換相鄰寶石", "觸控滑動：交換寶石（行動裝置）", "R鍵：重新開始"]
+        },
+        "es": {
+          "title": "Gem Match Blitz",
+          "description": "¡Desliza gemas para hacer coincidir 3 o más y disfruta de explosiones en cadena!",
+          "tags": ["rompecabezas", "match-3", "gemas", "reacción en cadena", "casual", "adictivo"],
+          "controls": ["Clic/arrastrar: Intercambiar gemas adyacentes", "Deslizar (táctil): Intercambiar gemas (móvil)", "R: Reiniciar"]
+        },
+        "fr": {
+          "title": "Gem Match Blitz",
+          "description": "Glissez les gemmes pour en aligner 3 ou plus et déclenchez des explosions en chaîne !",
+          "tags": ["puzzle", "match-3", "gemmes", "réaction en chaîne", "casual", "addictif"],
+          "controls": ["Clic/glisser : Échanger les gemmes adjacentes", "Glisser (tactile) : Échanger les gemmes (mobile)", "R : Recommencer"]
+        },
+        "de": {
+          "title": "Juwelen-Match Blitz",
+          "description": "Wische Juwelen, um 3 oder mehr zu kombinieren und genieße Kettenexplosionen!",
+          "tags": ["Puzzle", "Match-3", "Juwelen", "Kettenreaktion", "Casual", "Suchtfaktor"],
+          "controls": ["Mausklick/Ziehen: Benachbarte Juwelen tauschen", "Touch-Wischen: Juwelen tauschen (Mobil)", "R: Neustart"]
+        },
+        "pt": {
+          "title": "Gem Match Blitz",
+          "description": "Deslize gemas para combinar 3 ou mais e aproveite explosões em cadeia!",
+          "tags": ["puzzle", "match-3", "gemas", "reação em cadeia", "casual", "viciante"],
+          "controls": ["Clique/arraste: Trocar gemas adjacentes", "Deslizar (toque): Trocar gemas (mobile)", "R: Reiniciar"]
+        }
+      }
     }
   ]
 }
