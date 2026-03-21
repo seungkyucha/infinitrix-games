@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="potionBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6c3cf7"/>
+      <stop offset="50%" stop-color="#9b59b6"/>
+      <stop offset="100%" stop-color="#4a1a8e"/>
+    </linearGradient>
+    <radialGradient id="potionLiquid" cx="50%" cy="60%" r="40%">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#0066cc"/>
+    </radialGradient>
+    <radialGradient id="potionGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="potionShine" cx="35%" cy="35%" r="25%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="pGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="corkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d4a574"/>
+      <stop offset="100%" stop-color="#8b6914"/>
+    </linearGradient>
+    <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer magic glow -->
+  <circle cx="24" cy="28" r="18" fill="url(#potionGlow)" filter="url(#pGlow)"/>
+  <!-- Potion bottle body -->
+  <g>
+    <!-- Bottle neck -->
+    <rect x="20" y="10" width="8" height="8" rx="1" fill="url(#potionBody)" opacity="0.9"/>
+    <!-- Bottle body -->
+    <path d="M18 18 Q14 22 14 30 Q14 40 24 42 Q34 40 34 30 Q34 22 30 18Z" fill="url(#potionBody)"/>
+    <!-- Liquid inside -->
+    <path d="M16 26 Q16 38 24 40 Q32 38 32 26 Q28 24 24 25 Q20 24 16 26Z" fill="url(#potionLiquid)" filter="url(#pGlow)"/>
+    <!-- Bubble -->
+    <circle cx="21" cy="32" r="1.5" fill="#00d4ff" opacity="0.5"/>
+    <circle cx="26" cy="35" r="1" fill="#00d4ff" opacity="0.4"/>
+    <circle cx="22" cy="37" r="0.7" fill="#00d4ff" opacity="0.3"/>
+    <!-- Glass shine -->
+    <path d="M17 22 Q16 30 18 38" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.2"/>
+    <ellipse cx="22" cy="24" rx="3" ry="4" fill="url(#glassGrad)"/>
+  </g>
+  <!-- Cork -->
+  <rect x="19" y="8" width="10" height="4" rx="2" fill="url(#corkGrad)"/>
+  <!-- Star sparkles -->
+  <g filter="url(#pGlow)" opacity="0.8">
+    <path d="M8 16 L9 14 L10 16 L9 15Z" fill="#ffd700"/>
+    <path d="M38 12 L39.5 10 L41 12 L39.5 11Z" fill="#ffd700"/>
+    <path d="M10 38 L11 36 L12 38 L11 37.5Z" fill="#00d4ff"/>
+    <path d="M36 36 L37 34 L38 36 L37 35.5Z" fill="#00d4ff"/>
+  </g>
+  <!-- Arcane rune label -->
+  <g opacity="0.5">
+    <path d="M21 28 L24 24 L27 28 L24 27Z" fill="#ffd700" filter="url(#pGlow)"/>
+  </g>
+</svg>

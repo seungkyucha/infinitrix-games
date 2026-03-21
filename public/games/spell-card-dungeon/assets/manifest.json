@@ -1,0 +1,14 @@
+{
+  "gameId": "spell-card-dungeon",
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 64,  "height": 64,  "desc": "마법사 플레이어 캐릭터" },
+    "enemy":       { "file": "enemy.svg",        "width": 64,  "height": 64,  "desc": "다크 나이트 적 캐릭터" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 800, "height": 600, "desc": "배경 원경 - 밤하늘/달/산맥" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 800, "height": 600, "desc": "배경 근경 - 던전 내부/기둥/횃불" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 32,  "height": 32,  "desc": "생명력 하트 아이콘" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 32,  "height": 32,  "desc": "골드/마나 코인 아이콘" },
+    "powerup":     { "file": "powerup.svg",      "width": 48,  "height": 48,  "desc": "마법 포션 파워업" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 96,  "height": 96,  "desc": "아케인 폭발 피격 이펙트" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "플랫폼 썸네일 - 마법사 vs 다크나이트 카드 전투" }
+  }
+}

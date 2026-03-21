@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="robeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5b2c8e"/>
+      <stop offset="50%" stop-color="#3a1a5e"/>
+      <stop offset="100%" stop-color="#1a0a2e"/>
+    </linearGradient>
+    <linearGradient id="hoodGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6c3cf7"/>
+      <stop offset="100%" stop-color="#3a1a5e"/>
+    </linearGradient>
+    <radialGradient id="orbGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#00d4ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="staffGem" cx="50%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#ff6bff"/>
+      <stop offset="100%" stop-color="#9b30ff"/>
+    </radialGradient>
+    <radialGradient id="faceGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffe0b2"/>
+      <stop offset="100%" stop-color="#d4a574"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="strongGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="staffGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8b6914"/>
+      <stop offset="50%" stop-color="#c9a84c"/>
+      <stop offset="100%" stop-color="#6b4f12"/>
+    </linearGradient>
+  </defs>
+  <!-- Arcane aura -->
+  <g filter="url(#strongGlow)">
+    <ellipse cx="32" cy="34" rx="18" ry="22" fill="url(#orbGlow)" opacity="0.3"/>
+  </g>
+  <!-- Robe body -->
+  <g>
+    <path d="M22 30 Q20 42 18 56 L46 56 Q44 42 42 30 Q38 28 32 27 Q26 28 22 30Z" fill="url(#robeGrad)"/>
+    <!-- Robe trim -->
+    <path d="M18 56 Q22 52 32 54 Q42 52 46 56 L44 58 Q38 55 32 57 Q26 55 20 58Z" fill="#ffd700" opacity="0.6"/>
+    <!-- Belt -->
+    <rect x="24" y="38" width="16" height="3" rx="1" fill="#ffd700" opacity="0.8"/>
+    <ellipse cx="32" cy="39.5" rx="2.5" ry="2" fill="#9b30ff" filter="url(#glow)"/>
+  </g>
+  <!-- Hood -->
+  <g>
+    <path d="M22 28 Q22 14 32 10 Q42 14 42 28 Q38 26 32 25 Q26 26 22 28Z" fill="url(#hoodGrad)"/>
+    <!-- Hood shadow inner -->
+    <path d="M25 26 Q26 18 32 15 Q38 18 39 26 Q36 24 32 23 Q28 24 25 26Z" fill="#1a0a2e" opacity="0.7"/>
+  </g>
+  <!-- Face -->
+  <g>
+    <ellipse cx="32" cy="22" rx="6" ry="5" fill="url(#faceGlow)"/>
+    <!-- Eyes -->
+    <ellipse cx="29.5" cy="21.5" rx="1.2" ry="1.5" fill="#00d4ff" filter="url(#glow)"/>
+    <ellipse cx="34.5" cy="21.5" rx="1.2" ry="1.5" fill="#00d4ff" filter="url(#glow)"/>
+    <circle cx="29.5" cy="21.2" r="0.5" fill="#fff"/>
+    <circle cx="34.5" cy="21.2" r="0.5" fill="#fff"/>
+  </g>
+  <!-- Staff -->
+  <g>
+    <rect x="46" y="14" width="2.5" height="38" rx="1" fill="url(#staffGrad)" transform="rotate(10, 47, 32)"/>
+    <!-- Staff head ornament -->
+    <path d="M46 12 Q44 8 47 5 Q50 8 48 12Z" fill="#c9a84c" transform="rotate(10, 47, 12)"/>
+    <!-- Staff gem -->
+    <circle cx="47.2" cy="8" r="3.5" fill="url(#staffGem)" filter="url(#strongGlow)" transform="rotate(10, 47, 8)"/>
+    <circle cx="46.5" cy="7" r="1" fill="#fff" opacity="0.8"/>
+  </g>
+  <!-- Floating card -->
+  <g filter="url(#glow)" transform="rotate(-15, 18, 32)">
+    <rect x="10" y="28" width="12" height="16" rx="2" fill="#1a1a3e" stroke="#ffd700" stroke-width="0.8"/>
+    <path d="M13 33 L16 30 L19 33 L17.5 33 L17.5 38 L14.5 38 L14.5 33Z" fill="#ff6600" opacity="0.8"/>
+    <rect x="12" y="39" width="8" height="1" rx="0.5" fill="#ffd700" opacity="0.5"/>
+  </g>
+  <!-- Rune circles at feet -->
+  <g filter="url(#glow)" opacity="0.5">
+    <ellipse cx="32" cy="57" rx="14" ry="3" fill="none" stroke="#6c3cf7" stroke-width="0.5" stroke-dasharray="2 1.5"/>
+    <ellipse cx="32" cy="57" rx="10" ry="2" fill="none" stroke="#00d4ff" stroke-width="0.3" stroke-dasharray="1 1"/>
+  </g>
+</svg>

@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T23:00:00Z",
-  "totalGames": 22,
+  "lastUpdated": "2026-03-22T23:30:00Z",
+  "totalGames": 23,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -1541,6 +1541,78 @@
           "description": "Sobreviva a hordas de monstros como um mago de runas!",
           "tags": ["ação", "sobrevivência", "roguelike", "vampire survivors", "runas", "magia"],
           "controls": ["WASD / Setas: Mover", "Ataques automáticos", "Toque: Joystick virtual para mover"]
+        }
+      },
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "spell-card-dungeon",
+      "title": "스펠 카드 던전",
+      "description": "카드를 전략적으로 사용해 던전 10층을 정복하세요!",
+      "genre": ["strategy"],
+      "thumbnail": "/games/spell-card-dungeon/assets/thumbnail.svg",
+      "path": "/games/spell-card-dungeon/index.html",
+      "addedAt": "2026-03-22T23:30:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["전략", "카드", "덱빌딩", "로그라이크", "던전", "턴제"],
+      "controls": [
+        "마우스 클릭: 카드 선택/사용",
+        "터치: 카드 선택/사용 (모바일)",
+        "숫자키 1~5: 카드 빠른 선택",
+        "E키: 턴 종료"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Spell Card Dungeon",
+          "description": "Use cards strategically to conquer the 10-floor dungeon!",
+          "tags": ["strategy", "card", "deckbuilding", "roguelike", "dungeon", "turn-based"],
+          "controls": ["Mouse click: Select/play cards", "Touch: Select/play cards (mobile)", "Number keys 1-5: Quick select card", "E key: End turn"]
+        },
+        "ja": {
+          "title": "スペルカードダンジョン",
+          "description": "カードを駆使してダンジョン10階を攻略しよう！",
+          "tags": ["戦略", "カード", "デッキ構築", "ローグライク", "ダンジョン", "ターン制"],
+          "controls": ["マウスクリック: カード選択/使用", "タッチ: カード選択/使用（モバイル）", "数字キー1~5: カード素早く選択", "Eキー: ターン終了"]
+        },
+        "zh-CN": {
+          "title": "魔法卡牌地牢",
+          "description": "策略性地使用卡牌征服10层地牢！",
+          "tags": ["策略", "卡牌", "构筑牌组", "肉鸽", "地牢", "回合制"],
+          "controls": ["鼠标点击：选择/使用卡牌", "触屏：选择/使用卡牌（移动端）", "数字键1~5：快速选择卡牌", "E键：结束回合"]
+        },
+        "zh-TW": {
+          "title": "魔法卡牌地城",
+          "description": "策略性地使用卡牌征服10層地城！",
+          "tags": ["策略", "卡牌", "牌組構築", "肉鴿", "地城", "回合制"],
+          "controls": ["滑鼠點擊：選擇/使用卡牌", "觸控：選擇/使用卡牌（行動裝置）", "數字鍵1~5：快速選擇卡牌", "E鍵：結束回合"]
+        },
+        "es": {
+          "title": "Mazmorra de Cartas Mágicas",
+          "description": "¡Usa cartas estratégicamente para conquistar la mazmorra de 10 pisos!",
+          "tags": ["estrategia", "cartas", "construcción de mazos", "roguelike", "mazmorra", "por turnos"],
+          "controls": ["Clic del ratón: Seleccionar/jugar cartas", "Toque: Seleccionar/jugar cartas (móvil)", "Teclas numéricas 1-5: Selección rápida", "Tecla E: Finalizar turno"]
+        },
+        "fr": {
+          "title": "Donjon de Cartes Magiques",
+          "description": "Utilisez vos cartes stratégiquement pour conquérir le donjon à 10 étages !",
+          "tags": ["stratégie", "cartes", "deckbuilding", "roguelike", "donjon", "tour par tour"],
+          "controls": ["Clic souris: Sélectionner/jouer des cartes", "Tactile: Sélectionner/jouer des cartes (mobile)", "Touches 1-5: Sélection rapide", "Touche E: Fin du tour"]
+        },
+        "de": {
+          "title": "Zauberspruch-Karten-Dungeon",
+          "description": "Setze Karten strategisch ein, um den 10-stöckigen Dungeon zu erobern!",
+          "tags": ["Strategie", "Karten", "Deckbau", "Roguelike", "Dungeon", "Rundenbasiert"],
+          "controls": ["Mausklick: Karten auswählen/spielen", "Touch: Karten auswählen/spielen (mobil)", "Zifferntasten 1-5: Schnellauswahl", "E-Taste: Zug beenden"]
+        },
+        "pt": {
+          "title": "Masmorra de Cartas Mágicas",
+          "description": "Use cartas estrategicamente para conquistar a masmorra de 10 andares!",
+          "tags": ["estratégia", "cartas", "construção de deck", "roguelike", "masmorra", "por turnos"],
+          "controls": ["Clique do mouse: Selecionar/jogar cartas", "Toque: Selecionar/jogar cartas (mobile)", "Teclas numéricas 1-5: Seleção rápida", "Tecla E: Finalizar turno"]
         }
       },
       "difficulty": "medium",
