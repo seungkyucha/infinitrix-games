@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "games": "游戏",
+    "about": "简介",
+    "dashboard": "仪表盘",
+    "devlog": "开发日志",
+    "menu": "菜单"
+  },
+  "home": {
+    "badge": "LIVE · AI 智能体开发中",
+    "hero1": "AI 每天",
+    "hero2": "创造游戏",
+    "heroDesc1": "策划 → 开发 → 测试 → 部署 → 复盘",
+    "heroDesc2": "智能体团队自动循环整个开发流程。",
+    "allGames": "全部游戏",
+    "gamesCount": "{count} 款",
+    "emptyTitle": "首款游戏制作中…",
+    "emptyDesc": "AI 智能体团队正在开发游戏，即将上线！",
+    "searchPlaceholder": "搜索游戏…",
+    "filterAll": "全部",
+    "noResults": "没有找到相关结果"
+  },
+  "about": {
+    "backToList": "← 返回游戏列表",
+    "whatIs": "什么是 InfiniTriX？",
+    "desc": "AI 智能体团队自动循环执行策划 → 开发 → 测试 → 部署流程，持续产出 HTML5 游戏的平台。",
+    "cycle": "自动开发循环",
+    "techStack": "技术栈",
+    "github": "GitHub 仓库",
+    "devlog": "开发日志",
+    "playGames": "开始游戏",
+    "steps": {
+      "analysis": { "title": "趋势分析", "desc": "分析平台现状与 HTML5 游戏趋势，确定下一款游戏的方向。" },
+      "planning": { "title": "游戏策划", "desc": "基于分析结果，编写包含游戏规则、操作方式和视觉风格的详细策划书（GDD）。" },
+      "design": { "title": "美术资源", "desc": "根据策划书规格，制作角色、背景、UI 和缩略图的 SVG 资源。" },
+      "coding": { "title": "游戏编码", "desc": "根据资源和策划书，实现 index.html 单文件 HTML5 游戏。" },
+      "review": { "title": "评审 + 测试", "desc": "通过代码质量审查和 Puppeteer 无头浏览器自动测试来验证游戏运行。" },
+      "postmortem": { "title": "复盘总结", "desc": "回顾整个开发周期，整理改进点并沉淀到平台知识库（platform-wisdom）。" },
+      "deploy": { "title": "部署上线", "desc": "注册到游戏目录后，通过 GitHub push 触发 Vercel 自动部署。" }
+    }
+  },
+  "game": {
+    "backToList": "← 返回游戏列表",
+    "plays": "游玩次数",
+    "rating": "评分",
+    "controls": "操作方式",
+    "tags": "标签",
+    "addedAt": "添加日期",
+    "version": "版本",
+    "restart": "重新开始",
+    "fullscreen": "全屏",
+    "minimize": "最小化",
+    "loading": "游戏加载中…",
+    "notFound": "未找到该游戏"
+  },
+  "devlog": {
+    "title": "开发日志",
+    "desc": "AI 智能体团队已完成的开发周期：策划书、评审、复盘与累积学习记录",
+    "docList": "文档列表",
+    "cyclesCount": "{count} 个周期",
+    "selectDoc": "请选择文档",
+    "selectDocDesc": "在左侧列表中选择文档，内容将显示在此处。",
+    "wisdom": "平台累积智慧",
+    "noDocs": "暂无文档。",
+    "chooseDoc": "选择文档",
+    "tabs": {
+      "postmortem": "复盘总结",
+      "review": "评审报告",
+      "spec": "游戏策划书",
+      "analytics": "趋势分析"
+    }
+  },
+  "dashboard": {
+    "title": "智能体仪表盘",
+    "connecting": "连接中…",
+    "lastUpdate": "最后更新",
+    "currentStep": "当前阶段",
+    "waiting": "智能体待命中",
+    "preparing": "准备中",
+    "noLogs": "暂无日志。智能体运行后将在此显示。",
+    "viewFull": "查看完整仪表盘 →",
+    "agents": {
+      "analyst": "分析师",
+      "planner": "策划师",
+      "designer": "设计师",
+      "coder": "程序员",
+      "reviewer": "评审员",
+      "postmortem": "复盘师",
+      "deployer": "部署员"
+    },
+    "agentsShort": {
+      "analyst": "分析",
+      "planner": "策划",
+      "designer": "设计",
+      "coder": "编码",
+      "reviewer": "评审",
+      "postmortem": "复盘",
+      "deployer": "部署"
+    }
+  },
+  "footer": {
+    "autoAdded": "每天自动添加新游戏"
+  },
+  "meta": {
+    "siteDesc": "无限成长的 HTML5 游戏平台，每天都有新游戏上线。",
+    "ogDesc": "无限成长的 HTML5 游戏平台"
+  }
+}

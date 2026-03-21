@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "games": "遊戲",
+    "about": "簡介",
+    "dashboard": "儀表板",
+    "devlog": "開發日誌",
+    "menu": "選單"
+  },
+  "home": {
+    "badge": "LIVE · AI 代理開發中",
+    "hero1": "AI 每天",
+    "hero2": "打造遊戲",
+    "heroDesc1": "企劃 → 開發 → 測試 → 部署 → 回顧",
+    "heroDesc2": "代理團隊自動循環整個開發流程。",
+    "allGames": "所有遊戲",
+    "gamesCount": "{count} 款",
+    "emptyTitle": "首款遊戲製作中…",
+    "emptyDesc": "AI 代理團隊正在開發遊戲，即將上線！",
+    "searchPlaceholder": "搜尋遊戲…",
+    "filterAll": "全部",
+    "noResults": "找不到相關結果"
+  },
+  "about": {
+    "backToList": "← 返回遊戲列表",
+    "whatIs": "什麼是 InfiniTriX？",
+    "desc": "AI 代理團隊自動循環執行企劃 → 開發 → 測試 → 部署流程，持續產出 HTML5 遊戲的平台。",
+    "cycle": "自動開發循環",
+    "techStack": "技術棧",
+    "github": "GitHub 儲存庫",
+    "devlog": "開發日誌",
+    "playGames": "開始遊戲",
+    "steps": {
+      "analysis": { "title": "趨勢分析", "desc": "分析平台現況與 HTML5 遊戲趨勢，決定下一款遊戲的方向。" },
+      "planning": { "title": "遊戲企劃", "desc": "根據分析結果，撰寫包含遊戲規則、操作方式和視覺風格的詳細企劃書（GDD）。" },
+      "design": { "title": "美術素材", "desc": "依照企劃書規格，製作角色、背景、UI 和縮圖的 SVG 素材。" },
+      "coding": { "title": "遊戲編碼", "desc": "根據素材和企劃書，實作 index.html 單檔 HTML5 遊戲。" },
+      "review": { "title": "審查 + 測試", "desc": "透過程式碼品質審查和 Puppeteer 無頭瀏覽器自動測試來驗證遊戲運作。" },
+      "postmortem": { "title": "回顧檢討", "desc": "回顧整個開發週期，整理改進要點並沉澱至平台知識庫（platform-wisdom）。" },
+      "deploy": { "title": "部署上線", "desc": "註冊至遊戲目錄後，透過 GitHub push 觸發 Vercel 自動部署。" }
+    }
+  },
+  "game": {
+    "backToList": "← 返回遊戲列表",
+    "plays": "遊玩次數",
+    "rating": "評分",
+    "controls": "操作方式",
+    "tags": "標籤",
+    "addedAt": "新增日期",
+    "version": "版本",
+    "restart": "重新開始",
+    "fullscreen": "全螢幕",
+    "minimize": "縮小",
+    "loading": "遊戲載入中…",
+    "notFound": "找不到該遊戲"
+  },
+  "devlog": {
+    "title": "開發日誌",
+    "desc": "AI 代理團隊已完成的開發週期：企劃書、審查、回顧與累積學習紀錄",
+    "docList": "文件列表",
+    "cyclesCount": "{count} 個週期",
+    "selectDoc": "請選擇文件",
+    "selectDocDesc": "在左側列表中選擇文件，內容將顯示在此處。",
+    "wisdom": "平台累積智慧",
+    "noDocs": "尚無文件。",
+    "chooseDoc": "選擇文件",
+    "tabs": {
+      "postmortem": "回顧檢討",
+      "review": "審查報告",
+      "spec": "遊戲企劃書",
+      "analytics": "趨勢分析"
+    }
+  },
+  "dashboard": {
+    "title": "代理儀表板",
+    "connecting": "連線中…",
+    "lastUpdate": "最後更新",
+    "currentStep": "目前階段",
+    "waiting": "代理待命中",
+    "preparing": "準備中",
+    "noLogs": "尚無日誌。代理執行後將在此顯示。",
+    "viewFull": "檢視完整儀表板 →",
+    "agents": {
+      "analyst": "分析師",
+      "planner": "企劃師",
+      "designer": "設計師",
+      "coder": "程式設計師",
+      "reviewer": "審查員",
+      "postmortem": "回顧師",
+      "deployer": "部署員"
+    },
+    "agentsShort": {
+      "analyst": "分析",
+      "planner": "企劃",
+      "designer": "設計",
+      "coder": "編碼",
+      "reviewer": "審查",
+      "postmortem": "回顧",
+      "deployer": "部署"
+    }
+  },
+  "footer": {
+    "autoAdded": "每天自動新增遊戲"
+  },
+  "meta": {
+    "siteDesc": "無限成長的 HTML5 遊戲平台，每天都有新遊戲上線。",
+    "ogDesc": "無限成長的 HTML5 遊戲平台"
+  }
+}

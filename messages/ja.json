@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "games": "ゲーム",
+    "about": "概要",
+    "dashboard": "ダッシュボード",
+    "devlog": "開発ログ",
+    "menu": "メニュー"
+  },
+  "home": {
+    "badge": "LIVE · AIエージェント開発中",
+    "hero1": "AIが毎日",
+    "hero2": "ゲームを作る",
+    "heroDesc1": "企画 → 開発 → テスト → デプロイ → ポストモーテム",
+    "heroDesc2": "開発サイクルをエージェントチームが自動で繰り返す。",
+    "allGames": "すべてのゲーム",
+    "gamesCount": "{count}本",
+    "emptyTitle": "最初のゲームを制作中…",
+    "emptyDesc": "AIエージェントチームが今ゲームを開発しています。まもなく追加されます！",
+    "searchPlaceholder": "ゲームを検索…",
+    "filterAll": "すべて",
+    "noResults": "検索結果がありません"
+  },
+  "about": {
+    "backToList": "← ゲーム一覧へ",
+    "whatIs": "InfiniTriXとは？",
+    "desc": "AIエージェントチームが企画 → 開発 → テスト → デプロイのサイクルを自動で繰り返し、HTML5ゲームを絶えず追加するプラットフォームです。",
+    "cycle": "自動開発サイクル",
+    "techStack": "技術スタック",
+    "github": "GitHubリポジトリ",
+    "devlog": "開発ログ",
+    "playGames": "ゲームをプレイ",
+    "steps": {
+      "analysis": { "title": "トレンド分析", "desc": "プラットフォームの現状とHTML5ゲームのトレンドを分析し、次のゲームの方向性を決定します。" },
+      "planning": { "title": "ゲーム企画", "desc": "分析結果をもとにゲームルール・操作方法・ビジュアルスタイルを盛り込んだ詳細企画書（GDD）を作成します。" },
+      "design": { "title": "グラフィックアセット", "desc": "企画書の仕様に合わせたキャラクター・背景・UI・サムネイルのSVGアセットを制作します。" },
+      "coding": { "title": "ゲームコーディング", "desc": "アセットと企画書をもとにindex.html単一ファイルのHTML5ゲームを実装します。" },
+      "review": { "title": "レビュー＋テスト", "desc": "コード品質レビューとPuppeteerヘッドレスブラウザ自動テストでゲームの動作を検証します。" },
+      "postmortem": { "title": "ポストモーテム", "desc": "サイクル全体を振り返り、改善点を整理してプラットフォームの累積知見（platform-wisdom）に反映します。" },
+      "deploy": { "title": "デプロイ", "desc": "ゲームレジストリに登録後、GitHub push → Vercel自動デプロイをトリガーします。" }
+    }
+  },
+  "game": {
+    "backToList": "← ゲーム一覧へ",
+    "plays": "プレイ数",
+    "rating": "評価",
+    "controls": "操作方法",
+    "tags": "タグ",
+    "addedAt": "追加日",
+    "version": "バージョン",
+    "restart": "リスタート",
+    "fullscreen": "フルスクリーン",
+    "minimize": "縮小",
+    "loading": "ゲーム読み込み中…",
+    "notFound": "ゲームが見つかりません"
+  },
+  "devlog": {
+    "title": "開発ログ",
+    "desc": "AIエージェントチームが完了したサイクルの企画書・レビュー・ポストモーテム・累積学習記録",
+    "docList": "ドキュメント一覧",
+    "cyclesCount": "{count}サイクル",
+    "selectDoc": "ドキュメントを選択してください",
+    "selectDocDesc": "左のリストからドキュメントを選択すると、ここに表示されます。",
+    "wisdom": "累積プラットフォーム知見",
+    "noDocs": "まだドキュメントがありません。",
+    "chooseDoc": "ドキュメント選択",
+    "tabs": {
+      "postmortem": "ポストモーテム",
+      "review": "レビュー報告書",
+      "spec": "ゲーム企画書",
+      "analytics": "トレンド分析"
+    }
+  },
+  "dashboard": {
+    "title": "エージェントダッシュボード",
+    "connecting": "接続中…",
+    "lastUpdate": "最終更新",
+    "currentStep": "現在のステップ",
+    "waiting": "エージェント待機中",
+    "preparing": "準備中",
+    "noLogs": "ログがありません。エージェントが実行されるとここに表示されます。",
+    "viewFull": "ダッシュボード全体を見る →",
+    "agents": {
+      "analyst": "アナリスト",
+      "planner": "プランナー",
+      "designer": "デザイナー",
+      "coder": "コーダー",
+      "reviewer": "レビュアー",
+      "postmortem": "ポストモーテム",
+      "deployer": "デプロイ担当"
+    },
+    "agentsShort": {
+      "analyst": "分析",
+      "planner": "企画",
+      "designer": "デザイン",
+      "coder": "コード",
+      "reviewer": "レビュー",
+      "postmortem": "PM",
+      "deployer": "デプロイ"
+    }
+  },
+  "footer": {
+    "autoAdded": "ゲームは毎日自動で追加されます"
+  },
+  "meta": {
+    "siteDesc": "無限に成長するHTML5ゲームプラットフォーム。毎日新しいゲームが追加されます。",
+    "ogDesc": "無限に成長するHTML5ゲームプラットフォーム"
+  }
+}

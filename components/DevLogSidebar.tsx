@@ -2,11 +2,12 @@
 
 import { useState }                   from 'react'
 import { useRouter, useSearchParams }  from 'next/navigation'
+import { useTranslations }             from '@/lib/i18n-client'
 
 export interface SidebarEntry {
-  id:          string   // 'wisdom' | 'cycle-3'
-  label:       string   // '누적 플랫폼 지혜' | '#3 미니 타워 디펜스'
-  icon:        string
+  id:    string
+  label: string
+  icon:  string
 }
 
 interface Props {
@@ -19,6 +20,7 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
   const searchParams = useSearchParams()
   const activeId     = searchParams.get('doc') ?? defaultDoc
   const [open, setOpen] = useState(false)
+  const { t } = useTranslations()
 
   const activeEntry = entries.find(e => e.id === activeId)
 
@@ -33,14 +35,13 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
         <SidebarItem key={e.id} entry={e} active={activeId === e.id} onClick={() => select(e.id)} />
       ))}
       {entries.length === 0 && (
-        <p className="px-3 py-4 text-xs text-text-muted italic">아직 문서가 없습니다.</p>
+        <p className="px-3 py-4 text-xs text-text-muted italic">{t.devlog.noDocs}</p>
       )}
     </nav>
   )
 
   return (
     <>
-      {/* ── 모바일: 상단 토글 바 ─────────────────────── */}
       <div className="md:hidden">
         <button
           onClick={() => setOpen(v => !v)}
@@ -49,7 +50,7 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">{activeEntry?.icon ?? '📄'}</span>
             <span className="text-xs font-medium text-text-primary truncate">
-              {activeEntry?.label ?? '문서 선택'}
+              {activeEntry?.label ?? t.devlog.chooseDoc}
             </span>
           </div>
           <svg
@@ -63,7 +64,7 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
         {open && (
           <div className="mt-1 rounded-xl border border-border-dim bg-bg-card overflow-hidden shadow-lg">
             <div className="px-3 py-2 border-b border-border-dim bg-bg-secondary/60">
-              <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">문서 목록</span>
+              <span className="text-[10px] font-mono text-text-muted tracking-widest uppercase">{t.devlog.docList}</span>
             </div>
             <div className="p-2 max-h-72 overflow-y-auto">
               {navList}
@@ -72,7 +73,6 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
         )}
       </div>
 
-      {/* ── 데스크톱: 고정 사이드바 ──────────────────── */}
       <div className="hidden md:block">
         {navList}
       </div>
@@ -80,17 +80,7 @@ export default function DevLogSidebar({ entries, defaultDoc }: Props) {
   )
 }
 
-// ── 아이템 ──────────────────────────────────────────────────────────────────
-
-function SidebarItem({
-  entry,
-  active,
-  onClick,
-}: {
-  entry:   SidebarEntry
-  active:  boolean
-  onClick: () => void
-}) {
+function SidebarItem({ entry, active, onClick }: { entry: SidebarEntry; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

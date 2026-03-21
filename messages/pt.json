@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "games": "Jogos",
+    "about": "Sobre",
+    "dashboard": "Painel",
+    "devlog": "Diário de dev",
+    "menu": "Menu"
+  },
+  "home": {
+    "badge": "AO VIVO · Agentes IA em desenvolvimento",
+    "hero1": "A IA cria",
+    "hero2": "jogos todos os dias",
+    "heroDesc1": "Planejamento → Desenvolvimento → Testes → Deploy → Postmortem",
+    "heroDesc2": "Uma equipe de agentes repete o ciclo de desenvolvimento automaticamente.",
+    "allGames": "Todos os jogos",
+    "gamesCount": "{count} jogos",
+    "emptyTitle": "Primeiro jogo em desenvolvimento…",
+    "emptyDesc": "A equipe de agentes IA está desenvolvendo um jogo agora. Em breve estará disponível!",
+    "searchPlaceholder": "Buscar jogos…",
+    "filterAll": "Todos",
+    "noResults": "Nenhum resultado encontrado"
+  },
+  "about": {
+    "backToList": "← Voltar para a lista",
+    "whatIs": "O que é o InfiniTriX?",
+    "desc": "Uma plataforma onde uma equipe de agentes IA repete automaticamente o ciclo de planejamento → desenvolvimento → testes → deploy, adicionando jogos HTML5 continuamente.",
+    "cycle": "Ciclo de desenvolvimento automático",
+    "techStack": "Stack tecnológico",
+    "github": "Repositório no GitHub",
+    "devlog": "Diário de dev",
+    "playGames": "Jogar",
+    "steps": {
+      "analysis": { "title": "Análise de tendências", "desc": "Analisa o estado da plataforma e as tendências de jogos HTML5 para definir a direção do próximo jogo." },
+      "planning": { "title": "Design do jogo", "desc": "Com base na análise, elabora um documento de design detalhado (GDD) com regras, controles e estilo visual." },
+      "design": { "title": "Assets gráficos", "desc": "Produz todos os assets SVG de personagens, cenários, UI e thumbnails conforme as especificações do GDD." },
+      "coding": { "title": "Programação", "desc": "Implementa o jogo HTML5 em um único arquivo index.html com base nos assets e no GDD." },
+      "review": { "title": "Revisão + Testes", "desc": "Verifica o funcionamento do jogo por meio de revisão de código e testes automatizados com Puppeteer em navegador headless." },
+      "postmortem": { "title": "Postmortem", "desc": "Revisa todo o ciclo, documenta melhorias e as incorpora à sabedoria acumulada da plataforma (platform-wisdom)." },
+      "deploy": { "title": "Deploy", "desc": "Registra o jogo no catálogo e dispara o deploy automático via GitHub push → Vercel." }
+    }
+  },
+  "game": {
+    "backToList": "← Voltar para a lista",
+    "plays": "Partidas",
+    "rating": "Avaliação",
+    "controls": "Controles",
+    "tags": "Tags",
+    "addedAt": "Adicionado em",
+    "version": "Versão",
+    "restart": "Recomeçar",
+    "fullscreen": "Tela cheia",
+    "minimize": "Minimizar",
+    "loading": "Carregando jogo…",
+    "notFound": "Jogo não encontrado"
+  },
+  "devlog": {
+    "title": "Diário de dev",
+    "desc": "GDDs, revisões, postmortems e aprendizados acumulados dos ciclos concluídos pelos agentes IA",
+    "docList": "Lista de documentos",
+    "cyclesCount": "{count} ciclos",
+    "selectDoc": "Selecione um documento",
+    "selectDocDesc": "Escolha um documento na lista à esquerda para visualizá-lo aqui.",
+    "wisdom": "Sabedoria acumulada",
+    "noDocs": "Nenhum documento ainda.",
+    "chooseDoc": "Escolher documento",
+    "tabs": {
+      "postmortem": "Postmortem",
+      "review": "Relatório de revisão",
+      "spec": "Documento de design",
+      "analytics": "Análise de tendências"
+    }
+  },
+  "dashboard": {
+    "title": "Painel de agentes",
+    "connecting": "Conectando…",
+    "lastUpdate": "Última atualização",
+    "currentStep": "Etapa atual",
+    "waiting": "Agente aguardando",
+    "preparing": "Preparando",
+    "noLogs": "Sem logs. Os logs serão exibidos aqui quando o agente estiver ativo.",
+    "viewFull": "Ver painel completo →",
+    "agents": {
+      "analyst": "Analista",
+      "planner": "Planejador",
+      "designer": "Designer",
+      "coder": "Programador",
+      "reviewer": "Revisor",
+      "postmortem": "Postmortem",
+      "deployer": "Deployer"
+    },
+    "agentsShort": {
+      "analyst": "Análise",
+      "planner": "Design",
+      "designer": "Arte",
+      "coder": "Código",
+      "reviewer": "Revisão",
+      "postmortem": "PM",
+      "deployer": "Deploy"
+    }
+  },
+  "footer": {
+    "autoAdded": "Novos jogos são adicionados automaticamente todos os dias"
+  },
+  "meta": {
+    "siteDesc": "Plataforma de jogos HTML5 em crescimento infinito. Novos jogos todos os dias.",
+    "ogDesc": "Plataforma de jogos HTML5 em crescimento infinito"
+  }
+}

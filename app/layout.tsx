@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Header from '@/components/Header'
+import I18nWrapper from '@/components/I18nWrapper'
 import { getLocale, getMessages } from '@/lib/i18n'
-import { I18nProvider } from '@/lib/i18n-client'
 
 export const metadata: Metadata = {
   title: 'InfiniTriX — HTML5 Game Platform',
@@ -34,7 +34,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-bg-primary min-h-screen font-sans antialiased">
-        <I18nProvider value={{ t, locale }}>
+        <I18nWrapper locale={locale}>
           <div className="bg-grid min-h-screen">
             <Header />
             <main className="pt-16">
@@ -44,7 +44,7 @@ export default async function RootLayout({
               <p>© 2025 InfiniTriX · AI-Powered Game Platform · {t.footer.autoAdded}</p>
             </footer>
           </div>
-        </I18nProvider>
+        </I18nWrapper>
       </body>
     </html>
   )
