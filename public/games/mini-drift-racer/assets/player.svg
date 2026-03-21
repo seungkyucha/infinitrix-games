@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4db8ff"/>
+      <stop offset="50%" stop-color="#1e90ff"/>
+      <stop offset="100%" stop-color="#0a5eb8"/>
+    </linearGradient>
+    <linearGradient id="windshieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a0e0ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#60b0e0" stop-opacity="0.6"/>
+    </linearGradient>
+    <radialGradient id="headlightGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffcc" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ffee88" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="taillightGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff3333" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spoilerGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#333"/>
+      <stop offset="100%" stop-color="#111"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="shadow"/>
+      <feOffset dx="1" dy="2" result="offsetShadow"/>
+      <feMerge><feMergeNode in="offsetShadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 차량 그림자 -->
+  <g filter="url(#softShadow)">
+    <!-- 차체 메인 바디 -->
+    <g>
+      <!-- 타이어 4개 -->
+      <rect x="12" y="14" width="7" height="10" rx="2" fill="#222" stroke="#111" stroke-width="0.5"/>
+      <rect x="45" y="14" width="7" height="10" rx="2" fill="#222" stroke="#111" stroke-width="0.5"/>
+      <rect x="12" y="40" width="7" height="10" rx="2" fill="#222" stroke="#111" stroke-width="0.5"/>
+      <rect x="45" y="40" width="7" height="10" rx="2" fill="#222" stroke="#111" stroke-width="0.5"/>
+      <!-- 타이어 트레드 디테일 -->
+      <line x1="13" y1="16" x2="18" y2="16" stroke="#444" stroke-width="0.5"/>
+      <line x1="13" y1="18" x2="18" y2="18" stroke="#444" stroke-width="0.5"/>
+      <line x1="13" y1="20" x2="18" y2="20" stroke="#444" stroke-width="0.5"/>
+      <line x1="46" y1="16" x2="51" y2="16" stroke="#444" stroke-width="0.5"/>
+      <line x1="46" y1="18" x2="51" y2="18" stroke="#444" stroke-width="0.5"/>
+      <line x1="46" y1="20" x2="51" y2="20" stroke="#444" stroke-width="0.5"/>
+      <!-- 차체 본체 -->
+      <path d="M18 8 Q32 4 46 8 L50 16 L50 52 Q32 56 14 52 L14 16 Z" fill="url(#bodyGrad)" stroke="#0a5eb8" stroke-width="0.8"/>
+      <!-- 루프 하이라이트 -->
+      <path d="M22 18 Q32 15 42 18 L40 30 Q32 28 24 30 Z" fill="#5cc0ff" opacity="0.3"/>
+      <!-- 앞유리 -->
+      <path d="M22 14 Q32 11 42 14 L40 22 Q32 20 24 22 Z" fill="url(#windshieldGrad)"/>
+      <!-- 뒷유리 -->
+      <path d="M24 38 Q32 36 40 38 L40 44 Q32 42 24 44 Z" fill="#60b0e0" opacity="0.5"/>
+      <!-- 레이싱 스트라이프 -->
+      <line x1="30" y1="8" x2="30" y2="52" stroke="#ffffff" stroke-width="1.2" opacity="0.6"/>
+      <line x1="34" y1="8" x2="34" y2="52" stroke="#ffffff" stroke-width="1.2" opacity="0.6"/>
+      <!-- 스포일러 -->
+      <rect x="16" y="48" width="32" height="4" rx="1" fill="url(#spoilerGrad)"/>
+      <!-- 헤드라이트 -->
+      <ellipse cx="22" cy="10" rx="4" ry="2.5" fill="url(#headlightGlow)" filter="url(#glow)"/>
+      <ellipse cx="42" cy="10" rx="4" ry="2.5" fill="url(#headlightGlow)" filter="url(#glow)"/>
+      <!-- 테일라이트 -->
+      <ellipse cx="20" cy="52" rx="3" ry="2" fill="url(#taillightGlow)" filter="url(#glow)"/>
+      <ellipse cx="44" cy="52" rx="3" ry="2" fill="url(#taillightGlow)" filter="url(#glow)"/>
+      <!-- 번호판 영역 -->
+      <rect x="26" y="52" width="12" height="3" rx="1" fill="#eee" stroke="#999" stroke-width="0.3"/>
+    </g>
+  </g>
+</svg>

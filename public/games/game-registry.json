@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-21T12:00:00Z",
-  "totalGames": 11,
+  "lastUpdated": "2026-03-21T15:00:00Z",
+  "totalGames": 12,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -762,6 +762,28 @@
         "de": { "title": "Mini-Plattformer", "description": "Durchbreche den antiken Turm mit Wandsprüngen, Dashes und Doppelsprüngen! Ein Präzisions-Action-Plattformer.", "tags": ["Plattformer", "Präzisionsaktion", "Wandsprung", "Speedrun", "Einzelspieler"], "controls": ["Tastatur: Pfeile/WASD bewegen, Space springen, Shift dash", "Touch: Virtuelles D-Pad (links) + Sprung/Dash-Tasten (rechts)", "Maus: Nur Menüauswahl"] },
         "pt": { "title": "Mini Plataforma", "description": "Supere a torre antiga com pulos na parede, dashes e pulo duplo! Um plataforma de ação precisa.", "tags": ["plataforma", "ação precisa", "pulo na parede", "speedrun", "um jogador"], "controls": ["Teclado: Setas/WASD mover, Space pular, Shift dash", "Toque: D-pad virtual (esq) + Botões pulo/dash (dir)", "Mouse: Apenas seleção de menu"] }
       }
+    },
+    {
+      "id": "mini-drift-racer",
+      "title": "미니 드리프트 레이서",
+      "description": "드리프트로 부스트를 채우고 5개 트랙을 정복하라!",
+      "genre": ["arcade"],
+      "thumbnail": "/games/mini-drift-racer/assets/thumbnail.svg",
+      "path": "/games/mini-drift-racer/index.html",
+      "addedAt": "2026-03-21T15:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["레이싱", "드리프트", "아케이드", "타임어택", "싱글플레이"],
+      "controls": [
+        "방향키/WASD: 가속·브레이크·스티어링",
+        "Space: 핸드브레이크 (드리프트)",
+        "Shift: 부스트 사용",
+        "Esc/P: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
     }
   ]
 }
