@@ -18,6 +18,20 @@ import { execSync } from 'child_process'
 
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
+
+// .env 파일 수동 로드 (dotenv 의존 없이)
+const ENV_FILE = resolve(__dirname, '..', '.env')
+if (existsSync(ENV_FILE)) {
+  for (const line of readFileSync(ENV_FILE, 'utf-8').split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eqIdx = trimmed.indexOf('=')
+    if (eqIdx === -1) continue
+    const key = trimmed.slice(0, eqIdx).trim()
+    const val = trimmed.slice(eqIdx + 1).trim()
+    if (!process.env[key]) process.env[key] = val
+  }
+}
 const CYCLE_LOG    = `${PROJECT_ROOT}/logs/cycle-counter.json`
 
 // Rate Limit / 사용량 초과 에러 감지 패턴
