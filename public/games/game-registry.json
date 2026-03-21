@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-21T15:00:00Z",
-  "totalGames": 12,
+  "lastUpdated": "2026-03-21T18:00:00Z",
+  "totalGames": 13,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -780,6 +780,27 @@
         "Space: 핸드브레이크 (드리프트)",
         "Shift: 부스트 사용",
         "Esc/P: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "neon-drift-racer",
+      "title": "네온 드리프트 레이서",
+      "description": "네온 도시에서 드리프트와 부스트로 1위를 차지하라!",
+      "genre": ["arcade"],
+      "thumbnail": "/games/neon-drift-racer/assets/thumbnail.svg",
+      "path": "/games/neon-drift-racer/index.html",
+      "addedAt": "2026-03-21T18:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["레이싱", "드리프트", "네온", "아케이드", "싱글플레이"],
+      "controls": [
+        "키보드: ←→ 조향 / ↑ 가속 / ↓ 브레이크 / Space 부스트",
+        "터치: 가상 스티어링(좌) + 가속·브레이크·부스트 버튼(우)",
+        "마우스: 메뉴 선택 전용"
       ],
       "difficulty": "medium",
       "version": "1.0.0",

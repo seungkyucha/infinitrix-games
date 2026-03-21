@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="enemyBodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff00ff"/>
+      <stop offset="50%" stop-color="#990099"/>
+      <stop offset="100%" stop-color="#440044"/>
+    </linearGradient>
+    <linearGradient id="enemyWindshield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff66ff"/>
+      <stop offset="100%" stop-color="#330033"/>
+    </linearGradient>
+    <radialGradient id="enemyEngineGlow" cx="50%" cy="80%" r="50%">
+      <stop offset="0%" stop-color="#ff00ff" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#880088" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ff00ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="enemyHeadlight" cx="50%" cy="20%" r="40%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ff00ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="magentaGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="magentaSoft">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 엔진 글로우 -->
+  <g filter="url(#magentaSoft)">
+    <ellipse cx="32" cy="56" rx="10" ry="5" fill="url(#enemyEngineGlow)"/>
+  </g>
+  <!-- 헤드라이트 글로우 -->
+  <g filter="url(#magentaSoft)">
+    <ellipse cx="32" cy="8" rx="14" ry="8" fill="url(#enemyHeadlight)"/>
+  </g>
+  <!-- 차체 그림자 -->
+  <path d="M19 52 L16 46 L17 18 L23 8 L41 8 L47 18 L48 46 L45 52 Z" fill="#1a001a" opacity="0.5" transform="translate(1,1)"/>
+  <!-- 차체 (더 날카로운 형태) -->
+  <g filter="url(#magentaGlow)">
+    <path d="M19 52 L16 46 L17 18 L23 8 L41 8 L47 18 L48 46 L45 52 Z" fill="url(#enemyBodyGrad)"/>
+  </g>
+  <!-- 좌측 스포일러 -->
+  <path d="M17 20 L10 26 L10 40 L16 46 Z" fill="#660066" opacity="0.85"/>
+  <!-- 우측 스포일러 -->
+  <path d="M47 20 L54 26 L54 40 L48 46 Z" fill="#660066" opacity="0.85"/>
+  <!-- 윈드실드 (날카로운 V형) -->
+  <path d="M25 16 L28 10 L36 10 L39 16 L36 26 L28 26 Z" fill="url(#enemyWindshield)" opacity="0.85"/>
+  <!-- 네온 중앙 라인 -->
+  <g filter="url(#magentaGlow)">
+    <line x1="32" y1="10" x2="32" y2="50" stroke="#ff00ff" stroke-width="1.5" opacity="0.7"/>
+  </g>
+  <!-- 좌측 네온 스트라이프 -->
+  <g filter="url(#magentaGlow)">
+    <path d="M19 50 L17 20 L23 10" stroke="#ff44ff" stroke-width="0.8" fill="none" opacity="0.5"/>
+  </g>
+  <!-- 우측 네온 스트라이프 -->
+  <g filter="url(#magentaGlow)">
+    <path d="M45 50 L47 20 L41 10" stroke="#ff44ff" stroke-width="0.8" fill="none" opacity="0.5"/>
+  </g>
+  <!-- 리어 스포일러 -->
+  <rect x="17" y="50" width="30" height="3" rx="1" fill="#880088" opacity="0.9"/>
+  <!-- 후미등 -->
+  <g filter="url(#magentaGlow)">
+    <rect x="20" y="50" width="7" height="2" rx="1" fill="#ff3366" opacity="0.9"/>
+    <rect x="37" y="50" width="7" height="2" rx="1" fill="#ff3366" opacity="0.9"/>
+  </g>
+  <!-- 엔진 노즐 -->
+  <ellipse cx="26" cy="54" rx="3" ry="1.5" fill="#ff44ff" opacity="0.7" filter="url(#magentaGlow)"/>
+  <ellipse cx="38" cy="54" rx="3" ry="1.5" fill="#ff44ff" opacity="0.7" filter="url(#magentaGlow)"/>
+  <!-- 전방 라이트 (위협적 빨간) -->
+  <circle cx="24" cy="10" r="2" fill="#ff0044" opacity="0.9" filter="url(#magentaGlow)"/>
+  <circle cx="40" cy="10" r="2" fill="#ff0044" opacity="0.9" filter="url(#magentaGlow)"/>
+  <!-- X 마크 (적대적 표시) -->
+  <g filter="url(#magentaGlow)" opacity="0.4">
+    <line x1="28" y1="32" x2="36" y2="40" stroke="#ff00ff" stroke-width="1"/>
+    <line x1="36" y1="32" x2="28" y2="40" stroke="#ff00ff" stroke-width="1"/>
+  </g>
+</svg>
