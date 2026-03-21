@@ -6,9 +6,9 @@ const __dirname   = dirname(fileURLToPath(import.meta.url))
 const LOGS_DIR    = resolve(__dirname, '..', '..', 'logs')
 const STATUS_FILE = resolve(LOGS_DIR, 'agent-status.json')
 
-// Vercel HTTP Push 설정
-const VERCEL_URL   = process.env.VERCEL_APP_URL   // e.g. https://infinitrix-games.vercel.app
-const WRITE_SECRET = process.env.STATUS_WRITE_SECRET
+// Vercel HTTP Push 설정 (지연 참조 — main.ts에서 .env 로드 후에 읽힘)
+function getVercelUrl()   { return process.env.VERCEL_APP_URL ?? '' }
+function getWriteSecret() { return process.env.STATUS_WRITE_SECRET ?? '' }
 
 export type AgentId     = 'analyst' | 'planner' | 'designer' | 'coder' | 'reviewer' | 'postmortem' | 'deployer'
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
@@ -44,11 +44,13 @@ export interface StatusData {
 // ── Vercel Blob HTTP Push (fire-and-forget) ──────────────────────────────────
 
 function pushToVercel(data: StatusData): void {
-  if (!VERCEL_URL || !WRITE_SECRET) return
+  const url = getVercelUrl()
+  const secret = getWriteSecret()
+  if (!url || !secret) return
   const body = JSON.stringify(data)
-  fetch(`${VERCEL_URL}/api/agent-status`, {
+  fetch(`${url}/api/agent-status`, {
     method:  'POST',
-    headers: { 'content-type': 'application/json', 'x-write-secret': WRITE_SECRET },
+    headers: { 'content-type': 'application/json', 'x-write-secret': secret },
     body,
   }).catch(() => { /* fire-and-forget */ })
 }
