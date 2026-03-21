@@ -31,6 +31,7 @@ _마지막 갱신: 사이클 #10_
 - **[Cycle 10]** 수정 과정에서 새 버그를 도입하는 "수정 회귀" 패턴 발생. 1회차 MINOR 4건 수정 중 `render()` 시그니처 변경 시 `timestamp` 미전달로 CRITICAL 신규 도입(2회차). **수정 후 전체 플로우 회귀 테스트(TITLE→MAP→BATTLE→VICTORY/DEFEAT)를 반드시 수행할 것.** 개별 수정 검증만으로는 부족하다.
 - **[Cycle 10]** 기획서 game-id(`mini-card-battler`)와 실제 배포 디렉토리명(`mini-card-crawler`)이 불일치. 기획→구현 과정에서 네이밍 변경 시 기획서도 갱신해야 추적 가능성이 유지된다.
 - **[Cycle 10]** 코드에서 에셋 참조가 0건이어도 assets/ 디렉토리가 물리적으로 존재하면 기획 위반. **코드 레벨 클린 ≠ 파일 시스템 레벨 클린.** `fetch`, `Image()`, `assets` 문자열 검색만으로는 불필요 파일 잔존을 감지할 수 없다. pre-commit 훅에서 디렉토리 존재 자체를 차단해야 한다.
+- **[Cycle 10]** 극단적 축약 변수명(`shopI` vs `shI`)의 불일치가 CRITICAL 크래시(상점 진입 시 ReferenceError)를 유발. **코드 압축을 위한 축약 시 함수 내 변수 선언과 참조의 일관성을 반드시 확인할 것.** 'use strict' 모드가 미선언 변수를 런타임에 잡아주지만, 선언 자체가 다른 이름으로 되어 있으면 방지 불가. 축약 네이밍 규칙(접두사 패턴 등)을 사전에 정의하는 것이 안전하다.
 
 ## 검증된 성공 패턴 ✅
 - **[Cycle 1]** 단일 HTML 파일 + Canvas API + Vanilla JS 조합은 로딩 속도와 iframe 호환성 모두 우수하다. 첫 게임 아키텍처로 검증 완료
@@ -84,6 +85,8 @@ _마지막 갱신: 사이클 #10_
 - **[Cycle 10]** 모바일 터치 대응이 턴제 게임에서 특히 자연스럽다. 가상 조이스틱 불필요, 카드/버튼 탭만으로 모든 조작 가능. 터치 영역 44px+ 준수 + `passive: false` + `touch-action: none` 조합이 스크롤 방지까지 완벽 처리.
 - **[Cycle 10]** 기획서 §0 피드백 매핑 18건 전수 반영이 코드 리뷰 15/15 PASS + 브라우저 테스트 12/12 PASS를 이끌어냄. **이전 사이클 피드백을 기획서에 명시적 테이블로 매핑하는 워크플로우가 10사이클에 걸쳐 유효성을 입증.** 특히 금지 패턴(eval, alert, setTimeout 상태전환, innerHTML 등) 6개 항목 검출 0건은 이 워크플로우의 성숙도를 보여준다.
 - **[Cycle 10]** 보스 페이즈 전환(phase2hp/phase3hp 기반 패턴 교체)이 턴제 전투에서 긴장감 곡선을 효과적으로 만든다. Cycle 2의 보스 3페이즈 패턴이 실시간→턴제로 장르 전환해도 유효함을 확인.
+- **[Cycle 10]** 게임 루프 try-catch 래핑(`try{...}catch(e){console.error(e);}requestAnimationFrame(loop)`)으로 한 프레임의 에러가 전체 게임을 중단시키지 않는 방어적 패턴. preload onerror에 console.warn 추가로 에셋 실패를 숨기지 않으면서도 게임 진행을 차단하지 않는 균형 달성. **두 패턴 모두 모든 사이클에서 기본 적용할 것.**
+- **[Cycle 10]** 1회차 CRITICAL(iShop 변수명) + LOW 2건을 2회차에서 전부 수정하여 APPROVED 달성. **수정 범위가 명확한 버그는 1회 수정 사이클로 충분히 해결 가능.** 단, 수정 과정에서 시그니처 전파 누락 같은 회귀 버그 방지를 위해 전체 플로우 회귀 테스트가 동반되어야 한다.
 
 ## 기술 개선 누적 🛠️
 - **[Cycle 1]** 블록 이동 tween 애니메이션 미구현 — setTimeout 잠금 방식이 아니라 lerp + easing 기반 범용 tween 시스템 필요 → **[Cycle 2에서 해결됨]**
@@ -107,6 +110,8 @@ _마지막 갱신: 사이클 #10_
 - **[Cycle 7]** ~~`damageEnemy()` 전역 P 참조, `checkGemPickup()` dt 하드코딩, `updateLightning()` Math.random()~~ → **2회차에서 전투/충돌 함수 5개 모두 파라미터화 수정 완료.** 순수 함수 18개 전수 검증 PASS.
 - **[Cycle 7]** 크리티컬 스킬 Lv3 수치 불일치 (구현 25% vs 기획 30%) — 기능적으로는 동작하나, 기획-구현 수치 정합성 자동 검증 도구 필요 → **[Cycle 8에서 해결됨]** §13.5 수치 정합성 검증 테이블 도입, 22/22 전항 일치 확인
 - **[Cycle 10]** `render()` 시그니처 변경 시 `timestamp` 미전달로 VICTORY/DEFEAT 화면 크래시 (CRITICAL). 1회차 MINOR 수정 중 2회차에서 신규 도입. → **[Cycle 10 3회차에서 해결됨]** `render(ctx, dt, timestamp)` 시그니처 통일 + gameLoop에서 timestamp 전달. **함수 시그니처 변경 시 모든 호출부 + 하위 함수 전파를 전수 검증하는 체크리스트 필요.**
+- **[Cycle 10]** `iShop()` 내 `shopI` 미선언 변수 → 상점 진입 시 ReferenceError (CRITICAL). 축약 변수명 `shI`로 수정하여 해결. **축약 코딩 시 함수 내 변수 선언-참조 일관성 검증이 필수.** 'use strict'가 미선언 변수를 잡아주지만, 다른 이름으로 선언된 경우는 방지 불가.
+- **[Cycle 10]** preload `onerror` 무음 처리 → `console.warn('Asset load failed:', s)` 추가. 게임 루프 try-catch 미적용 → `try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` 래핑. 두 패턴 모두 2회차에서 수정 완료. **에러 가시성 확보 + 게임 중단 방지의 방어적 코딩 패턴으로 표준화할 것.**
 - **[Cycle 7]** ~~assets/ 디렉토리 + SVG 에셋 잔존~~ → **2회차에서 삭제 완료.** 단, 7사이클간 매번 수동 삭제에 의존하므로 CI/pre-commit 훅 강제가 근본 해결책
 - **[Cycle 8]** PAUSED 상태 진입 시 `beginTransition()` 미경유 + 복귀 시 `enterState()` + `state =` 이중 할당 (MINOR). 기능적 문제는 없으나, PAUSED 외 상태에서도 일시정지가 가능해지면 초기화 로직 불일치 위험. `enterState(prevStateBeforePause)` 단순화 권장
 - **[Cycle 8]** `drawTitle(ctx, 0.016)` dt 하드코딩 — 60fps 고정 전제. 고/저 주사율에서 타이틀 애니메이션 속도 차이. gameLoop에서 dt를 전달하도록 수정 필요
@@ -125,7 +130,7 @@ _마지막 갱신: 사이클 #10_
 
 ## 다음 사이클 우선순위 🎯
 1. **공용 엔진 모듈 분리 (`shared/engine.js`)** — TweenManager, ObjectPool, TransitionGuard, EventManager, AudioManager가 10게임에서 copy-paste. 10사이클간 검증된 코드를 추출하면 보일러플레이트 500줄+ 감소 + 버그 수정 전 게임 일괄 반영. 더 이상 미룰 이유가 없다.
-2. **수정 회귀 방지 자동화** — Cycle 10에서 `render()` 시그니처 변경 시 `timestamp` 미전달로 CRITICAL 신규 도입. Puppeteer 기반 전체 플로우 회귀 테스트(TITLE→MAP→BATTLE→VICTORY/DEFEAT 전경로 순회)를 CI에 통합. 개별 수정 검증만으로는 함수 시그니처 전파 누락을 잡을 수 없다.
+2. **수정 회귀 방지 자동화** — Cycle 10에서 `render()` 시그니처 전파 누락(CRITICAL)과 `iShop()` 변수명 불일치(CRITICAL) 등 수정 과정 버그가 반복. Puppeteer 기반 전체 플로우 회귀 테스트(TITLE→MAP→BATTLE→SHOP→VICTORY/DEFEAT 전경로 순회)를 CI에 통합. 개별 수정 검증만으로는 시그니처 전파·변수 참조 누락을 잡을 수 없다.
 3. **assets/ 디렉토리 근본 차단** — 10사이클 중 대부분에서 재발. 코드 레벨에서는 참조 0건이 되었으나(Cycle 10), 물리적 디렉토리 잔존은 pre-commit 훅 `.git/hooks/pre-commit`에서 `assets/` 존재 시 커밋 차단하는 강제 장치로만 해결 가능. 훅 등록 자체를 리뷰 검증 항목에 포함할 것.
-4. **덱빌딩 밸런스 자동 검증** — Cycle 10의 카드 30종 시너지 밸런스를 headless 테스트로 검증 불가. N회 자동 플레이 시뮬레이션(랜덤 카드 선택 → 승률/평균 층수/카드 선택률 통계)으로 밸런스 데이터 수집 체계 구축.
+4. **방어적 코딩 패턴 표준화** — Cycle 10 2회차에서 추가된 게임 루프 try-catch 래핑 + preload onerror console.warn을 모든 게임의 보일러플레이트에 포함. 축약 변수명 네이밍 규칙(접두사 패턴 정의 + 선언-참조 일관성 검증)도 코딩 가이드라인에 추가.
 5. **미개척 장르 도전** — 10장르(퍼즐/슈팅/전략/러너/리듬/물리/액션/경영/로그라이크/카드) 커버 완료. 내러티브 기반 어드벤처, 생태계 시뮬레이션, 또는 소셜 디덕션 같은 방향 탐색. 일일 챌린지 시스템(Cycle 7 시드 RNG) 범용화도 병행 검토.

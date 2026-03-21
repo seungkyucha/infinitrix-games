@@ -32,7 +32,7 @@ const AMAP={player:'assets/player.svg',enemy:'assets/enemy.svg',
   powerup:'assets/powerup.svg',effectHit:'assets/effect-hit.svg'};
 async function preload(){
   await Promise.all(Object.entries(AMAP).map(([k,s])=>
-    new Promise(r=>{const i=new Image();i.onload=()=>{SPR[k]=i;r()};i.onerror=r;i.src=s})));}
+    new Promise(r=>{const i=new Image();i.onload=()=>{SPR[k]=i;r()};i.onerror=()=>{console.warn('Asset load failed:',s);r();};i.src=s})));}
 
 /* ═══ COLORS §4.2 ═══ */
 const C={BG:'#0A0E1A',CD:'#1A1F2E',ATK:'#E63946',DEF:'#457B9D',SKL:'#2A9D8F',PWR:'#E9C46A',
@@ -241,7 +241,7 @@ function genRC(n,rng,fl){
     const rv=rng();let ra='n';if(rv>CFG.RAR.r)ra='l';else if(rv>CFG.RAR.n)ra='r';
     const f=pool.filter(c=>c.r===ra);const s=f.length?f:pool;cards.push(mC(s[0|rng()*s.length]));}return cards;}
 
-function iShop(){shopI={cards:genRC(CFG.SHOPC,sts.rng,cFl).map(c=>{let p=30;if(c.r==='r')p=60;if(c.r==='l')p=120;return{card:c,pr:p,bo:false};}),bp:false,br:false};}
+function iShop(){shI={cards:genRC(CFG.SHOPC,sts.rng,cFl).map(c=>{let p=30;if(c.r==='r')p=60;if(c.r==='l')p=120;return{card:c,pr:p,bo:false};}),bp:false,br:false};}
 function iEvt(){const ev=[
   {tx:'어두운 제단. 피를 바칠 것인가?',ch:[{tx:'바친다(HP-'+CFG.EVTHP+' 희귀카드)',ac:'sac'},{tx:'지나친다',ac:'p'}]},
   {tx:'상인을 발견했다.',ch:[{tx:'거래(20G→HP+15)',ac:'tr'},{tx:'무시',ac:'p'}]},
@@ -602,10 +602,10 @@ function rPT(){for(const p of pt.a){cx.globalAlpha=p.al;cx.fillStyle=p.cl;cx.fil
   if(SPR.effectHit&&pt.a.length>0){const p=pt.a[0];cx.globalAlpha=p.al*0.5;cx.drawImage(SPR.effectHit,p.x-24,p.y-24,48,48);cx.globalAlpha=1;}}
 
 /* ═══ GAME LOOP §5.4 ═══ */
-function loop(ts){const dt=Math.min((ts-lt)/1000,0.1);lt=ts;
+function loop(ts){try{const dt=Math.min((ts-lt)/1000,0.1);lt=ts;
   tw.update(dt);pt.update(dt);uFT(dt);uSk(dt);gT+=dt*0.5;
   if(st==='ETURN')uET(dt);if(jC){oC(mX,mY);jC=false;}
-  cx.clearRect(0,0,W,H);ren(dt);requestAnimationFrame(loop);}
+  cx.clearRect(0,0,W,H);ren(dt);}catch(e){console.error('Loop error:',e);}requestAnimationFrame(loop);}
 
 async function init(){au.init();ldB();ldU();st='LOADING';await preload();enterS('TITLE');lt=performance.now();requestAnimationFrame(loop);}
 window.addEventListener('resize',rsz);
