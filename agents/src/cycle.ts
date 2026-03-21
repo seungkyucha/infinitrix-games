@@ -299,15 +299,23 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     startAgent('designer', 3, '그래픽 에셋 제작', 'Graphic Asset Creation')
     await runAgent('designer', `
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
-      기획서의 game-id 폴더 안에 그래픽 에셋을 제작해줘.
-      public/games/[game-id]/assets/ 폴더에 다음 파일들을 생성할 것:
+      기획서의 game-id를 정확히 읽어 폴더명으로 사용해줘.
+
+      ⚠️ 중요: 반드시 public/games/[game-id]/assets/ 폴더를 먼저 생성(mkdir -p)한 후
+      해당 폴더 안에 모든 에셋 파일을 저장할 것. assets/ 폴더 바깥에 저장하지 마세요.
+
+      생성할 파일 목록 (모두 public/games/[game-id]/assets/ 안에):
       - player.svg, enemy.svg
       - bg-layer1.svg, bg-layer2.svg
       - ui-heart.svg, ui-star.svg
       - powerup.svg, effect-hit.svg
-      - thumbnail.svg (플랫폼 썸네일, 반드시 width="400" height="300" viewBox="0 0 400 300" 포함)
+      - thumbnail.svg (⚠️ 필수! 플랫폼 게임 목록에 표시되는 대표 이미지)
+        → 반드시 width="400" height="300" viewBox="0 0 400 300" 포함
+        → 게임의 핵심 장면을 표현하는 매력적인 이미지여야 함
+        → 게임 제목 텍스트를 하단에 포함할 것
       - manifest.json (에셋 목록)
-      기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
+
+      ⚠️ thumbnail.svg가 누락되면 게임 목록에서 빈 화면이 표시됩니다. 반드시 생성하세요.
       ${growthDirective}
       ${feedbackBlock}
     `)
@@ -550,6 +558,11 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
         수정 방법:
         - registry에 게임이 없으면 추가 (i18n 8개 언어 포함)
         - totalGames 불일치면 수정
+        - 썸네일 파일이 없으면:
+          → public/games/[game-id]/assets/ 폴더 생성 (mkdir -p)
+          → thumbnail.svg 생성 (width="400" height="300" viewBox="0 0 400 300")
+          → 게임의 장르와 제목에 맞는 매력적인 SVG 이미지 제작
+        - i18n 필드가 누락되면 8개 언어(en,ja,zh-CN,zh-TW,es,fr,de,pt)로 추가
         - 커밋되지 않은 파일이 있으면:
           git add public/games/ docs/
           git commit -m "fix: deploy verification for cycle #${cycleNumber}"
