@@ -781,6 +781,56 @@
         "Shift: 부스트 사용",
         "Esc/P: 일시정지"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Drift Racer",
+          "description": "Fill your boost with drifts and conquer 5 tracks!",
+          "tags": ["racing", "drift", "arcade", "time attack", "single player"],
+          "controls": ["Arrow/WASD: Accelerate/Brake/Steering", "Space: Handbrake (drift)", "Shift: Use boost", "Esc/P: Pause"]
+        },
+        "ja": {
+          "title": "ミニドリフトレーサー",
+          "description": "ドリフトでブーストを溜めて5つのトラックを制覇せよ！",
+          "tags": ["レーシング", "ドリフト", "アーケード", "タイムアタック", "シングルプレイ"],
+          "controls": ["矢印キー/WASD: 加速・ブレーキ・ステアリング", "Space: ハンドブレーキ（ドリフト）", "Shift: ブースト使用", "Esc/P: 一時停止"]
+        },
+        "zh-CN": {
+          "title": "迷你漂移赛车",
+          "description": "用漂移充满加速槽，征服5条赛道！",
+          "tags": ["赛车", "漂移", "街机", "计时赛", "单人"],
+          "controls": ["方向键/WASD: 加速·刹车·转向", "Space: 手刹（漂移）", "Shift: 使用加速", "Esc/P: 暂停"]
+        },
+        "zh-TW": {
+          "title": "迷你漂移賽車",
+          "description": "用漂移充滿加速槽，征服5條賽道！",
+          "tags": ["賽車", "漂移", "街機", "計時賽", "單人"],
+          "controls": ["方向鍵/WASD: 加速·煞車·轉向", "Space: 手煞車（漂移）", "Shift: 使用加速", "Esc/P: 暫停"]
+        },
+        "es": {
+          "title": "Mini Drift Racer",
+          "description": "¡Llena tu turbo con derrapes y conquista 5 pistas!",
+          "tags": ["carreras", "derrape", "arcade", "contrarreloj", "un jugador"],
+          "controls": ["Flechas/WASD: Acelerar/Frenar/Dirección", "Space: Freno de mano (derrape)", "Shift: Usar turbo", "Esc/P: Pausa"]
+        },
+        "fr": {
+          "title": "Mini Drift Racer",
+          "description": "Remplissez votre boost en dérapant et conquérez 5 circuits !",
+          "tags": ["course", "dérapage", "arcade", "contre-la-montre", "solo"],
+          "controls": ["Flèches/WASD: Accélérer/Freiner/Direction", "Space: Frein à main (dérapage)", "Shift: Utiliser le boost", "Esc/P: Pause"]
+        },
+        "de": {
+          "title": "Mini Drift Racer",
+          "description": "Fülle deinen Boost mit Drifts und erobere 5 Strecken!",
+          "tags": ["Rennen", "Drift", "Arcade", "Zeitangriff", "Einzelspieler"],
+          "controls": ["Pfeiltasten/WASD: Gas/Bremse/Lenkung", "Space: Handbremse (Drift)", "Shift: Boost verwenden", "Esc/P: Pause"]
+        },
+        "pt": {
+          "title": "Mini Drift Racer",
+          "description": "Encha seu turbo com derrapagens e conquiste 5 pistas!",
+          "tags": ["corrida", "derrapagem", "arcade", "contra o relógio", "um jogador"],
+          "controls": ["Setas/WASD: Acelerar/Frear/Direção", "Space: Freio de mão (derrapagem)", "Shift: Usar turbo", "Esc/P: Pausar"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -802,6 +852,56 @@
         "터치: 가상 스티어링(좌) + 가속·브레이크·부스트 버튼(우)",
         "마우스: 메뉴 선택 전용"
       ],
+      "i18n": {
+        "en": {
+          "title": "Neon Drift Racer",
+          "description": "Drift and boost your way to 1st place in a neon city!",
+          "tags": ["racing", "drift", "neon", "arcade", "single player"],
+          "controls": ["Keyboard: Left/Right steer / Up accelerate / Down brake / Space boost", "Touch: Virtual steering (left) + Accel/Brake/Boost buttons (right)", "Mouse: Menu selection only"]
+        },
+        "ja": {
+          "title": "ネオンドリフトレーサー",
+          "description": "ネオンシティでドリフトとブーストで1位を目指せ！",
+          "tags": ["レーシング", "ドリフト", "ネオン", "アーケード", "シングルプレイ"],
+          "controls": ["キーボード: ←→ ステアリング / ↑ 加速 / ↓ ブレーキ / Space ブースト", "タッチ: 仮想ステアリング（左）+ 加速・ブレーキ・ブーストボタン（右）", "マウス: メニュー選択のみ"]
+        },
+        "zh-CN": {
+          "title": "霓虹漂移赛车",
+          "description": "在霓虹都市中用漂移和加速夺取第一名！",
+          "tags": ["赛车", "漂移", "霓虹", "街机", "单人"],
+          "controls": ["键盘: ←→转向 / ↑加速 / ↓刹车 / Space加速", "触摸: 虚拟方向盘(左) + 加速·刹车·加速按钮(右)", "鼠标: 仅菜单选择"]
+        },
+        "zh-TW": {
+          "title": "霓虹漂移賽車",
+          "description": "在霓虹都市中用漂移和加速奪取第一名！",
+          "tags": ["賽車", "漂移", "霓虹", "街機", "單人"],
+          "controls": ["鍵盤: ←→轉向 / ↑加速 / ↓煞車 / Space加速", "觸控: 虛擬方向盤(左) + 加速·煞車·加速按鈕(右)", "滑鼠: 僅選單選擇"]
+        },
+        "es": {
+          "title": "Neon Drift Racer",
+          "description": "¡Derrapa y usa el turbo para llegar al 1er lugar en una ciudad neón!",
+          "tags": ["carreras", "derrape", "neón", "arcade", "un jugador"],
+          "controls": ["Teclado: ←→ dirección / ↑ acelerar / ↓ frenar / Space turbo", "Táctil: Volante virtual (izq) + Botones acelerador/freno/turbo (der)", "Ratón: Solo selección de menú"]
+        },
+        "fr": {
+          "title": "Neon Drift Racer",
+          "description": "Dérapez et boostez pour atteindre la 1re place dans une ville néon !",
+          "tags": ["course", "dérapage", "néon", "arcade", "solo"],
+          "controls": ["Clavier: ←→ direction / ↑ accélérer / ↓ freiner / Space boost", "Tactile: Volant virtuel (gauche) + Boutons accélérateur/frein/boost (droite)", "Souris: Sélection de menu uniquement"]
+        },
+        "de": {
+          "title": "Neon Drift Racer",
+          "description": "Drifte und booste dich in einer Neonstadt auf Platz 1!",
+          "tags": ["Rennen", "Drift", "Neon", "Arcade", "Einzelspieler"],
+          "controls": ["Tastatur: ←→ Lenken / ↑ Gas / ↓ Bremse / Space Boost", "Touch: Virtuelles Lenkrad (links) + Gas/Bremse/Boost-Tasten (rechts)", "Maus: Nur Menüauswahl"]
+        },
+        "pt": {
+          "title": "Neon Drift Racer",
+          "description": "Derrape e use turbo para chegar em 1o lugar numa cidade neon!",
+          "tags": ["corrida", "derrapagem", "neon", "arcade", "um jogador"],
+          "controls": ["Teclado: ←→ direção / ↑ acelerar / ↓ frear / Space turbo", "Toque: Volante virtual (esq) + Botões acelerador/freio/turbo (dir)", "Mouse: Apenas seleção de menu"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -823,6 +923,56 @@
         "마우스: 화면 내 가상 키보드 클릭",
         "터치: 화면 내 가상 키보드 터치"
       ],
+      "i18n": {
+        "en": {
+          "title": "Hangul Word Quest",
+          "description": "Solve hidden words by assembling Hangul letters in this word puzzle!",
+          "tags": ["word puzzle", "Hangul", "daily challenge"],
+          "controls": ["Keyboard: Type Hangul letters / Enter to submit / Backspace to delete", "Mouse: Click on-screen virtual keyboard", "Touch: Tap on-screen virtual keyboard"]
+        },
+        "ja": {
+          "title": "ハングルワードクエスト",
+          "description": "ハングルの字母を組み合わせて隠された単語を当てるワードパズル！",
+          "tags": ["ワードパズル", "ハングル", "デイリーチャレンジ"],
+          "controls": ["キーボード: ハングル字母を直接入力 / Enter送信 / Backspace削除", "マウス: 画面内の仮想キーボードをクリック", "タッチ: 画面内の仮想キーボードをタッチ"]
+        },
+        "zh-CN": {
+          "title": "韩文拼字挑战",
+          "description": "拼合韩文字母猜出隐藏单词的文字拼图游戏！",
+          "tags": ["文字拼图", "韩文", "每日挑战"],
+          "controls": ["键盘: 直接输入韩文字母 / Enter提交 / Backspace删除", "鼠标: 点击屏幕虚拟键盘", "触摸: 点击屏幕虚拟键盘"]
+        },
+        "zh-TW": {
+          "title": "韓文拼字挑戰",
+          "description": "拼合韓文字母猜出隱藏單詞的文字拼圖遊戲！",
+          "tags": ["文字拼圖", "韓文", "每日挑戰"],
+          "controls": ["鍵盤: 直接輸入韓文字母 / Enter提交 / Backspace刪除", "滑鼠: 點擊螢幕虛擬鍵盤", "觸控: 點擊螢幕虛擬鍵盤"]
+        },
+        "es": {
+          "title": "Hangul Word Quest",
+          "description": "¡Resuelve palabras ocultas ensamblando letras Hangul en este puzzle de palabras!",
+          "tags": ["puzzle de palabras", "Hangul", "desafío diario"],
+          "controls": ["Teclado: Escribir letras Hangul / Enter enviar / Backspace borrar", "Ratón: Clic en teclado virtual en pantalla", "Táctil: Tocar teclado virtual en pantalla"]
+        },
+        "fr": {
+          "title": "Hangul Word Quest",
+          "description": "Résolvez des mots cachés en assemblant des lettres Hangul dans ce puzzle de mots !",
+          "tags": ["puzzle de mots", "Hangul", "défi quotidien"],
+          "controls": ["Clavier: Taper les lettres Hangul / Entrée soumettre / Retour supprimer", "Souris: Cliquer le clavier virtuel à l'écran", "Tactile: Appuyer le clavier virtuel à l'écran"]
+        },
+        "de": {
+          "title": "Hangul-Worträtsel",
+          "description": "Löse versteckte Wörter durch Zusammensetzen von Hangul-Buchstaben in diesem Worträtsel!",
+          "tags": ["Worträtsel", "Hangul", "Tägliche Herausforderung"],
+          "controls": ["Tastatur: Hangul-Buchstaben eingeben / Enter absenden / Backspace löschen", "Maus: Bildschirmtastatur klicken", "Touch: Bildschirmtastatur tippen"]
+        },
+        "pt": {
+          "title": "Hangul Word Quest",
+          "description": "Resolva palavras ocultas montando letras Hangul neste puzzle de palavras!",
+          "tags": ["puzzle de palavras", "Hangul", "desafio diário"],
+          "controls": ["Teclado: Digitar letras Hangul / Enter enviar / Backspace apagar", "Mouse: Clicar teclado virtual na tela", "Toque: Tocar teclado virtual na tela"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -844,6 +994,56 @@
         "터치: 탭으로 수확/구매, 스와이프로 탭 전환",
         "키보드: 1~3 탭 전환 / Space 수동 수확 / P 일시정지"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Idle Farm",
+          "description": "Grow your farm empire from empty land with crops, livestock, and processing — an idle simulation!",
+          "tags": ["idle", "farm", "simulation", "incremental"],
+          "controls": ["Mouse: Click to harvest/buy/switch tabs", "Touch: Tap to harvest/buy, swipe to switch tabs", "Keyboard: 1-3 switch tabs / Space manual harvest / P pause"]
+        },
+        "ja": {
+          "title": "ミニ放置ファーム",
+          "description": "空き地から作物・家畜・加工で農場帝国を育てる放置型シミュレーション！",
+          "tags": ["放置系", "農場", "シミュレーション", "インクリメンタル"],
+          "controls": ["マウス: クリックで収穫/購入/タブ切替", "タッチ: タップで収穫/購入、スワイプでタブ切替", "キーボード: 1〜3タブ切替 / Space手動収穫 / P一時停止"]
+        },
+        "zh-CN": {
+          "title": "迷你放置农场",
+          "description": "从空地开始，用农作物、牲畜和加工建立农场帝国的放置模拟游戏！",
+          "tags": ["放置", "农场", "模拟", "增量"],
+          "controls": ["鼠标: 点击收获/购买/切换标签", "触摸: 点击收获/购买, 滑动切换标签", "键盘: 1~3切换标签 / Space手动收获 / P暂停"]
+        },
+        "zh-TW": {
+          "title": "迷你放置農場",
+          "description": "從空地開始，用農作物、牲畜和加工建立農場帝國的放置模擬遊戲！",
+          "tags": ["放置", "農場", "模擬", "增量"],
+          "controls": ["滑鼠: 點擊收穫/購買/切換標籤", "觸控: 點擊收穫/購買, 滑動切換標籤", "鍵盤: 1~3切換標籤 / Space手動收穫 / P暫停"]
+        },
+        "es": {
+          "title": "Mini Granja Idle",
+          "description": "¡Haz crecer tu imperio agrícola desde un terreno vacío con cultivos, ganado y procesamiento — simulación idle!",
+          "tags": ["idle", "granja", "simulación", "incremental"],
+          "controls": ["Ratón: Clic para cosechar/comprar/cambiar pestaña", "Táctil: Tocar para cosechar/comprar, deslizar para cambiar pestaña", "Teclado: 1-3 cambiar pestaña / Space cosecha manual / P pausa"]
+        },
+        "fr": {
+          "title": "Mini Ferme Idle",
+          "description": "Développez votre empire agricole à partir d'un terrain vide avec cultures, bétail et transformation — simulation idle !",
+          "tags": ["idle", "ferme", "simulation", "incrémentiel"],
+          "controls": ["Souris: Cliquer pour récolter/acheter/changer d'onglet", "Tactile: Appuyer pour récolter/acheter, glisser pour changer d'onglet", "Clavier: 1-3 changer d'onglet / Space récolte manuelle / P pause"]
+        },
+        "de": {
+          "title": "Mini Idle Farm",
+          "description": "Baue dein Farmimperium von leerem Land mit Feldfrüchten, Vieh und Verarbeitung auf — eine Idle-Simulation!",
+          "tags": ["Idle", "Farm", "Simulation", "Inkrementell"],
+          "controls": ["Maus: Klicken zum Ernten/Kaufen/Tab-Wechsel", "Touch: Tippen zum Ernten/Kaufen, Wischen zum Tab-Wechsel", "Tastatur: 1-3 Tab wechseln / Space manuelle Ernte / P Pause"]
+        },
+        "pt": {
+          "title": "Mini Fazenda Idle",
+          "description": "Construa seu império agrícola do zero com plantações, gado e processamento — simulação idle!",
+          "tags": ["idle", "fazenda", "simulação", "incremental"],
+          "controls": ["Mouse: Clicar para colher/comprar/trocar aba", "Toque: Tocar para colher/comprar, deslizar para trocar aba", "Teclado: 1-3 trocar aba / Space colheita manual / P pausar"]
+        }
+      },
       "difficulty": "easy",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -864,6 +1064,56 @@
         "마우스/터치: 좌우 이동 후 클릭으로 과일 드롭",
         "키보드: ←→ 이동, Space/↓ 드롭"
       ],
+      "i18n": {
+        "en": {
+          "title": "Fruits Merge",
+          "description": "Merge same fruits to evolve them into bigger ones — a physics merge puzzle!",
+          "tags": ["puzzle", "merge", "physics", "fruit", "watermelon game", "casual"],
+          "controls": ["Mouse/Touch: Move left/right then click to drop fruit", "Keyboard: Left/Right move, Space/Down drop"]
+        },
+        "ja": {
+          "title": "フルーツマージ",
+          "description": "同じフルーツを合体させて大きなフルーツに進化させる物理マージパズル！",
+          "tags": ["パズル", "マージ", "物理", "フルーツ", "スイカゲーム", "カジュアル"],
+          "controls": ["マウス/タッチ: 左右移動後クリックでフルーツドロップ", "キーボード: ←→移動、Space/↓ドロップ"]
+        },
+        "zh-CN": {
+          "title": "水果合成",
+          "description": "合并相同水果进化成更大的水果——物理合成拼图！",
+          "tags": ["拼图", "合成", "物理", "水果", "西瓜游戏", "休闲"],
+          "controls": ["鼠标/触摸: 左右移动后点击投放水果", "键盘: ←→移动, Space/↓投放"]
+        },
+        "zh-TW": {
+          "title": "水果合成",
+          "description": "合併相同水果進化成更大的水果——物理合成拼圖！",
+          "tags": ["拼圖", "合成", "物理", "水果", "西瓜遊戲", "休閒"],
+          "controls": ["滑鼠/觸控: 左右移動後點擊投放水果", "鍵盤: ←→移動, Space/↓投放"]
+        },
+        "es": {
+          "title": "Fruits Merge",
+          "description": "¡Fusiona frutas iguales para evolucionar a frutas más grandes — puzzle de fusión con física!",
+          "tags": ["puzzle", "fusión", "física", "fruta", "juego de sandía", "casual"],
+          "controls": ["Ratón/Táctil: Mover izquierda/derecha y clic para soltar fruta", "Teclado: ←→ mover, Space/↓ soltar"]
+        },
+        "fr": {
+          "title": "Fruits Merge",
+          "description": "Fusionnez les mêmes fruits pour les faire évoluer en plus gros — un puzzle de fusion physique !",
+          "tags": ["puzzle", "fusion", "physique", "fruit", "jeu de pastèque", "casual"],
+          "controls": ["Souris/Tactile: Déplacer gauche/droite puis cliquer pour lâcher le fruit", "Clavier: ←→ déplacer, Space/↓ lâcher"]
+        },
+        "de": {
+          "title": "Fruits Merge",
+          "description": "Verschmelze gleiche Früchte zu größeren — ein Physik-Merge-Puzzle!",
+          "tags": ["Puzzle", "Verschmelzung", "Physik", "Frucht", "Wassermelonenspiel", "Casual"],
+          "controls": ["Maus/Touch: Links/rechts bewegen und klicken zum Fallenlassen", "Tastatur: ←→ bewegen, Space/↓ fallenlassen"]
+        },
+        "pt": {
+          "title": "Fruits Merge",
+          "description": "Funda frutas iguais para evoluí-las em frutas maiores — puzzle de fusão com física!",
+          "tags": ["puzzle", "fusão", "física", "fruta", "jogo da melancia", "casual"],
+          "controls": ["Mouse/Toque: Mover esquerda/direita e clicar para soltar fruta", "Teclado: ←→ mover, Space/↓ soltar"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -884,6 +1134,56 @@
         "마우스/터치: 주사위 드래그로 슬롯 배치",
         "키보드: 1~3 슬롯 선택, Space 턴 확정"
       ],
+      "i18n": {
+        "en": {
+          "title": "Mini Dungeon Dice",
+          "description": "Roll dice to explore dungeons in this turn-based roguelite!",
+          "tags": ["action", "strategy", "roguelite", "dungeon", "dice", "turn-based"],
+          "controls": ["Mouse/Touch: Drag dice to place in slots", "Keyboard: 1-3 select slot, Space confirm turn"]
+        },
+        "ja": {
+          "title": "ミニダンジョンダイス",
+          "description": "サイコロを振ってダンジョンを探索するターン制ローグライト！",
+          "tags": ["アクション", "戦略", "ローグライト", "ダンジョン", "サイコロ", "ターン制"],
+          "controls": ["マウス/タッチ: サイコロをドラッグしてスロットに配置", "キーボード: 1〜3スロット選択、Spaceターン確定"]
+        },
+        "zh-CN": {
+          "title": "迷你地牢骰子",
+          "description": "掷骰子探索地牢的回合制肉鸽轻度游戏！",
+          "tags": ["动作", "策略", "肉鸽轻度", "地牢", "骰子", "回合制"],
+          "controls": ["鼠标/触摸: 拖动骰子放入槽位", "键盘: 1~3选择槽位, Space确认回合"]
+        },
+        "zh-TW": {
+          "title": "迷你地牢骰子",
+          "description": "擲骰子探索地牢的回合制肉鴿輕度遊戲！",
+          "tags": ["動作", "策略", "肉鴿輕度", "地牢", "骰子", "回合制"],
+          "controls": ["滑鼠/觸控: 拖動骰子放入槽位", "鍵盤: 1~3選擇槽位, Space確認回合"]
+        },
+        "es": {
+          "title": "Mini Dungeon Dice",
+          "description": "¡Lanza dados para explorar mazmorras en este roguelite por turnos!",
+          "tags": ["acción", "estrategia", "roguelite", "mazmorra", "dados", "por turnos"],
+          "controls": ["Ratón/Táctil: Arrastrar dados a las ranuras", "Teclado: 1-3 seleccionar ranura, Space confirmar turno"]
+        },
+        "fr": {
+          "title": "Mini Dungeon Dice",
+          "description": "Lancez les dés pour explorer des donjons dans ce roguelite au tour par tour !",
+          "tags": ["action", "stratégie", "roguelite", "donjon", "dés", "tour par tour"],
+          "controls": ["Souris/Tactile: Glisser les dés dans les emplacements", "Clavier: 1-3 sélectionner emplacement, Space confirmer le tour"]
+        },
+        "de": {
+          "title": "Mini Dungeon Dice",
+          "description": "Würfle und erkunde Dungeons in diesem rundenbasierten Roguelite!",
+          "tags": ["Action", "Strategie", "Roguelite", "Dungeon", "Würfel", "Rundenbasiert"],
+          "controls": ["Maus/Touch: Würfel in Slots ziehen", "Tastatur: 1-3 Slot wählen, Space Zug bestätigen"]
+        },
+        "pt": {
+          "title": "Mini Dungeon Dice",
+          "description": "Lance dados para explorar masmorras neste roguelite por turnos!",
+          "tags": ["ação", "estratégia", "roguelite", "masmorra", "dados", "por turnos"],
+          "controls": ["Mouse/Toque: Arrastar dados para os slots", "Teclado: 1-3 selecionar slot, Space confirmar turno"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -977,6 +1277,56 @@
         "P키: 일시정지",
         "R키: 재시작"
       ],
+      "i18n": {
+        "en": {
+          "title": "Neon Hex Drop",
+          "description": "Rotate the hexagon to align falling blocks and clear them!",
+          "tags": ["puzzle", "arcade", "falling blocks", "hexagon", "rotation", "chain clear"],
+          "controls": ["Left/Right arrow: Rotate hexagon 60 degrees left/right", "Tap left/right side: Rotate (mobile)", "P: Pause", "R: Restart"]
+        },
+        "ja": {
+          "title": "ネオンヘックスドロップ",
+          "description": "ヘキサゴンを回転させて落下ブロックを整列・消去しよう！",
+          "tags": ["パズル", "アーケード", "落下ブロック", "ヘキサゴン", "回転", "連鎖消去"],
+          "controls": ["←/→矢印キー: ヘキサゴンを左/右60度回転", "画面左/右タップ: 回転（モバイル）", "Pキー: 一時停止", "Rキー: リスタート"]
+        },
+        "zh-CN": {
+          "title": "霓虹六边消除",
+          "description": "旋转六边形对齐下落方块并消除它们！",
+          "tags": ["拼图", "街机", "下落方块", "六边形", "旋转", "连锁消除"],
+          "controls": ["←/→方向键: 六边形左/右旋转60度", "点击屏幕左/右: 旋转（手机）", "P键: 暂停", "R键: 重新开始"]
+        },
+        "zh-TW": {
+          "title": "霓虹六邊消除",
+          "description": "旋轉六邊形對齊下落方塊並消除它們！",
+          "tags": ["拼圖", "街機", "下落方塊", "六邊形", "旋轉", "連鎖消除"],
+          "controls": ["←/→方向鍵: 六邊形左/右旋轉60度", "點擊螢幕左/右: 旋轉（手機）", "P鍵: 暫停", "R鍵: 重新開始"]
+        },
+        "es": {
+          "title": "Neon Hex Drop",
+          "description": "¡Rota el hexágono para alinear los bloques que caen y elimínalos!",
+          "tags": ["puzzle", "arcade", "bloques cayendo", "hexágono", "rotación", "eliminación en cadena"],
+          "controls": ["←/→ Flechas: Rotar hexágono 60 grados izquierda/derecha", "Tocar lado izquierdo/derecho: Rotar (móvil)", "P: Pausa", "R: Reiniciar"]
+        },
+        "fr": {
+          "title": "Neon Hex Drop",
+          "description": "Faites pivoter l'hexagone pour aligner les blocs tombants et les éliminer !",
+          "tags": ["puzzle", "arcade", "blocs tombants", "hexagone", "rotation", "élimination en chaîne"],
+          "controls": ["←/→ Flèches: Pivoter l'hexagone de 60 degrés gauche/droite", "Appuyer côté gauche/droit: Pivoter (mobile)", "P: Pause", "R: Recommencer"]
+        },
+        "de": {
+          "title": "Neon Hex Drop",
+          "description": "Drehe das Hexagon, um fallende Blöcke auszurichten und aufzulösen!",
+          "tags": ["Puzzle", "Arcade", "Fallende Blöcke", "Hexagon", "Rotation", "Kettenauflösung"],
+          "controls": ["←/→ Pfeiltasten: Hexagon 60 Grad links/rechts drehen", "Links/rechts tippen: Drehen (Mobil)", "P: Pause", "R: Neustart"]
+        },
+        "pt": {
+          "title": "Neon Hex Drop",
+          "description": "Gire o hexágono para alinhar blocos em queda e eliminá-los!",
+          "tags": ["puzzle", "arcade", "blocos em queda", "hexágono", "rotação", "eliminação em cadeia"],
+          "controls": ["←/→ Setas: Girar hexágono 60 graus esquerda/direita", "Tocar lado esquerdo/direito: Girar (celular)", "P: Pausar", "R: Reiniciar"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0"
     },
@@ -999,6 +1349,56 @@
         "터치 드래그+릴리스: 조준 및 발사 (모바일)",
         "P/Esc: 일시정지"
       ],
+      "i18n": {
+        "en": {
+          "title": "Neon Bubble Pop",
+          "description": "Aim and shoot neon bubbles to pop clusters of 3 or more same-colored ones!",
+          "tags": ["arcade", "casual", "bubble shooter", "neon", "puzzle", "addictive"],
+          "controls": ["Left/Right or A/D: Adjust aim angle", "Space/Up/W: Shoot bubble", "Mouse move + click: Aim and shoot", "Touch drag + release: Aim and shoot (mobile)", "P/Esc: Pause"]
+        },
+        "ja": {
+          "title": "ネオンバブルポップ",
+          "description": "ネオンバブルを狙って撃ち、同じ色3つを弾けさせよう！",
+          "tags": ["アーケード", "カジュアル", "バブルシューター", "ネオン", "パズル", "中毒性"],
+          "controls": ["←/→またはA/D: 照準角度調整", "Space/↑/W: バブル発射", "マウス移動＋クリック: 照準＆発射", "タッチドラッグ＋リリース: 照準＆発射（モバイル）", "P/Esc: 一時停止"]
+        },
+        "zh-CN": {
+          "title": "霓虹泡泡射击",
+          "description": "瞄准并发射霓虹泡泡，消除3个以上同色泡泡！",
+          "tags": ["街机", "休闲", "泡泡射击", "霓虹", "益智", "上瘾"],
+          "controls": ["←/→或A/D: 调整瞄准角度", "Space/↑/W: 发射泡泡", "鼠标移动+点击: 瞄准并发射", "触摸拖动+释放: 瞄准并发射（手机）", "P/Esc: 暂停"]
+        },
+        "zh-TW": {
+          "title": "霓虹泡泡射擊",
+          "description": "瞄準並發射霓虹泡泡，消除3個以上同色泡泡！",
+          "tags": ["街機", "休閒", "泡泡射擊", "霓虹", "益智", "上癮"],
+          "controls": ["←/→或A/D: 調整瞄準角度", "Space/↑/W: 發射泡泡", "滑鼠移動+點擊: 瞄準並發射", "觸控拖動+釋放: 瞄準並發射（手機）", "P/Esc: 暫停"]
+        },
+        "es": {
+          "title": "Neon Bubble Pop",
+          "description": "¡Apunta y dispara burbujas neón para reventar grupos de 3 o más del mismo color!",
+          "tags": ["arcade", "casual", "lanzador de burbujas", "neón", "puzzle", "adictivo"],
+          "controls": ["←/→ o A/D: Ajustar ángulo de apuntado", "Space/↑/W: Disparar burbuja", "Mover ratón + clic: Apuntar y disparar", "Arrastrar táctil + soltar: Apuntar y disparar (móvil)", "P/Esc: Pausa"]
+        },
+        "fr": {
+          "title": "Neon Bubble Pop",
+          "description": "Visez et tirez des bulles néon pour éclater les groupes de 3 ou plus de même couleur !",
+          "tags": ["arcade", "casual", "lance-bulles", "néon", "puzzle", "addictif"],
+          "controls": ["←/→ ou A/D: Ajuster l'angle de visée", "Space/↑/W: Tirer la bulle", "Déplacer souris + clic: Viser et tirer", "Glisser tactile + relâcher: Viser et tirer (mobile)", "P/Esc: Pause"]
+        },
+        "de": {
+          "title": "Neon Bubble Pop",
+          "description": "Ziele und schieße Neon-Blasen, um Gruppen von 3 oder mehr gleichfarbigen zum Platzen zu bringen!",
+          "tags": ["Arcade", "Casual", "Bubble-Shooter", "Neon", "Puzzle", "Suchtfaktor"],
+          "controls": ["←/→ oder A/D: Zielwinkel anpassen", "Space/↑/W: Blase schießen", "Maus bewegen + Klick: Zielen und schießen", "Touch ziehen + loslassen: Zielen und schießen (Mobil)", "P/Esc: Pause"]
+        },
+        "pt": {
+          "title": "Neon Bubble Pop",
+          "description": "Mire e dispare bolhas neon para estourar grupos de 3 ou mais da mesma cor!",
+          "tags": ["arcade", "casual", "atirador de bolhas", "neon", "puzzle", "viciante"],
+          "controls": ["←/→ ou A/D: Ajustar ângulo de mira", "Space/↑/W: Disparar bolha", "Mover mouse + clique: Mirar e disparar", "Arrastar toque + soltar: Mirar e disparar (celular)", "P/Esc: Pausar"]
+        }
+      },
       "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
@@ -1022,6 +1422,56 @@
         "Space: 웨이브 시작",
         "P/Esc: 일시정지"
       ],
+      "i18n": {
+        "en": {
+          "title": "Arcane Bastion",
+          "description": "Become a wizard, build towers, and defend against waves of enemies!",
+          "tags": ["action", "strategy", "tower defense", "roguelike", "magic", "boss battle"],
+          "controls": ["WASD/Arrows: Move wizard", "Mouse click/Touch: Cast spell (directional)", "1-4 number keys: Select tower to place", "Space: Start wave", "P/Esc: Pause"]
+        },
+        "ja": {
+          "title": "アーケインバスティオン",
+          "description": "魔法使いとなりタワーを建て、押し寄せる敵を撃退せよ！",
+          "tags": ["アクション", "戦略", "タワーディフェンス", "ローグライク", "魔法", "ボス戦"],
+          "controls": ["WASD/矢印キー: 魔法使い移動", "マウスクリック/タッチ: 呪文詠唱（方向指定）", "1〜4数字キー: 配置タワー選択", "Space: ウェーブ開始", "P/Esc: 一時停止"]
+        },
+        "zh-CN": {
+          "title": "奥术堡垒",
+          "description": "成为法师，建造塔楼，抵御蜂拥而至的敌人！",
+          "tags": ["动作", "策略", "塔防", "肉鸽", "魔法", "Boss战"],
+          "controls": ["WASD/方向键: 移动法师", "鼠标点击/触摸: 施放法术（指定方向）", "1~4数字键: 选择放置塔楼", "Space: 开始波次", "P/Esc: 暂停"]
+        },
+        "zh-TW": {
+          "title": "奧術堡壘",
+          "description": "成為法師，建造塔樓，抵禦蜂擁而至的敵人！",
+          "tags": ["動作", "策略", "塔防", "肉鴿", "魔法", "Boss戰"],
+          "controls": ["WASD/方向鍵: 移動法師", "滑鼠點擊/觸控: 施放法術（指定方向）", "1~4數字鍵: 選擇放置塔樓", "Space: 開始波次", "P/Esc: 暫停"]
+        },
+        "es": {
+          "title": "Bastión Arcano",
+          "description": "¡Conviértete en mago, construye torres y defiéndete de oleadas de enemigos!",
+          "tags": ["acción", "estrategia", "tower defense", "roguelike", "magia", "jefe"],
+          "controls": ["WASD/Flechas: Mover mago", "Clic ratón/Táctil: Lanzar hechizo (direccional)", "1-4: Seleccionar torre a colocar", "Space: Iniciar oleada", "P/Esc: Pausa"]
+        },
+        "fr": {
+          "title": "Bastion Arcanique",
+          "description": "Devenez un mage, construisez des tours et repoussez les vagues d'ennemis !",
+          "tags": ["action", "stratégie", "tower defense", "roguelike", "magie", "boss"],
+          "controls": ["WASD/Flèches: Déplacer le mage", "Clic souris/Tactile: Lancer un sort (directionnel)", "1-4: Sélectionner la tour à placer", "Space: Lancer la vague", "P/Esc: Pause"]
+        },
+        "de": {
+          "title": "Arkane Bastion",
+          "description": "Werde ein Magier, baue Türme und verteidige dich gegen Feindwellen!",
+          "tags": ["Action", "Strategie", "Tower Defense", "Roguelike", "Magie", "Bosskampf"],
+          "controls": ["WASD/Pfeiltasten: Magier bewegen", "Mausklick/Touch: Zauber wirken (gerichtet)", "1-4: Turm zum Platzieren auswählen", "Space: Welle starten", "P/Esc: Pause"]
+        },
+        "pt": {
+          "title": "Bastião Arcano",
+          "description": "Torne-se um mago, construa torres e defenda-se contra ondas de inimigos!",
+          "tags": ["ação", "estratégia", "tower defense", "roguelike", "magia", "chefe"],
+          "controls": ["WASD/Setas: Mover mago", "Clique mouse/Toque: Lançar feitiço (direcional)", "1-4: Selecionar torre para posicionar", "Space: Iniciar onda", "P/Esc: Pausar"]
+        }
+      },
       "difficulty": "hard",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
