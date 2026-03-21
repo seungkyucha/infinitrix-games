@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bgMain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0A14"/>
+      <stop offset="40%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#16213E"/>
+    </linearGradient>
+    <radialGradient id="torchGlow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#FF6B00" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FF6B00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="torchGlow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FF6B00" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brickGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2C2C3A"/>
+      <stop offset="100%" stop-color="#1E1E2A"/>
+    </linearGradient>
+    <filter id="fogFilter">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <!-- 배경 그라디언트 -->
+  <rect width="800" height="600" fill="url(#bgMain)"/>
+  <!-- 던전 벽돌 패턴 - 상단 벽 -->
+  <g opacity="0.3">
+    <!-- 벽돌 행 1 -->
+    <rect x="0" y="0" width="98" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="102" y="0" width="58" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="164" y="0" width="96" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="264" y="0" width="78" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="346" y="0" width="94" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="444" y="0" width="66" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="514" y="0" width="98" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="616" y="0" width="84" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="704" y="0" width="96" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <!-- 벽돌 행 2 (오프셋) -->
+    <rect x="-20" y="32" width="88" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="72" y="32" width="96" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="172" y="32" width="68" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="244" y="32" width="96" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="344" y="32" width="78" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="426" y="32" width="94" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="524" y="32" width="76" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="604" y="32" width="98" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="706" y="32" width="94" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <!-- 벽돌 행 3 -->
+    <rect x="0" y="64" width="76" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="80" y="64" width="94" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="178" y="64" width="82" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="264" y="64" width="96" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="364" y="64" width="66" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="434" y="64" width="98" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="536" y="64" width="84" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="624" y="64" width="78" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+    <rect x="706" y="64" width="94" height="28" rx="1" fill="url(#brickGrad)" stroke="#151520" stroke-width="1"/>
+  </g>
+  <!-- 아치형 던전 입구 (원경) -->
+  <g opacity="0.2">
+    <path d="M300 200 Q400 100, 500 200 L500 400 L300 400 Z" fill="#0A0A14" stroke="#2C2C3A" stroke-width="2"/>
+    <path d="M310 210 Q400 120, 490 210 L490 390 L310 390 Z" fill="#050510"/>
+    <!-- 아치 장식 -->
+    <path d="M320 220 Q400 140, 480 220" stroke="#3D3D5C" stroke-width="1.5" fill="none"/>
+    <path d="M330 230 Q400 160, 470 230" stroke="#3D3D5C" stroke-width="1" fill="none"/>
+  </g>
+  <!-- 횃불 좌 -->
+  <g>
+    <rect x="148" y="150" width="4" height="30" rx="1" fill="#5A4030"/>
+    <ellipse cx="150" cy="145" rx="12" ry="15" fill="url(#torchGlow1)"/>
+    <path d="M147 150 Q150 135, 153 150 Q150 140, 147 150 Z" fill="#FF6B00" opacity="0.7"/>
+    <path d="M148 148 Q150 138, 152 148 Q150 142, 148 148 Z" fill="#FFD700" opacity="0.8"/>
+  </g>
+  <!-- 횃불 우 -->
+  <g>
+    <rect x="648" y="150" width="4" height="30" rx="1" fill="#5A4030"/>
+    <ellipse cx="650" cy="145" rx="12" ry="15" fill="url(#torchGlow1)"/>
+    <path d="M647 150 Q650 135, 653 150 Q650 140, 647 150 Z" fill="#FF6B00" opacity="0.7"/>
+    <path d="M648 148 Q650 138, 652 148 Q650 142, 648 148 Z" fill="#FFD700" opacity="0.8"/>
+  </g>
+  <!-- 바닥 석판 -->
+  <g opacity="0.25">
+    <rect x="0" y="480" width="120" height="120" fill="#1E1E2A" stroke="#151520" stroke-width="1"/>
+    <rect x="124" y="480" width="140" height="120" fill="#222230" stroke="#151520" stroke-width="1"/>
+    <rect x="268" y="480" width="110" height="120" fill="#1E1E2A" stroke="#151520" stroke-width="1"/>
+    <rect x="382" y="480" width="130" height="120" fill="#222230" stroke="#151520" stroke-width="1"/>
+    <rect x="516" y="480" width="100" height="120" fill="#1E1E2A" stroke="#151520" stroke-width="1"/>
+    <rect x="620" y="480" width="140" height="120" fill="#222230" stroke="#151520" stroke-width="1"/>
+    <rect x="764" y="480" width="36" height="120" fill="#1E1E2A" stroke="#151520" stroke-width="1"/>
+  </g>
+  <!-- 안개 효과 -->
+  <g filter="url(#fogFilter)" opacity="0.08">
+    <ellipse cx="200" cy="500" rx="200" ry="60" fill="#4ECDC4"/>
+    <ellipse cx="600" cy="520" rx="180" ry="50" fill="#4ECDC4"/>
+    <ellipse cx="400" cy="480" rx="250" ry="40" fill="#6C3CF7"/>
+  </g>
+  <!-- 천장 균열 디테일 -->
+  <g stroke="#3D3D5C" stroke-width="0.5" fill="none" opacity="0.3">
+    <path d="M100 10 Q120 30, 110 50 Q130 60, 125 80"/>
+    <path d="M550 5 Q540 25, 560 40 Q545 55, 570 70"/>
+    <path d="M700 15 Q710 35, 690 50"/>
+  </g>
+  <!-- 거미줄 -->
+  <g stroke="#FFFFFF" stroke-width="0.3" fill="none" opacity="0.1">
+    <path d="M0 0 Q40 30, 20 60 Q60 40, 80 80"/>
+    <path d="M0 0 Q30 10, 60 0 Q40 30, 80 20"/>
+    <path d="M800 0 Q760 30, 780 60 Q740 40, 720 80"/>
+    <path d="M800 0 Q770 10, 740 0 Q760 30, 720 20"/>
+  </g>
+</svg>

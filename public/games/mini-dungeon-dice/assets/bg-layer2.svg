@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="pillarGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2C2C3A"/>
+      <stop offset="30%" stop-color="#3A3A4E"/>
+      <stop offset="70%" stop-color="#3A3A4E"/>
+      <stop offset="100%" stop-color="#2C2C3A"/>
+    </linearGradient>
+    <linearGradient id="pillarCap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A4A5E"/>
+      <stop offset="100%" stop-color="#2C2C3A"/>
+    </linearGradient>
+    <radialGradient id="crystalGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4ECDC4" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#4ECDC4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="runeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF6B6B" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FF6B6B" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="nearGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="fogNear">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+  <!-- 좌측 기둥 -->
+  <g opacity="0.7">
+    <rect x="40" y="80" width="50" height="520" fill="url(#pillarGrad)"/>
+    <rect x="35" y="80" width="60" height="20" rx="2" fill="url(#pillarCap)"/>
+    <rect x="35" y="560" width="60" height="20" rx="2" fill="url(#pillarCap)"/>
+    <!-- 기둥 장식 줄 -->
+    <line x1="55" y1="110" x2="55" y2="550" stroke="#4A4A5E" stroke-width="1" opacity="0.5"/>
+    <line x1="75" y1="110" x2="75" y2="550" stroke="#4A4A5E" stroke-width="0.5" opacity="0.3"/>
+    <!-- 룬 문자 -->
+    <circle cx="65" cy="200" r="8" fill="url(#runeGlow)"/>
+    <path d="M62 197 L65 194 L68 197 L65 206 Z" stroke="#FF6B6B" stroke-width="0.8" fill="none" filter="url(#nearGlow)" opacity="0.6"/>
+    <circle cx="65" cy="350" r="8" fill="url(#runeGlow)"/>
+    <path d="M61 347 L65 343 L69 347 L69 353 L65 357 L61 353 Z" stroke="#FF6B6B" stroke-width="0.8" fill="none" filter="url(#nearGlow)" opacity="0.6"/>
+  </g>
+  <!-- 우측 기둥 -->
+  <g opacity="0.7">
+    <rect x="710" y="80" width="50" height="520" fill="url(#pillarGrad)"/>
+    <rect x="705" y="80" width="60" height="20" rx="2" fill="url(#pillarCap)"/>
+    <rect x="705" y="560" width="60" height="20" rx="2" fill="url(#pillarCap)"/>
+    <line x1="725" y1="110" x2="725" y2="550" stroke="#4A4A5E" stroke-width="1" opacity="0.5"/>
+    <line x1="745" y1="110" x2="745" y2="550" stroke="#4A4A5E" stroke-width="0.5" opacity="0.3"/>
+    <circle cx="735" cy="200" r="8" fill="url(#runeGlow)"/>
+    <path d="M732 197 L735 194 L738 197 L735 206 Z" stroke="#FF6B6B" stroke-width="0.8" fill="none" filter="url(#nearGlow)" opacity="0.6"/>
+    <circle cx="735" cy="350" r="8" fill="url(#runeGlow)"/>
+    <path d="M731 347 L735 343 L739 347 L739 353 L735 357 L731 353 Z" stroke="#FF6B6B" stroke-width="0.8" fill="none" filter="url(#nearGlow)" opacity="0.6"/>
+  </g>
+  <!-- 수정 클러스터 좌 -->
+  <g opacity="0.5" filter="url(#nearGlow)">
+    <path d="M120 520 L128 480 L136 520 Z" fill="#4ECDC4" opacity="0.6"/>
+    <path d="M130 525 L135 490 L140 525 Z" fill="#45B7D1" opacity="0.5"/>
+    <path d="M112 522 L118 495 L124 522 Z" fill="#4ECDC4" opacity="0.4"/>
+    <ellipse cx="128" cy="500" rx="20" ry="15" fill="url(#crystalGlow)"/>
+  </g>
+  <!-- 수정 클러스터 우 -->
+  <g opacity="0.5" filter="url(#nearGlow)">
+    <path d="M660 518 L668 478 L676 518 Z" fill="#4ECDC4" opacity="0.6"/>
+    <path d="M670 522 L676 488 L682 522 Z" fill="#45B7D1" opacity="0.5"/>
+    <path d="M652 520 L658 492 L664 520 Z" fill="#4ECDC4" opacity="0.4"/>
+    <ellipse cx="668" cy="498" rx="20" ry="15" fill="url(#crystalGlow)"/>
+  </g>
+  <!-- 쇠사슬 좌 -->
+  <g stroke="#5A5A6E" stroke-width="2" fill="none" opacity="0.4">
+    <ellipse cx="160" cy="100" rx="4" ry="7"/>
+    <ellipse cx="160" cy="114" rx="4" ry="7"/>
+    <ellipse cx="160" cy="128" rx="4" ry="7"/>
+    <ellipse cx="160" cy="142" rx="4" ry="7"/>
+  </g>
+  <!-- 쇠사슬 우 -->
+  <g stroke="#5A5A6E" stroke-width="2" fill="none" opacity="0.4">
+    <ellipse cx="640" cy="95" rx="4" ry="7"/>
+    <ellipse cx="640" cy="109" rx="4" ry="7"/>
+    <ellipse cx="640" cy="123" rx="4" ry="7"/>
+    <ellipse cx="640" cy="137" rx="4" ry="7"/>
+    <ellipse cx="640" cy="151" rx="4" ry="7"/>
+  </g>
+  <!-- 바닥 균열 -->
+  <g stroke="#3D3D5C" stroke-width="1" fill="none" opacity="0.4">
+    <path d="M200 580 Q250 570, 300 585 Q350 575, 400 590"/>
+    <path d="M350 560 Q380 555, 420 565 Q440 558, 480 570"/>
+    <path d="M500 575 L540 568 L560 580 L600 572"/>
+  </g>
+  <!-- 전경 안개 -->
+  <g filter="url(#fogNear)" opacity="0.06">
+    <ellipse cx="200" cy="580" rx="250" ry="50" fill="#6C3CF7"/>
+    <ellipse cx="550" cy="560" rx="220" ry="60" fill="#4ECDC4"/>
+    <ellipse cx="400" cy="590" rx="300" ry="40" fill="#1A1A2E"/>
+  </g>
+  <!-- 떨어지는 물방울 (정적 표현) -->
+  <g opacity="0.3">
+    <ellipse cx="300" cy="120" rx="1" ry="3" fill="#45B7D1"/>
+    <ellipse cx="500" cy="180" rx="1" ry="3" fill="#45B7D1"/>
+    <ellipse cx="400" cy="90" rx="1" ry="2" fill="#45B7D1"/>
+  </g>
+</svg>

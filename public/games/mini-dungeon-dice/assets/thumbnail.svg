@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="thumbBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0A14"/>
+      <stop offset="50%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#16213E"/>
+    </linearGradient>
+    <linearGradient id="thumbDice1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="100%" stop-color="#C0392B"/>
+    </linearGradient>
+    <linearGradient id="thumbDice2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4ECDC4"/>
+      <stop offset="100%" stop-color="#2E8B7E"/>
+    </linearGradient>
+    <linearGradient id="thumbDice3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7DC6F"/>
+      <stop offset="100%" stop-color="#D4AC0D"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#FF6B00"/>
+    </linearGradient>
+    <radialGradient id="thumbGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dragonEye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="60%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#FF0000"/>
+    </radialGradient>
+    <filter id="thumbGlowF">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#thumbBg)"/>
+  <!-- 던전 벽돌 (배경) -->
+  <g opacity="0.15">
+    <rect x="0" y="0" width="58" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="62" y="0" width="48" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="114" y="0" width="56" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="174" y="0" width="44" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="222" y="0" width="58" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="284" y="0" width="50" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="338" y="0" width="62" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="-10" y="26" width="52" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="46" y="26" width="56" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="106" y="26" width="48" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="158" y="26" width="54" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="216" y="26" width="60" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="280" y="26" width="46" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+    <rect x="330" y="26" width="70" height="22" rx="1" fill="#2C2C3A" stroke="#151520" stroke-width="0.5"/>
+  </g>
+  <!-- 드래곤 실루엣 (배경) -->
+  <g opacity="0.25">
+    <path d="M300 80 Q340 60, 360 90 L370 85 L365 100 Q380 95, 390 110 L380 115 Q370 100, 360 110 L350 130 Q340 120, 320 130 L310 140 Q300 130, 290 135 L280 120 Q270 130, 260 125 L250 115 Q260 100, 255 90 L260 80 Q280 70, 300 80 Z" fill="#C0392B"/>
+    <!-- 드래곤 눈 -->
+    <ellipse cx="320" cy="90" rx="5" ry="4" fill="url(#dragonEye)" filter="url(#thumbGlowF)"/>
+    <ellipse cx="320" cy="90" rx="2" ry="3" fill="#000000"/>
+  </g>
+  <!-- 중앙 글로우 -->
+  <ellipse cx="200" cy="180" rx="120" ry="80" fill="url(#thumbGlow)"/>
+  <!-- 주사위 1 (공격 - 빨강, 좌측) -->
+  <g filter="url(#shadow)" transform="rotate(-15 130 180)">
+    <rect x="105" y="155" width="50" height="50" rx="8" fill="url(#thumbDice1)"/>
+    <rect x="105" y="155" width="50" height="50" rx="8" fill="none" stroke="#8B1A1A" stroke-width="1.5"/>
+    <circle cx="118" cy="168" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="142" cy="168" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="130" cy="180" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="118" cy="192" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="142" cy="192" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <!-- 검 아이콘 -->
+    <path d="M108 158 L112 154 L113 158 L109 159 Z" fill="#FFD700" opacity="0.7"/>
+  </g>
+  <!-- 주사위 2 (방어 - 청록, 중앙) -->
+  <g filter="url(#shadow)" transform="rotate(5 200 170)">
+    <rect x="175" y="145" width="50" height="50" rx="8" fill="url(#thumbDice2)"/>
+    <rect x="175" y="145" width="50" height="50" rx="8" fill="none" stroke="#1A6B60" stroke-width="1.5"/>
+    <circle cx="188" cy="158" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="200" cy="170" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="212" cy="158" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="188" cy="182" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="212" cy="182" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="200" cy="158" r="3.5" fill="#FFFFFF" opacity="0.9"/>
+    <!-- 방패 아이콘 -->
+    <path d="M178 148 L182 148 L182 153 Q180 155, 178 153 Z" fill="#FFD700" opacity="0.7"/>
+  </g>
+  <!-- 주사위 3 (만능 - 노랑, 우측) -->
+  <g filter="url(#shadow)" transform="rotate(20 270 185)">
+    <rect x="245" y="160" width="50" height="50" rx="8" fill="url(#thumbDice3)"/>
+    <rect x="245" y="160" width="50" height="50" rx="8" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+    <circle cx="258" cy="173" r="3.5" fill="#8B6914" opacity="0.9"/>
+    <circle cx="270" cy="185" r="3.5" fill="#8B6914" opacity="0.9"/>
+    <circle cx="282" cy="197" r="3.5" fill="#8B6914" opacity="0.9"/>
+    <!-- 별 아이콘 -->
+    <path d="M248 163 L250 161 L252 163 L250 165 Z" fill="#8B6914" opacity="0.7"/>
+  </g>
+  <!-- 바닥 안개 -->
+  <g opacity="0.1">
+    <ellipse cx="200" cy="260" rx="200" ry="30" fill="#4ECDC4"/>
+  </g>
+  <!-- 타이틀 텍스트 -->
+  <g filter="url(#textGlow)">
+    <text x="200" y="60" text-anchor="middle" font-size="28" font-weight="bold" fill="url(#titleGrad)" font-family="Arial, sans-serif">MINI DUNGEON DICE</text>
+    <text x="200" y="60" text-anchor="middle" font-size="28" font-weight="bold" fill="#FFD700" font-family="Arial, sans-serif" opacity="0.3">MINI DUNGEON DICE</text>
+  </g>
+  <!-- 부제목 -->
+  <text x="200" y="82" text-anchor="middle" font-size="12" fill="#B0B0B0" font-family="Arial, sans-serif" opacity="0.8">Roll the Dice, Conquer the Dungeon</text>
+  <!-- 슬롯 UI 미니어처 (하단) -->
+  <g opacity="0.6">
+    <!-- 공격 슬롯 -->
+    <rect x="130" y="240" width="36" height="24" rx="3" fill="none" stroke="#FF6B6B" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <path d="M144 246 L148 242 L149 248 Z" fill="#FF6B6B" opacity="0.5"/>
+    <!-- 방어 슬롯 -->
+    <rect x="182" y="240" width="36" height="24" rx="3" fill="none" stroke="#4ECDC4" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <path d="M197 245 L203 245 L203 256 Q200 260, 197 256 Z" fill="#4ECDC4" opacity="0.5"/>
+    <!-- 회복 슬롯 -->
+    <rect x="234" y="240" width="36" height="24" rx="3" fill="none" stroke="#45B7D1" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <path d="M252 248 C248 245, 247 250, 252 254 C257 250, 256 245, 252 248 Z" fill="#45B7D1" opacity="0.5"/>
+  </g>
+  <!-- 프레임 테두리 -->
+  <rect x="2" y="2" width="396" height="296" rx="8" fill="none" stroke="#3D3D5C" stroke-width="2" opacity="0.5"/>
+  <rect x="6" y="6" width="388" height="288" rx="6" fill="none" stroke="#FFD700" stroke-width="0.5" opacity="0.2"/>
+</svg>
