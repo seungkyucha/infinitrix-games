@@ -54,7 +54,7 @@ function saveCycleNumber(n: number) {
 
 async function main() {
   const isOnce   = process.argv.includes('--once')
-  const interval = 30 * 60 * 1000 // 30분
+  const interval = 2 * 60 * 60 * 1000 // 2시간
 
   console.log('🎮 InfiniTriX Agent Team 시작')
   console.log(`📁 프로젝트 루트: ${PROJECT_ROOT}`)
