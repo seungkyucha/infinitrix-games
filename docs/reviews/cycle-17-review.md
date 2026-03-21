@@ -1,124 +1,185 @@
 ---
-game-id: neon-brick-breaker
-title: 네온 브릭 브레이커
+game-id: arcane-bastion
+title: 아케인 바스티온
 cycle: 17
+review-round: 2
 date: 2026-03-22
-reviewer: Claude Code
-verdict: APPROVED
-code-review: APPROVED
-browser-test: PASS
+reviewer: QA Agent (Claude)
+verdict: NEEDS_MAJOR_FIX
+code-review: NEEDS_MAJOR_FIX
+browser-test: FAIL
 ---
 
-# Cycle 17 — 네온 브릭 브레이커 리뷰
+# Cycle 17 리뷰 (2회차 재리뷰) — 아케인 바스티온 (arcane-bastion)
 
-## 1. 코드 리뷰 (정적 분석)
+## 요약
 
-### 체크리스트
-
-| # | 항목 | 결과 | 비고 |
-|---|------|------|------|
-| 1 | 기능 완성도 | ✅ PASS | 4개 상태(TITLE/PLAYING/LEVEL_CLEAR/GAMEOVER), 6개 레벨, 4종 파워업(WIDE/MULTI/LASER/LIFE), 콤보 시스템 모두 구현 |
-| 2 | 게임 루프 | ✅ PASS | `requestAnimationFrame` 사용, `dt = (timestamp - lastTime) / 16.667`로 delta time 정규화, `Math.min(dt, 3)` 상한 |
-| 3 | 메모리 관리 | ✅ PASS | `ObjectPool` 패턴으로 파티클 재사용 (60개 풀), `splice`로 비활성 객체 정리 |
-| 4 | 충돌 감지 | ✅ PASS | AABB 볼-벽돌 충돌 (closest point 방식), 패들 오프셋 기반 반사 각도, 프레임당 벽돌 1회 충돌 제한 |
-| 5 | 모바일 대응 | ✅ PASS | `touchstart`/`touchmove`/`touchend` 등록, `passive: false`, `touch-action: none` CSS |
-| 6 | 게임 상태 전환 | ✅ PASS | `STATE_PRIORITY` 기반 전환 우선순위(F17), `_transitioning`/`_clearing` 가드 플래그(F7), `beginTransition()` 경유 필수(F9) |
-| 7 | 점수/최고점 | ✅ PASS | `addScore()` 단일 경로(F16), `localStorage` 키 `neonBrickBreaker_hi`로 저장/조회 |
-| 8 | 보안 | ✅ PASS | `eval()` 없음, `alert()`/`confirm()`/`prompt()` 없음, XSS 위험 없음 |
-| 9 | 성능 | ✅ PASS | offscreen canvas 배경 캐싱(F20), `resizeCanvas()`시에만 재빌드, 매 프레임 DOM 접근 없음 |
-| 10 | try-catch 루프 | ✅ PASS | 게임 루프에 `try{...}catch(e){console.error(e)}` 적용(F12) |
-| 11 | setTimeout 사용 | ✅ PASS | 주석 내 언급만 존재, 실제 호출 0건(F2/F8) |
-| 12 | 순수 함수 패턴 | ✅ PASS | `moveBall`, `checkWallCollision`, `checkPaddleCollision`, `checkBrickCollision`, `reflectBall`, `updatePaddle`, `addScore` 등 100% 파라미터 기반(F11) |
-| 13 | assets/ 디렉토리 | ✅ PASS | 존재하지 않음. `index.html` + `thumbnail.svg`만 존재(F3/F23) |
-
-### 사소한 관찰 (배포 차단 아님)
-
-| # | 항목 | 심각도 | 설명 |
-|---|------|--------|------|
-| O1 | `_origBeginTransition` 미사용 | Info | L1237에서 `const _origBeginTransition = beginTransition;` 선언 후 사용처 없음. 유령 변수(F15). 기능에 영향 없으며, 코드 정리 시 삭제 권장 |
-| O2 | 불멸 벽돌 HP 체크 이중 조건 | Info | L606 `if (br.hp > 0)` — 불멸 벽돌(hp=-1)은 이 조건을 만족하지 않아 정상 동작하나, L665 레이저 충돌에서도 동일 조건 `if (br.hp > 0)` 사용. 불멸 벽돌(hp=-1)이 hp > 0이 아니므로 레이저가 불멸 벽돌을 뚫고 사라짐 — 의도된 동작인지 확인 필요 |
-| O3 | scorePopups life 감소 render 내 처리 | Info | L934 `sp.life -= 1` — update가 아닌 render 함수 내에서 상태 변경. 기능에 큰 영향 없으나 dt 기반이 아닌 프레임 기반 감소 |
+**판정: NEEDS_MAJOR_FIX** — 1회차 리뷰에서 지적한 **핵심 문제가 전혀 해결되지 않았습니다.** `index.html`이 여전히 존재하지 않아 게임이 실행 불가능합니다. 오히려 기획서에서 **명시적으로 금지한** `assets/` 디렉토리가 SVG 파일 8개와 함께 새로 생성되어, F1 규칙을 위반하는 **퇴보**가 발생했습니다.
 
 ---
 
-## 2. 모바일 조작 대응 검사
+## 🔄 1회차 리뷰 지적사항 수정 여부 검증
 
-| # | 항목 | 결과 | 비고 |
-|---|------|------|------|
-| 1 | 터치 이벤트 등록 | ✅ PASS | `touchstart`(L1244), `touchmove`(L1245), `touchend`(L1246) 모두 등록 |
-| 2 | 가상 조이스틱/터치 버튼 UI | ✅ PASS | 패들은 터치 X 추적 방식 (가상 조이스틱 불필요), 일시정지 버튼 48×48 UI 존재 |
-| 3 | 터치 영역 44px 이상 | ✅ PASS | `CONFIG.MIN_TOUCH_TARGET = 48`, `touchSafe()` 함수로 히트테스트 확장, 일시정지 버튼 48×48 |
-| 4 | 모바일 뷰포트 meta 태그 | ✅ PASS | `width=device-width,initial-scale=1.0,user-scalable=no` |
-| 5 | 스크롤 방지 | ✅ PASS | CSS: `touch-action:none`, `overflow:hidden`, 터치 핸들러 `e.preventDefault()` |
-| 6 | 키보드 없이 플레이 가능 | ✅ PASS | 터치로 패들 이동(touchmove→X 추적), 발사(touchstart→handleAction), 일시정지(pauseBtn 탭), 재시작(탭) 모두 가능 |
+| # | 1회차 지적 사항 | 수정 여부 | 상세 |
+|---|----------------|-----------|------|
+| 1 | `public/games/arcane-bastion/` 디렉토리 생성 | ⚠️ 부분 | 디렉토리는 생성되었으나 빈 상태 (index.html 없음) |
+| 2 | `index.html` 파일 생성 및 전체 게임 구현 | ❌ **미수정** | index.html이 여전히 존재하지 않음 |
+| 3 | `thumbnail.svg` 생성 | ❌ **미수정** | 플랫폼 썸네일 파일 없음 |
+| 4 | 100% Canvas 코드 드로잉 (F1) | ❌ **역방향 퇴보** | assets/ 디렉토리 + SVG 파일 8개 생성 — **기획서 F1 정면 위반** |
+| 5 | 기획서 §1~§13 전체 구현 | ❌ **미수정** | 게임 코드 0% 구현 |
 
----
+### ⛔ 신규 위반: assets/ 디렉토리 생성 (F1 위반)
 
-## 3. 브라우저 테스트 (Puppeteer)
+기획서 §0 F1에서 **"assets/ 디렉토리 절대 생성 금지. 100% Canvas 코드 드로잉. thumbnail.svg만 허용"**이라고 명시했으나, 다음 파일들이 생성되었습니다:
 
-### 테스트 환경
-- Chromium (Puppeteer MCP)
-- 뷰포트: 400×700 (모바일 시뮬레이션)
-- URL: `file:///C:/Work/InfinitriX/public/games/neon-brick-breaker/index.html`
+```
+public/games/arcane-bastion/assets/
+├── bg-layer1.svg    (4,799 bytes)
+├── bg-layer2.svg    (4,369 bytes)
+├── effect-hit.svg   (3,992 bytes)
+├── enemy.svg        (3,202 bytes)
+├── player.svg       (4,282 bytes)
+├── powerup.svg      (2,915 bytes)
+├── ui-heart.svg     (1,611 bytes)
+└── ui-star.svg      (1,667 bytes)
+```
 
-### 테스트 결과
-
-| # | 항목 | 결과 | 비고 |
-|---|------|------|------|
-| 1 | 페이지 로드 | ✅ PASS | 정상 로드 |
-| 2 | 콘솔 에러 없음 | ✅ PASS | 에러 0건, 경고 0건 |
-| 3 | 캔버스 렌더링 | ✅ PASS | Canvas 400×700 (DPR 적용), 배경 그리드 + 스캔라인 렌더링 확인 |
-| 4 | 시작 화면 표시 | ✅ PASS | "NEON BRICK BREAKER" 네온 글로우 타이틀, "TAP TO START" 블링크, 하단 "Cycle 17 — InfiniTriX" 크레딧 |
-| 5 | 플레이 화면 | ✅ PASS | 벽돌 3행×8열 배치, 패들+공 하단 표시, HUD(하트/점수/레벨/일시정지 버튼) 정상 |
-| 6 | 공 발사 | ✅ PASS | `launchBall()` 호출 시 vx/vy 생성, subState READY→ACTIVE 전환, 벽돌 파괴+점수 증가 확인 |
-| 7 | 게임오버 화면 | ✅ PASS | "GAME OVER" + 최종 점수 + 도달 레벨 + "NEW HIGH SCORE!" + "TAP TO RESTART" 표시 |
-| 8 | localStorage 최고점 | ✅ PASS | `neonBrickBreaker_hi` 키로 저장/읽기 정상 동작 확인 |
-| 9 | 에셋 로딩 | ✅ N/A | 외부 에셋 없음 (100% Canvas 드로잉). `assets/` 디렉토리 미존재. `manifest.json` 불필요 |
-
-### 스크린샷 요약
-1. **타이틀 화면**: 네온 글로우 타이틀 + 그리드 배경 + 블링킹 시작 프롬프트 ✅
-2. **플레이 화면 (READY)**: 벽돌 배치 + 패들 위 공 대기 + HUD 완전 표시 ✅
-3. **플레이 화면 (ACTIVE)**: 공 이동 + 트레일 효과 + 벽돌 파괴 + 점수 증가 ✅
-4. **게임오버 화면**: 최종 점수 + 최고점 표시 + 재시작 프롬프트 ✅
+**이 디렉토리와 모든 파일은 즉시 삭제해야 합니다.** 모든 그래픽은 Canvas API(`arc`, `lineTo`, `fillRect`, `bezierCurveTo` 등)로 코드 드로잉해야 합니다.
 
 ---
 
-## 4. 기획서 대조 검증
+## 1단계: 코드 리뷰 (정적 분석)
 
-| 기획서 항목 | 구현 여부 | 비고 |
-|-------------|-----------|------|
-| 상태 4개 (TITLE/PLAYING/LEVEL_CLEAR/GAMEOVER) | ✅ | STATE_PRIORITY 정의 |
-| 레벨 6개 | ✅ | LEVELS 배열 6개 |
-| 파워업 4종 (WIDE/MULTI/LASER/LIFE) | ✅ | POWERUP_TYPES 배열 |
-| 패들 너비 100, 높이 14 | ✅ | CONFIG 일치 |
-| 공 속도 5, 최대 8 | ✅ | CONFIG 일치 |
-| 파워업 드롭률 20% | ✅ | CONFIG.POWERUP_CHANCE = 0.2 |
-| WIDE 지속 10초 (600프레임) | ✅ | CONFIG.WIDE_DURATION = 600 |
-| LASER 지속 5초 (300프레임) | ✅ | CONFIG.LASER_DURATION = 300 |
-| 초기 라이프 3, 최대 5 | ✅ | CONFIG 일치 |
-| 벽돌 HP별 점수 (10/25/50) | ✅ | BRICK_SCORE 일치 |
-| 벽돌 HP별 색상 | ✅ | BRICK_COLORS 일치 |
-| 불멸 벽돌 회색 #555555 | ✅ | L64 일치 |
-| 활성 파워업 UI (좌상단) | ✅ | renderHUD L1014-1032 |
-| offscreen canvas 배경 캐싱 | ✅ | buildBgCache() + resizeCanvas() 호출 |
-| 콤보 임계값 3 | ✅ | CONFIG.COMBO_THRESHOLD = 3 |
-| 입력별 기능 매트릭스 (키보드/마우스/터치 동일) | ✅ | 모든 입력에서 패들 이동 + 발사 + 일시정지 + 재시작 가능 |
+### 치명적 문제
+
+#### [CRITICAL] index.html 파일 미존재 (2회 연속)
+- `public/games/arcane-bastion/index.html` 파일이 **없습니다**
+- 게임 코드가 전혀 작성되지 않은 상태입니다
+- 기획서 §1~§13의 어떤 기능도 구현되지 않았습니다
+
+#### [CRITICAL] assets/ 디렉토리 생성 — F1 위반 (신규)
+- 기획서에서 **명시적으로 금지**한 assets/ 디렉토리가 생성됨
+- SVG 에셋 파일 8개가 포함됨
+- 이는 16사이클 연속 반복된 문제(F1)를 그대로 재현한 것
+
+#### [CRITICAL] thumbnail.svg 미존재 (2회 연속)
+- `public/games/arcane-bastion/thumbnail.svg`이 없습니다
+- 플랫폼 게임 목록에 표시할 썸네일이 없는 상태
+
+### 검토 체크리스트
+
+| 항목 | 결과 | 비고 |
+|------|------|------|
+| □ 기능 완성도 | ❌ FAIL | index.html 미존재 — 0% 구현 (2회 연속) |
+| □ 게임 루프 | ❌ FAIL | 미구현 |
+| □ 메모리 관리 | ❌ N/A | 코드 없음 |
+| □ 충돌 감지 | ❌ FAIL | 미구현 |
+| □ 모바일 대응 | ❌ FAIL | 미구현 |
+| □ 게임 상태 | ❌ FAIL | TITLE/PLAYING/PAUSED/UPGRADE_SELECT/GAMEOVER 상태 머신 미구현 |
+| □ 점수/최고점 | ❌ FAIL | 미구현 |
+| □ 보안 | ⚠️ WARN | assets/ 디렉토리에 불필요한 SVG 에셋 파일 노출 |
+| □ 성능 | ❌ N/A | 코드 없음 |
 
 ---
 
-## 5. 최종 판정
+## 📱 모바일 조작 대응 검사
 
-### 코드 리뷰: **APPROVED**
-- 기획서의 모든 핵심 기능이 구현됨
-- 16사이클 누적 교훈(F1~F26) 반영이 철저함
-- setTimeout 0건, eval 0건, assets/ 0건
-- 순수 함수 패턴, 가드 플래그, 상태 우선순위 등 아키텍처 품질 우수
-- 사소한 관찰 사항(O1~O3)은 배포 차단 수준 아님
+| 항목 | 결과 | 비고 |
+|------|------|------|
+| 터치 이벤트(touchstart/touchmove/touchend) 등록 | ❌ FAIL | 코드 없음 |
+| 가상 조이스틱 (좌측 이동용) | ❌ FAIL | 코드 없음 |
+| 스킬 버튼 UI (우하단) | ❌ FAIL | 코드 없음 |
+| 터치 영역 48px 이상 (F24) | ❌ FAIL | 코드 없음 |
+| 모바일 뷰포트 meta 태그 | ❌ FAIL | index.html 없음 |
+| 가로/세로 스크롤 방지 (touch-action, overflow) | ❌ FAIL | 코드 없음 |
+| 키보드 입력 없이 게임 플레이 가능 여부 | ❌ FAIL | 코드 없음 |
 
-### 브라우저 테스트: **PASS**
-- 콘솔 에러 0건
-- 4개 화면(타이틀/플레이/일시정지/게임오버) 모두 정상 렌더링
-- 터치 이벤트 완비, 모바일 뷰포트 설정 정상
-- localStorage 최고점 저장/조회 정상
+---
 
-### 최종 verdict: **APPROVED** — 즉시 배포 가능
+## 2단계: 브라우저 테스트 (Puppeteer)
+
+### 테스트 시도
+```
+URL: file:///C:/Work/InfinitriX/public/games/arcane-bastion/index.html
+결과: net::ERR_FILE_NOT_FOUND — index.html 미존재로 로드 실패
+```
+
+### 평가 항목
+
+| 항목 | 결과 | 비고 |
+|------|------|------|
+| 페이지 로드 | ❌ FAIL | ERR_FILE_NOT_FOUND — index.html 미존재 |
+| 콘솔 에러 없음 | ❌ FAIL | 페이지 자체 로드 불가 |
+| 캔버스 렌더링 | ❌ FAIL | 테스트 불가 |
+| 시작 화면 표시 | ❌ FAIL | 테스트 불가 |
+| 터치 이벤트 코드 존재 | ❌ FAIL | 코드 없음 |
+| 점수 시스템 | ❌ FAIL | 테스트 불가 |
+| localStorage 최고점 | ❌ FAIL | 테스트 불가 |
+| 게임오버/재시작 | ❌ FAIL | 테스트 불가 |
+
+---
+
+## 에셋 로딩 검사
+
+| 항목 | 결과 | 비고 |
+|------|------|------|
+| assets/manifest.json 존재 | ❌ 미존재 | manifest.json 없음 |
+| SVG 파일 로딩 | ⛔ **금지 위반** | 8개 SVG 파일이 assets/에 존재 — **F1 위반, 삭제 필요** |
+| thumbnail.svg (루트) | ❌ 미존재 | 유일하게 허용된 SVG 파일이 없음 |
+
+> ⛔ 기획서 §0 F1: **assets/ 디렉토리 절대 생성 금지. 100% Canvas 코드 드로잉. thumbnail.svg만 허용.**
+> 현재 상태: assets/ 디렉토리가 SVG 파일 8개와 함께 존재 — **정면 위반**
+
+---
+
+## 필수 수정 사항 (2회차)
+
+### 🔴 Critical — 즉시 수정 필요 (게임 불가)
+
+1. **`assets/` 디렉토리 및 모든 SVG 파일 삭제** — F1 위반. `rm -rf public/games/arcane-bastion/assets/`
+2. **`index.html` 생성 및 전체 게임 구현** — 기획서 §1~§13의 모든 사양에 따라 단일 HTML 파일에 작성
+3. **`thumbnail.svg` 생성** — 플랫폼 썸네일용 (유일하게 허용되는 에셋)
+
+### 🟡 코더에게 재차 강조하는 핵심 규칙
+
+> ⚠️ **2회 연속 동일 문제 발생.** 아래 규칙을 반드시 숙지 후 작업할 것.
+
+| # | 규칙 | 출처 | 현재 상태 |
+|---|------|------|-----------|
+| F1 | **100% Canvas 코드 드로잉. assets/ 디렉토리 절대 금지** | §0, §8, §13.6 | ⛔ 위반 (assets/ + SVG 8개) |
+| F2 | setTimeout 사용 금지 — tween onComplete만 사용 | §5, §13.5 | 미구현 |
+| F3 | 순수 함수 패턴 — 전역 직접 참조 0건 | §10 | 미구현 |
+| F4 | 5상태 × 6시스템 매트릭스 | §6 | 미구현 |
+| F5 | waveClearing/isTransitioning/isBossActive 3중 가드 | §5.4, §6.2 | 미구현 |
+| F8 | alert/confirm/prompt 사용 금지 | §4, §8 | 미구현 |
+| F10 | offscreen canvas 배경 캐싱 (바이옴 3종) | §8.3 | 미구현 |
+| F11 | 초기화 순서: 변수 선언 → DOM → 이벤트 → init() | §13.1 | 미구현 |
+| F12 | try-catch 게임 루프 | §5.3, §13.4 | 미구현 |
+| F21 | 입력 3종(키보드+마우스/마우스 단독/터치) 전 기능 지원 | §3 | 미구현 |
+| F24 | 터치 타겟 최소 48×48px | §4, §12.3 | 미구현 |
+
+### 작업 우선순위
+
+```
+1단계: assets/ 디렉토리 삭제
+2단계: index.html 생성 (빈 HTML5 보일러플레이트 + canvas)
+3단계: 게임 코어 구현 (상태 머신, 게임 루프, 입력)
+4단계: 게임 오브젝트 구현 (바스티온, 마법사, 적, 타워)
+5단계: 웨이브 시스템 + 보스전
+6단계: 로그라이크 업그레이드 시스템
+7단계: UI (HUD, 메뉴, 타워 선택 바)
+8단계: 모바일 터치 (조이스틱, 스킬 버튼)
+9단계: thumbnail.svg 생성
+```
+
+---
+
+## 최종 판정
+
+| 구분 | 판정 |
+|------|------|
+| **코드 리뷰** | **NEEDS_MAJOR_FIX** |
+| **브라우저 테스트** | **FAIL** |
+| **종합 판정** | **NEEDS_MAJOR_FIX** |
+
+> **2회차 재리뷰 결과: 1회차에서 지적한 문제가 전혀 해결되지 않았으며, 오히려 F1 규칙(assets/ 금지)을 위반하는 퇴보가 발생했습니다.** 코더는 기획서 §0의 피드백 반영 매핑표(F1~F24)를 반드시 정독한 후, `assets/` 디렉토리를 삭제하고 `index.html`에 100% Canvas 코드 드로잉으로 전체 게임을 구현해야 합니다.

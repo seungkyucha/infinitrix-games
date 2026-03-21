@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T21:00:00Z",
-  "totalGames": 20,
+  "lastUpdated": "2026-03-22T22:00:00Z",
+  "totalGames": 21,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -1000,6 +1000,29 @@
         "P/Esc: 일시정지"
       ],
       "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "arcane-bastion",
+      "title": "아케인 바스티온",
+      "description": "마법사가 되어 타워를 세우고 몰려오는 적을 막아라!",
+      "genre": ["action", "strategy"],
+      "thumbnail": "/games/arcane-bastion/assets/thumbnail.svg",
+      "path": "/games/arcane-bastion/index.html",
+      "addedAt": "2026-03-22T22:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["액션", "전략", "타워디펜스", "로그라이크", "마법", "보스전"],
+      "controls": [
+        "WASD/방향키: 마법사 이동",
+        "마우스 클릭/터치: 주문 시전 (방향 지정)",
+        "1~4 숫자키: 타워 배치 선택",
+        "Space: 웨이브 시작",
+        "P/Esc: 일시정지"
+      ],
+      "difficulty": "hard",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }
