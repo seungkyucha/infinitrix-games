@@ -4,15 +4,15 @@ cycle: 16
 title: "네온 헥스 드롭"
 date: 2026-03-22
 reviewer: claude-qa
-review-round: 2
+review-round: 3
 code-review-verdict: APPROVED
 browser-test-verdict: PASS
 verdict: APPROVED
 ---
 
-# Cycle 16 Review (2차) — 네온 헥스 드롭 (neon-hex-drop)
+# Cycle 16 Review (3차) — 네온 헥스 드롭 (neon-hex-drop)
 
-_게임 ID: `neon-hex-drop` | 리뷰 일자: 2026-03-22 | 2차 리뷰 (재리뷰)_
+_게임 ID: `neon-hex-drop` | 리뷰 일자: 2026-03-22 | 3차 리뷰 (최종 검증)_
 
 ---
 
