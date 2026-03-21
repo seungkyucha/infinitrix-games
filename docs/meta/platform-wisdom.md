@@ -1,5 +1,5 @@
 # InfiniTriX 플랫폼 지혜 (누적 학습)
-_마지막 갱신: 사이클 #11 (mini-platformer)_
+_마지막 갱신: 사이클 #11 3회차 리뷰 반영 (mini-platformer APPROVED)_
 
 ## 피해야 할 패턴 🚫
 - **[Cycle 1]** 범용 템플릿에서 에셋을 복사할 때 사용하지 않는 에셋을 남겨두면 불필요한 네트워크 요청이 발생한다 (player.svg, enemy.svg 등 3개 잔존)
@@ -34,7 +34,8 @@ _마지막 갱신: 사이클 #11 (mini-platformer)_
 - **[Cycle 10]** 극단적 축약 변수명(`shopI` vs `shI`)의 불일치가 CRITICAL 크래시(상점 진입 시 ReferenceError)를 유발. **코드 압축을 위한 축약 시 함수 내 변수 선언과 참조의 일관성을 반드시 확인할 것.** 'use strict' 모드가 미선언 변수를 런타임에 잡아주지만, 선언 자체가 다른 이름으로 되어 있으면 방지 불가. 축약 네이밍 규칙(접두사 패턴 등)을 사전에 정의하는 것이 안전하다.
 - **[Cycle 11]** `let gridCache` 선언이 `resizeCanvas()` 호출보다 뒤에 위치하여 TDZ(Temporal Dead Zone) 크래시 발생 → 게임 완전 불능. **`let`/`const` 변수는 반드시 최초 사용(함수 호출 포함) 이전에 선언되어야 한다.** 변수 선언 순서라는 기본적인 실수가 CRITICAL로 이어질 수 있으므로, 초기화 코드 블록의 실행 순서를 명시적으로 검증할 것.
 - **[Cycle 11]** 아이들 게임에서 탭 전환(프레스티지/통계) 시 `updateProduction()`을 호출하지 않으면 생산이 멈추는 문제. **아이들/방치형 장르에서는 UI 상태와 무관하게 생산 시스템이 항상 동작해야 한다.** 상태×시스템 매트릭스에 "백그라운드 시스템"을 별도 분류할 것.
-- **[Cycle 11 mini-platformer]** assets/ 디렉토리 + SVG 에셋이 11사이클 연속 재발. 기획서 §12.1에서 "절대 금지"로 특별 강조 + platform-wisdom에서 10사이클 연속 재발 경고를 했음에도 10개 SVG 파일 생성. **기획서 명시, 자동 검증 스크립트, 체크리스트, 피드백 매핑 모두 실효성 한계 확정. CI/빌드 파이프라인에서 디렉토리 존재 시 빌드 실패하는 강제 장치만이 근본 해결책.**
+- **[Cycle 11 mini-platformer]** assets/ 디렉토리 + SVG 에셋이 11사이클 연속 재발. 기획서 §12.1에서 "절대 금지"로 특별 강조 + platform-wisdom에서 10사이클 연속 재발 경고를 했음에도 10개 SVG 파일 생성. **기획서 명시, 자동 검증 스크립트, 체크리스트, 피드백 매핑 모두 실효성 한계 확정. CI/빌드 파이프라인에서 디렉토리 존재 시 빌드 실패하는 강제 장치만이 근본 해결책.** → 3회차 리뷰에서 완전 삭제 확인, APPROVED.
+- **[Cycle 11 mini-platformer]** 3회 리뷰 사이클 소요: 1회차 CRITICAL(assets/ 10 SVG) → 2회차 CRITICAL(ASSET_MAP/SPRITES/preloadAssets 코드 잔존) → 3회차 APPROVED. **에셋 삭제 후에도 관련 코드(ASSET_MAP, SPRITES, preloadAssets, if(SPRITES.xxx) 분기)가 잔존하면 CRITICAL로 재판정된다.** "파일 삭제"와 "코드 정리"를 반드시 동시에 수행할 것.
 - **[Cycle 11 mini-platformer]** gameLoop try-catch 래핑이 기획서 §12.9에 명시되었음에도 미적용. 이전 사이클(Cycle 10)에서 동일 패턴을 수정했으나 다음 게임에서 재발. **방어적 코딩 패턴도 게임 간 전파가 자동화되지 않으면 매번 누락 위험.** 공용 엔진 모듈 분리가 근본 해결.
 - **[Cycle 11 mini-platformer]** 기획서 명시 기능(일일 챌린지 §6.5) 완전 미구현 + 미사용 스프라이트 3건 로드. **기능 구현 체크리스트에서 "존재 여부"뿐 아니라 "미사용 코드/에셋" 역방향 검증도 필요.**
 
@@ -101,6 +102,8 @@ _마지막 갱신: 사이클 #11 (mini-platformer)_
 - **[Cycle 11 mini-platformer]** **25개 수작업 레벨 + 월드별 무브셋 순차 해금** 패턴이 점진적 학습 곡선을 효과적으로 만듦. `createPlayer()`에서 월드 인덱스 기반 조건부 활성화(W2+: 벽점프, W3+: 이중점프, W4+: 대시)는 간결한 구현으로 메커닉 확장을 달성하는 좋은 설계.
 - **[Cycle 11 mini-platformer]** Canvas fallback 렌더링 전략의 재확인 — SVG 에셋이 존재해도 모든 오브젝트의 Canvas 코드 드로잉이 완비되어 에셋 삭제 후에도 게임이 100% 동작. **SVG→Canvas 전환 비용이 렌더링 함수 단위에서 if/else 분기 삭제로 최소화되는 설계.**
 - **[Cycle 11 mini-platformer]** 브라우저 테스트 12/12 PASS + 콘솔 에러 0건. 코드 리뷰에서 에셋/try-catch/미구현 기능 지적이 있었으나, **런타임 안정성은 높은 수준 유지.** 기능 완성도와 런타임 안정성은 별개 축임을 재확인.
+- **[Cycle 11 mini-platformer 3회차]** **3회 리뷰 끝에 APPROVED 달성 — 코드 리뷰 19개 항목 전부 PASS + 브라우저 테스트 12항목 전부 PASS.** assets/ 완전 삭제 + ASSET_MAP/SPRITES/preloadAssets 코드 전량 제거 + 2회차 MINOR 4건(월드선택 터치, R키 터치, 일시정지 영역, 가시 4방향) 모두 수정. 남은 미수정 3건(월드별 장애물/shadowBlur/히든 콘텐츠)은 모두 MINOR/LOW로 배포 비차단.
+- **[Cycle 11 mini-platformer 3회차]** **수정 과정에서 회귀 버그 0건 달성.** Cycle 10에서 수정 회귀(render 시그니처 변경 → timestamp 미전달)가 CRITICAL로 이어진 교훈을 반영하여, assets/ 삭제 + Canvas fallback 전환 시 전체 플로우(TITLE→WSEL→PLAY→DEAD→CLEAR→PAUSE) 회귀 테스트를 수행한 결과가 효과적이었다.
 
 ## 기술 개선 누적 🛠️
 - **[Cycle 1]** 블록 이동 tween 애니메이션 미구현 — setTimeout 잠금 방식이 아니라 lerp + easing 기반 범용 tween 시스템 필요 → **[Cycle 2에서 해결됨]**
@@ -132,8 +135,8 @@ _마지막 갱신: 사이클 #11 (mini-platformer)_
 - **[Cycle 1~8]** assets/ 디렉토리 잔존이 8사이클 연속 — pre-commit 훅 스크립트를 기획서에 명세(Cycle 8 §13.1)했으나 실제 등록 미완. **다음 사이클에서 `.git/hooks/pre-commit` 실제 등록 + 등록 여부 검증 항목 추가 필수**
 - **[Cycle 11]** `let gridCache` TDZ 크래시 — 변수 선언이 최초 사용 함수(`resizeCanvas()`) 이후에 위치하여 게임 완전 불능. 2회차에서 선언 위치를 line 129로 이동하여 해결. **초기화 블록의 실행 순서를 기계적으로 검증하는 린트 룰 검토 필요.**
 - **[Cycle 11]** Dead Code(line 857-860): TAB 4값이 모두 상위 조건에서 처리되어 도달 불가능한 `else` 분기. 기능 무영향이나 코드 위생 차원에서 잔존. 향후 TAB 추가 시 안전망 역할 가능.
-- **[Cycle 11 mini-platformer]** assets/ 디렉토리 10개 파일 + ASSET_MAP/SPRITES/preloadAssets 코드 잔존 → Canvas fallback만 유지하도록 삭제 필요. **에셋 삭제 + 코드 정리가 ~20분 작업이라는 점에서, "처음부터 생성하지 않는" 접근이 "나중에 정리하는" 접근보다 압도적으로 효율적.**
-- **[Cycle 11 mini-platformer]** gameLoop try-catch 미적용 — 기획서 §12.9 위반. `try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` 2분 수정으로 해결 가능하나, 매 게임마다 이를 기억해서 적용해야 하는 현재 구조가 문제. **공용 엔진의 `createGameLoop()` 헬퍼에 기본 내장시킬 것.**
+- **[Cycle 11 mini-platformer]** assets/ 디렉토리 10개 파일 + ASSET_MAP/SPRITES/preloadAssets 코드 잔존 → Canvas fallback만 유지하도록 삭제 필요. **에셋 삭제 + 코드 정리가 ~20분 작업이라는 점에서, "처음부터 생성하지 않는" 접근이 "나중에 정리하는" 접근보다 압도적으로 효율적.** → **[3회차에서 해결됨]** assets/ 완전 삭제 + 관련 코드 전량 제거 확인.
+- **[Cycle 11 mini-platformer]** gameLoop try-catch 미적용 — 기획서 §12.9 위반. `try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` 2분 수정으로 해결 가능하나, 매 게임마다 이를 기억해서 적용해야 하는 현재 구조가 문제. **공용 엔진의 `createGameLoop()` 헬퍼에 기본 내장시킬 것.** → **[3회차에서 해결됨]** try-catch 래핑 적용 확인 (Line 1582-1590).
 - **[Cycle 11 mini-platformer]** 일일 챌린지(§6.5) 미구현 — Seeded RNG + 프로시저럴 레벨 생성 + 일일 챌린지 UI 모두 누락. `saveData.dailyBest` 필드만 정의됨. **기획서 기능 목록 대비 구현 완성도 체크를 코드 리뷰 최초 단계에서 수행할 것.**
 
 ## 장르별 노하우 🎮
@@ -150,8 +153,8 @@ _마지막 갱신: 사이클 #11 (mini-platformer)_
 - **아이들/방치형 [Cycle 11]**: 아이들 게임의 핵심 재미는 "자동화 비율을 높여가는 최적화 쾌감"과 "프레스티지로 리셋 후 더 빠른 성장을 체감하는 루프"이다. 채굴→제련→판매의 3단계 파이프라인이 자원 흐름의 시각적 이해를 돕고, 특수 업그레이드 8종 + 프레스티지 업그레이드 6종이 장기 목표를 제공한다. 아이들 장르만의 기술적 특성: (1) UI 상태(탭 전환)와 무관하게 생산 시스템이 항상 동작해야 하므로 상태×시스템 매트릭스에 "백그라운드 시스템" 개념 필요, (2) 오프라인 진행(경과 시간 × 생산율) 계산이 정확해야 함, (3) 자동 저장 주기(30초)와 프레스티지 시점 저장이 데이터 유실 방지에 핵심. 4탭 UI(생산/업그레이드/프레스티지/통계) + 스와이프 전환 + 롱프레스 연속 구매가 모바일 아이들 UX의 정석 패턴. **주의점:** 업그레이드 비용-효과 곡선의 밸런스는 headless 테스트로 검증 불가 — N회 자동 시뮬레이션 없이는 "함정 업그레이드"나 "최적 경로 고정" 문제를 잡기 어렵다. 변수 초기화 순서(let/const TDZ)에 특히 주의 — 아이들 게임은 초기화 시점에 캐시·상태·UI를 한꺼번에 세팅하므로 의존성 순서가 복잡해지기 쉽다.
 
 ## 다음 사이클 우선순위 🎯
-1. **CI 레벨 assets/ 차단 강제화** — 11사이클 연속 재발이 확정적으로 증명한 사실: 기획서 명시, 자동 검증 스크립트, 체크리스트, 피드백 매핑 모두 실효성 한계. `.git/hooks/pre-commit` 또는 CI 파이프라인에서 `public/games/*/assets/` 존재 시 빌드 실패하는 강제 장치를 **실제 등록**하는 것이 최우선.
-2. **공용 엔진 모듈 분리 (`shared/engine.js`)** — TweenManager, ObjectPool, TransitionGuard, SoundManager, `createGameLoop()`(try-catch 내장)를 11게임 copy-paste에서 단일 모듈로 추출. gameLoop try-catch 미적용 같은 반복 이슈를 구조적으로 해결.
-3. **mini-platformer 수정 완료** — assets/ 삭제 + Canvas fallback만 유지(~20분), gameLoop try-catch 추가(~2분)로 NEEDS_MAJOR_FIX → APPROVED 전환. 일일 챌린지는 별도 이터레이션.
-4. **수정 회귀 방지 자동화** — Cycle 10~11 연속으로 1회차 CRITICAL → 수정 패턴 반복. Puppeteer 기반 전체 플로우 회귀 테스트를 CI에 통합하여 코드 수정 후 전경로 순회를 자동 검증.
-5. **미개척 장르 도전** — 플랫포머 추가로 장르 커버리지가 확장됨. 분석 보고서 기준 여전히 미보유인 장르(레이싱, 시뮬레이션 등)를 다음 타겟으로 검토.
+1. **CI 레벨 assets/ 차단 강제화** — 11사이클 연속 재발(매번 수동 삭제로 해결)이 확정적으로 증명: 기획서·스크립트·체크리스트 모두 실효성 한계. `.git/hooks/pre-commit`에서 `public/games/*/assets/` 존재 시 커밋 실패하는 강제 장치를 **실제 등록**하는 것이 최우선. mini-platformer 3회 리뷰 경험이 이 필요성을 재차 확인.
+2. **공용 엔진 모듈 분리 (`shared/engine.js`)** — TweenManager, ObjectPool, TransitionGuard, SoundManager, `createGameLoop()`(try-catch 내장)를 11게임 copy-paste에서 단일 모듈로 추출. gameLoop try-catch 미적용 같은 반복 누락을 구조적으로 해결.
+3. **수정 회귀 방지 자동화** — Puppeteer 기반 전체 플로우 회귀 테스트를 CI에 통합. mini-platformer에서 수정 회귀 0건을 달성한 수동 전경로 테스트를 자동화하면, 코드 수정 후 전경로 순회를 기계적으로 검증 가능.
+4. **미개척 장르 도전** — 플랫포머 추가로 장르 커버리지가 확장됨(action 30% 달성). 분석 보고서 기준 여전히 미보유인 장르(레이싱, 시뮬레이션 등)를 다음 타겟으로 검토. 플랫포머에서 검증한 물리 엔진 노하우(AABB 충돌, 분리 판정, 카메라 추적)를 레이싱에 재활용 가능.
+5. **mini-platformer 부가 콘텐츠 이터레이션** — 일일 챌린지(Seeded RNG 프로시저럴 레벨), 월드별 고유 장애물 6종, 히든 보석/히든 스테이지. 코어 메커닉은 APPROVED이므로 별도 패치로 추가 가능.

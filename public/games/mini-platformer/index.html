@@ -3,29 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>Mini Platformer — InfiniTriX</title>
+<title>미니 플랫포머 — InfiniTriX</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f}
-canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;}
 </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
 <script>
 'use strict';
-/* ===== CONFIG ===== */
+// ═══════════════════════════════════════════════════
+// MINI PLATFORMER — InfiniTriX Cycle #11
+// 정밀 조작 액션 플랫포머 (Celeste/Super Meat Boy 스타일)
+// ═══════════════════════════════════════════════════
+
+// ─── §1. CONFIG 상수 ───
 const CONFIG = {
   CANVAS: { BASE_WIDTH: 800, BASE_HEIGHT: 450, TILE_SIZE: 16 },
   PHYSICS: {
-    GRAVITY: 0.55, MAX_FALL_SPEED: 12,
-    MOVE_SPEED: 4.5, ACCELERATION: 0.8, AIR_ACCELERATION: 0.5,
+    GRAVITY: 0.55, MAX_FALL_SPEED: 12, MOVE_SPEED: 4.5,
+    ACCELERATION: 0.8, AIR_ACCELERATION: 0.5,
     FRICTION: 0.85, AIR_FRICTION: 0.95,
     JUMP_FORCE: -11.5, JUMP_CUT_MULTIPLIER: 0.4,
     COYOTE_TIME: 6, JUMP_BUFFER: 6,
-    WALL_SLIDE_SPEED: 2.0,
-    WALL_JUMP_FORCE_X: 7, WALL_JUMP_FORCE_Y: -10.5,
-    WALL_STICK_TIME: 4,
+    WALL_SLIDE_SPEED: 2.0, WALL_JUMP_FORCE_X: 7, WALL_JUMP_FORCE_Y: -10.5, WALL_STICK_TIME: 4,
     DOUBLE_JUMP_FORCE: -10,
     DASH_SPEED: 14, DASH_DURATION: 8, DASH_COOLDOWN: 0,
     CORNER_CORRECTION: 4
@@ -35,881 +38,629 @@ const CONFIG = {
     LOOK_UP_OFFSET: -80, LOOK_DOWN_OFFSET: 80,
     DEAD_ZONE_X: 20, DEAD_ZONE_Y: 15, SHAKE_DECAY: 0.9
   },
-  HITBOX: { PLAYER_WIDTH: 12, PLAYER_HEIGHT: 16, OFFSET_X: 2, OFFSET_Y: 0 },
   SCORE: {
     STAGE_CLEAR_BASE: 1000, GEM_BONUS: 500, HIDDEN_GEM_BONUS: 2000,
     TIME_BONUS_THRESHOLD: 15, TIME_BONUS_PER_SEC: 100,
     NO_DEATH_BONUS: 2000, WORLD_CLEAR_BONUS: 5000
   },
+  HITBOX: { PLAYER_WIDTH: 12, PLAYER_HEIGHT: 16, OFFSET_X: 2, OFFSET_Y: 0 },
   HINT_THRESHOLD_1: 10, HINT_THRESHOLD_2: 20,
-  COLORS: {
-    PLAYER: '#00ffcc', PLAYER_TRAIL: 'rgba(0,255,204,0.3)',
-    TERRAIN: '#3a3a5c', HAZARD: '#ff3366', GEM: '#ffd700',
-    GOAL: '#00ff66', UI_TEXT: '#ffffff', UI_ACCENT: '#ff6b35',
-    BG_PRIMARY: '#0a0a0f', BG_SECONDARY: '#0f0f1a'
-  },
+  SAVE_KEY: 'mini-platformer-save',
   WORLDS: [
-    { name: '초록 숲', bg1: '#0d1a0d', bg2: '#1a2e1a', accent: '#2d5a27', light: '#8fbc8f' },
-    { name: '암석 동굴', bg1: '#1a0f08', bg2: '#2a1f14', accent: '#4a3728', light: '#d4a574' },
-    { name: '구름 하늘', bg1: '#0a1e30', bg2: '#1a3050', accent: '#4a8ab5', light: '#f0f8ff' },
-    { name: '용암 지대', bg1: '#1a0505', bg2: '#2a0a0a', accent: '#8b0000', light: '#ff6347' },
-    { name: '별빛 탑', bg1: '#0a0518', bg2: '#150a2e', accent: '#4a1a6e', light: '#e0b0ff' }
+    { name:'초록 숲', bg1:'#1a3a1a', bg2:'#2d5a27', accent:'#8fbc8f', spike:'#ff3366', tile:'#3a5a3c' },
+    { name:'암석 동굴', bg1:'#2a1a0a', bg2:'#4a3728', accent:'#d4a574', spike:'#ff3366', tile:'#5a4a38' },
+    { name:'구름 하늘', bg1:'#2a4a6a', bg2:'#87ceeb', accent:'#f0f8ff', spike:'#ff3366', tile:'#5a6a8a' },
+    { name:'용암 지대', bg1:'#3a0a0a', bg2:'#8b0000', accent:'#ff6347', spike:'#ff3366', tile:'#6a3a2a' },
+    { name:'별빛 탑', bg1:'#0a0520', bg2:'#1a0a2e', accent:'#e0b0ff', spike:'#ff3366', tile:'#3a2a5a' }
   ],
-  SAVE_KEY: 'mini-platformer-save'
+  ABILITIES: [
+    { wallJump:false, doubleJump:false, dash:false },
+    { wallJump:true,  doubleJump:false, dash:false },
+    { wallJump:true,  doubleJump:true,  dash:false },
+    { wallJump:true,  doubleJump:true,  dash:true  },
+    { wallJump:true,  doubleJump:true,  dash:true  }
+  ]
 };
-const TS = CONFIG.CANVAS.TILE_SIZE;
 
-/* ===== SEEDED RNG (LCG) for Daily Challenge ===== */
-class SeededRNG {
-  constructor(seed) { this.seed = seed & 0xFFFFFFFF; }
-  /* Return next pseudo-random float in [0,1) */
-  next() {
-    this.seed = (this.seed * 1664525 + 1013904223) & 0xFFFFFFFF;
-    return (this.seed >>> 0) / 0x100000000;
-  }
-  /* Return random int in [min, max] inclusive */
-  nextInt(min, max) { return min + Math.floor(this.next() * (max - min + 1)); }
-}
+// ─── §2. (에셋 프리로더 제거 — 모든 비주얼은 Canvas API 코드 드로잉) ───
 
-/* ===== TWEEN MANAGER ===== */
+// ─── §3. 유틸리티 클래스 ───
+
+// 트윈 매니저 — clearImmediate로 경쟁조건 방지
 class TweenManager {
   constructor() { this._tweens = []; }
-  /* Add a new tween animation */
   add(opts) {
-    const tw = { target: opts.target, props: {}, duration: opts.duration || 300,
-      elapsed: 0, ease: opts.ease || this._easeOut, onComplete: opts.onComplete || null, dead: false };
+    const t = { target:opts.target, props:{}, duration:opts.duration||300,
+      elapsed:0, ease:opts.ease||TweenManager._easeOut, onComplete:opts.onComplete||null };
     for (const k in opts.props) {
       const p = opts.props[k];
-      tw.props[k] = { from: p.from !== undefined ? p.from : opts.target[k], to: p.to };
-      tw.target[k] = tw.props[k].from;
+      t.props[k] = { from: p.from !== undefined ? p.from : opts.target[k], to: p.to };
+      opts.target[k] = t.props[k].from;
     }
-    this._tweens.push(tw);
-    return tw;
+    this._tweens.push(t);
+    return t;
   }
-  /* Update all active tweens */
   update(dt) {
-    for (let idx = this._tweens.length - 1; idx >= 0; idx--) {
-      const tw = this._tweens[idx];
-      if (tw.dead) { this._tweens.splice(idx, 1); continue; }
-      tw.elapsed += dt;
-      const progress = Math.min(tw.elapsed / tw.duration, 1);
-      const eased = tw.ease(progress);
-      for (const k in tw.props) {
-        const p = tw.props[k];
-        tw.target[k] = p.from + (p.to - p.from) * eased;
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const t = this._tweens[i];
+      t.elapsed += dt * 1000;
+      const prog = Math.min(t.elapsed / t.duration, 1);
+      const e = t.ease(prog);
+      for (const k in t.props) {
+        const p = t.props[k];
+        t.target[k] = p.from + (p.to - p.from) * e;
       }
-      if (progress >= 1) {
-        tw.dead = true;
-        this._tweens.splice(idx, 1);
-        if (tw.onComplete) tw.onComplete();
+      if (prog >= 1) {
+        this._tweens.splice(i, 1);
+        if (t.onComplete) t.onComplete();
       }
     }
   }
-  /* Immediately clear all tweens (no deferred) */
   clearImmediate() { this._tweens.length = 0; }
-  _easeOut(t) { return 1 - (1 - t) * (1 - t); }
-  _easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  static _easeOut(t) { return t * (2 - t); }
 }
 
-/* ===== OBJECT POOL ===== */
+// 오브젝트 풀 — GC 방지
 class ObjectPool {
-  constructor(factory, maxSize) { this._pool = []; this._active = []; this._factory = factory; this._max = maxSize || 100; }
-  /* Get an object from pool or create new */
+  constructor(factory, maxSize) {
+    this._factory = factory; this._pool = []; this._active = [];
+    this._max = maxSize || 100;
+  }
   get() {
-    let obj = this._pool.pop();
-    if (!obj && this._active.length < this._max) obj = this._factory();
-    if (obj) { obj.active = true; this._active.push(obj); }
+    const obj = this._pool.length > 0 ? this._pool.pop() : this._factory();
+    if (this._active.length < this._max) this._active.push(obj);
     return obj;
   }
-  /* Return object to pool */
   release(obj) {
-    obj.active = false;
     const idx = this._active.indexOf(obj);
-    if (idx !== -1) this._active.splice(idx, 1);
-    this._pool.push(obj);
+    if (idx >= 0) { this._active.splice(idx, 1); this._pool.push(obj); }
   }
-  /* Iterate active objects */
-  forEach(fn) { for (let idx = this._active.length - 1; idx >= 0; idx--) fn(this._active[idx], idx); }
-  /* Release all active objects */
-  clear() { while (this._active.length) this.release(this._active[this._active.length - 1]); }
-  get count() { return this._active.length; }
+  forEach(fn) { for (let i = this._active.length - 1; i >= 0; i--) fn(this._active[i], i); }
+  releaseAll() { while (this._active.length > 0) this._pool.push(this._active.pop()); }
+  get activeCount() { return this._active.length; }
 }
 
-/* ===== SOUND MANAGER ===== */
+// 사운드 매니저 — Web Audio API 코드 생성 효과음
 class SoundManager {
   constructor() { this._ctx = null; this._vol = 0.3; this._muted = false; }
-  /* Lazy-init audio context on first user interaction */
-  _init() { if (!this._ctx) try { this._ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
-  /* Play a synthesized sound effect */
-  play(name) {
-    this._init();
-    if (!this._ctx || this._muted) return;
-    const ctx = this._ctx;
-    const now = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(this._vol * 0.4, now);
-    const sounds = {
-      jump: () => { const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(400,now); o.frequency.linearRampToValueAtTime(600,now+0.08); o.connect(gain); gain.gain.linearRampToValueAtTime(0,now+0.08); o.start(now); o.stop(now+0.08); },
-      doubleJump: () => { const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(500,now); o.frequency.linearRampToValueAtTime(800,now+0.1); o.connect(gain); gain.gain.linearRampToValueAtTime(0,now+0.1); o.start(now); o.stop(now+0.1); },
-      wallJump: () => { const o = ctx.createOscillator(); o.type='square'; o.frequency.setValueAtTime(300,now); o.frequency.linearRampToValueAtTime(500,now+0.06); o.connect(gain); gain.gain.setValueAtTime(this._vol*0.25,now); gain.gain.linearRampToValueAtTime(0,now+0.06); o.start(now); o.stop(now+0.06); },
-      dash: () => { const o = ctx.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(200,now); o.frequency.linearRampToValueAtTime(100,now+0.12); o.connect(gain); gain.gain.setValueAtTime(this._vol*0.3,now); gain.gain.linearRampToValueAtTime(0,now+0.12); o.start(now); o.stop(now+0.12); },
-      die: () => { const buf = ctx.createBuffer(1,ctx.sampleRate*0.2,ctx.sampleRate); const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2); const s = ctx.createBufferSource(); s.buffer=buf; s.connect(gain); gain.gain.setValueAtTime(this._vol*0.5,now); s.start(now); },
-      gem: () => { const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(800,now); o.frequency.linearRampToValueAtTime(1200,now+0.15); o.connect(gain); gain.gain.linearRampToValueAtTime(0,now+0.15); o.start(now); o.stop(now+0.15); },
-      clear: () => { const freqs=[523,659,784,1047]; freqs.forEach((f,i)=>{ const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f,now+i*0.1); const g=ctx.createGain(); g.connect(ctx.destination); g.gain.setValueAtTime(this._vol*0.3,now+i*0.1); g.gain.linearRampToValueAtTime(0,now+i*0.1+0.15); o.connect(g); o.start(now+i*0.1); o.stop(now+i*0.1+0.15); }); },
-      checkpoint: () => { const o = ctx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(600,now); o.frequency.linearRampToValueAtTime(900,now+0.2); o.connect(gain); gain.gain.linearRampToValueAtTime(0,now+0.2); o.start(now); o.stop(now+0.2); }
-    };
-    if (sounds[name]) sounds[name]();
+  _init() {
+    if (!this._ctx) this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this._ctx.state === 'suspended') this._ctx.resume();
   }
-  /* Toggle mute state */
+  play(name) {
+    if (this._muted || !this._ctx) return;
+    const ac = this._ctx;
+    const now = ac.currentTime;
+    const g = ac.createGain();
+    g.connect(ac.destination);
+    g.gain.setValueAtTime(this._vol, now);
+    const S = {
+      jump:{w:'sine',f1:400,f2:600,d:.08}, djump:{w:'sine',f1:500,f2:800,d:.1},
+      walljump:{w:'square',f1:300,f2:500,d:.06}, dash:{w:'sawtooth',f1:200,f2:100,d:.12},
+      death:{w:'sawtooth',f1:200,f2:50,d:.2}, gem:{w:'sine',f1:800,f2:1200,d:.15},
+      clear:{w:'sine',f1:523,f2:1047,d:.4}, checkpoint:{w:'triangle',f1:600,f2:900,d:.2},
+      menu:{w:'sine',f1:440,f2:550,d:.05}
+    };
+    const s = S[name]; if (!s) return;
+    const osc = ac.createOscillator();
+    osc.type = s.w;
+    osc.frequency.setValueAtTime(s.f1, now);
+    osc.frequency.linearRampToValueAtTime(s.f2, now + s.d);
+    g.gain.linearRampToValueAtTime(0, now + s.d);
+    osc.connect(g); osc.start(now); osc.stop(now + s.d + 0.02);
+  }
   toggleMute() { this._muted = !this._muted; return this._muted; }
 }
 
-/* ===== INPUT SYSTEM ===== */
-const input = {
-  _keys: {}, _prev: {}, _justDown: {},
-  /* Register key as pressed */
-  keyDown(code) { if (!this._keys[code]) this._justDown[code] = true; this._keys[code] = true; },
-  /* Register key as released */
-  keyUp(code) { this._keys[code] = false; },
-  /* Check if key is currently held */
-  isDown(code) { return !!this._keys[code]; },
-  /* Check if key was just pressed this frame */
-  justPressed(code) { return !!this._justDown[code]; },
-  /* Reset per-frame flags */
-  postUpdate() { this._justDown = {}; },
-  /* Virtual touch buttons state */
-  touch: { left: false, right: false, down: false, jump: false, jumpJust: false, dash: false, dashJust: false, pause: false, pauseJust: false }
-};
+// 입력 매니저 — 키보드 + 터치 통합
+class InputManager {
+  constructor() { this._keys = {}; this._prev = {}; this._justTouched = {}; }
+  postUpdate() {
+    this._prev = Object.assign({}, this._keys);
+    this._justTouched = {};
+  }
+  isDown(key) { return !!this._keys[key]; }
+  justPressed(key) {
+    return (!!this._keys[key] && !this._prev[key]) || !!this._justTouched[key];
+  }
+  keyDown(code) { this._keys[code] = true; }
+  keyUp(code) { this._keys[code] = false; }
+  touchDown(key) { this._keys[key] = true; this._justTouched[key] = true; }
+  touchUp(key) { this._keys[key] = false; }
+  resetTouch() {
+    const touchKeys = ['left','right','up','down','jump','dash','pause','restart','start'];
+    for (const k of touchKeys) this._keys[k] = false;
+  }
+}
 
-/* ===== CANVAS SETUP ===== */
+// Seeded RNG — LCG
+class SeededRNG {
+  constructor(seed) { this.seed = seed; }
+  next() {
+    this.seed = (this.seed * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (this.seed >>> 0) / 0xFFFFFFFF;
+  }
+  nextInt(min, max) { return Math.floor(this.next() * (max - min + 1)) + min; }
+}
+
+// ─── §4. 게임 상태 변수 (TDZ 방지 — 최상단 선언) ───
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let canvasW, canvasH, scaleX, scaleY, dpr;
-
-/* Resize canvas to fill window with DPR scaling */
-function resizeCanvas() {
-  dpr = window.devicePixelRatio || 1;
-  canvasW = CONFIG.CANVAS.BASE_WIDTH;
-  canvasH = CONFIG.CANVAS.BASE_HEIGHT;
-  canvas.width = canvasW * dpr;
-  canvas.height = canvasH * dpr;
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.imageSmoothingEnabled = false;
-  scaleX = canvasW / window.innerWidth;
-  scaleY = canvasH / window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-
-/* ===== LEVEL DATA ===== */
-/* Tile legend: .=air #=solid ^=spikeUp v=spikeDown <=spikeL >=spikeR S=spawn G=goal *=gem C=checkpoint P=movPlatH Q=movPlatV B=crumble ~=wind L=lava F=fire R=reverse Z=laser */
-function parseLevelStr(str, worldIdx, stageIdx) {
-  const rows = str.trim().split('\n').map(r => r.trimEnd());
-  const height = rows.length;
-  const width = Math.max(...rows.map(r => r.length));
-  const tiles = [];
-  const gems = [];
-  const hazards = [];
-  const movingPlatforms = [];
-  let spawn = { x: 2, y: 2 };
-  let goal = { x: width - 3, y: 2 };
-  const checkpoints = [];
-  for (let row = 0; row < height; row++) {
-    tiles[row] = [];
-    for (let col = 0; col < width; col++) {
-      const ch = (rows[row] && rows[row][col]) || '.';
-      switch (ch) {
-        case '#': tiles[row][col] = 1; break;
-        case '^': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'spike', dir: 'up' }); break;
-        case 'v': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'spike', dir: 'down' }); break;
-        case '<': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'spike', dir: 'left' }); break;
-        case '>': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'spike', dir: 'right' }); break;
-        case 'S': tiles[row][col] = 0; spawn = { x: col, y: row }; break;
-        case 'G': tiles[row][col] = 0; goal = { x: col, y: row }; break;
-        case '*': tiles[row][col] = 0; gems.push({ x: col, y: row, collected: false }); break;
-        case 'C': tiles[row][col] = 0; checkpoints.push({ x: col, y: row, active: false }); break;
-        case 'P': tiles[row][col] = 0; movingPlatforms.push({ x: col * TS, y: row * TS, w: TS * 3, h: TS * 0.5, dx: 1, dy: 0, speed: 1, range: TS * 4, startX: col * TS, startY: row * TS }); break;
-        case 'Q': tiles[row][col] = 0; movingPlatforms.push({ x: col * TS, y: row * TS, w: TS * 2, h: TS * 0.5, dx: 0, dy: 1, speed: 0.8, range: TS * 3, startX: col * TS, startY: row * TS }); break;
-        case 'B': tiles[row][col] = 2; break;
-        case '~': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'wind', dir: 'right', force: 0.3 }); break;
-        case 'L': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'lava' }); break;
-        case 'F': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'fire', timer: 0, interval: 120 }); break;
-        case 'R': tiles[row][col] = 3; break;
-        case 'Z': tiles[row][col] = 0; hazards.push({ x: col, y: row, type: 'laser', timer: 0, interval: 90, active: true }); break;
-        default: tiles[row][col] = 0; break;
-      }
-    }
-  }
-  return { width, height, tiles, spawn, goal, gems, checkpoints, hazards, movingPlatforms, worldIdx, stageIdx };
-}
-
-/* 25 hand-crafted levels across 5 worlds */
-const LEVEL_STRINGS = [
-  /* ===== WORLD 1: Forest (basic movement + jump) ===== */
-  /* 1-1: Tutorial - basic movement */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..S...........*...............
-#####...####.###...*..........
-.............######.####...G..
-...........................###
-.....*........................
-######........................
-##############################`,
-
-  /* 1-2: Gaps and platforms */
-  `...............................
-...............................
-...............................
-...............................
-...............................
-...............................
-...............................
-...............................
-...............................
-...............................
-..S........*........*........G.
-#####..###..####..###..####.###
-...............*...............
-...............................
-...............................
-...............................
-.......########################`,
-
-  /* 1-3: Moving platforms */
-  `................................
-................................
-................................
-................................
-................................
-................................
-................................
-.......................G........
-..S..........P....P...####.....
-#####...........................
-...........*....................
-.........####.......P...........
-...........P....................
-............*.......*...........
-...........####...####..........
-................................
-################################`,
-
-  /* 1-4: Spikes and timing */
-  `................................
-................................
-................................
-................................
-................................
-................................
-................................
-................................
-..S...........*....C..........G.
-#####..####.####..####..####.###
-.......^..^......^..^...^..^....
-............*...........*.......
-........####.####..####.####....
-................................
-................................
-................................
-################################`,
-
-  /* 1-5: World 1 Boss - combine all */
-  `..................................
-..................................
-..................................
-..................................
-..................................
-.........................G........
-..S.............C.......###.......
-#####..####..####..P..............
-..........^..........*............
-............####..####............
-.........*..........^.^...........
-.........###..P......####.........
-............*...........^.........
-.........####...####..####........
-.....^.^..........^.^.............
-..................................
-##################################`,
-
-  /* ===== WORLD 2: Cave (wall jump) ===== */
-  /* 2-1: Introduce wall slide/jump */
-  `#.............................#
-#.............................#
-#.............................#
-#.............................#
-#..S..........................#
-#.####........................#
-#.............................#
-#.....#.......................#
-#........*....................#
-#.....####....................#
-#...........#.....G...........#
-#..........####..###..........#
-#.............................#
-#...........*...........*....##
-#.........####.......####.....#
-#.............................#
-#.............................#
-##############################`,
-
-  /* 2-2: Wall jump chains */
-  `#............................#
-#............................#
-#.......................G....#
-#.....................####...#
-#..S....................#....#
-#.####..................#....#
-#.........#.............#....#
-#.........#....*........#....#
-#.........#.............#....#
-#.........#....###......#....#
-#.....*...#.............#....#
-#...####..#.............#....#
-#.........#.............#....#
-#.........#.....*.......#....#
-#.........#...####......#....#
-#.........#.............#....#
-#............................#
-##############################`,
-
-  /* 2-3: Crumbling platforms */
-  `#............................#
-#............................#
-#............................#
-#............................#
-#.S.............C...........G#
-#.####..BBBB..####..BBBB.####
-#............................#
-#...........*.......*.......##
-#........BBBB..####..BBBB...#
-#............................#
-#.....*......................#
-#...####.....................#
-#............................#
-#............................#
-#............................#
-#............................#
-##############################`,
-
-  /* 2-4: Complex wall paths */
-  `#......#...........#........#
-#......#...........#........#
-#......#.....G.....#........#
-#......#....###....#........#
-#......#...........#........#
-#.S....#......*....#........#
-#.##...#...........#....*...#
-#......#.....###...#........#
-#......#...........#..####..#
-#....*...............*......#
-#..####.............####....#
-#............................#
-#............................#
-#............................#
-#............................#
-#............................#
-##############################`,
-
-  /* 2-5: World 2 Boss */
-  `#....#.....#.....#.....#....#
-#....#.....#.....#.....#.G..#
-#....#.....#.....#.....#.##.#
-#....#.....#.....#.....#....#
-#.S..#..*..#..C..#..*..#....#
-#.##.#.....#.....#.....#....#
-#....#..##.#.....#..##.#....#
-#....#.....#..##.#.....#....#
-#..*.........*............*..#
-#..##.#.....#.....#.....#..##
-#....#.....#.....#.....#....#
-#....#..##.#.....#..##.#....#
-#....#.....#..##.#.....#....#
-#....#.....#.....#.....#....#
-#....#.....#.....#.....#....#
-#............................#
-##############################`,
-
-  /* ===== WORLD 3: Sky (double jump) ===== */
-  /* 3-1: Introduce double jump */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..S......*..........*.......G.
-#####..........##.........####
-..........##..................
-...........................*..
-.......##..........##.........
-..............................
-..............##..............
-..............................
-..............................
-##############################`,
-
-  /* 3-2: Vertical climbs */
-  `.............................G
-..............................
-.............................#
-..............................
-.........................*...#
-..............................
-.....................*........
-......................####....
-..............................
-................*..........##.
-..............####............
-..............................
-...........*..................
-.........####...........##....
-..............................
-..S...........................
-##############################`,
-
-  /* 3-3: Wind zones + double jump */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..S.......~~~~~.....C......G..
-#####........~~~~.......##.###
-..........*..~~~~.............
-.......####..~~~~..####.......
-.............~~~~.............
-.............~~~~...*..##.....
-.............~~~~.............
-.......*.....~~~~.............
-.....####....~~~~.............
-.............~~~~.............
-..............................
-##############################`,
-
-  /* 3-4: Disappearing platforms */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..S......*..........C......G..
-#####..BBBB..BBBB..##..BBBB##
-..............................
-...........*.......*..........
-........BBBB..BBBB..BBBB.....
-..............................
-..............................
-..............................
-..............................
-..............................
-##############################`,
-
-  /* 3-5: World 3 Boss */
-  `..............................
-..............................
-..............................
-.............................G
-.............................#
-..S..............C.....*.....#
-#####.......BBBB.####........
-........*..........~~~........
-.....####..........~~~..####..
-...................~~~.........
-........BBBB.......~~~..*..##.
-...................~~~.........
-.....*.......BBBB..~~~........
-...####.........~~~.####......
-................~~~............
-..............................
-##############################`,
-
-  /* ===== WORLD 4: Lava (dash) ===== */
-  /* 4-1: Introduce dash */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..S..*...............*.....G..
-#####.####.......####..####.##
-...............................
-...........*...........*......
-.........####.......####......
-..............................
-..............................
-..............................
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* 4-2: Dash over lava */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..S...*..........C...*......G.
-#####..##.......####..##..####
-..............................
-...........*..................
-........####......####........
-..............................
-..............................
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* 4-3: Fire columns */
-  `..............................
-..............................
-..............................
-..............................
-..............................
-..............................
-..S...F.....F...C..F......G...
-#####.####.####.####.####.####
-..............................
-........*.........*...........
-......####.....####...........
-..............................
-..............................
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* 4-4: Rising lava + dash */
-  `..............................
-..............................
-..............................
-..............................
-.............................G
-..S..............C........####
-#####..####..####..####.......
-...........^.^................
-......*......####....*.####...
-....####..........####........
-..............................
-..........*..F........F.......
-.........####.......####......
-..............................
-..............................
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* 4-5: World 4 Boss */
-  `..............................
-..............................
-..............................
-.............................G
-.S...............C.......##.##
-.####..F..####..####..F.......
-.....^..^...............^..^..
-........*....####....*........
-......####.......####.####....
-..............................
-...F.....F.........F.....F....
-......*...........*..........*
-....####..####..####..####.##.
-..............................
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* ===== WORLD 5: Star Tower (all moves) ===== */
-  /* 5-1: Gravity flip zones */
-  `#............................#
-#............................#
-#............................#
-#............................#
-#.S.......RRRRRR..........G..#
-#.####.......RR......####.##.#
-#............RR..............#
-#..........*.RR..............#
-#.......####.RR...*..........#
-#............RR.####.........#
-#............RR..............#
-#............RR..............#
-#.....*......RR..............#
-#...####.....RR..............#
-#............................#
-#............................#
-##############################`,
-
-  /* 5-2: Lasers */
-  `#............................#
-#............................#
-#............................#
-#.S..........................#
-#.####..Z.........Z.......G..#
-#.........####..........####.#
-#............................#
-#.........Z..........Z.......#
-#....*........####...........#
-#..####......................#
-#.........Z......*...Z.......#
-#.............####...........#
-#............................#
-#.......*....................#
-#....####....................#
-#............................#
-##############################`,
-
-  /* 5-3: Complex combination */
-  `#............................#
-#............................#
-#.......................G....#
-#.....................####...#
-#.S..............C...........#
-#.####....RRRR..####..Z.....#
-#.........RRRR...............#
-#.....*...RRRR......*........#
-#...####..RRRR..####.........#
-#.........RRRR..........##...#
-#......Z..RRRR...............#
-#............F...F...........#
-#....*....####.####..........#
-#..####......................#
-#............................#
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* 5-4: Extreme challenge */
-  `#............................#
-#...........................G#
-#.........................####
-#.S..............C...........#
-#.####...Z..RRRR..####.......#
-#........Z..RRRR..........##.#
-#...........RRRR.............#
-#...*....F..RRRR....*........#
-#.####......RRRR..####.......#
-#...........RRRR..........Z..#
-#.......BBBB.............####
-#............................#
-#..........*.....F...*..F....#
-#.......####..####.####......#
-#............................#
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-##############################`,
-
-  /* 5-5: Final Boss Level */
-  `#............................#
-#............................#
-#............................#
-#.S.....RRRR.....C...........#
-#.####..RRRR..####...........#
-#.......RRRR.........Z...*...#
-#..*....RRRR.......####......#
-#.####..RRRR..Z..............#
-#.......RRRR..........##.....#
-#...Z...RRRR....*............#
-#.......RRRR..####...........#
-#....F..RRRR.............G...#
-#.......RRRR..........####.##
-#.......RRRR.................#
-#....*..........F............#
-#.####..####..####..####.....#
-##############################`
-];
-
-/* Parse all level strings into level data */
-const LEVELS = [];
-for (let w = 0; w < 5; w++) {
-  LEVELS[w] = [];
-  for (let s = 0; s < 5; s++) {
-    LEVELS[w][s] = parseLevelStr(LEVEL_STRINGS[w * 5 + s], w, s);
-  }
-}
-
-/* ===== DAILY CHALLENGE LEVEL GENERATOR ===== */
-/* Generate a procedural platformer level from a seed */
-function generateDailyLevel(seed) {
-  const rng = new SeededRNG(seed);
-  const width = 60;
-  const height = 20;
-  const tiles = [];
-  const gems = [];
-  const hazards = [];
-  const movingPlatforms = [];
-  const checkpoints = [];
-  /* Initialize empty grid */
-  for (let row = 0; row < height; row++) {
-    tiles[row] = [];
-    for (let col = 0; col < width; col++) {
-      tiles[row][col] = 0;
-    }
-  }
-  /* Floor and ceiling */
-  for (let col = 0; col < width; col++) {
-    tiles[0][col] = 1;
-    tiles[height - 1][col] = 1;
-  }
-  /* Left wall */
-  for (let row = 0; row < height; row++) { tiles[row][0] = 1; }
-  /* Right wall */
-  for (let row = 0; row < height; row++) { tiles[row][width - 1] = 1; }
-  /* Generate platforms in sections */
-  const sectionCount = 8;
-  const sectionW = Math.floor((width - 4) / sectionCount);
-  let lastPlatY = height - 4;
-  for (let sec = 0; sec < sectionCount; sec++) {
-    const sx = 2 + sec * sectionW;
-    /* Platform height varies around last height */
-    const minY = Math.max(3, lastPlatY - 6);
-    const maxY = Math.min(height - 4, lastPlatY + 3);
-    const platY = rng.nextInt(minY, maxY);
-    const platLen = rng.nextInt(3, 6);
-    for (let col = sx; col < Math.min(sx + platLen, width - 1); col++) {
-      tiles[platY][col] = 1;
-    }
-    /* Add stepping stone platforms for vertical gaps */
-    if (Math.abs(platY - lastPlatY) > 3 && sec > 0) {
-      const midY = Math.floor((platY + lastPlatY) / 2);
-      const midX = sx - rng.nextInt(1, 3);
-      for (let col = Math.max(1, midX); col < Math.min(midX + 3, width - 1); col++) {
-        tiles[midY][col] = 1;
-      }
-    }
-    /* Wall jump sections (30% chance) */
-    if (rng.next() < 0.3 && sec > 1) {
-      const wallH = rng.nextInt(3, 6);
-      const wallX = sx + rng.nextInt(0, 2);
-      for (let row = platY - wallH; row < platY; row++) {
-        if (row > 0 && wallX < width - 1) tiles[row][wallX] = 1;
-      }
-    }
-    /* Add spikes (40% chance per section, after first 2 sections) */
-    if (sec > 1 && rng.next() < 0.4) {
-      const spikeX = sx + rng.nextInt(1, Math.max(1, platLen - 1));
-      if (spikeX < width - 1 && platY - 1 > 0) {
-        hazards.push({ x: spikeX, y: platY - 1, type: 'spike', dir: 'up' });
-      }
-    }
-    /* Place gem (60% chance) */
-    if (rng.next() < 0.6) {
-      const gemX = sx + rng.nextInt(0, Math.max(0, platLen - 1));
-      const gemY = platY - 2;
-      if (gemY > 1 && gemX < width - 1) {
-        gems.push({ x: gemX, y: gemY, collected: false });
-      }
-    }
-    /* Checkpoint in middle sections */
-    if (sec === 3 || sec === 6) {
-      checkpoints.push({ x: sx + 1, y: platY - 1, active: false });
-    }
-    lastPlatY = platY;
-  }
-  /* Ensure max 3 gems */
-  while (gems.length > 3) gems.pop();
-  /* Spawn and goal */
-  const spawn = { x: 2, y: height - 3 };
-  const goal = { x: width - 3, y: lastPlatY - 1 };
-  /* Ensure goal has ground */
-  for (let col = width - 5; col < width - 1; col++) {
-    tiles[lastPlatY][col] = 1;
-  }
-  return { width, height, tiles, spawn, goal, gems, checkpoints, hazards, movingPlatforms, worldIdx: 4, stageIdx: 0 };
-}
-
-/* Get today's daily seed as YYYYMMDD integer */
-function getDailySeed() {
-  const d = new Date();
-  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-}
-
-/* ===== GAME STATE ===== */
-const STATES = { TITLE: 'TITLE', PLAY: 'PLAY', DEAD: 'DEAD', CLEAR: 'CLEAR', PAUSE: 'PAUSE' };
-let gameState = STATES.TITLE;
-let isTransitioning = false;
-const transitionOverlay = { alpha: 0 };
 const tw = new TweenManager();
-const snd = new SoundManager();
-const particles = new ObjectPool(() => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1, size: 3, color: '#fff', active: false }), 150);
+const sound = new SoundManager();
+const input = new InputManager();
+const particles = new ObjectPool(() => ({
+  x:0, y:0, vx:0, vy:0, life:0, maxLife:1, size:3, color:'#fff', type:'sq'
+}), 150);
 
-/* Player state */
-let player = {};
-let camera = { x: 0, y: 0, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shakeMag: 0 };
-let currentWorld = 0, currentStage = 0;
+const STATE = { TITLE:0, PLAY:1, DEAD:2, CLEAR:3, PAUSE:4, WSEL:5 };
+let gameState = STATE.TITLE;
+let isTransitioning = false;
+let transitionOverlay = { alpha: 0 };
+let lastTime = 0;
+let player = null;
+let camera = { x:0, y:0, targetX:0, targetY:0, shakeX:0, shakeY:0, shakeIntensity:0 };
+let currentWorld = 0;
+let currentStage = 0;
 let currentLevel = null;
-let stageTimer = 0;
+let stageTime = 0;
 let stageDeaths = 0;
-let respawnPoint = { x: 0, y: 0 };
-let isDailyChallenge = false;
-let titleMenuIdx = 0; /* 0 = Story, 1 = Daily Challenge */
-let totalScore = 0;
-let titleAnim = { t: 0, scanY: 0 };
-let clearData = { score: 0, timeBonus: 0, gemBonus: 0, deathBonus: 0, isNewBest: false };
+let stageGems = [];
+let checkpointPos = null;
+let scorePopups = [];
+let titleAnim = { time: 0 };
+let gemFlashAlpha = 0;
+let menuSelection = 0;
+let worldSelectIdx = 0;
+let pauseSelection = 0;
+let clearResult = null;
+let tileCacheDirty = true;
+let dpr = 1;
+let canvasW = 800;
+let canvasH = 450;
+let scaleX = 1;
+let scaleY = 1;
+let dailyMode = false;
+let saveData = null;
+let titleParticles = [];
+let dashTrails = [];
+let showHint = false;
+let deadAnimTimer = 0;
 
-/* Save data */
-let saveData = { unlockedWorld: 1, bestTimes: {}, gems: {}, totalGems: 0, totalScore: 0, dailyBest: {}, deaths: {} };
-
-/* ===== SAVE/LOAD ===== */
-/* Load saved progress from localStorage */
+// ─── §5. 저장 시스템 ───
 function loadSave() {
   try {
     const raw = localStorage.getItem(CONFIG.SAVE_KEY);
-    if (raw) { const parsed = JSON.parse(raw); Object.assign(saveData, parsed); }
-  } catch (e) { /* ignore parse errors */ }
+    if (raw) return JSON.parse(raw);
+  } catch(e) { /* ignore */ }
+  return { unlockedWorld:1, bestTimes:{}, gems:{}, totalGems:0, totalScore:0, dailyBest:{}, deaths:{} };
 }
 
-/* Save progress to localStorage */
 function writeSave(data) {
-  try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(data)); } catch(e) { /* ignore */ }
 }
 
-/* ===== PLAYER CREATION ===== */
-/* Create a fresh player state for a level */
-function createPlayer(spawnX, spawnY, worldIdx) {
+// 점수 계산 — 순수 함수 (파라미터 기반)
+function calcStageScore(time, gemsCollected, deaths, cfg) {
+  let score = cfg.STAGE_CLEAR_BASE;
+  score += gemsCollected * cfg.GEM_BONUS;
+  score += Math.max(0, Math.floor((cfg.TIME_BONUS_THRESHOLD - time) * cfg.TIME_BONUS_PER_SEC));
+  if (deaths === 0) score += cfg.NO_DEATH_BONUS;
+  return Math.floor(score);
+}
+
+// ─── §6. 레벨 생성 (Seeded RNG 기반 프로시저럴) ───
+const TS = CONFIG.CANVAS.TILE_SIZE;
+const TILE = { EMPTY:0, SOLID:1, SPIKE_UP:2, SPIKE_DOWN:3, SPIKE_LEFT:4, SPIKE_RIGHT:5 };
+
+function generateLevel(worldIdx, stageIdx, rng) {
+  const w = 42 + stageIdx * 6;
+  const h = 22;
+  const tiles = [];
+  for (let r = 0; r < h; r++) {
+    tiles[r] = new Array(w).fill(TILE.EMPTY);
+  }
+  // 테두리
+  for (let c = 0; c < w; c++) { tiles[0][c] = TILE.SOLID; tiles[h-1][c] = TILE.SOLID; }
+  for (let r = 0; r < h; r++) { tiles[r][0] = TILE.SOLID; tiles[r][w-1] = TILE.SOLID; }
+
+  const gems = [];
+  const movingPlatforms = [];
+  const checkpoints = [];
+
+  // 섹션별 플랫폼 생성
+  const sections = 6 + stageIdx;
+  const sectionW = Math.floor((w - 4) / sections);
+  let prevPlatY = h - 3;
+
+  for (let sec = 0; sec < sections; sec++) {
+    const sx = 2 + sec * sectionW;
+    const platCount = rng.nextInt(2, 3 + Math.floor(worldIdx * 0.5));
+
+    for (let p = 0; p < platCount; p++) {
+      // 플랫폼 높이 — 점진적 상승
+      const minY = Math.max(3, prevPlatY - 6);
+      const maxY = Math.min(h - 3, prevPlatY + 2);
+      const platY = rng.nextInt(minY, maxY);
+      const platLen = rng.nextInt(3, 6);
+      const platX = rng.nextInt(sx, Math.min(sx + sectionW - platLen, w - 2));
+
+      for (let c = platX; c < Math.min(platX + platLen, w - 1); c++) {
+        tiles[platY][c] = TILE.SOLID;
+      }
+      prevPlatY = platY;
+
+      // 벽점프용 벽 (월드2+)
+      if (worldIdx >= 1 && rng.next() < 0.25 + stageIdx * 0.05) {
+        const wallH = rng.nextInt(3, 6);
+        const wallC = rng.next() < 0.5 ? platX : Math.min(platX + platLen - 1, w - 2);
+        for (let r = platY - wallH; r < platY; r++) {
+          if (r > 0 && wallC > 0 && wallC < w - 1) tiles[r][wallC] = TILE.SOLID;
+        }
+      }
+    }
+
+    // 가시 배치
+    const spikeDensity = [0.12, 0.18, 0.25, 0.30, 0.35][worldIdx];
+    if (rng.next() < spikeDensity + stageIdx * 0.04) {
+      const spikeCount = rng.nextInt(1, 2 + stageIdx);
+      for (let s = 0; s < spikeCount; s++) {
+        const sc = rng.nextInt(sx + 1, Math.min(sx + sectionW - 1, w - 2));
+        // 솔리드 위에 가시
+        for (let r = h - 2; r > 1; r--) {
+          if (tiles[r][sc] === TILE.SOLID && tiles[r-1][sc] === TILE.EMPTY) {
+            tiles[r-1][sc] = TILE.SPIKE_UP; break;
+          }
+        }
+      }
+    }
+
+    // 이동 발판 (스테이지 3+)
+    if (stageIdx >= 2 && rng.next() < 0.35 + worldIdx * 0.08) {
+      const mpx = rng.nextInt(sx + 1, Math.min(sx + sectionW - 3, w - 4));
+      const mpy = rng.nextInt(5, h - 6);
+      const isVert = rng.next() < 0.3;
+      const range = rng.nextInt(3, 5);
+      movingPlatforms.push({
+        x: mpx * TS, y: mpy * TS, width: 3 * TS, height: TS * 0.6,
+        startX: mpx * TS, endX: (mpx + (isVert ? 0 : range)) * TS,
+        startY: mpy * TS, endY: (mpy + (isVert ? range : 0)) * TS,
+        speed: 1 + worldIdx * 0.3, dir: 1, vertical: isVert
+      });
+    }
+  }
+
+  // 보석 3개 배치
+  for (let g = 0; g < 3; g++) {
+    let placed = false;
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const col = rng.nextInt(3 + g * Math.floor(w / 4), Math.min(w - 3, 3 + (g + 1) * Math.floor(w / 4)));
+      const row = rng.nextInt(3, h - 3);
+      if (tiles[row][col] === TILE.EMPTY) {
+        let hasFloor = false;
+        for (let r = row + 1; r < Math.min(row + 6, h); r++) {
+          if (tiles[r][col] === TILE.SOLID) { hasFloor = true; break; }
+        }
+        if (hasFloor) { gems.push({ x: col, y: row, collected: false }); placed = true; break; }
+      }
+    }
+    if (!placed) gems.push({ x: 4 + g * 12, y: h - 3, collected: false });
+  }
+
+  // 골 — 우측 상단 근처
+  let goalX = w - 4, goalY = h - 3;
+  for (let r = 3; r < h - 2; r++) {
+    if (tiles[r][goalX] === TILE.EMPTY) {
+      for (let rr = r + 1; rr < h; rr++) {
+        if (tiles[rr][goalX] === TILE.SOLID) { goalY = rr - 2; break; }
+      }
+      break;
+    }
+  }
+  // 골 아래 발판 확보
+  if (tiles[goalY + 1][goalX] !== TILE.SOLID) {
+    tiles[goalY + 1][goalX] = TILE.SOLID;
+    if (goalX + 1 < w) tiles[goalY + 1][goalX + 1] = TILE.SOLID;
+    if (goalX - 1 >= 0) tiles[goalY + 1][goalX - 1] = TILE.SOLID;
+  }
+
+  // 체크포인트 (월드3+)
+  if (worldIdx >= 2) {
+    const cpX = Math.floor(w / 2);
+    for (let r = h - 2; r > 2; r--) {
+      if (tiles[r][cpX] === TILE.SOLID && tiles[r-1][cpX] === TILE.EMPTY) {
+        checkpoints.push({ x: cpX, y: r - 1, active: false }); break;
+      }
+    }
+  }
+
+  // 스폰 지점 아래 바닥 확보
+  const spawnX = 2, spawnY = h - 3;
+  if (tiles[spawnY + 1][spawnX] !== TILE.SOLID) tiles[spawnY + 1][spawnX] = TILE.SOLID;
+
   return {
-    x: spawnX * TS + TS / 2, y: spawnY * TS + TS / 2,
-    vx: 0, vy: 0,
-    width: CONFIG.HITBOX.PLAYER_WIDTH, height: CONFIG.HITBOX.PLAYER_HEIGHT,
-    onGround: false, onWall: 0, wallDir: 0,
-    coyoteTimer: 0, jumpBufferTimer: 0,
-    hasDoubleJump: worldIdx >= 2, usedDoubleJump: false,
-    hasDash: worldIdx >= 3, dashTimer: 0, canDash: true, dashDirX: 0, dashDirY: 0,
-    hasWallJump: worldIdx >= 1,
-    facing: 1, wallStickTimer: 0,
-    trail: [], dead: false, gravityFlipped: false
+    width: w, height: h, tiles: tiles,
+    spawn: { x: spawnX, y: spawnY },
+    goal: { x: goalX, y: goalY },
+    gems: gems, checkpoints: checkpoints,
+    movingPlatforms: movingPlatforms,
+    worldIdx: worldIdx, stageIdx: stageIdx
   };
 }
 
-/* ===== STATE TRANSITIONS ===== */
-/* Single entry point for all state transitions — guards against double-fire */
+function generateDailyLevel(seed) {
+  const rng = new SeededRNG(seed);
+  return generateLevel(rng.nextInt(2, 4), 4, rng);
+}
+
+// ─── §7. 플레이어 생성 ───
+function createPlayer(spawnX, spawnY) {
+  return {
+    x: spawnX * TS, y: spawnY * TS,
+    vx: 0, vy: 0,
+    width: CONFIG.HITBOX.PLAYER_WIDTH, height: CONFIG.HITBOX.PLAYER_HEIGHT,
+    facing: 1, onGround: false, onWall: 0,
+    coyoteTimer: 0, jumpBuffer: 0,
+    jumpsLeft: 1, canDoubleJump: false,
+    dashing: false, dashTimer: 0, dashDir: 0, dashCooldown: false,
+    wallStickTimer: 0, eyeOffsetX: 0
+  };
+}
+
+// ─── §8. 물리 엔진 (순수 함수 — 전역 참조 없음) ───
+
+function getTile(level, col, row) {
+  if (row < 0 || row >= level.height || col < 0 || col >= level.width) return TILE.SOLID;
+  return level.tiles[row][col];
+}
+
+// 단방향 AABB 충돌 해소 — 수평
+function resolveHorizontal(pl, level) {
+  const ox = CONFIG.HITBOX.OFFSET_X;
+  const hx = pl.x + ox;
+  const left = Math.floor(hx / TS);
+  const right = Math.floor((hx + pl.width - 1) / TS);
+  const top = Math.floor(pl.y / TS);
+  const bottom = Math.floor((pl.y + pl.height - 1) / TS);
+  pl.onWall = 0;
+
+  for (let row = top; row <= bottom; row++) {
+    for (let col = left; col <= right; col++) {
+      if (getTile(level, col, row) === TILE.SOLID) {
+        if (pl.vx > 0) { pl.x = col * TS - pl.width - ox; pl.vx = 0; pl.onWall = 1; }
+        else if (pl.vx < 0) { pl.x = (col + 1) * TS - ox; pl.vx = 0; pl.onWall = -1; }
+      }
+    }
+  }
+}
+
+// 단방향 AABB 충돌 해소 — 수직 + 코너 보정
+function resolveVertical(pl, level) {
+  const ox = CONFIG.HITBOX.OFFSET_X;
+  const hx = pl.x + ox;
+  const left = Math.floor(hx / TS);
+  const right = Math.floor((hx + pl.width - 1) / TS);
+  const top = Math.floor(pl.y / TS);
+  const bottom = Math.floor((pl.y + pl.height - 1) / TS);
+
+  for (let row = top; row <= bottom; row++) {
+    for (let col = left; col <= right; col++) {
+      if (getTile(level, col, row) === TILE.SOLID) {
+        if (pl.vy > 0) {
+          pl.y = row * TS - pl.height;
+          pl.vy = 0;
+          pl.onGround = true;
+          pl.coyoteTimer = CONFIG.PHYSICS.COYOTE_TIME;
+          pl.jumpsLeft = pl.canDoubleJump ? 2 : 1;
+          pl.dashCooldown = false;
+        } else if (pl.vy < 0) {
+          // 코너 보정
+          const cc = CONFIG.PHYSICS.CORNER_CORRECTION;
+          let corrected = false;
+          for (let shift = 1; shift <= cc; shift++) {
+            const lx1 = Math.floor((hx + shift) / TS);
+            const rx1 = Math.floor((hx + pl.width - 1 + shift) / TS);
+            if (getTile(level, lx1, row) !== TILE.SOLID && getTile(level, rx1, row) !== TILE.SOLID) {
+              pl.x += shift; corrected = true; break;
+            }
+            const lx2 = Math.floor((hx - shift) / TS);
+            const rx2 = Math.floor((hx + pl.width - 1 - shift) / TS);
+            if (getTile(level, lx2, row) !== TILE.SOLID && getTile(level, rx2, row) !== TILE.SOLID) {
+              pl.x -= shift; corrected = true; break;
+            }
+          }
+          if (!corrected) { pl.y = (row + 1) * TS; pl.vy = 0; }
+        }
+      }
+    }
+  }
+}
+
+// 함정 충돌 체크 — 순수 함수
+function checkHazards(px, py, pw, ph, level) {
+  const margin = 3;
+  const left = Math.floor(px / TS);
+  const right = Math.floor((px + pw - 1) / TS);
+  const top = Math.floor(py / TS);
+  const bottom = Math.floor((py + ph - 1) / TS);
+
+  for (let row = top; row <= bottom; row++) {
+    for (let col = left; col <= right; col++) {
+      const tile = getTile(level, col, row);
+      if (tile >= TILE.SPIKE_UP && tile <= TILE.SPIKE_RIGHT) {
+        const tx = col * TS + margin;
+        const ty = row * TS + margin;
+        const tw2 = TS - margin * 2;
+        const th = TS - margin * 2;
+        if (px + pw > tx && px < tx + tw2 && py + ph > ty && py < ty + th) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// 플레이어 물리 업데이트 — 모든 의존 데이터를 파라미터로 전달
+function updatePlayer(pl, inputMgr, level, abilities, soundMgr, particleSpawner) {
+  const phys = CONFIG.PHYSICS;
+
+  // ── 대시 처리 ──
+  if (pl.dashing) {
+    pl.dashTimer--;
+    pl.vx = phys.DASH_SPEED * pl.dashDir;
+    pl.vy = 0;
+    dashTrails.push({ x: pl.x, y: pl.y, alpha: 0.6, facing: pl.facing });
+    if (pl.dashTimer <= 0) { pl.dashing = false; pl.vx *= 0.3; }
+    pl.x += pl.vx;
+    resolveHorizontal(pl, level);
+    return null;
+  }
+
+  // ── 좌우 이동 ──
+  const accel = pl.onGround ? phys.ACCELERATION : phys.AIR_ACCELERATION;
+  if (inputMgr.isDown('left')) { pl.vx -= accel; pl.facing = -1; }
+  if (inputMgr.isDown('right')) { pl.vx += accel; pl.facing = 1; }
+  pl.vx = Math.max(-phys.MOVE_SPEED, Math.min(phys.MOVE_SPEED, pl.vx));
+
+  // ── 중력 ──
+  pl.vy += phys.GRAVITY;
+  if (pl.vy > phys.MAX_FALL_SPEED) pl.vy = phys.MAX_FALL_SPEED;
+
+  // ── 벽 슬라이드 ──
+  if (abilities.wallJump && pl.onWall !== 0 && !pl.onGround && pl.vy > 0) {
+    if ((pl.onWall === -1 && inputMgr.isDown('left')) || (pl.onWall === 1 && inputMgr.isDown('right'))) {
+      pl.vy = Math.min(pl.vy, phys.WALL_SLIDE_SPEED);
+    }
+  }
+
+  // ── 코요테 타임 ──
+  if (!pl.onGround && pl.coyoteTimer > 0) pl.coyoteTimer--;
+
+  // ── 점프 버퍼 ──
+  if (inputMgr.justPressed('jump')) pl.jumpBuffer = phys.JUMP_BUFFER;
+  else if (pl.jumpBuffer > 0) pl.jumpBuffer--;
+
+  // ── 점프 실행 ──
+  if (pl.jumpBuffer > 0) {
+    if (pl.onGround || pl.coyoteTimer > 0) {
+      pl.vy = phys.JUMP_FORCE; pl.onGround = false; pl.coyoteTimer = 0;
+      pl.jumpBuffer = 0; pl.jumpsLeft--;
+      soundMgr.play('jump');
+      particleSpawner('jump', pl.x + 6, pl.y + pl.height);
+    } else if (abilities.wallJump && pl.onWall !== 0) {
+      pl.vx = -pl.onWall * phys.WALL_JUMP_FORCE_X;
+      pl.vy = phys.WALL_JUMP_FORCE_Y;
+      pl.facing = -pl.onWall; pl.onWall = 0; pl.jumpBuffer = 0;
+      soundMgr.play('walljump');
+      particleSpawner('jump', pl.x + 6, pl.y + 8);
+    } else if (abilities.doubleJump && pl.jumpsLeft > 0) {
+      pl.vy = phys.DOUBLE_JUMP_FORCE; pl.jumpsLeft--; pl.jumpBuffer = 0;
+      soundMgr.play('djump');
+      particleSpawner('jump', pl.x + 6, pl.y + pl.height);
+    }
+  }
+
+  // ── 가변 점프 높이 ──
+  if (!inputMgr.isDown('jump') && pl.vy < 0) pl.vy *= phys.JUMP_CUT_MULTIPLIER;
+
+  // ── 대시 시작 ──
+  if (abilities.dash && inputMgr.justPressed('dash') && !pl.dashCooldown) {
+    pl.dashing = true; pl.dashTimer = phys.DASH_DURATION;
+    pl.dashDir = pl.facing; pl.dashCooldown = true; pl.vy = 0;
+    soundMgr.play('dash');
+  }
+
+  // ── 마찰 ──
+  if (!inputMgr.isDown('left') && !inputMgr.isDown('right')) {
+    pl.vx *= pl.onGround ? phys.FRICTION : phys.AIR_FRICTION;
+    if (Math.abs(pl.vx) < 0.1) pl.vx = 0;
+  }
+
+  // ── 위치 업데이트 ──
+  pl.onGround = false;
+  pl.x += pl.vx;
+  resolveHorizontal(pl, level);
+  pl.y += pl.vy;
+  resolveVertical(pl, level);
+
+  // 눈 애니메이션
+  pl.eyeOffsetX = pl.facing * 1.5;
+
+  // 낙하 사망
+  if (pl.y > level.height * TS + 50) return 'dead';
+  return null;
+}
+
+// ─── §9. 카메라 업데이트 (순수 함수) ───
+function updateCamera(cam, targetX, targetY, levelW, levelH, viewW, viewH, playerFacing) {
+  const cfg = CONFIG.CAMERA;
+  cam.targetX = targetX - viewW / 2 + cfg.LOOK_AHEAD_X * playerFacing;
+  cam.targetY = targetY - viewH / 2;
+  cam.x += (cam.targetX - cam.x) * cfg.LERP_SPEED;
+  cam.y += (cam.targetY - cam.y) * cfg.LERP_SPEED;
+  cam.x = Math.max(0, Math.min(cam.x, levelW * TS - viewW));
+  cam.y = Math.max(0, Math.min(cam.y, levelH * TS - viewH));
+  if (cam.shakeIntensity > 0.5) {
+    cam.shakeX = (Math.random() - 0.5) * cam.shakeIntensity;
+    cam.shakeY = (Math.random() - 0.5) * cam.shakeIntensity;
+    cam.shakeIntensity *= cfg.SHAKE_DECAY;
+  } else { cam.shakeX = 0; cam.shakeY = 0; cam.shakeIntensity = 0; }
+}
+
+// ─── §10. 파티클 헬퍼 ───
+function spawnParticle(pool, type, px, py) {
+  if (type === 'death') {
+    for (let i = 0; i < 20; i++) {
+      const p = pool.get();
+      p.x = px; p.y = py;
+      p.vx = (Math.random() - 0.5) * 8; p.vy = (Math.random() - 0.5) * 8 - 3;
+      p.life = 1; p.maxLife = 0.5 + Math.random() * 0.3;
+      p.size = 2 + Math.random() * 4; p.color = '#00ffcc'; p.type = 'sq';
+    }
+  } else if (type === 'jump') {
+    for (let i = 0; i < 6; i++) {
+      const p = pool.get();
+      p.x = px + (Math.random() - 0.5) * 8; p.y = py;
+      p.vx = (Math.random() - 0.5) * 3; p.vy = -Math.random() * 2;
+      p.life = 1; p.maxLife = 0.2 + Math.random() * 0.1;
+      p.size = 2 + Math.random() * 2; p.color = '#ffffff'; p.type = 'c';
+    }
+  } else if (type === 'gem') {
+    for (let i = 0; i < 12; i++) {
+      const p = pool.get();
+      p.x = px; p.y = py;
+      const angle = (Math.PI * 2 / 12) * i;
+      p.vx = Math.cos(angle) * 4; p.vy = Math.sin(angle) * 4;
+      p.life = 1; p.maxLife = 0.4; p.size = 3; p.color = '#ffd700'; p.type = 'c';
+    }
+  }
+}
+
+function updateParticles(pool, dt) {
+  pool.forEach((p) => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15;
+    p.life -= dt / p.maxLife;
+    if (p.life <= 0) pool.release(p);
+  });
+}
+
+// ─── §11. 상태 전환 시스템 ───
+
 function beginTransition(targetState, options) {
   if (isTransitioning) return;
   isTransitioning = true;
   const opts = options || {};
   if (opts.immediate) {
-    enterState(targetState, opts);
+    enterState(targetState);
     isTransitioning = false;
   } else {
-    const dur = opts.duration || 250;
+    const dur = opts.duration || 300;
+    tw.clearImmediate();
     tw.add({
       target: transitionOverlay,
       props: { alpha: { from: 0, to: 1 } },
       duration: dur,
       onComplete: () => {
-        enterState(targetState, opts);
+        enterState(targetState);
         tw.add({
           target: transitionOverlay,
           props: { alpha: { from: 1, to: 0 } },
@@ -921,1362 +672,935 @@ function beginTransition(targetState, options) {
   }
 }
 
-/* Internal: actually switch to the target state */
-function enterState(targetState, opts) {
-  const prevState = gameState;
-  gameState = targetState;
-  const cfg = opts || {};
-  switch (targetState) {
-    case STATES.TITLE:
-      titleAnim.t = 0; titleAnim.scanY = 0;
-      break;
-    case STATES.PLAY:
-      if (prevState === STATES.TITLE || prevState === STATES.CLEAR) {
-        if (isDailyChallenge) { loadDailyLevel(); } else { loadLevel(currentWorld, currentStage); }
-      } else if (prevState === STATES.DEAD) {
-        respawnPlayer();
-      }
-      break;
-    case STATES.DEAD:
-      stageDeaths++;
-      const deathKey = currentWorld + '-' + currentStage;
-      saveData.deaths[deathKey] = (saveData.deaths[deathKey] || 0) + 1;
-      spawnDeathParticles(particles, player.x, player.y, CONFIG.COLORS.PLAYER);
-      camera.shakeMag = 6;
-      snd.play('die');
-      tw.add({ target: {}, props: { v: { from: 0, to: 1 } }, duration: 300,
-        onComplete: () => { beginTransition(STATES.PLAY, { immediate: true }); }
+function enterState(newState) {
+  const prev = gameState;
+  gameState = newState;
+
+  if (newState === STATE.TITLE) {
+    titleAnim.time = 0; menuSelection = 0;
+    titleParticles = [];
+    for (let i = 0; i < 40; i++) {
+      titleParticles.push({
+        x: Math.random() * canvasW, y: Math.random() * canvasH,
+        vx: (Math.random() - 0.5) * 0.4, vy: -0.2 - Math.random() * 0.6,
+        size: 1 + Math.random() * 2.5, alpha: 0.2 + Math.random() * 0.5
       });
-      break;
-    case STATES.CLEAR:
-      snd.play('clear');
-      calculateClearScore();
-      break;
-    case STATES.PAUSE:
-      break;
+    }
   }
+
+  if (newState === STATE.PLAY) {
+    if (prev === STATE.TITLE || prev === STATE.WSEL || prev === STATE.CLEAR) {
+      loadStage(currentWorld, currentStage);
+    }
+    if (prev === STATE.DEAD) respawnPlayer();
+  }
+
+  if (newState === STATE.DEAD) {
+    stageDeaths++;
+    const dk = currentWorld + '-' + currentStage;
+    if (!saveData.deaths[dk]) saveData.deaths[dk] = 0;
+    saveData.deaths[dk]++;
+    writeSave(saveData);
+    camera.shakeIntensity = 8;
+    sound.play('death');
+    if (player) spawnParticle(particles, 'death', player.x + 6, player.y + 8);
+    deadAnimTimer = 0.4;
+  }
+
+  if (newState === STATE.CLEAR) {
+    sound.play('clear');
+    const gc = stageGems.filter(g => g).length;
+    const score = calcStageScore(stageTime, gc, stageDeaths, CONFIG.SCORE);
+    const sk = currentWorld + '-' + currentStage;
+    const isNewBest = !saveData.bestTimes[sk] || stageTime < saveData.bestTimes[sk];
+    clearResult = { score, time: stageTime, gems: gc, deaths: stageDeaths, isNewBest };
+    // 저장 (판정 먼저, 저장 나중에)
+    if (isNewBest) saveData.bestTimes[sk] = stageTime;
+    if (!saveData.gems[sk]) saveData.gems[sk] = [false, false, false];
+    for (let i = 0; i < stageGems.length; i++) { if (stageGems[i]) saveData.gems[sk][i] = true; }
+    saveData.totalScore += score;
+    let tg = 0;
+    for (const k in saveData.gems) tg += saveData.gems[k].filter(g => g).length;
+    saveData.totalGems = tg;
+    if (currentStage === 4 && currentWorld + 2 > saveData.unlockedWorld)
+      saveData.unlockedWorld = Math.min(5, currentWorld + 2);
+    writeSave(saveData);
+  }
+
+  if (newState === STATE.PAUSE) pauseSelection = 0;
 }
 
-/* ===== LEVEL LOADING ===== */
-/* Load a specific world/stage level */
-function loadLevel(worldIdx, stageIdx) {
-  currentLevel = deepCloneLevel(LEVELS[worldIdx][stageIdx]);
-  player = createPlayer(currentLevel.spawn.x, currentLevel.spawn.y, worldIdx);
-  respawnPoint = { x: currentLevel.spawn.x, y: currentLevel.spawn.y };
+function loadStage(worldIdx, stageIdx) {
+  const seed = worldIdx * 10000 + stageIdx * 1000 + 42;
+  const rng = new SeededRNG(seed);
+  currentLevel = generateLevel(worldIdx, stageIdx, rng);
+  player = createPlayer(currentLevel.spawn.x, currentLevel.spawn.y);
+  player.canDoubleJump = CONFIG.ABILITIES[worldIdx].doubleJump;
   camera.x = player.x - canvasW / 2;
   camera.y = player.y - canvasH / 2;
-  camera.targetX = camera.x;
-  camera.targetY = camera.y;
-  camera.shakeMag = 0;
-  stageTimer = 0;
-  stageDeaths = 0;
-  particles.clear();
+  camera.shakeIntensity = 0;
+  stageTime = 0; stageDeaths = 0;
+  stageGems = currentLevel.gems.map(() => false);
+  checkpointPos = null; tileCacheDirty = true;
+  dashTrails = []; particles.releaseAll(); scorePopups = [];
+  const dk = worldIdx + '-' + stageIdx;
+  showHint = (saveData.deaths[dk] || 0) >= CONFIG.HINT_THRESHOLD_1;
 }
 
-/* Load daily challenge level from seeded generator */
-function loadDailyLevel() {
-  const seed = getDailySeed();
-  const generated = generateDailyLevel(seed);
-  currentLevel = deepCloneLevel(generated);
-  player = createPlayer(currentLevel.spawn.x, currentLevel.spawn.y, 4); /* All moves unlocked */
-  respawnPoint = { x: currentLevel.spawn.x, y: currentLevel.spawn.y };
-  camera.x = player.x - canvasW / 2;
-  camera.y = player.y - canvasH / 2;
-  camera.targetX = camera.x;
-  camera.targetY = camera.y;
-  camera.shakeMag = 0;
-  stageTimer = 0;
-  stageDeaths = 0;
-  particles.clear();
-}
-
-/* Deep clone level data to allow mutation (gem collection, etc) */
-function deepCloneLevel(lvl) {
-  return {
-    width: lvl.width, height: lvl.height,
-    tiles: lvl.tiles.map(row => row.slice()),
-    spawn: { ...lvl.spawn }, goal: { ...lvl.goal },
-    gems: lvl.gems.map(g => ({ ...g })),
-    checkpoints: lvl.checkpoints.map(c => ({ ...c })),
-    hazards: lvl.hazards.map(h => ({ ...h })),
-    movingPlatforms: lvl.movingPlatforms.map(p => ({ ...p })),
-    worldIdx: lvl.worldIdx, stageIdx: lvl.stageIdx
-  };
-}
-
-/* Respawn player at current respawn point */
 function respawnPlayer() {
-  player.x = respawnPoint.x * TS + TS / 2;
-  player.y = respawnPoint.y * TS + TS / 2;
-  player.vx = 0; player.vy = 0;
-  player.dead = false;
-  player.dashTimer = 0; player.canDash = true;
-  player.usedDoubleJump = false;
-  player.gravityFlipped = false;
-  player.trail = [];
+  if (!currentLevel) return;
+  const sp = checkpointPos || currentLevel.spawn;
+  player = createPlayer(sp.x, sp.y);
+  player.canDoubleJump = CONFIG.ABILITIES[currentWorld].doubleJump;
+  dashTrails = [];
 }
 
-/* ===== SCORE CALCULATION ===== */
-/* Calculate stage clear score — judgment first, then save */
-function calculateClearScore() {
-  const cfg = CONFIG.SCORE;
-  const collectedGems = currentLevel.gems.filter(g => g.collected).length;
-  const timeBonus = Math.max(0, Math.floor((cfg.TIME_BONUS_THRESHOLD - stageTimer) * cfg.TIME_BONUS_PER_SEC));
-  const gemBonus = collectedGems * cfg.GEM_BONUS;
-  const deathBonus = stageDeaths === 0 ? cfg.NO_DEATH_BONUS : 0;
-  const score = cfg.STAGE_CLEAR_BASE + gemBonus + timeBonus + deathBonus;
-  const stageKey = (currentWorld + 1) + '-' + (currentStage + 1);
-  const prevBest = saveData.bestTimes[stageKey] || Infinity;
-  const isNewBest = stageTimer < prevBest;
-  clearData = { score, timeBonus, gemBonus, deathBonus, isNewBest, time: stageTimer, gems: collectedGems };
-  /* Save after judgment */
-  if (isNewBest) saveData.bestTimes[stageKey] = Math.round(stageTimer * 100) / 100;
-  const gemKey = stageKey;
-  if (!saveData.gems[gemKey]) saveData.gems[gemKey] = [];
-  currentLevel.gems.forEach((g, idx) => { if (g.collected) saveData.gems[gemKey][idx] = true; });
-  saveData.totalGems = Object.values(saveData.gems).reduce((sum, arr) => sum + arr.filter(Boolean).length, 0);
-  saveData.totalScore += score;
-  /* Daily challenge: save time record */
-  if (isDailyChallenge) {
-    const dailyKey = '' + getDailySeed();
-    const prevDaily = saveData.dailyBest[dailyKey] || Infinity;
-    if (stageTimer < prevDaily) {
-      saveData.dailyBest[dailyKey] = Math.round(stageTimer * 100) / 100;
-    }
-  }
-  /* Unlock next world if last stage of world */
-  if (!isDailyChallenge && currentStage === 4 && currentWorld + 2 > saveData.unlockedWorld) {
-    saveData.unlockedWorld = Math.min(currentWorld + 2, 5);
-  }
-  writeSave(saveData);
+// ─── §12. 게임 업데이트 ───
+
+// 파티클 스포너 콜백 (순수 함수 원칙 — 전역 pool을 직접 참조하지 않음)
+function particleSpawner(type, px, py) {
+  spawnParticle(particles, type, px, py);
 }
 
-/* ===== PHYSICS UPDATE ===== */
-/* Update player physics — pure function-like, modifies player in-place */
-function updatePlayer(pl, inp, lvl, dt) {
-  if (pl.dead) return;
-  const phy = CONFIG.PHYSICS;
-  const dtScale = dt / 16.667;
-
-  /* Dash state */
-  if (pl.dashTimer > 0) {
-    pl.dashTimer--;
-    pl.vx = pl.dashDirX * phy.DASH_SPEED;
-    pl.vy = pl.dashDirY * phy.DASH_SPEED * 0.3;
-    pl.trail.push({ x: pl.x, y: pl.y, alpha: 0.6, timer: 10 });
-    if (pl.trail.length > 8) pl.trail.shift();
-    pl.x += pl.vx * dtScale;
-    pl.y += pl.vy * dtScale;
-    resolveCollisions(pl, lvl);
-    return;
-  }
-
-  /* Horizontal input */
-  const moveLeft = inp.isDown('ArrowLeft') || inp.isDown('KeyA') || inp.touch.left;
-  const moveRight = inp.isDown('ArrowRight') || inp.isDown('KeyD') || inp.touch.right;
-  const wantJump = inp.justPressed('Space') || inp.justPressed('KeyW') || inp.justPressed('ArrowUp') || inp.touch.jumpJust;
-  const holdJump = inp.isDown('Space') || inp.isDown('KeyW') || inp.isDown('ArrowUp') || inp.touch.jump;
-  const wantDash = (inp.justPressed('ShiftLeft') || inp.justPressed('ShiftRight') || inp.justPressed('KeyX') || inp.touch.dashJust) && pl.hasDash;
-
-  const accel = pl.onGround ? phy.ACCELERATION : phy.AIR_ACCELERATION;
-  if (moveLeft) { pl.vx -= accel; pl.facing = -1; }
-  if (moveRight) { pl.vx += accel; pl.facing = 1; }
-  pl.vx = Math.max(-phy.MOVE_SPEED, Math.min(phy.MOVE_SPEED, pl.vx));
-
-  /* Friction */
-  if (!moveLeft && !moveRight) {
-    pl.vx *= pl.onGround ? phy.FRICTION : phy.AIR_FRICTION;
-    if (Math.abs(pl.vx) < 0.1) pl.vx = 0;
-  }
-
-  /* Gravity (respect flip) */
-  const gravDir = pl.gravityFlipped ? -1 : 1;
-  pl.vy += phy.GRAVITY * gravDir * dtScale;
-  if (pl.gravityFlipped) {
-    pl.vy = Math.max(-phy.MAX_FALL_SPEED, pl.vy);
-  } else {
-    pl.vy = Math.min(phy.MAX_FALL_SPEED, pl.vy);
-  }
-
-  /* Wall slide */
-  if (pl.hasWallJump && pl.onWall !== 0 && !pl.onGround) {
-    if ((pl.gravityFlipped && pl.vy < -phy.WALL_SLIDE_SPEED) || (!pl.gravityFlipped && pl.vy > phy.WALL_SLIDE_SPEED)) {
-      pl.vy = phy.WALL_SLIDE_SPEED * gravDir;
-    }
-  }
-
-  /* Coyote time */
-  if (pl.onGround) { pl.coyoteTimer = phy.COYOTE_TIME; pl.usedDoubleJump = false; pl.canDash = true; }
-  else { pl.coyoteTimer--; }
-
-  /* Jump buffer */
-  if (wantJump) pl.jumpBufferTimer = phy.JUMP_BUFFER;
-  else pl.jumpBufferTimer--;
-
-  /* Jump */
-  if (pl.jumpBufferTimer > 0 && pl.coyoteTimer > 0) {
-    pl.vy = phy.JUMP_FORCE * gravDir;
-    pl.jumpBufferTimer = 0; pl.coyoteTimer = 0;
-    pl.onGround = false;
-    snd.play('jump');
-  } else if (wantJump && pl.hasWallJump && pl.onWall !== 0 && !pl.onGround) {
-    /* Wall jump */
-    pl.vx = -pl.onWall * phy.WALL_JUMP_FORCE_X;
-    pl.vy = phy.WALL_JUMP_FORCE_Y * gravDir;
-    pl.facing = -pl.onWall;
-    pl.jumpBufferTimer = 0;
-    pl.usedDoubleJump = false;
-    snd.play('wallJump');
-  } else if (wantJump && pl.hasDoubleJump && !pl.usedDoubleJump && !pl.onGround && pl.coyoteTimer <= 0) {
-    /* Double jump */
-    pl.vy = phy.DOUBLE_JUMP_FORCE * gravDir;
-    pl.usedDoubleJump = true;
-    pl.jumpBufferTimer = 0;
-    spawnDeathParticles(particles, pl.x, pl.y + 8, 'rgba(0,255,204,0.5)');
-    snd.play('doubleJump');
-  }
-
-  /* Variable jump height */
-  if (!holdJump && ((pl.vy < 0 && !pl.gravityFlipped) || (pl.vy > 0 && pl.gravityFlipped))) {
-    pl.vy *= phy.JUMP_CUT_MULTIPLIER;
-  }
-
-  /* Dash */
-  if (wantDash && pl.canDash && pl.dashTimer <= 0) {
-    pl.dashTimer = phy.DASH_DURATION;
-    pl.dashDirX = pl.facing;
-    pl.dashDirY = 0;
-    pl.canDash = false;
-    pl.vy = 0;
-    snd.play('dash');
-  }
-
-  /* Move position */
-  pl.x += pl.vx * dtScale;
-  pl.y += pl.vy * dtScale;
-
-  /* Trail for visual flair */
-  if (Math.abs(pl.vx) > 2) {
-    pl.trail.push({ x: pl.x, y: pl.y, alpha: 0.3, timer: 6 });
-    if (pl.trail.length > 5) pl.trail.shift();
-  }
-
-  /* Resolve tile collisions */
-  resolveCollisions(pl, lvl);
-
-  /* Check gravity flip zones */
-  const tileAtPlayer = getTileAt(lvl, Math.floor(pl.x / TS), Math.floor(pl.y / TS));
-  if (tileAtPlayer === 3) { if (!pl.gravityFlipped) pl.gravityFlipped = true; }
-  else { if (pl.gravityFlipped) pl.gravityFlipped = false; }
-}
-
-/* ===== COLLISION SYSTEM ===== */
-/* Get tile value at grid position */
-function getTileAt(lvl, col, row) {
-  if (row < 0 || row >= lvl.height || col < 0 || col >= lvl.width) return 1;
-  return lvl.tiles[row] ? (lvl.tiles[row][col] || 0) : 0;
-}
-
-/* Check if tile is solid */
-function isSolid(lvl, col, row) {
-  const t = getTileAt(lvl, col, row);
-  return t === 1;
-}
-
-/* Resolve player-tile collisions with AABB */
-function resolveCollisions(pl, lvl) {
-  const hw = pl.width / 2;
-  const hh = pl.height / 2;
-  pl.onGround = false;
-  pl.onWall = 0;
-
-  /* Horizontal collision */
-  const leftCol = Math.floor((pl.x - hw) / TS);
-  const rightCol = Math.floor((pl.x + hw - 1) / TS);
-  const topRow = Math.floor((pl.y - hh) / TS);
-  const bottomRow = Math.floor((pl.y + hh - 1) / TS);
-
-  /* Check X axis */
-  for (let row = topRow; row <= bottomRow; row++) {
-    if (pl.vx > 0) {
-      const col = Math.floor((pl.x + hw) / TS);
-      if (isSolid(lvl, col, row)) {
-        pl.x = col * TS - hw;
-        pl.vx = 0;
-        pl.onWall = 1;
-      }
-    }
-    if (pl.vx < 0) {
-      const col = Math.floor((pl.x - hw) / TS);
-      if (isSolid(lvl, col, row)) {
-        pl.x = (col + 1) * TS + hw;
-        pl.vx = 0;
-        pl.onWall = -1;
-      }
-    }
-  }
-
-  /* Check Y axis */
-  const leftCol2 = Math.floor((pl.x - hw) / TS);
-  const rightCol2 = Math.floor((pl.x + hw - 1) / TS);
-  for (let col = leftCol2; col <= rightCol2; col++) {
-    if (pl.vy > 0) {
-      const row = Math.floor((pl.y + hh) / TS);
-      if (isSolid(lvl, col, row)) {
-        pl.y = row * TS - hh;
-        pl.vy = 0;
-        pl.onGround = !pl.gravityFlipped;
-      }
-      /* Crumbling block */
-      if (getTileAt(lvl, col, row) === 2) {
-        pl.y = row * TS - hh;
-        pl.vy = 0;
-        pl.onGround = !pl.gravityFlipped;
-        lvl.tiles[row][col] = 20; /* mark as crumbling */
-        tw.add({ target: { v: 0 }, props: { v: { from: 0, to: 1 } }, duration: 500,
-          onComplete: () => { if (lvl.tiles[row]) lvl.tiles[row][col] = 0; }
-        });
-      }
-    }
-    if (pl.vy < 0) {
-      const row = Math.floor((pl.y - hh) / TS);
-      if (isSolid(lvl, col, row)) {
-        /* Corner correction */
-        let corrected = false;
-        const cc = CONFIG.PHYSICS.CORNER_CORRECTION;
-        const px = pl.x;
-        const tileLeft = col * TS;
-        const tileRight = (col + 1) * TS;
-        if (px - hw < tileRight && px - hw > tileRight - cc) {
-          pl.x = tileRight + hw;
-          corrected = true;
-        } else if (px + hw > tileLeft && px + hw < tileLeft + cc) {
-          pl.x = tileLeft - hw;
-          corrected = true;
-        }
-        if (!corrected) {
-          pl.y = (row + 1) * TS + hh;
-          pl.vy = 0;
-          if (pl.gravityFlipped) pl.onGround = true;
-        }
-      }
-    }
-  }
-
-  /* Moving platforms */
-  for (const mp of lvl.movingPlatforms) {
-    if (pl.vy >= 0 && pl.x + hw > mp.x && pl.x - hw < mp.x + mp.w &&
-        pl.y + hh >= mp.y && pl.y + hh <= mp.y + mp.h + 4) {
-      pl.y = mp.y - hh;
-      pl.vy = 0;
-      pl.onGround = true;
-      pl.x += mp.dx * mp.speed;
-    }
-  }
-
-  /* Clamp to level bounds */
-  const maxX = lvl.width * TS;
-  const maxY = lvl.height * TS;
-  if (pl.x - hw < 0) { pl.x = hw; pl.vx = 0; }
-  if (pl.x + hw > maxX) { pl.x = maxX - hw; pl.vx = 0; }
-
-  /* Fall below level = death */
-  if (pl.y > maxY + 32) {
-    if (gameState === STATES.PLAY && !isTransitioning) {
-      beginTransition(STATES.DEAD, { immediate: true });
-    }
-  }
-}
-
-/* ===== HAZARD CHECKS ===== */
-/* Check all hazard collisions with player */
-function checkHazards(pl, lvl) {
-  if (pl.dead || gameState !== STATES.PLAY || isTransitioning) return;
-  const hw = pl.width / 2;
-  const hh = pl.height / 2;
-  const px1 = pl.x - hw, py1 = pl.y - hh;
-  const px2 = pl.x + hw, py2 = pl.y + hh;
-
-  for (const h of lvl.hazards) {
-    const hx1 = h.x * TS + 2, hy1 = h.y * TS + 2;
-    const hx2 = hx1 + TS - 4, hy2 = hy1 + TS - 4;
-    if (h.type === 'spike' || h.type === 'lava') {
-      if (px1 < hx2 && px2 > hx1 && py1 < hy2 && py2 > hy1) {
-        pl.dead = true;
-        beginTransition(STATES.DEAD, { immediate: true });
-        return;
-      }
-    }
-    if (h.type === 'fire' && h.active) {
-      /* Fire column hitbox extends upward */
-      const fy1 = h.y * TS - TS * 3;
-      const fy2 = h.y * TS + TS;
-      const fx1 = h.x * TS + 4;
-      const fx2 = fx1 + TS - 8;
-      if (px1 < fx2 && px2 > fx1 && py1 < fy2 && py2 > fy1) {
-        pl.dead = true;
-        beginTransition(STATES.DEAD, { immediate: true });
-        return;
-      }
-    }
-    if (h.type === 'laser' && h.active) {
-      const lx = h.x * TS + TS / 2 - 2;
-      if (px1 < lx + 4 && px2 > lx && py1 < lvl.height * TS && py2 > h.y * TS) {
-        pl.dead = true;
-        beginTransition(STATES.DEAD, { immediate: true });
-        return;
-      }
-    }
-    if (h.type === 'wind') {
-      if (px1 < hx2 && px2 > hx1 && py1 < hy2 && py2 > hy1) {
-        pl.vx += h.force * (h.dir === 'right' ? 1 : -1);
-      }
-    }
-  }
-}
-
-/* Check gem collection */
-function checkGems(pl, lvl) {
-  const hw = pl.width / 2;
-  const hh = pl.height / 2;
-  for (const gem of lvl.gems) {
-    if (gem.collected) continue;
-    const gx = gem.x * TS + TS / 2;
-    const gy = gem.y * TS + TS / 2;
-    const dist = Math.hypot(pl.x - gx, pl.y - gy);
-    if (dist < TS) {
-      gem.collected = true;
-      snd.play('gem');
-      for (let idx = 0; idx < 8; idx++) {
-        const angle = (idx / 8) * Math.PI * 2;
-        const part = particles.get();
-        if (part) {
-          part.x = gx; part.y = gy;
-          part.vx = Math.cos(angle) * 3; part.vy = Math.sin(angle) * 3;
-          part.life = 30; part.maxLife = 30; part.size = 3; part.color = CONFIG.COLORS.GEM;
-        }
-      }
-    }
-  }
-}
-
-/* Check checkpoint activation */
-function checkCheckpoints(pl, lvl) {
-  for (const cp of lvl.checkpoints) {
-    if (cp.active) continue;
-    const cpx = cp.x * TS + TS / 2;
-    const cpy = cp.y * TS + TS / 2;
-    if (Math.hypot(pl.x - cpx, pl.y - cpy) < TS * 1.5) {
-      cp.active = true;
-      respawnPoint = { x: cp.x, y: cp.y };
-      snd.play('checkpoint');
-      for (let idx = 0; idx < 12; idx++) {
-        const angle = (idx / 12) * Math.PI * 2;
-        const part = particles.get();
-        if (part) {
-          part.x = cpx; part.y = cpy;
-          part.vx = Math.cos(angle) * 2; part.vy = Math.sin(angle) * 2;
-          part.life = 40; part.maxLife = 40; part.size = 2; part.color = '#00ff66';
-        }
-      }
-    }
-  }
-}
-
-/* Check goal collision */
-function checkGoal(pl, lvl) {
-  if (isTransitioning) return;
-  const gx = lvl.goal.x * TS + TS / 2;
-  const gy = lvl.goal.y * TS + TS / 2;
-  if (Math.hypot(pl.x - gx, pl.y - gy) < TS * 1.2) {
-    beginTransition(STATES.CLEAR, { immediate: true });
-  }
-}
-
-/* ===== PARTICLE SYSTEM ===== */
-/* Spawn death explosion particles */
-function spawnDeathParticles(pool, x, y, color) {
-  for (let idx = 0; idx < 20; idx++) {
-    const part = pool.get();
-    if (part) {
-      part.x = x; part.y = y;
-      part.vx = (Math.random() - 0.5) * 8;
-      part.vy = (Math.random() - 0.5) * 8 - 2;
-      part.life = 30 + Math.random() * 20;
-      part.maxLife = part.life;
-      part.size = 2 + Math.random() * 4;
-      part.color = color;
-    }
-  }
-}
-
-/* Update all active particles */
-function updateParticles(pool, dt) {
-  const dtScale = dt / 16.667;
-  pool.forEach((part) => {
-    part.x += part.vx * dtScale;
-    part.y += part.vy * dtScale;
-    part.vy += 0.15 * dtScale;
-    part.life -= dtScale;
-    if (part.life <= 0) pool.release(part);
-  });
-}
-
-/* ===== CAMERA SYSTEM ===== */
-/* Update camera to follow target with lerp */
-function updateCamera(cam, target, lvl, dt) {
-  const dtScale = dt / 16.667;
-  const lerp = CONFIG.CAMERA.LERP_SPEED;
-  cam.targetX = target.x - canvasW / 2 + target.facing * CONFIG.CAMERA.LOOK_AHEAD_X;
-  cam.targetY = target.y - canvasH / 2;
-  cam.x += (cam.targetX - cam.x) * lerp * dtScale;
-  cam.y += (cam.targetY - cam.y) * lerp * dtScale;
-  /* Clamp to level bounds */
-  const maxX = lvl.width * TS - canvasW;
-  const maxY = lvl.height * TS - canvasH;
-  cam.x = Math.max(0, Math.min(maxX, cam.x));
-  cam.y = Math.max(0, Math.min(maxY, cam.y));
-  /* Shake decay */
-  if (cam.shakeMag > 0.1) {
-    cam.shakeX = (Math.random() - 0.5) * cam.shakeMag;
-    cam.shakeY = (Math.random() - 0.5) * cam.shakeMag;
-    cam.shakeMag *= CONFIG.CAMERA.SHAKE_DECAY;
-  } else {
-    cam.shakeX = 0; cam.shakeY = 0; cam.shakeMag = 0;
-  }
-}
-
-/* ===== UPDATE MOVING PLATFORMS ===== */
-function updateMovingPlatforms(platforms, dt) {
-  const dtScale = dt / 16.667;
-  for (const mp of platforms) {
-    mp.x += mp.dx * mp.speed * dtScale;
-    mp.y += mp.dy * mp.speed * dtScale;
-    const distX = mp.x - mp.startX;
-    const distY = mp.y - mp.startY;
-    if (Math.abs(distX) > mp.range) { mp.dx *= -1; mp.x = mp.startX + mp.range * Math.sign(distX); }
-    if (Math.abs(distY) > mp.range) { mp.dy *= -1; mp.y = mp.startY + mp.range * Math.sign(distY); }
-  }
-}
-
-/* ===== UPDATE HAZARDS (timers) ===== */
-function updateHazards(hazards, dt) {
-  const dtScale = dt / 16.667;
-  for (const h of hazards) {
-    if (h.type === 'fire') {
-      h.timer += dtScale;
-      h.active = (h.timer % h.interval) < h.interval * 0.6;
-    }
-    if (h.type === 'laser') {
-      h.timer += dtScale;
-      h.active = (h.timer % h.interval) < h.interval * 0.5;
-    }
-  }
-}
-
-/* ===== MAIN UPDATE ===== */
 function update(dt) {
-  tw.update(dt);
   switch (gameState) {
-    case STATES.TITLE:
-      titleAnim.t += dt;
-      titleAnim.scanY = (titleAnim.scanY + dt * 0.1) % canvasH;
-      updateParticles(particles, dt);
-      /* Title screen ambient particles */
-      if (Math.random() < 0.15) {
-        const part = particles.get();
-        if (part) {
-          part.x = Math.random() * canvasW; part.y = canvasH + 5;
-          part.vx = (Math.random() - 0.5) * 0.5; part.vy = -1 - Math.random();
-          part.life = 80 + Math.random() * 60; part.maxLife = part.life;
-          part.size = 1 + Math.random() * 2; part.color = CONFIG.COLORS.PLAYER;
-        }
-      }
-      /* Menu navigation (up/down to toggle) */
-      if (input.justPressed('ArrowUp') || input.justPressed('KeyW')) {
-        titleMenuIdx = titleMenuIdx === 0 ? 1 : 0;
-      }
-      if (input.justPressed('ArrowDown') || input.justPressed('KeyS')) {
-        titleMenuIdx = titleMenuIdx === 0 ? 1 : 0;
-      }
-      /* Start game — story or daily challenge */
-      if (input.justPressed('Space') || input.justPressed('Enter') || input.touch.jumpJust) {
-        snd._init();
-        if (titleMenuIdx === 1) {
-          isDailyChallenge = true;
-          currentWorld = 4; currentStage = 0;
-        } else {
-          isDailyChallenge = false;
-          currentWorld = 0; currentStage = 0;
-        }
-        beginTransition(STATES.PLAY);
-      }
-      break;
-
-    case STATES.PLAY:
-      stageTimer += dt / 1000;
-      updatePlayer(player, input, currentLevel, dt);
-      updateMovingPlatforms(currentLevel.movingPlatforms, dt);
-      updateHazards(currentLevel.hazards, dt);
-      checkHazards(player, currentLevel);
-      checkGems(player, currentLevel);
-      checkCheckpoints(player, currentLevel);
-      checkGoal(player, currentLevel);
-      updateCamera(camera, player, currentLevel, dt);
-      updateParticles(particles, dt);
-      /* Pause */
-      if (input.justPressed('Escape') || input.justPressed('KeyP') || input.touch.pauseJust) {
-        beginTransition(STATES.PAUSE, { immediate: true });
-      }
-      /* Voluntary restart */
-      if (input.justPressed('KeyR')) {
-        respawnPlayer();
-        stageDeaths++;
-      }
-      break;
-
-    case STATES.DEAD:
-      updateParticles(particles, dt);
-      break;
-
-    case STATES.CLEAR:
-      updateParticles(particles, dt);
-      /* Advance to next stage */
-      if (input.justPressed('Space') || input.justPressed('Enter') || input.touch.jumpJust) {
-        if (isDailyChallenge) {
-          /* Daily challenge: single stage, return to title */
-          isDailyChallenge = false;
-          beginTransition(STATES.TITLE);
-          break;
-        }
-        if (currentStage < 4) {
-          currentStage++;
-        } else if (currentWorld < 4) {
-          currentWorld++; currentStage = 0;
-        } else {
-          /* Game complete! Return to title */
-          beginTransition(STATES.TITLE);
-          break;
-        }
-        beginTransition(STATES.PLAY);
-      }
-      break;
-
-    case STATES.PAUSE:
-      if (input.justPressed('Escape') || input.justPressed('KeyP') || input.touch.pauseJust) {
-        beginTransition(STATES.PLAY, { immediate: true });
-      }
-      break;
+    case STATE.TITLE: updateTitle(dt); tw.update(dt); updateParticles(particles, dt); break;
+    case STATE.PLAY: updatePlay(dt); tw.update(dt); updateParticles(particles, dt); break;
+    case STATE.DEAD: updateDead(dt); tw.update(dt); updateParticles(particles, dt); break;
+    case STATE.CLEAR: updateClear(dt); tw.update(dt); updateParticles(particles, dt); break;
+    case STATE.PAUSE: updatePause(dt); break;
+    case STATE.WSEL: updateWorldSelect(dt); tw.update(dt); break;
   }
-  /* Decay trail alpha */
-  if (player.trail) {
-    for (let idx = player.trail.length - 1; idx >= 0; idx--) {
-      player.trail[idx].timer--;
-      player.trail[idx].alpha *= 0.85;
-      if (player.trail[idx].timer <= 0) player.trail.splice(idx, 1);
-    }
+
+  // 대시 잔상 감쇠
+  for (let i = dashTrails.length - 1; i >= 0; i--) {
+    dashTrails[i].alpha -= dt * 4;
+    if (dashTrails[i].alpha <= 0) dashTrails.splice(i, 1);
   }
+  // 점수 팝업 감쇠
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    scorePopups[i].y -= 30 * dt;
+    scorePopups[i].life -= dt;
+    if (scorePopups[i].life <= 0) scorePopups.splice(i, 1);
+  }
+
   input.postUpdate();
-  input.touch.jumpJust = false;
-  input.touch.dashJust = false;
-  input.touch.pauseJust = false;
 }
 
-/* ===== RENDERER ===== */
-/* Draw parallax background layers */
-function drawBackground(worldIdx, camX, camY) {
-  const w = CONFIG.WORLDS[worldIdx] || CONFIG.WORLDS[0];
-  /* Background gradient */
-  const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
-  grad.addColorStop(0, w.bg1);
-  grad.addColorStop(1, w.bg2);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvasW, canvasH);
-
-  /* Parallax layer 1 — far (stars/sky) */
-  ctx.fillStyle = w.light;
-  const starSeed = worldIdx * 1000;
-  for (let idx = 0; idx < 40; idx++) {
-    const sx = ((starSeed + idx * 137) % 800 - camX * 0.05) % canvasW;
-    const sy = ((starSeed + idx * 251) % 450);
-    const sz = 1 + (idx % 3);
-    ctx.globalAlpha = 0.3 + (idx % 5) * 0.1;
-    ctx.fillRect(sx < 0 ? sx + canvasW : sx, sy, sz, sz);
+function updateTitle(dt) {
+  titleAnim.time += dt;
+  for (let i = 0; i < titleParticles.length; i++) {
+    const p = titleParticles[i];
+    p.x += p.vx; p.y += p.vy;
+    if (p.y < -10) { p.y = canvasH + 10; p.x = Math.random() * canvasW; }
   }
-  ctx.globalAlpha = 1;
-
-  /* Parallax layer 2 — near (mountain silhouettes) */
-  ctx.fillStyle = w.accent;
-  ctx.globalAlpha = 0.3;
-  ctx.beginPath();
-  const ox = -(camX * 0.2) % 200;
-  for (let idx = -1; idx < 6; idx++) {
-    const bx = ox + idx * 200;
-    ctx.moveTo(bx, canvasH);
-    ctx.lineTo(bx + 60, canvasH - 80 - (idx % 3) * 30);
-    ctx.lineTo(bx + 120, canvasH - 50 - (idx % 2) * 20);
-    ctx.lineTo(bx + 200, canvasH);
+  if (input.justPressed('jump') || input.justPressed('start')) {
+    sound.play('menu');
+    if (menuSelection === 0) beginTransition(STATE.WSEL);
+    else if (menuSelection === 1) {
+      dailyMode = true;
+      const d = new Date(); dailyMode = true;
+      const seed = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+      currentLevel = generateDailyLevel(seed);
+      currentWorld = currentLevel.worldIdx; currentStage = currentLevel.stageIdx;
+      beginTransition(STATE.PLAY);
+    }
   }
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  if (input.justPressed('down')) { menuSelection = (menuSelection + 1) % 2; sound.play('menu'); }
+  if (input.justPressed('up')) { menuSelection = (menuSelection - 1 + 2) % 2; sound.play('menu'); }
 }
 
-/* Draw a single tile */
-function drawTile(col, row, tileType, worldIdx) {
-  const x = col * TS;
-  const y = row * TS;
-  if (tileType === 1) {
-    /* Solid block */
-    ctx.fillStyle = CONFIG.COLORS.TERRAIN;
-    ctx.fillRect(x, y, TS, TS);
-    /* Subtle edge highlight */
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    ctx.fillRect(x, y, TS, 1);
-    ctx.fillRect(x, y, 1, TS);
-  } else if (tileType === 2 || tileType === 20) {
-    /* Crumbling block */
-    ctx.fillStyle = tileType === 20 ? 'rgba(58,58,92,0.5)' : '#4a4a6c';
-    ctx.fillRect(x, y, TS, TS);
-    /* Crack pattern */
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.beginPath();
-    ctx.moveTo(x + 3, y + 3); ctx.lineTo(x + TS - 3, y + TS - 3);
-    ctx.moveTo(x + TS - 3, y + 3); ctx.lineTo(x + 3, y + TS - 3);
-    ctx.stroke();
-  } else if (tileType === 3) {
-    /* Gravity reverse zone */
-    ctx.fillStyle = 'rgba(224,176,255,0.15)';
-    ctx.fillRect(x, y, TS, TS);
-    /* Arrow indicator */
-    ctx.strokeStyle = 'rgba(224,176,255,0.4)';
-    ctx.beginPath();
-    ctx.moveTo(x + TS/2, y + 3); ctx.lineTo(x + TS/2 - 3, y + 8);
-    ctx.moveTo(x + TS/2, y + 3); ctx.lineTo(x + TS/2 + 3, y + 8);
-    ctx.stroke();
+function updateWorldSelect(dt) {
+  if (input.justPressed('right')) { worldSelectIdx = Math.min(saveData.unlockedWorld - 1, worldSelectIdx + 1); sound.play('menu'); }
+  if (input.justPressed('left')) { worldSelectIdx = Math.max(0, worldSelectIdx - 1); sound.play('menu'); }
+  if (input.justPressed('jump') || input.justPressed('start')) {
+    currentWorld = worldSelectIdx; currentStage = 0; dailyMode = false;
+    sound.play('menu'); beginTransition(STATE.PLAY);
   }
+  if (input.justPressed('pause')) beginTransition(STATE.TITLE);
 }
 
-/* Draw hazard objects */
-function drawHazard(h, animTime) {
-  const x = h.x * TS;
-  const y = h.y * TS;
-  if (h.type === 'spike') {
-    ctx.fillStyle = CONFIG.COLORS.HAZARD;
-    ctx.beginPath();
-    if (h.dir === 'up') {
-      ctx.moveTo(x, y + TS); ctx.lineTo(x + TS/2, y + 2); ctx.lineTo(x + TS, y + TS);
-    } else if (h.dir === 'down') {
-      ctx.moveTo(x, y); ctx.lineTo(x + TS/2, y + TS - 2); ctx.lineTo(x + TS, y);
-    } else if (h.dir === 'left') {
-      ctx.moveTo(x + TS, y); ctx.lineTo(x + 2, y + TS/2); ctx.lineTo(x + TS, y + TS);
+function updatePlay(dt) {
+  if (!player || !currentLevel) return;
+  if (input.justPressed('pause')) { beginTransition(STATE.PAUSE, { immediate: true }); return; }
+  if (input.justPressed('restart')) { beginTransition(STATE.DEAD, { immediate: true }); return; }
+  stageTime += dt;
+
+  const abilities = CONFIG.ABILITIES[currentWorld];
+  const result = updatePlayer(player, input, currentLevel, abilities, sound, particleSpawner);
+  if (result === 'dead') { beginTransition(STATE.DEAD, { immediate: true }); return; }
+
+  // 함정 충돌
+  if (!player.dashing) {
+    const hx = player.x + CONFIG.HITBOX.OFFSET_X;
+    if (checkHazards(hx, player.y, player.width, player.height, currentLevel)) {
+      beginTransition(STATE.DEAD, { immediate: true }); return;
+    }
+  }
+
+  // 이동 발판
+  for (let i = 0; i < currentLevel.movingPlatforms.length; i++) {
+    const mp = currentLevel.movingPlatforms[i];
+    if (mp.vertical) {
+      mp.y += mp.speed * mp.dir;
+      if (mp.y <= Math.min(mp.startY, mp.endY) || mp.y >= Math.max(mp.startY, mp.endY)) mp.dir *= -1;
     } else {
-      ctx.moveTo(x, y); ctx.lineTo(x + TS - 2, y + TS/2); ctx.lineTo(x, y + TS);
+      mp.x += mp.speed * mp.dir;
+      if (mp.x <= Math.min(mp.startX, mp.endX) || mp.x >= Math.max(mp.startX, mp.endX)) mp.dir *= -1;
     }
-    ctx.fill();
-  } else if (h.type === 'lava') {
-    const wave = Math.sin(animTime * 0.003 + h.x * 0.5) * 2;
-    ctx.fillStyle = '#ff4500';
-    ctx.fillRect(x, y + wave, TS, TS);
-    ctx.fillStyle = 'rgba(255,200,0,0.5)';
-    ctx.fillRect(x, y + wave, TS, 4);
-  } else if (h.type === 'fire' && h.active) {
-    /* Fire column */
-    const flicker = Math.sin(animTime * 0.01 + h.x) * 2;
-    ctx.fillStyle = 'rgba(255,100,0,0.7)';
-    ctx.fillRect(x + 4 + flicker, y - TS * 3, TS - 8, TS * 4);
-    ctx.fillStyle = 'rgba(255,200,50,0.4)';
-    ctx.fillRect(x + 6 + flicker, y - TS * 2.5, TS - 12, TS * 3);
-  } else if (h.type === 'laser') {
-    /* Laser emitter */
-    ctx.fillStyle = h.active ? '#ff0066' : '#660033';
-    ctx.fillRect(x + 4, y, TS - 8, TS);
-    if (h.active) {
-      ctx.fillStyle = 'rgba(255,0,102,0.4)';
-      ctx.fillRect(x + TS/2 - 2, y + TS, 4, canvasH);
-      ctx.fillStyle = 'rgba(255,100,150,0.8)';
-      ctx.fillRect(x + TS/2 - 1, y + TS, 2, canvasH);
+    const ox = CONFIG.HITBOX.OFFSET_X;
+    if (player.y + player.height >= mp.y - 2 && player.y + player.height <= mp.y + 8 &&
+        player.x + ox + player.width > mp.x && player.x + ox < mp.x + mp.width && player.vy >= 0) {
+      player.y = mp.y - player.height; player.vy = 0; player.onGround = true;
+      player.coyoteTimer = CONFIG.PHYSICS.COYOTE_TIME;
+      player.jumpsLeft = player.canDoubleJump ? 2 : 1;
+      player.dashCooldown = false;
+      if (!mp.vertical) player.x += mp.speed * mp.dir;
     }
   }
-}
 
-/* Draw the player character */
-function drawPlayer(pl, animTime) {
-  if (pl.dead) return;
-  /* Trail / afterimages */
-  for (const tr of pl.trail) {
-    ctx.globalAlpha = tr.alpha;
-    ctx.fillStyle = CONFIG.COLORS.PLAYER_TRAIL;
-    ctx.fillRect(tr.x - 6, tr.y - 8, 12, 16);
-  }
-  ctx.globalAlpha = 1;
-
-  /* Main body: neon rectangle with eyes */
-  ctx.fillStyle = CONFIG.COLORS.PLAYER;
-  ctx.shadowColor = CONFIG.COLORS.PLAYER;
-  ctx.shadowBlur = 8;
-  ctx.fillRect(pl.x - 6, pl.y - 8, 12, 16);
-  ctx.shadowBlur = 0;
-  /* Eyes */
-  ctx.fillStyle = '#0a0a0f';
-  const eyeOffX = pl.facing > 0 ? 1 : -3;
-  const eyeY = pl.gravityFlipped ? pl.y + 2 : pl.y - 4;
-  ctx.fillRect(pl.x + eyeOffX, eyeY, 2, 3);
-  ctx.fillRect(pl.x + eyeOffX + 4, eyeY, 2, 3);
-
-  /* Dash indicator */
-  if (pl.hasDash && !pl.canDash) {
-    ctx.fillStyle = 'rgba(255,107,53,0.4)';
-    ctx.beginPath();
-    ctx.arc(pl.x, pl.y - 12, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-/* Draw gems with rotation animation */
-function drawGems(gems, animTime) {
-  for (const gem of gems) {
+  // 보석 수집
+  for (let i = 0; i < currentLevel.gems.length; i++) {
+    const gem = currentLevel.gems[i];
     if (gem.collected) continue;
-    const gx = gem.x * TS + TS / 2;
-    const gy = gem.y * TS + TS / 2 + Math.sin(animTime * 0.004) * 3;
-    ctx.save();
-    ctx.translate(gx, gy);
-    ctx.rotate(animTime * 0.003);
-    ctx.fillStyle = CONFIG.COLORS.GEM;
-    ctx.shadowColor = CONFIG.COLORS.GEM;
-    ctx.shadowBlur = 6;
-    ctx.fillRect(-4, -4, 8, 8);
-    ctx.shadowBlur = 0;
-    ctx.restore();
+    const gx = gem.x * TS + TS / 2, gy = gem.y * TS + TS / 2;
+    const px = player.x + 6, py = player.y + 8;
+    if (Math.abs(px - gx) < 14 && Math.abs(py - gy) < 14) {
+      gem.collected = true; stageGems[i] = true;
+      sound.play('gem'); spawnParticle(particles, 'gem', gx, gy);
+      gemFlashAlpha = 0.3;
+      scorePopups.push({ x: gx, y: gy, text: '+' + CONFIG.SCORE.GEM_BONUS, life: 1, color: '#ffd700' });
+    }
+  }
+
+  // 체크포인트
+  for (let i = 0; i < currentLevel.checkpoints.length; i++) {
+    const cp = currentLevel.checkpoints[i];
+    if (Math.abs(player.x - cp.x * TS) < TS && Math.abs(player.y - cp.y * TS) < TS * 2) {
+      if (!checkpointPos || checkpointPos.x !== cp.x || checkpointPos.y !== cp.y) {
+        checkpointPos = { x: cp.x, y: cp.y }; sound.play('checkpoint');
+      }
+    }
+  }
+
+  // 골
+  const goal = currentLevel.goal;
+  if (Math.abs(player.x - goal.x * TS) < TS * 1.5 && Math.abs(player.y - goal.y * TS) < TS * 2) {
+    beginTransition(STATE.CLEAR, { immediate: true }); return;
+  }
+
+  // 카메라
+  updateCamera(camera, player.x, player.y, currentLevel.width, currentLevel.height, canvasW, canvasH, player.facing);
+  if (gemFlashAlpha > 0) gemFlashAlpha -= dt * 2;
+}
+
+function updateDead(dt) {
+  deadAnimTimer -= dt;
+  if (deadAnimTimer <= 0 && !isTransitioning) {
+    beginTransition(STATE.PLAY, { immediate: true });
   }
 }
 
-/* Draw goal flag */
-function drawGoal(goal, animTime) {
-  const gx = goal.x * TS;
-  const gy = goal.y * TS;
-  ctx.fillStyle = CONFIG.COLORS.GOAL;
-  /* Pole */
-  ctx.fillRect(gx + 2, gy, 3, TS * 2);
-  /* Flag (waving) */
-  const wave = Math.sin(animTime * 0.005) * 2;
-  ctx.beginPath();
-  ctx.moveTo(gx + 5, gy);
-  ctx.lineTo(gx + 5 + 12 + wave, gy + 5);
-  ctx.lineTo(gx + 5, gy + 10);
-  ctx.fillStyle = CONFIG.COLORS.GOAL;
-  ctx.fill();
-  /* Glow */
-  ctx.shadowColor = CONFIG.COLORS.GOAL;
-  ctx.shadowBlur = 10;
-  ctx.fillRect(gx + 5, gy, 1, 1);
-  ctx.shadowBlur = 0;
+function updateClear(dt) {
+  if (input.justPressed('jump') || input.justPressed('start')) {
+    currentStage++;
+    if (currentStage >= 5) {
+      currentStage = 0; currentWorld++;
+      if (currentWorld >= 5) { beginTransition(STATE.TITLE); return; }
+    }
+    beginTransition(STATE.PLAY);
+  }
 }
 
-/* Draw checkpoints */
-function drawCheckpoints(checkpoints, animTime) {
-  for (const cp of checkpoints) {
-    const cx = cp.x * TS + TS / 2;
-    const cy = cp.y * TS + TS / 2;
-    ctx.fillStyle = cp.active ? '#00ff66' : '#555577';
-    ctx.fillRect(cx - 2, cy - 8, 4, 16);
-    if (cp.active) {
-      ctx.shadowColor = '#00ff66';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(cx, cy - 10, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+function updatePause(dt) {
+  if (input.justPressed('pause')) { beginTransition(STATE.PLAY, { immediate: true }); return; }
+  if (input.justPressed('down')) { pauseSelection = (pauseSelection + 1) % 3; sound.play('menu'); }
+  if (input.justPressed('up')) { pauseSelection = (pauseSelection - 1 + 3) % 3; sound.play('menu'); }
+  if (input.justPressed('jump') || input.justPressed('start')) {
+    sound.play('menu');
+    if (pauseSelection === 0) beginTransition(STATE.PLAY, { immediate: true });
+    else if (pauseSelection === 1) { loadStage(currentWorld, currentStage); beginTransition(STATE.PLAY, { immediate: true }); }
+    else beginTransition(STATE.TITLE);
+  }
+}
+
+// ─── §13. 렌더링 시스템 ───
+
+function drawBackground(c, worldIdx, cx, cy) {
+  const theme = CONFIG.WORLDS[worldIdx] || CONFIG.WORLDS[0];
+  const grad = c.createLinearGradient(0, 0, 0, canvasH);
+  grad.addColorStop(0, theme.bg1); grad.addColorStop(1, theme.bg2);
+  c.fillStyle = grad; c.fillRect(0, 0, canvasW, canvasH);
+
+  // 패럴랙스 레이어 1 — 별 (Canvas 드로잉)
+  c.fillStyle = '#ffffff';
+  for (let i = 0; i < 50; i++) {
+    const sx = ((worldIdx * 100 + i * 73) * 13 + cx * 0.05) % canvasW;
+    const sy = ((worldIdx * 100 + i * 137) * 7) % canvasH;
+    c.globalAlpha = 0.15 + (i % 5) * 0.08;
+    c.fillRect(sx, sy, 1 + (i % 3), 1 + (i % 3));
+  }
+  c.globalAlpha = 1;
+
+  // 패럴랙스 레이어 2 — 산맥 실루엣 (Canvas 드로잉)
+  c.fillStyle = theme.bg1; c.globalAlpha = 0.4;
+  c.beginPath(); c.moveTo(0, canvasH);
+  for (let x = 0; x <= canvasW; x += 30) {
+    c.lineTo(x, canvasH * 0.45 + Math.sin((x + cx * 0.2) * 0.012) * 50 + Math.sin((x + cx * 0.15) * 0.03) * 25);
+  }
+  c.lineTo(canvasW, canvasH); c.fill(); c.globalAlpha = 1;
+}
+
+function drawTiles(c, level, cx, cy) {
+  const theme = CONFIG.WORLDS[level.worldIdx] || CONFIG.WORLDS[0];
+  const sc = Math.max(0, Math.floor(cx / TS) - 1);
+  const ec = Math.min(level.width - 1, Math.ceil((cx + canvasW) / TS) + 1);
+  const sr = Math.max(0, Math.floor(cy / TS) - 1);
+  const er = Math.min(level.height - 1, Math.ceil((cy + canvasH) / TS) + 1);
+
+  for (let row = sr; row <= er; row++) {
+    for (let col = sc; col <= ec; col++) {
+      const tile = level.tiles[row][col];
+      const dx = col * TS - cx;
+      const dy = row * TS - cy;
+
+      if (tile === TILE.SOLID) {
+        c.fillStyle = theme.tile;
+        c.fillRect(dx, dy, TS, TS);
+        // 윗면 하이라이트
+        if (row > 0 && level.tiles[row-1][col] !== TILE.SOLID) {
+          c.fillStyle = theme.accent; c.globalAlpha = 0.3;
+          c.fillRect(dx, dy, TS, 2); c.globalAlpha = 1;
+        }
+        // 옆면 테두리
+        c.strokeStyle = 'rgba(0,0,0,0.2)'; c.lineWidth = 0.5;
+        c.strokeRect(dx, dy, TS, TS);
+      } else if (tile >= TILE.SPIKE_UP && tile <= TILE.SPIKE_RIGHT) {
+        // 가시 삼각형 — 4방향 완전 대응
+        c.fillStyle = theme.spike;
+        c.beginPath();
+        if (tile === TILE.SPIKE_UP) {
+          c.moveTo(dx + 1, dy + TS); c.lineTo(dx + TS / 2, dy + 3); c.lineTo(dx + TS - 1, dy + TS);
+        } else if (tile === TILE.SPIKE_DOWN) {
+          c.moveTo(dx + 1, dy); c.lineTo(dx + TS / 2, dy + TS - 3); c.lineTo(dx + TS - 1, dy);
+        } else if (tile === TILE.SPIKE_LEFT) {
+          c.moveTo(dx + TS, dy + 1); c.lineTo(dx + 3, dy + TS / 2); c.lineTo(dx + TS, dy + TS - 1);
+        } else if (tile === TILE.SPIKE_RIGHT) {
+          c.moveTo(dx, dy + 1); c.lineTo(dx + TS - 3, dy + TS / 2); c.lineTo(dx, dy + TS - 1);
+        }
+        c.fill();
+      }
     }
   }
 }
 
-/* Draw moving platforms */
-function drawMovingPlatforms(platforms) {
-  for (const mp of platforms) {
-    ctx.fillStyle = '#5a5a8c';
+function drawMovingPlatforms(c, platforms, cx, cy) {
+  for (let i = 0; i < platforms.length; i++) {
+    const mp = platforms[i];
+    const dx = mp.x - cx, dy = mp.y - cy;
+    // 본체
+    c.fillStyle = '#5a7a9a';
+    c.beginPath();
     const r = 3;
-    ctx.beginPath();
-    ctx.roundRect(mp.x, mp.y, mp.w, mp.h, r);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.fillRect(mp.x + 2, mp.y, mp.w - 4, 2);
+    c.moveTo(dx+r,dy); c.lineTo(dx+mp.width-r,dy);
+    c.quadraticCurveTo(dx+mp.width,dy,dx+mp.width,dy+r);
+    c.lineTo(dx+mp.width,dy+mp.height-r);
+    c.quadraticCurveTo(dx+mp.width,dy+mp.height,dx+mp.width-r,dy+mp.height);
+    c.lineTo(dx+r,dy+mp.height);
+    c.quadraticCurveTo(dx,dy+mp.height,dx,dy+mp.height-r);
+    c.lineTo(dx,dy+r); c.quadraticCurveTo(dx,dy,dx+r,dy);
+    c.fill();
+    // 상단 하이라이트
+    c.strokeStyle = '#8ab4d0'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(dx+3,dy+1); c.lineTo(dx+mp.width-3,dy+1); c.stroke();
   }
 }
 
-/* Draw HUD overlay */
-function drawHUD(worldIdx, stageIdx, timer, lvl) {
-  const padding = 10;
-  ctx.fillStyle = 'rgba(10,10,15,0.6)';
-  ctx.fillRect(0, 0, canvasW, 28);
+function drawGems(c, gems, cx, cy, time) {
+  for (let i = 0; i < gems.length; i++) {
+    const gem = gems[i];
+    if (gem.collected) continue;
+    const dx = gem.x * TS - cx + TS / 2;
+    const dy = gem.y * TS - cy + TS / 2 + Math.sin(time * 3 + i) * 3;
 
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.font = '12px "Segoe UI", system-ui, sans-serif';
-  ctx.textAlign = 'left';
-  /* World-Stage label */
-  ctx.fillText('W' + (worldIdx + 1) + '-S' + (stageIdx + 1) + '  ' + CONFIG.WORLDS[worldIdx].name, padding, 18);
-
-  /* Gems */
-  const collected = lvl.gems.filter(g => g.collected).length;
-  const total = lvl.gems.length;
-  ctx.textAlign = 'center';
-  let gemStr = '';
-  for (let idx = 0; idx < total; idx++) {
-    gemStr += idx < collected ? '\u25C6' : '\u25C7'; /* ◆ ◇ */
-  }
-  ctx.fillStyle = CONFIG.COLORS.GEM;
-  ctx.fillText(gemStr, canvasW / 2, 18);
-
-  /* Timer */
-  ctx.textAlign = 'right';
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  const min = Math.floor(timer / 60);
-  const sec = (timer % 60).toFixed(1);
-  ctx.fillText((min > 0 ? min + ':' : '') + (sec < 10 && min > 0 ? '0' : '') + sec, canvasW - padding - 40, 18);
-
-  /* Pause icon */
-  ctx.fillStyle = '#8080a0';
-  ctx.fillText('\u23F8', canvasW - padding, 18); /* ⏸ */
-
-  /* Deaths counter */
-  if (stageDeaths > 0) {
-    ctx.textAlign = 'right';
-    ctx.fillStyle = CONFIG.COLORS.HAZARD;
-    ctx.font = '10px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText('\u2620 ' + stageDeaths, canvasW - padding, 28); /* ☠ */
-  }
-
-  /* Hint */
-  const deathKey = worldIdx + '-' + stageIdx;
-  const totalDeathsHere = saveData.deaths[deathKey] || 0;
-  if (totalDeathsHere >= CONFIG.HINT_THRESHOLD_1 && totalDeathsHere < CONFIG.HINT_THRESHOLD_2) {
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font = '9px "Segoe UI", system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Tip: R\ud0a4\ub85c \uccb4\ud06c\ud3ec\uc778\ud2b8\uc5d0\uc11c \uc7ac\uc2dc\uc791', canvasW / 2, canvasH - 10);
+    // 보석 다이아몬드 (Canvas 드로잉)
+    c.save(); c.translate(dx, dy); c.rotate(time * 2 + i);
+    c.fillStyle = '#ffd700'; c.beginPath();
+    c.moveTo(0, -7); c.lineTo(7, 0); c.lineTo(0, 7); c.lineTo(-7, 0); c.fill();
+    c.restore();
   }
 }
 
-/* Draw title screen */
-function drawTitle(dt) {
-  drawBackground(4, 0, 0);
+function drawCheckpoints(c, cps, active, cx, cy, time) {
+  for (let i = 0; i < cps.length; i++) {
+    const cp = cps[i];
+    const dx = cp.x * TS - cx, dy = cp.y * TS - cy;
+    const isActive = active && active.x === cp.x && active.y === cp.y;
+    // 막대
+    c.fillStyle = isActive ? '#00ff66' : '#666';
+    c.fillRect(dx + 6, dy - 8, 3, 24);
+    // 깃발
+    c.fillStyle = isActive ? '#00ff66' : '#cc4444';
+    c.beginPath(); c.moveTo(dx+9,dy-8); c.lineTo(dx+20,dy-3); c.lineTo(dx+9,dy+2); c.fill();
+    if (isActive) { c.shadowColor='#00ff66'; c.shadowBlur=6; c.fill(); c.shadowBlur=0; }
+  }
+}
 
-  /* Ambient particles */
-  particles.forEach((part) => {
-    ctx.globalAlpha = part.life / part.maxLife;
-    ctx.fillStyle = part.color;
-    ctx.fillRect(part.x - part.size/2, part.y - part.size/2, part.size, part.size);
+function drawGoal(c, goal, cx, cy, time) {
+  const dx = goal.x * TS - cx, dy = goal.y * TS - cy;
+  c.fillStyle = '#fff'; c.fillRect(dx+6, dy-16, 3, 32);
+  const wave = Math.sin(time * 4) * 2;
+  c.fillStyle = '#00ff66'; c.beginPath();
+  c.moveTo(dx+9,dy-16); c.lineTo(dx+24+wave,dy-10); c.lineTo(dx+9,dy-4); c.fill();
+  c.globalAlpha = 0.15 + Math.sin(time * 3) * 0.1;
+  c.fillStyle = '#00ff66'; c.beginPath(); c.arc(dx+14,dy-10,14,0,Math.PI*2); c.fill();
+  c.globalAlpha = 1;
+}
+
+function drawPlayer(c, pl, cx, cy) {
+  if (!pl) return;
+  const dx = pl.x - cx, dy = pl.y - cy;
+
+  // 대시 잔상 (Canvas 드로잉)
+  for (let i = 0; i < dashTrails.length; i++) {
+    const t = dashTrails[i];
+    c.globalAlpha = t.alpha * 0.5;
+    c.fillStyle = '#00ffcc'; c.fillRect(t.x-cx, t.y-cy, 12, 16);
+  }
+  c.globalAlpha = 1;
+
+  // 플레이어 — 민트 사각형 + 눈 (Canvas 드로잉)
+  c.fillStyle = '#00ffcc';
+  c.fillRect(dx, dy, 12, 16);
+  // 눈
+  c.fillStyle = '#0a0a0f';
+  c.fillRect(dx + 3 + pl.eyeOffsetX, dy + 5, 2, 3);
+  c.fillRect(dx + 7 + pl.eyeOffsetX, dy + 5, 2, 3);
+
+  // 벽 슬라이드 먼지
+  if (pl.onWall !== 0 && !pl.onGround && pl.vy > 0) {
+    c.fillStyle = '#fff'; c.globalAlpha = 0.3;
+    for (let i = 0; i < 3; i++) {
+      c.fillRect(dx + (pl.onWall === 1 ? 13 : -3), dy + i * 5 + Math.random() * 2, 2, 2);
+    }
+    c.globalAlpha = 1;
+  }
+}
+
+function drawParticles(c, pool, cx, cy) {
+  pool.forEach((p) => {
+    c.globalAlpha = Math.max(0, p.life);
+    c.fillStyle = p.color;
+    if (p.type === 'c') { c.beginPath(); c.arc(p.x-cx, p.y-cy, p.size, 0, Math.PI*2); c.fill(); }
+    else { c.fillRect(p.x-cx-p.size/2, p.y-cy-p.size/2, p.size, p.size); }
   });
-  ctx.globalAlpha = 1;
-
-  /* Title text with glow */
-  const titleY = canvasH * 0.3 + Math.sin(titleAnim.t * 0.002) * 5;
-  ctx.save();
-  ctx.font = 'bold 36px "Segoe UI", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = CONFIG.COLORS.PLAYER;
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = CONFIG.COLORS.PLAYER;
-  ctx.fillText('MINI PLATFORMER', canvasW / 2, titleY);
-  ctx.shadowBlur = 0;
-
-  /* Subtitle */
-  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#8080a0';
-  ctx.fillText('\uBB34\uB108\uC838\uAC00\uB294 \uACE0\uB300 \uD0D1\uC744 \uB3CC\uD30C\uD558\uB77C', canvasW / 2, titleY + 30);
-
-  /* Scanline CRT effect */
-  ctx.fillStyle = 'rgba(0,255,204,0.03)';
-  for (let idx = 0; idx < canvasH; idx += 3) {
-    ctx.fillRect(0, idx, canvasW, 1);
-  }
-  /* Scanning line */
-  ctx.fillStyle = 'rgba(0,255,204,0.08)';
-  ctx.fillRect(0, titleAnim.scanY, canvasW, 2);
-
-  /* Menu options */
-  const menuY = canvasH * 0.55;
-  const menuItems = ['\u25B6 STORY MODE', '\u25B6 DAILY CHALLENGE'];
-  for (let mi = 0; mi < menuItems.length; mi++) {
-    const isSelected = titleMenuIdx === mi;
-    ctx.font = (isSelected ? 'bold ' : '') + '14px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = isSelected ? CONFIG.COLORS.PLAYER : '#505070';
-    if (isSelected) { ctx.shadowColor = CONFIG.COLORS.PLAYER; ctx.shadowBlur = 8; }
-    ctx.fillText(menuItems[mi], canvasW / 2, menuY + mi * 24);
-    ctx.shadowBlur = 0;
-  }
-
-  /* Daily best display */
-  const todayKey = '' + getDailySeed();
-  const todayBest = saveData.dailyBest[todayKey];
-  if (todayBest !== undefined) {
-    ctx.font = '10px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = '#ffd700';
-    ctx.fillText('\uC624\uB298\uC758 \uAE30\uB85D: ' + todayBest.toFixed(2) + 's', canvasW / 2, menuY + 55);
-  }
-
-  /* Navigation hint (blinking) */
-  if (Math.floor(titleAnim.t / 500) % 2 === 0) {
-    ctx.font = '11px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = '#8080a0';
-    ctx.fillText('\u2191\u2193 \uC120\uD0DD  |  SPACE / TAP \uC2DC\uC791', canvasW / 2, menuY + 75);
-  }
-
-  /* World select info */
-  ctx.font = '11px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#505070';
-  ctx.fillText('\uD574\uAE08\uB41C \uC6D4\uB4DC: ' + saveData.unlockedWorld + '/5  |  \uCD1D \uBCF4\uC11D: ' + saveData.totalGems, canvasW / 2, canvasH * 0.85);
-  ctx.fillText('\uCD1D\uC810: ' + saveData.totalScore, canvasW / 2, canvasH * 0.90);
-
-  ctx.restore();
+  c.globalAlpha = 1;
 }
 
-/* Draw game over / clear screen */
-function drawClearScreen(dt) {
-  /* Semi-transparent overlay */
-  ctx.fillStyle = 'rgba(10,10,15,0.85)';
-  ctx.fillRect(0, 0, canvasW, canvasH);
+function drawHUD(c, worldIdx, stageIdx, time, gemsState, gems) {
+  const theme = CONFIG.WORLDS[worldIdx] || CONFIG.WORLDS[0];
+  c.fillStyle = 'rgba(10,10,15,0.65)'; c.fillRect(0, 0, canvasW, 28);
+  c.font = '12px "Segoe UI",system-ui,sans-serif';
+  c.textBaseline = 'middle';
 
-  ctx.save();
-  ctx.textAlign = 'center';
+  // 월드-스테이지
+  c.fillStyle = theme.accent; c.textAlign = 'left';
+  c.fillText('W' + (worldIdx+1) + '-S' + (stageIdx+1) + '  ' + CONFIG.WORLDS[worldIdx].name, 8, 14);
 
-  /* Title */
-  ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
-  ctx.shadowColor = CONFIG.COLORS.GOAL;
-  ctx.shadowBlur = 15;
-  ctx.fillStyle = CONFIG.COLORS.GOAL;
-  ctx.fillText('STAGE CLEAR!', canvasW / 2, canvasH * 0.2);
-  ctx.shadowBlur = 0;
-
-  /* Score breakdown */
-  const startY = canvasH * 0.35;
-  const lineH = 24;
-  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#8080a0';
-  ctx.textAlign = 'left';
-  const leftX = canvasW * 0.3;
-  const rightX = canvasW * 0.7;
-
-  ctx.fillText('\uAE30\uBCF8 \uC810\uC218', leftX, startY);
-  ctx.textAlign = 'right'; ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.fillText(CONFIG.SCORE.STAGE_CLEAR_BASE + '', rightX, startY);
-
-  ctx.textAlign = 'left'; ctx.fillStyle = '#8080a0';
-  ctx.fillText('\uBCF4\uC11D (' + clearData.gems + '/' + currentLevel.gems.length + ')', leftX, startY + lineH);
-  ctx.textAlign = 'right'; ctx.fillStyle = CONFIG.COLORS.GEM;
-  ctx.fillText('+' + clearData.gemBonus, rightX, startY + lineH);
-
-  ctx.textAlign = 'left'; ctx.fillStyle = '#8080a0';
-  ctx.fillText('\uD0C0\uC784 \uBCF4\uB108\uC2A4', leftX, startY + lineH * 2);
-  ctx.textAlign = 'right'; ctx.fillStyle = '#00d4ff';
-  ctx.fillText('+' + clearData.timeBonus, rightX, startY + lineH * 2);
-
-  ctx.textAlign = 'left'; ctx.fillStyle = '#8080a0';
-  ctx.fillText('\uBB34\uC0AC\uB9DD \uBCF4\uB108\uC2A4', leftX, startY + lineH * 3);
-  ctx.textAlign = 'right'; ctx.fillStyle = clearData.deathBonus > 0 ? '#00ff87' : '#505070';
-  ctx.fillText('+' + clearData.deathBonus, rightX, startY + lineH * 3);
-
-  /* Total */
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.font = 'bold 18px "Segoe UI", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('\uCD1D\uC810: ' + clearData.score, canvasW / 2, startY + lineH * 5);
-
-  /* Time */
-  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#8080a0';
-  ctx.fillText('\uD074\uB9AC\uC5B4 \uC2DC\uAC04: ' + clearData.time.toFixed(2) + 's', canvasW / 2, startY + lineH * 6);
-
-  if (clearData.isNewBest) {
-    ctx.fillStyle = CONFIG.COLORS.UI_ACCENT;
-    ctx.shadowColor = CONFIG.COLORS.UI_ACCENT;
-    ctx.shadowBlur = 10;
-    ctx.fillText('\u2605 NEW BEST! \u2605', canvasW / 2, startY + lineH * 7);
-    ctx.shadowBlur = 0;
+  // 보석
+  const gx = 210;
+  for (let i = 0; i < Math.min(gems.length, 3); i++) {
+    // HUD 보석 다이아몬드 (Canvas 드로잉)
+    c.fillStyle = gemsState[i] ? '#ffd700' : '#404060';
+    c.beginPath();
+    const cx2 = gx + i * 22 + 9;
+    c.moveTo(cx2, 6); c.lineTo(cx2+6,13); c.lineTo(cx2,20); c.lineTo(cx2-6,13); c.fill();
   }
 
-  /* Continue prompt */
-  if (Math.floor(Date.now() / 500) % 2 === 0) {
-    ctx.font = '14px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-    const isLast = currentWorld === 4 && currentStage === 4;
-    ctx.fillText(isLast ? 'SPACE \uC744 \uB20C\uB7EC \uD0C0\uC774\uD2C0\uB85C' : 'SPACE \uC744 \uB20C\uB7EC \uB2E4\uC74C \uC2A4\uD14C\uC774\uC9C0', canvasW / 2, canvasH * 0.88);
+  // 타이머
+  c.fillStyle = '#e0e0f0'; c.textAlign = 'right';
+  const min = Math.floor(time / 60);
+  const sec = (time % 60).toFixed(1);
+  c.fillText((min > 0 ? min + ':' : '') + (sec < 10 && min > 0 ? '0' : '') + sec, canvasW - 50, 14);
+
+  // 사망 수
+  if (stageDeaths > 0) {
+    c.fillStyle = '#ff3366'; c.textAlign = 'right';
+    c.fillText('💀' + stageDeaths, canvasW - 120, 14);
   }
 
-  ctx.restore();
+  // 일시정지 아이콘
+  c.fillStyle = '#8080a0'; c.fillRect(canvasW-24,8,4,12); c.fillRect(canvasW-16,8,4,12);
+
+  // 점수 팝업
+  for (let i = 0; i < scorePopups.length; i++) {
+    const pop = scorePopups[i];
+    c.globalAlpha = Math.max(0, pop.life);
+    c.fillStyle = pop.color; c.font = 'bold 14px "Segoe UI",system-ui,sans-serif';
+    c.textAlign = 'center'; c.fillText(pop.text, pop.x - camera.x, pop.y - camera.y);
+  }
+  c.globalAlpha = 1;
+
+  // 힌트
+  if (showHint && stageTime > 2) {
+    c.fillStyle = '#8080a0'; c.font = '10px "Segoe UI",system-ui,sans-serif';
+    c.textAlign = 'center'; c.fillText('R키: 즉시 리스폰', canvasW / 2, canvasH - 14);
+  }
 }
 
-/* Draw pause overlay */
-function drawPause() {
-  ctx.fillStyle = 'rgba(10,10,15,0.75)';
-  ctx.fillRect(0, 0, canvasW, canvasH);
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 24px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.fillText('PAUSED', canvasW / 2, canvasH * 0.4);
-  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
-  ctx.fillStyle = '#8080a0';
-  ctx.fillText('ESC / P \uB97C \uB20C\uB7EC \uACC4\uC18D', canvasW / 2, canvasH * 0.55);
-  ctx.fillText('R \uD0A4\uB85C \uC2A4\uD14C\uC774\uC9C0 \uC7AC\uC2DC\uC791', canvasW / 2, canvasH * 0.62);
-  ctx.restore();
+// ─── §14. 화면별 렌더링 ───
+
+function drawTitle(c, time) {
+  const grad = c.createLinearGradient(0, 0, 0, canvasH);
+  grad.addColorStop(0, '#050218'); grad.addColorStop(0.5, '#0a0520'); grad.addColorStop(1, '#1a0a2e');
+  c.fillStyle = grad; c.fillRect(0, 0, canvasW, canvasH);
+
+  // 파티클
+  for (let i = 0; i < titleParticles.length; i++) {
+    const p = titleParticles[i];
+    c.globalAlpha = p.alpha; c.fillStyle = '#e0b0ff';
+    c.fillRect(p.x, p.y, p.size, p.size);
+  }
+  c.globalAlpha = 1;
+
+  // 스캔라인 (아케이드 느낌)
+  c.fillStyle = 'rgba(0,0,0,0.06)';
+  for (let y = 0; y < canvasH; y += 3) c.fillRect(0, y, canvasW, 1);
+
+  // 타이틀 텍스트 — 글리치 네온
+  const ty = canvasH * 0.28;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+
+  // 글리치 오프셋 (가끔 발생)
+  const gx = Math.random() < 0.04 ? (Math.random() - 0.5) * 8 : 0;
+  const gy = Math.random() < 0.03 ? (Math.random() - 0.5) * 4 : 0;
+
+  // 크로매틱 어버레이션
+  if (Math.random() < 0.06) {
+    c.font = 'bold 44px "Segoe UI",system-ui,sans-serif';
+    c.globalAlpha = 0.3;
+    c.fillStyle = '#ff0066'; c.fillText('MINI', canvasW/2 - 2, ty - 22);
+    c.fillStyle = '#00ccff'; c.fillText('MINI', canvasW/2 + 2, ty - 18);
+    c.globalAlpha = 1;
+  }
+
+  c.font = 'bold 44px "Segoe UI",system-ui,sans-serif';
+  c.shadowColor = '#00ffcc'; c.shadowBlur = 25;
+  c.fillStyle = '#00ffcc'; c.fillText('MINI', canvasW/2 + gx, ty - 20 + gy);
+  c.shadowBlur = 0;
+
+  c.font = 'bold 38px "Segoe UI",system-ui,sans-serif';
+  c.shadowColor = '#e0b0ff'; c.shadowBlur = 20;
+  c.fillStyle = '#e0b0ff'; c.fillText('PLATFORMER', canvasW/2 - gx, ty + 28 - gy);
+  c.shadowBlur = 0;
+
+  // 부제
+  c.font = '13px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#706090';
+  c.fillText('벽점프 · 이중점프 · 대시로 고대 탑을 돌파하라', canvasW/2, ty + 68);
+
+  // 메뉴
+  const my = canvasH * 0.62;
+  const items = ['▶  모험 시작', '◆  일일 챌린지'];
+  for (let i = 0; i < items.length; i++) {
+    const sel = i === menuSelection;
+    c.font = (sel ? 'bold ' : '') + '18px "Segoe UI",system-ui,sans-serif';
+    c.fillStyle = sel ? '#00ffcc' : '#706090';
+    if (sel) { c.shadowColor = '#00ffcc'; c.shadowBlur = 12; }
+    c.fillText(items[i], canvasW/2, my + i * 38);
+    c.shadowBlur = 0;
+  }
+
+  // 안내
+  c.font = '11px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#505070';
+  c.globalAlpha = 0.5 + Math.sin(time * 3) * 0.3;
+  c.fillText('SPACE / TAP 선택  ·  ↑↓ 이동', canvasW/2, canvasH - 28);
+  c.globalAlpha = 1;
+
+  // 최고 기록 표시
+  if (saveData && saveData.totalScore > 0) {
+    c.font = '11px "Segoe UI",system-ui,sans-serif';
+    c.fillStyle = '#ffd700'; c.textAlign = 'right';
+    c.fillText('총점: ' + saveData.totalScore + '  보석: ' + saveData.totalGems, canvasW - 12, canvasH - 10);
+    c.textAlign = 'center';
+  }
 }
 
-/* ===== TOUCH CONTROLS ===== */
-const touchBtns = {
-  dpadL: { x: 10, y: 0, w: 52, h: 52 },
-  dpadR: { x: 66, y: 0, w: 52, h: 52 },
-  dpadD: { x: 38, y: 54, w: 52, h: 40 },
-  btnA: { x: 0, y: 0, w: 56, h: 56 },
-  btnB: { x: 0, y: 0, w: 48, h: 48 },
-  btnPause: { x: 0, y: 0, w: 36, h: 36 }
+function drawWorldSelect(c, time) {
+  const grad = c.createLinearGradient(0, 0, 0, canvasH);
+  grad.addColorStop(0, '#0a0a15'); grad.addColorStop(1, '#0f0f2a');
+  c.fillStyle = grad; c.fillRect(0, 0, canvasW, canvasH);
+
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = 'bold 22px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#e0e0f0'; c.fillText('월드 선택', canvasW/2, 38);
+
+  const cw = 120, ch = 150, sp = 18;
+  const tw2 = 5 * cw + 4 * sp;
+  const sx = (canvasW - tw2) / 2;
+
+  for (let i = 0; i < 5; i++) {
+    const theme = CONFIG.WORLDS[i];
+    const unlocked = i < saveData.unlockedWorld;
+    const sel = i === worldSelectIdx;
+    const cx2 = sx + i * (cw + sp) + cw / 2;
+    const cy = canvasH / 2;
+
+    // 카드
+    const cardAlpha = sel ? 1 : (unlocked ? 0.65 : 0.35);
+    c.globalAlpha = cardAlpha;
+    c.fillStyle = unlocked ? theme.bg2 : '#1a1a1a';
+    c.fillRect(cx2-cw/2, cy-ch/2, cw, ch);
+
+    // 선택 테두리
+    if (sel && unlocked) {
+      c.strokeStyle = theme.accent; c.lineWidth = 2;
+      c.shadowColor = theme.accent; c.shadowBlur = 8;
+      c.strokeRect(cx2-cw/2, cy-ch/2, cw, ch);
+      c.shadowBlur = 0;
+    }
+    c.globalAlpha = 1;
+
+    // 월드 번호
+    c.font = 'bold 30px "Segoe UI",system-ui,sans-serif';
+    c.fillStyle = unlocked ? theme.accent : '#404040';
+    c.fillText(unlocked ? String(i + 1) : '🔒', cx2, cy - 20);
+
+    // 이름
+    c.font = '12px "Segoe UI",system-ui,sans-serif';
+    c.fillStyle = unlocked ? '#e0e0f0' : '#505050';
+    c.fillText(unlocked ? theme.name : '???', cx2, cy + 15);
+
+    // 능력 표시
+    if (unlocked) {
+      const ab = CONFIG.ABILITIES[i];
+      c.font = '9px "Segoe UI",system-ui,sans-serif';
+      c.fillStyle = '#8080a0';
+      const abilities = [];
+      if (ab.wallJump) abilities.push('벽점프');
+      if (ab.doubleJump) abilities.push('이중점프');
+      if (ab.dash) abilities.push('대시');
+      c.fillText(abilities.length > 0 ? '+' + abilities.join(',') : '기본', cx2, cy + 35);
+
+      // 보석
+      let collected = 0;
+      for (let s = 0; s < 5; s++) {
+        const k = i + '-' + s;
+        if (saveData.gems[k]) collected += saveData.gems[k].filter(g => g).length;
+      }
+      c.fillStyle = '#ffd700'; c.font = '10px "Segoe UI",system-ui,sans-serif';
+      c.fillText('◆ ' + collected + '/15', cx2, cy + 52);
+    }
+  }
+
+  c.font = '11px "Segoe UI",system-ui,sans-serif'; c.fillStyle = '#505070'; c.textAlign = 'center';
+  const wselHint = 'ontouchstart' in window ? '◀ ▶ 스와이프  ·  탭하여 시작' : '← → 선택  ·  SPACE 시작  ·  ESC 뒤로';
+  c.fillText(wselHint, canvasW/2, canvasH - 22);
+}
+
+function drawClear(c, time) {
+  c.fillStyle = 'rgba(10,10,15,0.75)'; c.fillRect(0, 0, canvasW, canvasH);
+  if (!clearResult) return;
+  const cx2 = canvasW / 2, cy = canvasH / 2;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+
+  c.font = 'bold 30px "Segoe UI",system-ui,sans-serif';
+  c.shadowColor = '#00ff66'; c.shadowBlur = 18;
+  c.fillStyle = '#00ff66'; c.fillText('STAGE CLEAR!', cx2, cy - 75);
+  c.shadowBlur = 0;
+
+  c.font = '15px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#e0e0f0'; c.textAlign = 'left';
+  const lx = cx2 - 90;
+  c.fillText('⏱ 시간: ' + clearResult.time.toFixed(1) + '초', lx, cy - 30);
+  c.fillText('◆ 보석: ' + clearResult.gems + '/3', lx, cy);
+  c.fillText('💀 사망: ' + clearResult.deaths + '회', lx, cy + 30);
+
+  c.textAlign = 'right'; c.fillStyle = '#ffd700'; c.font = 'bold 22px "Segoe UI",system-ui,sans-serif';
+  c.fillText(clearResult.score + ' pts', cx2 + 110, cy - 30);
+
+  if (clearResult.isNewBest) {
+    c.fillStyle = '#ff6b35'; c.font = 'bold 14px "Segoe UI",system-ui,sans-serif';
+    c.globalAlpha = 0.5 + Math.sin(time * 5) * 0.4; c.textAlign = 'center';
+    c.fillText('★ NEW BEST TIME! ★', cx2, cy + 70); c.globalAlpha = 1;
+  }
+
+  c.font = '12px "Segoe UI",system-ui,sans-serif'; c.fillStyle = '#8080a0'; c.textAlign = 'center';
+  c.globalAlpha = 0.5 + Math.sin(time * 3) * 0.3;
+  c.fillText('SPACE / TAP → 다음 스테이지', cx2, cy + 100); c.globalAlpha = 1;
+}
+
+function drawPause(c) {
+  c.fillStyle = 'rgba(10,10,15,0.82)'; c.fillRect(0, 0, canvasW, canvasH);
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = 'bold 28px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#e0e0f0'; c.fillText('PAUSED', canvasW/2, canvasH/2 - 65);
+  const items = ['▶ 계속하기', '↺ 재시작', '⌂ 타이틀로'];
+  for (let i = 0; i < items.length; i++) {
+    const sel = i === pauseSelection;
+    c.font = (sel ? 'bold ' : '') + '16px "Segoe UI",system-ui,sans-serif';
+    c.fillStyle = sel ? '#00ffcc' : '#706090';
+    if (sel) { c.shadowColor='#00ffcc'; c.shadowBlur=10; }
+    c.fillText(items[i], canvasW/2, canvasH/2 - 15 + i * 35);
+    c.shadowBlur = 0;
+  }
+}
+
+// 메인 렌더링
+function render(context, dt, timestamp) {
+  context.clearRect(0, 0, canvasW, canvasH);
+  const time = timestamp / 1000;
+
+  switch (gameState) {
+    case STATE.TITLE: drawTitle(context, time); break;
+    case STATE.WSEL: drawWorldSelect(context, time); break;
+    case STATE.PLAY: case STATE.DEAD: case STATE.CLEAR: case STATE.PAUSE:
+      // 게임 화면 렌더링
+      context.save();
+      context.translate(Math.round(camera.shakeX), Math.round(camera.shakeY));
+      drawBackground(context, currentWorld, camera.x, camera.y);
+      if (currentLevel) {
+        drawTiles(context, currentLevel, camera.x, camera.y);
+        drawMovingPlatforms(context, currentLevel.movingPlatforms, camera.x, camera.y);
+        drawGems(context, currentLevel.gems, camera.x, camera.y, time);
+        drawCheckpoints(context, currentLevel.checkpoints, checkpointPos, camera.x, camera.y, time);
+        drawGoal(context, currentLevel.goal, camera.x, camera.y, time);
+      }
+      if (gameState !== STATE.DEAD) drawPlayer(context, player, camera.x, camera.y);
+      drawParticles(context, particles, camera.x, camera.y);
+      context.restore();
+
+      // 보석 플래시
+      if (gemFlashAlpha > 0) {
+        context.fillStyle = 'rgba(255,215,0,' + gemFlashAlpha.toFixed(2) + ')';
+        context.fillRect(0, 0, canvasW, canvasH);
+      }
+
+      // HUD
+      if (currentLevel) drawHUD(context, currentWorld, currentStage, stageTime, stageGems, currentLevel.gems);
+
+      // 사망 이펙트 (Canvas 드로잉 — 방사형 충격파)
+      if (gameState === STATE.DEAD && player) {
+        const efa = Math.max(0, deadAnimTimer / 0.4);
+        const efx = player.x - camera.x, efy = player.y - camera.y;
+        context.globalAlpha = efa * 0.6;
+        context.strokeStyle = '#ff3366'; context.lineWidth = 2;
+        const efr = (1 - efa) * 32;
+        context.beginPath(); context.arc(efx, efy, efr, 0, Math.PI * 2); context.stroke();
+        context.globalAlpha = efa * 0.3;
+        context.beginPath(); context.arc(efx, efy, efr * 1.5, 0, Math.PI * 2); context.stroke();
+        context.globalAlpha = 1;
+        // 화면 레드 플래시
+        context.fillStyle = 'rgba(255,51,102,' + (efa * 0.15).toFixed(2) + ')';
+        context.fillRect(0, 0, canvasW, canvasH);
+      }
+
+      if (gameState === STATE.CLEAR) drawClear(context, time);
+      if (gameState === STATE.PAUSE) drawPause(context);
+      break;
+  }
+
+  // 전환 오버레이
+  if (transitionOverlay.alpha > 0.01) {
+    context.fillStyle = 'rgba(10,10,15,' + transitionOverlay.alpha.toFixed(2) + ')';
+    context.fillRect(0, 0, canvasW, canvasH);
+  }
+
+  // 터치 컨트롤
+  if ('ontouchstart' in window) {
+    if (gameState === STATE.PLAY || gameState === STATE.DEAD) drawTouchControls(context);
+    if (gameState === STATE.WSEL) drawTouchNavArrows(context);
+  }
+}
+
+// ─── §15. 터치 컨트롤 렌더링 ───
+function drawTouchControls(c) {
+  c.globalAlpha = 0.2;
+  const btnR = 24; // ≥44px 터치 영역 확보 (지름 48px)
+  const pad = 20;
+  const by = canvasH - pad - btnR * 2;
+
+  // 좌측 D패드
+  c.strokeStyle = '#fff'; c.lineWidth = 1.5;
+  c.font = '16px "Segoe UI",system-ui';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  // ◀
+  c.beginPath(); c.arc(pad + btnR, by + btnR, btnR, 0, Math.PI*2); c.stroke();
+  c.fillStyle='#fff'; c.fillText('◀', pad + btnR, by + btnR);
+  // ▶
+  c.beginPath(); c.arc(pad + btnR*3 + 12, by + btnR, btnR, 0, Math.PI*2); c.stroke();
+  c.fillText('▶', pad + btnR*3 + 12, by + btnR);
+
+  // 우측 버튼
+  const rx = canvasW - pad - btnR;
+  // A (점프)
+  c.strokeStyle = '#00ffcc'; c.beginPath();
+  c.arc(rx, by + btnR - 10, btnR + 4, 0, Math.PI*2); c.stroke();
+  c.fillStyle='#00ffcc'; c.fillText('A', rx, by + btnR - 10);
+  // B (대시)
+  c.strokeStyle = '#e0b0ff'; c.beginPath();
+  c.arc(rx - btnR*2 - 14, by + btnR, btnR, 0, Math.PI*2); c.stroke();
+  c.fillStyle='#e0b0ff'; c.fillText('B', rx - btnR*2 - 14, by + btnR);
+  // R (리스타트) — T2 수정
+  c.strokeStyle = '#ff6b35'; c.beginPath();
+  c.arc(rx - btnR*4 - 28, by + btnR, btnR - 2, 0, Math.PI*2); c.stroke();
+  c.fillStyle='#ff6b35'; c.font='12px "Segoe UI",system-ui'; c.fillText('R', rx - btnR*4 - 28, by + btnR);
+
+  // 일시정지 버튼 확대 — T3 수정 (48×48px)
+  c.strokeStyle = '#8080a0'; c.lineWidth = 1;
+  c.strokeRect(canvasW - 48, 0, 48, 48);
+  c.fillStyle = '#8080a0'; c.font = '18px "Segoe UI",system-ui';
+  c.fillText('⏸', canvasW - 24, 24);
+
+  c.globalAlpha = 1;
+}
+
+// 월드 선택 화면 터치 탐색 화살표 — T1 수정
+function drawTouchNavArrows(c) {
+  c.globalAlpha = 0.3;
+  c.fillStyle = '#e0e0f0'; c.font = 'bold 32px "Segoe UI",system-ui';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  // 좌 화살표
+  if (worldSelectIdx > 0) c.fillText('◀', canvasW * 0.07, canvasH / 2);
+  // 우 화살표
+  if (worldSelectIdx < saveData.unlockedWorld - 1) c.fillText('▶', canvasW * 0.93, canvasH / 2);
+  c.globalAlpha = 1;
+}
+
+// ─── §16. Canvas 리사이즈 ───
+function resizeCanvas() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvasW = CONFIG.CANVAS.BASE_WIDTH;
+  canvasH = CONFIG.CANVAS.BASE_HEIGHT;
+  const aspect = canvasW / canvasH;
+  let dispW = w, dispH = w / aspect;
+  if (dispH > h) { dispH = h; dispW = h * aspect; }
+  canvas.width = Math.round(canvasW * dpr);
+  canvas.height = Math.round(canvasH * dpr);
+  canvas.style.width = dispW + 'px';
+  canvas.style.height = dispH + 'px';
+  canvas.style.position = 'absolute';
+  canvas.style.left = ((w - dispW) / 2) + 'px';
+  canvas.style.top = ((h - dispH) / 2) + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scaleX = canvasW / dispW;
+  scaleY = canvasH / dispH;
+  tileCacheDirty = true;
+}
+
+// ─── §17. 키보드 이벤트 ───
+const KEY_MAP = {
+  'ArrowLeft':'left','ArrowRight':'right','ArrowUp':'up','ArrowDown':'down',
+  'KeyA':'left','KeyD':'right','KeyW':'up','KeyS':'down',
+  'Space':'jump','ShiftLeft':'dash','ShiftRight':'dash','KeyX':'dash',
+  'Escape':'pause','KeyP':'pause','KeyR':'restart'
 };
 
-/* Update touch button positions based on canvas size */
-function updateTouchLayout() {
-  const bh = canvasH - 70;
-  touchBtns.dpadL.y = bh;
-  touchBtns.dpadR.y = bh;
-  touchBtns.dpadD.y = bh + 54;
-  touchBtns.btnA.x = canvasW - 66;
-  touchBtns.btnA.y = bh;
-  touchBtns.btnB.x = canvasW - 120;
-  touchBtns.btnB.y = bh - 5;
-  touchBtns.btnPause.x = canvasW - 40;
-  touchBtns.btnPause.y = 2;
-}
+window.addEventListener('keydown', (e) => {
+  const a = KEY_MAP[e.code];
+  if (a) { e.preventDefault(); input.keyDown(a); sound._init(); }
+});
+window.addEventListener('keyup', (e) => {
+  const a = KEY_MAP[e.code];
+  if (a) { e.preventDefault(); input.keyUp(a); }
+});
 
-/* Draw virtual touch controls */
-function drawTouchControls() {
-  if (!isTouchDevice) return;
-  ctx.globalAlpha = 0.3;
-  /* D-Pad */
-  ctx.fillStyle = input.touch.left ? '#00ffcc' : '#3a3a5c';
-  ctx.fillRect(touchBtns.dpadL.x, touchBtns.dpadL.y, touchBtns.dpadL.w, touchBtns.dpadL.h);
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT; ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('\u25C0', touchBtns.dpadL.x + 26, touchBtns.dpadL.y + 32);
-
-  ctx.fillStyle = input.touch.right ? '#00ffcc' : '#3a3a5c';
-  ctx.fillRect(touchBtns.dpadR.x, touchBtns.dpadR.y, touchBtns.dpadR.w, touchBtns.dpadR.h);
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.fillText('\u25B6', touchBtns.dpadR.x + 26, touchBtns.dpadR.y + 32);
-
-  ctx.fillStyle = input.touch.down ? '#00ffcc' : '#3a3a5c';
-  ctx.fillRect(touchBtns.dpadD.x, touchBtns.dpadD.y, touchBtns.dpadD.w, touchBtns.dpadD.h);
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.fillText('\u25BC', touchBtns.dpadD.x + 26, touchBtns.dpadD.y + 24);
-
-  /* Buttons */
-  ctx.fillStyle = input.touch.jump ? '#00ffcc' : '#3a3a5c';
-  ctx.beginPath();
-  ctx.arc(touchBtns.btnA.x + 28, touchBtns.btnA.y + 28, 28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT; ctx.font = '14px sans-serif';
-  ctx.fillText('A', touchBtns.btnA.x + 28, touchBtns.btnA.y + 33);
-
-  if (player.hasDash) {
-    ctx.fillStyle = input.touch.dash ? '#ff6b35' : '#3a3a5c';
-    ctx.beginPath();
-    ctx.arc(touchBtns.btnB.x + 24, touchBtns.btnB.y + 24, 24, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = CONFIG.COLORS.UI_TEXT; ctx.font = '12px sans-serif';
-    ctx.fillText('B', touchBtns.btnB.x + 24, touchBtns.btnB.y + 28);
-  }
-
-  ctx.globalAlpha = 1;
-}
-
-/* Handle touch input events */
-function handleTouch(e) {
-  e.preventDefault();
+// ─── §18. 터치 이벤트 ───
+function touchToCanvas(touch) {
   const rect = canvas.getBoundingClientRect();
-  const prevJump = input.touch.jump;
-  const prevDash = input.touch.dash;
-  const prevPause = input.touch.pause;
-  input.touch.left = false; input.touch.right = false; input.touch.down = false;
-  input.touch.jump = false; input.touch.dash = false; input.touch.pause = false;
-
-  if (e.type === 'touchend' && e.touches.length === 0) {
-    input.touch.jumpJust = false; input.touch.dashJust = false;
-    return;
-  }
-
-  for (let idx = 0; idx < e.touches.length; idx++) {
-    const tx = (e.touches[idx].clientX - rect.left) * scaleX;
-    const ty = (e.touches[idx].clientY - rect.top) * scaleY;
-    /* Check D-pad */
-    if (hitTest(tx, ty, touchBtns.dpadL)) input.touch.left = true;
-    if (hitTest(tx, ty, touchBtns.dpadR)) input.touch.right = true;
-    if (hitTest(tx, ty, touchBtns.dpadD)) input.touch.down = true;
-    /* Check buttons */
-    if (hitTestCircle(tx, ty, touchBtns.btnA.x + 28, touchBtns.btnA.y + 28, 32)) input.touch.jump = true;
-    if (player.hasDash && hitTestCircle(tx, ty, touchBtns.btnB.x + 24, touchBtns.btnB.y + 24, 28)) input.touch.dash = true;
-    if (hitTest(tx, ty, touchBtns.btnPause)) input.touch.pause = true;
-    /* Title/clear: tap anywhere as jump */
-    if (gameState === STATES.TITLE || gameState === STATES.CLEAR) input.touch.jump = true;
-  }
-
-  if (input.touch.jump && !prevJump) input.touch.jumpJust = true;
-  if (input.touch.dash && !prevDash) input.touch.dashJust = true;
-  if (input.touch.pause && !prevPause) input.touch.pauseJust = true;
+  return { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
 }
 
-/* Rectangle hit test */
-function hitTest(px, py, rect) {
-  return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
-}
+function handleTouch(e) {
+  e.preventDefault(); sound._init();
+  input.resetTouch();
+  for (let i = 0; i < e.touches.length; i++) {
+    const pos = touchToCanvas(e.touches[i]);
 
-/* Circle hit test */
-function hitTestCircle(px, py, cx, cy, r) {
-  return (px - cx) * (px - cx) + (py - cy) * (py - cy) <= r * r;
-}
-
-let isTouchDevice = false;
-
-/* ===== MAIN RENDER ===== */
-function render(dt) {
-  ctx.clearRect(0, 0, canvasW, canvasH);
-
-  if (gameState === STATES.TITLE) {
-    drawTitle(dt);
-  } else {
-    /* Game world rendering */
-    const ox = -camera.x + camera.shakeX;
-    const oy = -camera.y + camera.shakeY;
-
-    drawBackground(currentWorld, camera.x, camera.y);
-
-    ctx.save();
-    ctx.translate(Math.round(ox), Math.round(oy));
-
-    /* Viewport culling for tiles */
-    const startCol = Math.max(0, Math.floor(camera.x / TS) - 1);
-    const endCol = Math.min(currentLevel.width, Math.ceil((camera.x + canvasW) / TS) + 1);
-    const startRow = Math.max(0, Math.floor(camera.y / TS) - 1);
-    const endRow = Math.min(currentLevel.height, Math.ceil((camera.y + canvasH) / TS) + 1);
-
-    /* Draw tiles */
-    for (let row = startRow; row < endRow; row++) {
-      for (let col = startCol; col < endCol; col++) {
-        const t = currentLevel.tiles[row] ? currentLevel.tiles[row][col] : 0;
-        if (t > 0) drawTile(col, row, t, currentWorld);
+    // ── 게임플레이 중: D패드 + 점프/대시 ──
+    if (gameState === STATE.PLAY || gameState === STATE.DEAD) {
+      // 좌측 — D패드
+      if (pos.x < canvasW * 0.35 && pos.y > canvasH * 0.5) {
+        if (pos.x < canvasW * 0.15) input.touchDown('left');
+        else input.touchDown('right');
+      }
+      // 우측 — 점프/대시
+      if (pos.x > canvasW * 0.65 && pos.y > canvasH * 0.5) {
+        const rx = canvasW - pos.x;
+        if (rx < 70) input.touchDown('jump');
+        else if (rx < 140) input.touchDown('dash');
+      }
+      // 우측 하단 — 리스타트 버튼 (T2 수정)
+      if (pos.x > canvasW * 0.65 && pos.y > canvasH * 0.5) {
+        const rx = canvasW - pos.x;
+        if (rx >= 140 && rx < 210) input.touchDown('restart');
       }
     }
 
-    /* Draw moving platforms */
-    drawMovingPlatforms(currentLevel.movingPlatforms);
-
-    /* Draw hazards */
-    const animTime = Date.now();
-    for (const h of currentLevel.hazards) drawHazard(h, animTime);
-
-    /* Draw checkpoints */
-    drawCheckpoints(currentLevel.checkpoints, animTime);
-
-    /* Draw gems */
-    drawGems(currentLevel.gems, animTime);
-
-    /* Draw goal */
-    drawGoal(currentLevel.goal, animTime);
-
-    /* Draw player */
-    drawPlayer(player, animTime);
-
-    /* Draw particles */
-    particles.forEach((part) => {
-      ctx.globalAlpha = part.life / part.maxLife;
-      ctx.fillStyle = part.color;
-      ctx.fillRect(part.x - part.size/2, part.y - part.size/2, part.size, part.size);
-    });
-    ctx.globalAlpha = 1;
-
-    ctx.restore();
-
-    /* HUD */
-    if (gameState === STATES.PLAY || gameState === STATES.DEAD) {
-      drawHUD(currentWorld, currentStage, stageTimer, currentLevel);
+    // ── 월드 선택 중: 좌/우 탐색 + 확인 (T1 수정) ──
+    if (gameState === STATE.WSEL) {
+      const midY = canvasH / 2;
+      if (pos.y > midY - 100 && pos.y < midY + 100) {
+        if (pos.x < canvasW * 0.2) input.touchDown('left');
+        else if (pos.x > canvasW * 0.8) input.touchDown('right');
+        else input.touchDown('start');
+      } else if (pos.y > midY + 100) {
+        input.touchDown('start');
+      } else if (pos.y < 60) {
+        input.touchDown('pause'); // 뒤로가기
+      }
     }
 
-    /* Touch controls */
-    drawTouchControls();
+    // ── 일시정지 영역 확대: 48×48px (T3 수정) ──
+    if (pos.y < 48 && pos.x > canvasW - 48) input.touchDown('pause');
 
-    /* State overlays */
-    if (gameState === STATES.CLEAR) drawClearScreen(dt);
-    if (gameState === STATES.PAUSE) drawPause();
-  }
-
-  /* Transition overlay */
-  if (transitionOverlay.alpha > 0.01) {
-    ctx.fillStyle = 'rgba(10,10,15,' + transitionOverlay.alpha.toFixed(3) + ')';
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    // ── 메뉴 화면 탭 ──
+    if (gameState === STATE.TITLE || gameState === STATE.CLEAR) {
+      input.touchDown('start');
+    }
   }
 }
 
-/* ===== LOADING SCREEN ===== */
-function drawLoading(progress) {
-  ctx.fillStyle = CONFIG.COLORS.BG_PRIMARY;
-  ctx.fillRect(0, 0, canvasW, canvasH);
-  ctx.fillStyle = CONFIG.COLORS.UI_TEXT;
-  ctx.font = '16px "Segoe UI", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('LOADING...', canvasW / 2, canvasH / 2 - 20);
-  /* Progress bar */
-  const barW = 200, barH = 6;
-  const bx = canvasW / 2 - barW / 2;
-  const by = canvasH / 2;
-  ctx.fillStyle = '#1e1e30';
-  ctx.fillRect(bx, by, barW, barH);
-  ctx.fillStyle = CONFIG.COLORS.PLAYER;
-  ctx.fillRect(bx, by, barW * progress, barH);
+function handleTouchEnd(e) {
+  e.preventDefault();
+  if (e.touches.length === 0) input.resetTouch();
+  else handleTouch(e);
 }
 
-/* ===== GAME LOOP ===== */
-let lastTime = 0;
-let running = false;
+canvas.addEventListener('touchstart', handleTouch, { passive: false });
+canvas.addEventListener('touchmove', handleTouch, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('click', () => { sound._init(); if (gameState===STATE.TITLE||gameState===STATE.CLEAR) input.touchDown('start'); });
 
+window.addEventListener('resize', resizeCanvas);
+
+// ─── §19. 게임 루프 (try-catch 래핑) ───
 function gameLoop(timestamp) {
-  if (!running) return;
   try {
-    const dt = Math.min(timestamp - lastTime, 33.33);
+    if (lastTime === 0) lastTime = timestamp;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.033);
     lastTime = timestamp;
     update(dt);
-    render(dt);
+    render(ctx, dt, timestamp);
   } catch (e) {
-    console.error(e);
+    console.error('Game loop error:', e);
   }
   requestAnimationFrame(gameLoop);
 }
 
-/* ===== KEYBOARD EVENTS ===== */
-window.addEventListener('keydown', (e) => {
-  input.keyDown(e.code);
-  /* Prevent scrolling */
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-    e.preventDefault();
-  }
-});
-window.addEventListener('keyup', (e) => { input.keyUp(e.code); });
-
-/* ===== TOUCH EVENTS ===== */
-canvas.addEventListener('touchstart', (e) => { isTouchDevice = true; handleTouch(e); }, { passive: false });
-canvas.addEventListener('touchmove', handleTouch, { passive: false });
-canvas.addEventListener('touchend', handleTouch, { passive: false });
-
-/* ===== INITIALIZATION ===== */
+// ─── §20. 초기화 ───
 function init() {
   resizeCanvas();
-  updateTouchLayout();
-  loadSave();
-
-  /* Start game loop */
-  running = true;
-  lastTime = performance.now();
+  saveData = loadSave();
+  // 초기 상태 진입도 beginTransition 경유 (immediate)
+  gameState = STATE.TITLE;
+  beginTransition(STATE.TITLE, { immediate: true });
   requestAnimationFrame(gameLoop);
 }
 
-/* Handle resize for touch layout */
-window.addEventListener('resize', () => { resizeCanvas(); updateTouchLayout(); });
-
-/* Start the game */
 init();
 </script>
 </body>
