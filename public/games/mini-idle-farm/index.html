@@ -705,7 +705,23 @@ function drawTopBar(c) {
   c.fillText('미니 아이들 팜', canvasW/2, topBarH/2);
   // 골드
   c.fillStyle = '#B8860B'; c.font = 'bold 13px sans-serif'; c.textAlign = 'right';
-  c.fillText(formatNumber(saveData.gold) + 'G', canvasW - 56, topBarH/2);
+  c.fillText(formatNumber(saveData.gold) + 'G', canvasW - 88, topBarH/2);
+  // 음소거 토글 (48x48 히트존)
+  const mx = canvasW - 60; const my = topBarH/2;
+  c.fillStyle = SoundManager.muted ? 'rgba(200,50,50,0.15)' : 'rgba(0,0,0,0.1)';
+  c.beginPath(); c.arc(mx, my, 16, 0, Math.PI*2); c.fill();
+  c.fillStyle = SoundManager.muted ? '#C44' : '#555';
+  // 스피커 아이콘
+  c.beginPath(); c.moveTo(mx-6, my-4); c.lineTo(mx-2, my-4); c.lineTo(mx+3, my-8); c.lineTo(mx+3, my+8); c.lineTo(mx-2, my+4); c.lineTo(mx-6, my+4); c.closePath(); c.fill();
+  if (SoundManager.muted) {
+    c.strokeStyle = '#C44'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(mx+5, my-4); c.lineTo(mx+11, my+4); c.stroke();
+    c.beginPath(); c.moveTo(mx+11, my-4); c.lineTo(mx+5, my+4); c.stroke();
+  } else {
+    c.strokeStyle = '#555'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(mx+6, my, 4, -0.6, 0.6); c.stroke();
+    c.beginPath(); c.arc(mx+6, my, 8, -0.5, 0.5); c.stroke();
+  }
   // 일시정지 (48x48 터치 타겟)
   const px = canvasW - 28; const py = topBarH/2;
   c.fillStyle = gameState === 'PAUSED' ? '#4CAF50' : 'rgba(0,0,0,0.1)';
@@ -886,7 +902,7 @@ function drawUpgradeTab(c) {
     c.fillText(item.desc, ox+itemH+2, iy+32);
     if (item.maxLevel !== undefined) c.fillText('Lv '+item.level+'/'+item.maxLevel, ox+itemH+2, iy+46);
     // 버튼
-    const btnW = 68; const btnH = 32; const bx = ox+aw-btnW-8; const by = iy+(itemH-btnH)/2;
+    const btnW = 68; const btnH = CONFIG.MIN_TOUCH_TARGET; const bx = ox+aw-btnW-8; const by = iy+(itemH-btnH)/2;
     const maxed = item.maxLevel !== undefined && item.level >= item.maxLevel;
     const afford = canAfford(saveData.gold, item.cost);
     c.fillStyle = maxed ? '#999' : (afford ? '#4CAF50' : '#C44');
@@ -912,13 +928,13 @@ function getPrestigeUpgradeList() {
 function drawPrestigeTab(c) {
   const ox = 16; const aw = canvasW-32;
   const items = getPrestigeUpgradeList();
-  maxScrollY = Math.max(0, (items.length*52+300) - (canvasH-topBarH-tabBarH-20));
+  maxScrollY = Math.max(0, (items.length*58+318) - (canvasH-topBarH-tabBarH-20));
   c.save();
   c.beginPath(); c.rect(0, topBarH, canvasW, canvasH-topBarH-tabBarH); c.clip();
   let y = topBarH + 16 - scrollY;
   // 상태 패널
-  c.fillStyle = 'rgba(250,235,215,0.93)'; drawRoundRect(c, ox, y, aw, 96, 10); c.fill();
-  c.strokeStyle = '#FFB347'; c.lineWidth = 1.5; drawRoundRect(c, ox, y, aw, 96, 10); c.stroke();
+  c.fillStyle = 'rgba(250,235,215,0.93)'; drawRoundRect(c, ox, y, aw, 114, 10); c.fill();
+  c.strokeStyle = '#FFB347'; c.lineWidth = 1.5; drawRoundRect(c, ox, y, aw, 114, 10); c.stroke();
   c.fillStyle = '#444'; c.font = 'bold 13px sans-serif'; c.textAlign = 'center';
   c.fillText('⭐ 프레스티지', ox+aw/2, y+20);
   c.fillStyle = '#777'; c.font = '11px sans-serif';
@@ -928,11 +944,11 @@ function drawPrestigeTab(c) {
   c.fillStyle = canPrest ? '#FF6B35' : '#AAA'; c.font = 'bold 12px sans-serif';
   c.fillText(canPrest ? '리셋하면 '+newStars+'개 별 획득!' : '총 수입 10,000G 이상 필요', ox+aw/2, y+56);
   // 리셋 버튼
-  const rbW = 130; const rbH = 30; const rbx = ox+(aw-rbW)/2; const rby = y+66;
+  const rbW = 130; const rbH = CONFIG.MIN_TOUCH_TARGET; const rbx = ox+(aw-rbW)/2; const rby = y+66;
   c.fillStyle = canPrest ? '#FF6B35' : '#999'; drawRoundRect(c, rbx, rby, rbW, rbH, 5); c.fill();
   c.fillStyle = '#FFF'; c.font = 'bold 12px sans-serif';
   c.fillText('농장 리셋', rbx+rbW/2, rby+rbH/2+1);
-  y += 108;
+  y += 126;
   // 보유 별
   c.fillStyle = 'rgba(250,235,215,0.88)'; drawRoundRect(c, ox, y, aw, 32, 6); c.fill();
   drawStar(c, ox+20, y+16, 10, 5, '#FFB347');
@@ -948,14 +964,14 @@ function drawPrestigeTab(c) {
   c.fillStyle = '#444'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
   c.fillText('프레스티지 업그레이드', ox, y); y += 18;
   for (let i = 0; i < items.length; i++) {
-    const it = items[i]; const iy = y + i*52;
-    if (iy+48 < topBarH || iy > canvasH-tabBarH) continue;
-    c.fillStyle = 'rgba(250,235,215,0.85)'; drawRoundRect(c, ox, iy, aw, 46, 6); c.fill();
+    const it = items[i]; const iy = y + i*58;
+    if (iy+54 < topBarH || iy > canvasH-tabBarH) continue;
+    c.fillStyle = 'rgba(250,235,215,0.85)'; drawRoundRect(c, ox, iy, aw, 52, 6); c.fill();
     c.fillStyle = '#444'; c.font = 'bold 11px sans-serif'; c.textAlign = 'left';
-    c.fillText(it.name, ox+8, iy+16);
+    c.fillText(it.name, ox+8, iy+18);
     c.fillStyle = '#777'; c.font = '10px sans-serif';
-    c.fillText(it.desc+' (Lv'+it.level+'/'+it.maxLevel+')', ox+8, iy+32);
-    const pbW = 58; const pbH = 26; const pbx = ox+aw-pbW-6; const pby = iy+10;
+    c.fillText(it.desc+' (Lv'+it.level+'/'+it.maxLevel+')', ox+8, iy+35);
+    const pbW = 58; const pbH = CONFIG.MIN_TOUCH_TARGET; const pbx = ox+aw-pbW-6; const pby = iy+2;
     const pMax = it.level >= it.maxLevel; const pOk = (saveData.prestige.stars||0) >= it.cost;
     c.fillStyle = pMax ? '#999' : (pOk ? '#FF6B35' : '#C44');
     drawRoundRect(c, pbx, pby, pbW, pbH, 4); c.fill();
@@ -996,7 +1012,7 @@ function drawPlacementMenu(c) {
 function drawModal(c) {
   if (gameState !== 'PRESTIGE_CONFIRM') return;
   c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(0,0,canvasW,canvasH);
-  const mw = Math.min(320, canvasW-32); const mh = 170;
+  const mw = Math.min(320, canvasW-32); const mh = 200;
   const mx = (canvasW-mw)/2; const my = (canvasH-mh)/2;
   c.fillStyle = 'rgba(250,235,215,0.97)'; drawRoundRect(c, mx, my, mw, mh, 12); c.fill();
   c.strokeStyle = '#FFB347'; c.lineWidth = 2; drawRoundRect(c, mx, my, mw, mh, 12); c.stroke();
@@ -1007,15 +1023,15 @@ function drawModal(c) {
   c.fillText(ns+'개 별 획득!', mx+mw/2, my+56);
   c.fillStyle = '#888'; c.font = '10px sans-serif';
   c.fillText('모든 작물/업그레이드/골드가 초기화됩니다', mx+mw/2, my+76);
-  const bw = 90; const bh = 34;
+  const bw = 90; const bh = CONFIG.MIN_TOUCH_TARGET;
   // 확인
-  c.fillStyle = '#FF6B35'; drawRoundRect(c, mx+mw/2-bw-8, my+mh-50, bw, bh, 6); c.fill();
+  c.fillStyle = '#FF6B35'; drawRoundRect(c, mx+mw/2-bw-8, my+mh-58, bw, bh, 6); c.fill();
   c.fillStyle = '#FFF'; c.font = 'bold 12px sans-serif';
-  c.fillText('확인', mx+mw/2-bw/2-8, my+mh-50+bh/2+1);
+  c.fillText('확인', mx+mw/2-bw/2-8, my+mh-58+bh/2+1);
   // 취소
-  c.fillStyle = '#999'; drawRoundRect(c, mx+mw/2+8, my+mh-50, bw, bh, 6); c.fill();
+  c.fillStyle = '#999'; drawRoundRect(c, mx+mw/2+8, my+mh-58, bw, bh, 6); c.fill();
   c.fillStyle = '#FFF';
-  c.fillText('취소', mx+mw/2+bw/2+8, my+mh-50+bh/2+1);
+  c.fillText('취소', mx+mw/2+bw/2+8, my+mh-58+bh/2+1);
 }
 
 // 파티클 렌더
@@ -1380,6 +1396,10 @@ function handleClick(x, y) {
   if (gameState === 'PRESTIGE_CONFIRM') { handleModalClick(x, y); return; }
   if (gameState === 'PAUSED') { TransitionGuard.beginTransition('PLAYING',{immediate:true}); return; }
   if (placementMenuOpen) { handlePlacementMenuClick(x, y); return; }
+  // 음소거 토글 (히트 영역 48x48 WCAG)
+  if (y < topBarH && Math.hypot(x-(canvasW-60), y-topBarH/2) < 24) {
+    SoundManager.muted = !SoundManager.muted; return;
+  }
   // 정지 버튼 (히트 영역 48x48 WCAG)
   if (y < topBarH && Math.hypot(x-(canvasW-28), y-topBarH/2) < 24) {
     TransitionGuard.beginTransition('PAUSED',{immediate:true}); return;
@@ -1407,10 +1427,10 @@ function handleTitleClick(x, y) {
 }
 
 function handleModalClick(x, y) {
-  const mw = Math.min(320,canvasW-32); const mh = 170;
+  const mw = Math.min(320,canvasW-32); const mh = 200;
   const mx = (canvasW-mw)/2; const my = (canvasH-mh)/2;
-  const bw = 90; const bh = 34;
-  const cbx = mx+mw/2-bw-8; const cby = my+mh-50;
+  const bw = 90; const bh = CONFIG.MIN_TOUCH_TARGET;
+  const cbx = mx+mw/2-bw-8; const cby = my+mh-58;
   if (x >= cbx && x <= cbx+bw && y >= cby && y <= cby+bh) { executePrestige(); TransitionGuard.beginTransition('PLAYING',{immediate:true}); return; }
   if (x >= mx+mw/2+8 && x <= mx+mw/2+8+bw && y >= cby && y <= cby+bh) { TransitionGuard.beginTransition('PLAYING',{immediate:true}); return; }
 }
@@ -1445,7 +1465,7 @@ function handleUpgradeClick(x, y) {
   const ox = 12; const aw = canvasW-24; const oy = topBarH+8;
   for (let i = 0; i < items.length; i++) {
     const iy = oy+i*(itemH+5)-scrollY;
-    const btnW = 68; const btnH = 32; const bx = ox+aw-btnW-8; const by = iy+(itemH-btnH)/2;
+    const btnW = 68; const btnH = CONFIG.MIN_TOUCH_TARGET; const bx = ox+aw-btnW-8; const by = iy+(itemH-btnH)/2;
     if (x >= bx && x <= bx+btnW && y >= by && y <= by+btnH) { handleUpgradePurchase(items[i]); return; }
   }
 }
@@ -1453,16 +1473,16 @@ function handleUpgradeClick(x, y) {
 function handlePrestigeClick(x, y) {
   const ox = 16; const aw = canvasW-32;
   const startY = topBarH+16-scrollY;
-  const rbW = 130; const rbH = 30; const rbx = ox+(aw-rbW)/2; const rby = startY+66;
+  const rbW = 130; const rbH = CONFIG.MIN_TOUCH_TARGET; const rbx = ox+(aw-rbW)/2; const rby = startY+66;
   if (x >= rbx && x <= rbx+rbW && y >= rby && y <= rby+rbH) {
     const ns = Math.max(0, calculatePrestigeStars(saveData.totalEarned)-(saveData.prestige.totalStars||0));
     if (saveData.totalEarned >= CONFIG.PRESTIGE_THRESHOLD && ns > 0) TransitionGuard.beginTransition('PRESTIGE_CONFIRM',{immediate:true});
     return;
   }
   const items = getPrestigeUpgradeList();
-  const ioy = startY+236;
+  const ioy = startY+254;
   for (let i = 0; i < items.length; i++) {
-    const iy = ioy+i*52; const pbW = 58; const pbH = 26; const pbx = ox+aw-pbW-6; const pby = iy+10;
+    const iy = ioy+i*58; const pbW = 58; const pbH = CONFIG.MIN_TOUCH_TARGET; const pbx = ox+aw-pbW-6; const pby = iy+2;
     if (x >= pbx && x <= pbx+pbW && y >= pby && y <= pby+pbH) { handlePrestigeUpgrade(items[i]); return; }
   }
 }
@@ -1556,7 +1576,6 @@ canvas.addEventListener('touchmove', function(e) {
 canvas.addEventListener('touchend', function(e) {
   e.preventDefault(); clearTimeout(longPressTimer); clearInterval(longPressRepeat);
   if (isSwiping && gameState === 'PLAYING') {
-    const dx = lastTouchY; // use last known position
     const swipeDx = getTouchEndX(e) - swipeStartX;
     if (Math.abs(swipeDx) > 60) {
       if (swipeDx < 0 && currentTab < 2) { currentTab++; scrollY = 0; farmDirty = true; }

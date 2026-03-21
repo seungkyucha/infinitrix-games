@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>프루츠 머지 — Fruits Merge</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1A1A2E;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;margin:0 auto;background:#1A1A2E}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ============================================================
+// 프루츠 머지 (Fruits Merge) — Cycle #14
+// 100% Canvas 코드 드로잉, 외부 리소스 0개
+// ============================================================
+
+// === 1. CONFIG & 상수 ===
+const CONFIG = {
+  GRAVITY: 980,
+  RESTITUTION: 0.3,
+  FRICTION: 0.1,
+  DAMPING: 0.98,
+  MAX_VELOCITY: 800,
+  SUBSTEPS: 3,
+  WALL_RESTITUTION: 0.2,
+  DROP_COOLDOWN: 500,
+  DEADLINE_GRACE: 3000,
+  MOVE_SPEED: 300,
+  DESIGN_W: 400,
+  DESIGN_H: 700,
+  CONTAINER_PAD: 20,
+  CONTAINER_TOP: 120,
+  CONTAINER_BOTTOM_PAD: 20,
+  HUD_HEIGHT: 100,
+  DEADLINE_OFFSET: 40,
+  WATERMELON_BONUS: 100,
+  CHAIN_MULTIPLIER: 1.5
+};
+
+// 과일 정의 (11단계)
+const FRUITS = [
+  { name:'체', radius:12, color:'#E74C3C', score:1 },
+  { name:'딸', radius:16, color:'#FF6B6B', score:3 },
+  { name:'포', radius:22, color:'#9B59B6', score:6 },
+  { name:'귤', radius:28, color:'#F39C12', score:10 },
+  { name:'오', radius:34, color:'#E67E22', score:15 },
+  { name:'사', radius:40, color:'#E74C3C', score:21 },
+  { name:'배', radius:48, color:'#A8D860', score:28 },
+  { name:'복', radius:56, color:'#FDCB6E', score:36 },
+  { name:'파', radius:64, color:'#F9CA24', score:45 },
+  { name:'멜', radius:72, color:'#2ECC71', score:55 },
+  { name:'수', radius:82, color:'#27AE60', score:66 }
+];
+
+// 드롭 확률 테이블 (점수 구간별)
+const DROP_PROBS = [
+  [0.35, 0.30, 0.20, 0.10, 0.05],
+  [0.25, 0.30, 0.25, 0.15, 0.05],
+  [0.20, 0.25, 0.25, 0.20, 0.10]
+];
+
+// === 2. 전역 변수 ===
+let canvas, ctx;
+let dpr = 1;
+let scale = 1;
+let offsetX = 0, offsetY = 0;
+let gameState = 'TITLE';
+let fruits = [];
+let particles = [];
+let score = 0;
+let bestScore = 0;
+let dropX = CONFIG.DESIGN_W / 2;
+let currentFruitLevel = 0;
+let nextFruitLevel = 0;
+let dropCooldown = 0;
+let deadlineTimer = 0;
+let lastTimestamp = 0;
+let audioCtx = null;
+let inputMode = 'keyboard';
+let keysDown = {};
+let titleAnim = 0;
+let gameOverAnim = 0;
+let shakeX = 0, shakeY = 0;
+let shakeDur = 0;
+let isNewBest = false;
+let comboCount = 0;
+let comboTimer = 0;
+let dangerAlpha = 0;
+let dangerDir = 1;
+let scorePopups = [];
+let bgStars = [];
+
+// 용기 벽 좌표 (디자인 좌표계)
+let walls = { l: 0, r: 0, b: 0, t: 0 };
+
+// === 3. 유틸리티 순수 함수 ===
+
+// localStorage 안전 읽기
+function getBestScore() {
+  try { return parseInt(localStorage.getItem('fruits-merge-best')) || 0; } catch(e) { return 0; }
+}
+
+// localStorage 안전 저장
+function saveBestScore(s) {
+  try { localStorage.setItem('fruits-merge-best', s); } catch(e) { /* 무시 */ }
+}
+
+// 원-원 충돌 판정
+function checkCircleCollision(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const minDist = a.r + b.r;
+  if (dist < minDist && dist > 0.001) {
+    return { hit: true, overlap: minDist - dist, nx: dx / dist, ny: dy / dist };
+  }
+  return { hit: false, overlap: 0, nx: 0, ny: 0 };
+}
+
+// 탄성 충돌 응답 — a, b를 직접 수정
+function resolveCollision(a, b, nx, ny) {
+  const massA = a.r * a.r;
+  const massB = b.r * b.r;
+  const dvx = b.vx - a.vx;
+  const dvy = b.vy - a.vy;
+  const relVel = dvx * nx + dvy * ny;
+  if (relVel > 0) return;
+  const j = -(1 + CONFIG.RESTITUTION) * relVel / (1 / massA + 1 / massB);
+  a.vx -= j * nx / massA;
+  a.vy -= j * ny / massA;
+  b.vx += j * nx / massB;
+  b.vy += j * ny / massB;
+}
+
+// 벽 충돌 처리
+function checkWallCollision(fruit, w) {
+  if (fruit.x - fruit.r < w.l) {
+    fruit.x = w.l + fruit.r;
+    fruit.vx = -fruit.vx * CONFIG.WALL_RESTITUTION;
+  }
+  if (fruit.x + fruit.r > w.r) {
+    fruit.x = w.r - fruit.r;
+    fruit.vx = -fruit.vx * CONFIG.WALL_RESTITUTION;
+  }
+  if (fruit.y + fruit.r > w.b) {
+    fruit.y = w.b - fruit.r;
+    fruit.vy = -fruit.vy * CONFIG.WALL_RESTITUTION;
+    fruit.vx *= (1 - CONFIG.FRICTION);
+  }
+}
+
+// 합체 가능 쌍 탐색
+function findMergePairs(fruitList) {
+  const pairs = [];
+  const used = new Set();
+  for (let i = 0; i < fruitList.length; i++) {
+    if (used.has(i)) continue;
+    for (let j = i + 1; j < fruitList.length; j++) {
+      if (used.has(j)) continue;
+      if (fruitList[i].level !== fruitList[j].level) continue;
+      if (fruitList[i].level >= 10 && fruitList[j].level >= 10) {
+        // 수박+수박 — 특수 처리
+        const c = checkCircleCollision(
+          { x: fruitList[i].x, y: fruitList[i].y, r: fruitList[i].r },
+          { x: fruitList[j].x, y: fruitList[j].y, r: fruitList[j].r }
+        );
+        if (c.hit) { pairs.push([i, j, true]); used.add(i); used.add(j); }
+        continue;
+      }
+      const c = checkCircleCollision(
+        { x: fruitList[i].x, y: fruitList[i].y, r: fruitList[i].r },
+        { x: fruitList[j].x, y: fruitList[j].y, r: fruitList[j].r }
+      );
+      if (c.hit) { pairs.push([i, j, false]); used.add(i); used.add(j); }
+    }
+  }
+  return pairs;
+}
+
+// 합체 점수 계산
+function calcMergeScore(level, chainIdx) {
+  const base = FRUITS[level] ? FRUITS[level].score : 0;
+  return Math.floor(base * (1 + 0.5 * Math.max(0, chainIdx - 1)));
+}
+
+// 드롭 과일 레벨 결정 (점수 기반 확률)
+function getDropFruitLevel(currentScore) {
+  const probIdx = currentScore <= 500 ? 0 : currentScore <= 2000 ? 1 : 2;
+  const probs = DROP_PROBS[probIdx];
+  let r = Math.random();
+  for (let i = 0; i < probs.length; i++) {
+    r -= probs[i];
+    if (r <= 0) return i;
+  }
+  return 0;
+}
+
+// 데드라인 Y좌표 위 판정
+function isAboveDeadline(fruit, deadlineY) {
+  return (fruit.y - fruit.r) < deadlineY;
+}
+
+// 드롭 X좌표 클램프
+function clampDropX(x, radius, w) {
+  return Math.max(w.l + radius, Math.min(w.r - radius, x));
+}
+
+// 파티클 배열 생성
+function createParticles(x, y, color, count) {
+  const arr = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+    const speed = 80 + Math.random() * 180;
+    arr.push({
+      x: x, y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 60,
+      r: 2 + Math.random() * 4,
+      color: color,
+      alpha: 1,
+      life: 0.3 + Math.random() * 0.2
+    });
+  }
+  return arr;
+}
+
+// 색상을 어둡게 만들기
+function darkenColor(hex, factor) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return 'rgb(' + Math.floor(r * factor) + ',' + Math.floor(g * factor) + ',' + Math.floor(b * factor) + ')';
+}
+
+// 점수 팝업 생성
+function addScorePopup(x, y, value) {
+  scorePopups.push({ x: x, y: y, value: value, alpha: 1, vy: -80, life: 0.8 });
+}
+
+// === 4. 사운드 시스템 (Web Audio API 절차적 생성) ===
+
+// 사운드 재생 헬퍼
+function playSound(freq, duration, type, vol) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    const v = vol || 0.3;
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(v, audioCtx.currentTime + 0.02);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration + 0.01);
+  } catch(e) { /* 무시 */ }
+}
+
+// 드롭 사운드
+function playDropSound() { playSound(200, 0.1, 'sine', 0.2); }
+
+// 합체 사운드 (단계별 피치 상승)
+function playMergeSound(level) { playSound(200 + level * 100, 0.2, 'sine', 0.4); }
+
+// 게임오버 사운드
+function playGameOverSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+    osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.55);
+  } catch(e) { /* 무시 */ }
+}
+
+// === 5. 렌더링 함수 ===
+
+// 과일 그리기 (Canvas 코드 드로잉)
+function drawFruit(c, fruit, cfg) {
+  c.save();
+  // 본체 원
+  c.beginPath();
+  c.arc(fruit.x, fruit.y, fruit.r, 0, Math.PI * 2);
+  c.fillStyle = cfg.color;
+  c.fill();
+  // 외곽선
+  c.strokeStyle = darkenColor(cfg.color, 0.7);
+  c.lineWidth = 2;
+  c.stroke();
+  // 하이라이트 (좌상단 광택)
+  c.beginPath();
+  c.arc(fruit.x - fruit.r * 0.3, fruit.y - fruit.r * 0.3, fruit.r * 0.3, 0, Math.PI * 2);
+  c.fillStyle = 'rgba(255,255,255,0.35)';
+  c.fill();
+  // 과일 이름 글자
+  if (fruit.r >= 16) {
+    c.fillStyle = '#fff';
+    c.font = 'bold ' + Math.max(10, Math.floor(fruit.r * 0.65)) + 'px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(cfg.name, fruit.x, fruit.y + 1);
+  }
+  c.restore();
+}
+
+// 용기 그리기
+function drawContainer(c, w) {
+  c.save();
+  const radius = 12;
+  // 용기 내부 (어두운 파랑)
+  c.fillStyle = '#0F3460';
+  c.beginPath();
+  c.moveTo(w.l, w.t);
+  c.lineTo(w.l, w.b - radius);
+  c.quadraticCurveTo(w.l, w.b, w.l + radius, w.b);
+  c.lineTo(w.r - radius, w.b);
+  c.quadraticCurveTo(w.r, w.b, w.r, w.b - radius);
+  c.lineTo(w.r, w.t);
+  c.closePath();
+  c.fill();
+  // 벽 (네이비)
+  const wallW = 4;
+  c.fillStyle = '#16213E';
+  c.fillRect(w.l - wallW, w.t, wallW, w.b - w.t + wallW);
+  c.fillRect(w.r, w.t, wallW, w.b - w.t + wallW);
+  c.fillRect(w.l - wallW, w.b, w.r - w.l + wallW * 2, wallW);
+  // 네온 테두리 글로우
+  c.strokeStyle = 'rgba(0,212,255,0.3)';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(w.l, w.t);
+  c.lineTo(w.l, w.b - radius);
+  c.quadraticCurveTo(w.l, w.b, w.l + radius, w.b);
+  c.lineTo(w.r - radius, w.b);
+  c.quadraticCurveTo(w.r, w.b, w.r, w.b - radius);
+  c.lineTo(w.r, w.t);
+  c.stroke();
+  c.restore();
+}
+
+// 배경 별 초기화
+function initBgStars() {
+  bgStars = [];
+  for (let i = 0; i < 60; i++) {
+    bgStars.push({
+      x: Math.random() * CONFIG.DESIGN_W,
+      y: Math.random() * CONFIG.DESIGN_H,
+      r: 0.5 + Math.random() * 1.5,
+      twinkle: Math.random() * Math.PI * 2,
+      speed: 0.5 + Math.random() * 1.5
+    });
+  }
+}
+
+// 배경 렌더링
+function drawBackground(c, dt) {
+  // 그라디언트 배경
+  const grad = c.createLinearGradient(0, 0, 0, CONFIG.DESIGN_H);
+  grad.addColorStop(0, '#0a0a1a');
+  grad.addColorStop(0.5, '#1A1A2E');
+  grad.addColorStop(1, '#16213E');
+  c.fillStyle = grad;
+  c.fillRect(0, 0, CONFIG.DESIGN_W, CONFIG.DESIGN_H);
+  // 별 렌더링
+  for (let i = 0; i < bgStars.length; i++) {
+    const s = bgStars[i];
+    s.twinkle += s.speed * dt;
+    const alpha = 0.3 + 0.5 * Math.abs(Math.sin(s.twinkle));
+    c.beginPath();
+    c.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(200,220,255,' + alpha.toFixed(2) + ')';
+    c.fill();
+  }
+}
+
+// 데드라인 렌더링
+function drawDeadline(c, deadY, timer) {
+  c.save();
+  // 점선
+  c.setLineDash([8, 6]);
+  const alpha = timer > 0 ? (0.5 + 0.3 * Math.sin(dangerAlpha)) : 0.3;
+  c.strokeStyle = 'rgba(231,76,60,' + alpha.toFixed(2) + ')';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(walls.l, deadY);
+  c.lineTo(walls.r, deadY);
+  c.stroke();
+  c.setLineDash([]);
+  // DANGER 텍스트
+  if (timer > 0) {
+    c.fillStyle = 'rgba(231,76,60,' + (alpha * 0.8).toFixed(2) + ')';
+    c.font = 'bold 10px sans-serif';
+    c.textAlign = 'center';
+    c.fillText('DANGER', CONFIG.DESIGN_W / 2, deadY - 6);
+  }
+  c.restore();
+}
+
+// HUD 렌더링
+function drawHUD(c) {
+  c.save();
+  // 점수
+  c.fillStyle = '#ECF0F1';
+  c.font = 'bold 18px sans-serif';
+  c.textAlign = 'left';
+  c.fillText('SCORE', 15, 28);
+  c.font = 'bold 24px sans-serif';
+  c.fillStyle = '#00d4ff';
+  c.fillText('' + score, 15, 56);
+  // 최고점
+  c.font = '12px sans-serif';
+  c.fillStyle = '#8080a0';
+  c.fillText('BEST: ' + bestScore, 15, 74);
+  // NEXT 미리보기
+  c.fillStyle = '#8080a0';
+  c.font = '12px sans-serif';
+  c.textAlign = 'right';
+  c.fillText('NEXT', CONFIG.DESIGN_W - 15, 24);
+  const nf = FRUITS[nextFruitLevel];
+  const previewX = CONFIG.DESIGN_W - 15 - nf.radius;
+  const previewY = 52;
+  drawFruit(c, { x: previewX, y: previewY, r: nf.radius * 0.7 }, nf);
+  // 쿨다운 인디케이터
+  if (dropCooldown > 0) {
+    const pct = dropCooldown / CONFIG.DROP_COOLDOWN;
+    c.fillStyle = 'rgba(0,212,255,0.3)';
+    const barW = 60;
+    c.fillRect(CONFIG.DESIGN_W / 2 - barW / 2, 88, barW * (1 - pct), 4);
+    c.strokeStyle = 'rgba(0,212,255,0.5)';
+    c.lineWidth = 1;
+    c.strokeRect(CONFIG.DESIGN_W / 2 - barW / 2, 88, barW, 4);
+  }
+  c.restore();
+}
+
+// 드롭 가이드라인 + 현재 과일 표시
+function drawDropGuide(c) {
+  if (dropCooldown > 0) return;
+  const fr = FRUITS[currentFruitLevel];
+  const cx = clampDropX(dropX, fr.radius, walls);
+  // 점선 가이드
+  c.save();
+  c.setLineDash([4, 4]);
+  c.strokeStyle = 'rgba(255,255,255,0.2)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(cx, CONFIG.CONTAINER_TOP - 10);
+  c.lineTo(cx, walls.b);
+  c.stroke();
+  c.setLineDash([]);
+  c.restore();
+  // 과일 프리뷰
+  const preY = CONFIG.CONTAINER_TOP - 20 - fr.radius;
+  c.globalAlpha = 0.8;
+  drawFruit(c, { x: cx, y: preY, r: fr.radius }, fr);
+  c.globalAlpha = 1;
+}
+
+// 파티클 렌더링
+function drawParticles(c) {
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    c.save();
+    c.globalAlpha = p.alpha;
+    c.beginPath();
+    c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    c.fillStyle = p.color;
+    c.fill();
+    c.restore();
+  }
+}
+
+// 점수 팝업 렌더링
+function drawScorePopups(c) {
+  for (let i = 0; i < scorePopups.length; i++) {
+    const p = scorePopups[i];
+    c.save();
+    c.globalAlpha = p.alpha;
+    c.fillStyle = '#ffd700';
+    c.font = 'bold 16px sans-serif';
+    c.textAlign = 'center';
+    c.fillText('+' + p.value, p.x, p.y);
+    c.restore();
+  }
+}
+
+// 일시정지 버튼 렌더링
+function drawPauseBtn(c) {
+  const bx = CONFIG.DESIGN_W - 56;
+  const by = CONFIG.DESIGN_H - 56;
+  const bw = 48;
+  const bh = 48;
+  c.save();
+  c.fillStyle = 'rgba(44,62,80,0.8)';
+  c.beginPath();
+  c.roundRect(bx, by, bw, bh, 6);
+  c.fill();
+  c.strokeStyle = 'rgba(0,212,255,0.5)';
+  c.lineWidth = 1;
+  c.stroke();
+  c.fillStyle = '#ECF0F1';
+  c.font = '12px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(gameState === 'PAUSED' ? '▶' : '❚❚', bx + bw / 2, by + bh / 2);
+  c.restore();
+}
+
+// 콤보 표시
+function drawCombo(c) {
+  if (comboCount >= 2 && comboTimer > 0) {
+    c.save();
+    const alpha = Math.min(1, comboTimer * 3);
+    c.globalAlpha = alpha;
+    c.fillStyle = '#ffd700';
+    c.font = 'bold 28px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    const cy = CONFIG.DESIGN_H / 2 - 40;
+    c.fillText(comboCount + 'x COMBO!', CONFIG.DESIGN_W / 2, cy);
+    // 글로우
+    c.shadowColor = '#ffd700';
+    c.shadowBlur = 20;
+    c.fillText(comboCount + 'x COMBO!', CONFIG.DESIGN_W / 2, cy);
+    c.restore();
+  }
+}
+
+// === 6. 화면별 렌더링 ===
+
+// 타이틀 화면
+function drawTitle(c, dt) {
+  titleAnim += dt;
+  drawBackground(c, dt);
+  // 장식 과일 애니메이션
+  for (let i = 0; i < 11; i++) {
+    const a = titleAnim * 0.5 + i * 0.57;
+    const fx = CONFIG.DESIGN_W / 2 + Math.cos(a) * (80 + i * 12);
+    const fy = CONFIG.DESIGN_H / 2 + Math.sin(a * 1.3) * (60 + i * 8);
+    c.globalAlpha = 0.4;
+    drawFruit(c, { x: fx, y: fy, r: FRUITS[i].radius * 0.6 }, FRUITS[i]);
+    c.globalAlpha = 1;
+  }
+  // 타이틀 텍스트
+  c.save();
+  const pulse = 1 + Math.sin(titleAnim * 3) * 0.03;
+  c.translate(CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.32);
+  c.scale(pulse, pulse);
+  // 글로우
+  c.shadowColor = '#00d4ff';
+  c.shadowBlur = 30;
+  c.fillStyle = '#ECF0F1';
+  c.font = 'bold 36px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('프루츠 머지', 0, 0);
+  c.shadowBlur = 0;
+  c.font = '16px sans-serif';
+  c.fillStyle = '#00d4ff';
+  c.fillText('FRUITS MERGE', 0, 34);
+  c.restore();
+  // 설명
+  c.fillStyle = '#8080a0';
+  c.font = '13px sans-serif';
+  c.textAlign = 'center';
+  c.fillText('같은 과일끼리 합체시켜 수박을 만들어라!', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.52);
+  // 시작 안내 깜빡임
+  const blinkAlpha = 0.4 + 0.6 * Math.abs(Math.sin(titleAnim * 2.5));
+  c.globalAlpha = blinkAlpha;
+  c.fillStyle = '#ECF0F1';
+  c.font = 'bold 16px sans-serif';
+  c.fillText('TAP / SPACE 시작', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.65);
+  c.globalAlpha = 1;
+  // 최고 점수
+  if (bestScore > 0) {
+    c.fillStyle = '#ffd700';
+    c.font = '14px sans-serif';
+    c.fillText('BEST: ' + bestScore, CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.72);
+  }
+  // 조작 안내
+  c.fillStyle = '#505070';
+  c.font = '11px sans-serif';
+  c.fillText('마우스/터치: 이동+드롭 | ←→: 이동 | Space: 드롭', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.88);
+}
+
+// 게임오버 오버레이
+function drawGameOver(c, dt) {
+  gameOverAnim = Math.min(gameOverAnim + dt * 2, 1);
+  const alpha = gameOverAnim * 0.7;
+  c.save();
+  c.fillStyle = 'rgba(10,10,15,' + alpha.toFixed(2) + ')';
+  c.fillRect(0, 0, CONFIG.DESIGN_W, CONFIG.DESIGN_H);
+  if (gameOverAnim > 0.3) {
+    const textAlpha = Math.min(1, (gameOverAnim - 0.3) * 3);
+    c.globalAlpha = textAlpha;
+    c.fillStyle = '#E74C3C';
+    c.font = 'bold 32px sans-serif';
+    c.textAlign = 'center';
+    c.shadowColor = '#E74C3C';
+    c.shadowBlur = 20;
+    c.fillText('GAME OVER', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.33);
+    c.shadowBlur = 0;
+    c.fillStyle = '#ECF0F1';
+    c.font = 'bold 20px sans-serif';
+    c.fillText('SCORE: ' + score, CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.44);
+    if (isNewBest) {
+      c.fillStyle = '#ffd700';
+      c.font = 'bold 16px sans-serif';
+      c.shadowColor = '#ffd700';
+      c.shadowBlur = 15;
+      c.fillText('★ NEW BEST! ★', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.51);
+      c.shadowBlur = 0;
+    } else {
+      c.fillStyle = '#8080a0';
+      c.font = '14px sans-serif';
+      c.fillText('BEST: ' + bestScore, CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H * 0.51);
+    }
+    // 버튼: 재시작
+    const btnY = CONFIG.DESIGN_H * 0.60;
+    const btnW = 160;
+    const btnH = 44;
+    c.fillStyle = '#3498DB';
+    c.beginPath();
+    c.roundRect(CONFIG.DESIGN_W / 2 - btnW / 2, btnY, btnW, btnH, 8);
+    c.fill();
+    c.fillStyle = '#fff';
+    c.font = 'bold 16px sans-serif';
+    c.fillText('다시 하기 (R)', CONFIG.DESIGN_W / 2, btnY + btnH / 2 + 1);
+    // 버튼: 타이틀
+    const btn2Y = btnY + 56;
+    c.fillStyle = 'rgba(44,62,80,0.9)';
+    c.beginPath();
+    c.roundRect(CONFIG.DESIGN_W / 2 - btnW / 2, btn2Y, btnW, btnH, 8);
+    c.fill();
+    c.strokeStyle = 'rgba(0,212,255,0.5)';
+    c.lineWidth = 1;
+    c.stroke();
+    c.fillStyle = '#ECF0F1';
+    c.font = '14px sans-serif';
+    c.fillText('타이틀로 (T)', CONFIG.DESIGN_W / 2, btn2Y + btnH / 2 + 1);
+  }
+  c.restore();
+}
+
+// 일시정지 오버레이
+function drawPaused(c) {
+  c.save();
+  c.fillStyle = 'rgba(10,10,15,0.6)';
+  c.fillRect(0, 0, CONFIG.DESIGN_W, CONFIG.DESIGN_H);
+  c.fillStyle = '#ECF0F1';
+  c.font = 'bold 28px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('PAUSED', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H / 2 - 20);
+  const blinkA = 0.4 + 0.6 * Math.abs(Math.sin(Date.now() * 0.003));
+  c.globalAlpha = blinkA;
+  c.font = '14px sans-serif';
+  c.fillStyle = '#00d4ff';
+  c.fillText('TAP / P 계속하기', CONFIG.DESIGN_W / 2, CONFIG.DESIGN_H / 2 + 20);
+  c.restore();
+}
+
+// === 7. 게임 로직 ===
+
+// 게임 초기화 (새 게임 시작)
+function startGame() {
+  fruits = [];
+  particles = [];
+  scorePopups = [];
+  score = 0;
+  dropCooldown = 0;
+  deadlineTimer = 0;
+  comboCount = 0;
+  comboTimer = 0;
+  gameOverAnim = 0;
+  shakeDur = 0;
+  isNewBest = false;
+  currentFruitLevel = getDropFruitLevel(0);
+  nextFruitLevel = getDropFruitLevel(0);
+  dropX = CONFIG.DESIGN_W / 2;
+  gameState = 'PLAYING';
+}
+
+// 과일 드롭
+function spawnFruit(x) {
+  if (dropCooldown > 0) return;
+  const fr = FRUITS[currentFruitLevel];
+  const cx = clampDropX(x, fr.radius, walls);
+  fruits.push({
+    x: cx,
+    y: walls.t + fr.radius + 2,
+    vx: 0,
+    vy: 0,
+    r: fr.radius,
+    level: currentFruitLevel,
+    settled: false,
+    age: 0
+  });
+  dropCooldown = CONFIG.DROP_COOLDOWN;
+  currentFruitLevel = nextFruitLevel;
+  nextFruitLevel = getDropFruitLevel(score);
+  playDropSound();
+  comboCount = 0;
+}
+
+// 물리 업데이트 (1 서브스텝)
+function physicsStep(dt) {
+  for (let i = 0; i < fruits.length; i++) {
+    const f = fruits[i];
+    f.age += dt;
+    // 중력
+    f.vy += CONFIG.GRAVITY * dt;
+    // 속도 제한
+    const spd = Math.sqrt(f.vx * f.vx + f.vy * f.vy);
+    if (spd > CONFIG.MAX_VELOCITY) {
+      f.vx = (f.vx / spd) * CONFIG.MAX_VELOCITY;
+      f.vy = (f.vy / spd) * CONFIG.MAX_VELOCITY;
+    }
+    // 위치 갱신
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+    // 감쇠
+    f.vx *= CONFIG.DAMPING;
+    f.vy *= CONFIG.DAMPING;
+    // 벽 충돌
+    checkWallCollision(f, walls);
+  }
+  // 과일 간 충돌
+  for (let i = 0; i < fruits.length; i++) {
+    for (let j = i + 1; j < fruits.length; j++) {
+      const a = fruits[i];
+      const b = fruits[j];
+      const c = checkCircleCollision(
+        { x: a.x, y: a.y, r: a.r },
+        { x: b.x, y: b.y, r: b.r }
+      );
+      if (c.hit) {
+        // 분리
+        a.x -= c.nx * c.overlap * 0.5;
+        a.y -= c.ny * c.overlap * 0.5;
+        b.x += c.nx * c.overlap * 0.5;
+        b.y += c.ny * c.overlap * 0.5;
+        // 탄성 충돌
+        resolveCollision(a, b, c.nx, c.ny);
+      }
+    }
+  }
+}
+
+// 머지 처리 (1프레임에 최대 1라운드, 연쇄는 다음 프레임)
+function processMerges() {
+  const pairs = findMergePairs(fruits);
+  if (pairs.length === 0) {
+    if (comboTimer > 0 && comboCount === 0) comboTimer = 0;
+    return;
+  }
+  // 인덱스 역순 제거를 위해 정렬
+  const toRemove = new Set();
+  for (let p = 0; p < pairs.length; p++) {
+    const idxA = pairs[p][0];
+    const idxB = pairs[p][1];
+    const isWatermelon = pairs[p][2];
+    const a = fruits[idxA];
+    const b = fruits[idxB];
+    if (!a || !b) continue;
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    comboCount++;
+    comboTimer = 1.0;
+    if (isWatermelon) {
+      // 수박+수박: 소멸 + 보너스
+      score += CONFIG.WATERMELON_BONUS;
+      addScorePopup(mx, my, CONFIG.WATERMELON_BONUS);
+      const pts = createParticles(mx, my, '#27AE60', 16);
+      for (let k = 0; k < pts.length; k++) particles.push(pts[k]);
+      playMergeSound(10);
+    } else {
+      const newLevel = a.level + 1;
+      const mergeScore = calcMergeScore(newLevel, comboCount);
+      score += mergeScore;
+      addScorePopup(mx, my, mergeScore);
+      // 새 과일 생성
+      const nf = FRUITS[newLevel];
+      fruits.push({
+        x: mx, y: my,
+        vx: (a.vx + b.vx) * 0.3,
+        vy: (a.vy + b.vy) * 0.3 - 30,
+        r: nf.radius,
+        level: newLevel,
+        settled: false,
+        age: 0
+      });
+      // 파티클
+      const pts = createParticles(mx, my, nf.color, 10);
+      for (let k = 0; k < pts.length; k++) particles.push(pts[k]);
+      playMergeSound(newLevel);
+    }
+    toRemove.add(idxA);
+    toRemove.add(idxB);
+  }
+  // 역순 제거
+  const removeArr = Array.from(toRemove).sort(function(a, b) { return b - a; });
+  for (let i = 0; i < removeArr.length; i++) {
+    fruits.splice(removeArr[i], 1);
+  }
+}
+
+// 데드라인 판정
+function checkDeadline(dt) {
+  const deadY = walls.t + CONFIG.DEADLINE_OFFSET;
+  let anyAbove = false;
+  for (let i = 0; i < fruits.length; i++) {
+    // age 가드: 방금 드롭된 과일은 0.5초간 데드라인 면제
+    if (fruits[i].age > 0.5 && isAboveDeadline(fruits[i], deadY)) {
+      anyAbove = true;
+      break;
+    }
+  }
+  if (anyAbove) {
+    deadlineTimer += dt * 1000;
+    if (deadlineTimer >= CONFIG.DEADLINE_GRACE) {
+      triggerGameOver();
+    }
+  } else {
+    deadlineTimer = 0;
+  }
+}
+
+// 게임오버 발동
+function triggerGameOver() {
+  // 판정 먼저, 저장 나중에 (platform-wisdom F11)
+  isNewBest = score > getBestScore();
+  if (isNewBest || score > bestScore) {
+    bestScore = score;
+    saveBestScore(score);
+  }
+  gameState = 'GAMEOVER';
+  gameOverAnim = 0;
+  shakeDur = 0.4;
+  playGameOverSound();
+}
+
+// 파티클 업데이트
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 200 * dt;
+    p.alpha = Math.max(0, p.life / 0.4);
+    p.r *= 0.98;
+  }
+}
+
+// 점수 팝업 업데이트
+function updateScorePopups(dt) {
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    const p = scorePopups[i];
+    p.life -= dt;
+    if (p.life <= 0) { scorePopups.splice(i, 1); continue; }
+    p.y += p.vy * dt;
+    p.alpha = Math.max(0, p.life / 0.8);
+  }
+}
+
+// === 8. 메인 업데이트 & 렌더링 ===
+
+function update(dt) {
+  // 쉐이크 감쇠
+  if (shakeDur > 0) {
+    shakeDur -= dt;
+    shakeX = (Math.random() - 0.5) * 8 * (shakeDur / 0.4);
+    shakeY = (Math.random() - 0.5) * 8 * (shakeDur / 0.4);
+  } else {
+    shakeX = 0;
+    shakeY = 0;
+  }
+  dangerAlpha += dt * 6 * dangerDir;
+  if (gameState === 'PLAYING') {
+    // 키보드 이동
+    if (keysDown['ArrowLeft'] || keysDown['KeyA']) {
+      dropX -= CONFIG.MOVE_SPEED * dt;
+    }
+    if (keysDown['ArrowRight'] || keysDown['KeyD']) {
+      dropX += CONFIG.MOVE_SPEED * dt;
+    }
+    dropX = clampDropX(dropX, FRUITS[currentFruitLevel].radius, walls);
+    // 쿨다운 감소
+    if (dropCooldown > 0) dropCooldown -= dt * 1000;
+    if (dropCooldown < 0) dropCooldown = 0;
+    // 물리 서브스텝
+    const subDt = dt / CONFIG.SUBSTEPS;
+    for (let s = 0; s < CONFIG.SUBSTEPS; s++) {
+      physicsStep(subDt);
+    }
+    // 머지
+    processMerges();
+    // 데드라인
+    checkDeadline(dt);
+    // 콤보 타이머
+    if (comboTimer > 0) comboTimer -= dt;
+    // 파티클
+    updateParticles(dt);
+    updateScorePopups(dt);
+  } else if (gameState === 'GAMEOVER') {
+    // 잔여 파티클만 업데이트
+    updateParticles(dt);
+    updateScorePopups(dt);
+  }
+}
+
+function render(dt) {
+  ctx.save();
+  // DPR 스케일 적용
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offsetX, dpr * offsetY);
+  // 쉐이크
+  ctx.translate(shakeX, shakeY);
+  if (gameState === 'TITLE') {
+    drawTitle(ctx, dt);
+  } else {
+    drawBackground(ctx, dt);
+    drawContainer(ctx, walls);
+    // 데드라인
+    drawDeadline(ctx, walls.t + CONFIG.DEADLINE_OFFSET, deadlineTimer);
+    // 과일 (아래→위)
+    const sorted = fruits.slice().sort(function(a, b) { return b.y - a.y; });
+    for (let i = 0; i < sorted.length; i++) {
+      drawFruit(ctx, sorted[i], FRUITS[sorted[i].level]);
+    }
+    // 파티클
+    drawParticles(ctx);
+    // 점수 팝업
+    drawScorePopups(ctx);
+    // 드롭 가이드
+    if (gameState === 'PLAYING') drawDropGuide(ctx);
+    // HUD
+    drawHUD(ctx);
+    // 콤보 표시
+    drawCombo(ctx);
+    // 일시정지 버튼
+    drawPauseBtn(ctx);
+    // 상태별 오버레이
+    if (gameState === 'PAUSED') drawPaused(ctx);
+    if (gameState === 'GAMEOVER') drawGameOver(ctx, dt);
+  }
+  ctx.restore();
+}
+
+// 게임 루프 (rAF 기반, deltaTime 캡)
+function gameLoop(timestamp) {
+  if (!lastTimestamp) lastTimestamp = timestamp;
+  let dt = (timestamp - lastTimestamp) / 1000;
+  lastTimestamp = timestamp;
+  // dt 캡 (0.033초 = 약 30fps 최저)
+  if (dt > 0.033) dt = 0.033;
+  // 캔버스 클리어
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  update(dt);
+  render(dt);
+  requestAnimationFrame(gameLoop);
+}
+
+// === 9. 캔버스 리사이즈 (반응형 + DPR) ===
+
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  const winW = window.innerWidth;
+  const winH = window.innerHeight;
+  // 디자인 비율 유지 스케일링
+  const ratio = CONFIG.DESIGN_W / CONFIG.DESIGN_H;
+  let displayW, displayH;
+  if (winW / winH < ratio) {
+    displayW = winW;
+    displayH = winW / ratio;
+  } else {
+    displayH = winH;
+    displayW = winH * ratio;
+  }
+  scale = displayW / CONFIG.DESIGN_W;
+  offsetX = (winW - displayW) / 2;
+  offsetY = (winH - displayH) / 2;
+  canvas.style.width = winW + 'px';
+  canvas.style.height = winH + 'px';
+  canvas.width = winW * dpr;
+  canvas.height = winH * dpr;
+  // 용기 벽 좌표 계산
+  walls.l = CONFIG.CONTAINER_PAD;
+  walls.r = CONFIG.DESIGN_W - CONFIG.CONTAINER_PAD;
+  walls.t = CONFIG.CONTAINER_TOP;
+  walls.b = CONFIG.DESIGN_H - CONFIG.CONTAINER_BOTTOM_PAD;
+}
+
+// === 10. 입력 이벤트 ===
+
+// 화면 좌표 → 디자인 좌표 변환
+function screenToDesign(sx, sy) {
+  return {
+    x: (sx - offsetX) / scale,
+    y: (sy - offsetY) / scale
+  };
+}
+
+// 게임오버 버튼 히트 테스트
+function hitTestGameOverBtns(dx, dy) {
+  const btnW = 160;
+  const btnH = 44;
+  const btnX = CONFIG.DESIGN_W / 2 - btnW / 2;
+  const btn1Y = CONFIG.DESIGN_H * 0.60;
+  const btn2Y = btn1Y + 56;
+  if (dx >= btnX && dx <= btnX + btnW) {
+    if (dy >= btn1Y && dy <= btn1Y + btnH) return 'restart';
+    if (dy >= btn2Y && dy <= btn2Y + btnH) return 'title';
+  }
+  return null;
+}
+
+// 일시정지 버튼 히트 테스트
+function hitTestPauseBtn(dx, dy) {
+  const bx = CONFIG.DESIGN_W - 56;
+  const by = CONFIG.DESIGN_H - 56;
+  return dx >= bx && dx <= bx + 48 && dy >= by && dy <= by + 48;
+}
+
+// 키보드 이벤트
+document.addEventListener('keydown', function(e) {
+  keysDown[e.code] = true;
+  inputMode = 'keyboard';
+  if (gameState === 'TITLE') {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      startGame();
+      e.preventDefault();
+    }
+  } else if (gameState === 'PLAYING') {
+    if (e.code === 'Space' || e.code === 'ArrowDown' || e.code === 'KeyS') {
+      spawnFruit(dropX);
+      e.preventDefault();
+    }
+    if (e.code === 'KeyP' || e.code === 'Escape') {
+      gameState = 'PAUSED';
+      e.preventDefault();
+    }
+  } else if (gameState === 'PAUSED') {
+    if (e.code === 'KeyP' || e.code === 'Escape' || e.code === 'Space') {
+      gameState = 'PLAYING';
+      e.preventDefault();
+    }
+  } else if (gameState === 'GAMEOVER') {
+    if (e.code === 'KeyR' || e.code === 'Space') {
+      startGame();
+      e.preventDefault();
+    }
+    if (e.code === 'KeyT') {
+      gameState = 'TITLE';
+      e.preventDefault();
+    }
+  }
+});
+
+document.addEventListener('keyup', function(e) {
+  keysDown[e.code] = false;
+});
+
+// 터치 상태 변수
+let touchActive = false;
+
+// === 11. 초기화 ===
+
+function init() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  initBgStars();
+  bestScore = getBestScore();
+  lastTimestamp = 0;
+
+  // 마우스 이벤트 (canvas 할당 후 등록)
+  canvas.addEventListener('mousemove', function(e) {
+    if (gameState !== 'PLAYING') return;
+    inputMode = 'mouse';
+    const pos = screenToDesign(e.clientX, e.clientY);
+    dropX = pos.x;
+  });
+
+  canvas.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    const pos = screenToDesign(e.clientX, e.clientY);
+    if (gameState === 'TITLE') {
+      startGame();
+    } else if (gameState === 'PLAYING') {
+      if (hitTestPauseBtn(pos.x, pos.y)) {
+        gameState = 'PAUSED';
+        return;
+      }
+      inputMode = 'mouse';
+      dropX = pos.x;
+      spawnFruit(dropX);
+    } else if (gameState === 'PAUSED') {
+      gameState = 'PLAYING';
+    } else if (gameState === 'GAMEOVER') {
+      const btn = hitTestGameOverBtns(pos.x, pos.y);
+      if (btn === 'restart') startGame();
+      else if (btn === 'title') gameState = 'TITLE';
+      else startGame();
+    }
+  });
+
+  // 터치 이벤트 (canvas 할당 후 등록)
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    inputMode = 'touch';
+    const t = e.touches[0];
+    const pos = screenToDesign(t.clientX, t.clientY);
+    if (gameState === 'TITLE') {
+      startGame();
+    } else if (gameState === 'PLAYING') {
+      if (hitTestPauseBtn(pos.x, pos.y)) {
+        gameState = 'PAUSED';
+        return;
+      }
+      touchActive = true;
+      dropX = pos.x;
+    } else if (gameState === 'PAUSED') {
+      gameState = 'PLAYING';
+    } else if (gameState === 'GAMEOVER') {
+      const btn = hitTestGameOverBtns(pos.x, pos.y);
+      if (btn === 'restart') startGame();
+      else if (btn === 'title') gameState = 'TITLE';
+      else startGame();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (gameState !== 'PLAYING' || !touchActive) return;
+    const t = e.touches[0];
+    const pos = screenToDesign(t.clientX, t.clientY);
+    dropX = pos.x;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    if (gameState === 'PLAYING' && touchActive) {
+      spawnFruit(dropX);
+      touchActive = false;
+    }
+  }, { passive: false });
+
+  requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
