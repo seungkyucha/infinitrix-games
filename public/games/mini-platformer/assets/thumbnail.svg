@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0520"/>
+      <stop offset="50%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#2a1a4e"/>
+    </linearGradient>
+    <linearGradient id="tPlayerGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#33ffdd"/>
+      <stop offset="100%" stop-color="#00cc99"/>
+    </linearGradient>
+    <linearGradient id="tSpikeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff5588"/>
+      <stop offset="100%" stop-color="#cc0033"/>
+    </linearGradient>
+    <radialGradient id="tGemGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tTitleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#33ffdd"/>
+      <stop offset="100%" stop-color="#00ffcc"/>
+    </linearGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tTextGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tSoftGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#tBg)"/>
+  <!-- 별 -->
+  <g opacity="0.6">
+    <circle cx="30" cy="25" r="1.2" fill="#ffffff"/>
+    <circle cx="80" cy="50" r="0.8" fill="#ccddff"/>
+    <circle cx="150" cy="20" r="1" fill="#ffffff"/>
+    <circle cx="250" cy="35" r="1.2" fill="#aaeeff"/>
+    <circle cx="320" cy="15" r="0.8" fill="#ffffff"/>
+    <circle cx="370" cy="45" r="1" fill="#ddccff"/>
+    <circle cx="190" cy="60" r="0.8" fill="#ffffff"/>
+    <circle cx="55" cy="80" r="1" fill="#ffffff"/>
+    <circle cx="350" cy="70" r="0.8" fill="#ffffff"/>
+  </g>
+  <!-- 지형 플랫폼들 -->
+  <g>
+    <!-- 메인 플랫폼 -->
+    <rect x="60" y="210" width="120" height="20" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
+    <rect x="220" y="180" width="80" height="20" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
+    <rect x="120" y="150" width="60" height="15" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
+    <rect x="300" y="220" width="90" height="20" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
+    <!-- 하단 지면 -->
+    <rect x="0" y="260" width="400" height="40" fill="#3a3a5c"/>
+    <rect x="0" y="258" width="400" height="4" fill="#4a4a7c" opacity="0.5"/>
+  </g>
+  <!-- 가시 함정 -->
+  <g filter="url(#tSoftGlow)">
+    <path d="M230 260 L235 245 L240 260 Z" fill="url(#tSpikeGrad)"/>
+    <path d="M240 260 L245 245 L250 260 Z" fill="url(#tSpikeGrad)"/>
+    <path d="M250 260 L255 245 L260 260 Z" fill="url(#tSpikeGrad)"/>
+    <path d="M140 210 L145 198 L150 210 Z" fill="url(#tSpikeGrad)"/>
+    <path d="M150 210 L155 198 L160 210 Z" fill="url(#tSpikeGrad)"/>
+  </g>
+  <!-- 보석 -->
+  <g filter="url(#tGlow)">
+    <circle cx="260" cy="165" r="8" fill="url(#tGemGlow)"/>
+    <path d="M260 158 L264 165 L260 172 L256 165 Z" fill="#ffd700" stroke="#ffee88" stroke-width="0.5"/>
+    <path d="M260 158 L256 165 L260 163 L264 165 Z" fill="#ffee88" opacity="0.4"/>
+  </g>
+  <!-- 플레이어 (점프 중 포즈) -->
+  <g filter="url(#tGlow)">
+    <!-- 잔상 트레일 (대시 이펙트) -->
+    <rect x="88" y="188" width="18" height="22" rx="2" fill="#00ffcc" opacity="0.15"/>
+    <rect x="98" y="185" width="18" height="22" rx="2" fill="#00ffcc" opacity="0.25"/>
+    <!-- 플레이어 본체 -->
+    <rect x="110" y="180" width="20" height="25" rx="2" fill="url(#tPlayerGrad)" stroke="#00ffcc" stroke-width="1"/>
+    <!-- 눈 -->
+    <ellipse cx="117" cy="188" rx="2.5" ry="3" fill="#0a0a1a"/>
+    <ellipse cx="123" cy="188" rx="2.5" ry="3" fill="#0a0a1a"/>
+    <ellipse cx="118" cy="187" rx="1.2" ry="1.5" fill="#ffffff"/>
+    <ellipse cx="124" cy="187" rx="1.2" ry="1.5" fill="#ffffff"/>
+  </g>
+  <!-- 골 플래그 -->
+  <g filter="url(#tSoftGlow)">
+    <rect x="360" y="200" width="3" height="60" fill="#aaaaaa"/>
+    <path d="M363 200 L385 208 L363 216 Z" fill="#00ff66" opacity="0.8"/>
+    <path d="M363 200 L374 204 L363 208 Z" fill="#66ff99" opacity="0.5"/>
+  </g>
+  <!-- 적 (가시 별 형태) -->
+  <g filter="url(#tSoftGlow)" opacity="0.9">
+    <path d="M330 240 L335 230 L340 240 L350 235 L340 244 L350 250 L340 248 L335 258 L330 248 L320 250 L330 244 L320 235 Z"
+          fill="url(#tSpikeGrad)" stroke="#ff6688" stroke-width="0.5"/>
+    <circle cx="335" cy="244" r="4" fill="#1a0a15" stroke="#ff3366" stroke-width="0.5"/>
+  </g>
+  <!-- 제목 텍스트 -->
+  <g filter="url(#tTextGlow)">
+    <text x="200" y="55" text-anchor="middle" font-size="28" font-weight="bold" font-family="Arial, sans-serif" fill="url(#tTitleGrad)" stroke="#00ffcc" stroke-width="0.5">
+      미니 플랫포머
+    </text>
+  </g>
+  <!-- 서브 텍스트 -->
+  <text x="200" y="78" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#e0b0ff" opacity="0.8">
+    벽점프 · 대시 · 이중점프로 고대 탑을 돌파하라!
+  </text>
+  <!-- 하단 프레임 라인 -->
+  <rect x="5" y="5" width="390" height="290" rx="5" fill="none" stroke="#00ffcc" stroke-width="1" opacity="0.3"/>
+  <rect x="8" y="8" width="384" height="284" rx="4" fill="none" stroke="#e0b0ff" stroke-width="0.5" opacity="0.15"/>
+</svg>

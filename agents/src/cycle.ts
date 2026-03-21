@@ -264,6 +264,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       현재 플랫폼(public/games/game-registry.json)을 분석하고,
       HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
       결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
+      ⚠️ 영문 버전도 반드시 생성: docs/analytics/cycle-${cycleNumber}-report.en.md (같은 내용을 영어로 작성)
       ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.
@@ -277,6 +278,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     await runAgent('planner', `
       docs/analytics/cycle-${cycleNumber}-report.md를 읽고,
       제작할 게임의 상세 기획서를 docs/game-specs/cycle-${cycleNumber}-spec.md에 저장해줘.
+      ⚠️ 영문 버전도 반드시 생성: docs/game-specs/cycle-${cycleNumber}-spec.en.md (같은 내용을 영어로 작성)
       기획서 맨 위에 반드시 YAML front-matter 형식으로:
       ---
       game-id: [영문-소문자-하이픈]
@@ -349,6 +351,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
         - 키보드 입력 없이 게임 플레이가 가능한지 여부
 
         결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
+        ⚠️ 영문 버전도 반드시 생성: docs/reviews/cycle-${cycleNumber}-review.en.md (같은 내용을 영어로 작성)
         최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
         YAML front-matter에 verdict: [판정] 을 반드시 포함할 것.
       `)
@@ -393,10 +396,12 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       - docs/game-specs/cycle-${cycleNumber}-spec.md 읽기
       - docs/reviews/cycle-${cycleNumber}-review.md 읽기
       - docs/post-mortem/cycle-${cycleNumber}-postmortem.md 에 저장
+      - ⚠️ 영문 버전도 반드시 생성: docs/post-mortem/cycle-${cycleNumber}-postmortem.en.md
       - YAML front-matter에 cycle: ${cycleNumber} 포함할 것
 
-      작업 2 — 플랫폼 지혜 갱신:
+      작업 2 — 플랫폼 지혜 갱신 (한국어 + 영어):
       - docs/meta/platform-wisdom.md 읽기 (없으면 새로 생성)
+      - ⚠️ 영문 버전도 반드시 생성/갱신: docs/meta/platform-wisdom.en.md
       - 이번 사이클에서 얻은 새로운 인사이트를 추가 (기존 내용 유지)
       - 반복되는 문제 패턴, 검증된 성공 패턴, 다음 우선순위를 갱신
       - 아래 형식을 유지할 것:

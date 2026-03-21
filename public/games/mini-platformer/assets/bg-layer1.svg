@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0520"/>
+      <stop offset="40%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#2a1a4e"/>
+    </linearGradient>
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaA" cx="30%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#6633aa" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#6633aa" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaB" cx="70%" cy="60%" r="35%">
+      <stop offset="0%" stop-color="#00ffcc" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#00ffcc" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="starBlur">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+    <filter id="starTiny">
+      <feGaussianBlur stdDeviation="0.5"/>
+    </filter>
+  </defs>
+  <!-- 밤하늘 그라데이션 -->
+  <rect width="800" height="600" fill="url(#skyGrad)"/>
+  <!-- 성운 효과 -->
+  <ellipse cx="240" cy="240" rx="300" ry="200" fill="url(#nebulaA)"/>
+  <ellipse cx="560" cy="360" rx="250" ry="180" fill="url(#nebulaB)"/>
+  <!-- 밝은 별들 (글로우) -->
+  <g filter="url(#starBlur)">
+    <circle cx="120" cy="80" r="2" fill="#ffffff"/>
+    <circle cx="350" cy="45" r="2.5" fill="#aaddff"/>
+    <circle cx="580" cy="100" r="2" fill="#ffddaa"/>
+    <circle cx="700" cy="180" r="1.8" fill="#ffffff"/>
+    <circle cx="200" cy="300" r="2.2" fill="#ccddff"/>
+    <circle cx="650" cy="400" r="2" fill="#ffccdd"/>
+    <circle cx="100" cy="450" r="1.8" fill="#ffffff"/>
+    <circle cx="450" cy="200" r="2.5" fill="#aaeeff"/>
+    <circle cx="750" cy="50" r="2" fill="#ffffff"/>
+    <circle cx="50" cy="180" r="2.2" fill="#ddccff"/>
+  </g>
+  <!-- 작은 별들 (미세한 글로우) -->
+  <g filter="url(#starTiny)" opacity="0.7">
+    <circle cx="30" cy="40" r="0.8" fill="#ffffff"/>
+    <circle cx="90" cy="120" r="0.6" fill="#ffffff"/>
+    <circle cx="170" cy="60" r="0.7" fill="#ccddff"/>
+    <circle cx="250" cy="150" r="0.8" fill="#ffffff"/>
+    <circle cx="310" cy="90" r="0.6" fill="#ffddcc"/>
+    <circle cx="400" cy="120" r="0.7" fill="#ffffff"/>
+    <circle cx="470" cy="60" r="0.8" fill="#ddddff"/>
+    <circle cx="520" cy="170" r="0.6" fill="#ffffff"/>
+    <circle cx="600" cy="50" r="0.7" fill="#ffffff"/>
+    <circle cx="680" cy="140" r="0.8" fill="#ccffee"/>
+    <circle cx="720" cy="80" r="0.6" fill="#ffffff"/>
+    <circle cx="770" cy="120" r="0.7" fill="#ffffff"/>
+    <circle cx="60" cy="350" r="0.6" fill="#ffffff"/>
+    <circle cx="140" cy="400" r="0.7" fill="#ddccff"/>
+    <circle cx="280" cy="350" r="0.8" fill="#ffffff"/>
+    <circle cx="370" cy="420" r="0.6" fill="#ffffff"/>
+    <circle cx="490" cy="300" r="0.7" fill="#ffffff"/>
+    <circle cx="560" cy="450" r="0.8" fill="#ffddee"/>
+    <circle cx="630" cy="320" r="0.6" fill="#ffffff"/>
+    <circle cx="740" cy="380" r="0.7" fill="#ffffff"/>
+    <circle cx="180" cy="520" r="0.8" fill="#ffffff"/>
+    <circle cx="420" cy="530" r="0.6" fill="#ccddff"/>
+    <circle cx="550" cy="560" r="0.7" fill="#ffffff"/>
+    <circle cx="700" cy="520" r="0.8" fill="#ffffff"/>
+  </g>
+  <!-- 먼 산 실루엣 (최원경) -->
+  <path d="M0 550 Q50 480 100 510 Q150 460 200 490 Q260 430 320 470 Q380 420 440 460 Q500 410 560 450 Q620 400 680 440 Q740 410 800 450 L800 600 L0 600 Z"
+        fill="#120828" opacity="0.7"/>
+  <!-- 두 번째 산 실루엣 -->
+  <path d="M0 570 Q80 520 160 540 Q240 500 320 530 Q400 490 480 520 Q560 480 640 510 Q720 470 800 500 L800 600 L0 600 Z"
+        fill="#1a0e35" opacity="0.8"/>
+</svg>

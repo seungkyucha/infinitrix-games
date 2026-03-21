@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>미니 아이들 팩토리</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1a1a2e;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+
+/* ===================================================================
+   미니 아이들 팩토리 — Cycle 11
+   100% Canvas 코드 드로잉, 외부 에셋 0개
+   =================================================================== */
+
+// ─── CONFIG: 모든 밸런스 수치 ───
+const CONFIG = {
+  MANUAL_MINE_BASE: 1,
+  MANUAL_MINE_PRESTIGE_MULT: 1,
+  CLICK_COOLDOWN: 0.05,
+
+  MINER_BASE_RATE: 1,
+  MINER_RATE_PER_LV: 0.8,
+  MINER_BASE_COST: 10,
+  MINER_COST_MULT: 1.15,
+  MINER_MAX_LV: 100,
+
+  SMELTER_BASE_RATE: 0.5,
+  SMELTER_RATE_PER_LV: 0.4,
+  SMELTER_RATIO: 3,
+  SMELTER_BASE_COST: 50,
+  SMELTER_COST_MULT: 1.18,
+  SMELTER_MAX_LV: 80,
+  SMELTER_UNLOCK_GOLD: 25,
+
+  SELLER_BASE_RATE: 0.3,
+  SELLER_RATE_PER_LV: 0.3,
+  SELLER_BASE_PRICE: 2,
+  SELLER_PRICE_PER_LV: 0.5,
+  SELLER_BASE_COST: 200,
+  SELLER_COST_MULT: 1.20,
+  SELLER_MAX_LV: 60,
+  SELLER_UNLOCK_GOLD: 100,
+
+  ORE_CAP_BASE: 100,
+  ORE_CAP_PER_LV: 50,
+  INGOT_CAP_BASE: 50,
+  INGOT_CAP_PER_LV: 25,
+  STORAGE_BASE_COST: 100,
+  STORAGE_COST_MULT: 1.25,
+  STORAGE_MAX_LV: 50,
+
+  SPECIAL_UPGRADES: [
+    { id:'autoClick',   name:'자동 채굴',     cost:500,     desc:'1초마다 자동 클릭 1회', unlockGold:300 },
+    { id:'bulkSmelt',   name:'일괄 제련',     cost:2000,    desc:'제련 효율 +50%', unlockGold:1000 },
+    { id:'marketBoost', name:'시장 가격 상승', cost:5000,    desc:'판매가 ×2', unlockGold:3000 },
+    { id:'luckyMine',   name:'행운의 광맥',   cost:15000,   desc:'채굴 시 10% 확률 ×5', unlockGold:8000 },
+    { id:'overstock',   name:'대형 창고',     cost:50000,   desc:'저장 용량 ×3', unlockGold:25000 },
+    { id:'turboSmelt',  name:'터보 제련',     cost:200000,  desc:'제련 비율 3:1→2:1', unlockGold:100000 },
+    { id:'goldRush',    name:'골드 러시',     cost:1000000, desc:'모든 생산 ×2 (30초)', unlockGold:500000 },
+    { id:'megaMiner',   name:'메가 채굴기',   cost:5000000, desc:'채굴기 효율 ×3', unlockGold:2000000 },
+  ],
+
+  PRESTIGE_UNLOCK_GOLD: 10000,
+  PRESTIGE_PP_FORMULA_BASE: 150,
+  PRESTIGE_MULT_PER_PP: 0.01,
+  PRESTIGE_MULT_CAP: 100,
+
+  PRESTIGE_UPGRADES: [
+    { id:'ppMineSpeed',  name:'광맥 강화',      cost:5,  desc:'채굴 속도 ×1.5', maxLv:10 },
+    { id:'ppSmeltSpeed', name:'제련 가속',      cost:10, desc:'제련 속도 ×1.5', maxLv:10 },
+    { id:'ppSellPrice',  name:'판매 루트 확장', cost:15, desc:'판매가 ×1.3', maxLv:10 },
+    { id:'ppStartGold',  name:'시작 자금',      cost:20, desc:'리셋 후 골드 1000', maxLv:5 },
+    { id:'ppStorage',    name:'차원 창고',      cost:25, desc:'저장 용량 ×2', maxLv:5 },
+    { id:'ppClickPower', name:'강화 곡괭이',    cost:30, desc:'수동 채굴 ×2', maxLv:5 },
+  ],
+
+  OFFLINE_MAX_HOURS: 8,
+  OFFLINE_EFFICIENCY: 0.5,
+  AUTOSAVE_INTERVAL: 30,
+
+  MILESTONES: [1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10,1e11,1e12],
+  MILESTONE_NAMES: ['천','만','십만','백만','천만','억','십억','백억','천억','조'],
+
+  PARTICLE_POOL_SIZE: 100,
+  PARTICLE_LIFETIME: 0.8,
+  CLICK_SCALE_DURATION: 0.1,
+  NUMBER_POPUP_DURATION: 0.6,
+  TRANSITION_DURATION: 0.3,
+};
+
+// ─── 상태 상수 ───
+const S = {
+  TITLE: 'TITLE',
+  PLAYING: 'PLAYING',
+  PRESTIGE: 'PRESTIGE',
+  STATS: 'STATS',
+  SETTINGS: 'SETTINGS',
+  CONFIRM_MODAL: 'CONFIRM_MODAL',
+};
+
+const STATE_PRIORITY = {
+  CONFIRM_MODAL: 100,
+  TITLE: 90,
+  SETTINGS: 50,
+  PRESTIGE: 40,
+  STATS: 40,
+  PLAYING: 10,
+};
+
+// ─── 탭 상수 ───
+const TAB = { PRODUCTION: 0, UPGRADES: 1, PRESTIGE: 2, STATS: 3 };
+const TAB_NAMES = ['생산', '업그레이드', '프레스티지', '통계'];
+
+// ─── 칭호 ───
+const RANK_NAMES = ['신입','견습','장인','대장장이','산업왕','재벌','전설'];
+
+// ─── Canvas 설정 ───
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, dpr = 1;
+let gridCache = null; // resizeCanvas()보다 먼저 선언 (TDZ 방지)
+
+// 캔버스 크기 조정 (DPR 대응)
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // 그리드 캐시 무효화
+  gridCache = null;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ─── 그리드 배경 캐시 ───
+function getGridCache() {
+  if (gridCache && gridCache.w === W && gridCache.h === H) return gridCache.canvas;
+  const oc = document.createElement('canvas');
+  oc.width = W * dpr;
+  oc.height = H * dpr;
+  const gc = oc.getContext('2d');
+  gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+  gc.strokeStyle = 'rgba(255,255,255,0.03)';
+  gc.lineWidth = 1;
+  for (let x = 0; x < W; x += 16) { gc.beginPath(); gc.moveTo(x, 0); gc.lineTo(x, H); gc.stroke(); }
+  for (let y = 0; y < H; y += 16) { gc.beginPath(); gc.moveTo(0, y); gc.lineTo(W, y); gc.stroke(); }
+  gridCache = { canvas: oc, w: W, h: H };
+  return oc;
+}
+
+// ─── TweenManager ───
+const tw = {
+  _tweens: [],
+  _pendingCancel: false,
+
+  // 트윈 추가
+  add(obj, prop, from, to, dur, ease, onComplete) {
+    if (this._pendingCancel) {
+      this._tweens.length = 0;
+      this._pendingCancel = false;
+    }
+    const t = { obj, prop, from, to, dur, elapsed: 0, ease: ease || 'easeOut', onComplete };
+    obj[prop] = from;
+    this._tweens.push(t);
+    return t;
+  },
+
+  // 즉시 정리
+  clearImmediate() {
+    this._tweens.length = 0;
+    this._pendingCancel = false;
+  },
+
+  // 모든 트윈 취소 (deferred)
+  cancelAll() {
+    this._pendingCancel = true;
+  },
+
+  // 매 프레임 업데이트
+  update(dt) {
+    if (this._pendingCancel) {
+      this._tweens.length = 0;
+      this._pendingCancel = false;
+      return;
+    }
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const t = this._tweens[i];
+      t.elapsed += dt;
+      let p = Math.min(t.elapsed / t.dur, 1);
+      if (t.ease === 'easeOut') p = 1 - (1 - p) * (1 - p);
+      else if (t.ease === 'easeIn') p = p * p;
+      else if (t.ease === 'easeInOut') p = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
+      t.obj[t.prop] = t.from + (t.to - t.from) * p;
+      if (t.elapsed >= t.dur) {
+        t.obj[t.prop] = t.to;
+        this._tweens.splice(i, 1);
+        if (t.onComplete) t.onComplete();
+      }
+    }
+  }
+};
+
+// ─── ParticlePool ───
+const particles = {
+  pool: [],
+  active: [],
+
+  // 초기화
+  init(size) {
+    this.pool = [];
+    this.active = [];
+    for (let i = 0; i < size; i++) {
+      this.pool.push({ x:0, y:0, vx:0, vy:0, life:0, maxLife:0, r:3, color:'#f5a623', alpha:1, text:null, fontSize:14 });
+    }
+  },
+
+  // 파티클 할당
+  acquire(x, y, vx, vy, life, color, r, text, fontSize) {
+    const p = this.pool.pop();
+    if (!p) return null;
+    p.x = x; p.y = y; p.vx = vx; p.vy = vy;
+    p.life = life; p.maxLife = life;
+    p.color = color || '#f5a623';
+    p.r = r || 3; p.alpha = 1;
+    p.text = text || null;
+    p.fontSize = fontSize || 14;
+    this.active.push(p);
+    return p;
+  },
+
+  // 매 프레임 업데이트
+  update(dt) {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const p = this.active[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.active.splice(i, 1);
+        this.pool.push(p);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.alpha = Math.max(0, p.life / p.maxLife);
+    }
+  },
+
+  // 렌더링
+  render(ctx) {
+    for (let i = 0; i < this.active.length; i++) {
+      const p = this.active[i];
+      ctx.globalAlpha = p.alpha;
+      if (p.text) {
+        ctx.fillStyle = p.color;
+        ctx.font = 'bold ' + p.fontSize + 'px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.alpha, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+};
+
+particles.init(CONFIG.PARTICLE_POOL_SIZE);
+
+// ─── 순수 함수들 ───
+
+// 채굴 속도 계산
+function calcMineRate(minerLv, prestigeMult, specialUpgrades, prestigeUpgrades) {
+  if (minerLv <= 0) return 0;
+  let rate = CONFIG.MINER_BASE_RATE + CONFIG.MINER_RATE_PER_LV * (minerLv - 1);
+  rate *= prestigeMult;
+  const ppLv = (prestigeUpgrades && prestigeUpgrades.ppMineSpeed) || 0;
+  if (ppLv > 0) rate *= Math.pow(1.5, ppLv);
+  if (specialUpgrades && specialUpgrades.megaMiner) rate *= 3;
+  return rate;
+}
+
+// 제련 속도 계산
+function calcSmeltRate(smelterLv, prestigeMult, specialUpgrades, prestigeUpgrades) {
+  if (smelterLv <= 0) return 0;
+  let rate = CONFIG.SMELTER_BASE_RATE + CONFIG.SMELTER_RATE_PER_LV * (smelterLv - 1);
+  rate *= prestigeMult;
+  const ppLv = (prestigeUpgrades && prestigeUpgrades.ppSmeltSpeed) || 0;
+  if (ppLv > 0) rate *= Math.pow(1.5, ppLv);
+  if (specialUpgrades && specialUpgrades.bulkSmelt) rate *= 1.5;
+  return rate;
+}
+
+// 판매 속도 계산
+function calcSellRate(sellerLv, prestigeMult, specialUpgrades, prestigeUpgrades) {
+  if (sellerLv <= 0) return 0;
+  let rate = CONFIG.SELLER_BASE_RATE + CONFIG.SELLER_RATE_PER_LV * (sellerLv - 1);
+  rate *= prestigeMult;
+  return rate;
+}
+
+// 주괴 판매가 계산
+function calcIngotPrice(sellerLv, specialUpgrades, prestigeUpgrades) {
+  let price = CONFIG.SELLER_BASE_PRICE + CONFIG.SELLER_PRICE_PER_LV * Math.max(0, sellerLv - 1);
+  if (specialUpgrades && specialUpgrades.marketBoost) price *= 2;
+  const ppLv = (prestigeUpgrades && prestigeUpgrades.ppSellPrice) || 0;
+  if (ppLv > 0) price *= Math.pow(1.3, ppLv);
+  return price;
+}
+
+// 초당 골드 수입 계산
+function calcGoldPerSec(sellRate, ingotPrice) {
+  return sellRate * ingotPrice;
+}
+
+// 업그레이드 비용 계산
+function calcUpgradeCost(baseCost, costMult, currentLv) {
+  return Math.floor(baseCost * Math.pow(costMult, currentLv));
+}
+
+// 프레스티지 포인트 계산
+function calcPrestigePoints(totalGoldThisRun) {
+  return Math.floor(Math.sqrt(totalGoldThisRun / CONFIG.PRESTIGE_PP_FORMULA_BASE));
+}
+
+// 프레스티지 배율 계산
+function calcPrestigeMult(totalPP) {
+  return Math.min(1 + totalPP * CONFIG.PRESTIGE_MULT_PER_PP, CONFIG.PRESTIGE_MULT_CAP);
+}
+
+// 광석 용량 계산
+function calcOreCap(storageLv, specialUpgrades, prestigeUpgrades) {
+  let cap = CONFIG.ORE_CAP_BASE + CONFIG.ORE_CAP_PER_LV * storageLv;
+  if (specialUpgrades && specialUpgrades.overstock) cap *= 3;
+  const ppLv = (prestigeUpgrades && prestigeUpgrades.ppStorage) || 0;
+  if (ppLv > 0) cap *= Math.pow(2, ppLv);
+  return cap;
+}
+
+// 주괴 용량 계산
+function calcIngotCap(storageLv, specialUpgrades, prestigeUpgrades) {
+  let cap = CONFIG.INGOT_CAP_BASE + CONFIG.INGOT_CAP_PER_LV * storageLv;
+  if (specialUpgrades && specialUpgrades.overstock) cap *= 3;
+  const ppLv = (prestigeUpgrades && prestigeUpgrades.ppStorage) || 0;
+  if (ppLv > 0) cap *= Math.pow(2, ppLv);
+  return cap;
+}
+
+// 오프라인 골드 계산
+function calcOfflineGold(goldPerSec, elapsedSec, efficiency) {
+  return goldPerSec * elapsedSec * efficiency;
+}
+
+// 큰 숫자 포맷팅
+function formatNumber(n) {
+  if (n < 1000) return Math.floor(n).toString();
+  const suffixes = ['','K','M','B','T','Qa','Qi','Sx','Sp','Oc'];
+  const tier = Math.floor(Math.log10(Math.abs(n)) / 3);
+  if (tier >= suffixes.length) return n.toExponential(2);
+  const scaled = n / Math.pow(10, tier * 3);
+  return (scaled < 10 ? scaled.toFixed(2) : scaled < 100 ? scaled.toFixed(1) : scaled.toFixed(0)) + suffixes[tier];
+}
+
+// 시간 포맷팅
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+// 구매 가능 여부
+function canAfford(gold, cost) { return gold >= cost; }
+
+// 프레스티지 가능 여부
+function canPrestige(totalGoldThisRun, minGold) { return totalGoldThisRun >= minGold; }
+
+// 해금 여부
+function isUnlocked(totalGoldEarned, unlockThreshold) { return totalGoldEarned >= unlockThreshold; }
+
+// ─── 게임 상태 ───
+let state = S.TITLE;
+let prevState = S.TITLE;
+let isTransitioning = false;
+let transitionAlpha = 0;
+let transitionTarget = null;
+let currentTab = TAB.PRODUCTION;
+let scrollOffsetY = 0; // 업그레이드/프레스티지 탭 스크롤
+
+// 게임 데이터 (mutable state)
+let gs = null;
+
+// 기본 게임 데이터 생성
+function createDefaultState() {
+  return {
+    gold: 0, ore: 0, ingot: 0,
+    minerLv: 0, smelterLv: 0, sellerLv: 0, storageLv: 0,
+    specialUpgrades: {},
+    totalPP: 0, currentPP: 0, totalPrestiges: 0,
+    prestigeUpgrades: {},
+    stats: {
+      totalGoldEarned: 0, totalOresMined: 0, totalIngotsSmelted: 0,
+      totalClicks: 0, highestGoldPerSec: 0, totalPlaytime: 0, milestonesReached: 0,
+    },
+    milestones: new Array(CONFIG.MILESTONES.length).fill(false),
+    totalGoldThisRun: 0,
+    lastSaveTime: Date.now(),
+    version: 1,
+    goldRushTimer: 0,
+  };
+}
+
+// ─── 저장/불러오기 ───
+const SAVE_KEY = 'miniIdleFactory_save';
+
+function safeSave(data) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); return true; }
+  catch(e) { return false; }
+}
+
+function safeLoad() {
+  try { const d = localStorage.getItem(SAVE_KEY); return d ? JSON.parse(d) : null; }
+  catch(e) { return null; }
+}
+
+function hasSaveData() {
+  try { return localStorage.getItem(SAVE_KEY) !== null; }
+  catch(e) { return false; }
+}
+
+// ─── 오프라인 진행 ───
+let offlineBanner = null;
+
+function calculateOfflineProgress(saveData) {
+  const elapsed = Math.min(
+    (Date.now() - saveData.lastSaveTime) / 1000,
+    CONFIG.OFFLINE_MAX_HOURS * 3600
+  );
+  if (elapsed < 60) return null;
+  const pm = calcPrestigeMult(saveData.totalPP);
+  const sr = calcSellRate(saveData.sellerLv, pm, saveData.specialUpgrades, saveData.prestigeUpgrades);
+  const ip = calcIngotPrice(saveData.sellerLv, saveData.specialUpgrades, saveData.prestigeUpgrades);
+  const gps = calcGoldPerSec(sr, ip);
+  const offlineGold = calcOfflineGold(gps, elapsed, CONFIG.OFFLINE_EFFICIENCY);
+  if (offlineGold < 1) return null;
+  return { elapsed, offlineGold };
+}
+
+// ─── 오디오 ───
+const audio = {
+  ctx: null,
+  enabled: true,
+  bgmEnabled: false,
+
+  // 초기화
+  init() {
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { this.enabled = false; }
+  },
+
+  // 오디오 컨텍스트 재개
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(function(){});
+    }
+  },
+
+  // 단음 재생
+  play(freq, duration, type, gain) {
+    if (!this.enabled || !this.ctx) return;
+    type = type || 'sine';
+    gain = gain !== undefined ? gain : 0.15;
+    try {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(gain, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      o.connect(g);
+      g.connect(this.ctx.destination);
+      o.start();
+      o.stop(this.ctx.currentTime + duration);
+    } catch(e) {}
+  },
+
+  // 지연 재생 — Web Audio 스케줄링 (setTimeout 대신)
+  playAt(freq, vol, type, dur, delaySec) {
+    if (!this.enabled || !this.ctx) return;
+    try {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      const startT = this.ctx.currentTime + delaySec;
+      g.gain.setValueAtTime(vol, startT);
+      g.gain.exponentialRampToValueAtTime(0.001, startT + dur);
+      o.connect(g);
+      g.connect(this.ctx.destination);
+      o.start(startT);
+      o.stop(startT + dur);
+    } catch(e) {}
+  },
+  // 채굴 사운드
+  mine() { this.play(800, 0.05, 'sine', 0.15); },
+  // 업그레이드 사운드 (2음 시퀀스)
+  upgrade() { this.play(400, 0.08, 'sine', 0.2); this.playAt(800, 0.08, 'sine', 0.15, 0.08); },
+  // 특수 해금 (3음 팡파레)
+  fanfare() { this.play(523, 0.1, 'sine', 0.2); this.playAt(659, 0.1, 'sine', 0.2, 0.1); this.playAt(784, 0.15, 'sine', 0.2, 0.2); },
+  // 프레스티지 (화음)
+  prestige() { this.play(261, 0.3, 'triangle', 0.3); this.play(392, 0.3, 'triangle', 0.25); this.play(523, 0.3, 'triangle', 0.2); },
+  // 마일스톤 (4음 시퀀스)
+  milestone() { this.play(523, 0.1, 'sine', 0.2); this.playAt(659, 0.1, 'sine', 0.2, 0.1); this.playAt(784, 0.1, 'sine', 0.2, 0.2); this.playAt(1046, 0.2, 'sine', 0.2, 0.3); },
+  // 구매 불가
+  deny() { this.play(200, 0.1, 'sawtooth', 0.1); },
+  // 호버
+  hover() { this.play(600, 0.02, 'sine', 0.05); },
+};
+
+// ─── 상태 전환 시스템 ───
+
+// 상태 진입 (초기화 처리)
+function enterState(target) {
+  prevState = state;
+  state = target;
+  scrollOffsetY = 0;
+  if (target === S.PLAYING) {
+    // 아무것도 안 함 — 이미 gs 세팅됨
+  }
+}
+
+// 전환 시작 (모든 전환은 이 함수 경유)
+function beginTransition(target, opts) {
+  if (isTransitioning) return;
+  opts = opts || {};
+  if (opts.immediate) {
+    enterState(target);
+    return;
+  }
+  isTransitioning = true;
+  transitionTarget = target;
+  transitionAlpha = 0;
+  tw.add({ _a: 0 }, '_a', 0, 1, opts.duration || CONFIG.TRANSITION_DURATION, 'easeOut', function() {
+    enterState(transitionTarget);
+    isTransitioning = false;
+    transitionTarget = null;
+  });
+  // 페이드 효과를 위한 트윈
+  tw.add(transObj, 'alpha', 0, 1, (opts.duration || CONFIG.TRANSITION_DURATION) * 0.5, 'easeIn', function() {
+    tw.add(transObj, 'alpha', 1, 0, (opts.duration || CONFIG.TRANSITION_DURATION) * 0.5, 'easeOut');
+  });
+}
+const transObj = { alpha: 0 };
+
+// ─── 게임 시작 ───
+function startNewGame() {
+  gs = createDefaultState();
+  // 프레스티지 시작 자금 체크
+  const ppStartLv = (gs.prestigeUpgrades && gs.prestigeUpgrades.ppStartGold) || 0;
+  if (ppStartLv > 0) gs.gold = 1000 * ppStartLv;
+  beginTransition(S.PLAYING, { duration: 0.3 });
+}
+
+function continueGame() {
+  const data = safeLoad();
+  if (data) {
+    gs = Object.assign(createDefaultState(), data);
+    // 배열 복원
+    if (!Array.isArray(gs.milestones)) gs.milestones = new Array(CONFIG.MILESTONES.length).fill(false);
+    // 오프라인 보상
+    const offline = calculateOfflineProgress(gs);
+    if (offline) {
+      gs.gold += offline.offlineGold;
+      gs.totalGoldThisRun += offline.offlineGold;
+      gs.stats.totalGoldEarned += offline.offlineGold;
+      offlineBanner = { gold: offline.offlineGold, elapsed: offline.elapsed, timer: 4 };
+    }
+    gs.lastSaveTime = Date.now();
+  } else {
+    gs = createDefaultState();
+  }
+  beginTransition(S.PLAYING, { duration: 0.3 });
+}
+
+// ─── 생산 업데이트 (순수 함수) ───
+function updateProduction(gs, dt, config) {
+  const pm = calcPrestigeMult(gs.totalPP);
+  const rushMult = gs.goldRushTimer > 0 ? 2 : 1;
+  const oreCap = calcOreCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  const ingotCap = calcIngotCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+
+  // 자동 채굴
+  const mineRate = calcMineRate(gs.minerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  gs.ore = Math.min(gs.ore + mineRate * dt, oreCap);
+  gs.stats.totalOresMined += mineRate * dt;
+
+  // 제련
+  const smeltRate = calcSmeltRate(gs.smelterLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const ratio = (gs.specialUpgrades && gs.specialUpgrades.turboSmelt) ? 2 : config.SMELTER_RATIO;
+  const canSmelt = Math.min(smeltRate * dt, gs.ore / ratio, ingotCap - gs.ingot);
+  if (canSmelt > 0) {
+    gs.ore -= canSmelt * ratio;
+    gs.ingot += canSmelt;
+    gs.stats.totalIngotsSmelted += canSmelt;
+  }
+
+  // 판매
+  const sellRate = calcSellRate(gs.sellerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const ingotPrice = calcIngotPrice(gs.sellerLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  const canSell = Math.min(sellRate * dt, gs.ingot);
+  if (canSell > 0) {
+    gs.ingot -= canSell;
+    const earned = canSell * ingotPrice * rushMult;
+    gs.gold += earned;
+    gs.totalGoldThisRun += earned;
+    gs.stats.totalGoldEarned += earned;
+  }
+
+  // 용량 제한
+  gs.ore = Math.min(gs.ore, oreCap);
+  gs.ingot = Math.min(gs.ingot, ingotCap);
+
+  // 골드러시 타이머
+  if (gs.goldRushTimer > 0) gs.goldRushTimer = Math.max(0, gs.goldRushTimer - dt);
+
+  // 최고 GPS 갱신
+  const gps = calcGoldPerSec(sellRate, ingotPrice) * rushMult;
+  if (gps > gs.stats.highestGoldPerSec) gs.stats.highestGoldPerSec = gps;
+
+  // 마일스톤 체크
+  for (let i = 0; i < config.MILESTONES.length; i++) {
+    if (!gs.milestones[i] && gs.stats.totalGoldEarned >= config.MILESTONES[i]) {
+      gs.milestones[i] = true;
+      gs.stats.milestonesReached++;
+      audio.milestone();
+      // 마일스톤 파티클
+      for (let j = 0; j < 15; j++) {
+        const a = Math.random() * Math.PI * 2;
+        particles.acquire(W / 2, H / 2, Math.cos(a) * 120, Math.sin(a) * 120, 1.2, '#ffd700', 4);
+      }
+    }
+  }
+}
+
+// 수동 채굴 적용
+function applyManualMine(gs, config, clickX, clickY) {
+  const pm = calcPrestigeMult(gs.totalPP);
+  const oreCap = calcOreCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  let amount = config.MANUAL_MINE_BASE * pm;
+  const ppClickLv = (gs.prestigeUpgrades && gs.prestigeUpgrades.ppClickPower) || 0;
+  if (ppClickLv > 0) amount *= Math.pow(2, ppClickLv);
+  // 행운의 광맥
+  if (gs.specialUpgrades && gs.specialUpgrades.luckyMine && Math.random() < 0.1) {
+    amount *= 5;
+    // 럭키 파티클
+    particles.acquire(clickX, clickY - 20, 0, -60, 0.8, '#ffd700', 0, '★LUCKY!', 18);
+  }
+  const actual = Math.min(amount, oreCap - gs.ore);
+  gs.ore += actual;
+  gs.stats.totalOresMined += actual;
+  gs.stats.totalClicks++;
+  // 파티클 생성
+  const numStr = '+' + formatNumber(actual);
+  particles.acquire(clickX, clickY - 10, (Math.random() - 0.5) * 40, -50, CONFIG.NUMBER_POPUP_DURATION, '#e07c24', 0, numStr, 16);
+  for (let i = 0; i < 6; i++) {
+    const a = Math.random() * Math.PI * 2;
+    particles.acquire(clickX, clickY, Math.cos(a) * 60, Math.sin(a) * 60, 0.5, '#e07c24', 2 + Math.random() * 2);
+  }
+  audio.mine();
+  return actual;
+}
+
+// 업그레이드 적용
+function applyUpgrade(gs, upgradeType, config) {
+  let cost, maxLv, currentLv;
+  if (upgradeType === 'miner') {
+    currentLv = gs.minerLv; maxLv = config.MINER_MAX_LV;
+    cost = calcUpgradeCost(config.MINER_BASE_COST, config.MINER_COST_MULT, currentLv);
+    if (currentLv >= maxLv || !canAfford(gs.gold, cost)) return false;
+    gs.gold -= cost; gs.minerLv++;
+  } else if (upgradeType === 'smelter') {
+    currentLv = gs.smelterLv; maxLv = config.SMELTER_MAX_LV;
+    cost = calcUpgradeCost(config.SMELTER_BASE_COST, config.SMELTER_COST_MULT, currentLv);
+    if (currentLv >= maxLv || !canAfford(gs.gold, cost) || !isUnlocked(gs.stats.totalGoldEarned, config.SMELTER_UNLOCK_GOLD)) return false;
+    gs.gold -= cost; gs.smelterLv++;
+  } else if (upgradeType === 'seller') {
+    currentLv = gs.sellerLv; maxLv = config.SELLER_MAX_LV;
+    cost = calcUpgradeCost(config.SELLER_BASE_COST, config.SELLER_COST_MULT, currentLv);
+    if (currentLv >= maxLv || !canAfford(gs.gold, cost) || !isUnlocked(gs.stats.totalGoldEarned, config.SELLER_UNLOCK_GOLD)) return false;
+    gs.gold -= cost; gs.sellerLv++;
+  } else if (upgradeType === 'storage') {
+    currentLv = gs.storageLv; maxLv = config.STORAGE_MAX_LV;
+    cost = calcUpgradeCost(config.STORAGE_BASE_COST, config.STORAGE_COST_MULT, currentLv);
+    if (currentLv >= maxLv || !canAfford(gs.gold, cost)) return false;
+    gs.gold -= cost; gs.storageLv++;
+  } else {
+    return false;
+  }
+  audio.upgrade();
+  return true;
+}
+
+// 특수 업그레이드 구매
+function buySpecialUpgrade(gs, specId, config) {
+  const spec = config.SPECIAL_UPGRADES.find(function(s) { return s.id === specId; });
+  if (!spec) return false;
+  if (gs.specialUpgrades[specId]) return false;
+  if (!isUnlocked(gs.stats.totalGoldEarned, spec.unlockGold)) return false;
+  if (!canAfford(gs.gold, spec.cost)) return false;
+  gs.gold -= spec.cost;
+  gs.specialUpgrades[specId] = true;
+  audio.fanfare();
+  return true;
+}
+
+// 프레스티지 업그레이드 구매
+function buyPrestigeUpgrade(gs, upgId, config) {
+  const upg = config.PRESTIGE_UPGRADES.find(function(u) { return u.id === upgId; });
+  if (!upg) return false;
+  const currentLv = gs.prestigeUpgrades[upgId] || 0;
+  if (currentLv >= upg.maxLv) return false;
+  const cost = upg.cost * (currentLv + 1);
+  if (gs.currentPP < cost) return false;
+  gs.currentPP -= cost;
+  gs.prestigeUpgrades[upgId] = currentLv + 1;
+  audio.upgrade();
+  return true;
+}
+
+// 프레스티지 실행
+function applyPrestige(gs, config) {
+  const pp = calcPrestigePoints(gs.totalGoldThisRun);
+  if (pp <= 0) return false;
+  gs.totalPP += pp;
+  gs.currentPP += pp;
+  gs.totalPrestiges++;
+  // 리셋
+  gs.gold = 0; gs.ore = 0; gs.ingot = 0;
+  gs.minerLv = 0; gs.smelterLv = 0; gs.sellerLv = 0; gs.storageLv = 0;
+  gs.specialUpgrades = {};
+  gs.totalGoldThisRun = 0;
+  gs.goldRushTimer = 0;
+  // 시작 자금
+  const ppStartLv = gs.prestigeUpgrades.ppStartGold || 0;
+  if (ppStartLv > 0) gs.gold = 1000 * ppStartLv;
+  gs.lastSaveTime = Date.now();
+  safeSave(gs);
+  audio.prestige();
+  return true;
+}
+
+// ─── 자동 클릭 / 자동 세이브 타이머 ───
+let autoClickTimer = 0;
+let autoSaveTimer = 0;
+let clickCooldownTimer = 0;
+
+// ─── 입력 시스템 ───
+let mouseX = 0, mouseY = 0;
+let hoveredBtn = null;
+let prevHoveredBtn = null;
+let clickPulse = 0; // 채굴 클릭 펄스 애니메이션
+let titlePulse = 0; // 타이틀 펄스
+
+// 클릭 영역 계산
+function getMineArea() {
+  const isNarrow = W < 600;
+  if (isNarrow) {
+    return { x: 0, y: 50, w: W, h: 140 };
+  }
+  return { x: 0, y: 50, w: W * 0.30, h: H - 80 };
+}
+
+// 탭 영역 (우측 상단)
+function getTabArea() {
+  const isNarrow = W < 600;
+  if (isNarrow) {
+    return { x: 0, y: 190, w: W, h: 36 };
+  }
+  return { x: W * 0.30, y: 50, w: W * 0.70, h: 36 };
+}
+
+// 콘텐츠 영역 (우측 탭 아래)
+function getContentArea() {
+  const isNarrow = W < 600;
+  const tabArea = getTabArea();
+  if (isNarrow) {
+    return { x: 0, y: tabArea.y + tabArea.h, w: W, h: H - tabArea.y - tabArea.h - 30 };
+  }
+  return { x: W * 0.30, y: tabArea.y + tabArea.h, w: W * 0.70, h: H - tabArea.y - tabArea.h - 30 };
+}
+
+// 버튼 목록 (매 프레임 리빌드)
+let buttons = [];
+
+function pointInRect(px, py, r) {
+  return px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h;
+}
+
+function handleClick(x, y) {
+  audio.resume();
+  if (isTransitioning) return;
+
+  // 오프라인 배너 닫기
+  if (offlineBanner) {
+    offlineBanner = null;
+    return;
+  }
+
+  if (state === S.TITLE) {
+    handleTitleClick(x, y);
+  } else if (state === S.PLAYING || state === S.PRESTIGE || state === S.STATS || state === S.SETTINGS) {
+    handlePlayingClick(x, y);
+  } else if (state === S.CONFIRM_MODAL) {
+    handleModalClick(x, y);
+  }
+}
+
+function handleTitleClick(x, y) {
+  for (let i = 0; i < buttons.length; i++) {
+    if (pointInRect(x, y, buttons[i])) {
+      if (buttons[i].action) buttons[i].action();
+      return;
+    }
+  }
+}
+
+function handlePlayingClick(x, y) {
+  // 탭 영역 체크
+  const tabArea = getTabArea();
+  if (pointInRect(x, y, tabArea)) {
+    const tabW = tabArea.w / TAB_NAMES.length;
+    const idx = Math.floor((x - tabArea.x) / tabW);
+    if (idx >= 0 && idx < TAB_NAMES.length) {
+      // 프레스티지 탭 전환
+      if (idx === TAB.PRESTIGE && state === S.PLAYING) {
+        currentTab = TAB.PRESTIGE;
+        beginTransition(S.PRESTIGE, { immediate: true });
+      } else if (idx === TAB.STATS && state === S.PLAYING) {
+        currentTab = TAB.STATS;
+        beginTransition(S.STATS, { immediate: true });
+      } else if (idx === TAB.PRODUCTION || idx === TAB.UPGRADES) {
+        currentTab = idx;
+        if (state !== S.PLAYING) beginTransition(S.PLAYING, { immediate: true });
+      } else {
+        if (state === S.PRESTIGE || state === S.STATS) {
+          currentTab = idx;
+          beginTransition(S.PLAYING, { immediate: true });
+        }
+      }
+      scrollOffsetY = 0;
+      audio.hover();
+    }
+    return;
+  }
+
+  // 채굴 영역 체크
+  const mineArea = getMineArea();
+  if (state === S.PLAYING && currentTab === TAB.PRODUCTION && pointInRect(x, y, mineArea)) {
+    if (clickCooldownTimer <= 0) {
+      applyManualMine(gs, CONFIG, x, y);
+      clickPulse = CONFIG.CLICK_SCALE_DURATION;
+      clickCooldownTimer = CONFIG.CLICK_COOLDOWN;
+    }
+    return;
+  }
+
+  // 버튼 체크
+  for (let i = 0; i < buttons.length; i++) {
+    if (pointInRect(x, y, buttons[i])) {
+      if (buttons[i].action) buttons[i].action();
+      return;
+    }
+  }
+}
+
+function handleModalClick(x, y) {
+  for (let i = 0; i < buttons.length; i++) {
+    if (pointInRect(x, y, buttons[i])) {
+      if (buttons[i].action) buttons[i].action();
+      return;
+    }
+  }
+}
+
+// 키보드 입력
+function handleKeyDown(e) {
+  audio.resume();
+  if (isTransitioning) return;
+
+  if (state === S.TITLE) {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if (hasSaveData()) continueGame();
+      else startNewGame();
+    }
+    return;
+  }
+
+  if (state === S.CONFIRM_MODAL) {
+    if (e.code === 'Escape') {
+      beginTransition(S.PLAYING, { immediate: true });
+    } else if (e.code === 'Enter') {
+      applyPrestige(gs, CONFIG);
+      beginTransition(S.TITLE, { duration: 0.5 });
+    }
+    return;
+  }
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gs && clickCooldownTimer <= 0) {
+      const mineArea = getMineArea();
+      applyManualMine(gs, CONFIG, mineArea.x + mineArea.w / 2, mineArea.y + mineArea.h / 2);
+      clickPulse = CONFIG.CLICK_SCALE_DURATION;
+      clickCooldownTimer = CONFIG.CLICK_COOLDOWN;
+    }
+  } else if (e.code === 'Digit1') {
+    if (gs) applyUpgrade(gs, 'miner', CONFIG) || audio.deny();
+  } else if (e.code === 'Digit2') {
+    if (gs) applyUpgrade(gs, 'smelter', CONFIG) || audio.deny();
+  } else if (e.code === 'Digit3') {
+    if (gs) applyUpgrade(gs, 'seller', CONFIG) || audio.deny();
+  } else if (e.code === 'Digit4') {
+    if (gs) applyUpgrade(gs, 'storage', CONFIG) || audio.deny();
+  } else if (e.code === 'KeyP') {
+    if (state === S.PRESTIGE) {
+      currentTab = TAB.PRODUCTION;
+      beginTransition(S.PLAYING, { immediate: true });
+    } else {
+      currentTab = TAB.PRESTIGE;
+      beginTransition(S.PRESTIGE, { immediate: true });
+    }
+  } else if (e.code === 'KeyS') {
+    if (state === S.STATS) {
+      currentTab = TAB.PRODUCTION;
+      beginTransition(S.PLAYING, { immediate: true });
+    } else {
+      currentTab = TAB.STATS;
+      beginTransition(S.STATS, { immediate: true });
+    }
+  } else if (e.code === 'KeyM') {
+    audio.enabled = !audio.enabled;
+  }
+}
+
+// 마우스 이벤트
+canvas.addEventListener('mousemove', function(e) {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+canvas.addEventListener('click', function(e) {
+  handleClick(e.clientX, e.clientY);
+});
+
+// ─── 터치: 스와이프 탭 전환 + 길게 누르기 연속 구매 ───
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+let longPressTimer = null;    // 길게 누르기 타이머
+let longPressInterval = null; // 연속 구매 반복 타이머
+let longPressTarget = null;   // 길게 누르기 대상 버튼 좌표
+const SWIPE_THRESHOLD = 50;   // 스와이프 감지 최소 거리 (px)
+const LONG_PRESS_MS = 500;    // 길게 누르기 인식 시간 (ms)
+const BULK_INTERVAL_MS = 80;  // 연속 구매 간격 (ms)
+
+// 길게 누르기 정리
+function clearLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  if (longPressInterval) { clearInterval(longPressInterval); longPressInterval = null; }
+  longPressTarget = null;
+}
+
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  if (e.touches.length > 0) {
+    const tx = e.touches[0].clientX;
+    const ty = e.touches[0].clientY;
+    mouseX = tx;
+    mouseY = ty;
+    touchStartX = tx;
+    touchStartY = ty;
+    touchStartTime = Date.now();
+
+    // 일반 클릭 즉시 처리
+    handleClick(tx, ty);
+
+    // 길게 누르기 시작 — 버튼 위에 있을 때만
+    clearLongPress();
+    longPressTarget = { x: tx, y: ty };
+    longPressTimer = setTimeout(function() {
+      // 500ms 경과 → 10회 연속 구매 시작
+      let bulkCount = 0;
+      longPressInterval = setInterval(function() {
+        if (bulkCount >= 9) { clearLongPress(); return; } // 최초 1회 + 추가 9회 = 10회
+        handleClick(longPressTarget.x, longPressTarget.y);
+        bulkCount++;
+      }, BULK_INTERVAL_MS);
+    }, LONG_PRESS_MS);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  if (e.touches.length > 0) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+    // 이동 거리가 크면 길게 누르기 취소 (스와이프 의도)
+    const dx = mouseX - touchStartX;
+    const dy = mouseY - touchStartY;
+    if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
+      clearLongPress();
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  clearLongPress();
+
+  // 스와이프 감지 — 탭 전환
+  const dx = mouseX - touchStartX;
+  const elapsed = Date.now() - touchStartTime;
+  if (Math.abs(dx) >= SWIPE_THRESHOLD && elapsed < 400) {
+    if (state === S.PLAYING || state === S.PRESTIGE || state === S.STATS) {
+      if (dx < 0) {
+        // 왼쪽 스와이프 → 다음 탭
+        const nextTab = Math.min(currentTab + 1, TAB_NAMES.length - 1);
+        if (nextTab !== currentTab) {
+          currentTab = nextTab;
+          if (nextTab === TAB.PRESTIGE) beginTransition(S.PRESTIGE, { immediate: true });
+          else if (nextTab === TAB.STATS) beginTransition(S.STATS, { immediate: true });
+          else if (state !== S.PLAYING) beginTransition(S.PLAYING, { immediate: true });
+          scrollOffsetY = 0;
+          audio.hover();
+        }
+      } else {
+        // 오른쪽 스와이프 → 이전 탭
+        const prevTab = Math.max(currentTab - 1, 0);
+        if (prevTab !== currentTab) {
+          currentTab = prevTab;
+          if (prevTab === TAB.PRESTIGE) beginTransition(S.PRESTIGE, { immediate: true });
+          else if (prevTab === TAB.STATS) beginTransition(S.STATS, { immediate: true });
+          else if (state !== S.PLAYING) beginTransition(S.PLAYING, { immediate: true });
+          scrollOffsetY = 0;
+          audio.hover();
+        }
+      }
+    }
+  }
+}, { passive: false });
+
+// 키보드 이벤트
+document.addEventListener('keydown', handleKeyDown);
+
+// 스크롤 (마우스 휠)
+canvas.addEventListener('wheel', function(e) {
+  if (state === S.PLAYING || state === S.PRESTIGE || state === S.STATS) {
+    scrollOffsetY = Math.max(0, scrollOffsetY + e.deltaY * 0.5);
+  }
+}, { passive: true });
+
+// ─── 드로잉 유틸 ───
+
+// 둥근 사각형
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// 버튼 렌더링
+function drawButton(ctx, btn, hovered) {
+  const bright = hovered ? 1.15 : 1;
+  const c = btn.disabled ? '#333348' : (btn.color || '#0f3460');
+  ctx.save();
+  roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 6);
+  if (btn.disabled) {
+    ctx.fillStyle = '#252540';
+  } else {
+    const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h);
+    grad.addColorStop(0, hovered ? '#1a4a7a' : c);
+    grad.addColorStop(1, hovered ? '#0d2d4d' : '#091f35');
+    ctx.fillStyle = grad;
+  }
+  ctx.fill();
+  ctx.strokeStyle = btn.disabled ? '#404060' : (hovered ? '#f5a623' : '#1e3a5f');
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = btn.disabled ? '#666680' : (btn.textColor || '#e8e8e8');
+  ctx.font = (btn.fontSize || 13) + 'px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
+  ctx.restore();
+}
+
+// 진행바 렌더링
+function drawProgressBar(ctx, x, y, w, h, ratio, color, bgColor) {
+  roundRect(ctx, x, y, w, h, 4);
+  ctx.fillStyle = bgColor || '#2c2c4a';
+  ctx.fill();
+  if (ratio > 0) {
+    const fillW = Math.max(4, w * Math.min(ratio, 1));
+    roundRect(ctx, x, y, fillW, h, 4);
+    ctx.fillStyle = color || '#3498db';
+    ctx.fill();
+  }
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#e8e8e8';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(Math.floor(ratio * 100) + '%', x + w / 2, y + h / 2);
+}
+
+// 광석 드로잉 (5각형 + facet)
+function drawOre(ctx, cx, cy, size, pulse) {
+  const s = size * (1 + pulse * 0.15);
+  ctx.save();
+  ctx.translate(cx, cy);
+  // 외곽 — 5각형
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + (Math.PI * 2 / 5) * i;
+    const px = Math.cos(a) * s;
+    const py = Math.sin(a) * s;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  const grad = ctx.createRadialGradient(0, -s * 0.3, 0, 0, 0, s);
+  grad.addColorStop(0, '#f0a030');
+  grad.addColorStop(1, '#8b5e1c');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#6b4010';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // 내부 facet
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.5);
+  ctx.lineTo(s * 0.3, s * 0.1);
+  ctx.lineTo(-s * 0.3, s * 0.1);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,220,150,0.3)';
+  ctx.fill();
+  ctx.restore();
+}
+
+// 채굴기 드로잉
+function drawMiner(ctx, cx, cy, size, lv) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  // 본체
+  ctx.fillStyle = lv > 50 ? '#d4a017' : lv > 20 ? '#6b8e23' : '#556b2f';
+  ctx.fillRect(-size * 0.5, -size * 0.3, size, size * 0.5);
+  // 바퀴
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(-size * 0.3, size * 0.25, size * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(size * 0.3, size * 0.25, size * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  // 드릴
+  ctx.beginPath();
+  ctx.moveTo(size * 0.5, -size * 0.1);
+  ctx.lineTo(size * 0.8, size * 0.1);
+  ctx.lineTo(size * 0.5, size * 0.2);
+  ctx.closePath();
+  ctx.fillStyle = '#aaa';
+  ctx.fill();
+  ctx.restore();
+}
+
+// 제련소 드로잉
+function drawSmelter(ctx, cx, cy, size, timestamp) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  // 용광로 (사다리꼴)
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.4, size * 0.3);
+  ctx.lineTo(-size * 0.3, -size * 0.3);
+  ctx.lineTo(size * 0.3, -size * 0.3);
+  ctx.lineTo(size * 0.4, size * 0.3);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, -size * 0.3, 0, size * 0.3);
+  grad.addColorStop(0, '#8b3030');
+  grad.addColorStop(1, '#4a1a1a');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // 굴뚝
+  ctx.fillStyle = '#555';
+  ctx.fillRect(-size * 0.08, -size * 0.6, size * 0.16, size * 0.3);
+  // 불꽃 (애니메이션)
+  const flicker = Math.sin((timestamp || 0) * 5) * 0.3 + 0.7;
+  ctx.fillStyle = 'rgba(255,120,20,' + (0.6 * flicker) + ')';
+  ctx.beginPath();
+  ctx.arc(0, size * 0.05, size * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// 판매소 드로잉
+function drawSeller(ctx, cx, cy, size) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  // 본체
+  roundRect(ctx, -size * 0.4, -size * 0.15, size * 0.8, size * 0.45, 4);
+  ctx.fillStyle = '#16213e';
+  ctx.fill();
+  ctx.strokeStyle = '#f5a623';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // 지붕
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.5, -size * 0.15);
+  ctx.lineTo(0, -size * 0.45);
+  ctx.lineTo(size * 0.5, -size * 0.15);
+  ctx.closePath();
+  ctx.fillStyle = '#8b3030';
+  ctx.fill();
+  // $ 텍스트
+  ctx.fillStyle = '#f5a623';
+  ctx.font = 'bold ' + Math.floor(size * 0.3) + 'px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', 0, size * 0.08);
+  ctx.restore();
+}
+
+// ─── 렌더링 함수들 ───
+
+// 타이틀 화면 렌더링
+function renderTitle(ctx, dt, timestamp) {
+  buttons = [];
+  titlePulse += dt;
+
+  // 배경
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(getGridCache(), 0, 0, W, H);
+
+  // 장식 파티클 (떨어지는 광석)
+  const px1 = Math.sin(timestamp * 0.0003) * W * 0.3 + W * 0.5;
+  const py1 = ((timestamp * 0.05) % H);
+  drawOre(ctx, px1, py1, 8, 0);
+  const px2 = Math.cos(timestamp * 0.0004) * W * 0.2 + W * 0.5;
+  const py2 = ((timestamp * 0.03 + 200) % H);
+  drawOre(ctx, px2, py2, 6, 0);
+
+  // 타이틀
+  const titleY = H * 0.28;
+  const pulse = Math.sin(titlePulse * 3) * 0.05 + 1;
+  ctx.save();
+  ctx.translate(W / 2, titleY);
+  ctx.scale(pulse, pulse);
+  ctx.font = 'bold 28px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // 글로우
+  ctx.shadowColor = '#f5a623';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#f5a623';
+  ctx.fillText('MINI IDLE FACTORY', 0, 0);
+  ctx.shadowBlur = 0;
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText('미니 아이들 팩토리', 0, 30);
+  ctx.restore();
+
+  // 작은 장식
+  drawOre(ctx, W * 0.3, titleY - 5, 15, Math.sin(titlePulse * 2) * 0.3);
+  drawOre(ctx, W * 0.7, titleY - 5, 15, Math.cos(titlePulse * 2) * 0.3);
+
+  // 메뉴 버튼
+  const btnW = 200, btnH = 44;
+  const bx = W / 2 - btnW / 2;
+  let by = H * 0.48;
+
+  if (hasSaveData()) {
+    const saved = safeLoad();
+    const goldStr = saved ? ' (골드: ' + formatNumber(saved.gold) + ')' : '';
+    const btn1 = { x: bx, y: by, w: btnW, h: btnH, label: '▶ 이어하기' + goldStr, action: continueGame, fontSize: 13 };
+    buttons.push(btn1);
+    drawButton(ctx, btn1, pointInRect(mouseX, mouseY, btn1));
+    by += 56;
+    const btn2 = { x: bx, y: by, w: btnW, h: btnH, label: '▶ 새 게임', action: startNewGame, fontSize: 13 };
+    buttons.push(btn2);
+    drawButton(ctx, btn2, pointInRect(mouseX, mouseY, btn2));
+  } else {
+    const btn1 = { x: bx, y: by, w: btnW, h: btnH, label: '▶ 새 게임', action: startNewGame, fontSize: 14 };
+    buttons.push(btn1);
+    drawButton(ctx, btn1, pointInRect(mouseX, mouseY, btn1));
+  }
+
+  by += 56;
+  const sndLabel = '♪ 사운드: ' + (audio.enabled ? 'ON' : 'OFF');
+  const btn3 = { x: bx, y: by, w: btnW, h: btnH, label: sndLabel, action: function() { audio.enabled = !audio.enabled; }, fontSize: 13 };
+  buttons.push(btn3);
+  drawButton(ctx, btn3, pointInRect(mouseX, mouseY, btn3));
+
+  // 버전
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#505070';
+  ctx.textAlign = 'center';
+  ctx.fillText('v1.0.0  |  Space/탭으로 시작', W / 2, H - 20);
+}
+
+// 상단 자원 바
+function renderResourceBar(ctx, dt, timestamp) {
+  ctx.fillStyle = '#12121e';
+  ctx.fillRect(0, 0, W, 46);
+  ctx.strokeStyle = '#1e1e30';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, 46); ctx.lineTo(W, 46); ctx.stroke();
+
+  if (!gs) return;
+
+  const pm = calcPrestigeMult(gs.totalPP);
+  const rushMult = gs.goldRushTimer > 0 ? 2 : 1;
+  const sr = calcSellRate(gs.sellerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const ip = calcIngotPrice(gs.sellerLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  const gps = calcGoldPerSec(sr, ip) * rushMult;
+  const oreCap = calcOreCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  const ingotCap = calcIngotCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+
+  ctx.font = 'bold 14px monospace';
+  ctx.textBaseline = 'middle';
+  const y = 23;
+
+  // 골드
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#f5a623';
+  ctx.fillText('💰 ' + formatNumber(gs.gold), 12, y);
+  if (gps > 0) {
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8080a0';
+    ctx.fillText('+' + formatNumber(gps) + '/s', 12, y + 14);
+  }
+
+  // 광석
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = '#e07c24';
+  const oreX = W < 600 ? W * 0.35 : W * 0.25;
+  ctx.fillText('⛏ ' + formatNumber(gs.ore) + '/' + formatNumber(oreCap), oreX, y);
+
+  // 주괴
+  ctx.fillStyle = '#c0c0c0';
+  const ingotX = W < 600 ? W * 0.68 : W * 0.5;
+  ctx.fillText('🔩 ' + formatNumber(gs.ingot) + '/' + formatNumber(ingotCap), ingotX, y);
+
+  // 프레스티지 배율 (있을 경우)
+  if (gs.totalPP > 0) {
+    ctx.fillStyle = '#9b59b6';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('×' + pm.toFixed(2), W - 12, y);
+  }
+
+  // 골드러시 타이머
+  if (gs.goldRushTimer > 0) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('🔥 RUSH ' + Math.ceil(gs.goldRushTimer) + 's', W - 12, y + 14);
+  }
+}
+
+// 탭 메뉴 렌더링
+function renderTabs(ctx, dt, timestamp) {
+  const tabArea = getTabArea();
+  ctx.fillStyle = '#0f0f1a';
+  ctx.fillRect(tabArea.x, tabArea.y, tabArea.w, tabArea.h);
+
+  const tabW = tabArea.w / TAB_NAMES.length;
+  for (let i = 0; i < TAB_NAMES.length; i++) {
+    const tx = tabArea.x + tabW * i;
+    const isActive = (currentTab === i);
+    ctx.fillStyle = isActive ? '#1a1a2e' : '#0f0f1a';
+    ctx.fillRect(tx, tabArea.y, tabW, tabArea.h);
+    if (isActive) {
+      ctx.fillStyle = '#f5a623';
+      ctx.fillRect(tx, tabArea.y + tabArea.h - 3, tabW, 3);
+    }
+    ctx.font = (isActive ? 'bold ' : '') + '12px monospace';
+    ctx.fillStyle = isActive ? '#e8e8e8' : '#666680';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // 프레스티지 탭: 해금 전 잠금 표시
+    let label = TAB_NAMES[i];
+    if (i === TAB.PRESTIGE && gs && !canPrestige(gs.stats.totalGoldEarned, CONFIG.PRESTIGE_UNLOCK_GOLD)) {
+      label = '🔒 ' + label;
+    }
+    ctx.fillText(label, tx + tabW / 2, tabArea.y + tabArea.h / 2);
+  }
+}
+
+// 생산 탭 렌더링
+function renderProductionTab(ctx, dt, timestamp) {
+  const mineArea = getMineArea();
+  const contentArea = getContentArea();
+
+  // 채굴 영역 배경
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(mineArea.x, mineArea.y, mineArea.w, mineArea.h);
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mineArea.x, mineArea.y, mineArea.w, mineArea.h);
+
+  // 광석 그리기
+  const oreSize = Math.min(mineArea.w, mineArea.h) * 0.2;
+  const oreCx = mineArea.x + mineArea.w / 2;
+  const oreCy = mineArea.y + mineArea.h * 0.45;
+  drawOre(ctx, oreCx, oreCy, oreSize, clickPulse > 0 ? 1 : 0);
+
+  // 채굴기 그리기 (레벨 있을 때)
+  if (gs.minerLv > 0) {
+    const minerSize = 30 + Math.min(gs.minerLv, 20);
+    drawMiner(ctx, oreCx - oreSize * 1.2, oreCy + oreSize * 0.8, minerSize, gs.minerLv);
+  }
+
+  // 클릭 안내
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#8080a0';
+  ctx.textAlign = 'center';
+  const pm = calcPrestigeMult(gs.totalPP);
+  let clickAmt = CONFIG.MANUAL_MINE_BASE * pm;
+  const ppClickLv = (gs.prestigeUpgrades && gs.prestigeUpgrades.ppClickPower) || 0;
+  if (ppClickLv > 0) clickAmt *= Math.pow(2, ppClickLv);
+  ctx.fillText('클릭당 ' + formatNumber(clickAmt) + '개', oreCx, mineArea.y + mineArea.h - 12);
+  ctx.fillText('[ 클릭 / Space ]', oreCx, mineArea.y + mineArea.h - 26);
+
+  // 콘텐츠 영역: 생산 파이프라인 시각화
+  const cx = contentArea.x + 15;
+  let cy = contentArea.y + 15;
+  const cw = contentArea.w - 30;
+
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = '#e8e8e8';
+  ctx.textAlign = 'left';
+  ctx.fillText('── 생산 파이프라인 ──', cx, cy);
+  cy += 25;
+
+  const rushMult = gs.goldRushTimer > 0 ? 2 : 1;
+  const mineRate = calcMineRate(gs.minerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const smeltRate = calcSmeltRate(gs.smelterLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const sellRate = calcSellRate(gs.sellerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const ingotPrice = calcIngotPrice(gs.sellerLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  const oreCap = calcOreCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+  const ingotCap = calcIngotCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades);
+
+  // 파이프라인 단계들
+  const stages = [
+    { name: '⛏ 채굴', rate: formatNumber(mineRate) + '/s', current: gs.ore, cap: oreCap, color: '#e07c24' },
+    { name: '🔥 제련', rate: formatNumber(smeltRate) + '/s', current: gs.ingot, cap: ingotCap, color: '#c0c0c0' },
+    { name: '💰 판매', rate: formatNumber(sellRate) + '/s ×' + formatNumber(ingotPrice), current: null, cap: null, color: '#f5a623' },
+  ];
+
+  const stageW = Math.min(cw / 3 - 10, 160);
+  const startX = cx + (cw - stageW * 3 - 20) / 2;
+
+  for (let i = 0; i < stages.length; i++) {
+    const sx = startX + i * (stageW + 10);
+    const sy = cy;
+
+    // 단계 카드
+    roundRect(ctx, sx, sy, stageW, 80, 6);
+    ctx.fillStyle = '#12121e';
+    ctx.fill();
+    ctx.strokeStyle = stages[i].color;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = stages[i].color;
+    ctx.textAlign = 'center';
+    ctx.fillText(stages[i].name, sx + stageW / 2, sy + 16);
+
+    ctx.font = '11px monospace';
+    ctx.fillStyle = '#e8e8e8';
+    ctx.fillText(stages[i].rate, sx + stageW / 2, sy + 34);
+
+    if (stages[i].cap !== null) {
+      const ratio = stages[i].current / stages[i].cap;
+      const barColor = ratio > 0.9 ? '#e74c3c' : ratio > 0.75 ? '#e07c24' : '#3498db';
+      drawProgressBar(ctx, sx + 8, sy + 48, stageW - 16, 14, ratio, barColor);
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#8080a0';
+      ctx.fillText(formatNumber(stages[i].current) + '/' + formatNumber(stages[i].cap), sx + stageW / 2, sy + 72);
+    }
+
+    // 화살표
+    if (i < stages.length - 1) {
+      ctx.fillStyle = '#666680';
+      ctx.font = '16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('→', sx + stageW + 5, sy + 40);
+    }
+  }
+
+  cy += 100;
+
+  // 시설 레벨 요약
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = '#e8e8e8';
+  ctx.textAlign = 'left';
+  ctx.fillText('── 시설 현황 ──', cx, cy);
+  cy += 20;
+
+  // 시설 아이콘들을 나란히 표시
+  const facilities = [
+    { name: '채굴기', lv: gs.minerLv, max: CONFIG.MINER_MAX_LV, draw: function(x, y) { drawMiner(ctx, x, y, 24, gs.minerLv); } },
+    { name: '제련소', lv: gs.smelterLv, max: CONFIG.SMELTER_MAX_LV, draw: function(x, y) { drawSmelter(ctx, x, y, 24, timestamp); } },
+    { name: '판매소', lv: gs.sellerLv, max: CONFIG.SELLER_MAX_LV, draw: function(x, y) { drawSeller(ctx, x, y, 24); } },
+  ];
+
+  const facW = Math.min((cw - 20) / 3, 120);
+  for (let i = 0; i < facilities.length; i++) {
+    const fx = cx + i * (facW + 10) + facW / 2;
+    const fy = cy + 15;
+    facilities[i].draw(fx, fy);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8080a0';
+    ctx.textAlign = 'center';
+    ctx.fillText(facilities[i].name + ' Lv.' + facilities[i].lv, fx, fy + 28);
+  }
+}
+
+// 업그레이드 탭 렌더링
+function renderUpgradesTab(ctx, dt, timestamp) {
+  buttons = buttons.filter(function(b) { return b._system; }); // 시스템 버튼 유지
+  const contentArea = getContentArea();
+  const cx = contentArea.x + 8;
+  let cy = contentArea.y + 10 - scrollOffsetY;
+  const cw = contentArea.w - 16;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(contentArea.x, contentArea.y, contentArea.w, contentArea.h);
+  ctx.clip();
+
+  const pm = calcPrestigeMult(gs.totalPP);
+
+  // 기본 업그레이드 카드
+  const upgrades = [
+    {
+      type: 'miner', name: '⛏ 채굴기', lv: gs.minerLv, max: CONFIG.MINER_MAX_LV,
+      cost: calcUpgradeCost(CONFIG.MINER_BASE_COST, CONFIG.MINER_COST_MULT, gs.minerLv),
+      current: formatNumber(calcMineRate(gs.minerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades)) + ' 광석/s',
+      next: gs.minerLv < CONFIG.MINER_MAX_LV ? formatNumber(calcMineRate(gs.minerLv + 1, pm, gs.specialUpgrades, gs.prestigeUpgrades)) + ' 광석/s' : 'MAX',
+      unlocked: true, key: '1',
+    },
+    {
+      type: 'smelter', name: '🔥 제련소', lv: gs.smelterLv, max: CONFIG.SMELTER_MAX_LV,
+      cost: calcUpgradeCost(CONFIG.SMELTER_BASE_COST, CONFIG.SMELTER_COST_MULT, gs.smelterLv),
+      current: formatNumber(calcSmeltRate(gs.smelterLv, pm, gs.specialUpgrades, gs.prestigeUpgrades)) + ' 주괴/s',
+      next: gs.smelterLv < CONFIG.SMELTER_MAX_LV ? formatNumber(calcSmeltRate(gs.smelterLv + 1, pm, gs.specialUpgrades, gs.prestigeUpgrades)) + ' 주괴/s' : 'MAX',
+      unlocked: isUnlocked(gs.stats.totalGoldEarned, CONFIG.SMELTER_UNLOCK_GOLD), key: '2',
+    },
+    {
+      type: 'seller', name: '💰 판매소', lv: gs.sellerLv, max: CONFIG.SELLER_MAX_LV,
+      cost: calcUpgradeCost(CONFIG.SELLER_BASE_COST, CONFIG.SELLER_COST_MULT, gs.sellerLv),
+      current: formatNumber(calcSellRate(gs.sellerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades)) + ' 판매/s',
+      next: gs.sellerLv < CONFIG.SELLER_MAX_LV ? formatNumber(calcSellRate(gs.sellerLv + 1, pm, gs.specialUpgrades, gs.prestigeUpgrades)) + ' 판매/s' : 'MAX',
+      unlocked: isUnlocked(gs.stats.totalGoldEarned, CONFIG.SELLER_UNLOCK_GOLD), key: '3',
+    },
+    {
+      type: 'storage', name: '📦 저장소', lv: gs.storageLv, max: CONFIG.STORAGE_MAX_LV,
+      cost: calcUpgradeCost(CONFIG.STORAGE_BASE_COST, CONFIG.STORAGE_COST_MULT, gs.storageLv),
+      current: '광석 ' + formatNumber(calcOreCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades)) + ' / 주괴 ' + formatNumber(calcIngotCap(gs.storageLv, gs.specialUpgrades, gs.prestigeUpgrades)),
+      next: gs.storageLv < CONFIG.STORAGE_MAX_LV ? '광석 ' + formatNumber(calcOreCap(gs.storageLv + 1, gs.specialUpgrades, gs.prestigeUpgrades)) + ' / 주괴 ' + formatNumber(calcIngotCap(gs.storageLv + 1, gs.specialUpgrades, gs.prestigeUpgrades)) : 'MAX',
+      unlocked: true, key: '4',
+    },
+  ];
+
+  for (let i = 0; i < upgrades.length; i++) {
+    const u = upgrades[i];
+    if (!u.unlocked) continue;
+
+    const cardH = 68;
+    if (cy + cardH < contentArea.y || cy > contentArea.y + contentArea.h) { cy += cardH + 6; continue; }
+
+    roundRect(ctx, cx, cy, cw, cardH, 6);
+    ctx.fillStyle = '#12121e';
+    ctx.fill();
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = '#e8e8e8';
+    ctx.textAlign = 'left';
+    ctx.fillText(u.name + '  Lv.' + u.lv + '/' + u.max, cx + 10, cy + 16);
+
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8080a0';
+    ctx.fillText('현재: ' + u.current, cx + 10, cy + 32);
+    ctx.fillStyle = '#27ae60';
+    ctx.fillText('다음: ' + u.next, cx + 10, cy + 46);
+
+    // 구매 버튼
+    const isMax = u.lv >= u.max;
+    const canBuy = !isMax && canAfford(gs.gold, u.cost);
+    const btnW2 = Math.min(cw * 0.35, 130);
+    const btnX = cx + cw - btnW2 - 8;
+    const btnY = cy + 14;
+    const btnH2 = 38;
+    const label = isMax ? 'MAX' : '업그레이드 💰' + formatNumber(u.cost) + ' [' + u.key + ']';
+    const btn = {
+      x: btnX, y: btnY, w: btnW2, h: btnH2,
+      label: label,
+      disabled: !canBuy,
+      color: canBuy ? '#0f3460' : '#252540',
+      textColor: canBuy ? '#27ae60' : '#666680',
+      fontSize: 10,
+      action: (function(type) { return function() { applyUpgrade(gs, type, CONFIG) || audio.deny(); }; })(u.type),
+    };
+    buttons.push(btn);
+    drawButton(ctx, btn, pointInRect(mouseX, mouseY, btn));
+
+    cy += cardH + 6;
+  }
+
+  // 특수 업그레이드
+  cy += 10;
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = '#f5a623';
+  ctx.textAlign = 'left';
+  if (cy > contentArea.y && cy < contentArea.y + contentArea.h) {
+    ctx.fillText('✨ 특수 업그레이드', cx + 5, cy);
+  }
+  cy += 22;
+
+  for (let i = 0; i < CONFIG.SPECIAL_UPGRADES.length; i++) {
+    const spec = CONFIG.SPECIAL_UPGRADES[i];
+    const owned = gs.specialUpgrades[spec.id];
+    const unlocked = isUnlocked(gs.stats.totalGoldEarned, spec.unlockGold);
+
+    if (!unlocked && !owned) continue; // 아직 안 보이는 항목
+
+    const cardH = 52;
+    if (cy + cardH < contentArea.y || cy > contentArea.y + contentArea.h) { cy += cardH + 4; continue; }
+
+    roundRect(ctx, cx, cy, cw, cardH, 6);
+    ctx.fillStyle = owned ? '#1a2a1a' : '#12121e';
+    ctx.fill();
+    ctx.strokeStyle = owned ? '#27ae60' : '#1e3a5f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = owned ? '#27ae60' : '#e8e8e8';
+    ctx.textAlign = 'left';
+    ctx.fillText((owned ? '✅ ' : '') + spec.name, cx + 10, cy + 16);
+
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8080a0';
+    ctx.fillText(spec.desc, cx + 10, cy + 32);
+
+    if (!owned) {
+      const canBuy = canAfford(gs.gold, spec.cost);
+      const btnW2 = Math.min(cw * 0.3, 100);
+      const btn = {
+        x: cx + cw - btnW2 - 8, y: cy + 8, w: btnW2, h: 34,
+        label: '💰' + formatNumber(spec.cost),
+        disabled: !canBuy,
+        textColor: canBuy ? '#27ae60' : '#666680',
+        fontSize: 11,
+        action: (function(id) { return function() { buySpecialUpgrade(gs, id, CONFIG) || audio.deny(); }; })(spec.id),
+      };
+      buttons.push(btn);
+      drawButton(ctx, btn, pointInRect(mouseX, mouseY, btn));
+    }
+
+    cy += cardH + 4;
+  }
+
+  ctx.restore();
+}
+
+// 프레스티지 탭 렌더링
+function renderPrestigeTab(ctx, dt, timestamp) {
+  buttons = buttons.filter(function(b) { return b._system; });
+  const contentArea = getContentArea();
+  const cx = contentArea.x + 15;
+  let cy = contentArea.y + 15 - scrollOffsetY;
+  const cw = contentArea.w - 30;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(contentArea.x, contentArea.y, contentArea.w, contentArea.h);
+  ctx.clip();
+
+  const ppNow = calcPrestigePoints(gs.totalGoldThisRun);
+  const pmNow = calcPrestigeMult(gs.totalPP);
+  const pmAfter = calcPrestigeMult(gs.totalPP + ppNow);
+  const canDo = ppNow > 0 && canPrestige(gs.stats.totalGoldEarned, CONFIG.PRESTIGE_UNLOCK_GOLD);
+
+  // 헤더
+  ctx.font = 'bold 16px monospace';
+  ctx.fillStyle = '#9b59b6';
+  ctx.textAlign = 'left';
+  ctx.fillText('♾️ 프레스티지', cx, cy);
+  cy += 30;
+
+  // 정보
+  const info = [
+    { label: '이번 런 총 골드', value: formatNumber(gs.totalGoldThisRun), color: '#f5a623' },
+    { label: '획득 예상 PP', value: String(ppNow), color: '#9b59b6' },
+    { label: '현재 보유 PP', value: String(gs.currentPP), color: '#9b59b6' },
+    { label: '현재 배율', value: '×' + pmNow.toFixed(2), color: '#e8e8e8' },
+    { label: '프레스티지 후 배율', value: '×' + pmAfter.toFixed(2), color: '#27ae60' },
+    { label: '프레스티지 횟수', value: String(gs.totalPrestiges), color: '#8080a0' },
+  ];
+
+  for (let i = 0; i < info.length; i++) {
+    if (cy > contentArea.y && cy < contentArea.y + contentArea.h) {
+      ctx.font = '12px monospace';
+      ctx.fillStyle = '#8080a0';
+      ctx.textAlign = 'left';
+      ctx.fillText(info[i].label, cx, cy);
+      ctx.fillStyle = info[i].color;
+      ctx.textAlign = 'right';
+      ctx.fillText(info[i].value, cx + cw, cy);
+    }
+    cy += 22;
+  }
+
+  cy += 10;
+  // 경고
+  if (cy > contentArea.y && cy < contentArea.y + contentArea.h) {
+    ctx.font = '11px monospace';
+    ctx.fillStyle = '#e74c3c';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠️ 프레스티지 시 모든 자원·레벨 초기화', cx + cw / 2, cy);
+    cy += 16;
+    ctx.fillStyle = '#8080a0';
+    ctx.fillText('PP와 프레스티지 업그레이드만 유지', cx + cw / 2, cy);
+  }
+  cy += 26;
+
+  // 프레스티지 버튼
+  if (!canPrestige(gs.stats.totalGoldEarned, CONFIG.PRESTIGE_UNLOCK_GOLD)) {
+    ctx.font = '12px monospace';
+    ctx.fillStyle = '#666680';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔒 누적 골드 ' + formatNumber(CONFIG.PRESTIGE_UNLOCK_GOLD) + ' 달성 시 해금', cx + cw / 2, cy);
+    cy += 30;
+  } else {
+    const btnW2 = Math.min(cw * 0.6, 200);
+    const btn = {
+      x: cx + (cw - btnW2) / 2, y: cy, w: btnW2, h: 44,
+      label: '🔄 프레스티지 실행 (+' + ppNow + ' PP)',
+      disabled: !canDo,
+      color: canDo ? '#3a1a5e' : '#252540',
+      textColor: canDo ? '#9b59b6' : '#666680',
+      fontSize: 12,
+      action: function() {
+        if (canDo) beginTransition(S.CONFIRM_MODAL, { immediate: true });
+      },
+    };
+    buttons.push(btn);
+    drawButton(ctx, btn, pointInRect(mouseX, mouseY, btn));
+    cy += 56;
+  }
+
+  // 프레스티지 업그레이드
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = '#9b59b6';
+  ctx.textAlign = 'left';
+  if (cy > contentArea.y && cy < contentArea.y + contentArea.h) {
+    ctx.fillText('── 프레스티지 업그레이드 ──', cx, cy);
+  }
+  cy += 22;
+
+  if (gs.totalPrestiges > 0 || gs.totalPP > 0) {
+    for (let i = 0; i < CONFIG.PRESTIGE_UPGRADES.length; i++) {
+      const upg = CONFIG.PRESTIGE_UPGRADES[i];
+      const currentLv = gs.prestigeUpgrades[upg.id] || 0;
+      const cost = upg.cost * (currentLv + 1);
+      const isMax = currentLv >= upg.maxLv;
+      const canBuy = !isMax && gs.currentPP >= cost;
+
+      const cardH = 48;
+      if (cy + cardH < contentArea.y || cy > contentArea.y + contentArea.h) { cy += cardH + 4; continue; }
+
+      roundRect(ctx, cx, cy, cw, cardH, 6);
+      ctx.fillStyle = '#1a1a30';
+      ctx.fill();
+      ctx.strokeStyle = '#3a1a5e';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = '#e8e8e8';
+      ctx.textAlign = 'left';
+      ctx.fillText(upg.name + ' Lv.' + currentLv + '/' + upg.maxLv, cx + 10, cy + 16);
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#8080a0';
+      ctx.fillText(upg.desc, cx + 10, cy + 32);
+
+      if (!isMax) {
+        const btnW2 = 80;
+        const btn = {
+          x: cx + cw - btnW2 - 8, y: cy + 8, w: btnW2, h: 30,
+          label: 'PP ' + cost,
+          disabled: !canBuy,
+          color: canBuy ? '#3a1a5e' : '#252540',
+          textColor: canBuy ? '#9b59b6' : '#666680',
+          fontSize: 11,
+          action: (function(id) { return function() { buyPrestigeUpgrade(gs, id, CONFIG) || audio.deny(); }; })(upg.id),
+        };
+        buttons.push(btn);
+        drawButton(ctx, btn, pointInRect(mouseX, mouseY, btn));
+      }
+
+      cy += cardH + 4;
+    }
+  } else {
+    ctx.font = '11px monospace';
+    ctx.fillStyle = '#666680';
+    ctx.textAlign = 'center';
+    if (cy > contentArea.y) {
+      ctx.fillText('첫 프레스티지를 완료하면 해금됩니다', cx + cw / 2, cy);
+    }
+  }
+
+  ctx.restore();
+}
+
+// 통계 탭 렌더링
+function renderStatsTab(ctx, dt, timestamp) {
+  const contentArea = getContentArea();
+  const cx = contentArea.x + 15;
+  let cy = contentArea.y + 15;
+  const cw = contentArea.w - 30;
+
+  ctx.font = 'bold 16px monospace';
+  ctx.fillStyle = '#3498db';
+  ctx.textAlign = 'left';
+  ctx.fillText('📊 통계', cx, cy);
+  cy += 30;
+
+  // 마일스톤
+  ctx.font = 'bold 12px monospace';
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText('🏆 마일스톤: ' + gs.stats.milestonesReached + '/' + CONFIG.MILESTONES.length, cx, cy);
+  cy += 18;
+
+  ctx.font = '10px monospace';
+  for (let i = 0; i < CONFIG.MILESTONES.length; i++) {
+    const icon = gs.milestones[i] ? '☑' : '☐';
+    ctx.fillStyle = gs.milestones[i] ? '#ffd700' : '#505070';
+    const mw = cw / 5;
+    const mx = cx + (i % 5) * mw;
+    const my = cy + Math.floor(i / 5) * 16;
+    ctx.textAlign = 'left';
+    ctx.fillText(icon + ' ' + CONFIG.MILESTONE_NAMES[i], mx, my);
+  }
+  cy += Math.ceil(CONFIG.MILESTONES.length / 5) * 16 + 15;
+
+  // 통계 항목
+  const stats = [
+    { label: '누적 골드', value: formatNumber(gs.stats.totalGoldEarned), color: '#f5a623' },
+    { label: '누적 광석', value: formatNumber(gs.stats.totalOresMined), color: '#e07c24' },
+    { label: '누적 주괴', value: formatNumber(gs.stats.totalIngotsSmelted), color: '#c0c0c0' },
+    { label: '누적 클릭', value: formatNumber(gs.stats.totalClicks), color: '#e8e8e8' },
+    { label: '프레스티지', value: gs.totalPrestiges + '회', color: '#9b59b6' },
+    { label: '최고 골드/s', value: formatNumber(gs.stats.highestGoldPerSec) + '/s', color: '#f5a623' },
+    { label: '총 플레이', value: formatTime(gs.stats.totalPlaytime), color: '#e8e8e8' },
+  ];
+
+  for (let i = 0; i < stats.length; i++) {
+    ctx.font = '12px monospace';
+    ctx.fillStyle = '#8080a0';
+    ctx.textAlign = 'left';
+    ctx.fillText(stats[i].label, cx, cy);
+    ctx.fillStyle = stats[i].color;
+    ctx.textAlign = 'right';
+    ctx.fillText(stats[i].value, cx + cw, cy);
+    cy += 22;
+  }
+
+  // 칭호
+  cy += 10;
+  const rankIdx = Math.min(gs.totalPrestiges, RANK_NAMES.length - 1);
+  ctx.font = 'bold 14px monospace';
+  ctx.fillStyle = '#ffd700';
+  ctx.textAlign = 'center';
+  ctx.fillText('🏅 칭호: ' + RANK_NAMES[rankIdx], cx + cw / 2, cy);
+}
+
+// 확인 모달 렌더링
+function renderConfirmModal(ctx, dt, timestamp) {
+  // 반투명 오버레이
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, W, H);
+
+  const mw = Math.min(W * 0.8, 360);
+  const mh = 220;
+  const mx = (W - mw) / 2;
+  const my = (H - mh) / 2;
+
+  roundRect(ctx, mx, my, mw, mh, 10);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fill();
+  ctx.strokeStyle = '#9b59b6';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.font = 'bold 16px monospace';
+  ctx.fillStyle = '#e74c3c';
+  ctx.textAlign = 'center';
+  ctx.fillText('⚠️ 프레스티지 확인', mx + mw / 2, my + 35);
+
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillText('정말로 프레스티지하시겠습니까?', mx + mw / 2, my + 70);
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText('모든 자원과 레벨이 초기화됩니다.', mx + mw / 2, my + 92);
+
+  const pp = calcPrestigePoints(gs.totalGoldThisRun);
+  ctx.fillStyle = '#9b59b6';
+  ctx.font = 'bold 13px monospace';
+  ctx.fillText('PP ' + pp + '개를 획득합니다.', mx + mw / 2, my + 120);
+
+  // 버튼
+  const btnW2 = 100;
+  const btnH2 = 40;
+  const gap = 20;
+  const btnConfirm = {
+    x: mx + mw / 2 - btnW2 - gap / 2, y: my + mh - 60, w: btnW2, h: btnH2,
+    label: '확인', color: '#3a1a5e', textColor: '#9b59b6', fontSize: 13,
+    action: function() {
+      applyPrestige(gs, CONFIG);
+      beginTransition(S.TITLE, { duration: 0.5 });
+    },
+  };
+  const btnCancel = {
+    x: mx + mw / 2 + gap / 2, y: my + mh - 60, w: btnW2, h: btnH2,
+    label: '취소', fontSize: 13,
+    action: function() {
+      beginTransition(S.PLAYING, { immediate: true });
+      currentTab = TAB.PRESTIGE;
+    },
+  };
+  buttons.push(btnConfirm);
+  buttons.push(btnCancel);
+  drawButton(ctx, btnConfirm, pointInRect(mouseX, mouseY, btnConfirm));
+  drawButton(ctx, btnCancel, pointInRect(mouseX, mouseY, btnCancel));
+}
+
+// 오프라인 배너 렌더링
+function renderOfflineBanner(ctx) {
+  if (!offlineBanner) return;
+  const bw = Math.min(W * 0.8, 360);
+  const bh = 80;
+  const bx = (W - bw) / 2;
+  const by = H * 0.2;
+
+  // 배경
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+  roundRect(ctx, bx, by, bw, bh, 10);
+  ctx.fillStyle = '#16213e';
+  ctx.fill();
+  ctx.strokeStyle = '#f5a623';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const hours = Math.floor(offlineBanner.elapsed / 3600);
+  const mins = Math.floor((offlineBanner.elapsed % 3600) / 60);
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#8080a0';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌙 오프라인 동안 ' + hours + '시간 ' + mins + '분 경과', bx + bw / 2, by + 28);
+  ctx.font = 'bold 14px monospace';
+  ctx.fillStyle = '#f5a623';
+  ctx.fillText('💰 ' + formatNumber(offlineBanner.gold) + ' 골드를 벌었습니다!', bx + bw / 2, by + 52);
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#666680';
+  ctx.fillText('[클릭하여 닫기]', bx + bw / 2, by + 70);
+}
+
+// 하단 상태 바
+function renderStatusBar(ctx, dt, timestamp) {
+  const barH = 26;
+  const by = H - barH;
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, by, W, barH);
+  ctx.strokeStyle = '#1e1e30';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, by); ctx.lineTo(W, by); ctx.stroke();
+
+  if (!gs) return;
+  const pm = calcPrestigeMult(gs.totalPP);
+  const rushMult = gs.goldRushTimer > 0 ? 2 : 1;
+  const mr = calcMineRate(gs.minerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const sr2 = calcSmeltRate(gs.smelterLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const slr = calcSellRate(gs.sellerLv, pm, gs.specialUpgrades, gs.prestigeUpgrades) * rushMult;
+  const ip = calcIngotPrice(gs.sellerLv, gs.specialUpgrades, gs.prestigeUpgrades);
+
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#8080a0';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(
+    '⛏' + formatNumber(mr) + '/s → 🔩' + formatNumber(sr2) + '/s → 💰' + formatNumber(slr * ip) + '/s' +
+    '   |   🎮 ' + formatTime(gs.stats.totalPlaytime),
+    W / 2, by + barH / 2
+  );
+}
+
+// ─── 메인 게임 루프 ───
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  // dt 계산 (최대 0.1초 클램프)
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+  lastTime = timestamp;
+
+  // 항상 트윈 업데이트
+  tw.update(dt);
+
+  // 상태별 업데이트
+  if (state === S.PLAYING || state === S.CONFIRM_MODAL) {
+    if (gs) {
+      updateProduction(gs, dt, CONFIG);
+      particles.update(dt);
+      gs.stats.totalPlaytime += dt;
+
+      // 자동 클릭
+      if (gs.specialUpgrades.autoClick) {
+        autoClickTimer += dt;
+        if (autoClickTimer >= 1) {
+          autoClickTimer -= 1;
+          const mineArea = getMineArea();
+          applyManualMine(gs, CONFIG, mineArea.x + mineArea.w / 2, mineArea.y + mineArea.h / 2);
+        }
+      }
+
+      // 자동 저장
+      autoSaveTimer += dt;
+      if (autoSaveTimer >= CONFIG.AUTOSAVE_INTERVAL) {
+        autoSaveTimer = 0;
+        gs.lastSaveTime = Date.now();
+        safeSave(gs);
+      }
+    }
+  } else if (state === S.PRESTIGE || state === S.STATS || state === S.SETTINGS) {
+    // 탭 전환 중에도 아이들 생산 계속 진행 (아이들 게임 표준)
+    if (gs) {
+      updateProduction(gs, dt, CONFIG);
+      gs.stats.totalPlaytime += dt;
+      // 자동 저장
+      autoSaveTimer += dt;
+      if (autoSaveTimer >= CONFIG.AUTOSAVE_INTERVAL) {
+        autoSaveTimer = 0;
+        gs.lastSaveTime = Date.now();
+        safeSave(gs);
+      }
+    }
+  }
+
+  // 클릭 쿨다운
+  if (clickCooldownTimer > 0) clickCooldownTimer -= dt;
+  if (clickPulse > 0) clickPulse -= dt;
+
+  // ─── 렌더링 ───
+  ctx.clearRect(0, 0, W, H);
+
+  if (state === S.TITLE) {
+    renderTitle(ctx, dt, timestamp);
+  } else {
+    // 배경
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(getGridCache(), 0, 0, W, H);
+
+    buttons = [];
+
+    // 자원 바
+    renderResourceBar(ctx, dt, timestamp);
+
+    // 탭 메뉴
+    renderTabs(ctx, dt, timestamp);
+
+    // 탭 콘텐츠
+    if (currentTab === TAB.PRODUCTION) {
+      renderProductionTab(ctx, dt, timestamp);
+    } else if (currentTab === TAB.UPGRADES) {
+      renderUpgradesTab(ctx, dt, timestamp);
+    } else if (currentTab === TAB.PRESTIGE || state === S.PRESTIGE) {
+      renderPrestigeTab(ctx, dt, timestamp);
+    } else if (currentTab === TAB.STATS || state === S.STATS) {
+      renderStatsTab(ctx, dt, timestamp);
+    }
+
+    // 파티클
+    particles.render(ctx);
+
+    // 하단 바
+    renderStatusBar(ctx, dt, timestamp);
+
+    // 확인 모달
+    if (state === S.CONFIRM_MODAL) {
+      renderConfirmModal(ctx, dt, timestamp);
+    }
+
+    // 오프라인 배너
+    if (offlineBanner) {
+      offlineBanner.timer -= dt;
+      renderOfflineBanner(ctx);
+      if (offlineBanner && offlineBanner.timer <= 0) offlineBanner = null;
+    }
+  }
+
+  // 전환 오버레이
+  if (isTransitioning && transObj.alpha > 0) {
+    ctx.fillStyle = 'rgba(0,0,0,' + (transObj.alpha * 0.5) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 호버 사운드
+  hoveredBtn = null;
+  for (let i = 0; i < buttons.length; i++) {
+    if (pointInRect(mouseX, mouseY, buttons[i]) && !buttons[i].disabled) {
+      hoveredBtn = buttons[i];
+      break;
+    }
+  }
+  if (hoveredBtn && hoveredBtn !== prevHoveredBtn) {
+    audio.hover();
+  }
+  prevHoveredBtn = hoveredBtn;
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ─── 초기화 ───
+audio.init();
+requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>

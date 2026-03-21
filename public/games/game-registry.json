@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-21T09:00:00Z",
-  "totalGames": 10,
+  "lastUpdated": "2026-03-21T12:00:00Z",
+  "totalGames": 11,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -729,6 +729,27 @@
         }
       },
       "difficulty": "easy",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "mini-platformer",
+      "title": "미니 플랫포머",
+      "description": "벽점프, 대시, 이중점프로 고대 탑을 돌파하라! 정밀 조작 액션 플랫포머.",
+      "genre": ["action", "arcade"],
+      "thumbnail": "/games/mini-platformer/assets/thumbnail.svg",
+      "path": "/games/mini-platformer/index.html",
+      "addedAt": "2026-03-21T12:00:00Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["플랫포머", "정밀액션", "벽점프", "스피드런", "싱글플레이"],
+      "controls": [
+        "키보드: 화살표/WASD 이동, Space 점프, Shift 대시",
+        "터치: 가상 D패드(좌) + 점프/대시 버튼(우)",
+        "마우스: 메뉴 선택 전용"
+      ],
+      "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }

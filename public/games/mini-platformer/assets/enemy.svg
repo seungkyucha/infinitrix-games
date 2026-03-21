@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="spikeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff5588"/>
+      <stop offset="100%" stop-color="#cc0033"/>
+    </linearGradient>
+    <radialGradient id="dangerGlow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ff3366" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="eyeRed" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffaacc"/>
+      <stop offset="100%" stop-color="#ff3366"/>
+    </linearGradient>
+    <filter id="threatGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="spikePulse">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- 위험 아우라 -->
+  <circle cx="32" cy="34" r="28" fill="url(#dangerGlow)"/>
+  <!-- 가시 몸체 — 뾰족한 팔각형 형태 -->
+  <g filter="url(#threatGlow)">
+    <path d="M32 4 L38 18 L52 12 L44 26 L60 32 L44 38 L52 52 L38 46 L32 60 L26 46 L12 52 L20 38 L4 32 L20 26 L12 12 L26 18 Z"
+          fill="url(#spikeGrad)" stroke="#ff6688" stroke-width="1"/>
+  </g>
+  <!-- 내부 코어 -->
+  <circle cx="32" cy="32" r="12" fill="#1a0a15" stroke="#ff3366" stroke-width="1" opacity="0.9"/>
+  <!-- 내부 패턴 -->
+  <path d="M26 28 Q32 22 38 28 Q38 36 32 40 Q26 36 26 28 Z" fill="none" stroke="#ff5577" stroke-width="0.8" opacity="0.6"/>
+  <!-- 왼쪽 눈 (위협적 삼각형 눈) -->
+  <g filter="url(#spikePulse)">
+    <path d="M24 28 L28 28 L26 33 Z" fill="url(#eyeRed)"/>
+    <circle cx="26" cy="30" r="0.8" fill="#ffffff"/>
+  </g>
+  <!-- 오른쪽 눈 -->
+  <g filter="url(#spikePulse)">
+    <path d="M36 28 L40 28 L38 33 Z" fill="url(#eyeRed)"/>
+    <circle cx="38" cy="30" r="0.8" fill="#ffffff"/>
+  </g>
+  <!-- 입 (찡그린 형태) -->
+  <path d="M28 37 Q30 35 32 37 Q34 35 36 37" fill="none" stroke="#ff88aa" stroke-width="1" stroke-linecap="round"/>
+</svg>
