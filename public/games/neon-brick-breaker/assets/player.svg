@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="paddleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00FFFF"/>
+      <stop offset="50%" stop-color="#0099CC"/>
+      <stop offset="100%" stop-color="#006688"/>
+    </linearGradient>
+    <linearGradient id="paddleTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00FFFF" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#00FFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#00FFFF" stop-opacity="0.3"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#00FFFF" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00FFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="edgeGlowL" cx="80%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#FF00FF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FF00FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="edgeGlowR" cx="20%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#FF00FF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FF00FF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="neonGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Paddle glow aura -->
+  <g filter="url(#softGlow)">
+    <ellipse cx="32" cy="36" rx="30" ry="8" fill="#00FFFF" opacity="0.15"/>
+  </g>
+  <!-- Paddle body -->
+  <g filter="url(#neonGlow)">
+    <rect x="4" y="28" width="56" height="14" rx="7" ry="7" fill="url(#paddleGrad)"/>
+    <!-- Top highlight strip -->
+    <rect x="6" y="28" width="52" height="4" rx="2" ry="2" fill="url(#paddleTop)"/>
+    <!-- Center core -->
+    <ellipse cx="32" cy="35" rx="14" ry="5" fill="url(#coreGlow)"/>
+    <!-- Left edge accent -->
+    <circle cx="10" cy="35" r="5" fill="url(#edgeGlowL)"/>
+    <!-- Right edge accent -->
+    <circle cx="54" cy="35" r="5" fill="url(#edgeGlowR)"/>
+  </g>
+  <!-- Surface detail lines -->
+  <g opacity="0.4" stroke="#00FFFF" stroke-width="0.5" fill="none">
+    <path d="M12 32 Q22 30 32 32 Q42 30 52 32"/>
+    <path d="M14 38 Q22 40 32 38 Q42 40 50 38"/>
+  </g>
+  <!-- Ball on paddle -->
+  <g filter="url(#neonGlow)">
+    <circle cx="32" cy="22" r="5" fill="#FFFFFF"/>
+    <circle cx="32" cy="22" r="5" fill="#00FFFF" opacity="0.3"/>
+    <circle cx="31" cy="20" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+</svg>

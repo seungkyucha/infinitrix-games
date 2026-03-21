@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#050510"/>
+      <stop offset="50%" stop-color="#0a0a1e"/>
+      <stop offset="100%" stop-color="#0f0f2a"/>
+    </linearGradient>
+    <linearGradient id="tPaddle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00FFFF"/>
+      <stop offset="100%" stop-color="#006688"/>
+    </linearGradient>
+    <linearGradient id="tBrickR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF5588"/>
+      <stop offset="100%" stop-color="#CC1144"/>
+    </linearGradient>
+    <linearGradient id="tBrickO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFAA44"/>
+      <stop offset="100%" stop-color="#CC6600"/>
+    </linearGradient>
+    <linearGradient id="tBrickY" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFEE44"/>
+      <stop offset="100%" stop-color="#CC9900"/>
+    </linearGradient>
+    <linearGradient id="tBrickG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#44FFAA"/>
+      <stop offset="100%" stop-color="#008844"/>
+    </linearGradient>
+    <linearGradient id="tBrickB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5599FF"/>
+      <stop offset="100%" stop-color="#2244CC"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00FFFF"/>
+      <stop offset="50%" stop-color="#FF00FF"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+    <radialGradient id="tBallGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="30%" stop-color="#00FFFF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#00FFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tExplosion" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+      <stop offset="30%" stop-color="#FFD700" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#FF3366" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FF3366" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tTextGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tSoftGlow">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="400" height="300" fill="url(#tBg)"/>
+  <!-- Stars -->
+  <g fill="#FFFFFF" opacity="0.5">
+    <circle cx="30" cy="20" r="0.8"/><circle cx="80" cy="45" r="0.5"/>
+    <circle cx="140" cy="15" r="0.7"/><circle cx="210" cy="35" r="0.4"/>
+    <circle cx="280" cy="25" r="0.6"/><circle cx="340" cy="40" r="0.8"/>
+    <circle cx="370" cy="18" r="0.5"/><circle cx="55" cy="65" r="0.6"/>
+    <circle cx="180" cy="55" r="0.5"/><circle cx="320" cy="60" r="0.7"/>
+  </g>
+  <!-- Brick rows (dramatic scene) -->
+  <g>
+    <!-- Red row -->
+    <rect x="60" y="60" width="38" height="14" rx="2" fill="url(#tBrickR)"/>
+    <rect x="102" y="60" width="38" height="14" rx="2" fill="url(#tBrickR)"/>
+    <rect x="144" y="60" width="38" height="14" rx="2" fill="url(#tBrickR)"/>
+    <rect x="186" y="60" width="38" height="14" rx="2" fill="url(#tBrickR)"/>
+    <rect x="228" y="60" width="38" height="14" rx="2" fill="url(#tBrickR)"/>
+    <rect x="270" y="60" width="38" height="14" rx="2" fill="url(#tBrickR)"/>
+    <!-- Orange row -->
+    <rect x="60" y="78" width="38" height="14" rx="2" fill="url(#tBrickO)"/>
+    <rect x="102" y="78" width="38" height="14" rx="2" fill="url(#tBrickO)"/>
+    <rect x="144" y="78" width="38" height="14" rx="2" fill="url(#tBrickO)"/>
+    <rect x="228" y="78" width="38" height="14" rx="2" fill="url(#tBrickO)"/>
+    <rect x="270" y="78" width="38" height="14" rx="2" fill="url(#tBrickO)"/>
+    <!-- Yellow row -->
+    <rect x="60" y="96" width="38" height="14" rx="2" fill="url(#tBrickY)"/>
+    <rect x="102" y="96" width="38" height="14" rx="2" fill="url(#tBrickY)"/>
+    <rect x="228" y="96" width="38" height="14" rx="2" fill="url(#tBrickY)"/>
+    <rect x="270" y="96" width="38" height="14" rx="2" fill="url(#tBrickY)"/>
+    <!-- Green row -->
+    <rect x="60" y="114" width="38" height="14" rx="2" fill="url(#tBrickG)"/>
+    <rect x="270" y="114" width="38" height="14" rx="2" fill="url(#tBrickG)"/>
+    <!-- Blue row -->
+    <rect x="60" y="132" width="38" height="14" rx="2" fill="url(#tBrickB)"/>
+    <rect x="270" y="132" width="38" height="14" rx="2" fill="url(#tBrickB)"/>
+  </g>
+  <!-- Explosion effect where bricks are breaking -->
+  <g filter="url(#tSoftGlow)">
+    <circle cx="186" cy="92" r="25" fill="url(#tExplosion)"/>
+  </g>
+  <!-- Brick debris flying -->
+  <g opacity="0.7">
+    <rect x="170" y="82" width="8" height="4" rx="1" fill="#FF8C00" transform="rotate(-25 174 84)"/>
+    <rect x="195" y="78" width="6" height="3" rx="1" fill="#FFD700" transform="rotate(15 198 79)"/>
+    <rect x="178" y="100" width="7" height="4" rx="1" fill="#FF3366" transform="rotate(-40 181 102)"/>
+    <rect x="200" y="96" width="5" height="3" rx="1" fill="#FFD700" transform="rotate(30 202 97)"/>
+  </g>
+  <!-- Ball with trail -->
+  <g filter="url(#tGlow)">
+    <!-- Trail -->
+    <circle cx="186" cy="155" r="4" fill="#00FFFF" opacity="0.15"/>
+    <circle cx="186" cy="148" r="3.5" fill="#00FFFF" opacity="0.25"/>
+    <circle cx="186" cy="141" r="3" fill="#00FFFF" opacity="0.35"/>
+    <!-- Ball -->
+    <circle cx="186" cy="134" r="5" fill="#FFFFFF"/>
+    <circle cx="186" cy="134" r="5" fill="#00FFFF" opacity="0.3"/>
+    <circle cx="185" cy="132" r="1.5" fill="#FFFFFF"/>
+  </g>
+  <!-- Ball glow -->
+  <circle cx="186" cy="134" r="12" fill="url(#tBallGlow)" opacity="0.4"/>
+  <!-- Paddle -->
+  <g filter="url(#tGlow)">
+    <rect x="145" y="230" width="80" height="12" rx="6" fill="url(#tPaddle)"/>
+    <rect x="155" y="231" width="60" height="4" rx="2" fill="#00FFFF" opacity="0.4"/>
+  </g>
+  <!-- Powerup falling -->
+  <g filter="url(#tGlow)" opacity="0.8">
+    <rect x="250" y="170" width="24" height="12" rx="6" fill="#FF00FF"/>
+    <rect x="250" y="170" width="12" height="12" rx="6" fill="#FF44FF" opacity="0.5"/>
+  </g>
+  <!-- Side walls glow -->
+  <g filter="url(#tSoftGlow)" opacity="0.15">
+    <rect x="0" y="0" width="3" height="300" fill="#00FFFF"/>
+    <rect x="397" y="0" width="3" height="300" fill="#00FFFF"/>
+    <rect x="0" y="0" width="400" height="3" fill="#00FFFF"/>
+  </g>
+  <!-- Title text -->
+  <g filter="url(#tTextGlow)">
+    <text x="200" y="268" text-anchor="middle" font-size="28" font-weight="bold" font-family="Arial, sans-serif" fill="url(#titleGrad)">NEON BRICK BREAKER</text>
+  </g>
+  <!-- Subtitle -->
+  <text x="200" y="288" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#00FFFF" opacity="0.7">30 STAGES • 7 POWERUPS • INFINITE MODE</text>
+  <!-- Corner decorations -->
+  <g stroke="#00FFFF" stroke-width="1.5" fill="none" opacity="0.3">
+    <path d="M5 20 L5 5 L20 5"/>
+    <path d="M380 5 L395 5 L395 20"/>
+    <path d="M5 280 L5 295 L20 295"/>
+    <path d="M380 295 L395 295 L395 280"/>
+  </g>
+</svg>

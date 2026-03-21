@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="brickGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF3366"/>
+      <stop offset="100%" stop-color="#CC1144"/>
+    </linearGradient>
+    <linearGradient id="brickShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="30%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="toughGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E0E0E0"/>
+      <stop offset="100%" stop-color="#808080"/>
+    </linearGradient>
+    <linearGradient id="explGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF6644"/>
+      <stop offset="100%" stop-color="#CC2200"/>
+    </linearGradient>
+    <radialGradient id="explCore" cx="50%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#FFFF00" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF4400" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="brickGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="dangerGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Row of bricks composition -->
+  <!-- Normal brick (red) -->
+  <g filter="url(#brickGlow)">
+    <rect x="2" y="4" width="28" height="12" rx="2" ry="2" fill="url(#brickGrad)"/>
+    <rect x="2" y="4" width="28" height="12" rx="2" ry="2" fill="url(#brickShine)"/>
+    <rect x="4" y="5" width="24" height="2" rx="1" fill="#FF5588" opacity="0.5"/>
+  </g>
+  <!-- Tough brick (silver) -->
+  <g filter="url(#brickGlow)">
+    <rect x="34" y="4" width="28" height="12" rx="2" ry="2" fill="url(#toughGrad)"/>
+    <rect x="34" y="4" width="28" height="12" rx="2" ry="2" fill="url(#brickShine)"/>
+    <!-- Crack mark -->
+    <path d="M44 6 L48 10 L46 10 L50 14" stroke="#444444" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <rect x="36" y="5" width="24" height="2" rx="1" fill="#FFFFFF" opacity="0.3"/>
+  </g>
+  <!-- Explosive brick (orange-red) -->
+  <g filter="url(#dangerGlow)">
+    <rect x="2" y="22" width="28" height="12" rx="2" ry="2" fill="url(#explGrad)"/>
+    <ellipse cx="16" cy="28" rx="8" ry="4" fill="url(#explCore)"/>
+    <!-- Warning symbol -->
+    <path d="M14 24 L16 23 L18 24 L18 30 L16 31 L14 30 Z" fill="#FFFF00" opacity="0.6"/>
+    <circle cx="16" cy="27" r="1.5" fill="#FF0000"/>
+  </g>
+  <!-- Moving brick (gold) -->
+  <g filter="url(#brickGlow)">
+    <rect x="34" y="22" width="28" height="12" rx="2" ry="2" fill="#FFD700"/>
+    <rect x="34" y="22" width="28" height="12" rx="2" ry="2" fill="url(#brickShine)"/>
+    <!-- Arrow indicators -->
+    <path d="M37 28 L40 25 L40 31 Z" fill="#CC8800" opacity="0.8"/>
+    <path d="M59 28 L56 25 L56 31 Z" fill="#CC8800" opacity="0.8"/>
+    <rect x="36" y="23" width="24" height="2" rx="1" fill="#FFEE88" opacity="0.4"/>
+  </g>
+  <!-- Indestructible brick (dark gray) -->
+  <g filter="url(#brickGlow)">
+    <rect x="2" y="40" width="28" height="12" rx="2" ry="2" fill="#555555"/>
+    <rect x="2" y="40" width="28" height="12" rx="2" ry="2" fill="url(#brickShine)"/>
+    <!-- X mark -->
+    <path d="M12 43 L20 49 M20 43 L12 49" stroke="#888888" stroke-width="2" stroke-linecap="round"/>
+    <rect x="4" y="41" width="24" height="2" rx="1" fill="#777777" opacity="0.3"/>
+  </g>
+  <!-- Green brick -->
+  <g filter="url(#brickGlow)">
+    <rect x="34" y="40" width="28" height="12" rx="2" ry="2" fill="#00CC66"/>
+    <rect x="34" y="40" width="28" height="12" rx="2" ry="2" fill="url(#brickShine)"/>
+    <rect x="36" y="41" width="24" height="2" rx="1" fill="#00FF88" opacity="0.4"/>
+  </g>
+  <!-- Bottom row: blue + orange -->
+  <g filter="url(#brickGlow)">
+    <rect x="2" y="56" width="28" height="6" rx="2" ry="2" fill="#3388FF"/>
+    <rect x="2" y="56" width="28" height="6" rx="2" ry="2" fill="url(#brickShine)"/>
+  </g>
+  <g filter="url(#brickGlow)">
+    <rect x="34" y="56" width="28" height="6" rx="2" ry="2" fill="#FF8C00"/>
+    <rect x="34" y="56" width="28" height="6" rx="2" ry="2" fill="url(#brickShine)"/>
+  </g>
+</svg>

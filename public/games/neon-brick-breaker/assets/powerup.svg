@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="capsuleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF00FF"/>
+      <stop offset="50%" stop-color="#CC00CC"/>
+      <stop offset="100%" stop-color="#880088"/>
+    </linearGradient>
+    <radialGradient id="capsuleShine" cx="35%" cy="25%" r="45%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#FF88FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FF00FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="#FF00FF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FF00FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="boltGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFDD00"/>
+    </linearGradient>
+    <filter id="powerGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="innerPulse">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+  <!-- Outer glow aura -->
+  <ellipse cx="24" cy="24" rx="20" ry="12" fill="#FF00FF" opacity="0.1" filter="url(#innerPulse)"/>
+  <!-- Capsule body -->
+  <g filter="url(#powerGlow)">
+    <rect x="6" y="14" width="36" height="20" rx="10" ry="10" fill="url(#capsuleGrad)"/>
+    <rect x="6" y="14" width="36" height="20" rx="10" ry="10" fill="url(#capsuleShine)"/>
+    <!-- Center divider -->
+    <line x1="24" y1="14" x2="24" y2="34" stroke="#FFFFFF" stroke-width="1.5" opacity="0.4"/>
+    <!-- Inner glow -->
+    <ellipse cx="24" cy="24" rx="12" ry="6" fill="url(#innerGlow)"/>
+  </g>
+  <!-- Lightning bolt symbol -->
+  <g filter="url(#powerGlow)">
+    <path d="M22 17 L18 24 L22 24 L20 31 L28 22 L24 22 L27 17 Z" fill="url(#boltGrad)"/>
+  </g>
+  <!-- Sparkle particles -->
+  <g opacity="0.7">
+    <circle cx="8" cy="10" r="1" fill="#FF88FF"/>
+    <circle cx="40" cy="12" r="0.8" fill="#FFFFFF"/>
+    <circle cx="10" cy="36" r="0.7" fill="#FF88FF"/>
+    <circle cx="38" cy="34" r="1" fill="#FFFFFF"/>
+    <circle cx="24" cy="8" r="0.6" fill="#FFDD00"/>
+    <circle cx="24" cy="40" r="0.6" fill="#FFDD00"/>
+  </g>
+  <!-- Top/bottom edge highlights -->
+  <g opacity="0.3" stroke="#FFFFFF" stroke-width="0.5" fill="none">
+    <path d="M12 16 Q24 13 36 16"/>
+    <path d="M12 32 Q24 35 36 32"/>
+  </g>
+</svg>

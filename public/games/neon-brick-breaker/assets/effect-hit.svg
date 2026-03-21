@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <radialGradient id="blastCore" cx="50%" cy="50%" r="20%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#00FFFF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00FFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blastMid" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#FF00FF" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#FF3366" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FF3366" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blastOuter" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.3"/>
+      <stop offset="60%" stop-color="#FF8C00" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#FF4400" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shockwave" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#00FFFF" stop-opacity="0"/>
+      <stop offset="85%" stop-color="#00FFFF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00FFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blastGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="sparkGlow">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+  <!-- Shockwave ring -->
+  <circle cx="48" cy="48" r="44" fill="url(#shockwave)"/>
+  <!-- Outer blast -->
+  <circle cx="48" cy="48" r="40" fill="url(#blastOuter)"/>
+  <!-- Mid blast -->
+  <circle cx="48" cy="48" r="28" fill="url(#blastMid)"/>
+  <!-- Core blast -->
+  <g filter="url(#blastGlow)">
+    <circle cx="48" cy="48" r="16" fill="url(#blastCore)"/>
+  </g>
+  <!-- Radial light rays -->
+  <g stroke="#00FFFF" opacity="0.5" stroke-width="1.5" stroke-linecap="round" filter="url(#blastGlow)">
+    <line x1="48" y1="48" x2="48" y2="8"/>
+    <line x1="48" y1="48" x2="76" y2="20"/>
+    <line x1="48" y1="48" x2="88" y2="48"/>
+    <line x1="48" y1="48" x2="76" y2="76"/>
+    <line x1="48" y1="48" x2="48" y2="88"/>
+    <line x1="48" y1="48" x2="20" y2="76"/>
+    <line x1="48" y1="48" x2="8" y2="48"/>
+    <line x1="48" y1="48" x2="20" y2="20"/>
+  </g>
+  <!-- Secondary diagonal rays -->
+  <g stroke="#FF00FF" opacity="0.3" stroke-width="1" stroke-linecap="round">
+    <line x1="48" y1="48" x2="62" y2="12"/>
+    <line x1="48" y1="48" x2="86" y2="34"/>
+    <line x1="48" y1="48" x2="86" y2="62"/>
+    <line x1="48" y1="48" x2="62" y2="86"/>
+    <line x1="48" y1="48" x2="34" y2="86"/>
+    <line x1="48" y1="48" x2="10" y2="62"/>
+    <line x1="48" y1="48" x2="10" y2="34"/>
+    <line x1="48" y1="48" x2="34" y2="12"/>
+  </g>
+  <!-- Debris particles -->
+  <g filter="url(#sparkGlow)">
+    <circle cx="30" cy="18" r="2" fill="#FFD700" opacity="0.8"/>
+    <circle cx="70" cy="22" r="1.5" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="78" cy="60" r="2" fill="#FF3366" opacity="0.8"/>
+    <circle cx="68" cy="80" r="1.5" fill="#FFD700" opacity="0.7"/>
+    <circle cx="28" cy="74" r="2" fill="#00FFFF" opacity="0.8"/>
+    <circle cx="16" cy="36" r="1.5" fill="#FF00FF" opacity="0.7"/>
+    <circle cx="58" cy="14" r="1" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="82" cy="42" r="1" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="38" cy="84" r="1" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="14" cy="54" r="1" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+</svg>

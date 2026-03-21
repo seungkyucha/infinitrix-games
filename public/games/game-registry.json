@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T12:00:00Z",
-  "totalGames": 18,
+  "lastUpdated": "2026-03-22T18:00:00Z",
+  "totalGames": 19,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -958,6 +958,27 @@
           "controls": ["Clique/arraste: Trocar gemas adjacentes", "Deslizar (toque): Trocar gemas (mobile)", "R: Reiniciar"]
         }
       }
+    },
+    {
+      "id": "neon-hex-drop",
+      "title": "네온 헥스 드롭",
+      "description": "헥사곤을 회전시켜 낙하 블록을 정렬하고 소멸하세요!",
+      "genre": ["puzzle", "arcade"],
+      "thumbnail": "/games/neon-hex-drop/assets/thumbnail.svg",
+      "path": "/games/neon-hex-drop/index.html",
+      "addedAt": "2026-03-22T18:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["퍼즐", "아케이드", "낙하블록", "헥사곤", "회전", "연쇄소멸"],
+      "controls": [
+        "←/→ 방향키: 헥사곤 좌/우 60도 회전",
+        "화면 좌/우 탭: 회전 (모바일)",
+        "P키: 일시정지",
+        "R키: 재시작"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0"
     }
   ]
 }
