@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>미니 로그 다이스</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1a1a2e}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ========================================================
+// MINI ROGUE DICE — 턴제 주사위 로그라이트
+// ========================================================
+
+// === CONFIG: 모든 밸런스 수치 ===
+const CONFIG = {
+  MIN_TOUCH: 48,
+  MAX_DT: 0.033,
+  DPR: Math.min(window.devicePixelRatio || 1, 2),
+
+  PLAYER_MAX_HP: 40,
+  PLAYER_START_DICE: 2,
+  PLAYER_MAX_DICE: 3,
+  PLAYER_START_SLOTS: 4,
+  PLAYER_MAX_SLOTS: 5,
+  DICE_MIN_DEFAULT: 1,
+  DICE_MAX: 6,
+
+  GRID_SIZE: 3,
+  TOTAL_FLOORS: 3,
+  ROOM_TYPES: ['MONSTER','MONSTER','MONSTER','MONSTER','ELITE','TREASURE','TREASURE','SHOP','REST','EVENT'],
+
+  FLOOR_HP_SCALE: [1.0, 1.4, 1.8],
+  FLOOR_ATK_SCALE: [1.0, 1.3, 1.6],
+  FLOOR_GOLD_SCALE: [1.0, 1.5, 2.0],
+  POISON_DMG_PER_TURN: 2,
+
+  GOLD_MONSTER_MIN: 5, GOLD_MONSTER_MAX: 10,
+  GOLD_ELITE_MIN: 15, GOLD_ELITE_MAX: 25,
+  GOLD_BOSS_MIN: 30, GOLD_BOSS_MAX: 50,
+  DEATH_GOLD_KEEP_RATIO: 0.5,
+  EXP_MONSTER: 8, EXP_ELITE: 20, EXP_BOSS: 50,
+
+  SCORE_MONSTER_KILL: 10, SCORE_ELITE_KILL: 30, SCORE_BOSS_KILL: 100,
+  SCORE_ROOM_EXPLORE: 5, SCORE_NO_DAMAGE_TURN: 15,
+  SCORE_OVERKILL_MULTI: 2, SCORE_FLOOR_CLEAR: 50, SCORE_FULL_CLEAR: 200,
+
+  LEVEL_EXP: [0, 20, 50, 100, 200],
+  LEVEL_REWARDS: ['base','dice3','slot5','hp+10','diceMin2'],
+
+  META_UPGRADES: {
+    maxHp:    { name: '생명력 강화', desc: '최대 HP +5', maxLv: 4, costs: [50,100,200,400], bonus: 5 },
+    atk:      { name: '공격력 강화', desc: '모든 공격 +1', maxLv: 3, costs: [80,160,320], bonus: 1 },
+    diceLuck: { name: '행운의 주사위', desc: '주사위 최소값 +1', maxLv: 3, costs: [100,250,500], bonus: 1 },
+    goldBonus:{ name: '골드 수집가', desc: '골드 +20%', maxLv: 3, costs: [60,120,240], bonus: 0.2 },
+    startEquip:{ name: '초보자 장비', desc: '시작 장비 +1', maxLv: 2, costs: [150,300], bonus: 1 },
+    healBonus:{ name: '회복의 손길', desc: '휴식 회복 +5%', maxLv: 4, costs: [40,80,160,320], bonus: 0.05 }
+  },
+
+  REST_HEAL_PCT: 0.3,
+  SHOP_EQUIP_COST_MIN: 15, SHOP_EQUIP_COST_MAX: 40,
+  SHOP_HEAL_COST: 10, SHOP_HEAL_RATIO: 2,
+
+  DICE_ROLL_DURATION: 800,
+  ATTACK_ANIM_DURATION: 400,
+  ROOM_FADE_DURATION: 300,
+  HIT_SHAKE_DURATION: 200,
+  TRANSITION_DURATION: 500,
+
+  MASTER_VOLUME: 0.3, SFX_VOLUME: 0.4, BGM_VOLUME: 0.15,
+  PARTICLE_POOL_SIZE: 50, POPUP_POOL_SIZE: 15
+};
+
+// === 에셋 프리로더 ===
+const SPRITES = {};
+const ASSET_MAP = {
+  player:   'assets/player.svg',
+  enemy:    'assets/enemy.svg',
+  bgLayer1: 'assets/bg-layer1.svg',
+  bgLayer2: 'assets/bg-layer2.svg',
+  uiHeart:  'assets/ui-heart.svg',
+  uiStar:   'assets/ui-star.svg',
+  powerup:  'assets/powerup.svg',
+  effectHit:'assets/effect-hit.svg'
+};
+
+// 모든 SVG 이미지를 미리 로드
+async function preloadAssets() {
+  await Promise.all(
+    Object.entries(ASSET_MAP).map(([key, src]) =>
+      new Promise(resolve => {
+        const img = new Image();
+        img.onload  = () => { SPRITES[key] = img; resolve(); };
+        img.onerror = resolve;
+        img.src = src;
+      })
+    )
+  );
+}
+
+// === 상태 상수 ===
+const S = {
+  LOADING: 'LOADING', TITLE: 'TITLE', META_SHOP: 'META_SHOP',
+  DUNGEON_MAP: 'DUNGEON_MAP', ROOM_ENTER: 'ROOM_ENTER',
+  COMBAT_ROLL: 'COMBAT_ROLL', COMBAT_PLACE: 'COMBAT_PLACE',
+  COMBAT_RESOLVE: 'COMBAT_RESOLVE', ENEMY_TURN: 'ENEMY_TURN',
+  ROOM_REWARD: 'ROOM_REWARD', PAUSE: 'PAUSE', GAMEOVER: 'GAMEOVER'
+};
+
+// 상태 전환 우선순위 (F5)
+const STATE_PRIORITY = {
+  GAMEOVER: 100, PAUSE: 90, COMBAT_RESOLVE: 70, ENEMY_TURN: 60,
+  COMBAT_ROLL: 50, COMBAT_PLACE: 40, ROOM_REWARD: 30, ROOM_ENTER: 20,
+  DUNGEON_MAP: 10, META_SHOP: 5, TITLE: 1, LOADING: 0
+};
+
+// 상태×시스템 매트릭스 (F2) — 각 상태에서 업데이트할 시스템
+const STATE_MATRIX = {
+  LOADING:       { tween:false, particles:false, input:false, sound:false, tooltip:false },
+  TITLE:         { tween:true,  particles:true,  input:true,  sound:true,  tooltip:false },
+  META_SHOP:     { tween:true,  particles:false, input:true,  sound:true,  tooltip:true  },
+  DUNGEON_MAP:   { tween:true,  particles:true,  input:true,  sound:true,  tooltip:true  },
+  ROOM_ENTER:    { tween:true,  particles:true,  input:false, sound:true,  tooltip:false },
+  COMBAT_ROLL:   { tween:true,  particles:true,  input:false, sound:true,  tooltip:false },
+  COMBAT_PLACE:  { tween:true,  particles:true,  input:true,  sound:true,  tooltip:true  },
+  COMBAT_RESOLVE:{ tween:true,  particles:true,  input:false, sound:true,  tooltip:false },
+  ENEMY_TURN:    { tween:true,  particles:true,  input:false, sound:true,  tooltip:false },
+  ROOM_REWARD:   { tween:true,  particles:true,  input:true,  sound:true,  tooltip:true  },
+  PAUSE:         { tween:true,  particles:false, input:true,  sound:false, tooltip:false },
+  GAMEOVER:      { tween:true,  particles:true,  input:true,  sound:true,  tooltip:false }
+};
+
+// === 유틸리티 ===
+// 값 클램프
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+// 범위 내 정수 랜덤
+function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+// 배열에서 랜덤 선택
+function randPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+// 터치 타겟 최소 48px 보장 (F9)
+function touchSafe(size) { return Math.max(CONFIG.MIN_TOUCH, size); }
+// 선형 보간
+function lerp(a, b, t) { return a + (b - a) * t; }
+// easeOutQuad
+function easeOutQuad(t) { return t * (2 - t); }
+// easeInOutCubic
+function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2; }
+// easeOutBack
+function easeOutBack(t) { const c = 1.70158; return 1 + (c+1)*Math.pow(t-1,3) + c*Math.pow(t-1,2); }
+
+// localStorage 안전 래핑 (F22)
+function safeSave(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { /* silent */ }
+}
+function safeLoad(key, defaults) {
+  try {
+    const d = JSON.parse(localStorage.getItem(key));
+    if (!d) return { ...defaults };
+    // 누락 필드 자동 보정 (F27)
+    Object.keys(defaults).forEach(k => { if (!(k in d)) d[k] = defaults[k]; });
+    return d;
+  } catch(e) { return { ...defaults }; }
+}
+
+// === TweenManager (clearImmediate 포함, F6) ===
+class TweenManager {
+  constructor() { this._tweens = []; }
+  // 새 tween 추가
+  add(opts) {
+    const tw = { target: opts.target, prop: opts.prop, from: opts.from, to: opts.to,
+      duration: opts.duration || 500, elapsed: 0,
+      ease: opts.ease || easeOutQuad, onComplete: opts.onComplete || null, done: false };
+    if (tw.from !== undefined) tw.target[tw.prop] = tw.from;
+    this._tweens.push(tw);
+    return tw;
+  }
+  // 매 프레임 업데이트
+  update(dt) {
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      tw.elapsed += dt * 1000;
+      const t = clamp(tw.elapsed / tw.duration, 0, 1);
+      tw.target[tw.prop] = lerp(tw.from, tw.to, tw.ease(t));
+      if (t >= 1) {
+        tw.target[tw.prop] = tw.to;
+        tw.done = true;
+        if (tw.onComplete) tw.onComplete();
+        this._tweens.splice(i, 1);
+      }
+    }
+  }
+  // 즉시 모든 tween 정리 (F6 — cancelAll 대신 사용)
+  clearImmediate() { this._tweens.length = 0; }
+}
+
+// === ObjectPool ===
+class ObjectPool {
+  constructor(size, factory) {
+    this.pool = [];
+    for (let i = 0; i < size; i++) this.pool.push(factory());
+    this.active = [];
+  }
+  // 풀에서 객체 하나 꺼냄
+  spawn(initFn) {
+    const obj = this.pool.pop();
+    if (!obj) return null;
+    initFn(obj);
+    obj.alive = true;
+    this.active.push(obj);
+    return obj;
+  }
+  // 매 프레임 업데이트
+  update(dt) {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const o = this.active[i];
+      o.life -= dt;
+      if (o.life <= 0) { o.alive = false; this.pool.push(o); this.active.splice(i, 1); continue; }
+      o.x += o.vx * dt; o.y += o.vy * dt;
+      o.vy += (o.gravity || 0) * dt;
+      o.alpha = clamp(o.life / o.maxLife, 0, 1);
+      if (o.update) o.update(o, dt);
+    }
+  }
+  // 모든 활성 객체 반환
+  clear() {
+    while (this.active.length) { const o = this.active.pop(); o.alive = false; this.pool.push(o); }
+  }
+}
+
+// === SoundManager (Web Audio, setTimeout 완전 배제, F3, F10) ===
+class SoundManager {
+  constructor() {
+    this.ctx = null; this.master = null; this.muted = false;
+  }
+  // 오디오 컨텍스트 초기화
+  init() {
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = CONFIG.MASTER_VOLUME;
+      this.master.connect(this.ctx.destination);
+    } catch(e) { /* no audio */ }
+  }
+  // 음소거 토글
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.master) this.master.gain.value = this.muted ? 0 : CONFIG.MASTER_VOLUME;
+  }
+  // 특정 주파수+파형 재생 (네이티브 스케줄링)
+  playAt(freq, type, startOffset, duration, vol) {
+    if (!this.ctx || this.muted) return;
+    try {
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      const t = this.ctx.currentTime + startOffset;
+      o.connect(g); g.connect(this.master);
+      g.gain.setValueAtTime((vol || CONFIG.SFX_VOLUME) * 0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      o.start(t); o.stop(t + duration + 0.05);
+    } catch(e) { /* silent */ }
+  }
+  // 주사위 굴림 효과음
+  diceRoll() {
+    for (let i = 0; i < 4; i++) this.playAt(randInt(300, 800), 'square', i * 0.06, 0.05, 0.2);
+  }
+  // 주사위 배치 효과음
+  dicePlace() { this.playAt(523, 'sine', 0, 0.1, 0.3); }
+  // 공격 히트 효과음
+  attackHit() { this.playAt(440, 'sawtooth', 0, 0.1, 0.25); this.playAt(220, 'sawtooth', 0.05, 0.1, 0.2); }
+  // 방어 효과음
+  shieldUp() { this.playAt(220, 'triangle', 0, 0.08, 0.2); this.playAt(440, 'triangle', 0.04, 0.08, 0.2); }
+  // 회복 효과음
+  heal() { this.playAt(523, 'sine', 0, 0.15, 0.2); this.playAt(659, 'sine', 0.1, 0.15, 0.2); this.playAt(784, 'sine', 0.2, 0.2, 0.2); }
+  // 적 피격 효과음
+  enemyHit() { this.playAt(150, 'square', 0, 0.05, 0.3); }
+  // 레벨업 효과음
+  levelUp() { this.playAt(262,'sine',0,0.2,0.2); this.playAt(330,'sine',0.15,0.2,0.2); this.playAt(392,'sine',0.3,0.2,0.2); this.playAt(523,'sine',0.45,0.3,0.25); }
+  // 사망 효과음
+  death() { this.playAt(220,'sine',0,0.3,0.3); this.playAt(175,'sine',0.2,0.3,0.25); this.playAt(147,'sine',0.4,0.4,0.3); }
+  // 보스 등장 효과음
+  bossAppear() { this.playAt(80,'sine',0,0.5,0.3); this.playAt(60,'sine',0.2,0.5,0.2); }
+  // 방 입장 효과음
+  roomEnter() { this.playAt(659,'sine',0,0.2,0.15); }
+  // 구매 효과음
+  buy() { this.playAt(440,'sine',0,0.08,0.2); this.playAt(554,'sine',0.06,0.1,0.2); }
+  // 노이즈 버스트 (주사위 확정)
+  confirm() { this.playAt(880,'triangle',0,0.05,0.25); this.playAt(1100,'triangle',0.03,0.06,0.2); }
+}
+
+// === 장비 데이터 (12종, §2.4) ===
+const EQUIP_DATA = [
+  { id:'sword',   name:'검',   type:'ATK', cond:'any',   icon:'⚔', color:'#e94560', desc:'주사위 값만큼 데미지' },
+  { id:'gsword',  name:'대검', type:'ATK', cond:'6only', icon:'🗡', color:'#e94560', desc:'6일 때 15 데미지' },
+  { id:'bow',     name:'활',   type:'ATK', cond:'even',  icon:'🏹', color:'#e94560', desc:'짝수: 값×1.5 데미지' },
+  { id:'poison',  name:'독병', type:'ATK', cond:'odd',   icon:'🧪', color:'#76ff03', desc:'홀수: 3턴 독 2/턴' },
+  { id:'shield',  name:'방패', type:'DEF', cond:'any',   icon:'🛡', color:'#4fc3f7', desc:'주사위 값만큼 방어도' },
+  { id:'mirror',  name:'거울', type:'DEF', cond:'6only', icon:'🪞', color:'#4fc3f7', desc:'6일 때 공격 반사' },
+  { id:'potion',  name:'물약', type:'HEAL',cond:'any',   icon:'💊', color:'#53d769', desc:'주사위 값만큼 HP 회복' },
+  { id:'grail',   name:'성배', type:'HEAL',cond:'1only', icon:'🏆', color:'#53d769', desc:'1일 때 HP 10 회복' },
+  { id:'scroll',  name:'주문서',type:'SPECIAL',cond:'any', icon:'📜', color:'#b388ff', desc:'주사위 1개 다시 굴림' },
+  { id:'amulet',  name:'부적', type:'SPECIAL',cond:'pair',icon:'🔮', color:'#b388ff', desc:'쌍: 다음 턴 주사위+1' },
+  { id:'dagger',  name:'단검', type:'ATK', cond:'low',   icon:'🗡', color:'#e94560', desc:'1~3: 값×2 데미지' },
+  { id:'wand',    name:'마법봉',type:'ATK', cond:'high',  icon:'✨', color:'#b388ff', desc:'4~6: 전체 4 데미지' }
+];
+
+// 주사위를 장비에 배치 가능한지 판정 (순수 함수, F12)
+function canPlaceDice(diceVal, equip) {
+  switch(equip.cond) {
+    case 'any': return true;
+    case '6only': return diceVal === 6;
+    case '1only': return diceVal === 1;
+    case 'even': return diceVal % 2 === 0;
+    case 'odd': return diceVal % 2 === 1;
+    case 'low': return diceVal >= 1 && diceVal <= 3;
+    case 'high': return diceVal >= 4 && diceVal <= 6;
+    case 'pair': return false; // 별도 처리
+    default: return false;
+  }
+}
+
+// 장비 효과 데미지 계산 (순수 함수, F12)
+function calcEquipEffect(diceVal, equip, metaAtkBonus) {
+  const bonus = metaAtkBonus || 0;
+  switch(equip.id) {
+    case 'sword': return { type:'damage', value: diceVal + bonus + (equip.upgrade || 0) };
+    case 'gsword': return diceVal === 6 ? { type:'damage', value: 15 + bonus + (equip.upgrade || 0) } : null;
+    case 'bow': return diceVal % 2 === 0 ? { type:'damage', value: Math.floor(diceVal * 1.5) + bonus + (equip.upgrade || 0) } : null;
+    case 'poison': return diceVal % 2 === 1 ? { type:'poison', value: 3 } : null;
+    case 'shield': return { type:'armor', value: diceVal + (equip.upgrade || 0) };
+    case 'mirror': return diceVal === 6 ? { type:'reflect', value: 1 } : null;
+    case 'potion': return { type:'heal', value: diceVal + (equip.upgrade || 0) };
+    case 'grail': return diceVal === 1 ? { type:'heal', value: 10 + (equip.upgrade || 0) } : null;
+    case 'scroll': return { type:'reroll', value: 1 };
+    case 'amulet': return { type:'bonusDice', value: 1 };
+    case 'dagger': return diceVal <= 3 ? { type:'damage', value: diceVal * 2 + bonus + (equip.upgrade || 0) } : null;
+    case 'wand': return diceVal >= 4 ? { type:'aoe', value: 4 + bonus + (equip.upgrade || 0) } : null;
+    default: return null;
+  }
+}
+
+// === 적 데이터 (10종, §2.5) ===
+const ENEMY_DATA = {
+  1: [
+    { id:'slime',  name:'슬라임', hp:8,  atk:2, special:null, color:'#76ff03', shape:'slime' },
+    { id:'bat',    name:'박쥐',   hp:6,  atk:3, special:'dodge20', color:'#888', shape:'bat' },
+    { id:'goblin', name:'고블린', hp:10, atk:3, special:'armor1', color:'#53d769', shape:'goblin' }
+  ],
+  2: [
+    { id:'skeleton', name:'해골',  hp:14, atk:4, special:'poison1', color:'#eaeaea', shape:'skeleton' },
+    { id:'orc',      name:'오크',  hp:18, atk:6, special:null, color:'#8d6e63', shape:'orc' },
+    { id:'mage',     name:'마법사',hp:12, atk:5, special:'seal2', color:'#7c4dff', shape:'mage' }
+  ],
+  3: [
+    { id:'demon', name:'악마', hp:22, atk:8, special:'evenNull', color:'#e94560', shape:'demon' }
+  ]
+};
+const BOSS_DATA = {
+  1: { id:'golem',  name:'골렘',  hp:25, atk:5, special:'armor5every3', color:'#795548', shape:'golem' },
+  2: { id:'lich',   name:'리치',  hp:40, atk:7, special:'regen2_phase2', color:'#7c4dff', shape:'lich' },
+  3: { id:'dragon', name:'드래곤',hp:60, atk:10,special:'breath_phase2', color:'#ff6f00', shape:'dragon' }
+};
+
+// 적 행동 패턴 계산 (순수 함수, F12)
+function getEnemyAction(enemy, turnNum, floor) {
+  const atkScale = CONFIG.FLOOR_ATK_SCALE[floor - 1] || 1;
+  let atk = Math.floor(enemy.atk * atkScale);
+  let action = { type: 'attack', value: atk, label: '공격 ' + atk };
+
+  if (enemy.special === 'armor5every3' && turnNum % 3 === 0) {
+    action = { type: 'armor', value: 5, label: '방어 5' };
+  }
+  if (enemy.special === 'regen2_phase2') {
+    if (enemy.currentHp <= 20) atk = Math.floor(10 * atkScale);
+    action = { type: 'attack', value: atk, label: '공격 ' + atk };
+  }
+  if (enemy.special === 'breath_phase2' && enemy.currentHp <= 30) {
+    atk = Math.floor(15 * atkScale);
+    action = { type: 'attack', value: atk, label: '강공격 ' + atk };
+  }
+  return action;
+}
+
+// 이벤트 데이터 (6종, §2.6)
+const EVENTS = [
+  { name:'수상한 샘물', a: { label:'마시기(안전)', effect:'hpPlus5' }, b: { label:'깊이 마시기(위험)', effect:'hpGamble15_10' } },
+  { name:'떠돌이 상인', a: { label:'구경만', effect:'peekEquip' }, b: { label:'20G 투자', effect:'buyRandom2' } },
+  { name:'저주받은 제단', a: { label:'무시', effect:'nothing' }, b: { label:'저주 수락', effect:'curseMhp5Atk2' } },
+  { name:'보물 상자', a: { label:'조심히 열기', effect:'gold10' }, b: { label:'거칠게 열기', effect:'goldGamble30_8' } },
+  { name:'수련의 방', a: { label:'가볍게 수련', effect:'exp10' }, b: { label:'극한 수련', effect:'exp25hp5' } },
+  { name:'대장간', a: { label:'수리 의뢰', effect:'upgradeRandom1' }, b: { label:'대담한 강화', effect:'forgeGamble3' } }
+];
+
+// === 글로벌 변수 ===
+let canvas, ctx, W, H;
+let currentState = S.LOADING;
+let previousState = null;
+let _transitioning = false;
+const tweenMgr = new TweenManager();
+let particles, popups;
+const sound = new SoundManager();
+let bgCache = null; // offscreen Canvas 배경 캐시
+
+// 게임 상태 객체
+let gs = {};
+// 전투 상태 객체
+let cb = {};
+// 메타 데이터 (영구, F27)
+const DEFAULT_META = { gold:0, upgrades:{}, bestScore:0, bestFloor:0, totalRuns:0, totalKills:0 };
+let meta = {};
+
+// UI 상태
+let ui = {
+  fadeAlpha: { v: 0 },
+  shakeX: 0, shakeY: 0, shakeTimer: 0,
+  selectedDice: -1, // 선택된 주사위 인덱스 (2탭 방식)
+  hoveredSlot: -1,
+  titleDiceAnim: 0,
+  scrollY: 0, // 메타샵 스크롤
+  buttons: [], // 현재 화면의 인터랙티브 버튼 배열
+  tooltip: null,
+  longPressTimer: 0, longPressTarget: null,
+  rewardText: '', rewardItems: [],
+  eventData: null, eventChoice: null,
+  shopItems: [], shopHealAvail: true,
+  restChoice: null
+};
+
+// 입력 상태
+let keys = {};
+let mouse = { x: 0, y: 0, down: false, clicked: false, rightClicked: false };
+let touch = { active: false, startX: 0, startY: 0, x: 0, y: 0 };
+
+// === 캔버스 리사이즈 ===
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * CONFIG.DPR;
+  canvas.height = H * CONFIG.DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(CONFIG.DPR, 0, 0, CONFIG.DPR, 0, 0);
+  bgCache = null; // 리사이즈 시 배경 캐시 무효화
+}
+
+// === TransitionGuard (F4, F5) ===
+function beginTransition(targetState, duration, onMid) {
+  if (_transitioning) return false;
+  if (STATE_PRIORITY[targetState] < STATE_PRIORITY[currentState] && targetState !== S.TITLE && targetState !== S.DUNGEON_MAP && targetState !== S.META_SHOP) return false;
+  _transitioning = true;
+  const dur = duration || CONFIG.TRANSITION_DURATION;
+  // 페이드 아웃
+  tweenMgr.add({ target: ui.fadeAlpha, prop: 'v', from: 0, to: 1, duration: dur / 2, ease: easeOutQuad,
+    onComplete: () => {
+      if (onMid) onMid();
+      previousState = currentState;
+      currentState = targetState;
+      // 페이드 인
+      tweenMgr.add({ target: ui.fadeAlpha, prop: 'v', from: 1, to: 0, duration: dur / 2, ease: easeOutQuad,
+        onComplete: () => { _transitioning = false; }
+      });
+    }
+  });
+  return true;
+}
+
+// 즉시 상태 전환 (전환 연출 없이)
+function enterState(state) {
+  previousState = currentState;
+  currentState = state;
+  _transitioning = false;
+}
+
+// === 화면 흔들림 효과 ===
+function startShake(duration, intensity) {
+  ui.shakeTimer = duration || CONFIG.HIT_SHAKE_DURATION / 1000;
+  ui.shakeIntensity = intensity || 6;
+}
+
+// === 메타 데이터 로드/저장 ===
+function loadMeta() {
+  meta = safeLoad('miniRogueDice_meta', DEFAULT_META);
+  if (typeof meta.upgrades !== 'object' || meta.upgrades === null) meta.upgrades = {};
+}
+function saveMeta() {
+  safeSave('miniRogueDice_meta', meta);
+}
+
+// 메타 업그레이드 레벨 조회
+function getMetaLv(key) { return meta.upgrades[key] || 0; }
+
+// === 게임 초기화 ===
+function initNewRun() {
+  const hpBonus = getMetaLv('maxHp') * CONFIG.META_UPGRADES.maxHp.bonus;
+  const startSlots = CONFIG.PLAYER_START_SLOTS + getMetaLv('startEquip');
+  gs = {
+    hp: CONFIG.PLAYER_MAX_HP + hpBonus,
+    maxHp: CONFIG.PLAYER_MAX_HP + hpBonus,
+    armor: 0,
+    gold: 0,
+    score: 0,
+    exp: 0,
+    level: 1,
+    floor: 1,
+    diceCount: CONFIG.PLAYER_START_DICE,
+    diceMin: CONFIG.DICE_MIN_DEFAULT + getMetaLv('diceLuck'),
+    equipSlots: Math.min(startSlots, CONFIG.PLAYER_MAX_SLOTS),
+    equipment: [{ ...EQUIP_DATA[0], upgrade: 0 }, { ...EQUIP_DATA[4], upgrade: 0 }],
+    // 메타 시작 장비 추가
+    dungeonMap: null,
+    playerPos: { x: 0, y: 0 },
+    visited: {},
+    roomsCleared: 0,
+    turnDamageTaken: 0,
+    bonusDiceNextTurn: 0
+  };
+  // 시작 장비 추가 (메타 보너스)
+  const extraEquip = getMetaLv('startEquip');
+  for (let i = 0; i < extraEquip && gs.equipment.length < gs.equipSlots; i++) {
+    const e = randPick(EQUIP_DATA.filter(e => e.id !== 'sword' && e.id !== 'shield'));
+    gs.equipment.push({ ...e, upgrade: 0 });
+  }
+  generateFloor(gs.floor);
+  cb = {};
+  meta.totalRuns++;
+  saveMeta();
+}
+
+// 주사위 굴림 (순수 함수, F12)
+function rollDice(count, minVal) {
+  const result = [];
+  for (let i = 0; i < count; i++) result.push(randInt(minVal, CONFIG.DICE_MAX));
+  return result;
+}
+
+// === 던전 생성 (순수 함수 기반, F12) ===
+function generateFloor(floor) {
+  const map = [];
+  for (let y = 0; y < 3; y++) {
+    map[y] = [];
+    for (let x = 0; x < 3; x++) {
+      map[y][x] = { type: randPick(CONFIG.ROOM_TYPES), revealed: false, cleared: false, x, y };
+    }
+  }
+  // 보스방 고정 (오른쪽 하단)
+  map[2][2] = { type: 'BOSS', revealed: false, cleared: false, x: 2, y: 2 };
+  // 시작방 (왼쪽 상단) — 빈 방으로 처리
+  map[0][0] = { type: 'REST', revealed: true, cleared: true, x: 0, y: 0 };
+  gs.dungeonMap = map;
+  gs.playerPos = { x: 0, y: 0 };
+  gs.visited = { '0,0': true };
+  gs.roomsCleared = 1; // 시작방
+}
+
+// 인접 방 이동 가능 여부 (순수 함수, F12)
+function isRoomAccessible(px, py, tx, ty) {
+  return (Math.abs(px - tx) + Math.abs(py - ty)) === 1;
+}
+
+// === 전투 시작 ===
+function startCombat(enemyTemplate, isElite, isBoss) {
+  const floor = gs.floor;
+  const hpScale = CONFIG.FLOOR_HP_SCALE[floor - 1] || 1;
+  cb = {
+    enemy: {
+      ...enemyTemplate,
+      maxHp: Math.floor(enemyTemplate.hp * hpScale),
+      currentHp: Math.floor(enemyTemplate.hp * hpScale),
+      isElite, isBoss, poisonTurns: 0
+    },
+    dice: [],
+    placedDice: {}, // slotIndex -> diceVal
+    turn: 1,
+    phase: 'roll', // roll, place, resolve, enemyTurn
+    animTimer: 0,
+    diceAnim: [], // 주사위 애니메이션 데이터
+    resolveQueue: [], // 효과 발동 큐
+    actionPreview: null,
+    damageThisTurn: 0
+  };
+  gs.turnDamageTaken = 0;
+  gs.armor = 0;
+  if (isBoss) sound.bossAppear();
+  enterState(S.COMBAT_ROLL);
+  startDiceRoll();
+}
+
+// === 주사위 굴림 애니메이션 ===
+function startDiceRoll() {
+  const count = Math.min(gs.diceCount + gs.bonusDiceNextTurn, CONFIG.PLAYER_MAX_DICE + 1);
+  gs.bonusDiceNextTurn = 0;
+  cb.dice = rollDice(count, gs.diceMin);
+  cb.placedDice = {};
+  cb.diceAnim = cb.dice.map((val, i) => ({
+    val, finalVal: val, rolling: true, angle: 0, scale: 0, settled: false,
+    x: 0, y: 0 // 렌더러에서 계산
+  }));
+  sound.diceRoll();
+  // 굴림 애니메이션
+  cb.animTimer = CONFIG.DICE_ROLL_DURATION / 1000;
+  cb.diceAnim.forEach((d, i) => {
+    tweenMgr.add({ target: d, prop: 'scale', from: 0, to: 1,
+      duration: CONFIG.DICE_ROLL_DURATION * 0.6, ease: easeOutBack });
+  });
+}
+
+// 주사위 배치 처리
+function placeDiceOnEquip(diceIdx, slotIdx) {
+  if (diceIdx < 0 || diceIdx >= cb.dice.length) return false;
+  if (cb.placedDice[slotIdx] !== undefined) return false; // 이미 배치됨
+  // 이 주사위가 이미 다른 슬롯에 배치되었는지 확인
+  for (const k in cb.placedDice) { if (cb.placedDice[k].diceIdx === diceIdx) return false; }
+  const equip = gs.equipment[slotIdx];
+  if (!equip) return false;
+  const val = cb.dice[diceIdx];
+  if (!canPlaceDice(val, equip)) return false;
+  cb.placedDice[slotIdx] = { diceIdx, val };
+  sound.dicePlace();
+  ui.selectedDice = -1;
+  return true;
+}
+
+// 턴 종료 — 효과 발동
+function resolveEquipments() {
+  enterState(S.COMBAT_RESOLVE);
+  cb.resolveQueue = [];
+  for (const slotIdx in cb.placedDice) {
+    const { val } = cb.placedDice[slotIdx];
+    const equip = gs.equipment[parseInt(slotIdx)];
+    if (!equip) continue;
+    const effect = calcEquipEffect(val, equip, getMetaLv('atk'));
+    if (effect) cb.resolveQueue.push({ equip, effect, val });
+  }
+  cb.animTimer = 0.1; // 짧은 딜레이 후 순차 처리
+  processResolveQueue();
+}
+
+function processResolveQueue() {
+  if (cb.resolveQueue.length === 0) {
+    // 독 데미지 처리
+    if (cb.enemy.poisonTurns > 0) {
+      cb.enemy.currentHp -= CONFIG.POISON_DMG_PER_TURN;
+      cb.enemy.poisonTurns--;
+      spawnDamagePopup(W / 2, H * 0.3, CONFIG.POISON_DMG_PER_TURN, '#76ff03');
+      spawnParticles(W / 2, H * 0.3, '#76ff03', 5);
+    }
+    // 적 사망 체크
+    if (cb.enemy.currentHp <= 0) {
+      cb.enemy.currentHp = 0;
+      onEnemyDefeated();
+      return;
+    }
+    // 적 턴
+    startEnemyTurn();
+    return;
+  }
+  const item = cb.resolveQueue.shift();
+  applyEffect(item.effect, item.equip);
+  // 연출 후 다음 효과 — tween 기반 딜레이
+  const delayObj = { t: 0 };
+  tweenMgr.add({ target: delayObj, prop: 't', from: 0, to: 1, duration: 350, ease: easeOutQuad,
+    onComplete: () => processResolveQueue()
+  });
+}
+
+// 효과 적용
+function applyEffect(effect, equip) {
+  const ex = W / 2, ey = H * 0.3;
+  switch(effect.type) {
+    case 'damage':
+      let dmg = effect.value;
+      if (cb.enemy.special === 'armor1') dmg = Math.max(0, dmg - 1);
+      if (cb.enemy.special === 'dodge20' && Math.random() < 0.2) {
+        spawnDamagePopup(ex, ey, 0, '#888', 'MISS');
+        return;
+      }
+      cb.enemy.currentHp = Math.max(0, cb.enemy.currentHp - dmg);
+      sound.attackHit();
+      spawnDamagePopup(ex, ey, dmg, '#e94560');
+      spawnParticles(ex, ey, '#e94560', 8);
+      startShake(0.15, 4);
+      break;
+    case 'aoe':
+      cb.enemy.currentHp = Math.max(0, cb.enemy.currentHp - effect.value);
+      sound.attackHit();
+      spawnDamagePopup(ex, ey, effect.value, '#b388ff');
+      spawnParticles(ex, ey, '#b388ff', 12);
+      startShake(0.2, 5);
+      break;
+    case 'poison':
+      cb.enemy.poisonTurns += effect.value;
+      spawnDamagePopup(ex, ey, 0, '#76ff03', '독 ' + effect.value + '턴');
+      spawnParticles(ex, ey, '#76ff03', 6);
+      break;
+    case 'armor':
+      gs.armor += effect.value;
+      sound.shieldUp();
+      spawnDamagePopup(W / 2, H * 0.7, 0, '#4fc3f7', '🛡+' + effect.value);
+      break;
+    case 'reflect':
+      cb.reflectActive = true;
+      spawnDamagePopup(W / 2, H * 0.5, 0, '#4fc3f7', '반사!');
+      break;
+    case 'heal':
+      const healed = Math.min(effect.value, gs.maxHp - gs.hp);
+      gs.hp += healed;
+      sound.heal();
+      spawnDamagePopup(W / 2, H * 0.7, 0, '#53d769', '+' + healed + ' HP');
+      spawnParticles(W / 2, H * 0.7, '#53d769', 6);
+      break;
+    case 'reroll':
+      // 미배치 주사위 중 하나를 다시 굴림
+      for (let i = 0; i < cb.dice.length; i++) {
+        let placed = false;
+        for (const k in cb.placedDice) { if (cb.placedDice[k].diceIdx === i) placed = true; }
+        if (!placed) { cb.dice[i] = randInt(gs.diceMin, CONFIG.DICE_MAX); break; }
+      }
+      sound.diceRoll();
+      break;
+    case 'bonusDice':
+      gs.bonusDiceNextTurn++;
+      spawnDamagePopup(W / 2, H * 0.5, 0, '#b388ff', '다음 턴 +1🎲');
+      break;
+  }
+}
+
+// === 적 턴 ===
+function startEnemyTurn() {
+  enterState(S.ENEMY_TURN);
+  cb.actionPreview = getEnemyAction(cb.enemy, cb.turn, gs.floor);
+  // 리치 자연회복
+  if (cb.enemy.special === 'regen2_phase2') {
+    cb.enemy.currentHp = Math.min(cb.enemy.currentHp + 2, cb.enemy.maxHp);
+  }
+  const action = cb.actionPreview;
+  const delayObj = { t: 0 };
+  tweenMgr.add({ target: delayObj, prop: 't', from: 0, to: 1, duration: CONFIG.ATTACK_ANIM_DURATION, ease: easeOutQuad,
+    onComplete: () => {
+      if (action.type === 'attack') {
+        let dmg = action.value;
+        // 반사 체크
+        if (cb.reflectActive) {
+          cb.enemy.currentHp = Math.max(0, cb.enemy.currentHp - dmg);
+          spawnDamagePopup(W / 2, H * 0.3, dmg, '#4fc3f7', '반사!');
+          cb.reflectActive = false;
+          dmg = 0;
+        }
+        // 방어도 적용
+        if (gs.armor > 0) {
+          const blocked = Math.min(gs.armor, dmg);
+          gs.armor -= blocked;
+          dmg -= blocked;
+          if (blocked > 0) spawnDamagePopup(W / 2, H * 0.6, 0, '#4fc3f7', '🛡-' + blocked);
+        }
+        if (dmg > 0) {
+          gs.hp -= dmg;
+          gs.turnDamageTaken += dmg;
+          sound.enemyHit();
+          spawnDamagePopup(W / 2, H * 0.7, dmg, '#ff4444');
+          spawnParticles(W / 2, H * 0.7, '#ff4444', 8);
+          startShake(0.2, 6);
+        }
+      } else if (action.type === 'armor') {
+        cb.enemy.enemyArmor = (cb.enemy.enemyArmor || 0) + action.value;
+        spawnDamagePopup(W / 2, H * 0.3, 0, '#4fc3f7', '🛡+' + action.value);
+      }
+      // 마법사 봉인 효과
+      if (cb.enemy.special === 'seal2' && cb.turn % 2 === 0 && cb.dice.length > 1) {
+        // 다음 턴 주사위 -1 (최소 1개)
+        gs.bonusDiceNextTurn = Math.max(gs.bonusDiceNextTurn - 1, -(gs.diceCount - 1));
+      }
+      // 악마: 짝수 주사위 무효화 (다음 턴에 적용)
+      cb.turn++;
+      cb.reflectActive = false;
+
+      // 플레이어 사망 체크
+      if (gs.hp <= 0) {
+        gs.hp = 0;
+        onPlayerDeath();
+        return;
+      }
+      // 적 사망 체크 (반사로 죽는 경우)
+      if (cb.enemy.currentHp <= 0) {
+        onEnemyDefeated();
+        return;
+      }
+      // 무피해 턴 보너스
+      if (gs.turnDamageTaken === 0) {
+        gs.score += CONFIG.SCORE_NO_DAMAGE_TURN;
+      }
+      gs.turnDamageTaken = 0;
+      gs.armor = 0;
+      // 다음 턴
+      enterState(S.COMBAT_ROLL);
+      startDiceRoll();
+    }
+  });
+}
+
+// 적 처치
+function onEnemyDefeated() {
+  const floor = gs.floor;
+  const goldScale = CONFIG.FLOOR_GOLD_SCALE[floor - 1] || 1;
+  const goldBonusMeta = 1 + getMetaLv('goldBonus') * CONFIG.META_UPGRADES.goldBonus.bonus;
+  let goldReward, expReward, scoreReward;
+
+  if (cb.enemy.isBoss) {
+    goldReward = Math.floor(randInt(CONFIG.GOLD_BOSS_MIN, CONFIG.GOLD_BOSS_MAX) * goldScale * goldBonusMeta);
+    expReward = CONFIG.EXP_BOSS;
+    scoreReward = CONFIG.SCORE_BOSS_KILL * floor;
+  } else if (cb.enemy.isElite) {
+    goldReward = Math.floor(randInt(CONFIG.GOLD_ELITE_MIN, CONFIG.GOLD_ELITE_MAX) * goldScale * goldBonusMeta);
+    expReward = CONFIG.EXP_ELITE;
+    scoreReward = CONFIG.SCORE_ELITE_KILL * floor;
+  } else {
+    goldReward = Math.floor(randInt(CONFIG.GOLD_MONSTER_MIN, CONFIG.GOLD_MONSTER_MAX) * goldScale * goldBonusMeta);
+    expReward = CONFIG.EXP_MONSTER;
+    scoreReward = CONFIG.SCORE_MONSTER_KILL * floor;
+  }
+  // 오버킬 보너스
+  const overkill = Math.abs(Math.min(0, cb.enemy.currentHp));
+  scoreReward += overkill * CONFIG.SCORE_OVERKILL_MULTI;
+
+  gs.gold += goldReward;
+  gs.exp += expReward;
+  gs.score += scoreReward;
+  meta.totalKills++;
+
+  // 레벨업 체크
+  checkLevelUp();
+
+  ui.rewardText = cb.enemy.name + ' 처치!';
+  ui.rewardItems = [
+    { icon: '💰', text: '+' + goldReward + 'G' },
+    { icon: '⭐', text: '+' + expReward + ' EXP' },
+    { icon: '🏆', text: '+' + scoreReward + ' 점수' }
+  ];
+  // 장비 드롭 (엘리트/보스)
+  if (cb.enemy.isElite || cb.enemy.isBoss) {
+    const drop = randPick(EQUIP_DATA);
+    ui.rewardItems.push({ icon: drop.icon, text: drop.name + ' 획득!' });
+    if (gs.equipment.length < gs.equipSlots) {
+      gs.equipment.push({ ...drop, upgrade: 0 });
+    }
+  }
+
+  sound.confirm();
+  spawnParticles(W / 2, H * 0.4, '#f5c542', 20);
+
+  // 보스 처치 → 다음 층
+  if (cb.enemy.isBoss) {
+    if (gs.floor >= CONFIG.TOTAL_FLOORS) {
+      ui.rewardText = '🎉 던전 클리어! 🎉';
+      gs.score += CONFIG.SCORE_FULL_CLEAR;
+    }
+  }
+
+  enterState(S.ROOM_REWARD);
+}
+
+// 레벨업 체크
+function checkLevelUp() {
+  while (gs.level < CONFIG.LEVEL_EXP.length && gs.exp >= CONFIG.LEVEL_EXP[gs.level]) {
+    gs.level++;
+    const reward = CONFIG.LEVEL_REWARDS[gs.level - 1];
+    if (reward === 'dice3') gs.diceCount = 3;
+    if (reward === 'slot5') gs.equipSlots = 5;
+    if (reward === 'hp+10') { gs.maxHp += 10; gs.hp += 10; }
+    if (reward === 'diceMin2') gs.diceMin = Math.max(gs.diceMin, 2);
+    sound.levelUp();
+    spawnParticles(W / 2, H / 2, '#f5c542', 25);
+  }
+}
+
+// 플레이어 사망
+function onPlayerDeath() {
+  sound.death();
+  startShake(0.5, 10);
+  // 판정 먼저, 저장 나중에 (Cycle 2 B4)
+  const isNewBest = gs.score > meta.bestScore;
+  const isNewFloor = gs.floor > meta.bestFloor;
+  const keepGold = Math.floor(gs.gold * CONFIG.DEATH_GOLD_KEEP_RATIO);
+  meta.gold += keepGold;
+  if (isNewBest) meta.bestScore = gs.score;
+  if (isNewFloor) meta.bestFloor = gs.floor;
+  saveMeta();
+  enterState(S.GAMEOVER);
+}
+
+// === 방 진입 처리 ===
+function enterRoom(x, y) {
+  if (!isRoomAccessible(gs.playerPos.x, gs.playerPos.y, x, y)) return;
+  const room = gs.dungeonMap[y][x];
+  if (!room) return;
+  gs.playerPos = { x, y };
+  const posKey = x + ',' + y;
+  const firstVisit = !gs.visited[posKey];
+  gs.visited[posKey] = true;
+  room.revealed = true;
+  // 인접 방 공개
+  [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx, dy]) => {
+    const nx = x+dx, ny = y+dy;
+    if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) gs.dungeonMap[ny][nx].revealed = true;
+  });
+
+  if (firstVisit) gs.score += CONFIG.SCORE_ROOM_EXPLORE;
+  sound.roomEnter();
+
+  if (room.cleared) { enterState(S.DUNGEON_MAP); return; }
+  room.cleared = true;
+  gs.roomsCleared++;
+
+  switch(room.type) {
+    case 'MONSTER': {
+      const enemies = ENEMY_DATA[gs.floor] || ENEMY_DATA[1];
+      startCombat(randPick(enemies), false, false);
+      break;
+    }
+    case 'ELITE': {
+      const enemies = ENEMY_DATA[gs.floor] || ENEMY_DATA[1];
+      startCombat(randPick(enemies), true, false);
+      break;
+    }
+    case 'BOSS': {
+      startCombat(BOSS_DATA[gs.floor], false, true);
+      break;
+    }
+    case 'TREASURE': {
+      const drop = randPick(EQUIP_DATA);
+      ui.rewardText = '보물 발견!';
+      ui.rewardItems = [{ icon: drop.icon, text: drop.name + ' 획득!' }];
+      if (gs.equipment.length < gs.equipSlots) gs.equipment.push({ ...drop, upgrade: 0 });
+      const goldAmt = randInt(10, 20);
+      gs.gold += goldAmt;
+      ui.rewardItems.push({ icon: '💰', text: '+' + goldAmt + 'G' });
+      enterState(S.ROOM_REWARD);
+      break;
+    }
+    case 'SHOP': {
+      ui.shopItems = [];
+      for (let i = 0; i < 3; i++) {
+        const e = randPick(EQUIP_DATA);
+        ui.shopItems.push({ equip: { ...e, upgrade: 0 }, cost: randInt(CONFIG.SHOP_EQUIP_COST_MIN, CONFIG.SHOP_EQUIP_COST_MAX) });
+      }
+      ui.shopHealAvail = true;
+      enterState(S.ROOM_REWARD);
+      ui.rewardText = '상점';
+      ui.rewardItems = [];
+      break;
+    }
+    case 'REST': {
+      ui.restChoice = null;
+      ui.rewardText = '모닥불';
+      ui.rewardItems = [];
+      enterState(S.ROOM_REWARD);
+      break;
+    }
+    case 'EVENT': {
+      ui.eventData = { ...randPick(EVENTS) };
+      ui.eventChoice = null;
+      ui.rewardText = ui.eventData.name;
+      ui.rewardItems = [];
+      enterState(S.ROOM_REWARD);
+      break;
+    }
+    default:
+      enterState(S.DUNGEON_MAP);
+  }
+}
+
+// 이벤트 효과 적용
+function applyEventChoice(choice) {
+  const evt = ui.eventData;
+  if (!evt) return;
+  const c = choice === 'a' ? evt.a : evt.b;
+  ui.eventChoice = choice;
+  let resultText = '';
+  switch(c.effect) {
+    case 'hpPlus5': gs.hp = Math.min(gs.hp + 5, gs.maxHp); resultText = 'HP +5'; break;
+    case 'hpGamble15_10':
+      if (Math.random() < 0.5) { gs.hp = Math.min(gs.hp + 15, gs.maxHp); resultText = 'HP +15!'; }
+      else { gs.hp = Math.max(1, gs.hp - 10); resultText = 'HP -10...'; }
+      break;
+    case 'peekEquip': resultText = '정찰 완료'; break;
+    case 'buyRandom2':
+      if (gs.gold >= 20) { gs.gold -= 20; const e = randPick(EQUIP_DATA); if (gs.equipment.length < gs.equipSlots) gs.equipment.push({...e, upgrade:0}); resultText = e.name + ' 획득!'; }
+      else resultText = '골드 부족';
+      break;
+    case 'nothing': resultText = '그냥 지나갔다'; break;
+    case 'curseMhp5Atk2': gs.maxHp -= 5; gs.hp = Math.min(gs.hp, gs.maxHp); resultText = '최대HP -5, 공격력 +2'; break;
+    case 'gold10': gs.gold += 10; resultText = '+10G'; break;
+    case 'goldGamble30_8':
+      if (Math.random() < 0.5) { gs.gold += 30; resultText = '+30G!'; }
+      else { gs.hp = Math.max(1, gs.hp - 8); resultText = '함정! HP -8'; }
+      break;
+    case 'exp10': gs.exp += 10; checkLevelUp(); resultText = '+10 EXP'; break;
+    case 'exp25hp5': gs.exp += 25; gs.hp = Math.max(1, gs.hp - 5); checkLevelUp(); resultText = '+25 EXP, HP -5'; break;
+    case 'upgradeRandom1':
+      if (gs.equipment.length > 0) { const e = randPick(gs.equipment); e.upgrade = (e.upgrade || 0) + 1; resultText = e.name + ' 강화!'; }
+      else resultText = '장비 없음';
+      break;
+    case 'forgeGamble3':
+      if (gs.equipment.length > 0) {
+        const idx = Math.floor(Math.random() * gs.equipment.length);
+        if (Math.random() < 0.5) { gs.equipment[idx].upgrade = (gs.equipment[idx].upgrade || 0) + 3; resultText = gs.equipment[idx].name + ' +3 강화!'; }
+        else { resultText = gs.equipment[idx].name + ' 파괴됨...'; gs.equipment.splice(idx, 1); }
+      } else resultText = '장비 없음';
+      break;
+  }
+  ui.rewardItems = [{ icon: '❓', text: resultText }];
+  sound.confirm();
+}
+
+// 휴식 선택
+function applyRestChoice(choice) {
+  ui.restChoice = choice;
+  if (choice === 'heal') {
+    const healPct = CONFIG.REST_HEAL_PCT + getMetaLv('healBonus') * CONFIG.META_UPGRADES.healBonus.bonus;
+    const amount = Math.floor(gs.maxHp * healPct);
+    gs.hp = Math.min(gs.hp + amount, gs.maxHp);
+    sound.heal();
+    ui.rewardItems = [{ icon: '❤️', text: '+' + amount + ' HP 회복' }];
+  } else if (choice === 'upgrade') {
+    if (gs.equipment.length > 0) {
+      const e = randPick(gs.equipment);
+      e.upgrade = (e.upgrade || 0) + 1;
+      ui.rewardItems = [{ icon: '⚒️', text: e.name + ' +1 강화!' }];
+    } else {
+      ui.rewardItems = [{ icon: '❌', text: '장비 없음' }];
+    }
+    sound.confirm();
+  }
+}
+
+// 상점 구매
+function shopBuy(idx) {
+  const item = ui.shopItems[idx];
+  if (!item || item.bought) return;
+  if (gs.gold < item.cost) return;
+  if (gs.equipment.length >= gs.equipSlots) return;
+  gs.gold -= item.cost;
+  gs.equipment.push(item.equip);
+  item.bought = true;
+  sound.buy();
+}
+function shopHeal() {
+  if (!ui.shopHealAvail) return;
+  if (gs.gold < CONFIG.SHOP_HEAL_COST) return;
+  gs.gold -= CONFIG.SHOP_HEAL_COST;
+  gs.hp = Math.min(gs.hp + CONFIG.SHOP_HEAL_RATIO * CONFIG.SHOP_HEAL_COST, gs.maxHp);
+  ui.shopHealAvail = false;
+  sound.heal();
+}
+
+// 메타샵 업그레이드 구매
+function buyMetaUpgrade(key) {
+  const info = CONFIG.META_UPGRADES[key];
+  if (!info) return;
+  const lv = getMetaLv(key);
+  if (lv >= info.maxLv) return;
+  const cost = info.costs[lv];
+  if (meta.gold < cost) return;
+  meta.gold -= cost;
+  meta.upgrades[key] = lv + 1;
+  saveMeta();
+  sound.buy();
+}
+
+// === 파티클 스폰 ===
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.spawn(p => {
+      p.x = x + randInt(-10, 10); p.y = y + randInt(-10, 10);
+      p.vx = randInt(-120, 120); p.vy = randInt(-180, -30);
+      p.gravity = 300; p.life = 0.4 + Math.random() * 0.5;
+      p.maxLife = p.life; p.color = color;
+      p.size = 2 + Math.random() * 4; p.alpha = 1;
+    });
+  }
+}
+function spawnDamagePopup(x, y, value, color, text) {
+  popups.spawn(p => {
+    p.x = x + randInt(-20, 20); p.y = y;
+    p.vx = 0; p.vy = -60; p.gravity = 0;
+    p.life = 1.0; p.maxLife = 1.0;
+    p.color = color; p.alpha = 1;
+    p.text = text || (value > 0 ? '-' + value : '');
+    p.size = value >= 10 ? 22 : 18;
+  });
+}
+
+// === 렌더러 ===
+// 배경 그리기 (offscreen 캐시 또는 에셋 사용)
+function renderBackground() {
+  // 에셋 기반 배경 시도
+  if (SPRITES.bgLayer1) {
+    ctx.drawImage(SPRITES.bgLayer1, 0, 0, W, H);
+  } else {
+    // 폴백: 그라디언트 배경
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#1a1a2e');
+    grd.addColorStop(1, '#16213e');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (SPRITES.bgLayer2) {
+    ctx.globalAlpha = 0.6;
+    ctx.drawImage(SPRITES.bgLayer2, 0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// HUD 상단바 그리기
+function renderHUD() {
+  const hh = 50;
+  ctx.fillStyle = 'rgba(10,10,20,0.85)';
+  ctx.fillRect(0, 0, W, hh);
+  ctx.strokeStyle = '#533483'; ctx.lineWidth = 1;
+  ctx.strokeRect(0, hh - 1, W, 1);
+
+  const y = hh / 2;
+  // HP 바
+  const hpBarX = 10, hpBarW = Math.min(140, W * 0.3);
+  if (SPRITES.uiHeart) {
+    ctx.drawImage(SPRITES.uiHeart, hpBarX, y - 10, 20, 20);
+  } else {
+    ctx.fillStyle = '#e94560'; ctx.font = '14px sans-serif'; ctx.fillText('❤', hpBarX + 2, y + 5);
+  }
+  const barX = hpBarX + 24, barW = hpBarW - 24, barH = 14;
+  ctx.fillStyle = '#333'; ctx.fillRect(barX, y - barH/2, barW, barH);
+  const hpPct = clamp(gs.hp / gs.maxHp, 0, 1);
+  ctx.fillStyle = hpPct > 0.5 ? '#53d769' : hpPct > 0.25 ? '#f5c542' : '#e94560';
+  ctx.fillRect(barX, y - barH/2, barW * hpPct, barH);
+  ctx.fillStyle = '#eaeaea'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(gs.hp + '/' + gs.maxHp, barX + barW/2, y + 4);
+
+  // 방어도
+  if (gs.armor > 0) {
+    ctx.fillStyle = '#4fc3f7'; ctx.textAlign = 'left';
+    ctx.fillText('🛡' + gs.armor, barX + barW + 8, y + 4);
+  }
+
+  // 골드
+  const goldX = W - 10;
+  ctx.textAlign = 'right'; ctx.font = 'bold 13px sans-serif';
+  if (SPRITES.uiStar) {
+    ctx.drawImage(SPRITES.uiStar, goldX - 70, y - 10, 20, 20);
+    ctx.fillStyle = '#f5c542'; ctx.fillText(gs.gold + 'G', goldX, y + 4);
+  } else {
+    ctx.fillStyle = '#f5c542'; ctx.fillText('💰' + gs.gold + 'G', goldX, y + 4);
+  }
+  // 점수
+  ctx.fillStyle = '#eaeaea'; ctx.font = '11px sans-serif';
+  ctx.fillText('점수:' + gs.score, goldX, y + 18);
+  // 층
+  ctx.textAlign = 'left'; ctx.fillStyle = '#8080a0'; ctx.font = '11px sans-serif';
+  ctx.fillText('층:' + gs.floor + '/' + CONFIG.TOTAL_FLOORS + '  Lv.' + gs.level, 10, y + 20);
+  ctx.textAlign = 'left';
+}
+
+// 주사위 도형 그리기 (폴백)
+function drawDice(cx, cy, size, value, selected, canPlace) {
+  const half = size / 2;
+  ctx.save();
+  // 배경
+  ctx.fillStyle = selected ? '#2a1a4a' : '#fff';
+  ctx.strokeStyle = selected ? '#f5c542' : (canPlace ? '#53d769' : '#e94560');
+  ctx.lineWidth = selected ? 3 : 2;
+  roundRect(cx - half, cy - half, size, size, 6);
+  ctx.fill(); ctx.stroke();
+  // 도트
+  ctx.fillStyle = selected ? '#f5c542' : '#111';
+  const dotR = size * 0.08;
+  const positions = getDotPositions(value, cx, cy, half * 0.55);
+  positions.forEach(([dx, dy]) => {
+    ctx.beginPath(); ctx.arc(dx, dy, dotR, 0, Math.PI * 2); ctx.fill();
+  });
+  // 숫자 (접근성 3중 표현, F24)
+  ctx.fillStyle = selected ? '#f5c542' : '#555';
+  ctx.font = 'bold ' + Math.floor(size * 0.3) + 'px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(value, cx, cy);
+  ctx.restore();
+}
+
+// 주사위 도트 위치 계산
+function getDotPositions(val, cx, cy, r) {
+  const tl = [cx-r, cy-r], tr = [cx+r, cy-r], ml = [cx-r, cy], mr = [cx+r, cy];
+  const bl = [cx-r, cy+r], br = [cx+r, cy+r], cc = [cx, cy];
+  switch(val) {
+    case 1: return [cc];
+    case 2: return [tl, br];
+    case 3: return [tl, cc, br];
+    case 4: return [tl, tr, bl, br];
+    case 5: return [tl, tr, cc, bl, br];
+    case 6: return [tl, tr, ml, mr, bl, br];
+    default: return [cc];
+  }
+}
+
+// 둥근 사각형 유틸
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// 버튼 그리기 + 히트 등록
+function drawButton(x, y, w, h, text, color, textColor) {
+  w = touchSafe(w); h = touchSafe(h);
+  ctx.fillStyle = color || '#533483';
+  roundRect(x, y, w, h, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+  roundRect(x, y, w, h, 8); ctx.stroke();
+  ctx.fillStyle = textColor || '#eaeaea';
+  ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + w/2, y + h/2);
+  ui.buttons.push({ x, y, w, h, text });
+  return { x, y, w, h };
+}
+
+// 히트테스트
+function hitTest(bx, by, bw, bh, px, py) {
+  return px >= bx && px <= bx + bw && py >= by && py <= by + bh;
+}
+
+// 적 드로잉 (프로시저럴 폴백 + 에셋)
+function drawEnemy(cx, cy, enemy, size) {
+  // 보스나 엘리트는 에셋 시도
+  if (enemy.isBoss && SPRITES.enemy) {
+    ctx.drawImage(SPRITES.enemy, cx - size/2, cy - size/2, size, size);
+    return;
+  }
+  // 프로시저럴 드로잉
+  ctx.save();
+  ctx.fillStyle = enemy.color;
+  const s = size * 0.4;
+  switch(enemy.shape) {
+    case 'slime': // 반원 + 물결
+      ctx.beginPath(); ctx.arc(cx, cy, s, Math.PI, 0); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - s, cy);
+      for (let i = 0; i <= 6; i++) { ctx.lineTo(cx - s + (s*2/6)*i, cy + Math.sin(i*1.5)*4); }
+      ctx.lineTo(cx + s, cy); ctx.fill();
+      // 눈
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx - s*0.3, cy - s*0.3, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + s*0.3, cy - s*0.3, 3, 0, Math.PI*2); ctx.fill();
+      break;
+    case 'bat': // 삼각 날개 + 원
+      ctx.beginPath(); ctx.arc(cx, cy, s*0.5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx - s, cy - s*0.5); ctx.lineTo(cx - s*0.3, cy); ctx.lineTo(cx - s, cy + s*0.3); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + s, cy - s*0.5); ctx.lineTo(cx + s*0.3, cy); ctx.lineTo(cx + s, cy + s*0.3); ctx.fill();
+      break;
+    case 'goblin':
+      ctx.fillRect(cx - s*0.5, cy - s*0.5, s, s);
+      ctx.beginPath(); ctx.moveTo(cx - s*0.5, cy - s*0.5); ctx.lineTo(cx - s*0.3, cy - s); ctx.lineTo(cx - s*0.1, cy - s*0.5); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + s*0.1, cy - s*0.5); ctx.lineTo(cx + s*0.3, cy - s); ctx.lineTo(cx + s*0.5, cy - s*0.5); ctx.fill();
+      break;
+    case 'skeleton':
+      ctx.beginPath(); ctx.arc(cx, cy - s*0.3, s*0.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.lineWidth = 2; ctx.strokeStyle = '#000';
+      ctx.beginPath(); ctx.moveTo(cx - s*0.2, cy - s*0.3 - 2); ctx.lineTo(cx + s*0.2, cy - s*0.3 + 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + s*0.2, cy - s*0.3 - 2); ctx.lineTo(cx - s*0.2, cy - s*0.3 + 2); ctx.stroke();
+      break;
+    case 'orc':
+      ctx.fillRect(cx - s*0.6, cy - s*0.5, s*1.2, s*1.2);
+      ctx.fillStyle = '#5d4037';
+      ctx.beginPath(); ctx.moveTo(cx - s*0.3, cy - s*0.5); ctx.lineTo(cx - s*0.15, cy - s*0.9); ctx.lineTo(cx, cy - s*0.5); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx, cy - s*0.5); ctx.lineTo(cx + s*0.15, cy - s*0.9); ctx.lineTo(cx + s*0.3, cy - s*0.5); ctx.fill();
+      break;
+    case 'mage':
+      ctx.beginPath(); ctx.moveTo(cx, cy - s); ctx.lineTo(cx - s*0.6, cy - s*0.2); ctx.lineTo(cx + s*0.6, cy - s*0.2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy + s*0.1, s*0.45, 0, Math.PI*2); ctx.fill();
+      break;
+    case 'demon':
+      ctx.beginPath(); ctx.moveTo(cx - s, cy + s*0.6); ctx.lineTo(cx, cy - s*0.4); ctx.lineTo(cx + s, cy + s*0.6); ctx.fill();
+      ctx.fillStyle = '#aa0000';
+      ctx.beginPath(); ctx.moveTo(cx - s*0.4, cy - s*0.4); ctx.lineTo(cx - s*0.2, cy - s); ctx.lineTo(cx, cy - s*0.4); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx, cy - s*0.4); ctx.lineTo(cx + s*0.2, cy - s); ctx.lineTo(cx + s*0.4, cy - s*0.4); ctx.fill();
+      break;
+    case 'golem':
+      ctx.fillRect(cx - s*0.7, cy - s*0.7, s*1.4, s*1.4);
+      ctx.fillStyle = '#5d4037';
+      ctx.fillRect(cx - s, cy - s*0.3, s*0.3, s*0.8);
+      ctx.fillRect(cx + s*0.7, cy - s*0.3, s*0.3, s*0.8);
+      break;
+    case 'lich':
+      ctx.beginPath(); ctx.moveTo(cx - s*0.6, cy + s*0.7); ctx.lineTo(cx, cy - s*0.3); ctx.lineTo(cx + s*0.6, cy + s*0.7); ctx.fill();
+      ctx.fillStyle = '#f5c542';
+      ctx.fillRect(cx - s*0.4, cy - s*0.7, s*0.8, s*0.15);
+      ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(cx - s*0.15, cy - s*0.15, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + s*0.15, cy - s*0.15, 3, 0, Math.PI*2); ctx.fill();
+      break;
+    case 'dragon':
+      ctx.beginPath(); ctx.moveTo(cx - s*0.8, cy + s*0.8); ctx.lineTo(cx, cy - s); ctx.lineTo(cx + s*0.8, cy + s*0.8); ctx.fill();
+      ctx.fillStyle = '#ff8f00';
+      ctx.beginPath(); ctx.moveTo(cx - s*0.4, cy - s*0.2); ctx.lineTo(cx - s*1.2, cy - s*0.6); ctx.lineTo(cx - s*0.6, cy + s*0.2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + s*0.4, cy - s*0.2); ctx.lineTo(cx + s*1.2, cy - s*0.6); ctx.lineTo(cx + s*0.6, cy + s*0.2); ctx.fill();
+      ctx.fillStyle = '#e94560';
+      ctx.beginPath(); ctx.moveTo(cx - s*0.15, cy - s*0.5); ctx.lineTo(cx - s*0.1, cy - s*0.9); ctx.lineTo(cx - s*0.05, cy - s*0.5); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + s*0.05, cy - s*0.5); ctx.lineTo(cx + s*0.1, cy - s*0.9); ctx.lineTo(cx + s*0.15, cy - s*0.5); ctx.fill();
+      break;
+    default:
+      ctx.beginPath(); ctx.arc(cx, cy, s, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// 플레이어 드로잉
+function drawPlayer(cx, cy, size) {
+  if (SPRITES.player) {
+    ctx.drawImage(SPRITES.player, cx - size/2, cy - size/2, size, size);
+    return;
+  }
+  ctx.save();
+  ctx.fillStyle = '#e94560';
+  const s = size * 0.4;
+  // 둥근 삼각형
+  ctx.beginPath(); ctx.moveTo(cx, cy - s); ctx.lineTo(cx - s*0.8, cy + s*0.5); ctx.lineTo(cx + s*0.8, cy + s*0.5); ctx.closePath(); ctx.fill();
+  // 눈
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx - s*0.2, cy - s*0.1, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + s*0.2, cy - s*0.1, 3, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(cx - s*0.2, cy - s*0.1, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + s*0.2, cy - s*0.1, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// 충돌 이펙트 그리기 (에셋 활용)
+function drawHitEffect(cx, cy, size, alpha) {
+  if (SPRITES.effectHit) {
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(SPRITES.effectHit, cx - size/2, cy - size/2, size, size);
+    ctx.globalAlpha = 1;
+    return;
+  }
+  // 폴백: 별 모양 이펙트
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#f5c542';
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const r = i % 2 === 0 ? size/2 : size/4;
+    ctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// 파워업 아이콘 그리기
+function drawPowerup(cx, cy, size) {
+  if (SPRITES.powerup) {
+    ctx.drawImage(SPRITES.powerup, cx - size/2, cy - size/2, size, size);
+    return;
+  }
+  ctx.fillStyle = '#b388ff';
+  ctx.beginPath(); ctx.arc(cx, cy, size/2, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold ' + (size*0.5) + 'px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🎲', cx, cy);
+}
+
+// 파티클 렌더
+function renderParticles() {
+  particles.active.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// 텍스트 팝업 렌더
+function renderPopups() {
+  popups.active.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold ' + p.size + 'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.text, p.x, p.y);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// 방 아이콘 텍스트
+function getRoomIcon(type) {
+  switch(type) {
+    case 'MONSTER': return '💀';
+    case 'ELITE': return '👹';
+    case 'TREASURE': return '💎';
+    case 'SHOP': return '🏪';
+    case 'REST': return '🔥';
+    case 'EVENT': return '❓';
+    case 'BOSS': return '👑';
+    default: return '?';
+  }
+}
+function getRoomColor(type) {
+  switch(type) {
+    case 'MONSTER': return '#e94560';
+    case 'ELITE': return '#ff6f00';
+    case 'TREASURE': return '#f5c542';
+    case 'SHOP': return '#4fc3f7';
+    case 'REST': return '#53d769';
+    case 'EVENT': return '#b388ff';
+    case 'BOSS': return '#ff6f00';
+    default: return '#555';
+  }
+}
+
+// ======== 화면별 렌더 + 인터랙션 ========
+
+// --- 타이틀 화면 ---
+function renderTitle(dt) {
+  renderBackground();
+
+  ui.titleDiceAnim += dt * 2;
+  // 떨어지는 주사위 애니메이션 (배경)
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < 8; i++) {
+    const dx = (W * 0.1) + (W * 0.8 / 8) * i;
+    const dy = ((ui.titleDiceAnim * 40 + i * 80) % (H + 60)) - 30;
+    drawDice(dx, dy, 30, (i % 6) + 1, false, false);
+  }
+  ctx.globalAlpha = 1;
+
+  // 타이틀
+  const titleY = H * 0.25;
+  ctx.fillStyle = '#e94560';
+  ctx.font = 'bold ' + Math.min(36, W * 0.08) + 'px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // 스캔라인 효과 (action 장르)
+  ctx.fillText('🎲 미니 로그 다이스 🎲', W/2, titleY);
+  // 글로우
+  ctx.shadowColor = '#e94560'; ctx.shadowBlur = 20;
+  ctx.fillText('🎲 미니 로그 다이스 🎲', W/2, titleY);
+  ctx.shadowBlur = 0;
+
+  // 부제
+  ctx.fillStyle = '#8080a0'; ctx.font = '13px sans-serif';
+  ctx.fillText('주사위를 굴려 던전을 탈출하라!', W/2, titleY + 40);
+
+  // 시작 버튼
+  const btnW = touchSafe(180), btnH = touchSafe(50);
+  const startBtn = drawButton(W/2 - btnW/2, H * 0.48, btnW, btnH, '▶ 게임 시작', '#533483');
+  // 업그레이드 버튼
+  const metaBtn = drawButton(W/2 - btnW/2, H * 0.48 + btnH + 12, btnW, btnH, '⚒ 업그레이드', '#2a2a4a');
+
+  // 최고점수 / 골드
+  ctx.fillStyle = '#8080a0'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('최고점수: ' + (meta.bestScore || 0) + '  |  최고 층: ' + (meta.bestFloor || 0) + '층', W/2, H * 0.78);
+  ctx.fillStyle = '#f5c542';
+  ctx.fillText('💰 보유 골드: ' + (meta.gold || 0), W/2, H * 0.83);
+
+  // 음소거 버튼
+  const muteSize = touchSafe(40);
+  const muteBtn = drawButton(W - muteSize - 10, H - muteSize - 10, muteSize, muteSize, sound.muted ? '🔇' : '🔊', '#2a2a4a');
+
+  // 조작 안내
+  ctx.fillStyle = '#505070'; ctx.font = '11px sans-serif';
+  ctx.fillText('Space/탭으로 시작  |  M: 음소거', W/2, H * 0.93);
+
+  // 스캔라인 오버레이 (action 장르 시그니처)
+  ctx.fillStyle = 'rgba(0,0,0,0.03)';
+  for (let sy = 0; sy < H; sy += 4) ctx.fillRect(0, sy, W, 2);
+
+  return { startBtn, metaBtn, muteBtn };
+}
+
+// --- 메타샵 화면 ---
+function renderMetaShop() {
+  renderBackground();
+  ctx.fillStyle = 'rgba(10,10,20,0.9)'; ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#f5c542'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('⚒ 영구 업그레이드', W/2, 40);
+  ctx.fillStyle = '#eaeaea'; ctx.font = '14px sans-serif';
+  ctx.fillText('💰 ' + meta.gold + 'G', W/2, 62);
+
+  const keys = Object.keys(CONFIG.META_UPGRADES);
+  const btnW = touchSafe(Math.min(W - 40, 320));
+  const btnH = touchSafe(56);
+  const startY = 90;
+
+  keys.forEach((key, i) => {
+    const info = CONFIG.META_UPGRADES[key];
+    const lv = getMetaLv(key);
+    const maxed = lv >= info.maxLv;
+    const cost = maxed ? '---' : info.costs[lv] + 'G';
+    const canBuy = !maxed && meta.gold >= info.costs[lv];
+
+    const bx = W/2 - btnW/2;
+    const by = startY + i * (btnH + 8);
+    ctx.fillStyle = canBuy ? '#2a2a4a' : '#1a1a2a';
+    roundRect(bx, by, btnW, btnH, 8); ctx.fill();
+    if (canBuy) { ctx.strokeStyle = '#53d769'; ctx.lineWidth = 1; roundRect(bx, by, btnW, btnH, 8); ctx.stroke(); }
+
+    ctx.textAlign = 'left'; ctx.fillStyle = '#eaeaea'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(info.name + ' Lv.' + lv + '/' + info.maxLv, bx + 12, by + 20);
+    ctx.fillStyle = '#8080a0'; ctx.font = '11px sans-serif';
+    ctx.fillText(info.desc, bx + 12, by + 38);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = maxed ? '#53d769' : (canBuy ? '#f5c542' : '#555');
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(maxed ? 'MAX' : cost, bx + btnW - 12, by + 30);
+
+    ui.buttons.push({ x: bx, y: by, w: btnW, h: btnH, text: 'meta_' + key });
+  });
+
+  // 돌아가기 버튼
+  const backW = touchSafe(120), backH = touchSafe(48);
+  drawButton(W/2 - backW/2, startY + keys.length * (btnH + 8) + 16, backW, backH, '← 돌아가기', '#533483');
+}
+
+// --- 던전 맵 화면 ---
+function renderDungeonMap() {
+  renderBackground();
+  renderHUD();
+
+  const mapTop = 60;
+  const mapSize = Math.min(W - 40, H - mapTop - 120, 300);
+  const cellSize = mapSize / 3;
+  const mapLeft = (W - mapSize) / 2;
+
+  // 그리드 그리기
+  for (let y = 0; y < 3; y++) {
+    for (let x = 0; x < 3; x++) {
+      const room = gs.dungeonMap[y][x];
+      const cx = mapLeft + x * cellSize + cellSize/2;
+      const cy = mapTop + y * cellSize + cellSize/2;
+      const cs = cellSize - 8;
+
+      const isPlayer = (gs.playerPos.x === x && gs.playerPos.y === y);
+      const accessible = isRoomAccessible(gs.playerPos.x, gs.playerPos.y, x, y);
+
+      if (room.revealed) {
+        ctx.fillStyle = isPlayer ? '#0f3460' : (room.cleared ? '#1a1a2e' : '#2a2a4a');
+        roundRect(cx - cs/2, cy - cs/2, cs, cs, 6); ctx.fill();
+
+        if (accessible && !isPlayer) {
+          ctx.strokeStyle = '#53d769'; ctx.lineWidth = 2;
+          roundRect(cx - cs/2, cy - cs/2, cs, cs, 6); ctx.stroke();
+        } else {
+          ctx.strokeStyle = room.cleared ? '#333' : getRoomColor(room.type); ctx.lineWidth = 1;
+          roundRect(cx - cs/2, cy - cs/2, cs, cs, 6); ctx.stroke();
+        }
+
+        // 방 아이콘
+        ctx.font = Math.floor(cs * 0.35) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#eaeaea';
+        ctx.fillText(getRoomIcon(room.type), cx, cy - 2);
+
+        if (room.cleared) {
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          roundRect(cx - cs/2, cy - cs/2, cs, cs, 6); ctx.fill();
+          ctx.fillStyle = '#53d769'; ctx.font = 'bold ' + Math.floor(cs*0.25) + 'px sans-serif';
+          ctx.fillText('✓', cx, cy);
+        }
+
+        // 클릭 가능 영역 등록
+        if (accessible && !isPlayer && currentState === S.DUNGEON_MAP) {
+          ui.buttons.push({ x: cx - cs/2, y: cy - cs/2, w: cs, h: cs, text: 'room_' + x + '_' + y });
+        }
+      } else {
+        // 미공개
+        ctx.fillStyle = '#111';
+        roundRect(cx - cs/2, cy - cs/2, cs, cs, 6); ctx.fill();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+        roundRect(cx - cs/2, cy - cs/2, cs, cs, 6); ctx.stroke();
+        ctx.fillStyle = '#333'; ctx.font = Math.floor(cs*0.4) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('?', cx, cy);
+      }
+
+      // 플레이어 표시
+      if (isPlayer) {
+        drawPlayer(cx, cy + cs * 0.15, cs * 0.5);
+      }
+    }
+  }
+
+  // 장비 슬롯 바 (하단)
+  renderEquipBar(mapTop + mapSize + 10);
+
+  // 일시정지 버튼
+  const pSize = touchSafe(40);
+  drawButton(W - pSize - 10, H - pSize - 10, pSize, pSize, '⏸', '#2a2a4a');
+  // 음소거 버튼
+  drawButton(10, H - pSize - 10, pSize, pSize, sound.muted ? '🔇' : '🔊', '#2a2a4a');
+}
+
+// 장비 슬롯 바
+function renderEquipBar(topY) {
+  const slotSize = touchSafe(44);
+  const gap = 6;
+  const totalW = gs.equipment.length * (slotSize + gap) - gap;
+  const startX = (W - totalW) / 2;
+
+  ctx.fillStyle = '#8080a0'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('장비 (' + gs.equipment.length + '/' + gs.equipSlots + ')', W/2, topY - 4);
+
+  gs.equipment.forEach((eq, i) => {
+    const x = startX + i * (slotSize + gap);
+    const typeColors = { ATK: '#e94560', DEF: '#4fc3f7', HEAL: '#53d769', SPECIAL: '#b388ff' };
+    ctx.fillStyle = '#2a2a4a';
+    roundRect(x, topY, slotSize, slotSize, 4); ctx.fill();
+    ctx.strokeStyle = typeColors[eq.type] || '#555'; ctx.lineWidth = 2;
+    roundRect(x, topY, slotSize, slotSize, 4); ctx.stroke();
+
+    ctx.font = Math.floor(slotSize * 0.45) + 'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#eaeaea';
+    ctx.fillText(eq.icon, x + slotSize/2, topY + slotSize/2);
+
+    if (eq.upgrade > 0) {
+      ctx.fillStyle = '#f5c542'; ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('+' + eq.upgrade, x + slotSize - 2, topY + 12);
+    }
+  });
+}
+
+// --- 전투 화면 ---
+function renderCombat(dt) {
+  renderBackground();
+  // 전투 배경 오버레이
+  ctx.fillStyle = 'rgba(22,33,62,0.7)'; ctx.fillRect(0, 0, W, H);
+  // 미세 파티클 먼지
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (let i = 0; i < 20; i++) {
+    const px = (Math.sin(performance.now() * 0.001 + i * 3) + 1) / 2 * W;
+    const py = (Math.cos(performance.now() * 0.0007 + i * 2) + 1) / 2 * H;
+    ctx.fillRect(px, py, 2, 2);
+  }
+
+  renderHUD();
+
+  const enemy = cb.enemy;
+  if (!enemy) return;
+
+  // 적 영역 (상단)
+  const ey = H * 0.25;
+  const eSize = Math.min(80, W * 0.15);
+  drawEnemy(W/2, ey, enemy, eSize * (enemy.isBoss ? 1.5 : enemy.isElite ? 1.2 : 1));
+
+  // 적 이름/HP
+  ctx.fillStyle = enemy.isBoss ? '#ff6f00' : (enemy.isElite ? '#f5c542' : '#eaeaea');
+  ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText((enemy.isElite ? '★ ' : '') + enemy.name + (enemy.isBoss ? ' (BOSS)' : ''), W/2, ey + eSize * 0.7 + 10);
+  // 적 HP 바
+  const ehpW = Math.min(160, W * 0.4);
+  const ehpH = 12;
+  const ehpX = W/2 - ehpW/2;
+  const ehpY = ey + eSize * 0.7 + 20;
+  ctx.fillStyle = '#333'; ctx.fillRect(ehpX, ehpY, ehpW, ehpH);
+  const ehpPct = clamp(enemy.currentHp / enemy.maxHp, 0, 1);
+  ctx.fillStyle = '#e94560'; ctx.fillRect(ehpX, ehpY, ehpW * ehpPct, ehpH);
+  ctx.fillStyle = '#eaeaea'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(enemy.currentHp + '/' + enemy.maxHp, W/2, ehpY + 10);
+
+  // 독 표시
+  if (enemy.poisonTurns > 0) {
+    ctx.fillStyle = '#76ff03'; ctx.font = '11px sans-serif';
+    ctx.fillText('독 ' + enemy.poisonTurns + '턴', W/2, ehpY + 24);
+  }
+
+  // 적 행동 예고
+  const preview = getEnemyAction(enemy, cb.turn, gs.floor);
+  ctx.fillStyle = '#ff8888'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('다음: ' + preview.label, W/2, ehpY + 38);
+
+  // 주사위 영역 (중간)
+  const diceY = H * 0.55;
+  const diceSize = touchSafe(Math.min(50, W * 0.1));
+  const diceGap = 12;
+  const totalDW = cb.dice.length * (diceSize + diceGap) - diceGap;
+  const diceStartX = (W - totalDW) / 2;
+
+  // 주사위 굴림 애니메이션
+  if (currentState === S.COMBAT_ROLL && cb.animTimer > 0) {
+    cb.animTimer -= dt;
+    cb.dice.forEach((val, i) => {
+      const da = cb.diceAnim[i];
+      if (cb.animTimer > 0.2) {
+        // 굴리는 중 — 랜덤 값 표시
+        da.displayVal = randInt(1, 6);
+        da.angle += dt * 15;
+      } else {
+        da.displayVal = val;
+        da.rolling = false;
+      }
+    });
+    if (cb.animTimer <= 0) {
+      cb.animTimer = 0;
+      sound.confirm();
+      enterState(S.COMBAT_PLACE);
+    }
+  }
+
+  ctx.fillStyle = '#8080a0'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(currentState === S.COMBAT_ROLL ? '주사위 굴리는 중...' :
+    currentState === S.COMBAT_PLACE ? '주사위를 장비에 배치하세요 (탭 2번)' :
+    currentState === S.COMBAT_RESOLVE ? '효과 발동 중...' :
+    currentState === S.ENEMY_TURN ? '적 턴...' : '', W/2, diceY - diceSize/2 - 15);
+
+  cb.dice.forEach((val, i) => {
+    const dx = diceStartX + i * (diceSize + diceGap) + diceSize/2;
+    const dy = diceY;
+    const da = cb.diceAnim[i] || {};
+    const displayVal = da.displayVal || val;
+
+    // 이 주사위가 이미 배치되었는지
+    let isPlaced = false;
+    for (const k in cb.placedDice) { if (cb.placedDice[k].diceIdx === i) isPlaced = true; }
+
+    ctx.save();
+    if (da.rolling) {
+      ctx.translate(dx, dy);
+      ctx.rotate(da.angle);
+      ctx.translate(-dx, -dy);
+    }
+    const s = da.scale !== undefined ? da.scale : 1;
+    ctx.globalAlpha = isPlaced ? 0.3 : 1;
+
+    if (s !== 1) {
+      ctx.translate(dx, dy); ctx.scale(s, s); ctx.translate(-dx, -dy);
+    }
+
+    drawDice(dx, dy, diceSize, displayVal, ui.selectedDice === i, !isPlaced);
+    ctx.restore();
+
+    // 클릭 영역 등록 (배치 상태에서만)
+    if (currentState === S.COMBAT_PLACE && !isPlaced) {
+      ui.buttons.push({ x: dx - diceSize/2, y: dy - diceSize/2, w: diceSize, h: diceSize, text: 'dice_' + i });
+    }
+  });
+
+  // 장비 슬롯 (하단)
+  const slotY = H * 0.72;
+  const slotSize = touchSafe(Math.min(52, W / (gs.equipment.length + 1)));
+  const slotGap = 8;
+  const totalSW = gs.equipment.length * (slotSize + slotGap) - slotGap;
+  const slotStartX = (W - totalSW) / 2;
+
+  gs.equipment.forEach((eq, i) => {
+    const sx = slotStartX + i * (slotSize + slotGap);
+    const sy = slotY;
+    const placed = cb.placedDice[i];
+    const typeColors = { ATK: '#e94560', DEF: '#4fc3f7', HEAL: '#53d769', SPECIAL: '#b388ff' };
+
+    // 선택된 주사위가 이 장비에 배치 가능한지
+    const canPlace = ui.selectedDice >= 0 && canPlaceDice(cb.dice[ui.selectedDice], eq) && !placed;
+
+    ctx.fillStyle = placed ? '#1a1a2e' : (canPlace ? '#2a3a2a' : '#2a2a4a');
+    roundRect(sx, sy, slotSize, slotSize, 6); ctx.fill();
+    ctx.strokeStyle = canPlace ? '#53d769' : (placed ? '#555' : typeColors[eq.type] || '#555');
+    ctx.lineWidth = canPlace ? 2 : 1;
+    roundRect(sx, sy, slotSize, slotSize, 6); ctx.stroke();
+
+    // 글로우 효과 (배치 가능)
+    if (canPlace) {
+      ctx.shadowColor = '#53d769'; ctx.shadowBlur = 8;
+      roundRect(sx, sy, slotSize, slotSize, 6); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // 아이콘
+    ctx.font = Math.floor(slotSize * 0.4) + 'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#eaeaea';
+    ctx.fillText(eq.icon, sx + slotSize/2, sy + slotSize/2 - 4);
+    // 이름
+    ctx.fillStyle = '#8080a0'; ctx.font = '9px sans-serif';
+    ctx.fillText(eq.name, sx + slotSize/2, sy + slotSize - 6);
+
+    // 배치된 주사위 표시
+    if (placed) {
+      ctx.fillStyle = '#f5c542'; ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🎲' + placed.val, sx + slotSize/2, sy - 8);
+    }
+
+    // 강화 표시
+    if (eq.upgrade > 0) {
+      ctx.fillStyle = '#f5c542'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('+' + eq.upgrade, sx + slotSize - 2, sy + 10);
+    }
+
+    // 클릭 영역 등록
+    if (currentState === S.COMBAT_PLACE && canPlace) {
+      ui.buttons.push({ x: sx, y: sy, w: slotSize, h: slotSize, text: 'slot_' + i });
+    }
+  });
+
+  // 턴 종료 버튼
+  if (currentState === S.COMBAT_PLACE) {
+    const endW = touchSafe(120), endH = touchSafe(48);
+    drawButton(W/2 - endW/2, H * 0.9, endW, endH, '턴 종료 ▶', '#533483');
+  }
+
+  // 턴 표시
+  ctx.fillStyle = '#505070'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('턴 ' + cb.turn, W - 10, H - 10);
+}
+
+// --- 보상/이벤트/상점/휴식 화면 ---
+function renderReward() {
+  renderBackground();
+  renderHUD();
+
+  ctx.fillStyle = 'rgba(10,10,20,0.85)'; ctx.fillRect(0, 40, W, H - 40);
+
+  ctx.fillStyle = '#f5c542'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(ui.rewardText, W/2, 90);
+
+  let yOff = 120;
+
+  // 현재 방 타입에 따라 다른 UI
+  const room = gs.dungeonMap[gs.playerPos.y] && gs.dungeonMap[gs.playerPos.y][gs.playerPos.x];
+  const roomType = room ? room.type : '';
+
+  if (roomType === 'SHOP') {
+    // 상점 UI
+    ctx.fillStyle = '#eaeaea'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('💰 보유: ' + gs.gold + 'G', W/2, yOff); yOff += 25;
+    const itemW = touchSafe(Math.min(W - 40, 280)), itemH = touchSafe(50);
+    ui.shopItems.forEach((item, i) => {
+      const bx = W/2 - itemW/2;
+      const by = yOff + i * (itemH + 8);
+      const canBuy = !item.bought && gs.gold >= item.cost && gs.equipment.length < gs.equipSlots;
+      ctx.fillStyle = item.bought ? '#1a1a1a' : (canBuy ? '#2a2a4a' : '#1a1a2a');
+      roundRect(bx, by, itemW, itemH, 6); ctx.fill();
+      if (canBuy) { ctx.strokeStyle = '#53d769'; ctx.lineWidth = 1; roundRect(bx, by, itemW, itemH, 6); ctx.stroke(); }
+
+      ctx.textAlign = 'left'; ctx.fillStyle = item.bought ? '#555' : '#eaeaea'; ctx.font = '13px sans-serif';
+      ctx.fillText(item.equip.icon + ' ' + item.equip.name + ' — ' + item.equip.desc, bx + 10, by + 20);
+      ctx.textAlign = 'right'; ctx.fillStyle = item.bought ? '#555' : '#f5c542'; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(item.bought ? '구매됨' : item.cost + 'G', bx + itemW - 10, by + 20);
+
+      if (canBuy) ui.buttons.push({ x: bx, y: by, w: itemW, h: itemH, text: 'shopBuy_' + i });
+    });
+    yOff += ui.shopItems.length * (itemH + 8) + 10;
+    // 회복 구매
+    const healW = touchSafe(180), healH = touchSafe(48);
+    if (ui.shopHealAvail && gs.gold >= CONFIG.SHOP_HEAL_COST) {
+      drawButton(W/2 - healW/2, yOff, healW, healH, '❤ HP 회복 (' + CONFIG.SHOP_HEAL_COST + 'G)', '#2a4a2a');
+    }
+    yOff += healH + 16;
+  } else if (roomType === 'REST' && ui.restChoice === null) {
+    // 휴식 선택
+    const btnW = touchSafe(200), btnH = touchSafe(50);
+    const healPct = Math.floor((CONFIG.REST_HEAL_PCT + getMetaLv('healBonus') * CONFIG.META_UPGRADES.healBonus.bonus) * 100);
+    drawButton(W/2 - btnW/2, yOff, btnW, btnH, '❤ HP ' + healPct + '% 회복', '#2a4a2a');
+    yOff += btnH + 12;
+    drawButton(W/2 - btnW/2, yOff, btnW, btnH, '⚒ 장비 강화 +1', '#4a3a2a');
+    yOff += btnH + 20;
+  } else if (roomType === 'EVENT' && ui.eventChoice === null && ui.eventData) {
+    // 이벤트 선택
+    const btnW = touchSafe(220), btnH = touchSafe(50);
+    drawButton(W/2 - btnW/2, yOff, btnW, btnH, ui.eventData.a.label, '#2a4a2a');
+    yOff += btnH + 12;
+    drawButton(W/2 - btnW/2, yOff, btnW, btnH, ui.eventData.b.label, '#4a2a2a');
+    yOff += btnH + 20;
+  } else {
+    // 보상 아이템 표시
+    ui.rewardItems.forEach((item, i) => {
+      ctx.fillStyle = '#eaeaea'; ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(item.icon + ' ' + item.text, W/2, yOff + i * 28);
+    });
+    yOff += ui.rewardItems.length * 28 + 20;
+  }
+
+  // 계속하기 버튼 (이벤트/휴식 미선택 시 숨김)
+  const showContinue = !(roomType === 'EVENT' && ui.eventChoice === null) && !(roomType === 'REST' && ui.restChoice === null);
+  if (showContinue) {
+    const contW = touchSafe(140), contH = touchSafe(48);
+
+    // 보스 처치 후 다음 층 or 클리어
+    let continueText = '계속 ▶';
+    if (roomType === 'BOSS' && cb.enemy && cb.enemy.isBoss) {
+      continueText = gs.floor >= CONFIG.TOTAL_FLOORS ? '결과 확인' : '다음 층 ▶';
+    }
+    drawButton(W/2 - contW/2, Math.min(yOff, H - contH - 20), contW, contH, continueText, '#533483');
+  }
+}
+
+// --- 게임오버 화면 ---
+function renderGameover(dt) {
+  renderBackground();
+  ctx.fillStyle = 'rgba(10,10,15,0.9)'; ctx.fillRect(0, 0, W, H);
+
+  // 스캔라인
+  ctx.fillStyle = 'rgba(233,69,96,0.03)';
+  for (let sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+
+  const cy = H * 0.2;
+  ctx.fillStyle = '#e94560';
+  ctx.font = 'bold ' + Math.min(32, W * 0.07) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#e94560'; ctx.shadowBlur = 15;
+  ctx.fillText(gs.floor > CONFIG.TOTAL_FLOORS ? '🎉 던전 클리어! 🎉' : '💀 사망 💀', W/2, cy);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#eaeaea'; ctx.font = '15px sans-serif';
+  ctx.fillText('도달 층: ' + gs.floor + '/' + CONFIG.TOTAL_FLOORS, W/2, cy + 40);
+  ctx.fillText('최종 점수: ' + gs.score, W/2, cy + 65);
+  ctx.fillText('처치 수: ' + meta.totalKills, W/2, cy + 90);
+
+  if (gs.score >= meta.bestScore) {
+    ctx.fillStyle = '#f5c542'; ctx.font = 'bold 16px sans-serif';
+    ctx.shadowColor = '#f5c542'; ctx.shadowBlur = 10;
+    ctx.fillText('🏆 신기록! 🏆', W/2, cy + 120);
+    ctx.shadowBlur = 0;
+  }
+
+  const keepGold = Math.floor(gs.gold * CONFIG.DEATH_GOLD_KEEP_RATIO);
+  ctx.fillStyle = '#f5c542'; ctx.font = '14px sans-serif';
+  ctx.fillText('획득 골드: ' + gs.gold + '  →  유지: ' + keepGold, W/2, cy + 150);
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText('보유 골드: ' + meta.gold, W/2, cy + 175);
+
+  const btnW = touchSafe(180), btnH = touchSafe(50);
+  drawButton(W/2 - btnW/2, H * 0.7, btnW, btnH, '⚒ 업그레이드 상점', '#533483');
+  drawButton(W/2 - btnW/2, H * 0.7 + btnH + 12, btnW, btnH, '▶ 다시 시작', '#2a4a2a');
+
+  ctx.fillStyle = '#505070'; ctx.font = '11px sans-serif';
+  ctx.fillText('R / 탭으로 재시작', W/2, H * 0.95);
+}
+
+// --- 일시정지 화면 ---
+function renderPause() {
+  ctx.fillStyle = 'rgba(10,10,20,0.85)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#eaeaea'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('⏸ 일시정지', W/2, H * 0.35);
+
+  const btnW = touchSafe(160), btnH = touchSafe(50);
+  drawButton(W/2 - btnW/2, H * 0.5, btnW, btnH, '▶ 계속하기', '#533483');
+  drawButton(W/2 - btnW/2, H * 0.5 + btnH + 12, btnW, btnH, sound.muted ? '🔇 음소거 해제' : '🔊 음소거', '#2a2a4a');
+  drawButton(W/2 - btnW/2, H * 0.5 + (btnH + 12) * 2, btnW, btnH, '🏠 타이틀로', '#4a2a2a');
+}
+
+// --- 로딩 화면 ---
+function renderLoading() {
+  ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#e94560'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🎲 로딩 중...', W/2, H/2);
+}
+
+// ======== 입력 처리 ========
+function getInputPos() {
+  if (touch.active) return { x: touch.x, y: touch.y };
+  return { x: mouse.x, y: mouse.y };
+}
+
+function handleClick(px, py) {
+  // 버튼 히트테스트
+  for (const btn of ui.buttons) {
+    if (!hitTest(btn.x, btn.y, btn.w, btn.h, px, py)) continue;
+
+    // 타이틀
+    if (currentState === S.TITLE) {
+      if (btn.text === '▶ 게임 시작') { initNewRun(); beginTransition(S.DUNGEON_MAP); return; }
+      if (btn.text === '⚒ 업그레이드') { beginTransition(S.META_SHOP); return; }
+      if (btn.text.includes('🔊') || btn.text.includes('🔇')) { sound.toggleMute(); return; }
+    }
+    // 메타샵
+    if (currentState === S.META_SHOP) {
+      if (btn.text.startsWith('meta_')) { buyMetaUpgrade(btn.text.replace('meta_', '')); return; }
+      if (btn.text === '← 돌아가기') { beginTransition(S.TITLE); return; }
+    }
+    // 던전 맵
+    if (currentState === S.DUNGEON_MAP) {
+      if (btn.text.startsWith('room_')) {
+        const [_, rx, ry] = btn.text.split('_').map(Number);
+        enterRoom(rx, ry);
+        return;
+      }
+      if (btn.text === '⏸') { previousState = currentState; enterState(S.PAUSE); return; }
+      if (btn.text.includes('🔊') || btn.text.includes('🔇')) { sound.toggleMute(); return; }
+    }
+    // 전투 — 주사위 배치
+    if (currentState === S.COMBAT_PLACE) {
+      if (btn.text.startsWith('dice_')) {
+        const idx = parseInt(btn.text.split('_')[1]);
+        if (ui.selectedDice === idx) { ui.selectedDice = -1; } // 토글
+        else { ui.selectedDice = idx; }
+        return;
+      }
+      if (btn.text.startsWith('slot_')) {
+        const slotIdx = parseInt(btn.text.split('_')[1]);
+        if (ui.selectedDice >= 0) { placeDiceOnEquip(ui.selectedDice, slotIdx); return; }
+      }
+      if (btn.text === '턴 종료 ▶') { ui.selectedDice = -1; resolveEquipments(); return; }
+    }
+    // 보상 화면
+    if (currentState === S.ROOM_REWARD) {
+      const room = gs.dungeonMap[gs.playerPos.y] && gs.dungeonMap[gs.playerPos.y][gs.playerPos.x];
+      const roomType = room ? room.type : '';
+
+      if (btn.text.startsWith('shopBuy_')) { shopBuy(parseInt(btn.text.split('_')[1])); return; }
+      if (btn.text.includes('HP 회복') && roomType === 'SHOP') { shopHeal(); return; }
+      if (roomType === 'REST' && ui.restChoice === null) {
+        if (btn.text.includes('HP')) { applyRestChoice('heal'); return; }
+        if (btn.text.includes('장비 강화')) { applyRestChoice('upgrade'); return; }
+      }
+      if (roomType === 'EVENT' && ui.eventChoice === null) {
+        if (btn.text === ui.eventData.a.label) { applyEventChoice('a'); return; }
+        if (btn.text === ui.eventData.b.label) { applyEventChoice('b'); return; }
+      }
+      if (btn.text.includes('계속') || btn.text.includes('다음 층') || btn.text.includes('결과')) {
+        if (cb.enemy && cb.enemy.isBoss) {
+          if (gs.floor >= CONFIG.TOTAL_FLOORS) {
+            // 던전 클리어!
+            gs.score += CONFIG.SCORE_FLOOR_CLEAR * gs.floor;
+            const isNewBest = gs.score > meta.bestScore;
+            if (isNewBest) meta.bestScore = gs.score;
+            meta.gold += gs.gold;
+            saveMeta();
+            enterState(S.GAMEOVER);
+            return;
+          } else {
+            gs.floor++;
+            gs.score += CONFIG.SCORE_FLOOR_CLEAR * (gs.floor - 1);
+            generateFloor(gs.floor);
+            beginTransition(S.DUNGEON_MAP);
+            return;
+          }
+        }
+        beginTransition(S.DUNGEON_MAP);
+        return;
+      }
+    }
+    // 게임오버
+    if (currentState === S.GAMEOVER) {
+      if (btn.text === '⚒ 업그레이드 상점') { beginTransition(S.META_SHOP); return; }
+      if (btn.text === '▶ 다시 시작') { initNewRun(); beginTransition(S.DUNGEON_MAP); return; }
+    }
+    // 일시정지
+    if (currentState === S.PAUSE) {
+      if (btn.text === '▶ 계속하기') { enterState(previousState || S.DUNGEON_MAP); return; }
+      if (btn.text.includes('음소거')) { sound.toggleMute(); return; }
+      if (btn.text === '🏠 타이틀로') { tweenMgr.clearImmediate(); beginTransition(S.TITLE); return; }
+    }
+  }
+}
+
+// ======== 키보드 입력 ========
+function handleKeyDown(e) {
+  keys[e.code] = true;
+  if (currentState === S.TITLE && (e.code === 'Space' || e.code === 'Enter')) {
+    initNewRun(); beginTransition(S.DUNGEON_MAP);
+  }
+  if (e.code === 'KeyM') sound.toggleMute();
+  if ((e.code === 'KeyP' || e.code === 'Escape') && currentState !== S.TITLE && currentState !== S.LOADING && currentState !== S.GAMEOVER) {
+    if (currentState === S.PAUSE) { enterState(previousState || S.DUNGEON_MAP); }
+    else { previousState = currentState; enterState(S.PAUSE); }
+  }
+  if (currentState === S.GAMEOVER && (e.code === 'KeyR' || e.code === 'Space')) {
+    initNewRun(); beginTransition(S.DUNGEON_MAP);
+  }
+  // 방향키로 맵 이동
+  if (currentState === S.DUNGEON_MAP) {
+    let dx = 0, dy = 0;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') dx = -1;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') dx = 1;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') dy = -1;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') dy = 1;
+    if (dx !== 0 || dy !== 0) {
+      const nx = gs.playerPos.x + dx, ny = gs.playerPos.y + dy;
+      if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) enterRoom(nx, ny);
+    }
+  }
+  // 숫자키로 장비 선택
+  if (currentState === S.COMBAT_PLACE) {
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= 6 && ui.selectedDice >= 0) {
+      placeDiceOnEquip(ui.selectedDice, num - 1);
+    }
+    if (e.code === 'Space') { ui.selectedDice = -1; resolveEquipments(); }
+  }
+}
+
+// ======== 메인 게임 루프 ========
+let lastTime = 0;
+
+function loop(now) {
+  try {
+    const rawDt = (now - lastTime) / 1000;
+    lastTime = now;
+    const dt = clamp(rawDt, 0, CONFIG.MAX_DT);
+
+    // 화면 흔들림 업데이트
+    if (ui.shakeTimer > 0) {
+      ui.shakeTimer -= dt;
+      ui.shakeX = (Math.random() - 0.5) * ui.shakeIntensity * 2;
+      ui.shakeY = (Math.random() - 0.5) * ui.shakeIntensity * 2;
+    } else { ui.shakeX = 0; ui.shakeY = 0; }
+
+    // 매트릭스 기반 시스템 업데이트 (F2)
+    const matrix = STATE_MATRIX[currentState] || {};
+    if (matrix.tween) tweenMgr.update(dt);
+    if (matrix.particles) { particles.update(dt); popups.update(dt); }
+
+    // 클리어 버튼 리스트
+    ui.buttons = [];
+
+    ctx.save();
+    ctx.translate(ui.shakeX, ui.shakeY);
+
+    // 상태별 렌더링
+    switch(currentState) {
+      case S.LOADING: renderLoading(); break;
+      case S.TITLE: renderTitle(dt); break;
+      case S.META_SHOP: renderMetaShop(); break;
+      case S.DUNGEON_MAP: renderDungeonMap(); break;
+      case S.ROOM_ENTER: renderDungeonMap(); break; // 페이드 전환 중
+      case S.COMBAT_ROLL:
+      case S.COMBAT_PLACE:
+      case S.COMBAT_RESOLVE:
+      case S.ENEMY_TURN: renderCombat(dt); break;
+      case S.ROOM_REWARD: renderReward(); break;
+      case S.PAUSE: renderDungeonMap(); renderPause(); break;
+      case S.GAMEOVER: renderGameover(dt); break;
+    }
+
+    // 파티클/팝업 오버레이
+    if (matrix.particles) { renderParticles(); renderPopups(); }
+
+    // 페이드 오버레이
+    if (ui.fadeAlpha.v > 0.01) {
+      ctx.fillStyle = 'rgba(10,10,20,' + ui.fadeAlpha.v + ')';
+      ctx.fillRect(-20, -20, W + 40, H + 40);
+    }
+
+    ctx.restore();
+
+    // 클릭 처리
+    if (mouse.clicked) {
+      handleClick(mouse.x, mouse.y);
+      mouse.clicked = false;
+    }
+
+  } catch(e) {
+    console.error('[GameLoop Error]', e);
+  }
+  requestAnimationFrame(loop);
+}
+
+// ======== 초기화 (F14, F15 순서 강제) ========
+// 1. 변수 선언은 위에서 완료
+// 2. 함수 정의 완료
+// 3. init() 정의
+function init() {
+  // a. canvas, ctx 할당
+  canvas = document.getElementById('c');
+  ctx = canvas.getContext('2d');
+  resize();
+
+  // b. 오브젝트 풀 초기화
+  particles = new ObjectPool(CONFIG.PARTICLE_POOL_SIZE, () => ({ x:0, y:0, vx:0, vy:0, gravity:0, life:0, maxLife:1, color:'#fff', size:3, alpha:1, alive:false }));
+  popups = new ObjectPool(CONFIG.POPUP_POOL_SIZE, () => ({ x:0, y:0, vx:0, vy:0, gravity:0, life:0, maxLife:1, color:'#fff', size:16, alpha:1, text:'', alive:false }));
+
+  // c. 이벤트 리스너 등록 (init 내부에서만, F15)
+  window.addEventListener('resize', resize);
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+  canvas.addEventListener('mousedown', e => {
+    mouse.down = true;
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+  });
+  canvas.addEventListener('mouseup', e => {
+    mouse.down = false;
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+    mouse.clicked = true;
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+  });
+  canvas.addEventListener('contextmenu', e => { e.preventDefault(); });
+
+  // 터치 이벤트 (passive: false로 스크롤 방지, F7)
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    touch.active = true;
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    touch.startX = t.clientX - rect.left;
+    touch.startY = t.clientY - rect.top;
+    touch.x = touch.startX; touch.y = touch.startY;
+    // 오디오 컨텍스트 resume (모바일)
+    if (sound.ctx && sound.ctx.state === 'suspended') sound.ctx.resume();
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    touch.x = t.clientX - rect.left;
+    touch.y = t.clientY - rect.top;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    mouse.clicked = true;
+    mouse.x = touch.x; mouse.y = touch.y;
+    touch.active = false;
+  }, { passive: false });
+
+  // d. 사운드 초기화
+  sound.init();
+
+  // e. 메타 데이터 로드
+  loadMeta();
+
+  // f. 에셋 로드 후 타이틀로
+  enterState(S.LOADING);
+  preloadAssets().then(() => {
+    enterState(S.TITLE);
+  });
+
+  // g. 게임 루프 시작
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+// 4. init() 호출
+init();
+</script>
+</body>
+</html>

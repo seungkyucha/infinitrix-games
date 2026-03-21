@@ -1,0 +1,14 @@
+{
+  "gameId": "gem-match-blitz",
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 64,  "height": 64,  "desc": "플레이어 선택 커서 (보석 다이아몬드 형태)" },
+    "enemy":       { "file": "enemy.svg",        "width": 64,  "height": 64,  "desc": "장애물 블록 (크랙 패턴)" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 800, "height": 600, "desc": "배경 원경 (우주 성운 + 크리스탈 산)" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 800, "height": 600, "desc": "배경 근경 (크리스탈 기둥 + 보석 파티클)" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 32,  "height": 32,  "desc": "생명력 하트 아이콘" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 32,  "height": 32,  "desc": "별 점수 아이콘" },
+    "powerup":     { "file": "powerup.svg",      "width": 48,  "height": 48,  "desc": "색상 폭탄 파워업 (무지개)" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 96,  "height": 96,  "desc": "보석 매칭 폭발 이펙트" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "플랫폼 썸네일" }
+  }
+}

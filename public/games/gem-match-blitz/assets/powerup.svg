@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <radialGradient id="bombCore" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#4fc3f7"/>
+      <stop offset="60%" stop-color="#ab47bc"/>
+      <stop offset="80%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#ff8a65"/>
+    </radialGradient>
+    <radialGradient id="bombGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4fc3f7" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#ab47bc" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#e94560" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rainbowA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="20%" stop-color="#ff8a65"/>
+      <stop offset="40%" stop-color="#ffd54f"/>
+      <stop offset="60%" stop-color="#66bb6a"/>
+      <stop offset="80%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#ab47bc"/>
+    </linearGradient>
+    <filter id="powerGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="sparkle">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 외곽 글로우 배경 -->
+  <circle cx="24" cy="24" r="22" fill="url(#bombGlow)"/>
+  <!-- 무지개 링 (색상 폭탄 테마) -->
+  <circle cx="24" cy="24" r="18" fill="none" stroke="url(#rainbowA)" stroke-width="2.5" opacity="0.6" filter="url(#powerGlow)"/>
+  <!-- 핵심 구체 -->
+  <g filter="url(#powerGlow)">
+    <circle cx="24" cy="24" r="14" fill="url(#bombCore)"/>
+  </g>
+  <!-- 내부 무지개 소용돌이 -->
+  <g opacity="0.4" filter="url(#sparkle)">
+    <path d="M24 12 Q30 18 24 24 Q18 18 24 12" fill="#e94560" opacity="0.5"/>
+    <path d="M36 24 Q30 30 24 24 Q30 18 36 24" fill="#4fc3f7" opacity="0.5"/>
+    <path d="M24 36 Q18 30 24 24 Q30 30 24 36" fill="#66bb6a" opacity="0.5"/>
+    <path d="M12 24 Q18 18 24 24 Q18 30 12 24" fill="#ffd54f" opacity="0.5"/>
+  </g>
+  <!-- 광택 -->
+  <ellipse cx="20" cy="18" rx="5" ry="4" fill="#ffffff" opacity="0.35"/>
+  <!-- 빛나는 별 파티클 4개 -->
+  <g fill="#ffffff" filter="url(#sparkle)">
+    <path d="M10 10 L11 8 L12 10 L11 12 Z" opacity="0.8"/>
+    <path d="M38 10 L39 8 L40 10 L39 12 Z" opacity="0.7"/>
+    <path d="M10 38 L11 36 L12 38 L11 40 Z" opacity="0.6"/>
+    <path d="M38 38 L39 36 L40 38 L39 40 Z" opacity="0.7"/>
+  </g>
+  <!-- 십자 광선 -->
+  <g stroke="#ffffff" stroke-width="1" opacity="0.3" stroke-linecap="round" filter="url(#sparkle)">
+    <line x1="24" y1="4" x2="24" y2="10"/>
+    <line x1="24" y1="38" x2="24" y2="44"/>
+    <line x1="4" y1="24" x2="10" y2="24"/>
+    <line x1="38" y1="24" x2="44" y2="24"/>
+  </g>
+</svg>

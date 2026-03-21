@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="cloakGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A3F8A"/>
+      <stop offset="100%" stop-color="#2A1F5A"/>
+    </linearGradient>
+    <linearGradient id="armorGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7B8D9E"/>
+      <stop offset="50%" stop-color="#A0B0C0"/>
+      <stop offset="100%" stop-color="#5A6A7A"/>
+    </linearGradient>
+    <radialGradient id="faceGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#FFDBB5"/>
+      <stop offset="100%" stop-color="#D4A574"/>
+    </radialGradient>
+    <radialGradient id="diceGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F7DC6F" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#F7DC6F" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="diceFilter">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 망토 -->
+  <g>
+    <path d="M32 14 C22 14, 14 22, 14 36 L14 52 C14 54, 16 56, 18 56 L46 56 C48 56, 50 54, 50 52 L50 36 C50 22, 42 14, 32 14 Z" fill="url(#cloakGrad)"/>
+    <path d="M14 36 Q12 46, 10 54 C10 56, 12 58, 14 56 L14 52 Z" fill="#3A2F6A" opacity="0.8"/>
+    <path d="M50 36 Q52 46, 54 54 C54 56, 52 58, 50 56 L50 52 Z" fill="#3A2F6A" opacity="0.8"/>
+  </g>
+  <!-- 갑옷 몸통 -->
+  <g>
+    <path d="M24 28 L40 28 L42 48 L22 48 Z" fill="url(#armorGrad)"/>
+    <path d="M28 28 L36 28 L37 48 L27 48 Z" fill="#B0C0D0" opacity="0.4"/>
+    <line x1="32" y1="28" x2="32" y2="48" stroke="#5A6A7A" stroke-width="0.5" opacity="0.6"/>
+  </g>
+  <!-- 벨트 -->
+  <rect x="23" y="40" width="18" height="3" rx="1" fill="#8B6914"/>
+  <rect x="30" y="39" width="4" height="5" rx="1" fill="#FFD700"/>
+  <!-- 얼굴 -->
+  <circle cx="32" cy="18" r="8" fill="url(#faceGlow)"/>
+  <!-- 눈 -->
+  <ellipse cx="29" cy="17" rx="1.5" ry="2" fill="#2C3E50"/>
+  <ellipse cx="35" cy="17" rx="1.5" ry="2" fill="#2C3E50"/>
+  <circle cx="29.5" cy="16.5" r="0.6" fill="#FFFFFF"/>
+  <circle cx="35.5" cy="16.5" r="0.6" fill="#FFFFFF"/>
+  <!-- 투구 -->
+  <path d="M24 18 Q24 8, 32 6 Q40 8, 40 18 L38 18 Q38 12, 32 10 Q26 12, 26 18 Z" fill="#7B8D9E"/>
+  <path d="M26 18 L38 18 L39 20 L25 20 Z" fill="#A0B0C0"/>
+  <circle cx="32" cy="10" r="1.5" fill="#FFD700" filter="url(#glow)"/>
+  <!-- 오른손에 빛나는 주사위 -->
+  <g filter="url(#diceFilter)">
+    <ellipse cx="48" cy="34" rx="8" ry="6" fill="url(#diceGlow)" opacity="0.5"/>
+    <rect x="42" y="28" width="12" height="12" rx="2" fill="#F7DC6F" opacity="0.9"/>
+    <rect x="42" y="28" width="12" height="12" rx="2" fill="none" stroke="#FFD700" stroke-width="0.8"/>
+    <circle cx="45" cy="31" r="1" fill="#8B6914"/>
+    <circle cx="48" cy="34" r="1" fill="#8B6914"/>
+    <circle cx="51" cy="37" r="1" fill="#8B6914"/>
+  </g>
+  <!-- 왼손에 작은 방패 -->
+  <g>
+    <path d="M12 28 L22 28 L22 38 Q17 42, 12 38 Z" fill="#4ECDC4" opacity="0.8"/>
+    <path d="M14 30 L20 30 L20 36 Q17 39, 14 36 Z" fill="#3DBDB4" opacity="0.6"/>
+    <line x1="17" y1="29" x2="17" y2="39" stroke="#FFFFFF" stroke-width="0.6" opacity="0.4"/>
+  </g>
+  <!-- 부츠 -->
+  <path d="M24 50 L28 50 L28 56 L22 56 Q20 56, 22 54 Z" fill="#5A4030"/>
+  <path d="M36 50 L40 50 L42 54 Q44 56, 42 56 L36 56 Z" fill="#5A4030"/>
+</svg>

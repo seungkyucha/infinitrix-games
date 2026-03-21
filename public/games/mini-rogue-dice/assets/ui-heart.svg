@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="heartGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff6b7f"/>
+      <stop offset="50%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#b71c4a"/>
+    </linearGradient>
+    <radialGradient id="heartGlow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#e94560" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#e94560" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="heartShine" cx="35%" cy="30%" r="30%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="heartGlowFilter">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 외부 글로우 -->
+  <path d="M16 28 Q6 20 3 14 Q0 8 4 5 Q8 2 12 5 Q14 7 16 10 Q18 7 20 5 Q24 2 28 5 Q32 8 29 14 Q26 20 16 28 Z" fill="url(#heartGlow)" filter="url(#heartGlowFilter)"/>
+  <!-- 하트 본체 -->
+  <path d="M16 26 Q8 20 5 14 Q2 9 5 6 Q8 3 12 6 Q14 8 16 11 Q18 8 20 6 Q24 3 27 6 Q30 9 27 14 Q24 20 16 26 Z" fill="url(#heartGrad)" filter="url(#heartGlowFilter)"/>
+  <!-- 하이라이트 -->
+  <path d="M16 26 Q8 20 5 14 Q2 9 5 6 Q8 3 12 6 Q14 8 16 11 Q18 8 20 6 Q24 3 27 6 Q30 9 27 14 Q24 20 16 26 Z" fill="url(#heartShine)"/>
+  <!-- 내부 라인 디테일 -->
+  <path d="M10 9 Q12 7 14 9" fill="none" stroke="#ff8a9e" stroke-width="0.8" opacity="0.6" stroke-linecap="round"/>
+</svg>

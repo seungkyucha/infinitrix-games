@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="crystalGradA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4fc3f7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0f3460" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="crystalGradB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ab47bc" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#1a1a2e" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="crystalGradC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#66bb6a" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#1a1a2e" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16213e" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0a0a1a" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="crystalGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 떠다니는 보석 파티클 (근경 장식) -->
+  <g opacity="0.15" filter="url(#softGlow)">
+    <path d="M60 200 L68 180 L76 200 L68 205 Z" fill="#e94560"/>
+    <path d="M180 150 L186 135 L192 150 L186 154 Z" fill="#4fc3f7"/>
+    <path d="M340 120 L348 100 L356 120 L348 126 Z" fill="#ffd54f"/>
+    <path d="M520 180 L526 165 L532 180 L526 184 Z" fill="#ab47bc"/>
+    <path d="M680 140 L687 122 L694 140 L687 145 Z" fill="#66bb6a"/>
+    <path d="M750 220 L756 208 L762 220 L756 224 Z" fill="#ff8a65"/>
+  </g>
+  <!-- 크리스탈 기둥들 (중경) -->
+  <g filter="url(#crystalGlow)">
+    <!-- 왼쪽 크리스탈 클러스터 -->
+    <path d="M30 600 L45 480 L55 420 L65 480 L80 600 Z" fill="url(#crystalGradA)" opacity="0.4"/>
+    <path d="M50 600 L60 510 L68 460 L76 510 L86 600 Z" fill="url(#crystalGradB)" opacity="0.3"/>
+    <path d="M70 600 L78 530 L84 490 L90 530 L98 600 Z" fill="url(#crystalGradA)" opacity="0.25"/>
+    <!-- 좌중 크리스탈 -->
+    <path d="M160 600 L175 500 L185 440 L195 500 L210 600 Z" fill="url(#crystalGradC)" opacity="0.35"/>
+    <path d="M185 600 L192 540 L198 500 L204 540 L211 600 Z" fill="url(#crystalGradA)" opacity="0.3"/>
+    <!-- 중앙 크리스탈 -->
+    <path d="M360 600 L378 470 L390 390 L402 470 L420 600 Z" fill="url(#crystalGradB)" opacity="0.35"/>
+    <path d="M380 600 L390 520 L398 470 L406 520 L416 600 Z" fill="url(#crystalGradA)" opacity="0.25"/>
+    <!-- 우중 크리스탈 -->
+    <path d="M560 600 L572 510 L580 460 L588 510 L600 600 Z" fill="url(#crystalGradC)" opacity="0.3"/>
+    <path d="M575 600 L583 540 L590 500 L597 540 L605 600 Z" fill="url(#crystalGradB)" opacity="0.25"/>
+    <!-- 오른쪽 크리스탈 클러스터 -->
+    <path d="M700 600 L715 490 L725 430 L735 490 L750 600 Z" fill="url(#crystalGradA)" opacity="0.4"/>
+    <path d="M720 600 L728 530 L734 480 L740 530 L748 600 Z" fill="url(#crystalGradC)" opacity="0.3"/>
+    <path d="M740 600 L747 550 L752 510 L757 550 L764 600 Z" fill="url(#crystalGradB)" opacity="0.25"/>
+  </g>
+  <!-- 하단 지면 -->
+  <path d="M0 560 Q100 540 200 555 Q300 565 400 550 Q500 540 600 555 Q700 565 800 550 L800 600 L0 600 Z" fill="url(#groundGrad)" opacity="0.5"/>
+  <!-- 지면 위 빛나는 먼지 파티클 -->
+  <g fill="#4fc3f7" opacity="0.2" filter="url(#softGlow)">
+    <circle cx="100" cy="550" r="2"/>
+    <circle cx="250" cy="540" r="1.5"/>
+    <circle cx="400" cy="545" r="2"/>
+    <circle cx="550" cy="535" r="1.8"/>
+    <circle cx="700" cy="548" r="2"/>
+  </g>
+  <!-- 추가 떠다니는 보석 파티클 (더 높은 위치) -->
+  <g opacity="0.1" filter="url(#softGlow)">
+    <path d="M120 350 L126 338 L132 350 L126 354 Z" fill="#ffd54f"/>
+    <path d="M450 300 L456 288 L462 300 L456 304 Z" fill="#e94560"/>
+    <path d="M630 340 L636 328 L642 340 L636 344 Z" fill="#4fc3f7"/>
+  </g>
+</svg>

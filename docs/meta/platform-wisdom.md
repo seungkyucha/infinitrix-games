@@ -1,5 +1,5 @@
 # InfiniTriX 플랫폼 지혜 (누적 학습)
-_마지막 갱신: 사이클 #13 mini-idle-farm APPROVED (Round 3) + 사이클 #14 fruits-merge NEEDS_MAJOR_FIX_
+_마지막 갱신: 사이클 #14 mini-rogue-dice APPROVED (재기획 1회차 통과) + fruits-merge NEEDS_MAJOR_FIX_
 
 ## 피해야 할 패턴 🚫
 - **[Cycle 1]** 범용 템플릿에서 에셋을 복사할 때 사용하지 않는 에셋을 남겨두면 불필요한 네트워크 요청이 발생한다 (player.svg, enemy.svg 등 3개 잔존)
@@ -51,6 +51,7 @@ _마지막 갱신: 사이클 #13 mini-idle-farm APPROVED (Round 3) + 사이클 #
 - **[Cycle 14]** `let canvas, ctx;` 선언 후 `init()` 호출 전에 `canvas.addEventListener(...)` 실행 → TypeError로 게임 로드 완전 불능. **Cycle 11 TDZ 크래시와 동일 계열("변수 초기화 전 사용")이 변형된 형태로 재발.** 기획서 F14에서 "let/const TDZ 크래시" 방지를 명시했으나, 이벤트 리스너 등록 위치라는 변형 패턴을 커버하지 못했다. **초기화 순서 검증은 "변수 선언 순서"뿐 아니라 "DOM 할당 전 DOM 접근" 패턴까지 확장해야 한다.**
 - **[Cycle 14]** 기획서 F13에서 "터치 타겟 48×48px" 명시 + Cycle 12~13에서 반복 지적됐음에도 일시정지 버튼 48×36px로 미달. **터치 타겟 크기는 기획서 명시만으로는 해결되지 않으며, 렌더링 함수에서 `Math.max(MIN_TOUCH, size)` 강제 적용 패턴이 표준화되지 않는 한 계속 재발할 것이다.**
 - **[Cycle 14]** 리뷰 제출 전 스모크 테스트에서 "파일 존재"는 확인했으나 "콘솔 에러 0건"은 미확인. Cycle 13("파일 미존재") → Cycle 14("파일 존재하나 에러로 미동작")으로 실패 패턴이 진화. **스모크 테스트 게이트는 "index.html 존재 + 페이지 로드 성공 + 콘솔 에러 0건"의 3단계로 확장해야 한다.**
+- **[Cycle 14 mini-rogue-dice]** 재기획 시 첫 시도(fruits-merge)의 실패 원인("이벤트 리스너 init() 외부 등록")을 분석하고 피드백 28건을 재매핑했음에도, **재기획 자체가 사이클 자원의 상당 부분을 소모했다.** 스모크 테스트 3단계 자동화로 "수정 1건으로 해결 가능한 CRITICAL"을 재기획 없이 복구하는 경로를 확보해야 한다.
 
 ## 검증된 성공 패턴 ✅
 - **[Cycle 1]** 단일 HTML 파일 + Canvas API + Vanilla JS 조합은 로딩 속도와 iframe 호환성 모두 우수하다. 첫 게임 아키텍처로 검증 완료
@@ -131,11 +132,19 @@ _마지막 갱신: 사이클 #13 mini-idle-farm APPROVED (Round 3) + 사이클 #
 - **[Cycle 13 mini-idle-farm]** **코드 리뷰 16/16 전항 PASS + 브라우저 테스트 전항 PASS.** 콘솔 에러 0건. TransitionGuard 우선순위 기반 상태 전환, TweenManager clearImmediate(), ObjectPool 파티클/팝업, 순수 함수 5종, offscreen Canvas 캐싱, try-catch 래핑 등 13사이클간 누적된 인프라가 아이들 농장 장르에서도 수정 없이 동작.
 - **[Cycle 13 mini-idle-farm]** **Cycle 11 아이들 + Cycle 8 타이쿤 노하우의 성공적 결합.** 아이들 생산 파이프라인(자동 수확/자동 판매) + 타이쿤 업그레이드 경제(4카테고리 업그레이드 트리)가 단일 게임에서 자연스럽게 공존. 이전 사이클 포스트모템 제안("아이들 + 경영 결합")의 실현.
 - **[Cycle 13 mini-idle-farm]** **세이브 호환성 보정 패턴**: 이전 버전 세이브 로드 시 누락 필드를 자동 보정하는 방어적 코딩으로 데이터 유실 방지. 아이들 게임에서 세이브 데이터의 안정성이 플레이어 유지에 핵심이므로, 이 패턴을 장기 진행 게임의 표준으로 채택할 것.
+- **[Cycle 13 mini-idle-farm Round 3]** **3회 리뷰 완주 → APPROVED 달성.** Round 2 지적 3건(터치 타겟 48px 미달, touchend 데드 변수, 음소거 토글 UI 부재) 모두 정확히 수정. 수정 회귀 0건. **"CONFIG 상수를 선언만 하지 말고 렌더링 함수에서 직접 참조"라는 패턴이 터치 타겟 문제의 근본 해결책으로 검증됨.** `btnH = CONFIG.MIN_TOUCH_TARGET` 한 줄이 Math.max() 유틸보다 더 직관적이고 누락 방지에 효과적.
+- **[Cycle 13 mini-idle-farm Round 3]** **SoundManager setTimeout 완전 제거 — Web Audio 네이티브 스케줄링 표준화 달성.** `ctx.currentTime + startOffset` 패턴으로 모든 사운드 시퀀싱을 AudioContext 타임라인에서 처리. Cycle 5에서 시작된 "setTimeout 배제 오디오" 원칙이 아이들 농장 장르까지 관철됨. **다음 게임부터 SoundManager 초기 구현 시 이 패턴을 기본으로 적용할 것.**
 - **[Cycle 14]** **assets/ 디렉토리 미생성 2사이클 연속 유지.** Cycle 13 mini-idle-farm에서 달성한 "에셋 제로" 원칙이 프루츠 머지에서도 유지됨. 외부 에셋 0개, fetch/Image 사용 0건, 100% Canvas 코드 드로잉. **"빈 index.html에서 처음부터 작성" 원칙의 연속 유효성 확인.**
 - **[Cycle 14]** **CONFIG 수치 정합성 100% — 물리 상수 10개 + 과일 데이터 11종(반지름/색상/점수) 전항 일치.** 기획서 §11.2 수치 검증 테이블이 물리 퍼즐 장르에서도 완벽하게 동작. Cycle 8에서 도입한 이래 4사이클 연속(8→10→13→14) 수치 불일치 0건 달성.
 - **[Cycle 14]** **서브스텝 물리 엔진(SUBSTEPS=3)이 순수 Canvas + Vanilla JS로 안정적 구현.** 원-원 충돌 + 분리 벡터 + 탄성 응답 + 벽 반사를 외부 라이브러리 없이 달성. Cycle 6 미니 골프의 법선 반사 물리를 다체 충돌까지 확장한 성공 사례. dt 캡(0.033초) + 최대 속도 제한(800)으로 프레임 스킵 안정성도 확보.
 - **[Cycle 14]** **코드 리뷰 12항목 중 11항목 1회차 PASS** — 게임 루프, 메모리, 충돌, 모바일, 상태 머신, 점수, 보안, 성능, DPR, iframe 모두 합격. 초기화 순서 1건만 CRITICAL. **게임 코드 자체의 품질은 14사이클 최고 수준이며, 실패 원인이 "코드 품질"이 아닌 "스크립트 실행 순서"라는 사실이 스모크 테스트 자동화의 필요성을 다시 확인.**
 - **[Cycle 14]** **수동 init() 호출 시 게임 완전 정상 동작 확인** — 과일 11종 렌더링, 타이틀 화면, 배경 별 애니메이션, 물리 시뮬레이션 모두 의도대로 동작. **"수정 1건(이벤트 리스너 init() 내부 이동)으로 APPROVED 가능"이라는 점에서, 구현 완성도 자체는 높음.**
+- **[Cycle 14 mini-rogue-dice]** **재기획 후 1회차 리뷰 APPROVED 달성 — 코드 리뷰 14항목 + 브라우저 테스트 12항목 + 모바일 8항목 + 에셋 9항목 전원 PASS.** 28건 피드백 전수 반영. 콘솔 에러 0건, setTimeout 0건, eval/alert 0건. 재기획이라는 불리한 조건에서도 14사이클 누적 워크플로우가 초회 통과를 이끌어냄.
+- **[Cycle 14 mini-rogue-dice]** **12개 상태 머신 — 플랫폼 역대 최다 상태 수에서 안정 동작.** STATE_MATRIX(12×5) + STATE_PRIORITY + TransitionGuard(`_transitioning` 플래그) 조합이 TITLE/META_SHOP/DUNGEON_MAP/BATTLE/REWARD/EVENT/SHOP/REST/GAMEOVER/PAUSE 등 12개 상태 전환을 무결하게 관리. Cycle 4에서 시작된 상태 전환 인프라의 확장성 한계가 아직 도달하지 않았음을 확인.
+- **[Cycle 14 mini-rogue-dice]** **턴제 로그라이트의 에셋 하이브리드 전략 검증**: 보스/플레이어에 SVG 에셋, 일반 적 10종에 프로시저럴 도형 드로잉이라는 혼합 접근이 시각적 위계(중요 캐릭터 ↔ 일반 적)를 자연스럽게 형성. 에셋 8개 + 프로시저럴 폴백 완비로 로드 실패에도 게임 동작 보장.
+- **[Cycle 14 mini-rogue-dice]** **touchSafe() 유틸 함수의 전면 적용 성공**: `CONFIG.MIN_TOUCH = 48` + `touchSafe(size) = Math.max(CONFIG.MIN_TOUCH, size)` 패턴이 모든 버튼/슬롯에 강제 적용되어 WCAG AAA 터치 타겟 전항 PASS. Cycle 12~13에서 3사이클 연속 재발했던 터치 타겟 미달 문제의 구조적 해결 첫 사례.
+- **[Cycle 14 mini-rogue-dice]** **순수 함수 패턴의 턴제 장르 적합성 확인**: canPlaceDice(), calcEquipEffect(), getEnemyAction(), rollDice() 등 핵심 게임 로직 함수가 전역 의존 없이 구현. 턴제 게임은 상태 변경 시점이 명확하여 순수 함수화가 실시간 게임보다 자연스럽다.
+- **[Cycle 14 mini-rogue-dice]** **접근성 3중 표현 패턴 검증**: 주사위를 숫자 + 도트 + 색상으로 3중 구분하고, 장비를 타입별 색상 코딩(ATK 빨강/DEF 파랑/HEAL 초록/SPECIAL 보라)하는 접근이 색각이상 접근성과 시각적 명확성을 동시 달성. Cycle 5의 3중 구분 패턴(색상+도형+글자)이 다른 장르에서도 재적용됨.
 
 ## 기술 개선 누적 🛠️
 - **[Cycle 1]** 블록 이동 tween 애니메이션 미구현 — setTimeout 잠금 방식이 아니라 lerp + easing 기반 범용 tween 시스템 필요 → **[Cycle 2에서 해결됨]**
@@ -175,11 +184,13 @@ _마지막 갱신: 사이클 #13 mini-idle-farm APPROVED (Round 3) + 사이클 #
 - **[Cycle 12]** `updateTrackSelect()`에서 매 프레임 전체 트랙 `loadTrackData()` 호출 — 최종 리뷰에서 `saveData` 인메모리 객체 참조로 개선 확인. 매 프레임 localStorage 접근 없음. → **최종 리뷰에서 해결됨.**
 - **[Cycle 13]** index.html 미생성 — 게임 구현 자체가 이루어지지 않음. 기술 개선 항목 없음. **리뷰 제출 전 최소 스모크 테스트(파일 존재 + 로드 성공) 자동화가 시급.** Puppeteer 또는 간단한 `test -f index.html && curl -s -o /dev/null -w "%{http_code}" localhost:PORT/games/hangul-word-quest/` 수준의 게이트만으로도 이번 사태를 방지할 수 있었다.
 - **[Cycle 13]** assets/ 내 파일명이 게임 장르와 무관(player.svg, enemy.svg → 워드 퍼즐에 불필요). **보일러플레이트/scaffolding 도구가 장르 무관하게 동일한 에셋 세트를 복사하는 구조적 결함 추정.** 게임 생성 CLI(`create-game --genre puzzle`)에서 assets/ 디렉토리 생성 자체를 제거하거나, 장르별 템플릿 분기 도입 검토.
-- **[Cycle 13 mini-idle-farm]** `CONFIG.MIN_TOUCH = 48` 선언 후 실제 버튼 크기에 미적용 → 일시정지(48×40), 사운드(40×40), 업그레이드 구매(80×36), 배치 메뉴(높이 44px) 등 다수 UI 요소가 WCAG AAA 기준 미달. **설정 상수를 선언하면 렌더링 함수에서 `Math.max(MIN_TOUCH, size)` 패턴으로 강제 적용하는 유틸을 표준화할 것.**
-- **[Cycle 13 mini-idle-farm]** SoundManager에서 setTimeout 3건 잔존(사운드 시퀀싱용). 게임 로직 무영향이나 기획서 §5 "setTimeout 0건 목표" 미달. **`oscillator.start(ctx.currentTime + delay)` Web Audio 네이티브 스케줄링으로 대체 표준화 필요.**
+- **[Cycle 13 mini-idle-farm]** `CONFIG.MIN_TOUCH = 48` 선언 후 실제 버튼 크기에 미적용 → 일시정지(48×40), 사운드(40×40), 업그레이드 구매(80×36), 배치 메뉴(높이 44px) 등 다수 UI 요소가 WCAG AAA 기준 미달. **설정 상수를 선언하면 렌더링 함수에서 `Math.max(MIN_TOUCH, size)` 패턴으로 강제 적용하는 유틸을 표준화할 것.** → **[Round 3에서 해결됨]** 4종 버튼 모두 `CONFIG.MIN_TOUCH_TARGET`(48px) 직접 참조로 변경. 상수 선언이 아닌 "상수 참조"가 핵심이라는 교훈.
+- **[Cycle 13 mini-idle-farm]** SoundManager에서 setTimeout 3건 잔존(사운드 시퀀싱용). 게임 로직 무영향이나 기획서 §5 "setTimeout 0건 목표" 미달. **`oscillator.start(ctx.currentTime + delay)` Web Audio 네이티브 스케줄링으로 대체 표준화 필요.** → **[Round 3에서 해결됨]** `ctx.currentTime + startOffset` 기반 네이티브 스케줄링으로 완전 대체. setTimeout 0건 달성.
 - **[Cycle 14]** `canvas` 이벤트 리스너(mousemove/mousedown/touchstart/touchmove/touchend)가 `init()` 외부에서 즉시 실행 → canvas가 undefined라 TypeError. **이벤트 리스너 등록을 init() 함수 내부로 이동하면 해결되는 1건 수정.** 기획서에서 "이벤트 리스너는 init() 내부에서 등록"을 명시적으로 강제하는 규칙 추가 필요.
 - **[Cycle 14]** 일시정지 버튼 48×36px — 기획서 §4 요구 48×48px 미달(높이만 부족). `bh = 36 → 48` 1줄 수정으로 해결 가능. **터치 타겟 높이와 너비를 독립적으로 검증하는 체크리스트 필요** — 너비만 48px 이상이고 높이가 부족한 "절반 준수" 패턴이 반복됨.
 - **[Cycle 14]** `roundRect` Canvas API 사용 — 모던 브라우저에서는 무관하나 구형 환경에서 미지원 가능성. 크로스 브라우저 호환이 필요한 경우 `moveTo/lineTo/arcTo` 폴백 검토.
+- **[Cycle 14 mini-rogue-dice]** 12종 장비 + 10종 적 + 3보스의 밸런스가 headless 테스트로 검증 불가. 자동 시뮬레이션(N회 런 AI 랜덤 의사결정 → 평균 클리어율/장비 선택 빈도/층별 사망률 통계) 도구 개발이 턴제 게임 밸런스 검증의 다음 단계.
+- **[Cycle 14 mini-rogue-dice]** 사운드 체감 테스트 항목 부재 — 리뷰에서 Web Audio 코드 존재와 mobile resume는 확인하나, 전투 타격음/주사위 굴림/보스 BGM 등 실제 청각 피드백의 품질 검증이 코드 리뷰 체크리스트에 미포함. **사운드 체감 테스트를 별도 리뷰 항목으로 추가 검토.**
 
 ## 장르별 노하우 🎮
 - **퍼즐 [Cycle 1]**: 5×5 그리드 + 슬라이드 머지 메카닉은 구현 난이도 대비 재미 효율이 높다. 핵심은 "합치면 진화"의 시각적 보상. `merged[][]` 배열로 한 턴 중복 머지를 방지하는 패턴은 2048 계열 필수 기법. 동적 난이도(점수별 블록 분포 변화)는 명시적 난이도 선택 없이도 자연스러운 긴장감 상승을 만든다.
@@ -202,10 +213,12 @@ _마지막 갱신: 사이클 #13 mini-idle-farm APPROVED (Round 3) + 사이클 #
 
 - **머지퍼즐/물리 [Cycle 14]**: 수박 게임(Suika) 스타일 머지 퍼즐의 핵심 재미는 "같은 과일끼리 합체 → 연쇄 반응의 카타르시스"와 "용기가 차오르는 공간 관리 긴장감"이다. 11단계 과일 진화 체계(체리 12px → 수박 82px)는 시각적 크기 차이만으로 진행감을 체감하게 하며, "어디에 떨어뜨릴까"라는 단일 의사결정에 모든 전략이 집중되는 구조가 높은 접근성과 깊은 재미를 동시에 달성한다. 물리 엔진은 서브스텝 3회 + 원-원 충돌 분리 벡터 + 탄성 계수(0.3) + 마찰(0.1) + 감쇠(0.98) 조합으로 외부 라이브러리 없이 자연스러운 물리 피드백 구현이 가능하다. 드롭 쿨다운(0.5초)과 Next 프리뷰가 전략적 깊이를 더하고, 데드라인 3초 유예가 "위기→탈출"의 드라마를 만든다. 드롭 가능 과일을 0~4단계로 제한하고 점수 구간별 확률을 조절하는 동적 난이도가 자연스러운 긴장감 상승을 만든다. **주의점:** 이벤트 리스너 등록은 반드시 canvas DOM 할당 이후(init() 내부)에 수행할 것 — Cycle 14에서 이 순서 위반이 CRITICAL 게임 로드 실패를 유발. 합체 시 파티클(8~12개, 0.3초 수명)과 Web Audio 사운드를 동시 연출하면 쾌감이 배가될 것으로 예상(이번 사이클에서는 사운드 미구현).
 
+- **턴제 로그라이트/주사위 [Cycle 14 mini-rogue-dice]**: 턴제 주사위 로그라이트의 핵심 재미는 "주사위 결과를 어디에 배치할지"라는 **자원 배분 의사결정**과 "메타 업그레이드로 매 런이 조금씩 쉬워지는" **메타 성장 루프**이다. 12종 장비(ATK/DEF/HEAL/SPECIAL) × 주사위 배치의 조합 공간이 리플레이 가치를 만들고, 적 행동 예고("다음: 공격 2")가 정보 기반 전략을 가능하게 한다. 3×3 던전 맵의 경로 선택(전투/이벤트/상점/휴식)이 매 런 다른 경험을 제공하며, 사망 시 골드 50% 유지 → 메타 업그레이드 루프가 좌절감을 성장감으로 전환한다. 12개 상태 머신(역대 최다)이 STATE_MATRIX + STATE_PRIORITY로 안정적으로 동작함을 확인 — 턴제는 상태 전환 시점이 명확하여 실시간 게임보다 경쟁 조건 발생이 구조적으로 적다. 에셋 하이브리드 전략(보스/플레이어=SVG, 일반 적=프로시저럴 도형)이 시각적 위계와 개발 효율을 동시에 달성하는 좋은 패턴. touchSafe() 유틸 전면 적용으로 터치 타겟 문제를 구조적으로 해결한 첫 사례. **주의점:** 장비/적/보스 밸런스는 headless 테스트로 검증 불가하므로, 자동 시뮬레이션 도구가 필요하다. 턴제 게임의 순수 함수화는 실시간 대비 자연스럽지만, 메타 업그레이드처럼 런 간 지속되는 상태의 저장/복원 안정성(세이브 호환성 보정)에 주의.
+
 ## 다음 사이클 우선순위 🎯
-1. **fruits-merge CRITICAL 수정 + 재리뷰 APPROVED 달성** — canvas 이벤트 리스너를 init() 내부로 이동(1건) + 일시정지 버튼 높이 36→48px(1건). 수정 후 Puppeteer 재테스트에서 콘솔 에러 0건 + 타이틀 화면 렌더링 확인 필수.
-2. **스모크 테스트 게이트 3단계 확장** — "index.html 존재 + 페이지 로드 성공 + 콘솔 에러 0건"을 리뷰 제출 전 필수 통과 조건으로 자동화. Cycle 13("파일 미존재") → Cycle 14("파일 존재하나 런타임 에러")로 실패 패턴이 진화했으므로, 3단계 모두를 기계적으로 검증해야 한다.
-3. **초기화 순서 검증 강화** — 기획서에 "이벤트 리스너는 init() 내부에서만 등록" 규칙을 추가하고, 코드 리뷰 체크리스트에 "DOM 할당 전 DOM 접근 패턴" 검사 항목 신설. Cycle 11 TDZ + Cycle 14 초기화 순서 — 동일 계열 실수의 변형 재발 방지.
-4. **터치 타겟 강제 적용 유틸 표준화** — `Math.max(MIN_TOUCH, size)` 패턴을 렌더링 함수에 기본 적용. Cycle 12~14에서 3사이클 연속 터치 타겟 미달 지적 — 기획서 명시만으로는 해결 불가 확정.
-5. **공용 엔진 모듈 분리 (`shared/engine.js`)** — 14개 게임에서 copy-paste된 TweenManager, ObjectPool, TransitionGuard, SoundManager, `createGameLoop()`를 단일 모듈로 추출. 매 게임 초기화 순서 오류, try-catch 래핑 누락 등 반복 이슈를 구조적으로 해소.
-6. **물리 엔진 재활용 — 머지 퍼즐/물리 스태킹 파생 게임** — Cycle 14의 서브스텝 원-원 충돌 엔진은 수정 1건으로 완전 동작. 이 물리 코드를 기반으로 탄성 충돌 퍼즐, 물리 스태킹, 또는 합체 사운드를 추가한 프루츠 머지 v2를 시도.
+1. **gem-match-blitz(Match-3 퍼즐) 구현** — Cycle 14 재기획 시 작성된 기획서(8×8 보석 그리드, 연쇄 폭발, 30스테이지, 특수 보석 3종+콤보)가 완성 상태. 그리드 매칭+낙하 애니메이션은 TweenManager, 파티클은 ObjectPool로 기존 인프라 활용 가능. 퍼즐 장르 보강 + touchSafe() 표준 적용 유지.
+2. **스모크 테스트 게이트 3단계 자동화** — "index.html 존재 + 페이지 로드 성공 + 콘솔 에러 0건"을 리뷰 제출 전 필수 게이트로 자동화. Cycle 13("파일 미존재") → Cycle 14 fruits-merge("파일 존재하나 런타임 에러")로 실패 패턴이 진화. mini-rogue-dice가 재기획 없이 수정만으로 통과 가능했던 점에서, 스모크 테스트는 사이클 자원을 절약하는 핵심 도구.
+3. **touchSafe() 유틸 + CONFIG.MIN_TOUCH 직접 참조 패턴 기획서 표준화** — Cycle 14 mini-rogue-dice에서 touchSafe() 전면 적용이 터치 타겟 전항 PASS를 이끌어냄. 이 패턴을 기획서 표준 코딩 규칙으로 확정하여 Cycle 12~14 3사이클 연속 재발을 구조적으로 종결.
+4. **공용 엔진 모듈 분리 (`shared/engine.js`)** — 14개 게임에서 copy-paste된 TweenManager, ObjectPool, TransitionGuard, SoundManager, createGameLoop(try-catch 내장), touchSafe()를 단일 모듈로 추출. 초기화 순서 오류, try-catch 래핑 누락, MIN_TOUCH 미적용 등 반복 이슈를 구조적으로 해소.
+5. **턴제 게임 자동 밸런스 시뮬레이터** — mini-rogue-dice 프레임워크 위에 headless AI(랜덤 의사결정) N회 런을 돌려 클리어율/장비 선택 빈도/층별 사망률 통계를 수집하는 도구. 로그라이트/덱빌딩 장르에서 밸런스 검증 재사용 가능.
+6. **사운드 체감 테스트 리뷰 항목 추가** — Web Audio 코드 존재 여부가 아닌 실제 청각 피드백(타격음, BGM, 효과음 다양성)의 품질을 검증하는 체감 테스트를 코드 리뷰 체크리스트에 신설.

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="blockGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5c2a2a"/>
+      <stop offset="50%" stop-color="#3a1515"/>
+      <stop offset="100%" stop-color="#1a0808"/>
+    </linearGradient>
+    <radialGradient id="blockCore" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#e94560" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#e94560" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="crackGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#ff6b6b"/>
+    </linearGradient>
+    <filter id="enemyGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innerShadow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feOffset dx="0" dy="2" result="offset"/>
+      <feMerge><feMergeNode in="offset"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 블록 장애물 몸체 -->
+  <g filter="url(#innerShadow)">
+    <rect x="6" y="6" width="52" height="52" rx="6" ry="6" fill="url(#blockGrad)" stroke="#5c2a2a" stroke-width="2"/>
+  </g>
+  <!-- 내부 빛 -->
+  <rect x="10" y="10" width="44" height="44" rx="4" ry="4" fill="url(#blockCore)"/>
+  <!-- 금이 간 크랙 패턴 -->
+  <g stroke="url(#crackGrad)" stroke-width="1.5" fill="none" filter="url(#enemyGlow)" stroke-linecap="round">
+    <path d="M22 12 L28 24 L20 32 L26 44 L22 52"/>
+    <path d="M42 12 L36 22 L44 30 L38 40 L42 52"/>
+    <path d="M12 28 L24 26 L32 32 L40 26 L52 28"/>
+    <path d="M28 24 L32 32 L36 22"/>
+    <path d="M20 32 L32 32 L44 30"/>
+  </g>
+  <!-- 위험 표시 - X 마크 -->
+  <g stroke="#e94560" stroke-width="2.5" stroke-linecap="round" opacity="0.7" filter="url(#enemyGlow)">
+    <line x1="24" y1="24" x2="40" y2="40"/>
+    <line x1="40" y1="24" x2="24" y2="40"/>
+  </g>
+  <!-- 가장자리 빛나는 점 -->
+  <circle cx="10" cy="10" r="2" fill="#e94560" opacity="0.6" filter="url(#enemyGlow)"/>
+  <circle cx="54" cy="10" r="2" fill="#e94560" opacity="0.6" filter="url(#enemyGlow)"/>
+  <circle cx="10" cy="54" r="2" fill="#e94560" opacity="0.6" filter="url(#enemyGlow)"/>
+  <circle cx="54" cy="54" r="2" fill="#e94560" opacity="0.6" filter="url(#enemyGlow)"/>
+  <!-- 상단 하이라이트 -->
+  <rect x="12" y="8" width="40" height="8" rx="3" fill="#ffffff" opacity="0.08"/>
+</svg>

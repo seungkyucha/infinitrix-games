@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#533483"/>
+      <stop offset="100%" stop-color="#2a1a4a"/>
+    </linearGradient>
+    <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f3460"/>
+      <stop offset="100%" stop-color="#0a0a1a"/>
+    </linearGradient>
+    <radialGradient id="torchGlow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6f00" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#e94560" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#e94560" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="torchGlow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f5c542" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#f5c542" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="torchFilter">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="stoneTexture">
+      <feGaussianBlur stdDeviation="0.5"/>
+    </filter>
+  </defs>
+  <!-- 던전 벽 좌측 -->
+  <g opacity="0.7">
+    <path d="M0 200 L80 180 L80 600 L0 600 Z" fill="url(#wallGrad)"/>
+    <path d="M80 180 L120 200 L120 600 L80 600 Z" fill="#3a2060" opacity="0.8"/>
+    <!-- 벽 벽돌 패턴 -->
+    <line x1="0" y1="250" x2="80" y2="240" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="300" x2="80" y2="290" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="350" x2="80" y2="340" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="400" x2="80" y2="390" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="450" x2="80" y2="440" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="500" x2="80" y2="490" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="550" x2="80" y2="540" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="40" y1="200" x2="40" y2="600" stroke="#2a1a4a" stroke-width="0.5" opacity="0.3"/>
+  </g>
+  <!-- 던전 벽 우측 -->
+  <g opacity="0.7">
+    <path d="M800 200 L720 180 L720 600 L800 600 Z" fill="url(#wallGrad)"/>
+    <path d="M720 180 L680 200 L680 600 L720 600 Z" fill="#3a2060" opacity="0.8"/>
+    <line x1="720" y1="250" x2="800" y2="240" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="720" y1="300" x2="800" y2="290" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="720" y1="350" x2="800" y2="340" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="720" y1="400" x2="800" y2="390" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="720" y1="450" x2="800" y2="440" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="720" y1="500" x2="800" y2="490" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="720" y1="550" x2="800" y2="540" stroke="#2a1a4a" stroke-width="1" opacity="0.5"/>
+    <line x1="760" y1="200" x2="760" y2="600" stroke="#2a1a4a" stroke-width="0.5" opacity="0.3"/>
+  </g>
+  <!-- 기둥 좌측 -->
+  <g opacity="0.6">
+    <rect x="130" y="220" width="30" height="380" fill="#3a2060" rx="3"/>
+    <rect x="135" y="220" width="20" height="380" fill="#533483" rx="2"/>
+    <rect x="128" y="215" width="34" height="12" rx="2" fill="#533483"/>
+    <rect x="128" y="588" width="34" height="12" rx="2" fill="#533483"/>
+  </g>
+  <!-- 기둥 우측 -->
+  <g opacity="0.6">
+    <rect x="640" y="220" width="30" height="380" fill="#3a2060" rx="3"/>
+    <rect x="645" y="220" width="20" height="380" fill="#533483" rx="2"/>
+    <rect x="638" y="215" width="34" height="12" rx="2" fill="#533483"/>
+    <rect x="638" y="588" width="34" height="12" rx="2" fill="#533483"/>
+  </g>
+  <!-- 횃불 좌측 -->
+  <g filter="url(#torchFilter)">
+    <circle cx="145" cy="300" r="40" fill="url(#torchGlow1)"/>
+    <rect x="142" y="290" width="6" height="18" rx="1" fill="#8B6914"/>
+    <path d="M141 290 Q145 278 149 290" fill="#ff6f00"/>
+    <path d="M142 288 Q145 280 148 288" fill="#f5c542"/>
+    <circle cx="145" cy="300" r="20" fill="url(#torchGlow2)"/>
+  </g>
+  <!-- 횃불 우측 -->
+  <g filter="url(#torchFilter)">
+    <circle cx="655" cy="300" r="40" fill="url(#torchGlow1)"/>
+    <rect x="652" y="290" width="6" height="18" rx="1" fill="#8B6914"/>
+    <path d="M651 290 Q655 278 659 290" fill="#ff6f00"/>
+    <path d="M652 288 Q655 280 658 288" fill="#f5c542"/>
+    <circle cx="655" cy="300" r="20" fill="url(#torchGlow2)"/>
+  </g>
+  <!-- 바닥 타일 그리드 -->
+  <g opacity="0.4">
+    <rect x="120" y="480" width="560" height="120" fill="url(#floorGrad)"/>
+    <!-- 타일 라인들 -->
+    <line x1="120" y1="510" x2="680" y2="510" stroke="#0f3460" stroke-width="1"/>
+    <line x1="120" y1="540" x2="680" y2="540" stroke="#0f3460" stroke-width="1"/>
+    <line x1="120" y1="570" x2="680" y2="570" stroke="#0f3460" stroke-width="1"/>
+    <line x1="200" y1="480" x2="200" y2="600" stroke="#0f3460" stroke-width="0.5"/>
+    <line x1="280" y1="480" x2="280" y2="600" stroke="#0f3460" stroke-width="0.5"/>
+    <line x1="360" y1="480" x2="360" y2="600" stroke="#0f3460" stroke-width="0.5"/>
+    <line x1="440" y1="480" x2="440" y2="600" stroke="#0f3460" stroke-width="0.5"/>
+    <line x1="520" y1="480" x2="520" y2="600" stroke="#0f3460" stroke-width="0.5"/>
+    <line x1="600" y1="480" x2="600" y2="600" stroke="#0f3460" stroke-width="0.5"/>
+  </g>
+  <!-- 떨어지는 먼지 파티클 -->
+  <g opacity="0.3">
+    <circle cx="250" cy="280" r="1.5" fill="#eaeaea"/>
+    <circle cx="400" cy="350" r="1" fill="#eaeaea"/>
+    <circle cx="550" cy="300" r="1.2" fill="#eaeaea"/>
+    <circle cx="300" cy="420" r="0.8" fill="#eaeaea"/>
+    <circle cx="500" cy="400" r="1" fill="#eaeaea"/>
+    <circle cx="350" cy="260" r="0.7" fill="#eaeaea"/>
+    <circle cx="450" cy="450" r="1.3" fill="#eaeaea"/>
+  </g>
+</svg>

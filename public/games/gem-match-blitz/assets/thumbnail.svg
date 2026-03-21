@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tbgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="50%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f3460"/>
+    </linearGradient>
+    <radialGradient id="tSpotlight" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#4fc3f7" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#4fc3f7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="trubyG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff6b8a"/><stop offset="100%" stop-color="#e94560"/>
+    </linearGradient>
+    <linearGradient id="tsapphG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#81d4fa"/><stop offset="100%" stop-color="#4fc3f7"/>
+    </linearGradient>
+    <linearGradient id="temerG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#81c784"/><stop offset="100%" stop-color="#66bb6a"/>
+    </linearGradient>
+    <linearGradient id="ttopazG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff176"/><stop offset="100%" stop-color="#ffd54f"/>
+    </linearGradient>
+    <linearGradient id="tamethG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ce93d8"/><stop offset="100%" stop-color="#ab47bc"/>
+    </linearGradient>
+    <linearGradient id="tcitrinG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffab91"/><stop offset="100%" stop-color="#ff8a65"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd54f"/>
+      <stop offset="50%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#ff8f00"/>
+    </linearGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tBigGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textShadow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="tExplosion" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="20%" stop-color="#ffd54f" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#e94560" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#e94560" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#tbgGrad)"/>
+  <rect width="400" height="300" fill="url(#tSpotlight)"/>
+  <!-- 보드 배경 (중앙 왼쪽) -->
+  <rect x="40" y="70" width="200" height="200" rx="12" fill="#16213e" stroke="#0f3460" stroke-width="2" opacity="0.8"/>
+  <!-- 보석 그리드 (5x5 미니 보드) -->
+  <g>
+    <!-- Row 1 -->
+    <rect x="52" y="82" width="32" height="32" rx="6" fill="url(#trubyG)" filter="url(#tGlow)"/>
+    <ellipse cx="64" cy="94" rx="6" ry="4" fill="#ffffff" opacity="0.3"/>
+    <rect x="90" y="82" width="32" height="32" rx="6" fill="url(#tsapphG)" filter="url(#tGlow)"/>
+    <ellipse cx="102" cy="94" rx="6" ry="4" fill="#ffffff" opacity="0.3"/>
+    <rect x="128" y="82" width="32" height="32" rx="6" fill="url(#temerG)" filter="url(#tGlow)"/>
+    <ellipse cx="140" cy="94" rx="6" ry="4" fill="#ffffff" opacity="0.3"/>
+    <rect x="166" y="82" width="32" height="32" rx="6" fill="url(#trubyG)" filter="url(#tGlow)"/>
+    <ellipse cx="178" cy="94" rx="6" ry="4" fill="#ffffff" opacity="0.3"/>
+    <rect x="204" y="82" width="32" height="32" rx="6" fill="url(#ttopazG)" filter="url(#tGlow)"/>
+    <ellipse cx="216" cy="94" rx="6" ry="4" fill="#ffffff" opacity="0.3"/>
+    <!-- Row 2 -->
+    <rect x="52" y="120" width="32" height="32" rx="6" fill="url(#tamethG)" filter="url(#tGlow)"/>
+    <rect x="90" y="120" width="32" height="32" rx="6" fill="url(#ttopazG)" filter="url(#tGlow)"/>
+    <rect x="128" y="120" width="32" height="32" rx="6" fill="url(#trubyG)" filter="url(#tGlow)"/>
+    <rect x="166" y="120" width="32" height="32" rx="6" fill="url(#tsapphG)" filter="url(#tGlow)"/>
+    <rect x="204" y="120" width="32" height="32" rx="6" fill="url(#tcitrinG)" filter="url(#tGlow)"/>
+    <!-- Row 3 (매칭 중 - 3개 같은 색) -->
+    <rect x="52" y="158" width="32" height="32" rx="6" fill="url(#tcitrinG)" filter="url(#tGlow)"/>
+    <rect x="90" y="158" width="32" height="32" rx="6" fill="url(#tsapphG)" filter="url(#tBigGlow)"/>
+    <rect x="128" y="158" width="32" height="32" rx="6" fill="url(#tsapphG)" filter="url(#tBigGlow)"/>
+    <rect x="166" y="158" width="32" height="32" rx="6" fill="url(#tsapphG)" filter="url(#tBigGlow)"/>
+    <rect x="204" y="158" width="32" height="32" rx="6" fill="url(#temerG)" filter="url(#tGlow)"/>
+    <!-- 매칭 하이라이트 라인 -->
+    <rect x="88" y="156" width="112" height="36" rx="8" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.6" filter="url(#tGlow)"/>
+    <!-- Row 4 -->
+    <rect x="52" y="196" width="32" height="32" rx="6" fill="url(#temerG)" filter="url(#tGlow)"/>
+    <rect x="90" y="196" width="32" height="32" rx="6" fill="url(#tamethG)" filter="url(#tGlow)"/>
+    <rect x="128" y="196" width="32" height="32" rx="6" fill="url(#tcitrinG)" filter="url(#tGlow)"/>
+    <rect x="166" y="196" width="32" height="32" rx="6" fill="url(#temerG)" filter="url(#tGlow)"/>
+    <rect x="204" y="196" width="32" height="32" rx="6" fill="url(#trubyG)" filter="url(#tGlow)"/>
+    <!-- Row 5 -->
+    <rect x="52" y="234" width="32" height="32" rx="6" fill="url(#ttopazG)" filter="url(#tGlow)"/>
+    <rect x="90" y="234" width="32" height="32" rx="6" fill="url(#temerG)" filter="url(#tGlow)"/>
+    <rect x="128" y="234" width="32" height="32" rx="6" fill="url(#tamethG)" filter="url(#tGlow)"/>
+    <rect x="166" y="234" width="32" height="32" rx="6" fill="url(#ttopazG)" filter="url(#tGlow)"/>
+    <rect x="204" y="234" width="32" height="32" rx="6" fill="url(#tcitrinG)" filter="url(#tGlow)"/>
+  </g>
+  <!-- 폭발 이펙트 (오른쪽 영역) -->
+  <circle cx="310" cy="150" r="60" fill="url(#tExplosion)" filter="url(#tBigGlow)"/>
+  <!-- 폭발에서 날아가는 보석 파편들 -->
+  <g filter="url(#tGlow)">
+    <path d="M290 110 L294 104 L298 110 L294 114 Z" fill="#e94560" opacity="0.9"/>
+    <path d="M330 100 L334 94 L338 100 L334 104 Z" fill="#4fc3f7" opacity="0.8"/>
+    <path d="M345 130 L349 124 L353 130 L349 134 Z" fill="#66bb6a" opacity="0.8"/>
+    <path d="M280 140 L284 134 L288 140 L284 144 Z" fill="#ffd54f" opacity="0.9"/>
+    <path d="M350 160 L354 154 L358 160 L354 164 Z" fill="#ab47bc" opacity="0.7"/>
+    <path d="M275 170 L279 164 L283 170 L279 174 Z" fill="#ff8a65" opacity="0.8"/>
+    <path d="M340 185 L344 179 L348 185 L344 189 Z" fill="#e94560" opacity="0.7"/>
+    <path d="M295 190 L299 184 L303 190 L299 194 Z" fill="#4fc3f7" opacity="0.8"/>
+  </g>
+  <!-- 방사형 광선 -->
+  <g stroke="#ffd54f" stroke-width="1.5" opacity="0.4" stroke-linecap="round" filter="url(#tGlow)">
+    <line x1="310" y1="100" x2="310" y2="80"/>
+    <line x1="310" y1="200" x2="310" y2="220"/>
+    <line x1="260" y1="150" x2="245" y2="150"/>
+    <line x1="360" y1="150" x2="375" y2="150"/>
+    <line x1="275" y1="115" x2="262" y2="100"/>
+    <line x1="345" y1="115" x2="358" y2="100"/>
+    <line x1="275" y1="185" x2="262" y2="200"/>
+    <line x1="345" y1="185" x2="358" y2="200"/>
+  </g>
+  <!-- 별들 (배경) -->
+  <g fill="#ffffff" opacity="0.5">
+    <circle cx="20" cy="20" r="1.2"/>
+    <circle cx="380" cy="25" r="1"/>
+    <circle cx="350" cy="50" r="0.8"/>
+    <circle cx="300" cy="30" r="1.2"/>
+    <circle cx="15" cy="280" r="1"/>
+    <circle cx="370" cy="270" r="0.8"/>
+  </g>
+  <!-- 제목 텍스트 -->
+  <g filter="url(#textShadow)">
+    <text x="200" y="42" text-anchor="middle" font-size="28" font-weight="bold" fill="url(#titleGrad)" font-family="system-ui, sans-serif">GEM MATCH BLITZ</text>
+  </g>
+  <!-- 부제목 -->
+  <text x="200" y="290" text-anchor="middle" font-size="13" fill="#e0e0e0" opacity="0.7" font-family="system-ui, sans-serif">스와이프 · 매칭 · 연쇄 폭발!</text>
+  <!-- 점수 표시 (장식) -->
+  <g filter="url(#tGlow)">
+    <text x="310" y="250" text-anchor="middle" font-size="18" font-weight="bold" fill="#ffd700" font-family="system-ui, sans-serif">×5 COMBO!</text>
+  </g>
+</svg>

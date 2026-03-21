@@ -1,579 +1,673 @@
 ---
-game-id: fruits-merge
-title: 프루츠 머지
-genre: puzzle
+game-id: mini-dungeon-dice
+title: 미니 던전 다이스
+genre: action, strategy
 difficulty: medium
 ---
 
-# 프루츠 머지 (Fruits Merge) - 게임 기획서
+# 미니 던전 다이스 — 상세 기획서
 
 _사이클 #14 | 작성일: 2026-03-21_
 
 ---
 
-## 0. 이전 사이클 피드백 매핑 (Cycle 13 포스트모템 + platform-wisdom 반영)
+## §0. 이전 사이클 피드백 반영 매핑
 
-| # | 이전 문제 | 출처 | 이번 해결 방법 |
-|---|-----------|------|----------------|
-| F1 | index.html 미생성 — 게임 코드 자체 부재 | Cycle 13 | 단일 index.html 구현. §12 스모크 테스트 게이트에서 파일 존재+로드+에러 0건 확인 필수 |
-| F2 | assets/ 디렉토리 13사이클 연속 재발 | Cycle 1~13 | **assets/ 디렉토리 절대 생성 금지.** 100% Canvas 코드 드로잉. 과일은 arc()+fillStyle+이모지 텍스트로 렌더링 |
-| F3 | 잘못된 템플릿 복사로 무관한 에셋 생성 | Cycle 13 | 빈 프로젝트에서 시작. 범용 템플릿/보일러플레이트 복사 금지 |
-| F4 | 기획서 완성도 ≠ 구현 완성도 | Cycle 13 | 구현 난이도를 "쉬움~중간"으로 제한. 핵심 메카닉(드롭+물리+머지)을 최소 기능으로 정의 |
-| F5 | confirm()/alert() iframe 차단 | Cycle 1 | Canvas 기반 모달만 사용. window.confirm/alert 호출 0건 |
-| F6 | setTimeout 상태 전환 | Cycle 1~2 | requestAnimationFrame 기반 게임 루프만 사용. setTimeout/setInterval 금지 |
-| F7 | TweenManager 경쟁 조건 | Cycle 2~4 | TweenManager 미사용. 물리 엔진이 직접 위치/속도 갱신 |
-| F8 | 상태×시스템 매트릭스 누락 | Cycle 2 | §5에 상태×시스템 매트릭스 포함 |
-| F9 | 유령 변수 선언 후 미사용 | Cycle 3 | §11 체크리스트에서 모든 변수의 선언-사용 대응 검증 |
-| F10 | SVG 필터 재발 | Cycle 3~4 | SVG 파일 자체를 생성하지 않으므로 해당 없음 |
-| F11 | 판정→저장 순서 | Cycle 2 | §7 점수 시스템에서 "비교 먼저, 저장 나중에" 순서 명시 |
-| F12 | 전역 객체 직접 참조 | Cycle 6~7 | §10 순수 함수 설계에서 파라미터 기반 함수 시그니처 사전 정의 |
-| F13 | 터치 타겟 44px+ 미달 | Cycle 12 | §4 UI 요소 최소 터치 영역 48×48px |
-| F14 | let/const TDZ 크래시 | Cycle 11 | 변수 선언을 모든 함수 호출보다 먼저 배치. 초기화 순서 명시 |
-| F15 | 기획서 수치와 구현 수치 불일치 | Cycle 7~8 | §11.2 CONFIG 수치 정합성 검증 테이블 포함 |
+> Cycle 13 포스트모템 "아쉬웠던 점" + platform-wisdom 누적 교훈을 기획 단계에서 선제 대응한다.
+
+| # | 출처 | 문제 | 이번 기획서 해결 방법 | 해당 섹션 |
+|---|------|------|----------------------|-----------|
+| F1 | Cycle 13 아쉬운점 | 3회 리뷰 소요 — `CONFIG.MIN_TOUCH_TARGET` 선언-구현 괴리 | 모든 버튼 렌더링에서 `btnW = CONFIG.MIN_TOUCH_TARGET`, `btnH = CONFIG.MIN_TOUCH_TARGET` **직접 참조** 패턴 강제. Math.max 유틸 불필요 — 선언부에서 바로 크기 지정 | §4, §12.3 |
+| F2 | Cycle 13 아쉬운점 | SoundManager setTimeout 잔존 | Web Audio `ctx.currentTime + offset` 네이티브 스케줄링만 허용. setTimeout 0건 목표 | §9, §12.5 |
+| F3 | Cycle 14 wisdom | canvas 이벤트 리스너 init() 외부 등록 → TypeError | **모든 이벤트 리스너는 init() 내부에서만 등록.** DOM 할당 전 DOM 접근 원천 차단 | §5, §12.1 |
+| F4 | Cycle 14 wisdom | 일시정지 버튼 48×36px — 높이 미달 | 버튼 크기를 너비·높이 **독립적으로** `CONFIG.MIN_TOUCH_TARGET` 이상 보장 | §4.7, §12.3 |
+| F5 | Cycle 11/14 wisdom | let/const TDZ 크래시 + 초기화 순서 오류 | 변수 선언 → DOM 할당 → 이벤트 등록 → init() 순서 명시. §12.1 초기화 순서 체크리스트 | §5, §12.1 |
+| F6 | Cycle 1~14 wisdom | assets/ 디렉토리 재발 (13사이클 연속) | **빈 index.html에서 시작.** assets/ 디렉토리 절대 생성 금지. 100% Canvas + Web Audio | §8, §12.6 |
+| F7 | Cycle 2 wisdom | 상태×시스템 매트릭스 누락 | §6에 전체 상태×시스템 매트릭스 선행 작성 | §6 |
+| F8 | Cycle 3/4 wisdom | 가드 플래그 누락 → 콜백 반복 호출 | 모든 상태 전환에 `transitioning` 가드 + TransitionGuard 패턴 적용 | §6.2 |
+| F9 | Cycle 2/5 wisdom | setTimeout 상태 전환 | tween onComplete 콜백으로만 상태 전환. setTimeout 사용 완전 금지 | §5, §12.5 |
+| F10 | Cycle 5 wisdom | beginTransition() 우회 직접 전환 | 모든 화면 전환은 beginTransition() 경유 필수. PAUSED만 예외 허용 | §6.2 |
+| F11 | Cycle 7/8 wisdom | 기획서 수치 ↔ 코드 수치 불일치 | §13 수치 정합성 검증 테이블 필수 포함 | §13 |
+| F12 | Cycle 6 wisdom | 전역 참조 함수 → 테스트 불가 | 순수 함수 패턴 — 모든 게임 로직 함수는 파라미터로 데이터 수신 | §10 |
+| F13 | Cycle 10 wisdom | 게임 루프 try-catch 미적용 | `try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` 기본 적용 | §5.3, §12.4 |
+| F14 | Cycle 13 제안 | 시뮬레이션/경영 장르 심화 | action + strategy 조합으로 장르 균형 개선 (action 18.8% → 보강) | §1 |
+| F15 | Cycle 14 wisdom | 스모크 테스트 3단계 미충족 | 리뷰 제출 전: (1) index.html 존재 (2) 페이지 로드 (3) 콘솔 에러 0건 | §12.7 |
+| F16 | Cycle 10 wisdom | 수정 회귀 (render 시그니처 변경) | 수정 시 전체 플로우 회귀 테스트 필수 | §12.8 |
+| F17 | Cycle 3/7 wisdom | 유령 변수 (선언만 하고 미사용) | §13.2 변수 사용처 검증 테이블 포함 | §13.2 |
 
 ---
 
-## 1. 게임 개요 및 핵심 재미 요소
+## §1. 게임 개요 및 핵심 재미 요소
 
-### 한 줄 설명
-과일을 떨어뜨려 같은 과일끼리 합체시키는 물리 기반 머지 퍼즐 게임.
+### 컨셉
+주사위를 굴려 던전을 탐험하는 **턴 기반 로그라이트**. 매 전투에서 3~6개의 주사위를 굴려 공격/방어/회복 슬롯에 배치하고, 층을 클리어할 때마다 주사위를 업그레이드하거나 새 주사위를 획득한다. 5층 보스를 처치하면 승리.
 
 ### 핵심 재미 요소
-1. **물리적 쾌감**: 과일이 중력에 의해 떨어지고, 서로 부딪히며 굴러가는 물리 시뮬레이션의 촉각적 만족감
-2. **연쇄 합체의 카타르시스**: 전략적으로 배치한 과일들이 연쇄적으로 합체하며 폭발적 점수를 얻는 순간
-3. **공간 관리 긴장감**: 용기가 점점 차오르는 압박 속에서 최적의 위치를 판단하는 의사결정
-4. **단순한 조작, 깊은 전략**: "어디에 떨어뜨릴까"라는 하나의 결정이 게임의 전부이나, 물리 시뮬레이션으로 인해 예측과 실제 결과의 간극에서 재미 발생
+1. **주사위 배치의 전략적 의사결정**: 3~6개 주사위 → 3개 슬롯(공격/방어/회복). "이번 턴 공격에 몰빵? 방어를 두텁게?" 매 턴 고민
+2. **로그라이트 리플레이**: 매 판 랜덤 주사위 조합 + 랜덤 적 배치 → 무한 리플레이 가치
+3. **주사위 성장의 빌드업**: 층 클리어 보상으로 주사위 면 업그레이드, 새 주사위 획득 → "내 주사위가 강해진다" 성장 쾌감
+4. **한판 3~5분**: 짧은 세션으로 "한판만 더" 중독성
 
-### 레퍼런스
-- **Suika Game (수박 게임)**: 2024~2026 글로벌 바이럴. CrazyGames 머지 퍼즐 TOP 3
-- **Watermelon Game**: 브라우저 버전 Suika. 원형 과일 + 중력 + 머지
-- 차별점: Canvas 코드 드로잉 기반 경량 구현 + 한국어 UI + InfiniTriX 플랫폼 통합
+### 장르 균형 기여
+- 현재 플랫폼: arcade 7개(43.8%), action 3개(18.8%, **최저**)
+- 이 게임: **action + strategy** → action 부족 해소 + strategy 보강
 
----
-
-## 2. 게임 규칙 및 목표
-
-### 목표
-최대한 높은 점수를 획득하는 것. 같은 과일을 합체시켜 더 큰 과일로 진화시킨다.
-
-### 규칙
-1. 화면 상단에서 과일을 좌우로 이동시켜 원하는 위치에 드롭한다
-2. 드롭된 과일은 중력에 의해 아래로 떨어진다
-3. **같은 종류의 과일 2개가 접촉하면 자동으로 합체**하여 다음 단계 과일 1개로 변한다
-4. 합체로 생성된 과일이 또 다른 같은 과일과 접촉하면 **연쇄 합체** 발생
-5. **용기 상단의 데드라인을 과일이 3초 이상 넘으면 게임 오버**
-6. 드롭 후 다음 과일이 준비되기까지 0.5초 쿨다운
-7. 다음에 나올 과일을 미리 표시 (Next 프리뷰)
-
-### 과일 진화 체계 (11단계)
-
-| 단계 | 과일 | 이모지 | 반지름(px) | 색상 (HEX) | 합체 점수 |
-|------|------|--------|-----------|------------|----------|
-| 0 | 체리 | - | 12 | #E74C3C | 1 |
-| 1 | 딸기 | - | 16 | #FF6B6B | 3 |
-| 2 | 포도 | - | 22 | #9B59B6 | 6 |
-| 3 | 귤 | - | 28 | #F39C12 | 10 |
-| 4 | 오렌지 | - | 34 | #E67E22 | 15 |
-| 5 | 사과 | - | 40 | #E74C3C | 21 |
-| 6 | 배 | - | 48 | #A8D860 | 28 |
-| 7 | 복숭아 | - | 56 | #FDCB6E | 36 |
-| 8 | 파인애플 | - | 64 | #F9CA24 | 45 |
-| 9 | 멜론 | - | 72 | #2ECC71 | 55 |
-| 10 | 수박 | - | 82 | #27AE60 | 66 |
-
-> 수박(10) + 수박(10) 합체 시: 두 수박이 모두 소멸 + 보너스 100점
-
-### 드롭 과일 출현 확률
-
-| 난이도 구간 | 체리 | 딸기 | 포도 | 귤 | 오렌지 |
-|------------|------|------|------|-----|--------|
-| 0~500점 | 35% | 30% | 20% | 10% | 5% |
-| 501~2000점 | 25% | 30% | 25% | 15% | 5% |
-| 2001점+ | 20% | 25% | 25% | 20% | 10% |
-
-> 드롭 가능한 과일은 0~4단계(체리~오렌지)만. 사과 이상은 합체로만 생성 가능.
+### 트렌드 부합
+- itch.io 로그라이트 TOP 장르: "Die in the Dungeon", "Dungeons & Degenerate Gamblers" 등 주사위 로그라이트 급성장
+- 턴 기반이라 기존 플랫폼 인프라(Cycle 10 카드 배틀러)와 호환성 높음
 
 ---
 
-## 3. 조작 방법
+## §2. 게임 규칙 및 목표
 
-### 키보드
+### 2.1 승리 조건
+- 5층 던전의 최종 보스를 처치
+
+### 2.2 패배 조건
+- 플레이어 HP가 0 이하
+
+### 2.3 턴 진행 흐름
+```
+[주사위 굴리기] → [슬롯에 배치 (드래그 or 탭)] → [전투 해결] → [결과 표시]
+     ↓                                                          ↓
+  3~6개 주사위                                            적 HP 0? → 다음 방/층
+  자동 굴림                                              내 HP 0? → 게임 오버
+```
+
+### 2.4 전투 해결 순서
+1. 플레이어 공격 슬롯 합산 → 적 방어력 차감 후 남은 값만큼 적 HP 감소
+2. 적 공격 → 플레이어 방어 슬롯 합산만큼 경감 후 HP 차감 (최소 0)
+3. 플레이어 회복 슬롯 합산 → HP 회복 (최대 HP 초과 불가)
+
+### 2.5 던전 구조
+| 층 | 방 수 | 일반 적 | 엘리트 | 보스 | 층 클리어 보상 |
+|----|-------|---------|--------|------|---------------|
+| 1층 | 3 | 2 | 0 | 1 | 주사위 면 +1 업그레이드 |
+| 2층 | 3 | 1 | 1 | 1 | 새 주사위 획득 (3→4개) |
+| 3층 | 4 | 2 | 1 | 1 | 주사위 면 +2 업그레이드 |
+| 4층 | 4 | 2 | 1 | 1 | 새 주사위 획득 (4→5개) |
+| 5층 | 3 | 1 | 1 | 1(최종) | — (승리 화면) |
+
+- **총 전투 수**: 17회 (3+3+4+4+3)
+- **예상 플레이 시간**: 1회 3~5분
+
+### 2.6 주사위 시스템
+
+#### 주사위 종류 (4종)
+| 종류 | 아이콘 | 색상 | 면 범위(초기) | 설명 |
+|------|--------|------|---------------|------|
+| 공격 | 검 모양 | `#FF6B6B` (빨강) | 1~4 | 적에게 데미지 |
+| 방어 | 방패 모양 | `#4ECDC4` (청록) | 1~3 | 받는 데미지 경감 |
+| 회복 | 하트 모양 | `#45B7D1` (파랑) | 1~2 | HP 회복 |
+| 만능 | 별 모양 | `#F7DC6F` (노랑) | 1~3 | 어느 슬롯에든 배치 가능, 보너스 +1 |
+
+#### 초기 주사위 세트
+- 공격 ×1, 방어 ×1, 회복 ×1 (총 3개)
+- 2층/4층 클리어 보상으로 3→4→5개까지 증가 (최대 6은 만능 획득 시)
+
+#### 주사위 업그레이드
+- **면 업그레이드**: 선택한 주사위의 최대값 +1 또는 +2 (층에 따라 다름)
+- **새 주사위 획득**: 4종 중 랜덤 2개 제시 → 1개 선택
+
+---
+
+## §3. 조작 방법
+
+### 3.1 키보드
 | 키 | 동작 |
 |----|------|
-| ← / A | 드롭 위치 왼쪽 이동 |
-| → / D | 드롭 위치 오른쪽 이동 |
-| Space / ↓ / S | 과일 드롭 |
-| P / Escape | 일시정지 토글 |
+| `1`~`6` | 주사위 선택 (보유 수만큼) |
+| `Q` / `W` / `E` | 선택된 주사위를 공격/방어/회복 슬롯에 배치 |
+| `Space` | 전투 해결 (모든 주사위 배치 완료 시) |
+| `R` | 주사위 재굴림 (턴당 1회, 층당 2회 제한) |
+| `Esc` / `P` | 일시정지 |
 
-### 마우스
+### 3.2 마우스
 | 동작 | 설명 |
 |------|------|
-| 마우스 좌우 이동 | 드롭 위치가 마우스 X 좌표를 따라감 |
-| 좌클릭 | 과일 드롭 |
+| 클릭 주사위 | 주사위 선택 (하이라이트) |
+| 클릭 슬롯 | 선택된 주사위를 해당 슬롯에 배치 |
+| 드래그 주사위 → 슬롯 | 직접 드래그 배치 |
+| 클릭 "전투" 버튼 | 전투 해결 |
+| 클릭 "재굴림" 버튼 | 재굴림 (잔여 횟수 > 0일 때) |
 
-### 터치 (모바일)
+### 3.3 터치 (모바일)
 | 동작 | 설명 |
 |------|------|
-| 터치 좌우 드래그 | 드롭 위치가 터치 X 좌표를 따라감 |
-| 터치 떼기 (touchend) | 과일 드롭 |
+| 탭 주사위 | 선택 |
+| 탭 슬롯 | 배치 |
+| 드래그 주사위 → 슬롯 | 직접 배치 |
+| 탭 "전투" 버튼 | 전투 해결 |
+| 탭 "재굴림" 버튼 | 재굴림 |
 
-> **입력 모드 자동 감지**: 첫 입력 이벤트 타입에 따라 키보드/마우스/터치 모드 결정. 이후 다른 입력이 감지되면 즉시 전환.
+> **모든 탭 가능 요소**: `CONFIG.MIN_TOUCH_TARGET`(48px) 이상 보장 (F1, F4 반영)
+> **터치 설정**: `passive: false` + CSS `touch-action: none` 스크롤 방지
 
 ---
 
-## 4. 시각적 스타일 가이드
+## §4. 시각적 스타일 가이드
 
-### 색상 팔레트
+### 4.1 색상 팔레트
+| 용도 | 색상 | HEX |
+|------|------|-----|
+| 배경 (던전) | 짙은 남색 | `#1A1A2E` |
+| 배경 그라디언트 | 어두운 보라 | `#16213E` |
+| UI 패널 | 반투명 검정 | `rgba(0,0,0,0.7)` |
+| 공격 주사위/슬롯 | 빨강 | `#FF6B6B` |
+| 방어 주사위/슬롯 | 청록 | `#4ECDC4` |
+| 회복 주사위/슬롯 | 파랑 | `#45B7D1` |
+| 만능 주사위 | 노랑 | `#F7DC6F` |
+| 적 HP 바 | 진홍 | `#E74C3C` |
+| 플레이어 HP 바 | 초록 | `#2ECC71` |
+| 텍스트 메인 | 흰색 | `#FFFFFF` |
+| 텍스트 서브 | 연회색 | `#B0B0B0` |
+| 보스 강조 | 금색 | `#FFD700` |
+| 슬롯 비어있음 | 어두운 보라 | `#3D3D5C` |
+| 슬롯 배치됨 | 해당 주사위 색상 alpha 0.3 | — |
 
-| 용도 | HEX | 설명 |
-|------|-----|------|
-| 배경 | #1A1A2E | 짙은 남색 |
-| 용기 벽 | #16213E | 진한 네이비 |
-| 용기 내부 | #0F3460 | 어두운 파랑 |
-| 데드라인 | #E74C3C (alpha 0.5) | 반투명 빨강 점선 |
-| 드롭 가이드라인 | #FFFFFF (alpha 0.3) | 반투명 흰색 점선 |
-| 점수 텍스트 | #ECF0F1 | 밝은 회색 |
-| UI 배경 | #2C3E50 | 어두운 청회색 |
-| 강조 (버튼) | #3498DB | 밝은 파랑 |
+### 4.2 배경 스타일
+- 던전 벽돌 패턴: Canvas `fillRect` 반복으로 벽돌 텍스처
+- 층별 색조: 1층 회색(`#2C2C3A`) → 2층 갈색(`#3A2C1A`) → 3층 청록(`#1A3A3A`) → 4층 보라(`#2E1A3A`) → 5층 진홍(`#3A1A1A`)
+- **offscreen Canvas 캐시**: 배경을 1회 렌더 후 `drawImage`로 재사용 (Cycle 13 패턴)
 
-### 과일 렌더링 (100% Canvas 코드 드로잉)
+### 4.3 주사위 렌더링
+- **크기**: 64×64px (터치 영역 충분)
+- **형태**: 둥근 사각형 (cornerRadius 8px) + 3D 효과 (아래쪽 4px 그림자 + 상단 하이라이트)
+- **눈(pip)**: 원형 도트로 주사위 값 표시 (1~6 표준 배치)
+- **종류 표시**: 주사위 배경색으로 구분 + 좌상단 작은 아이콘 (Canvas 드로잉)
+- **굴림 애니메이션**: tween rotation(0→360°×3) + scale(0.5→1.2→1.0), 0.6초, easeOutBack
+- **선택 상태**: 밝은 테두리 glow (globalAlpha 펄스 tween)
 
-각 과일은 다음 요소로 구성:
-1. **원형 본체**: `ctx.arc()` + `ctx.fillStyle` = 해당 과일 색상
-2. **하이라이트**: 원 중심에서 좌상 30% 위치에 작은 흰색 반투명 원 (광택 효과)
-3. **외곽선**: `ctx.strokeStyle` = 본체 색상보다 20% 어두운 색, `lineWidth = 2`
-4. **과일 이름**: `ctx.fillText()` 로 과일 이름 1글자 (체, 딸, 포, 귤, 오, 사, 배, 복, 파, 멜, 수)
-5. **크기 구분**: 반지름이 단계마다 명확히 다름 (12px ~ 82px)
+### 4.4 적 렌더링 (Canvas 기본 도형 — 에셋 0개)
+| 적 | Canvas 구성 | 고유 색상 |
+|----|-------------|-----------|
+| 슬라임 | 큰 원(몸) + 작은 원×2(눈) | `#27AE60` 초록 |
+| 박쥐 | 삼각×2(날개) + 원(머리) + 점×2(눈) | `#8E44AD` 보라 |
+| 해골전사 | 원(두개골) + 사각(갑옷) + 선(검) | `#ECF0F1` 흰+회 |
+| 고블린도적 | 사각(몸) + 삼각(모자) + 점×2(눈) | `#D4AC0D` 녹갈 |
+| 다크메이지 | 삼각(로브) + 원(얼굴) + 작은 원(지팡이 보석) | `#6C3483` 진보라 |
+| 미노타우르스 | 큰 사각(몸) + 삼각×2(뿔) + 점×2(눈) | `#873600` 갈색 |
+| 드래곤(보스) | 큰 삼각(몸) + 원(머리) + 삼각×2(날개) + 삼각(꼬리) | `#C0392B` 진홍 |
 
-> **에셋 파일 0개**: 모든 시각 요소는 Canvas API (`arc`, `fillRect`, `fillText`, `strokeStyle`)로 실시간 렌더링
+- 피격 시: 빨간 플래시 (`globalAlpha` 깜빡, 0.1초 tween) + x축 흔들림 (±5px, 0.2초)
+- 보스: 금색 왕관(`#FFD700`) 추가 렌더링 + 크기 1.5배
 
-### 배경
-- 고정 배경: 짙은 남색 (#1A1A2E) 단색
-- 용기: 좌우+하단 벽이 있는 U자형 컨테이너, 둥근 모서리 (Canvas `roundRect`)
-- 상단: 데드라인 점선 + "DANGER ZONE" 텍스트 (alpha 깜빡임)
+### 4.5 슬롯 UI
+- 3개 슬롯 가로 배열: 공격(빨강 테두리) | 방어(청록 테두리) | 회복(파랑 테두리)
+- 비어있을 때: 점선 테두리 (`setLineDash([4,4])`) + 중앙 아이콘 (alpha 0.3)
+- 배치 시: 해당 주사위 축소(48×48) 렌더링 + 배경색 채움(alpha 0.2)
+- 복수 주사위 배치: 슬롯 내 가로 나열 (최대 6개, 자동 축소)
 
-### 파티클 효과 (합체 시)
-- 합체 지점에서 8~12개 원형 파티클 방사
-- 색상: 합체된 과일 색상
-- 수명: 0.3초, alpha 서서히 감소
-- 크기: 2~5px 랜덤
+### 4.6 데미지/회복 숫자 표시
+- **ObjectPool** 기반 팝업 텍스트 (풀 크기: 20개)
+- 빨강 텍스트 `-5` (데미지), 초록 텍스트 `+3` (회복), 청록 `Block!` (완전 방어)
+- 위로 떠오르며 페이드아웃: tween `y -= 40`, `alpha 1→0`, 0.8초, easeOutCubic
 
-### UI 레이아웃
-
+### 4.7 버튼 최소 크기 규칙 (F1, F4 반영)
 ```
-┌──────────────────────────────────┐
-│  SCORE: 1234     BEST: 5678      │  ← 점수 영역 (높이 50px)
-│  NEXT: [과일 미리보기]            │
-├──────────────────────────────────┤
-│        ↓ 드롭 가이드라인          │  ← 데드라인 위 (높이 40px)
-│  ─ ─ ─ ─ DEADLINE ─ ─ ─ ─ ─ ─  │
-│  ┌────────────────────────────┐  │
-│  │                            │  │
-│  │       [용기 영역]           │  │  ← 게임 용기 (메인 영역)
-│  │     과일이 쌓이는 공간       │  │
-│  │                            │  │
-│  │                            │  │
-│  └────────────────────────────┘  │
-│  [일시정지]                      │  ← 하단 UI (높이 48px, 터치 48×48)
-└──────────────────────────────────┘
+모든 인터랙티브 요소:
+  width  >= CONFIG.MIN_TOUCH_TARGET (48px)
+  height >= CONFIG.MIN_TOUCH_TARGET (48px)
 ```
-
-### Canvas 크기
-- **기본**: 400 × 700 (세로형)
-- **반응형**: `window.innerWidth`와 `window.innerHeight`에 맞춰 비율 유지 스케일링
-- **DPR 대응**: `canvas.width = displayWidth * dpr`, CSS 크기와 분리
+| 요소 | 너비 | 높이 | 검증 |
+|------|------|------|------|
+| 일시정지 버튼 | 48px | 48px | >= 48 ✅ |
+| 전투 버튼 | 160px | 48px | >= 48 ✅ |
+| 재굴림 버튼 | 120px | 48px | >= 48 ✅ |
+| 주사위 | 64px | 64px | >= 48 ✅ |
+| 보상 선택 카드 | 120px | 160px | >= 48 ✅ |
+| 시작 버튼 | 200px | 56px | >= 48 ✅ |
+| 재시작 버튼 | 160px | 48px | >= 48 ✅ |
+| 음소거 토글 | 48px | 48px | >= 48 ✅ |
 
 ---
 
-## 5. 핵심 게임 루프 (상태 머신 + 프레임 기준 로직)
+## §5. 핵심 게임 루프 (프레임 기준 로직 흐름)
 
-### 상태 머신
+### 5.1 메인 루프 구조 (F13 반영)
+```javascript
+function gameLoop(timestamp) {
+  try {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.033); // 30fps 하한
+    lastTime = timestamp;
 
+    update(dt);
+    render(ctx, dt, timestamp);
+
+    tweenManager.update(dt);
+    particlePool.updateAll(dt);
+    popupPool.updateAll(dt);
+  } catch (e) {
+    console.error('[GameLoop Error]', e);
+  }
+  requestAnimationFrame(gameLoop);
+}
 ```
-TITLE → PLAYING → GAMEOVER
-          ↕
-        PAUSED
+
+### 5.2 상태 머신 (9상태)
+```
+TITLE → DUNGEON_MAP → DICE_ROLL → DICE_PLACE → BATTLE_RESOLVE
+                  ↑       ↓                          ↓
+                  └── REWARD ←──── (층 보스 클리어) ──┘
+                                          ↓
+                                    GAME_OVER / VICTORY
+                          ↕
+                        PAUSED
 ```
 
 | 상태 | 설명 |
 |------|------|
-| TITLE | 타이틀 화면. 탭/클릭/키 입력으로 PLAYING 전환 |
-| PLAYING | 게임 진행 중. 물리+입력+렌더링 모두 활성 |
-| PAUSED | 일시정지. 렌더링만 (정지 프레임). 입력은 Resume만 |
-| GAMEOVER | 게임 오버. 점수 표시 + 재시작/타이틀 버튼 |
+| `TITLE` | 타이틀 화면. "시작" 버튼, 최고 기록 표시 |
+| `DUNGEON_MAP` | 현재 층/방 진행도 표시. "다음 방 진입" 버튼 |
+| `DICE_ROLL` | 주사위 굴림 애니메이션 (0.6초) → 자동으로 DICE_PLACE 전환 |
+| `DICE_PLACE` | 핵심 의사결정. 주사위를 슬롯에 드래그/탭 배치 |
+| `BATTLE_RESOLVE` | 전투 해결 연출 (공격→방어→회복 순차, 1.5초) |
+| `REWARD` | 층 보스 클리어 시 보상 선택 (업그레이드 or 새 주사위) |
+| `GAME_OVER` | 패배. 도달 층수 + 점수 + "재시작" 버튼 |
+| `VICTORY` | 5층 클리어 승리. 최종 점수 + "재시작" 버튼 |
+| `PAUSED` | 일시정지. "재개" / "타이틀로" 버튼 |
 
-### 상태 × 시스템 업데이트 매트릭스
-
-| 시스템 | TITLE | PLAYING | PAUSED | GAMEOVER |
-|--------|-------|---------|--------|----------|
-| 입력 처리 | Start만 | ✅ 전체 | Resume만 | Retry/Title만 |
-| 물리 엔진 | ❌ | ✅ | ❌ | ❌ |
-| 충돌 감지 | ❌ | ✅ | ❌ | ❌ |
-| 머지 판정 | ❌ | ✅ | ❌ | ❌ |
-| 파티클 업데이트 | ❌ | ✅ | ❌ | ✅ (잔여) |
-| 데드라인 판정 | ❌ | ✅ | ❌ | ❌ |
-| 렌더링 | ✅ | ✅ | ✅ (정지) | ✅ |
-| UI 렌더링 | ✅ | ✅ | ✅ (오버레이) | ✅ (오버레이) |
-
-### 매 프레임 로직 (PLAYING 상태, 60fps 기준)
-
+### 5.3 초기화 순서 (F3, F5 반영)
 ```
-1. deltaTime 계산 (이전 프레임과의 시간 차, 최대 33ms 캡)
-2. 입력 처리
-   - 마우스/터치: dropX = clamp(inputX, 용기좌측+과일반지름, 용기우측-과일반지름)
-   - 키보드: dropX += direction * MOVE_SPEED * dt
-   - 드롭 명령 + 쿨다운 완료 → spawnFruit(dropX)
-3. 물리 시뮬레이션 (고정 timestep 1/60초, 최대 3회 서브스텝)
-   a. 중력 적용: vy += GRAVITY * dt
-   b. 속도 적용: x += vx * dt, y += vy * dt
-   c. 벽 충돌: 좌/우/하단 벽과 원-직선 충돌 → 반사 + 반발계수
-   d. 과일 간 충돌: 원-원 충돌 → 분리 + 탄성 충돌 응답
-4. 머지 판정
-   a. 충돌 중인 같은 종류 과일 쌍 탐색
-   b. 쌍 발견 시: 두 과일 제거 → 중간 지점에 다음 단계 과일 생성 → 점수 추가 → 파티클 생성
-   c. 새 과일로 인한 추가 머지 확인 (연쇄)
-5. 데드라인 판정
-   a. 모든 과일의 최상단 y좌표 확인
-   b. 데드라인 위에 과일 존재 시 타이머 시작
-   c. 3초 초과 → GAMEOVER 전환
-   d. 데드라인 아래로 내려오면 타이머 리셋
-6. 파티클 업데이트: 위치/alpha/수명 갱신, 수명 종료 시 제거
-7. 렌더링
-   a. 배경 + 용기
-   b. 모든 과일 (아래→위 순서)
-   c. 파티클
-   d. 드롭 가이드라인 + 현재 과일 (드롭 전)
-   e. UI (점수, NEXT, 일시정지 버튼)
-   f. 데드라인 경고 (타이머 > 0이면 빨강 깜빡임)
+1. 전역 상수 선언 (CONFIG 객체)
+2. 유틸리티 클래스 정의 (TweenManager, ObjectPool, TransitionGuard, SoundManager)
+3. 게임 상태 변수 선언 (let canvas, ctx, state, player, enemy, dice, ...)
+4. 순수 함수 정의 (§10 — rollDice, resolveBattle, getEnemyStats 등)
+5. render/update 함수 정의
+6. init() 함수 정의:
+   - canvas = document.getElementById('gameCanvas')
+   - ctx = canvas.getContext('2d')
+   - resizeCanvas()
+   - 이벤트 리스너 등록 (mousemove, mousedown, touchstart, touchmove, touchend, keydown)
+   - SoundManager.init() (AudioContext 생성)
+   - enterState(TITLE)
+   - requestAnimationFrame(gameLoop)
+7. window.addEventListener('load', init)  ← 파일 내 유일한 즉시 실행 코드
 ```
+
+> **이벤트 리스너는 반드시 init() 내부에서만 등록** (F3)
+> **let/const 변수는 최초 사용 이전에 선언** (F5)
+> **canvas 할당 후에만 canvas.addEventListener 호출** (F3)
 
 ---
 
-## 6. 난이도 시스템
+## §6. 상태 × 시스템 매트릭스 (F7 반영)
 
-### 점수 기반 난이도 변화
+### 6.1 매트릭스
 
-| 점수 구간 | 변화 내용 |
-|-----------|----------|
-| 0 ~ 500 | 기본 난이도. 체리·딸기 위주 출현. 여유로운 공간 관리 |
-| 501 ~ 2000 | 포도·귤 출현 비율 증가. 용기가 더 빨리 차오름 |
-| 2001+ | 오렌지까지 출현. 큰 과일이 많아 공간 압박 심화 |
+| 상태 | TweenMgr | Particles | Popups | Input(주사위) | Input(UI) | Audio | Render |
+|------|----------|-----------|--------|---------------|-----------|-------|--------|
+| TITLE | ✅ | ❌ | ❌ | ❌ | ✅ (시작) | ✅ | ✅ |
+| DUNGEON_MAP | ✅ | ❌ | ❌ | ❌ | ✅ (다음방) | ✅ | ✅ |
+| DICE_ROLL | ✅ | ✅ (굴림) | ❌ | ❌ | ❌ | ✅ (SFX) | ✅ |
+| DICE_PLACE | ✅ | ❌ | ❌ | ✅ (드래그/탭) | ✅ (전투/재굴림) | ✅ | ✅ |
+| BATTLE_RESOLVE | ✅ | ✅ (히트) | ✅ (데미지) | ❌ | ❌ | ✅ (SFX) | ✅ |
+| REWARD | ✅ | ✅ (보상) | ❌ | ❌ | ✅ (선택) | ✅ | ✅ |
+| GAME_OVER | ✅ | ❌ | ❌ | ❌ | ✅ (재시작) | ✅ | ✅ |
+| VICTORY | ✅ | ✅ (축하) | ❌ | ❌ | ✅ (재시작) | ✅ | ✅ |
+| PAUSED | ✅ | ❌ | ❌ | ❌ | ✅ (재개/타이틀) | ❌ | ✅ |
 
-### 자연적 난이도 곡선
-- 물리 시뮬레이션 자체가 난이도를 자동 조절:
-  - 초반: 작은 과일 → 공간 여유 → 쉬움
-  - 중반: 합체된 중형 과일이 쌓임 → 공간 압박 시작
-  - 후반: 대형 과일이 용기를 차지 → 빈틈 관리가 핵심 → 어려움
-- **별도 난이도 파라미터 변경 없이** 과일 크기 성장 자체가 난이도를 올린다
+> **TweenMgr.update(dt)는 PAUSED 포함 모든 상태에서 호출** (Cycle 2 B1 방지)
+> **Input 시스템은 현재 상태 기반 분기 처리** — 매트릭스 참조 필수
 
-### 쿨다운
-- 드롭 후 다음 과일 준비까지 **0.5초** (30프레임)
-- 이 쿨다운 동안 좌우 이동만 가능, 드롭 불가
+### 6.2 상태 전환 규칙 (F8, F9, F10 반영)
 
----
-
-## 7. 점수 시스템
-
-### 점수 획득
-- **합체 시**: 해당 단계의 합체 점수 획득 (§2 테이블 참조)
-- **연쇄 합체 보너스**: 1회 드롭으로 N회 연쇄 합체 시, N번째 합체부터 ×1.5 보너스
-- **수박 합체 보너스**: 수박+수박 합체 시 100점 추가
-
-### 점수 계산 공식
-```
-단일 합체 점수 = FRUIT_SCORE[level]
-연쇄 합체 점수 = FRUIT_SCORE[level] × (1 + 0.5 × max(0, chainIndex - 1))
-```
-
-### 최고 점수 저장
+#### TransitionGuard 우선순위
 ```javascript
-// 판정 먼저, 저장 나중에 (platform-wisdom F11)
-const isNewBest = score > getBestScore();
-saveBestScore(score);
-// isNewBest 을 UI 표시에 사용
+const STATE_PRIORITY = {
+  GAME_OVER: 100,    // 최고 — HP 0 감지 시 모든 전환보다 우선
+  VICTORY: 90,
+  PAUSED: 80,        // 예외: 즉시 전환 허용 (beginTransition 미경유)
+  REWARD: 50,
+  BATTLE_RESOLVE: 40,
+  DICE_ROLL: 30,
+  DICE_PLACE: 20,
+  DUNGEON_MAP: 10,
+  TITLE: 0
+};
 ```
 
-- `localStorage` 사용, `try-catch`로 래핑 (iframe 안전)
-- 키: `"fruits-merge-best"`
+#### 전환 규칙
+1. **모든 상태 전환은 `beginTransition(targetState)` 경유** — PAUSED만 예외 (F10)
+2. **전환 중 `transitioning = true` 가드** — 중복 전환 차단 (F8)
+3. **전환 완료 시 `enterState(targetState)` 호출** — 상태 진입 초기화 일원화
+4. **tween onComplete로만 전환 트리거** — setTimeout 절대 금지 (F9)
+5. **GAME_OVER 전환은 모든 전환보다 우선** — `if (player.hp <= 0) return;` 사전 체크
+6. **전환 애니메이션**: 페이드 아웃(0.3초) → enterState → 페이드 인(0.3초)
 
 ---
 
-## 8. 물리 엔진 상세
+## §7. 난이도 시스템
 
-### 상수 (CONFIG 객체에 일원화)
-
-| 상수명 | 값 | 설명 |
-|--------|-----|------|
-| GRAVITY | 980 | 중력 가속도 (px/s^2) |
-| RESTITUTION | 0.3 | 반발 계수 (0=완전 비탄성, 1=완전 탄성) |
-| FRICTION | 0.1 | 마찰 계수 |
-| DAMPING | 0.98 | 매 프레임 속도 감쇠 |
-| MAX_VELOCITY | 800 | 최대 속도 제한 (px/s) |
-| SUBSTEPS | 3 | 물리 서브스텝 수 |
-| WALL_RESTITUTION | 0.2 | 벽 반발 계수 |
-| DROP_COOLDOWN | 500 | 드롭 쿨다운 (ms) |
-| DEADLINE_GRACE | 3000 | 데드라인 유예 시간 (ms) |
-| MOVE_SPEED | 300 | 키보드 이동 속도 (px/s) |
-
-### 원-원 충돌 감지 및 응답
-
-```
-충돌 조건: dist(a, b) < a.radius + b.radius
-
-분리 벡터:
-  overlap = (a.radius + b.radius) - dist
-  nx = (b.x - a.x) / dist
-  ny = (b.y - a.y) / dist
-  a.x -= nx * overlap * 0.5
-  a.y -= ny * overlap * 0.5
-  b.x += nx * overlap * 0.5
-  b.y += ny * overlap * 0.5
-
-탄성 충돌 (질량 = 반지름^2):
-  relVel = dot(b.vel - a.vel, normal)
-  if relVel > 0: return  // 이미 벌어지는 중
-  j = -(1 + RESTITUTION) * relVel / (1/massA + 1/massB)
-  a.vx -= j * nx / massA
-  a.vy -= j * ny / massA
-  b.vx += j * nx / massB
-  b.vy += j * ny / massB
-```
-
-### 원-벽 충돌
-- 좌벽: `if (x - r < wallLeft) { x = wallLeft + r; vx = -vx * WALL_RESTITUTION; }`
-- 우벽: `if (x + r > wallRight) { x = wallRight - r; vx = -vx * WALL_RESTITUTION; }`
-- 바닥: `if (y + r > wallBottom) { y = wallBottom - r; vy = -vy * WALL_RESTITUTION; }`
-
----
-
-## 9. 사운드 (Web Audio API 절차적 생성)
-
-### 효과음 (외부 파일 0개)
-
-| 이벤트 | 사운드 | 구현 |
-|--------|--------|------|
-| 과일 드롭 | 짧은 "퉁" | sine 200Hz, duration 0.1s, gain 0→0.3→0 |
-| 과일 충돌 | 가벼운 "톡" | sine 300Hz + noise, duration 0.05s |
-| 합체 | 상승 "띵" | sine (과일 단계×100+200)Hz, duration 0.2s, gain 0→0.5→0 |
-| 연쇄 합체 | 연속 상승음 | 합체음을 피치 점점 올려서 연속 재생 |
-| 데드라인 경고 | 낮은 "웅" | sine 80Hz + square 40Hz, duration 0.3s, 0.5초 간격 반복 |
-| 게임 오버 | 하강 "부웅" | sine 400Hz→100Hz sweep, duration 0.5s |
-
+### 7.1 적 스탯 스케일링 (순수 함수)
 ```javascript
-// 사운드 헬퍼 (try-catch로 AudioContext 미지원 환경 안전)
-function playSound(freq, duration, type = 'sine') {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
-    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-  } catch(e) { /* 무시 */ }
+function getEnemyStats(floor, roomIndex, isElite, isBoss) {
+  const baseHp  = 8 + floor * 4;            // 1층:12, 3층:20, 5층:28
+  const baseAtk = 2 + Math.floor(floor * 1.5); // 1층:3, 3층:6, 5층:9
+  const baseDef = Math.floor(floor * 0.5);   // 1층:0, 3층:1, 5층:2
+
+  const eliteMul = isElite ? 1.5 : 1.0;
+  const bossMul  = isBoss  ? 2.5 : 1.0;
+  const roomMul  = 1 + roomIndex * 0.1;
+
+  return {
+    hp:  Math.floor(baseHp  * eliteMul * bossMul * roomMul),
+    atk: Math.floor(baseAtk * eliteMul * bossMul * roomMul),
+    def: Math.floor(baseDef * eliteMul * bossMul)
+  };
 }
 ```
 
----
+### 7.2 적 종류 (7종)
 
-## 10. 순수 함수 설계 (전역 참조 금지)
+| 적 | 등장 층 | 특성 | HP/ATK/DEF 예시 (해당 층 기준) |
+|----|---------|------|-------------------------------|
+| 슬라임 | 1~2 | 기본. 특수 능력 없음 | 12/3/0 |
+| 박쥐 | 1~3 | 공격 높음, HP 낮음 | 8/5/0 |
+| 해골전사 | 2~4 | 방어 높음 | 16/4/2 |
+| 고블린도적 | 2~4 | 2회 공격 (공격력 절반씩 2번) | 14/3×2/0 |
+| 다크메이지 | 3~5 | 매 턴 플레이어 주사위 1개 값 -1 | 16/5/1 |
+| 미노타우르스 | 3~5 (엘리트) | HP·공격 모두 높음 | 30/9/1 |
+| 드래곤 | 5 (최종보스) | 3페이즈 전환 | 70/9/2 |
 
-### 순수 함수 목록 및 시그니처
+### 7.3 드래곤 보스 3페이즈 (Cycle 2 패턴 재활용)
+| 페이즈 | HP 구간 | 행동 |
+|--------|---------|------|
+| Phase 1 | 100%~66% | 기본 공격 (ATK 9) |
+| Phase 2 | 66%~33% | 공격력 ×1.5 + 플레이어 방어 슬롯 1개 무효화 |
+| Phase 3 | 33%~0% | 공격력 ×2.0 + 매 턴 2HP 자가 회복 |
 
-| 함수명 | 파라미터 | 반환 | 설명 |
-|--------|----------|------|------|
-| `checkCircleCollision(a, b)` | {x,y,r}, {x,y,r} | {hit, overlap, nx, ny} | 원-원 충돌 판정 |
-| `resolveCollision(a, b, normal)` | fruit, fruit, {nx,ny} | void (a,b 직접 수정) | 탄성 충돌 응답 |
-| `checkWallCollision(fruit, walls)` | {x,y,r,vx,vy}, {l,r,b} | void (fruit 직접 수정) | 벽 충돌 처리 |
-| `findMergePairs(fruits)` | fruit[] | [indexA, indexB][] | 합체 가능 쌍 탐색 |
-| `calcMergeScore(level, chainIdx)` | number, number | number | 합체 점수 계산 |
-| `getDropFruitLevel(score)` | number | number (0~4) | 점수 기반 출현 과일 결정 |
-| `isAboveDeadline(fruit, deadlineY)` | {y,r}, number | boolean | 데드라인 초과 여부 |
-| `clampDropX(x, radius, walls)` | number, number, {l,r} | number | 드롭 X좌표 클램프 |
-| `getBestScore()` | - | number | localStorage 읽기 |
-| `saveBestScore(score)` | number | void | localStorage 저장 |
-| `drawFruit(ctx, fruit, config)` | CanvasCtx, fruit, fruitConfig | void | 과일 렌더링 |
-| `drawContainer(ctx, walls)` | CanvasCtx, wallConfig | void | 용기 렌더링 |
-| `createParticles(x, y, color, count)` | number, number, string, number | particle[] | 파티클 배열 생성 |
-
-> **전역 변수 직접 참조 금지**: 모든 함수는 파라미터로만 데이터를 수신. `gameState` 등 전역 상태는 게임 루프(`update`, `render`)에서만 참조하고, 하위 함수에는 필요한 값만 전달.
-
----
-
-## 11. 구현 검증 체크리스트
-
-### 11.1 필수 게이트 (리뷰 제출 전 확인)
-
-- [ ] **G1**: `games/fruits-merge/index.html` 파일이 존재한다
-- [ ] **G2**: 브라우저에서 로드 시 콘솔 에러 0건
-- [ ] **G3**: `games/fruits-merge/assets/` 디렉토리가 존재하지 않는다
-- [ ] **G4**: 코드 내 `confirm(`, `alert(`, `prompt(` 호출 0건
-- [ ] **G5**: 코드 내 `setTimeout`, `setInterval` 호출 0건
-- [ ] **G6**: 코드 내 `fetch(`, `new Image(`, `.svg`, `assets/` 문자열 0건
-- [ ] **G7**: 코드 내 `Google Fonts`, `@import`, `<link rel="stylesheet"` 외부 리소스 0건
-- [ ] **G8**: 모든 `let`/`const` 선언이 첫 사용 이전에 위치
-- [ ] **G9**: 모든 터치/클릭 영역이 최소 48×48px
-- [ ] **G10**: `try-catch`로 `localStorage`, `AudioContext` 래핑
-
-### 11.2 CONFIG 수치 정합성 검증 테이블
-
-| 기획서 항목 | 기획서 값 | 코드 내 위치 (예상) | 일치 여부 |
-|------------|----------|-------------------|----------|
-| GRAVITY | 980 | CONFIG.GRAVITY | [ ] |
-| RESTITUTION | 0.3 | CONFIG.RESTITUTION | [ ] |
-| FRICTION | 0.1 | CONFIG.FRICTION | [ ] |
-| DAMPING | 0.98 | CONFIG.DAMPING | [ ] |
-| MAX_VELOCITY | 800 | CONFIG.MAX_VELOCITY | [ ] |
-| SUBSTEPS | 3 | CONFIG.SUBSTEPS | [ ] |
-| WALL_RESTITUTION | 0.2 | CONFIG.WALL_RESTITUTION | [ ] |
-| DROP_COOLDOWN | 500 | CONFIG.DROP_COOLDOWN | [ ] |
-| DEADLINE_GRACE | 3000 | CONFIG.DEADLINE_GRACE | [ ] |
-| MOVE_SPEED | 300 | CONFIG.MOVE_SPEED | [ ] |
-| 체리 반지름 | 12 | FRUITS[0].radius | [ ] |
-| 딸기 반지름 | 16 | FRUITS[1].radius | [ ] |
-| 포도 반지름 | 22 | FRUITS[2].radius | [ ] |
-| 귤 반지름 | 28 | FRUITS[3].radius | [ ] |
-| 오렌지 반지름 | 34 | FRUITS[4].radius | [ ] |
-| 사과 반지름 | 40 | FRUITS[5].radius | [ ] |
-| 배 반지름 | 48 | FRUITS[6].radius | [ ] |
-| 복숭아 반지름 | 56 | FRUITS[7].radius | [ ] |
-| 파인애플 반지름 | 64 | FRUITS[8].radius | [ ] |
-| 멜론 반지름 | 72 | FRUITS[9].radius | [ ] |
-| 수박 반지름 | 82 | FRUITS[10].radius | [ ] |
-| 수박 합체 보너스 | 100 | WATERMELON_BONUS | [ ] |
-| 연쇄 보너스 배수 | ×1.5 | CHAIN_MULTIPLIER | [ ] |
-
-### 11.3 기능 존재 검증
-
-- [ ] 타이틀 화면 표시 + 시작 입력 반응
-- [ ] 드롭 위치 좌우 이동 (키보드/마우스/터치 각각)
-- [ ] 과일 드롭 + 중력 낙하
-- [ ] 과일 간 충돌 + 분리
-- [ ] 벽 충돌 + 반사
-- [ ] 같은 과일 합체 + 다음 단계 생성
-- [ ] 연쇄 합체 동작
-- [ ] 합체 파티클 효과
-- [ ] 합체 사운드 (주파수 상승)
-- [ ] 데드라인 3초 유예 + 게임 오버
-- [ ] 데드라인 경고 시각 효과
-- [ ] NEXT 과일 미리보기
-- [ ] 점수 표시 + 최고 점수 저장/로드
-- [ ] 일시정지/재개
-- [ ] 게임 오버 화면 + 재시작/타이틀 버튼
-- [ ] 드롭 쿨다운 0.5초
-- [ ] 점수 구간별 드롭 과일 확률 변화
-- [ ] DPR 대응 (고해상도 Canvas)
-- [ ] 반응형 스케일링 (세로형 비율 유지)
+### 7.4 재굴림 시스템
+- **턴당 1회**, **층당 2회** 재굴림 가능
+- 재굴림 버튼에 잔여 횟수 표시 (예: "재굴림 (1/2)")
+- 재굴림 시 모든 미배치 주사위 재굴림
 
 ---
 
-## 12. 구현 완료 스모크 테스트 (Cycle 13 F1 대응)
+## §8. 시각적 렌더링 원칙 (F6 반영)
 
-리뷰 제출 전 아래 5개 항목을 **반드시** 확인:
+### 100% Canvas 코드 드로잉 — 에셋 제로
+- **assets/ 디렉토리 절대 생성 금지**
+- **외부 파일 로드 0건**: `fetch`, `new Image()`, `XMLHttpRequest` 사용 금지
+- **Google Fonts 등 외부 리소스 0건**
+- 모든 시각 요소: Canvas API (`fillRect`, `arc`, `lineTo`, `fillText` 등)
+- 배경 텍스처: offscreen Canvas 1회 렌더 → `drawImage` 캐시 재사용
 
+### 금지 패턴 자동 grep 검증
 ```
-1. [ ] games/fruits-merge/index.html 파일이 물리적으로 존재
-2. [ ] 브라우저에서 직접 열어 게임 화면이 표시됨
-3. [ ] 개발자 도구 콘솔에 에러 0건
-4. [ ] 과일 드롭 → 낙하 → 합체 기본 루프가 동작
-5. [ ] games/fruits-merge/assets/ 디렉토리가 존재하지 않음
-```
-
-> **이 5개 항목 중 하나라도 FAIL이면 리뷰 제출 불가.**
-
----
-
-## 13. 사이드바 & GameCard 메타데이터
-
-### 사이드바 표시 정보
-
-```yaml
-game:
-  title: "프루츠 머지"
-  description: "같은 과일을 합체시켜 수박을 만들어라! 물리 기반 머지 퍼즐."
-  genre: ["puzzle", "casual"]
-  playCount: 0
-  rating: 0
-  controls:
-    - "마우스 좌우: 드롭 위치 이동"
-    - "클릭/탭: 과일 드롭"
-    - "←→ / A/D: 키보드 이동"
-    - "Space/↓: 키보드 드롭"
-    - "P / ESC: 일시정지"
-  tags:
-    - "#머지"
-    - "#퍼즐"
-    - "#물리"
-    - "#수박게임"
-    - "#캐주얼"
-  addedAt: "2026-03-21"
-  version: "1.0.0"
-```
-
-### GameCard 표시
-
-```yaml
-thumbnail: "(Canvas 기반 4:3 스크린샷 또는 서버사이드 생성)"
-title: "프루츠 머지"
-description: "같은 과일을 합체시켜 수박을 만들어라! 물리 기반 머지 퍼즐."
-genre_badges: ["puzzle", "casual"]  # 최대 2개
-playCount: "0"  # 1000 이상 시 "1.2k" 형식
-addedAt_new: true  # 7일 이내이므로 "NEW" 배지 표시
-featured: false
+❌ fetch(            ❌ new Image(         ❌ XMLHttpRequest
+❌ assets/           ❌ .svg              ❌ .png
+❌ feGaussianBlur    ❌ Google Fonts       ❌ @import url
+❌ innerHTML         ❌ eval(              ❌ confirm(
+❌ alert(            ❌ setTimeout(  (상태전환/사운드 용도로 사용 시)
 ```
 
 ---
 
-## 14. 코더 참고 — 초기화 순서 (TDZ 방지, F14 대응)
+## §9. 사운드 시스템 (F2 반영)
 
+### Web Audio API 전용 — setTimeout 0건
 ```javascript
-// === 1. 상수 & CONFIG 선언 ===
-const CONFIG = { ... };
-const FRUITS = [ ... ];
+class SoundManager {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+  }
+  init() {
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { console.warn('Web Audio unavailable'); }
+  }
+  play(type, startOffset = 0) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime + startOffset;
+    // oscillator.start(t) / oscillator.stop(t + duration) ← 네이티브 스케줄링
+  }
+}
+```
 
-// === 2. 전역 변수 선언 ===
-let canvas, ctx;
-let gameState = 'TITLE';
-let fruits = [];
-let particles = [];
-let score = 0;
-let bestScore = 0;
-let dropX, currentFruit, nextFruitLevel;
-let dropCooldown = 0;
-let deadlineTimer = 0;
-let audioCtx = null;
+### 사운드 목록
+| 이벤트 | 파형 | 주파수 | 길이 | 스케줄링 |
+|--------|------|--------|------|----------|
+| 주사위 굴림 | noise(filtered) | 200~800Hz sweep | 0.3s | `t + 0` |
+| 주사위 배치 | sine | C4 (261Hz) | 0.1s | `t + 0` |
+| 공격 히트 | sawtooth | E3→C3 sweep down | 0.15s | `t + 0` |
+| 방어 블록 | triangle | G4 (392Hz) | 0.1s | `t + 0` |
+| 회복 | sine | C4→E4→G4 | 0.3s | `t + 0 / +0.1 / +0.2` |
+| 보스 등장 | sawtooth | C2 (65Hz) 진동 | 0.5s | `t + 0` |
+| 층 클리어 | sine | C4-E4-G4-C5 아르페지오 | 0.6s | `t + 0 / +0.15 / +0.3 / +0.45` |
+| 게임 오버 | triangle | C3→A2 하행 | 0.5s | `t + 0` |
+| 승리 팡파레 | sine+triangle | C4-E4-G4-C5 화음 | 1.0s | `t + 0` (동시) |
+| 버튼 클릭 | sine | A4 (440Hz) | 0.05s | `t + 0` |
 
-// === 3. 순수 함수 정의 ===
-function checkCircleCollision(a, b) { ... }
-// ... (§10의 모든 함수)
+---
 
-// === 4. 게임 루프 함수 정의 ===
-function update(dt) { ... }
-function render() { ... }
-function gameLoop(timestamp) { ... }
+## §10. 순수 함수 설계 (F12 반영)
 
-// === 5. 이벤트 리스너 등록 ===
-// (모든 변수 선언 완료 후)
+> 모든 게임 로직 함수는 파라미터를 통해 데이터를 수신. 전역 상태 직접 참조 금지.
 
-// === 6. 초기화 & 시작 ===
-function init() {
-  canvas = document.getElementById('gameCanvas');
-  ctx = canvas.getContext('2d');
-  resizeCanvas();
-  bestScore = getBestScore();
+| # | 함수명 | 파라미터 | 반환값 | 설명 |
+|---|--------|----------|--------|------|
+| 1 | `rollDice(dice)` | `{type, minVal, maxVal}` | `number` | 단일 주사위 굴림 |
+| 2 | `rollAllDice(diceArray)` | `Dice[]` | `number[]` | 전체 주사위 굴림 |
+| 3 | `resolveBattle(slots, enemy, player)` | 슬롯 배치 정보, 적, 플레이어 | `{enemyDmg, playerDmg, healAmt, enemyDead, playerDead}` | 전투 해결 |
+| 4 | `getEnemyStats(floor, roomIdx, isElite, isBoss)` | 숫자 인자들 | `{hp, atk, def}` | 적 스탯 |
+| 5 | `getEnemyAction(enemy, floor, bossPhase)` | 적, 층, 보스 페이즈 | `{atk, special}` | 적 행동 결정 |
+| 6 | `upgradeDice(dice, amount)` | 주사위, 증가량 | `Dice` (새 객체) | 주사위 업그레이드 |
+| 7 | `generateFloor(floorNum)` | 층 번호 | `Room[]` | 층 데이터 생성 |
+| 8 | `calcScore(stats)` | `{floors, kills, damage, bosses}` | `number` | 점수 계산 |
+| 9 | `hitTest(x, y, rect)` | 좌표, `{x,y,w,h}` | `boolean` | 터치/클릭 충돌 |
+| 10 | `getBossPhase(hp, maxHp)` | HP 수치 | `1\|2\|3` | 보스 페이즈 |
+| 11 | `canPlaceDice(diceType, slotType)` | 종류 2개 | `boolean` | 배치 가능 여부 |
+| 12 | `calcRerollsLeft(used, maxPerFloor)` | 사용/최대 | `number` | 잔여 재굴림 |
+
+---
+
+## §11. 점수 시스템
+
+### 11.1 점수 계산
+```javascript
+function calcScore(stats) {
+  return stats.floors * 200     // 층 클리어
+       + stats.kills * 50       // 적 처치
+       + stats.damage * 2       // 총 데미지
+       + stats.bosses * 500     // 보스 처치 보너스
+       + (stats.floors >= 5 ? 3000 : 0); // 완주 보너스
+}
+```
+
+| 요소 | 점수 |
+|------|------|
+| 층 클리어 | +200 / 층 |
+| 적 처치 | +50 / 마리 |
+| 보스 처치 | +500 / 마리 (별도 보너스) |
+| 총 데미지 | +2 / 데미지 |
+| 5층 완주 보너스 | +3000 |
+
+### 11.2 기록 저장
+- `localStorage`에 최고 점수 + 최고 도달 층 + 총 플레이 횟수 저장
+- try-catch 래핑 (iframe sandbox 대응)
+- **판정 먼저, 저장 나중에** (Cycle 2 B4 교훈)
+
+---
+
+## §12. 구현 가이드라인 (platform-wisdom 반영)
+
+### 12.1 초기화 순서 체크리스트 (F3, F5)
+- [ ] `CONFIG` 상수가 파일 최상단에 선언
+- [ ] `let canvas, ctx` 선언이 모든 함수 정의보다 앞에 위치
+- [ ] `canvas = document.getElementById(...)` 는 `init()` 내부에서만 실행
+- [ ] 모든 `addEventListener`는 `init()` 내부에서만 호출
+- [ ] `window.addEventListener('load', init)` 가 유일한 즉시 실행 코드
+
+### 12.2 TweenManager 안전 규칙
+- `clearImmediate()` 사용: `resetGame()`, `goToTitle()` 등 즉시 정리 필요 시
+- `cancelAll()` 사용: 일반적인 상태 전환 시 (deferred)
+- **cancelAll 직후 add 금지** — clearImmediate 후 add로 대체 (Cycle 4 B1 방지)
+
+### 12.3 터치 타겟 강제 적용 (F1, F4)
+```javascript
+// 모든 버튼 렌더링에서 직접 참조:
+const btnH = CONFIG.MIN_TOUCH_TARGET; // 48px — 선언-구현 괴리 원천 차단
+```
+
+### 12.4 게임 루프 try-catch (F13)
+```javascript
+function gameLoop(ts) {
+  try { /* update + render */ }
+  catch(e) { console.error('[GameLoop]', e); }
   requestAnimationFrame(gameLoop);
 }
-window.addEventListener('load', init);
 ```
 
-> **절대 규칙**: `let`/`const` 선언이 해당 변수를 사용하는 모든 함수 호출보다 위에 위치해야 한다.
+### 12.5 setTimeout 금지 규칙 (F2, F9)
+- 상태 전환: tween onComplete 콜백으로만
+- 사운드 시퀀싱: `ctx.currentTime + offset` 네이티브 스케줄링으로만
+- **코드 내 setTimeout 0건이 리뷰 PASS 조건**
+
+### 12.6 에셋 제로 원칙 (F6)
+- assets/ 디렉토리 생성 금지. 빈 index.html에서 시작
+- 모든 시각: Canvas API. 모든 사운드: Web Audio API 절차적 생성
+
+### 12.7 스모크 테스트 게이트 (F15)
+리뷰 제출 전 필수 3단계:
+1. `index.html` 파일 존재
+2. 브라우저 로드 시 화면 렌더링 성공 (타이틀 화면 표시)
+3. 콘솔 에러 0건
+
+### 12.8 수정 회귀 방지 (F16)
+수정 후 전체 플로우 회귀 테스트:
+```
+TITLE → DUNGEON_MAP → DICE_ROLL → DICE_PLACE → BATTLE_RESOLVE
+  → (방 클리어 후) DUNGEON_MAP → ... → REWARD → DUNGEON_MAP
+  → GAME_OVER (HP 0)
+  → VICTORY (5층 클리어)
+  → PAUSED → 재개 / 타이틀
+```
 
 ---
 
-_프루츠 머지 기획서 v1.0 | 사이클 #14 | 2026-03-21_
-_이전 13사이클 누적 피드백 15건 반영 완료_
+## §13. 수치 정합성 검증 테이블 (F11)
+
+### 13.1 CONFIG 수치 (30개)
+
+| 상수명 | 기획값 | 용도 |
+|--------|--------|------|
+| `MIN_TOUCH_TARGET` | `48` | 최소 터치 영역 px |
+| `PLAYER_MAX_HP` | `30` | 플레이어 최대 HP |
+| `INITIAL_DICE_COUNT` | `3` | 초기 주사위 수 |
+| `MAX_DICE_COUNT` | `6` | 최대 주사위 수 |
+| `REROLLS_PER_FLOOR` | `2` | 층당 재굴림 횟수 |
+| `REROLLS_PER_TURN` | `1` | 턴당 재굴림 최대 |
+| `TOTAL_FLOORS` | `5` | 총 던전 층수 |
+| `ROLL_ANIM_DURATION` | `0.6` | 굴림 애니메이션 초 |
+| `BATTLE_ANIM_DURATION` | `1.5` | 전투 연출 초 |
+| `TRANSITION_DURATION` | `0.3` | 화면 전환 페이드 초 |
+| `DICE_SIZE` | `64` | 주사위 렌더링 px |
+| `ATK_DICE_MIN` | `1` | 공격 주사위 초기 최소 |
+| `ATK_DICE_MAX` | `4` | 공격 주사위 초기 최대 |
+| `DEF_DICE_MIN` | `1` | 방어 주사위 초기 최소 |
+| `DEF_DICE_MAX` | `3` | 방어 주사위 초기 최대 |
+| `HEAL_DICE_MIN` | `1` | 회복 주사위 초기 최소 |
+| `HEAL_DICE_MAX` | `2` | 회복 주사위 초기 최대 |
+| `WILD_DICE_MIN` | `1` | 만능 주사위 초기 최소 |
+| `WILD_DICE_MAX` | `3` | 만능 주사위 초기 최대 |
+| `WILD_BONUS` | `1` | 만능 보너스 |
+| `UPGRADE_SMALL` | `1` | 면 업그레이드 소 |
+| `UPGRADE_BIG` | `2` | 면 업그레이드 대 |
+| `SCORE_FLOOR` | `200` | 층 클리어 점수 |
+| `SCORE_ENEMY` | `50` | 적 처치 점수 |
+| `SCORE_BOSS` | `500` | 보스 처치 보너스 |
+| `SCORE_DAMAGE` | `2` | 데미지당 점수 |
+| `SCORE_CLEAR_BONUS` | `3000` | 완주 보너스 |
+| `BOSS_PHASE2_HP` | `0.66` | Phase 2 전환 HP 비율 |
+| `BOSS_PHASE3_HP` | `0.33` | Phase 3 전환 HP 비율 |
+| `BOSS_P2_ATK_MUL` | `1.5` | Phase 2 공격 배율 |
+| `BOSS_P3_ATK_MUL` | `2.0` | Phase 3 공격 배율 |
+| `BOSS_P3_HEAL` | `2` | Phase 3 자가 회복 |
+| `POPUP_POOL_SIZE` | `20` | 팝업 텍스트 풀 크기 |
+| `PARTICLE_POOL_SIZE` | `50` | 파티클 풀 크기 |
+
+### 13.2 변수 사용처 검증 (F17)
+
+| 변수명 | 선언 | 갱신 위치 | 참조 위치 |
+|--------|------|-----------|-----------|
+| `transitioning` | 상단 | beginTransition(), enterState() | beginTransition() 가드 |
+| `currentFloor` | init() | enterState(DUNGEON_MAP), nextFloor() | getEnemyStats(), generateFloor(), render |
+| `currentRoom` | init() | nextRoom(), enterState(DUNGEON_MAP) | getEnemyStats(), render, 방 진행 판정 |
+| `rerollsUsedFloor` | enterState(DUNGEON_MAP) | reroll() | calcRerollsLeft(), 재굴림 버튼 render |
+| `rerollsUsedTurn` | enterState(DICE_ROLL) | reroll() | 재굴림 가능 판정 |
+| `placedSlots` | enterState(DICE_PLACE) | placeDice(), removeDice() | canResolve(), render, resolveBattle() |
+| `player.hp` | init(), resetGame() | resolveBattle() 결과 적용 | render, GAME_OVER 판정 |
+| `enemy` | enterState(DICE_ROLL) | resolveBattle() 결과 적용 | render, 적 사망 판정 |
+| `score` | init(), resetGame() | 전투 후 calcScore() | render, saveBest() |
+| `selectedDice` | DICE_PLACE 입력 | 주사위 클릭/탭 | 슬롯 배치 시 참조 |
+| `diceResults` | enterState(DICE_ROLL) | rollAllDice() | render, 배치 시 값 참조 |
+
+---
+
+## §14. 게임 페이지 사이드바 메타데이터
+
+```json
+{
+  "id": "mini-dungeon-dice",
+  "title": "미니 던전 다이스",
+  "description": "주사위를 굴려 던전을 탐험하는 턴 기반 로그라이트! 공격·방어·회복 슬롯에 주사위를 배치하고, 5층 보스를 처치하세요.",
+  "genre": ["action", "strategy"],
+  "playCount": 0,
+  "rating": 0,
+  "controls": [
+    "1~6: 주사위 선택",
+    "Q/W/E: 공격/방어/회복 슬롯 배치",
+    "Space: 전투 해결",
+    "R: 재굴림 (층당 2회)",
+    "P/Esc: 일시정지",
+    "마우스: 클릭/드래그로 주사위 배치",
+    "터치: 탭/드래그로 주사위 배치"
+  ],
+  "tags": ["#로그라이트", "#주사위", "#턴제", "#던전", "#전략"],
+  "addedAt": "2026-03-21",
+  "version": "1.0.0",
+  "featured": true
+}
+```
+
+---
+
+## §15. 코드 리뷰 체크리스트 (구현 완료 후 자체 검증)
+
+### 15.1 금지 패턴 (0건 목표)
+- [ ] `assets/` 디렉토리 존재 → 없어야 함
+- [ ] `fetch(`, `new Image(`, `XMLHttpRequest` → 0건
+- [ ] `.svg`, `.png`, `@import url` → 0건
+- [ ] `feGaussianBlur` → 0건
+- [ ] `setTimeout(` (상태전환/사운드) → 0건
+- [ ] `alert(`, `confirm(`, `innerHTML`, `eval(` → 0건
+
+### 15.2 필수 패턴 (전항 PASS 목표)
+- [ ] `try-catch` 게임 루프 래핑
+- [ ] `CONFIG.MIN_TOUCH_TARGET` 선언 + 모든 버튼에서 직접 참조
+- [ ] `beginTransition()` 경유 상태 전환 (PAUSED 예외)
+- [ ] `transitioning` 가드 플래그
+- [ ] `enterState()` 일원화
+- [ ] `clearImmediate()` 사용 (resetGame/goToTitle)
+- [ ] `ctx.currentTime + offset` 사운드 스케줄링
+- [ ] `passive: false` + `touch-action: none` 터치 설정
+- [ ] DPR 대응 (`canvas.width = w * dpr`)
+- [ ] localStorage try-catch 래핑
+- [ ] 판정 먼저, 저장 나중에 (saveBest)
+
+### 15.3 수치 정합성 (§13.1 전항 일치)
+- [ ] CONFIG 상수 34개 기획서 대조
+
+### 15.4 순수 함수 전수 검증 (§10, 12개)
+- [ ] 전역 변수 직접 참조 0건
+
+### 15.5 초기화 순서 (§12.1)
+- [ ] 이벤트 리스너 init() 내부 등록
+- [ ] let/const 선언 → 최초 사용 이전 위치
+- [ ] canvas 할당 후에만 canvas.addEventListener
+
+### 15.6 스모크 테스트 (§12.7)
+- [ ] index.html 존재
+- [ ] 페이지 로드 성공 (타이틀 화면 렌더링)
+- [ ] 콘솔 에러 0건
