@@ -1,123 +1,100 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
   <defs>
-    <linearGradient id="tBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0a0520"/>
-      <stop offset="50%" stop-color="#1a0a2e"/>
-      <stop offset="100%" stop-color="#2a1a4e"/>
+    <linearGradient id="tSkyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a1e"/>
+      <stop offset="50%" stop-color="#121230"/>
+      <stop offset="100%" stop-color="#1a1a3e"/>
     </linearGradient>
     <linearGradient id="tPlayerGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#33ffdd"/>
-      <stop offset="100%" stop-color="#00cc99"/>
+      <stop offset="100%" stop-color="#00ccaa"/>
     </linearGradient>
-    <linearGradient id="tSpikeGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ff5588"/>
-      <stop offset="100%" stop-color="#cc0033"/>
+    <linearGradient id="tGroundGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a3a5c"/>
+      <stop offset="100%" stop-color="#2a2a44"/>
     </linearGradient>
+    <linearGradient id="tSpikeGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#8b0000"/>
+      <stop offset="100%" stop-color="#ff3366"/>
+    </linearGradient>
+    <radialGradient id="tNebula1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6c3cf7" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#6c3cf7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tNebula2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00ffcc" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#00ffcc" stop-opacity="0"/>
+    </radialGradient>
     <radialGradient id="tGemGlow" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffd700" stop-opacity="0.6"/>
       <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="tTitleGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#33ffdd"/>
-      <stop offset="100%" stop-color="#00ffcc"/>
-    </linearGradient>
     <filter id="tGlow">
       <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tSoftGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
     <filter id="tTextGlow">
       <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="tSoftGlow">
-      <feGaussianBlur stdDeviation="1.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <!-- 배경 -->
-  <rect width="400" height="300" fill="url(#tBg)"/>
-  <!-- 별 -->
-  <g opacity="0.6">
-    <circle cx="30" cy="25" r="1.2" fill="#ffffff"/>
-    <circle cx="80" cy="50" r="0.8" fill="#ccddff"/>
-    <circle cx="150" cy="20" r="1" fill="#ffffff"/>
-    <circle cx="250" cy="35" r="1.2" fill="#aaeeff"/>
-    <circle cx="320" cy="15" r="0.8" fill="#ffffff"/>
-    <circle cx="370" cy="45" r="1" fill="#ddccff"/>
-    <circle cx="190" cy="60" r="0.8" fill="#ffffff"/>
-    <circle cx="55" cy="80" r="1" fill="#ffffff"/>
-    <circle cx="350" cy="70" r="0.8" fill="#ffffff"/>
+  <rect width="400" height="300" fill="url(#tSkyGrad)"/>
+  <ellipse cx="100" cy="80" rx="120" ry="60" fill="url(#tNebula1)"/>
+  <ellipse cx="320" cy="120" rx="100" ry="50" fill="url(#tNebula2)"/>
+  <g opacity="0.8">
+    <circle cx="30" cy="25" r="1.5" fill="#ffffff"/>
+    <circle cx="85" cy="45" r="1" fill="#ccddff"/>
+    <circle cx="150" cy="20" r="1.8" fill="#ffffff"/>
+    <circle cx="220" cy="55" r="1" fill="#aabbdd"/>
+    <circle cx="290" cy="30" r="1.5" fill="#ffffff"/>
+    <circle cx="350" cy="50" r="1" fill="#ccddff"/>
+    <circle cx="380" cy="15" r="1.2" fill="#ffffff"/>
+    <circle cx="60" cy="70" r="1" fill="#aabbdd"/>
+    <circle cx="260" cy="75" r="1.3" fill="#ffffff"/>
   </g>
-  <!-- 지형 플랫폼들 -->
+  <path d="M0 220 Q40 190 80 200 Q120 170 160 185 Q200 160 240 175 Q280 155 320 170 Q360 150 400 165 L400 300 L0 300 Z" fill="#1e1e40" opacity="0.5"/>
+  <path d="M0 220 Q40 190 80 200 Q120 170 160 185 Q200 160 240 175 Q280 155 320 170 Q360 150 400 165" fill="none" stroke="#6c3cf7" stroke-width="0.8" opacity="0.3"/>
   <g>
-    <!-- 메인 플랫폼 -->
-    <rect x="60" y="210" width="120" height="20" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
-    <rect x="220" y="180" width="80" height="20" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
-    <rect x="120" y="150" width="60" height="15" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
-    <rect x="300" y="220" width="90" height="20" rx="2" fill="#3a3a5c" stroke="#4a4a7c" stroke-width="0.5"/>
-    <!-- 하단 지면 -->
-    <rect x="0" y="260" width="400" height="40" fill="#3a3a5c"/>
-    <rect x="0" y="258" width="400" height="4" fill="#4a4a7c" opacity="0.5"/>
+    <rect x="40" y="230" width="120" height="20" rx="3" fill="url(#tGroundGrad)" stroke="#5a5a7c" stroke-width="0.8"/>
+    <rect x="200" y="210" width="80" height="20" rx="3" fill="url(#tGroundGrad)" stroke="#5a5a7c" stroke-width="0.8"/>
+    <rect x="310" y="190" width="90" height="20" rx="3" fill="url(#tGroundGrad)" stroke="#5a5a7c" stroke-width="0.8"/>
+    <rect x="0" y="270" width="400" height="30" fill="url(#tGroundGrad)" stroke="#5a5a7c" stroke-width="0.5"/>
   </g>
-  <!-- 가시 함정 -->
-  <g filter="url(#tSoftGlow)">
-    <path d="M230 260 L235 245 L240 260 Z" fill="url(#tSpikeGrad)"/>
-    <path d="M240 260 L245 245 L250 260 Z" fill="url(#tSpikeGrad)"/>
-    <path d="M250 260 L255 245 L260 260 Z" fill="url(#tSpikeGrad)"/>
-    <path d="M140 210 L145 198 L150 210 Z" fill="url(#tSpikeGrad)"/>
-    <path d="M150 210 L155 198 L160 210 Z" fill="url(#tSpikeGrad)"/>
-  </g>
-  <!-- 보석 -->
   <g filter="url(#tGlow)">
-    <circle cx="260" cy="165" r="8" fill="url(#tGemGlow)"/>
-    <path d="M260 158 L264 165 L260 172 L256 165 Z" fill="#ffd700" stroke="#ffee88" stroke-width="0.5"/>
-    <path d="M260 158 L256 165 L260 163 L264 165 Z" fill="#ffee88" opacity="0.4"/>
+    <path d="M170 270 L175 258 L180 270 Z" fill="url(#tSpikeGrad)"/>
+    <path d="M180 270 L185 258 L190 270 Z" fill="url(#tSpikeGrad)"/>
+    <path d="M190 270 L195 258 L200 270 Z" fill="url(#tSpikeGrad)"/>
   </g>
-  <!-- 플레이어 (점프 중 포즈) -->
   <g filter="url(#tGlow)">
-    <!-- 잔상 트레일 (대시 이펙트) -->
-    <rect x="88" y="188" width="18" height="22" rx="2" fill="#00ffcc" opacity="0.15"/>
-    <rect x="98" y="185" width="18" height="22" rx="2" fill="#00ffcc" opacity="0.25"/>
-    <!-- 플레이어 본체 -->
-    <rect x="110" y="180" width="20" height="25" rx="2" fill="url(#tPlayerGrad)" stroke="#00ffcc" stroke-width="1"/>
-    <!-- 눈 -->
-    <ellipse cx="117" cy="188" rx="2.5" ry="3" fill="#0a0a1a"/>
-    <ellipse cx="123" cy="188" rx="2.5" ry="3" fill="#0a0a1a"/>
-    <ellipse cx="118" cy="187" rx="1.2" ry="1.5" fill="#ffffff"/>
-    <ellipse cx="124" cy="187" rx="1.2" ry="1.5" fill="#ffffff"/>
+    <ellipse cx="240" cy="196" rx="8" ry="8" fill="url(#tGemGlow)"/>
+    <rect x="236" y="192" width="8" height="8" rx="1" fill="#ffd700" transform="rotate(45, 240, 196)" stroke="#ffe066" stroke-width="0.5"/>
   </g>
-  <!-- 골 플래그 -->
-  <g filter="url(#tSoftGlow)">
-    <rect x="360" y="200" width="3" height="60" fill="#aaaaaa"/>
-    <path d="M363 200 L385 208 L363 216 Z" fill="#00ff66" opacity="0.8"/>
-    <path d="M363 200 L374 204 L363 208 Z" fill="#66ff99" opacity="0.5"/>
+  <g filter="url(#tGlow)" transform="translate(120, 195)">
+    <rect x="-20" y="2" width="18" height="24" rx="3" fill="#00ffcc" opacity="0.15"/>
+    <rect x="-12" y="1" width="18" height="24" rx="3" fill="#00ffcc" opacity="0.25"/>
+    <rect x="0" y="0" width="20" height="26" rx="3" fill="url(#tPlayerGrad)" stroke="#00ffcc" stroke-width="1"/>
+    <ellipse cx="7" cy="9" rx="3" ry="3.5" fill="#1a1a2e"/>
+    <ellipse cx="7" cy="9" rx="2" ry="2.5" fill="#ffffff"/>
+    <circle cx="7.5" cy="8.5" r="0.8" fill="#ffffff"/>
+    <ellipse cx="15" cy="9" rx="3" ry="3.5" fill="#1a1a2e"/>
+    <ellipse cx="15" cy="9" rx="2" ry="2.5" fill="#ffffff"/>
+    <circle cx="15.5" cy="8.5" r="0.8" fill="#ffffff"/>
+    <rect x="2" y="25" width="6" height="4" rx="1" fill="#00ccaa"/>
+    <rect x="12" y="25" width="6" height="4" rx="1" fill="#00ccaa"/>
   </g>
-  <!-- 적 (가시 별 형태) -->
-  <g filter="url(#tSoftGlow)" opacity="0.9">
-    <path d="M330 240 L335 230 L340 240 L350 235 L340 244 L350 250 L340 248 L335 258 L330 248 L320 250 L330 244 L320 235 Z"
-          fill="url(#tSpikeGrad)" stroke="#ff6688" stroke-width="0.5"/>
-    <circle cx="335" cy="244" r="4" fill="#1a0a15" stroke="#ff3366" stroke-width="0.5"/>
+  <g filter="url(#tGlow)" transform="translate(350, 168)">
+    <rect x="0" y="0" width="3" height="22" fill="#8fbc8f"/>
+    <path d="M3 0 L20 5 L3 10 Z" fill="#00ff66" opacity="0.8"/>
+    <path d="M3 0 L20 5 L3 10 Z" fill="none" stroke="#00ff66" stroke-width="0.5"/>
   </g>
-  <!-- 제목 텍스트 -->
   <g filter="url(#tTextGlow)">
-    <text x="200" y="55" text-anchor="middle" font-size="28" font-weight="bold" font-family="Arial, sans-serif" fill="url(#tTitleGrad)" stroke="#00ffcc" stroke-width="0.5">
-      미니 플랫포머
-    </text>
+    <text x="200" y="50" text-anchor="middle" font-size="28" font-weight="bold" font-family="Arial, sans-serif" fill="#00ffcc" stroke="#009977" stroke-width="0.5">MINI PLATFORMER</text>
   </g>
-  <!-- 서브 텍스트 -->
-  <text x="200" y="78" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#e0b0ff" opacity="0.8">
-    벽점프 · 대시 · 이중점프로 고대 탑을 돌파하라!
-  </text>
-  <!-- 하단 프레임 라인 -->
-  <rect x="5" y="5" width="390" height="290" rx="5" fill="none" stroke="#00ffcc" stroke-width="1" opacity="0.3"/>
-  <rect x="8" y="8" width="384" height="284" rx="4" fill="none" stroke="#e0b0ff" stroke-width="0.5" opacity="0.15"/>
+  <text x="200" y="72" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#8fbc8f" opacity="0.8">Wall Jump · Dash · Double Jump</text>
+  <line x1="50" y1="290" x2="350" y2="290" stroke="#00ffcc" stroke-width="1" opacity="0.3"/>
+  <line x1="80" y1="293" x2="320" y2="293" stroke="#6c3cf7" stroke-width="0.5" opacity="0.2"/>
 </svg>

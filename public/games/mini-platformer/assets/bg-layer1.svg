@@ -1,78 +1,71 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
   <defs>
     <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0a0520"/>
-      <stop offset="40%" stop-color="#1a0a2e"/>
-      <stop offset="100%" stop-color="#2a1a4e"/>
+      <stop offset="0%" stop-color="#0a0a1e"/>
+      <stop offset="40%" stop-color="#121230"/>
+      <stop offset="100%" stop-color="#1a1a3e"/>
     </linearGradient>
-    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    <radialGradient id="moonGlow" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#e0d8ff"/>
+      <stop offset="40%" stop-color="#b8a8e0"/>
+      <stop offset="100%" stop-color="#1a1a3e" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="nebulaA" cx="30%" cy="40%" r="40%">
-      <stop offset="0%" stop-color="#6633aa" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#6633aa" stop-opacity="0"/>
+    <radialGradient id="nebulaGlow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6c3cf7" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#6c3cf7" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="nebulaB" cx="70%" cy="60%" r="35%">
+    <radialGradient id="nebulaGlow2" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#00ffcc" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#00ffcc" stop-opacity="0"/>
     </radialGradient>
     <filter id="starBlur">
-      <feGaussianBlur stdDeviation="1.2"/>
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="starTiny">
-      <feGaussianBlur stdDeviation="0.5"/>
+    <filter id="moonBlur">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <linearGradient id="mountainFarGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e40"/>
+      <stop offset="100%" stop-color="#141430"/>
+    </linearGradient>
   </defs>
-  <!-- 밤하늘 그라데이션 -->
   <rect width="800" height="600" fill="url(#skyGrad)"/>
-  <!-- 성운 효과 -->
-  <ellipse cx="240" cy="240" rx="300" ry="200" fill="url(#nebulaA)"/>
-  <ellipse cx="560" cy="360" rx="250" ry="180" fill="url(#nebulaB)"/>
-  <!-- 밝은 별들 (글로우) -->
+  <ellipse cx="200" cy="180" rx="200" ry="120" fill="url(#nebulaGlow1)"/>
+  <ellipse cx="620" cy="250" rx="180" ry="100" fill="url(#nebulaGlow2)"/>
+  <ellipse cx="400" cy="100" rx="250" ry="80" fill="url(#nebulaGlow1)" opacity="0.5"/>
+  <g filter="url(#moonBlur)">
+    <circle cx="650" cy="100" r="40" fill="url(#moonGlow)"/>
+    <circle cx="660" cy="90" r="32" fill="#0a0a1e" opacity="0.6"/>
+  </g>
   <g filter="url(#starBlur)">
-    <circle cx="120" cy="80" r="2" fill="#ffffff"/>
-    <circle cx="350" cy="45" r="2.5" fill="#aaddff"/>
-    <circle cx="580" cy="100" r="2" fill="#ffddaa"/>
-    <circle cx="700" cy="180" r="1.8" fill="#ffffff"/>
-    <circle cx="200" cy="300" r="2.2" fill="#ccddff"/>
-    <circle cx="650" cy="400" r="2" fill="#ffccdd"/>
-    <circle cx="100" cy="450" r="1.8" fill="#ffffff"/>
-    <circle cx="450" cy="200" r="2.5" fill="#aaeeff"/>
-    <circle cx="750" cy="50" r="2" fill="#ffffff"/>
-    <circle cx="50" cy="180" r="2.2" fill="#ddccff"/>
+    <circle cx="50" cy="40" r="1.5" fill="#ffffff" opacity="0.9"/>
+    <circle cx="120" cy="80" r="1" fill="#ccddff" opacity="0.7"/>
+    <circle cx="200" cy="30" r="2" fill="#ffffff" opacity="0.8"/>
+    <circle cx="280" cy="110" r="1" fill="#aabbdd" opacity="0.6"/>
+    <circle cx="350" cy="50" r="1.8" fill="#ffffff" opacity="0.9"/>
+    <circle cx="420" cy="90" r="1" fill="#ccddff" opacity="0.5"/>
+    <circle cx="500" cy="25" r="1.5" fill="#ffffff" opacity="0.8"/>
+    <circle cx="560" cy="70" r="1" fill="#aabbdd" opacity="0.7"/>
+    <circle cx="700" cy="45" r="2" fill="#ffffff" opacity="0.9"/>
+    <circle cx="750" cy="130" r="1" fill="#ccddff" opacity="0.6"/>
+    <circle cx="80" cy="160" r="1" fill="#ffffff" opacity="0.5"/>
+    <circle cx="170" cy="200" r="1.5" fill="#aabbdd" opacity="0.7"/>
+    <circle cx="310" cy="170" r="1" fill="#ffffff" opacity="0.6"/>
+    <circle cx="460" cy="150" r="1.8" fill="#ccddff" opacity="0.8"/>
+    <circle cx="590" cy="190" r="1" fill="#ffffff" opacity="0.5"/>
+    <circle cx="680" cy="170" r="1.5" fill="#aabbdd" opacity="0.7"/>
+    <circle cx="30" cy="260" r="1" fill="#ffffff" opacity="0.4"/>
+    <circle cx="240" cy="240" r="1.2" fill="#ccddff" opacity="0.5"/>
+    <circle cx="530" cy="230" r="1" fill="#ffffff" opacity="0.4"/>
+    <circle cx="770" cy="220" r="1.3" fill="#aabbdd" opacity="0.5"/>
   </g>
-  <!-- 작은 별들 (미세한 글로우) -->
-  <g filter="url(#starTiny)" opacity="0.7">
-    <circle cx="30" cy="40" r="0.8" fill="#ffffff"/>
-    <circle cx="90" cy="120" r="0.6" fill="#ffffff"/>
-    <circle cx="170" cy="60" r="0.7" fill="#ccddff"/>
-    <circle cx="250" cy="150" r="0.8" fill="#ffffff"/>
-    <circle cx="310" cy="90" r="0.6" fill="#ffddcc"/>
-    <circle cx="400" cy="120" r="0.7" fill="#ffffff"/>
-    <circle cx="470" cy="60" r="0.8" fill="#ddddff"/>
-    <circle cx="520" cy="170" r="0.6" fill="#ffffff"/>
-    <circle cx="600" cy="50" r="0.7" fill="#ffffff"/>
-    <circle cx="680" cy="140" r="0.8" fill="#ccffee"/>
-    <circle cx="720" cy="80" r="0.6" fill="#ffffff"/>
-    <circle cx="770" cy="120" r="0.7" fill="#ffffff"/>
-    <circle cx="60" cy="350" r="0.6" fill="#ffffff"/>
-    <circle cx="140" cy="400" r="0.7" fill="#ddccff"/>
-    <circle cx="280" cy="350" r="0.8" fill="#ffffff"/>
-    <circle cx="370" cy="420" r="0.6" fill="#ffffff"/>
-    <circle cx="490" cy="300" r="0.7" fill="#ffffff"/>
-    <circle cx="560" cy="450" r="0.8" fill="#ffddee"/>
-    <circle cx="630" cy="320" r="0.6" fill="#ffffff"/>
-    <circle cx="740" cy="380" r="0.7" fill="#ffffff"/>
-    <circle cx="180" cy="520" r="0.8" fill="#ffffff"/>
-    <circle cx="420" cy="530" r="0.6" fill="#ccddff"/>
-    <circle cx="550" cy="560" r="0.7" fill="#ffffff"/>
-    <circle cx="700" cy="520" r="0.8" fill="#ffffff"/>
+  <g filter="url(#starBlur)" opacity="0.8">
+    <path d="M350 50 L352 46 L354 50 L352 54 Z" fill="#ffffff"/>
+    <path d="M200 30 L202 26 L204 30 L202 34 Z" fill="#ffffff"/>
+    <path d="M700 45 L702 41 L704 45 L702 49 Z" fill="#ffffff"/>
   </g>
-  <!-- 먼 산 실루엣 (최원경) -->
-  <path d="M0 550 Q50 480 100 510 Q150 460 200 490 Q260 430 320 470 Q380 420 440 460 Q500 410 560 450 Q620 400 680 440 Q740 410 800 450 L800 600 L0 600 Z"
-        fill="#120828" opacity="0.7"/>
-  <!-- 두 번째 산 실루엣 -->
-  <path d="M0 570 Q80 520 160 540 Q240 500 320 530 Q400 490 480 520 Q560 480 640 510 Q720 470 800 500 L800 600 L0 600 Z"
-        fill="#1a0e35" opacity="0.8"/>
+  <path d="M0 500 Q50 420 100 440 Q150 380 200 400 Q250 350 300 380 Q350 340 400 360 Q450 320 500 350 Q540 310 580 340 Q620 300 660 330 Q700 290 740 320 Q770 300 800 340 L800 600 L0 600 Z" fill="url(#mountainFarGrad)" opacity="0.7"/>
+  <path d="M0 500 Q50 420 100 440 Q150 380 200 400 Q250 350 300 380 Q350 340 400 360 Q450 320 500 350 Q540 310 580 340 Q620 300 660 330 Q700 290 740 320 Q770 300 800 340" fill="none" stroke="#6c3cf7" stroke-width="1" opacity="0.3"/>
 </svg>

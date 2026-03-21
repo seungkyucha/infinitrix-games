@@ -1,36 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
     <linearGradient id="gemGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffee55"/>
+      <stop offset="0%" stop-color="#ffe066"/>
       <stop offset="50%" stop-color="#ffd700"/>
       <stop offset="100%" stop-color="#cc9900"/>
     </linearGradient>
-    <radialGradient id="gemGlow" cx="50%" cy="40%" r="60%">
+    <linearGradient id="gemFacet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffd700" stop-opacity="0.1"/>
+    </linearGradient>
+    <radialGradient id="gemOuter" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffd700" stop-opacity="0.5"/>
       <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
     </radialGradient>
-    <filter id="gGlow">
+    <filter id="gemGlow">
       <feGaussianBlur stdDeviation="1.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <!-- 외부 글로우 -->
-  <path d="M16 2 L20 12 L30 12 L22 19 L25 30 L16 23 L7 30 L10 19 L2 12 L12 12 Z" fill="url(#gemGlow)"/>
-  <!-- 보석/별 본체 — 다이아몬드 형태 (기획서 보석 형태) -->
-  <g filter="url(#gGlow)">
-    <!-- 외곽 별 -->
-    <path d="M16 3 L19 11 L28 11 L21 17 L24 26 L16 21 L8 26 L11 17 L4 11 L13 11 Z"
-          fill="url(#gemGrad)" stroke="#ffee88" stroke-width="0.5"/>
-    <!-- 내부 면 분할 (보석 커팅 느낌) -->
-    <path d="M16 3 L13 11 L16 14 L19 11 Z" fill="#fff8aa" opacity="0.4"/>
-    <path d="M16 14 L21 17 L19 11 Z" fill="#ffdd44" opacity="0.3"/>
-    <path d="M16 14 L11 17 L13 11 Z" fill="#ffcc00" opacity="0.3"/>
-    <path d="M16 21 L21 17 L16 14 L11 17 Z" fill="#ccaa00" opacity="0.2"/>
-    <!-- 하이라이트 -->
-    <circle cx="14" cy="10" r="1.2" fill="#ffffff" opacity="0.6"/>
-    <circle cx="12" cy="8" r="0.6" fill="#ffffff" opacity="0.4"/>
+  <ellipse cx="16" cy="16" rx="14" ry="14" fill="url(#gemOuter)"/>
+  <g filter="url(#gemGlow)" transform="rotate(45, 16, 16)">
+    <rect x="6" y="6" width="20" height="20" rx="2" ry="2" fill="url(#gemGrad)" stroke="#ffd700" stroke-width="1"/>
+    <path d="M6 16 L16 6 L26 16 Z" fill="url(#gemFacet)"/>
+    <path d="M6 16 L16 26 L26 16 Z" fill="#cc9900" opacity="0.3"/>
+    <line x1="6" y1="16" x2="26" y2="16" stroke="#ffe066" stroke-width="0.5" opacity="0.6"/>
+    <line x1="16" y1="6" x2="16" y2="26" stroke="#ffe066" stroke-width="0.5" opacity="0.6"/>
+  </g>
+  <g filter="url(#gemGlow)">
+    <circle cx="12" cy="12" r="1.5" fill="#ffffff" opacity="0.8"/>
+    <path d="M12 9 L12 7 M9 12 L7 12 M12 15 L12 14 M15 12 L14 12" stroke="#ffffff" stroke-width="0.5" opacity="0.5"/>
   </g>
 </svg>

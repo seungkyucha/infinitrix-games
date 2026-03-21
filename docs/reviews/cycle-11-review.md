@@ -1,214 +1,251 @@
----
-game-id: mini-idle-factory
-cycle: 11
-reviewer: claude-qa
-date: 2026-03-21
-review-round: 2
-verdict: APPROVED
-code-review: APPROVED
-browser-test: PASS
----
+# Cycle 11 Review — mini-platformer
 
-# Cycle 11 Re-Review (2회차) — 미니 아이들 팩토리
-
-> **이전 리뷰**: NEEDS_MAJOR_FIX (CRITICAL-01: gridCache TDZ 크래시로 게임 완전 불능)
-> **이번 리뷰**: 이전 지적 사항 수정 여부 중점 검증
+> **리뷰 일시**: 2026-03-21
+> **게임 ID**: `mini-platformer`
+> **파일**: `public/games/mini-platformer/index.html` (2,175줄)
+> **기획서**: `docs/game-specs/cycle-11-spec.md`
 
 ---
 
-## 0. 이전 리뷰 지적 사항 수정 확인
+## 1. 코드 리뷰 판정: **NEEDS_MAJOR_FIX** 🔴
 
-| # | 이슈 | 우선순위 | 수정 여부 | 검증 내용 |
-|---|------|----------|----------|----------|
-| 1 | **CRITICAL-01: gridCache TDZ 크래시** | 🔴 P0 | ✅ **수정됨** | `let gridCache = null;` 선언이 line 129로 이동 → `resizeCanvas()` 호출(line 145) 이전에 위치. 브라우저 테스트에서 모든 변수 정상 초기화 확인, 콘솔 에러 0건 |
-| 2 | MINOR-01: Dead code (중복 탭 분기) | 🟡 P1 | ⚠️ **잔존** | line 857-860 `else` 분기 여전히 존재 — TAB 4값이 모두 상위 조건에서 처리되어 도달 불가. 기능 영향 없음 |
-| 3 | MINOR-02: 프레스티지/통계 탭 생산 중단 | 🟢 P2 | ✅ **수정됨** | line 2069-2081에서 `S.PRESTIGE`/`S.STATS`/`S.SETTINGS` 상태에서도 `updateProduction()` 호출. 브라우저 테스트에서 STATS 탭 체류 중 골드 500000→500029 증가 확인 |
-| 4 | MINOR-03: 스와이프 탭 전환 미구현 | 🟡 P1 | ✅ **수정됨** | line 967-1060에 스와이프 감지 로직 구현. `SWIPE_THRESHOLD=50px`, 400ms 이내 스와이프 → 좌/우 탭 전환. `touchend`에서 dx 판정 |
-| 5 | MINOR-04: 길게 누르기 연속 구매 미구현 | 🟡 P1 | ✅ **수정됨** | line 969-1008에 롱프레스 구현. `LONG_PRESS_MS=500`, `BULK_INTERVAL_MS=80` → 최초 1회 + 추가 9회 = 10회 연속 구매. `clearLongPress()`로 정리 |
-| 6 | MINOR-05: audio.upgrade() setTimeout 사용 | 🟢 P2 | ✅ **수정됨** | `playAt()` 메서드(line 500-515)로 Web Audio API 네이티브 스케줄링 사용. `o.start(startT)`/`o.stop(startT + dur)`으로 setTimeout 완전 제거 |
-
-**수정률: 5/6 (83%) — 미수정 1건은 기능 영향 없는 Dead Code**
+## 2. 브라우저 테스트 판정: **PASS** ✅
 
 ---
 
-## 1. 코드 리뷰 (정적 분석)
+## 3. 코드 리뷰 상세
 
-### 1.1 기능 완성도 체크리스트
+### 3.1 CRITICAL — 기획서 위반 사항
 
-| # | 기능 | 구현 여부 | 런타임 검증 |
-|---|------|----------|------------|
-| 1 | 수동 채굴 (클릭/Space) | ✅ | ✅ 101회 클릭 → ore 100 확인 |
-| 2 | 자동 채굴기 (레벨업) | ✅ | ✅ minerLv 5 → 자동 채굴 동작 확인 |
-| 3 | 제련소 (광석→주괴 변환) | ✅ | ✅ ingot 13.6 확인 (자동 제련) |
-| 4 | 판매소 (주괴→골드) | ✅ | ✅ goldPerSec 1.5 확인 |
-| 5 | 저장소 용량 업그레이드 | ✅ | ✅ storageLv 2 → oreCap 200, ingotCap 100 |
-| 6 | 특수 업그레이드 8종 | ✅ | ✅ CONFIG.SPECIAL_UPGRADES 8개 확인 |
-| 7 | 프레스티지 시스템 | ✅ | ✅ PP 57 계산, 배율 ×1.57 확인 |
-| 8 | 프레스티지 업그레이드 6종 | ✅ | ✅ CONFIG.PRESTIGE_UPGRADES 6개 확인 |
-| 9 | 오프라인 진행 | ✅ | — (코드 확인, 60초 미만이라 배너 미표시) |
-| 10 | localStorage 저장/불러오기 | ✅ | ✅ safeSave→safeLoad 왕복 검증, gold 50000 일치 |
-| 11 | 마일스톤 시스템 | ✅ | ✅ 통계 탭에서 3/10 마일스톤 확인 |
-| 12 | 칭호 시스템 | ✅ | ✅ "신입" 칭호 표시 확인 |
-| 13 | 확인 모달 (프레스티지) | ✅ | — (Canvas 기반 모달, alert/confirm 미사용) |
-| 14 | 탭 UI (생산/업그레이드/프레스티지/통계) | ✅ | ✅ 4개 탭 모두 렌더링 확인 |
-| 15 | 골드러시 (30초 ×2 부스트) | ✅ | — (코드 확인) |
-| 16 | 사운드 시스템 (Web Audio) | ✅ | — (headless 환경, 코드 확인) |
+#### ❌ C1. assets/ 디렉토리 존재 (기획서 §12.1 위반)
 
-### 1.2 게임 루프 & 렌더링
+**기획서 원문 (라인 19)**:
+> "**assets/ 디렉토리 생성 절대 금지.** 모든 비주얼은 Canvas API(fillRect, arc, lineTo, fillText)로 코드 드로잉. SVG/이미지 파일 0개"
 
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| requestAnimationFrame 사용 | ✅ PASS | `gameLoop()` → `requestAnimationFrame(gameLoop)` |
-| delta time 처리 | ✅ PASS | `dt = Math.min((timestamp - lastTime) / 1000, 0.1)` — 0.1초 클램프 |
-| render 함수 시그니처 통일 | ✅ PASS | `render*(ctx, dt, timestamp)` 패턴 |
-| dt 하드코딩 없음 | ✅ PASS | 모든 업데이트/렌더에 dt 파라미터 사용 |
-| setTimeout 상태 전환 금지 | ✅ PASS | 상태 전환에 setTimeout 미사용. 유일한 setTimeout은 길게 누르기(line 1000)로 UI 인터랙션 전용 |
-
-### 1.3 메모리 & 성능
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| 파티클 풀 재사용 | ✅ PASS | `particles.pool` / `particles.active` — acquire/release 패턴 |
-| 그리드 배경 캐싱 | ✅ PASS | `getGridCache()` — 오프스크린 Canvas 캐시, 크기 변경 시만 재생성 |
-| 매 프레임 DOM 접근 없음 | ✅ PASS | 모든 렌더링이 Canvas API |
-| splice 사용 | ⚠️ INFO | `tw.update()`, `particles.update()`에서 역순 splice — 소규모라 성능 영향 미미 |
-
-### 1.4 상태 전환 시스템
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| beginTransition 경유 | ✅ PASS | 모든 전환이 `beginTransition()` 경유 |
-| isTransitioning 가드 | ✅ PASS | `if (isTransitioning) return;` |
-| immediate 모드 | ✅ PASS | `beginTransition(target, {immediate: true})` |
-| CONFIRM_MODAL 상태 | ✅ PASS | Canvas 기반 모달 (alert/confirm 미사용) |
-
-### 1.5 점수 & 저장
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| localStorage 사용 | ✅ PASS | `safeSave()` / `safeLoad()` — try/catch 래핑 |
-| 자동 저장 | ✅ PASS | 30초 간격 (`CONFIG.AUTOSAVE_INTERVAL`) |
-| 저장 키 | ✅ PASS | `'miniIdleFactory_save'` — 게임 고유 키 |
-| 프레스티지 시 저장 | ✅ PASS | `applyPrestige()` 내 `safeSave(gs)` 호출 |
-
-### 1.6 보안
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| eval() 사용 금지 | ✅ PASS | eval/innerHTML/document.write 없음 |
-| XSS 위험 | ✅ PASS | 사용자 입력 없음, Canvas fillText만 사용 |
-| alert/confirm/prompt 금지 | ✅ PASS | 미사용 — Canvas 모달 대체 |
-| 'use strict' | ✅ PASS | 스크립트 최상단 |
-
-### 1.7 에셋 로딩
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| assets/ 디렉토리 | ✅ PASS | 존재하지 않음 — 기획서 §12.1 준수 |
-| manifest.json | ✅ PASS | 없음 (불필요) |
-| 외부 SVG 파일 | ✅ PASS | 없음 — 100% Canvas 코드 드로잉 |
-| 외부 리소스 로딩 | ✅ PASS | fetch/XMLHttpRequest/Image 없음 |
-
----
-
-## 2. 모바일 조작 대응 검사
-
-| # | 항목 | 결과 | 상세 |
-|---|------|------|------|
-| 1 | 터치 이벤트 등록 | ✅ PASS | `touchstart`(line 983), `touchmove`(line 1012), `touchend`(line 1026) 모두 등록 |
-| 2 | passive: false 설정 | ✅ PASS | 3개 터치 이벤트 모두 `{ passive: false }` |
-| 3 | preventDefault() 호출 | ✅ PASS | 3개 터치 핸들러 모두 `e.preventDefault()` 호출 |
-| 4 | 가상 조이스틱/터치 버튼 UI | ⚠️ N/A | 아이들 게임 특성상 조이스틱 불필요 — 터치 탭으로 채굴 + 버튼 탭으로 구매 (적절) |
-| 5 | 터치 타겟 44px 이상 | ✅ PASS | 메인 버튼 `btnH = 44` 이상, 업그레이드 버튼도 충분한 탭 영역 확보 |
-| 6 | 모바일 뷰포트 meta | ✅ PASS | `<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">` |
-| 7 | 스크롤 방지 (touch-action) | ✅ PASS | CSS `body { touch-action: none }` (line 9) |
-| 8 | overflow 처리 | ✅ PASS | CSS `body { overflow: hidden }` (line 9) |
-| 9 | 반응형 레이아웃 | ✅ PASS | `W < 600` 분기로 모바일/데스크톱 레이아웃 전환 |
-| 10 | Canvas 리사이즈 | ✅ PASS | `window.addEventListener('resize', resizeCanvas)` + DPR 대응 |
-| 11 | 키보드 없이 플레이 가능 | ✅ PASS | 모든 기능이 터치/클릭으로 조작 가능 |
-| 12 | 스와이프 탭 전환 | ✅ PASS | **[이전 FAIL → 수정됨]** `touchend`에서 dx≥50px & elapsed<400ms 감지 → 좌/우 탭 전환 (line 1030-1059) |
-| 13 | 길게 누르기 10회 연속 구매 | ✅ PASS | **[이전 FAIL → 수정됨]** 500ms 롱프레스 → 80ms 간격 최대 10회 연속 구매 (line 999-1007) |
-
----
-
-## 3. 브라우저 테스트 (Puppeteer)
-
-### 3.1 테스트 환경
-- Puppeteer Chromium (headless), 뷰포트 400×700 (모바일 시뮬레이션)
-- URL: `file:///C:/Work/InfinitriX/public/games/mini-idle-factory/index.html`
-
-### 3.2 테스트 결과
-
-| # | 항목 | 결과 | 비고 |
-|---|------|------|------|
-| 1 | 페이지 로드 | ✅ PASS | HTML 파싱 성공, Canvas 엘리먼트 존재 |
-| 2 | 콘솔 에러 없음 | ✅ PASS | **[이전 FAIL → 수정됨]** ReferenceError 0건, 콘솔 에러 0건 |
-| 3 | 캔버스 렌더링 | ✅ PASS | **[이전 FAIL → 수정됨]** 타이틀/플레이/프레스티지/통계 모든 화면 정상 렌더링 |
-| 4 | 시작 화면 표시 | ✅ PASS | **[이전 FAIL → 수정됨]** "MINI IDLE FACTORY" 타이틀 + "새 게임" 버튼 + "사운드: ON" 버튼 표시 |
-| 5 | 게임 상태 초기화 | ✅ PASS | **[이전 FAIL → 수정됨]** 모든 변수 정상 초기화 (`allVarsOk: true`) |
-| 6 | 수동 채굴 | ✅ PASS | 클릭 101회 → ore 100 정상 증가 (쿨다운 동작 확인) |
-| 7 | 생산 파이프라인 | ✅ PASS | 채굴→제련→판매 자동 생산 동작 확인 (ore 105, ingot 13.6, goldPerSec 1.5) |
-| 8 | 업그레이드 탭 | ✅ PASS | 채굴기/저장소 업그레이드 카드 렌더링, 비용/효과 표시 |
-| 9 | 프레스티지 탭 | ✅ PASS | PP 계산(57), 배율 표시(×1.57), 프레스티지 실행 버튼 |
-| 10 | 통계 탭 | ✅ PASS | 마일스톤(3/10), 누적 통계, 칭호("신입") 정상 표시 |
-| 11 | localStorage 저장/불러오기 | ✅ PASS | safeSave→safeLoad 왕복 검증 성공 (gold 50000 일치) |
-| 12 | 에셋 로딩 | ✅ PASS | 외부 에셋 0개, assets/ 디렉토리 미존재 |
-| 13 | 탭 전환 중 생산 유지 | ✅ PASS | **[이전 이슈 → 수정됨]** STATS 탭 체류 중 gold 500000→500029 자동 증가 확인 |
-
-### 3.3 스크린샷 검증
-
-| 캡처 | 설명 |
+**현황**: `public/games/mini-platformer/assets/` 디렉토리에 **10개 파일** 존재:
+| 파일 | 용도 |
 |------|------|
-| title-screen | ✅ 타이틀 "MINI IDLE FACTORY" + 한글 "미니 아이들 팩토리" + 새 게임/사운드 버튼 + 그리드 배경 + 파티클 이펙트 |
-| playing-production-tab | ✅ 자원 바(골드/광석/주괴) + 생산 파이프라인(채굴/제련/판매 카드) + 시설 현황(아이콘 + 레벨) |
-| after-mining | ✅ 광석 100/100 만충전 표시, 프로그레스 바 100% |
-| upgrades-tab | ✅ 채굴기 Lv.0/100 + 저장소 Lv.0/50 + 특수 업그레이드 섹션 |
-| prestige-tab | ✅ PP 57, 배율 ×1.57, 프레스티지 실행 버튼, 프레스티지 업그레이드 섹션 |
-| stats-tab | ✅ 마일스톤 3/10(천/만/십만 체크), 누적 통계 7항목, 칭호 "신입" |
+| manifest.json | 에셋 목록 메타데이터 |
+| player.svg | 플레이어 캐릭터 |
+| enemy.svg | 적 캐릭터 (코드에서 미사용) |
+| bg-layer1.svg | 배경 원경 |
+| bg-layer2.svg | 배경 근경 |
+| ui-heart.svg | 생명력 아이콘 (코드에서 미사용) |
+| ui-star.svg | 보석 아이콘 |
+| powerup.svg | 파워업 아이템 (코드에서 미사용) |
+| effect-hit.svg | 충돌 이펙트 |
+| thumbnail.svg | 게임 썸네일 |
 
-### 3.4 변수 접근성 진단 결과
+**코드 참조**: 라인 62~83 — `ASSET_MAP`으로 8개 SVG를 `preloadAssets()`에서 비동기 로드.
+```javascript
+const ASSET_MAP = {
+  player: 'assets/player.svg', enemy: 'assets/enemy.svg',
+  bgLayer1: 'assets/bg-layer1.svg', bgLayer2: 'assets/bg-layer2.svg',
+  uiHeart: 'assets/ui-heart.svg', uiStar: 'assets/ui-star.svg',
+  powerup: 'assets/powerup.svg', effectHit: 'assets/effect-hit.svg'
+};
+```
 
-| 변수 | 상태 | 이전 결과 | 비고 |
-|------|------|----------|------|
-| `CONFIG` | ✅ object | ✅ 동일 | |
-| `gridCache` | ✅ object | ❌ TDZ 에러 | **수정됨** — line 129 선언 |
-| `tw` | ✅ object | ❌ 미초기화 | **수정됨** |
-| `particles` | ✅ object | ❌ 미초기화 | **수정됨** |
-| `state` | ✅ "STATS" | ❌ 미초기화 | **수정됨** |
-| `gs` | ✅ object | ❌ 미초기화 | **수정됨** |
-| `audio` | ✅ object | ❌ 미초기화 | **수정됨** |
-| `lastTime` | ✅ number | ❌ 미초기화 | **수정됨** |
-| `gameLoop` | ✅ function | ✅ 동일 | |
+**완화 요소**: 모든 렌더링 함수(`drawPlayer`, `drawBackground`, `drawGems` 등)에 `if (SPRITES.xxx) { ... } else { /* Canvas fallback */ }` 패턴이 존재하여 **SVG 없이도 게임이 완전히 동작**함.
 
----
+**수정 방법**:
+1. `assets/` 디렉토리 전체 삭제 (thumbnail.svg는 별도 논의)
+2. `ASSET_MAP`, `SPRITES`, `preloadAssets()` 함수 (라인 63~83) 삭제
+3. 렌더링 함수들의 `if (SPRITES.xxx)` 분기 삭제 → fallback 코드만 유지
+4. `drawLoading()` 관련 로직 간소화
 
-## 4. 기타 발견 사항
-
-### INFO-01: Dead Code 잔존 (기능 영향 없음)
-- **위치**: line 857-860
-- **내용**: `else` 분기 — TAB 4값(PRODUCTION/UPGRADES/PRESTIGE/STATS)이 모두 상위 조건에서 처리되어 도달 불가
-- **판단**: 기능·성능 영향 없음. 향후 TAB 추가 시 안전망 역할 가능하므로 제거 불필수
-
-### INFO-02: 길게 누르기에 setTimeout/setInterval 사용
-- **위치**: line 1000, 1003
-- **내용**: 롱프레스 감지(`setTimeout 500ms`)와 연속 구매(`setInterval 80ms`)에 타이머 사용
-- **판단**: UI 인터랙션 타이밍 제어 목적이며, 게임 상태 전환과 무관. `clearLongPress()`로 정리 보장. 적절한 사용
+**심각도**: 🔴 **CRITICAL** — 10사이클 연속 재발 문제로 기획서에서 특별히 강조된 금지 사항.
 
 ---
 
-## 5. 최종 판정
+#### ❌ C2. SVG에 feGaussianBlur 사용 (기획서 §12.2 / platform-wisdom [Cycle 1~8] 위반)
 
-### 코드 리뷰: **APPROVED**
-### 브라우저 테스트: **PASS**
-### 종합 판정: **APPROVED**
+**기획서 원문 (라인 25)**:
+> "외부 SVG 파일 0개. Canvas drawRect/arc/lineTo 전용. §12.2 금지 패턴 목록"
 
-### 판정 근거
+**현황**: 9개 SVG 파일 **전부** `feGaussianBlur` 필터를 포함:
+- `player.svg`: `<feGaussianBlur stdDeviation="2.5">`, `<feGaussianBlur stdDeviation="1.5">`
+- 나머지 SVG들도 동일 패턴
 
-1. **CRITICAL-01(게임 불능 TDZ 크래시) 완전 수정** — gridCache 선언 위치 교정으로 모든 변수 정상 초기화, 콘솔 에러 0건
-2. **이전 리뷰 P1 이슈 전량 수정** — 스와이프 탭 전환(MINOR-03), 길게 누르기 연속 구매(MINOR-04), audio setTimeout 제거(MINOR-05) 모두 반영
-3. **이전 리뷰 P2 이슈 수정** — 탭 전환 중 생산 유지(MINOR-02) 반영
-4. **기능 완성도 100%** — 기획서 16개 핵심 기능 모두 구현 및 런타임 검증 완료
-5. **모바일 대응 완벽** — 터치 이벤트, 스와이프, 롱프레스, 뷰포트, 스크롤 방지 모두 구현
-6. **에셋 로딩 문제 없음** — 외부 에셋 0개, assets/ 디렉토리 없음, 100% Canvas 코드 드로잉
+**수정 방법**: C1 수정(assets/ 삭제)으로 자동 해결.
 
-> 즉시 배포 가능합니다.
+**심각도**: 🔴 **CRITICAL** — C1과 연동. assets/ 삭제 시 함께 해결.
+
+---
+
+#### ❌ C3. gameLoop에 try-catch 미적용 (기획서 §12.9 위반)
+
+**기획서 원문 (라인 42)**:
+> "`try{...}catch(e){console.error(e);}requestAnimationFrame(loop)` 패턴 기본 적용"
+
+**현재 코드 (라인 2123~2130)**:
+```javascript
+function gameLoop(timestamp) {
+  if (!running) return;
+  const dt = Math.min(timestamp - lastTime, 33.33);
+  lastTime = timestamp;
+  update(dt);
+  render(dt);
+  requestAnimationFrame(gameLoop);
+}
+```
+
+**수정 방법**:
+```javascript
+function gameLoop(timestamp) {
+  if (!running) return;
+  try {
+    const dt = Math.min(timestamp - lastTime, 33.33);
+    lastTime = timestamp;
+    update(dt);
+    render(dt);
+  } catch (e) {
+    console.error(e);
+  }
+  requestAnimationFrame(gameLoop);
+}
+```
+
+**심각도**: 🟡 **MAJOR** — 런타임 에러 발생 시 게임 루프 완전 정지. rAF가 try-catch 밖으로 나와야 함.
+
+---
+
+### 3.2 MAJOR — 기능 누락
+
+#### ❌ M1. 일일 챌린지 모드 미구현 (기획서 §6.5)
+
+기획서에서 Seeded RNG 기반 일일 챌린지 모드를 요구하나, 코드에 관련 구현이 전혀 없음.
+- 시드 생성 함수 없음
+- 프로시저럴 레벨 생성 없음
+- 일일 챌린지 UI 없음
+- `saveData.dailyBest` 필드는 정의되어 있지만 사용처 없음
+
+**심각도**: 🟡 **MAJOR** — 기획서 명시 기능의 완전 누락. 다만 코어 게임플레이에는 영향 없음.
+
+---
+
+#### ❌ M2. 불필요한 에셋 로드 (사용되지 않는 스프라이트)
+
+다음 스프라이트가 로드되지만 코드에서 **사용처가 없음**:
+- `SPRITES.enemy`: 적 시스템 자체가 구현되지 않음
+- `SPRITES.uiHeart`: 목숨 제한이 없으므로 하트 UI 불필요
+- `SPRITES.powerup`: 파워업 시스템 없음
+
+**심각도**: 🟠 **MINOR** — 불필요한 네트워크 요청 3건. C1 수정 시 자동 해결.
+
+---
+
+### 3.3 체크리스트 결과
+
+| # | 검토 항목 | 결과 | 비고 |
+|---|----------|------|------|
+| 1 | 기능 완성도 | ⚠️ | 일일 챌린지 미구현 (§6.5) |
+| 2 | 게임 루프 (rAF + dt) | ✅ | `requestAnimationFrame` + dt캡 33.33ms (라인 2123~2130) |
+| 3 | 메모리 관리 | ✅ | `ObjectPool` 클래스 (150개 파티클), trail 배열 자동 정리 |
+| 4 | 충돌 감지 | ✅ | AABB 기반 타일맵 충돌, X→Y 분리 판정, 코너 보정 |
+| 5 | 모바일 터치 | ✅ | D-패드 + A/B 버튼, `passive:false`, `touch-action:none` |
+| 6 | 캔버스 리사이즈 | ✅ | `resize` 이벤트 → `resizeCanvas()` + `updateTouchLayout()` |
+| 7 | 게임 상태 전환 | ✅ | 5상태 (TITLE/PLAY/DEAD/CLEAR/PAUSE), `beginTransition` + `isTransitioning` 가드 |
+| 8 | 점수 시스템 | ✅ | 기본+보석+타임보너스+무사망 보너스 계산 (라인 917~940) |
+| 9 | localStorage 최고점 | ✅ | `loadSave()`/`writeSave()` + try-catch (라인 780~790) |
+| 10 | 보안 (eval/XSS) | ✅ | `eval()`, `alert()`, `confirm()`, `prompt()`, `setTimeout` 사용 0건 |
+| 11 | 성능 (DOM 접근) | ✅ | 프레임 내 DOM 접근 없음, 뷰포트 컬링 적용 |
+| 12 | `'use strict'` | ✅ | 라인 16 |
+| 13 | beginTransition 경유 | ✅ | 모든 상태 전환이 `beginTransition()` 경유 (라인 811~835) |
+| 14 | clearImmediate() | ✅ | TweenManager에 구현 (라인 120) |
+| 15 | 판정→저장 순서 | ✅ | `calculateClearScore()`에서 비교 후 저장 (라인 926~939) |
+| 16 | dt 파라미터 전달 | ✅ | 모든 update/render 함수에 dt 전달 |
+| 17 | gameLoop try-catch | ❌ | §12.9 위반 — try-catch 래핑 없음 |
+| 18 | assets/ 금지 | ❌ | §12.1 위반 — 10개 파일 존재 |
+| 19 | feGaussianBlur 금지 | ❌ | §12.2 위반 — 전 SVG 파일에 사용 |
+
+---
+
+### 3.4 긍정적 사항 (잘 구현된 부분)
+
+- **정밀 플랫포머 메커닉**: 코요테 타임(6프레임), 점프 버퍼링(6프레임), 코너 보정(4px), 가변 점프 높이 등 기획서의 핵심 입력 보정 기법이 모두 구현됨
+- **월드별 무브셋 언락**: `createPlayer()` (라인 794~807)에서 월드 인덱스 기반으로 벽점프(W2+), 이중점프(W3+), 대시(W4+) 조건부 활성화
+- **25개 스테이지 수작업 레벨**: 5월드 × 5스테이지 문자열 레벨 데이터 완비 (라인 260~743)
+- **다양한 장애물 타입**: 가시(4방향), 용암, 화염기둥, 레이저, 바람, 무너지는 발판, 이동 발판, 중력 반전 존
+- **Canvas API 기반 fallback 렌더링**: SVG 없이도 모든 오브젝트가 Canvas fillRect/arc/lineTo로 렌더링 가능
+- **SoundManager 합성 사운드**: Web Audio API 기반 8종 효과음 (jump, doubleJump, wallJump, dash, die, gem, clear, checkpoint)
+- **카메라 시스템**: lerp 추적 + look-ahead + 화면 흔들림 + 레벨 경계 clamping
+
+---
+
+## 4. 브라우저 테스트 상세
+
+### 4.1 테스트 환경
+- **브라우저**: Puppeteer (Chromium headless)
+- **URL**: `file:///C:/Work/InfinitriX/public/games/mini-platformer/index.html`
+- **해상도**: 800×450
+
+### 4.2 테스트 결과
+
+| # | 테스트 항목 | 결과 | 비고 |
+|---|-----------|------|------|
+| 1 | 페이지 로드 | ✅ **PASS** | 에러 없이 정상 로드 |
+| 2 | 콘솔 에러 없음 | ✅ **PASS** | JS 런타임 에러 0건 |
+| 3 | 캔버스 렌더링 | ✅ **PASS** | 800×450 캔버스 생성, DPR 스케일링 적용 |
+| 4 | 시작 화면 표시 | ✅ **PASS** | "MINI PLATFORMER" 타이틀 + 부제 + 시작 프롬프트 + 세이브 정보 표시 |
+| 5 | 게임 시작 전환 | ✅ **PASS** | Space 입력 → TITLE → PLAY 전환 성공 |
+| 6 | 게임 월드 렌더링 | ✅ **PASS** | W1-S1 타일맵, HUD(월드/보석/타이머/일시정지), 플레이어, 골 플래그, 보석 모두 렌더링됨 |
+| 7 | 터치 이벤트 코드 존재 | ✅ **PASS** | touchstart/touchmove/touchend 리스너 등록, D-패드+A/B 버튼 구현 |
+| 8 | 점수 시스템 | ✅ **PASS** | `calculateClearScore()` 구현, 4종 보너스 계산 |
+| 9 | localStorage 최고점 | ✅ **PASS** | localStorage 읽기/쓰기 정상 동작 확인 |
+| 10 | 게임오버/재시작 | ✅ **PASS** | DEAD→PLAY 즉시 전환 + 리스폰 로직 구현 |
+| 11 | SVG 에셋 로드 | ⚠️ **WARN** | 8개 SVG 모두 로드 성공 — 그러나 기획서 위반 |
+| 12 | 게임 루프 실행 | ✅ **PASS** | `running=true`, rAF 루프 정상 가동, stageTimer 증가 확인 |
+
+### 4.3 런타임 검증 데이터
+```json
+{
+  "gameState": "PLAY",
+  "configExists": true,
+  "levelsCount": 5,
+  "levelsPerWorld": 5,
+  "spritesLoaded": ["player","enemy","bgLayer1","bgLayer2","uiHeart","uiStar","powerup","effectHit"],
+  "running": true,
+  "localStorageWorks": true
+}
+```
+
+---
+
+## 5. 수정 필요 사항 요약
+
+### 🔴 CRITICAL (반드시 수정)
+| # | 항목 | 난이도 | 예상 시간 |
+|---|------|--------|----------|
+| C1 | assets/ 디렉토리 삭제 + ASSET_MAP/SPRITES/preloadAssets 제거 + fallback만 유지 | 중간 | 20분 |
+| C2 | (C1 해결 시 자동 해결) | - | - |
+| C3 | gameLoop에 try-catch 래핑 | 쉬움 | 2분 |
+
+### 🟡 MAJOR (권장 수정)
+| # | 항목 | 난이도 | 예상 시간 |
+|---|------|--------|----------|
+| M1 | 일일 챌린지 모드 구현 (§6.5) | 높음 | 60분+ |
+
+### 🟠 MINOR (선택 수정)
+| # | 항목 | 난이도 | 예상 시간 |
+|---|------|--------|----------|
+| M2 | 미사용 스프라이트 참조 제거 (C1 해결 시 자동 해결) | - | - |
+
+---
+
+## 6. 최종 판정
+
+### 코드 리뷰: **NEEDS_MAJOR_FIX** 🔴
+
+**사유**:
+1. `assets/` 디렉토리 생성이 기획서 §12.1에서 **"절대 금지"**로 명시된 항목이며, platform-wisdom에서 10사이클 연속 재발 문제로 특별 관리되는 사항임. Canvas fallback이 존재하여 게임 자체는 동작하지만, 이 패턴이 반복되는 것은 프로세스 차원에서 중대한 문제.
+2. `gameLoop` try-catch 미적용은 기획서 §12.9 위반. 런타임 에러 시 게임 완전 정지 위험.
+3. 일일 챌린지 모드(§6.5) 미구현은 기획서 명시 기능 누락.
+
+### 브라우저 테스트: **PASS** ✅
+
+**사유**: 게임 로드, 렌더링, 상태 전환, 입력 처리 모두 정상 동작. 콘솔 에러 0건. 시각적 품질 우수.
+
+---
+
+> **결론**: assets/ 디렉토리 삭제 + fallback 코드 정리, gameLoop try-catch 추가를 최우선으로 수정해야 함. 이 두 가지는 **~25분** 이내 완료 가능. 일일 챌린지 모드는 별도 이터레이션으로 분리 가능.

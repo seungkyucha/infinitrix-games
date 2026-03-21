@@ -1,85 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
   <defs>
-    <linearGradient id="towerGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#2a1a4e"/>
-      <stop offset="100%" stop-color="#1a0e35"/>
+    <linearGradient id="nearMountainGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2a4e"/>
+      <stop offset="100%" stop-color="#1a1a3e"/>
     </linearGradient>
-    <linearGradient id="windowGlow" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#00ffcc" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#00cc99" stop-opacity="0.2"/>
+    <linearGradient id="treeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e3a1e"/>
+      <stop offset="100%" stop-color="#0f200f"/>
     </linearGradient>
-    <radialGradient id="lanternGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+    <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d5a27"/>
+      <stop offset="100%" stop-color="#1a3a18"/>
+    </linearGradient>
+    <radialGradient id="fogGlow" cx="50%" cy="100%" r="80%">
+      <stop offset="0%" stop-color="#8fbc8f" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#2d5a27" stop-opacity="0"/>
     </radialGradient>
-    <filter id="buildGlow">
-      <feGaussianBlur stdDeviation="1.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="fogBlur">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="softGlow">
-      <feGaussianBlur stdDeviation="3"/>
+    <filter id="treeGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <!-- 왼쪽 첫 번째 탑 실루엣 -->
+  <path d="M0 450 Q40 380 80 400 Q120 340 170 370 Q210 310 260 340 Q300 290 350 320 Q390 280 430 310 Q470 260 520 290 Q560 250 600 280 Q650 240 700 270 Q740 250 780 280 L800 280 L800 600 L0 600 Z" fill="url(#nearMountainGrad)" opacity="0.8"/>
+  <path d="M0 450 Q40 380 80 400 Q120 340 170 370 Q210 310 260 340 Q300 290 350 320 Q390 280 430 310 Q470 260 520 290 Q560 250 600 280 Q650 240 700 270 Q740 250 780 280 L800 280" fill="none" stroke="#00ffcc" stroke-width="0.8" opacity="0.25"/>
+  <g opacity="0.7">
+    <path d="M60 500 L50 440 L35 460 L25 400 L15 430 L5 380 L0 380 L0 500 Z" fill="url(#treeGrad)"/>
+    <path d="M120 490 L110 430 L100 450 L90 390 L80 420 L70 370 L60 370 L60 490 Z" fill="url(#treeGrad)"/>
+    <path d="M180 500 L170 450 L155 465 L145 410 L135 435 L125 385 L115 385 L115 500 Z" fill="url(#treeGrad)"/>
+  </g>
   <g opacity="0.6">
-    <path d="M40 600 L40 320 L55 300 L70 280 L85 300 L100 320 L100 600 Z" fill="url(#towerGrad)"/>
-    <!-- 창문들 -->
-    <rect x="55" y="350" width="8" height="12" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="75" y="380" width="8" height="12" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="55" y="420" width="8" height="12" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="75" y="460" width="8" height="12" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="55" y="500" width="8" height="12" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
+    <path d="M680 490 L690 435 L700 455 L710 395 L720 425 L730 375 L740 375 L740 490 Z" fill="url(#treeGrad)"/>
+    <path d="M740 500 L750 445 L760 465 L770 405 L780 430 L790 380 L800 380 L800 500 Z" fill="url(#treeGrad)"/>
   </g>
-  <!-- 중앙 큰 탑 -->
-  <g opacity="0.5">
-    <path d="M300 600 L300 250 L320 220 L340 190 L360 220 L380 250 L380 600 Z" fill="url(#towerGrad)"/>
-    <path d="M320 190 L340 160 L360 190" fill="#2a1a4e" stroke="#3a2a5e" stroke-width="0.5"/>
-    <!-- 창문들 -->
-    <rect x="320" y="270" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="350" y="300" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="320" y="340" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="350" y="380" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="320" y="420" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="350" y="460" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="320" y="510" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="350" y="550" width="10" height="15" rx="2" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <!-- 탑 꼭대기 랜턴 -->
-    <circle cx="340" cy="165" r="15" fill="url(#lanternGlow)" filter="url(#softGlow)"/>
-    <circle cx="340" cy="165" r="3" fill="#ffd700" opacity="0.8"/>
+  <g opacity="0.35" filter="url(#treeGlow)">
+    <path d="M300 520 L290 470 L280 485 L270 440 L260 460 L250 420 L240 420 L240 520 Z" fill="#1e3a1e"/>
+    <path d="M500 510 L510 460 L520 475 L530 430 L540 450 L550 410 L560 410 L560 510 Z" fill="#1e3a1e"/>
+    <path d="M420 530 L410 475 L400 490 L390 445 L380 465 L370 425 L360 425 L360 530 Z" fill="#1e3a1e"/>
   </g>
-  <!-- 오른쪽 폐허 탑 -->
-  <g opacity="0.55">
-    <path d="M600 600 L600 360 L615 340 L630 320 L640 310 L650 320 L665 340 L680 360 L680 600 Z" fill="url(#towerGrad)"/>
-    <!-- 부서진 상단 -->
-    <path d="M605 360 L610 345 L620 355 L630 330 L640 310 L650 325 L655 340 L665 350 L670 360" fill="none" stroke="#3a2a5e" stroke-width="1"/>
-    <!-- 창문들 -->
-    <rect x="620" y="390" width="9" height="13" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="650" y="420" width="9" height="13" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="620" y="460" width="9" height="13" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="650" y="500" width="9" height="13" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
-    <rect x="620" y="540" width="9" height="13" rx="1" fill="url(#windowGlow)" filter="url(#buildGlow)"/>
+  <rect x="0" y="540" width="800" height="60" fill="url(#groundGrad)" opacity="0.9"/>
+  <path d="M0 540 Q10 535 20 540 Q30 533 40 540 Q50 535 60 540 Q70 532 80 540 Q90 535 100 540 Q110 533 120 540 Q130 535 140 540 Q150 532 160 540 Q170 535 180 540 Q190 533 200 540 Q210 535 220 540 Q230 532 240 540 Q250 535 260 540 Q270 533 280 540 Q290 535 300 540 Q310 532 320 540 Q330 535 340 540 Q350 533 360 540 Q370 535 380 540 Q390 532 400 540 Q410 535 420 540 Q430 533 440 540 Q450 535 460 540 Q470 532 480 540 Q490 535 500 540 Q510 533 520 540 Q530 535 540 540 Q550 532 560 540 Q570 535 580 540 Q590 533 600 540 Q610 535 620 540 Q630 532 640 540 Q650 535 660 540 Q670 533 680 540 Q690 535 700 540 Q710 532 720 540 Q730 535 740 540 Q750 533 760 540 Q770 535 780 540 Q790 533 800 540" fill="none" stroke="#8fbc8f" stroke-width="1.5" opacity="0.4"/>
+  <g filter="url(#fogBlur)">
+    <ellipse cx="200" cy="480" rx="250" ry="40" fill="url(#fogGlow)"/>
+    <ellipse cx="600" cy="500" rx="200" ry="35" fill="url(#fogGlow)"/>
   </g>
-  <!-- 중간 작은 구조물들 -->
-  <g opacity="0.4">
-    <rect x="170" y="480" width="60" height="120" rx="2" fill="#1a0e35"/>
-    <rect x="182" y="500" width="7" height="10" rx="1" fill="url(#windowGlow)" opacity="0.5"/>
-    <rect x="200" y="520" width="7" height="10" rx="1" fill="url(#windowGlow)" opacity="0.5"/>
-    <rect x="500" y="510" width="50" height="90" rx="2" fill="#1a0e35"/>
-    <rect x="512" y="530" width="6" height="9" rx="1" fill="url(#windowGlow)" opacity="0.5"/>
-    <rect x="530" y="550" width="6" height="9" rx="1" fill="url(#windowGlow)" opacity="0.5"/>
+  <g filter="url(#treeGlow)" opacity="0.6">
+    <circle cx="100" cy="440" r="2" fill="#8fbc8f"/>
+    <circle cx="350" cy="420" r="1.5" fill="#00ffcc"/>
+    <circle cx="550" cy="460" r="2" fill="#8fbc8f"/>
+    <circle cx="700" cy="430" r="1.5" fill="#00ffcc"/>
+    <circle cx="220" cy="470" r="1.8" fill="#8fbc8f"/>
+    <circle cx="650" cy="480" r="1.5" fill="#00ffcc"/>
   </g>
-  <!-- 떠다니는 파티클 -->
-  <g opacity="0.3" filter="url(#softGlow)">
-    <circle cx="150" cy="350" r="2" fill="#00ffcc"/>
-    <circle cx="250" cy="400" r="1.5" fill="#e0b0ff"/>
-    <circle cx="450" cy="300" r="2" fill="#00ffcc"/>
-    <circle cx="550" cy="380" r="1.5" fill="#e0b0ff"/>
-    <circle cx="720" cy="300" r="2" fill="#ffd700"/>
-    <circle cx="400" cy="500" r="1.5" fill="#00ffcc"/>
-  </g>
-  <!-- 지면 -->
-  <path d="M0 580 Q100 570 200 575 Q300 568 400 572 Q500 565 600 570 Q700 575 800 568 L800 600 L0 600 Z" fill="#1a0e35" opacity="0.6"/>
 </svg>

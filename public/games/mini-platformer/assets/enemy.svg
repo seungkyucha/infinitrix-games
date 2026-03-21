@@ -1,53 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="spikeGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ff5588"/>
-      <stop offset="100%" stop-color="#cc0033"/>
+    <linearGradient id="spikeGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#8b0000"/>
+      <stop offset="50%" stop-color="#ff3366"/>
+      <stop offset="100%" stop-color="#ff6688"/>
     </linearGradient>
-    <radialGradient id="dangerGlow" cx="50%" cy="50%" r="55%">
-      <stop offset="0%" stop-color="#ff3366" stop-opacity="0.5"/>
+    <linearGradient id="spikeEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff3366" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#cc0044" stop-opacity="0.4"/>
+    </linearGradient>
+    <radialGradient id="dangerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff3366" stop-opacity="0.6"/>
       <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="eyeRed" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffaacc"/>
-      <stop offset="100%" stop-color="#ff3366"/>
-    </linearGradient>
-    <filter id="threatGlow">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <radialGradient id="enemyEyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#ff9999"/>
+      <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="redGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="spikePulse">
-      <feGaussianBlur stdDeviation="1.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="redSoftGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <!-- 위험 아우라 -->
-  <circle cx="32" cy="34" r="28" fill="url(#dangerGlow)"/>
-  <!-- 가시 몸체 — 뾰족한 팔각형 형태 -->
-  <g filter="url(#threatGlow)">
-    <path d="M32 4 L38 18 L52 12 L44 26 L60 32 L44 38 L52 52 L38 46 L32 60 L26 46 L12 52 L20 38 L4 32 L20 26 L12 12 L26 18 Z"
-          fill="url(#spikeGrad)" stroke="#ff6688" stroke-width="1"/>
+  <g filter="url(#redSoftGlow)">
+    <ellipse cx="32" cy="36" rx="24" ry="20" fill="url(#dangerGlow)"/>
   </g>
-  <!-- 내부 코어 -->
-  <circle cx="32" cy="32" r="12" fill="#1a0a15" stroke="#ff3366" stroke-width="1" opacity="0.9"/>
-  <!-- 내부 패턴 -->
-  <path d="M26 28 Q32 22 38 28 Q38 36 32 40 Q26 36 26 28 Z" fill="none" stroke="#ff5577" stroke-width="0.8" opacity="0.6"/>
-  <!-- 왼쪽 눈 (위협적 삼각형 눈) -->
-  <g filter="url(#spikePulse)">
-    <path d="M24 28 L28 28 L26 33 Z" fill="url(#eyeRed)"/>
-    <circle cx="26" cy="30" r="0.8" fill="#ffffff"/>
+  <g filter="url(#redGlow)">
+    <path d="M16 58 L10 38 L20 20 L32 8 L44 20 L54 38 L48 58 Z" fill="url(#spikeGrad)" stroke="#ff3366" stroke-width="1.2"/>
+    <path d="M16 42 L2 36 L14 32 Z" fill="url(#spikeEdge)" stroke="#ff3366" stroke-width="0.8"/>
+    <path d="M48 42 L62 36 L50 32 Z" fill="url(#spikeEdge)" stroke="#ff3366" stroke-width="0.8"/>
+    <path d="M22 24 L8 14 L20 20 Z" fill="url(#spikeEdge)" stroke="#ff3366" stroke-width="0.8"/>
+    <path d="M42 24 L56 14 L44 20 Z" fill="url(#spikeEdge)" stroke="#ff3366" stroke-width="0.8"/>
   </g>
-  <!-- 오른쪽 눈 -->
-  <g filter="url(#spikePulse)">
-    <path d="M36 28 L40 28 L38 33 Z" fill="url(#eyeRed)"/>
-    <circle cx="38" cy="30" r="0.8" fill="#ffffff"/>
+  <path d="M22 52 L18 38 L26 24 L32 16 L38 24 L46 38 L42 52 Z" fill="#660022" opacity="0.4"/>
+  <g filter="url(#redGlow)">
+    <path d="M22 32 L26 28 L30 32 L26 35 Z" fill="#1a0011"/>
+    <ellipse cx="26" cy="31.5" rx="2.5" ry="2" fill="url(#enemyEyeGlow)"/>
+    <circle cx="26.5" cy="31" r="0.8" fill="#ffffff"/>
+    <path d="M34 32 L38 28 L42 32 L38 35 Z" fill="#1a0011"/>
+    <ellipse cx="38" cy="31.5" rx="2.5" ry="2" fill="url(#enemyEyeGlow)"/>
+    <circle cx="38.5" cy="31" r="0.8" fill="#ffffff"/>
   </g>
-  <!-- 입 (찡그린 형태) -->
-  <path d="M28 37 Q30 35 32 37 Q34 35 36 37" fill="none" stroke="#ff88aa" stroke-width="1" stroke-linecap="round"/>
+  <path d="M20 28 L28 26" fill="none" stroke="#ff1144" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M44 28 L36 26" fill="none" stroke="#ff1144" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M24 42 L28 39 L32 43 L36 39 L40 42" fill="none" stroke="#ff1144" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
