@@ -461,6 +461,106 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('deployer')
 
+    // ── 배포 검증 ────────────────────────────────────────────
+    console.log(`\n🔍 [검증] 배포 결과 확인 중...`)
+    const verifyErrors: string[] = []
+
+    // 1. game-registry.json 검증
+    try {
+      const regPath = `${PROJECT_ROOT}/public/games/game-registry.json`
+      const reg = JSON.parse(readFileSync(regPath, 'utf-8'))
+      const specRaw = readFileSync(`${PROJECT_ROOT}/docs/game-specs/cycle-${cycleNumber}-spec.md`, 'utf-8')
+      const gameIdMatch = specRaw.match(/game-id:\s*(.+)/)
+      const gameId = gameIdMatch?.[1]?.trim() ?? ''
+
+      if (gameId) {
+        const game = reg.games.find((g: { id: string }) => g.id === gameId)
+        if (!game) {
+          verifyErrors.push(`게임 "${gameId}"이 registry에 없음`)
+        } else {
+          // i18n 필드 확인
+          if (!game.i18n || Object.keys(game.i18n).length < 8) {
+            verifyErrors.push(`게임 "${gameId}"의 i18n 필드 누락 또는 불완전 (${Object.keys(game.i18n ?? {}).length}/8)`)
+          }
+          // thumbnail 경로 확인
+          if (!game.thumbnail?.includes('/assets/thumbnail.svg')) {
+            verifyErrors.push(`게임 "${gameId}"의 thumbnail 경로 이상: ${game.thumbnail}`)
+          }
+        }
+
+        // 2. 게임 파일 존재 확인
+        const htmlPath = `${PROJECT_ROOT}/public/games/${gameId}/index.html`
+        if (!existsSync(htmlPath)) {
+          verifyErrors.push(`게임 HTML 파일 없음: ${htmlPath}`)
+        } else {
+          const htmlSize = readFileSync(htmlPath, 'utf-8').length
+          if (htmlSize < 1000) {
+            verifyErrors.push(`게임 HTML 파일이 너무 작음 (${htmlSize} bytes)`)
+          }
+        }
+
+        // 3. 썸네일 파일 확인
+        const thumbPath = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.svg`
+        if (!existsSync(thumbPath)) {
+          verifyErrors.push(`썸네일 파일 없음: ${thumbPath}`)
+        }
+
+        // 4. totalGames 일치 확인
+        if (reg.totalGames !== reg.games.length) {
+          verifyErrors.push(`totalGames(${reg.totalGames}) != 실제 게임 수(${reg.games.length})`)
+        }
+      }
+    } catch (e) {
+      verifyErrors.push(`registry 검증 실패: ${e}`)
+    }
+
+    // 5. 문서 파일 확인
+    const docChecks = [
+      `docs/game-specs/cycle-${cycleNumber}-spec.md`,
+      `docs/reviews/cycle-${cycleNumber}-review.md`,
+      `docs/post-mortem/cycle-${cycleNumber}-postmortem.md`,
+    ]
+    for (const doc of docChecks) {
+      if (!existsSync(`${PROJECT_ROOT}/${doc}`)) {
+        verifyErrors.push(`문서 누락: ${doc}`)
+      }
+    }
+
+    // 6. git push 상태 확인
+    try {
+      const { execSync } = await import('child_process')
+      const gitStatus = execSync('git status --porcelain public/games/ docs/', { cwd: PROJECT_ROOT, encoding: 'utf-8' }).trim()
+      if (gitStatus) {
+        verifyErrors.push(`커밋되지 않은 파일 존재:\n${gitStatus}`)
+      }
+    } catch {}
+
+    if (verifyErrors.length > 0) {
+      console.log(`\n⚠️ [검증] ${verifyErrors.length}개 문제 발견:`)
+      verifyErrors.forEach(e => console.log(`  ❌ ${e}`))
+      console.log(`\n🔧 [검증] 자동 수정 시도 중...`)
+
+      // 자동 수정 에이전트 실행
+      startAgent('deployer', 7, '배포 검증 수정', 'Deploy Verification Fix')
+      await runAgent('deployer', `
+        배포 검증에서 다음 문제가 발견되었습니다. 수정해줘:
+
+        ${verifyErrors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
+
+        수정 방법:
+        - registry에 게임이 없으면 추가 (i18n 8개 언어 포함)
+        - totalGames 불일치면 수정
+        - 커밋되지 않은 파일이 있으면:
+          git add public/games/ docs/
+          git commit -m "fix: deploy verification for cycle #${cycleNumber}"
+          git push origin main
+      `)
+      completeAgent('deployer')
+      console.log(`  ✅ [검증] 수정 완료`)
+    } else {
+      console.log(`  ✅ [검증] 모든 항목 통과`)
+    }
+
     // 사이클 완료
     state.status      = 'completed'
     state.completedAt = new Date().toISOString()
