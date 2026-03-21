@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tbBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#050510"/>
+      <stop offset="50%" stop-color="#0a0a14"/>
+      <stop offset="100%" stop-color="#12122a"/>
+    </linearGradient>
+    <radialGradient id="tbCenter" cx="50%" cy="55%" r="45%">
+      <stop offset="0%" stop-color="#1a2a4a" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#050510" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tbPlayerGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#33ffff"/>
+      <stop offset="100%" stop-color="#0088aa"/>
+    </linearGradient>
+    <radialGradient id="tbPlayerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tbEnemyGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff4444" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ff4444" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tbWallGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a4a6a"/>
+      <stop offset="100%" stop-color="#2a2a40"/>
+    </linearGradient>
+    <linearGradient id="tbTitleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#e0e0e0"/>
+      <stop offset="100%" stop-color="#aaaacc"/>
+    </linearGradient>
+    <radialGradient id="tbTorch1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff8844" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tbTorch2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff9944" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tbGemGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#aa66ff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#aa66ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="tbGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tbSoftGlow">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="tbTextGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tbTextShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#tbBg)"/>
+  <rect width="400" height="300" fill="url(#tbCenter)"/>
+  <!-- 던전 벽 패턴 -->
+  <g opacity="0.4">
+    <!-- 상단 벽 -->
+    <rect x="0" y="60" width="400" height="30" fill="url(#tbWallGrad)"/>
+    <line x1="0" y1="75" x2="400" y2="75" stroke="#1a1a28" stroke-width="0.8"/>
+    <line x1="50" y1="60" x2="50" y2="90" stroke="#1a1a28" stroke-width="0.5"/>
+    <line x1="130" y1="60" x2="130" y2="90" stroke="#1a1a28" stroke-width="0.5"/>
+    <line x1="210" y1="60" x2="210" y2="90" stroke="#1a1a28" stroke-width="0.5"/>
+    <line x1="290" y1="60" x2="290" y2="90" stroke="#1a1a28" stroke-width="0.5"/>
+    <line x1="370" y1="60" x2="370" y2="90" stroke="#1a1a28" stroke-width="0.5"/>
+    <!-- 좌측 벽 -->
+    <rect x="0" y="90" width="30" height="150" fill="url(#tbWallGrad)"/>
+    <line x1="15" y1="90" x2="15" y2="240" stroke="#1a1a28" stroke-width="0.5" opacity="0.5"/>
+    <!-- 우측 벽 -->
+    <rect x="370" y="90" width="30" height="150" fill="url(#tbWallGrad)"/>
+    <line x1="385" y1="90" x2="385" y2="240" stroke="#1a1a28" stroke-width="0.5" opacity="0.5"/>
+    <!-- 하단 벽 -->
+    <rect x="0" y="240" width="400" height="30" fill="url(#tbWallGrad)"/>
+    <line x1="0" y1="255" x2="400" y2="255" stroke="#1a1a28" stroke-width="0.8"/>
+  </g>
+  <!-- 바닥 타일 그리드 -->
+  <g stroke="#2d2d44" stroke-width="0.4" opacity="0.25">
+    <line x1="60" y1="90" x2="60" y2="240"/>
+    <line x1="100" y1="90" x2="100" y2="240"/>
+    <line x1="140" y1="90" x2="140" y2="240"/>
+    <line x1="180" y1="90" x2="180" y2="240"/>
+    <line x1="220" y1="90" x2="220" y2="240"/>
+    <line x1="260" y1="90" x2="260" y2="240"/>
+    <line x1="300" y1="90" x2="300" y2="240"/>
+    <line x1="340" y1="90" x2="340" y2="240"/>
+    <line x1="30" y1="110" x2="370" y2="110"/>
+    <line x1="30" y1="140" x2="370" y2="140"/>
+    <line x1="30" y1="170" x2="370" y2="170"/>
+    <line x1="30" y1="200" x2="370" y2="200"/>
+    <line x1="30" y1="230" x2="370" y2="230"/>
+  </g>
+  <!-- 횃불 글로우 -->
+  <circle cx="50" cy="95" r="40" fill="url(#tbTorch1)" filter="url(#tbSoftGlow)"/>
+  <circle cx="350" cy="95" r="40" fill="url(#tbTorch2)" filter="url(#tbSoftGlow)"/>
+  <!-- 횃불 불꽃 -->
+  <g filter="url(#tbGlow)">
+    <path d="M45 90 Q42 82 44 76 Q46 72 48 76 Q50 82 47 90 Z" fill="#ffaa33" opacity="0.8"/>
+    <path d="M355 90 Q352 82 354 76 Q356 72 358 76 Q360 82 357 90 Z" fill="#ffaa33" opacity="0.8"/>
+  </g>
+  <!-- 플레이어 캐릭터 (중앙 왼쪽) -->
+  <g transform="translate(160, 165)">
+    <circle cx="0" cy="0" r="20" fill="url(#tbPlayerGlow)"/>
+    <g filter="url(#tbGlow)">
+      <circle cx="0" cy="0" r="10" fill="url(#tbPlayerGrad)" stroke="#00e5ff" stroke-width="1"/>
+      <path d="M0 -16 L5 -8 L-5 -8 Z" fill="#00e5ff" stroke="#33ffff" stroke-width="0.5"/>
+    </g>
+    <!-- 검 -->
+    <rect x="12" y="-12" width="2.5" height="16" rx="0.5" fill="#c0c0d0" filter="url(#tbGlow)"/>
+    <rect x="10" y="-4" width="7" height="2" rx="0.5" fill="#a0a0b0"/>
+  </g>
+  <!-- 적 1: 슬라임 (오른쪽) -->
+  <g transform="translate(260, 170)">
+    <circle cx="0" cy="0" r="18" fill="url(#tbEnemyGlow)"/>
+    <g filter="url(#tbGlow)">
+      <path d="M-12 -2 Q-12 -14 0 -16 Q12 -14 12 -2 Q10 4 6 2 Q2 6 -2 2 Q-6 6 -10 2 Q-12 4 -12 -2 Z" fill="#ff4444" stroke="#ff6666" stroke-width="0.5"/>
+    </g>
+    <ellipse cx="-4" cy="-6" rx="2.5" ry="3" fill="#ffcc00" opacity="0.8"/>
+    <ellipse cx="4" cy="-6" rx="2.5" ry="3" fill="#ffcc00" opacity="0.8"/>
+  </g>
+  <!-- 적 2: 해골 전사 (오른쪽 뒤) -->
+  <g transform="translate(310, 140)" opacity="0.7">
+    <circle cx="0" cy="0" r="14" fill="url(#tbEnemyGlow)"/>
+    <circle cx="0" cy="-4" r="7" fill="#d0c8b8" stroke="#a09080" stroke-width="0.5"/>
+    <circle cx="-3" cy="-5" r="2" fill="#1a0000"/>
+    <circle cx="3" cy="-5" r="2" fill="#1a0000"/>
+    <ellipse cx="-2.5" cy="-5" rx="0.8" ry="1" fill="#ff4444" opacity="0.5"/>
+    <ellipse cx="3.5" cy="-5" rx="0.8" ry="1" fill="#ff4444" opacity="0.5"/>
+    <rect x="8" y="-14" width="2" height="14" fill="#a0a0b0" rx="0.5"/>
+  </g>
+  <!-- 보물 아이템 (바닥) -->
+  <g transform="translate(120, 210)">
+    <circle cx="0" cy="0" r="8" fill="url(#tbGemGlow)"/>
+    <path d="M0 -5 L4 -2 L3 3 L-3 3 L-4 -2 Z" fill="#aa66ff" filter="url(#tbGlow)"/>
+  </g>
+  <!-- 골드 코인 -->
+  <g transform="translate(280, 210)" filter="url(#tbGlow)">
+    <circle cx="0" cy="0" r="4" fill="#ffd700" stroke="#aa7700" stroke-width="0.5"/>
+    <circle cx="6" cy="2" r="4" fill="#ffd700" stroke="#aa7700" stroke-width="0.5"/>
+  </g>
+  <!-- 계단 (출구 표시) -->
+  <g transform="translate(340, 210)" opacity="0.5">
+    <rect x="-8" y="0" width="16" height="5" fill="#4a4a6a"/>
+    <rect x="-6" y="-4" width="12" height="5" fill="#3a3a55"/>
+    <rect x="-4" y="-8" width="8" height="5" fill="#2a2a44"/>
+  </g>
+  <!-- FOV 비네트 (탐색되지 않은 어둠) -->
+  <g opacity="0.6">
+    <rect x="30" y="90" width="40" height="40" fill="#0a0a14" opacity="0.7"/>
+    <rect x="30" y="200" width="50" height="40" fill="#0a0a14" opacity="0.7"/>
+    <rect x="320" y="200" width="50" height="40" fill="#0a0a14" opacity="0.6"/>
+    <rect x="310" y="90" width="60" height="30" fill="#0a0a14" opacity="0.5"/>
+  </g>
+  <!-- 미니맵 (우측 상단) -->
+  <g transform="translate(340, 10)" opacity="0.5">
+    <rect x="0" y="0" width="50" height="40" fill="#0a0a14" stroke="#4a4a6a" stroke-width="0.8" rx="3"/>
+    <rect x="5" y="5" width="10" height="8" fill="none" stroke="#2d2d44" stroke-width="0.5"/>
+    <rect x="18" y="3" width="12" height="10" fill="none" stroke="#2d2d44" stroke-width="0.5"/>
+    <rect x="33" y="6" width="10" height="8" fill="none" stroke="#2d2d44" stroke-width="0.5"/>
+    <rect x="8" y="16" width="14" height="10" fill="none" stroke="#2d2d44" stroke-width="0.5"/>
+    <rect x="26" y="18" width="10" height="14" fill="none" stroke="#2d2d44" stroke-width="0.5"/>
+    <circle cx="12" cy="21" r="1.5" fill="#00e5ff"/>
+  </g>
+  <!-- 타이틀 텍스트 -->
+  <g filter="url(#tbTextShadow)">
+    <text x="200" y="35" text-anchor="middle" font-size="28" font-weight="bold" font-family="sans-serif" fill="url(#tbTitleGrad)" filter="url(#tbTextGlow)">미니 로그라이크 던전</text>
+  </g>
+  <!-- 서브타이틀 -->
+  <text x="200" y="290" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#4a4a6a" opacity="0.6">Turn-Based Dungeon Crawler</text>
+  <!-- 테두리 프레임 -->
+  <rect x="1" y="1" width="398" height="298" fill="none" stroke="#2a2a40" stroke-width="2" rx="4"/>
+  <rect x="3" y="3" width="394" height="294" fill="none" stroke="#4a4a6a" stroke-width="0.5" rx="3" opacity="0.3"/>
+</svg>

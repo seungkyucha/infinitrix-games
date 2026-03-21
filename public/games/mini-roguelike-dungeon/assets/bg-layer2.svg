@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="pillarGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3a3a55"/>
+      <stop offset="30%" stop-color="#4a4a6a"/>
+      <stop offset="70%" stop-color="#3a3a55"/>
+      <stop offset="100%" stop-color="#2a2a40"/>
+    </linearGradient>
+    <linearGradient id="pillarCapGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a5a7a"/>
+      <stop offset="100%" stop-color="#3a3a55"/>
+    </linearGradient>
+    <radialGradient id="torchFlame" cx="50%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#ffdd44" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#ff8822" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="torchAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff8844" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chainGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a5a6a"/>
+      <stop offset="50%" stop-color="#3a3a4a"/>
+      <stop offset="100%" stop-color="#5a5a6a"/>
+    </linearGradient>
+    <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d2d44" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1a1a2e" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="flameGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="nearGlow">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  <!-- 왼쪽 큰 기둥 -->
+  <g opacity="0.7">
+    <rect x="40" y="60" width="50" height="480" fill="url(#pillarGrad)" rx="4"/>
+    <rect x="35" y="55" width="60" height="20" fill="url(#pillarCapGrad)" rx="5"/>
+    <rect x="35" y="530" width="60" height="20" fill="url(#pillarCapGrad)" rx="5"/>
+    <!-- 기둥 장식 밴드 -->
+    <rect x="42" y="160" width="46" height="6" fill="#5a5a7a" opacity="0.4" rx="1"/>
+    <rect x="42" y="320" width="46" height="6" fill="#5a5a7a" opacity="0.4" rx="1"/>
+    <!-- 기둥 그림자 -->
+    <rect x="88" y="65" width="8" height="475" fill="#0a0a14" opacity="0.3"/>
+  </g>
+  <!-- 오른쪽 큰 기둥 -->
+  <g opacity="0.7">
+    <rect x="710" y="60" width="50" height="480" fill="url(#pillarGrad)" rx="4"/>
+    <rect x="705" y="55" width="60" height="20" fill="url(#pillarCapGrad)" rx="5"/>
+    <rect x="705" y="530" width="60" height="20" fill="url(#pillarCapGrad)" rx="5"/>
+    <rect x="712" y="160" width="46" height="6" fill="#5a5a7a" opacity="0.4" rx="1"/>
+    <rect x="712" y="320" width="46" height="6" fill="#5a5a7a" opacity="0.4" rx="1"/>
+    <rect x="700" y="65" width="8" height="475" fill="#0a0a14" opacity="0.3"/>
+  </g>
+  <!-- 왼쪽 횃불 -->
+  <g transform="translate(95, 180)">
+    <rect x="-3" y="0" width="6" height="20" fill="#5a4a3a" rx="1"/>
+    <circle cx="0" cy="-5" r="18" fill="url(#torchAura)" filter="url(#nearGlow)"/>
+    <g filter="url(#flameGlow)">
+      <path d="M0 -2 Q-5 -10 -3 -16 Q0 -20 3 -16 Q5 -10 0 -2 Z" fill="url(#torchFlame)"/>
+    </g>
+  </g>
+  <!-- 오른쪽 횃불 -->
+  <g transform="translate(705, 200)">
+    <rect x="-3" y="0" width="6" height="20" fill="#5a4a3a" rx="1"/>
+    <circle cx="0" cy="-5" r="18" fill="url(#torchAura)" filter="url(#nearGlow)"/>
+    <g filter="url(#flameGlow)">
+      <path d="M0 -2 Q5 -10 3 -16 Q0 -20 -3 -16 Q-5 -10 0 -2 Z" fill="url(#torchFlame)"/>
+    </g>
+  </g>
+  <!-- 매달린 사슬 -->
+  <g opacity="0.5">
+    <!-- 왼쪽 사슬 -->
+    <g transform="translate(250, 0)">
+      <ellipse cx="0" cy="30" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="42" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="54" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="66" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="78" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+    </g>
+    <!-- 오른쪽 사슬 -->
+    <g transform="translate(550, 0)">
+      <ellipse cx="0" cy="20" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="32" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="44" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+      <ellipse cx="0" cy="56" rx="3" ry="6" fill="none" stroke="url(#chainGrad)" stroke-width="1.5"/>
+    </g>
+  </g>
+  <!-- 바닥 돌블록 -->
+  <g opacity="0.5">
+    <rect x="0" y="540" width="800" height="60" fill="url(#floorGrad)"/>
+    <!-- 돌블록 간격선 -->
+    <line x1="80" y1="540" x2="80" y2="600" stroke="#1a1a28" stroke-width="1" opacity="0.5"/>
+    <line x1="200" y1="540" x2="200" y2="600" stroke="#1a1a28" stroke-width="1" opacity="0.5"/>
+    <line x1="350" y1="540" x2="350" y2="600" stroke="#1a1a28" stroke-width="1" opacity="0.5"/>
+    <line x1="500" y1="540" x2="500" y2="600" stroke="#1a1a28" stroke-width="1" opacity="0.5"/>
+    <line x1="630" y1="540" x2="630" y2="600" stroke="#1a1a28" stroke-width="1" opacity="0.5"/>
+    <line x1="0" y1="570" x2="800" y2="570" stroke="#1a1a28" stroke-width="1" opacity="0.5"/>
+    <!-- 돌블록 질감 -->
+    <circle cx="140" cy="555" r="1" fill="#3a3a55" opacity="0.3"/>
+    <circle cx="270" cy="580" r="1.5" fill="#3a3a55" opacity="0.3"/>
+    <circle cx="420" cy="560" r="1" fill="#3a3a55" opacity="0.3"/>
+    <circle cx="570" cy="585" r="1.5" fill="#3a3a55" opacity="0.3"/>
+  </g>
+  <!-- 거미줄 -->
+  <g stroke="#4a4a6a" stroke-width="0.5" fill="none" opacity="0.2">
+    <path d="M0 0 Q40 30 30 80"/>
+    <path d="M0 0 Q50 20 80 40"/>
+    <path d="M0 0 Q20 40 10 90"/>
+    <path d="M30 80 Q50 60 80 40"/>
+    <path d="M10 90 Q20 70 30 80"/>
+    <path d="M800 0 Q760 30 770 80"/>
+    <path d="M800 0 Q750 20 720 40"/>
+    <path d="M770 80 Q750 60 720 40"/>
+  </g>
+  <!-- 바닥 물웅덩이 -->
+  <g opacity="0.3">
+    <ellipse cx="300" cy="555" rx="25" ry="5" fill="#1a3a5a"/>
+    <ellipse cx="300" cy="554" rx="20" ry="3" fill="#2a4a6a" opacity="0.5"/>
+    <ellipse cx="550" cy="565" rx="18" ry="4" fill="#1a3a5a"/>
+  </g>
+</svg>

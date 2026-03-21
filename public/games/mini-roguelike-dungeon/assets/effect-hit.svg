@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <radialGradient id="hitCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="20%" stop-color="#ffdd44" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ff6622" stop-opacity="0.5"/>
+      <stop offset="80%" stop-color="#ff2200" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shockwave" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#ff4444" stop-opacity="0"/>
+      <stop offset="75%" stop-color="#ff6644" stop-opacity="0.3"/>
+      <stop offset="85%" stop-color="#ff8844" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ff4444" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="innerFlash" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffdd44"/>
+      <stop offset="100%" stop-color="#ff4422" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="hitGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="bigGlow">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="sparkGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- 충격파 링 -->
+  <circle cx="48" cy="48" r="40" fill="url(#shockwave)"/>
+  <circle cx="48" cy="48" r="32" fill="none" stroke="#ff6644" stroke-width="1.5" opacity="0.3"/>
+  <!-- 외부 글로우 -->
+  <circle cx="48" cy="48" r="24" fill="#ff4400" opacity="0.15" filter="url(#bigGlow)"/>
+  <!-- 메인 폭발 코어 -->
+  <g filter="url(#hitGlow)">
+    <circle cx="48" cy="48" r="18" fill="url(#hitCore)"/>
+  </g>
+  <!-- 내부 플래시 -->
+  <circle cx="48" cy="48" r="8" fill="url(#innerFlash)"/>
+  <!-- 방사형 스파크 -->
+  <g filter="url(#sparkGlow)">
+    <!-- 12방향 스파크 -->
+    <path d="M48 48 L48 10 L50 20 L48 48" fill="url(#sparkGrad)" opacity="0.6"/>
+    <path d="M48 48 L48 86 L46 76 L48 48" fill="url(#sparkGrad)" opacity="0.5"/>
+    <path d="M48 48 L86 48 L76 50 L48 48" fill="url(#sparkGrad)" opacity="0.6"/>
+    <path d="M48 48 L10 48 L20 46 L48 48" fill="url(#sparkGrad)" opacity="0.5"/>
+    <!-- 대각선 -->
+    <path d="M48 48 L75 21 L68 28 L48 48" fill="url(#sparkGrad)" opacity="0.4"/>
+    <path d="M48 48 L21 75 L28 68 L48 48" fill="url(#sparkGrad)" opacity="0.4"/>
+    <path d="M48 48 L75 75 L68 68 L48 48" fill="url(#sparkGrad)" opacity="0.35"/>
+    <path d="M48 48 L21 21 L28 28 L48 48" fill="url(#sparkGrad)" opacity="0.35"/>
+    <!-- 추가 중간 각도 스파크 -->
+    <path d="M48 48 L65 15 L60 24 L48 48" fill="#ffaa22" opacity="0.3"/>
+    <path d="M48 48 L15 65 L24 60 L48 48" fill="#ffaa22" opacity="0.25"/>
+    <path d="M48 48 L80 65 L72 60 L48 48" fill="#ffaa22" opacity="0.3"/>
+    <path d="M48 48 L31 82 L36 74 L48 48" fill="#ffaa22" opacity="0.25"/>
+  </g>
+  <!-- 파편 파티클 -->
+  <g opacity="0.7">
+    <circle cx="30" cy="20" r="2" fill="#ffdd44" filter="url(#sparkGlow)"/>
+    <circle cx="70" cy="25" r="1.5" fill="#ff8844" filter="url(#sparkGlow)"/>
+    <circle cx="75" cy="60" r="2" fill="#ffdd44" filter="url(#sparkGlow)"/>
+    <circle cx="22" cy="65" r="1.5" fill="#ff8844" filter="url(#sparkGlow)"/>
+    <circle cx="60" cy="80" r="1" fill="#ffcc33" filter="url(#sparkGlow)"/>
+    <circle cx="35" cy="78" r="1.5" fill="#ff6622" filter="url(#sparkGlow)"/>
+    <circle cx="18" cy="38" r="1" fill="#ffcc33"/>
+    <circle cx="78" cy="40" r="1" fill="#ffcc33"/>
+  </g>
+</svg>

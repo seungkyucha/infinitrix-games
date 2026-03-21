@@ -1,0 +1,2962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>미니 로그라이크 던전</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a14;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+canvas{display:block;margin:0 auto;image-rendering:pixelated;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// §0. CONSTANTS & CONFIG
+// ═══════════════════════════════════════════════════════════════
+
+const GAME_W = 800, GAME_H = 600; // base resolution
+const TILE = 24; // tile size in game coords
+const FOV_RADIUS = 6;
+const MAX_FLOOR = 10;
+const FONT = '"Courier New",monospace';
+
+// Floor difficulty config (§6.1)
+const FLOOR_CONFIG = {
+  1:  { rooms:[5,7],  enemies:[3,4],  eliteChance:0.0,  goldMult:1.0, enemyHP:8,   enemyATK:2, theme:'stone' },
+  2:  { rooms:[5,7],  enemies:[4,5],  eliteChance:0.05, goldMult:1.0, enemyHP:10,  enemyATK:3, theme:'stone' },
+  3:  { rooms:[6,8],  enemies:[5,6],  eliteChance:0.10, goldMult:1.1, enemyHP:14,  enemyATK:4, theme:'sewer' },
+  4:  { rooms:[6,8],  enemies:[6,7],  eliteChance:0.15, goldMult:1.2, enemyHP:18,  enemyATK:5, theme:'sewer' },
+  5:  { rooms:[1,1],  enemies:[1,1],  eliteChance:0.0,  goldMult:2.0, enemyHP:60,  enemyATK:8, theme:'boss1' },
+  6:  { rooms:[7,9],  enemies:[6,7],  eliteChance:0.15, goldMult:1.3, enemyHP:22,  enemyATK:6, theme:'lava' },
+  7:  { rooms:[7,9],  enemies:[7,8],  eliteChance:0.20, goldMult:1.4, enemyHP:26,  enemyATK:7, theme:'lava' },
+  8:  { rooms:[8,10], enemies:[7,9],  eliteChance:0.20, goldMult:1.5, enemyHP:30,  enemyATK:8, theme:'crystal' },
+  9:  { rooms:[8,10], enemies:[8,10], eliteChance:0.25, goldMult:1.6, enemyHP:35,  enemyATK:9, theme:'crystal' },
+  10: { rooms:[1,1],  enemies:[1,1],  eliteChance:0.0,  goldMult:3.0, enemyHP:120, enemyATK:12,theme:'boss2' },
+};
+
+// Theme colors per floor
+const THEMES = {
+  stone:   { floor:'#2d2d44', wall:'#4a4a6a', accent:'#8080a0' },
+  sewer:   { floor:'#1a3322', wall:'#2a4a3a', accent:'#44ff44' },
+  boss1:   { floor:'#2d1a1a', wall:'#4a2a2a', accent:'#ff0066' },
+  lava:    { floor:'#3d1a0a', wall:'#4a2a1a', accent:'#ff3300' },
+  crystal: { floor:'#1a2a3d', wall:'#2a3a5a', accent:'#66ccff' },
+  boss2:   { floor:'#1a0a2a', wall:'#2a1a3a', accent:'#aa66ff' },
+};
+
+// Tile types (§10.3)
+const T = { WALL:0, FLOOR:1, DOOR:2, STAIR_UP:3, STAIR_DOWN:4, POISON:5, LAVA:6, CRYSTAL_WALL:7, TRAP:8, SECRET:9 };
+
+// State priorities (§5.2)
+const STATES = { LOADING:0, TITLE:1, META_SHOP:2, DUNGEON:3, LEVEL_UP:4, SHOP:5, PAUSED:6, RESULT:7, INVENTORY:8 };
+const STATE_PRIORITY = { [STATES.RESULT]:100, [STATES.LEVEL_UP]:80, [STATES.SHOP]:70, [STATES.PAUSED]:60, [STATES.INVENTORY]:55, [STATES.DUNGEON]:50, [STATES.META_SHOP]:40, [STATES.TITLE]:30, [STATES.LOADING]:10 };
+
+// Level-up XP requirements (§6.2)
+const LEVEL_XP = [0, 0, 10, 20, 35, 50, 70, 100];
+
+// Weapons (§9.1)
+const WEAPONS = [
+  { id:0, name:'녹슨 검',    atk:2, special:null, desc:'낡았지만 쓸만한 검' },
+  { id:1, name:'은빛 단검',  atk:3, special:'crit10', desc:'크리티컬 +10%' },
+  { id:2, name:'전투 도끼',  atk:5, special:'stun25', desc:'25% 스턴' },
+  { id:3, name:'독 지팡이',  atk:2, special:'poison', desc:'3턴 독(3 dmg)' },
+  { id:4, name:'수정 검',    atk:7, special:null, desc:'순수한 파괴력' },
+];
+
+// Relics (§9.2)
+const RELICS = [
+  { id:0, name:'재생의 반지',  desc:'10턴마다 HP 3 회복',           effect:'regen' },
+  { id:1, name:'독 부적',      desc:'독 데미지 +50%',             effect:'poisonBoost' },
+  { id:2, name:'유령 망토',    desc:'20% 회피',                   effect:'dodge' },
+  { id:3, name:'골드 자석',    desc:'2타일 자동 골드 수집',        effect:'goldMagnet' },
+  { id:4, name:'화염 구슬',    desc:'스플래시 2 데미지',           effect:'fireSplash' },
+  { id:5, name:'얼음 심장',    desc:'피격 시 적 1턴 감속',        effect:'iceSlow' },
+  { id:6, name:'행운의 동전',  desc:'골드 드롭 2배',              effect:'luckyGold' },
+  { id:7, name:'영혼 포식자',  desc:'적 처치 시 HP 5 회복',       effect:'soulEater' },
+];
+
+// Consumables (§9.3)
+const CONSUMABLES = [
+  { id:0, name:'치유 물약',       price:15, desc:'HP 20 회복' },
+  { id:1, name:'독 해제제',       price:8,  desc:'독 상태 해제' },
+  { id:2, name:'순간이동 스크롤', price:20, desc:'랜덤 방 이동' },
+  { id:3, name:'폭탄',           price:25, desc:'주변 2타일 15 dmg' },
+];
+
+// Level-up perks (§6.3)
+const PERKS = [
+  { id:0,  name:'강인함',     desc:'MAX HP +10',          weight:20, effect:'maxhp' },
+  { id:1,  name:'힘',         desc:'ATK +3',              weight:20, effect:'atk' },
+  { id:2,  name:'방어력',     desc:'DEF +2',              weight:15, effect:'def' },
+  { id:3,  name:'흡혈',       desc:'공격 시 HP 1 회복',    weight:10, effect:'lifesteal' },
+  { id:4,  name:'독 내성',    desc:'독 데미지 50% 감소',   weight:10, effect:'poisonResist' },
+  { id:5,  name:'보물 탐지',  desc:'미니맵에 보물 표시',    weight:8,  effect:'treasureSense' },
+  { id:6,  name:'용암 내성',  desc:'용암 데미지 50% 감소',  weight:8,  effect:'lavaResist' },
+  { id:7,  name:'연속 타격',  desc:'20% 추가 공격',        weight:7,  effect:'doubleStrike' },
+  { id:8,  name:'가시 갑옷',  desc:'반사 2 데미지',        weight:7,  effect:'thorns' },
+  { id:9,  name:'탐욕',       desc:'골드 획득 +50%',       weight:8,  effect:'greed' },
+  { id:10, name:'재빠름',     desc:'10% 턴 무소모 이동',    weight:5,  effect:'swift' },
+  { id:11, name:'두 번째 기회',desc:'1회 부활 HP 30%',     weight:2,  effect:'revive' },
+];
+
+// Meta upgrades (§7.3)
+const META_UPGRADES = [
+  { name:'시작 HP 강화', maxLv:5, costs:[5,10,15,20,25], perLv:[5,10,15,20,25], stat:'hp' },
+  { name:'시작 ATK 강화', maxLv:3, costs:[10,20,30], perLv:[1,2,3], stat:'atk' },
+  { name:'시작 DEF 강화', maxLv:3, costs:[10,20,30], perLv:[1,2,3], stat:'def' },
+  { name:'시작 골드', maxLv:3, costs:[8,16,24], perLv:[10,20,30], stat:'gold' },
+  { name:'유물 발견율', maxLv:3, costs:[15,30,45], perLv:[10,20,30], stat:'relicFind' },
+  { name:'상점 할인', maxLv:2, costs:[20,40], perLv:[10,20], stat:'shopDisc' },
+];
+
+// Enemy types
+const ENEMY_TYPES = {
+  SLIME:0, SKELETON:1, BAT:2, MAGE:3, GOLEM:4, BOSS_SEWER:5, BOSS_CORE:6
+};
+
+// ═══════════════════════════════════════════════════════════════
+// §1. UTILITY CLASSES
+// ═══════════════════════════════════════════════════════════════
+
+// TweenManager — safe clearImmediate (§12.4)
+class TweenManager {
+  constructor() { this._tweens = []; }
+  add(obj, props, dur, ease, onComplete) {
+    const tw = { obj, props:{}, dur, elapsed:0, ease:ease||'linear', onComplete };
+    for (const k in props) { tw.props[k] = { from: obj[k], to: props[k] }; }
+    this._tweens.push(tw);
+    return tw;
+  }
+  update(dt) {
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      tw.elapsed += dt;
+      const t = Math.min(tw.elapsed / tw.dur, 1);
+      const e = tw.ease === 'easeOut' ? 1 - (1-t)*(1-t) : tw.ease === 'easeIn' ? t*t : t;
+      for (const k in tw.props) { tw.obj[k] = tw.props[k].from + (tw.props[k].to - tw.props[k].from) * e; }
+      if (t >= 1) { this._tweens.splice(i, 1); if (tw.onComplete) tw.onComplete(); }
+    }
+  }
+  clearImmediate() { this._tweens.length = 0; } // §12.4 no race condition
+  get count() { return this._tweens.length; }
+}
+
+// ObjectPool — reusable objects
+class ObjectPool {
+  constructor(factory, max) { this._pool = []; this._active = []; this._factory = factory; this._max = max; }
+  acquire() {
+    const obj = this._pool.length > 0 ? this._pool.pop() : this._factory();
+    this._active.push(obj);
+    return obj;
+  }
+  release(obj) {
+    const idx = this._active.indexOf(obj);
+    if (idx >= 0) { this._active.splice(idx, 1); if (this._pool.length < this._max) this._pool.push(obj); }
+  }
+  forEach(fn) { for (let i = this._active.length - 1; i >= 0; i--) fn(this._active[i], i); }
+  clear() { this._active.length = 0; this._pool.length = 0; }
+  get length() { return this._active.length; }
+}
+
+// SoundManager — Web Audio procedural sounds (§11)
+class SoundManager {
+  constructor() { this._ctx = null; this._vol = 0.3; }
+  _init() {
+    if (this._ctx) return;
+    try { this._ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  resume() { this._init(); if (this._ctx && this._ctx.state === 'suspended') this._ctx.resume(); }
+  setVolume(v) { this._vol = v; }
+  _gain(t, dur, vol) {
+    const g = this._ctx.createGain();
+    g.gain.setValueAtTime((vol||1)*this._vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    g.connect(this._ctx.destination);
+    return g;
+  }
+  play(name) {
+    if (!this._ctx) return;
+    const t = this._ctx.currentTime;
+    try {
+      switch(name) {
+        case 'move': { // short triangle chirp
+          const o = this._ctx.createOscillator(); o.type='triangle';
+          o.frequency.setValueAtTime(200,t); o.frequency.linearRampToValueAtTime(300,t+0.08);
+          o.connect(this._gain(t,0.1,0.3)); o.start(t); o.stop(t+0.1); break;
+        }
+        case 'attack': { // noise burst
+          const buf = this._ctx.createBuffer(1,this._ctx.sampleRate*0.05,this._ctx.sampleRate);
+          const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+          const s = this._ctx.createBufferSource(); s.buffer=buf;
+          const f = this._ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=800;
+          s.connect(f); f.connect(this._gain(t,0.06,0.5)); s.start(t); break;
+        }
+        case 'hit': { // noise + bandpass
+          const buf = this._ctx.createBuffer(1,this._ctx.sampleRate*0.1,this._ctx.sampleRate);
+          const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+          const s = this._ctx.createBufferSource(); s.buffer=buf;
+          const f = this._ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=400;
+          s.connect(f); f.connect(this._gain(t,0.1,0.4)); s.start(t); break;
+        }
+        case 'kill': { // 3-note descending
+          [261,220,174].forEach((hz,i)=>{
+            const o=this._ctx.createOscillator(); o.type='square';
+            o.frequency.value=hz; o.connect(this._gain(t+i*0.05,0.06,0.25));
+            o.start(t+i*0.05); o.stop(t+i*0.05+0.06);
+          }); break;
+        }
+        case 'levelup': { // 3-note ascending + reverb
+          [261,329,392].forEach((hz,i)=>{
+            const o=this._ctx.createOscillator(); o.type='sine';
+            o.frequency.value=hz; o.connect(this._gain(t+i*0.1,0.15,0.4));
+            o.start(t+i*0.1); o.stop(t+i*0.1+0.15);
+          }); break;
+        }
+        case 'item': { // sine chirp
+          const o=this._ctx.createOscillator(); o.type='sine';
+          o.frequency.setValueAtTime(400,t); o.frequency.linearRampToValueAtTime(800,t+0.08);
+          o.connect(this._gain(t,0.1,0.3)); o.start(t); o.stop(t+0.1); break;
+        }
+        case 'gold': { // sine ding
+          const o=this._ctx.createOscillator(); o.type='sine';
+          o.frequency.value=1200; o.connect(this._gain(t,0.05,0.25));
+          o.start(t); o.stop(t+0.06); break;
+        }
+        case 'boss': { // deep drone
+          const o=this._ctx.createOscillator(); o.type='square';
+          o.frequency.value=60; o.connect(this._gain(t,0.5,0.5));
+          o.start(t); o.stop(t+0.5); break;
+        }
+        case 'death': { // descending saw
+          const o=this._ctx.createOscillator(); o.type='sawtooth';
+          o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(50,t+0.3);
+          o.connect(this._gain(t,0.4,0.4)); o.start(t); o.stop(t+0.4); break;
+        }
+        case 'stairs': { // ascending sine
+          const o=this._ctx.createOscillator(); o.type='sine';
+          o.frequency.setValueAtTime(200,t); o.frequency.linearRampToValueAtTime(600,t+0.2);
+          o.connect(this._gain(t,0.25,0.3)); o.start(t); o.stop(t+0.25); break;
+        }
+        case 'trap': { // sharp noise burst + high sine
+          const buf=this._ctx.createBuffer(1,this._ctx.sampleRate*0.03,this._ctx.sampleRate);
+          const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+          const s=this._ctx.createBufferSource(); s.buffer=buf;
+          s.connect(this._gain(t,0.04,0.5)); s.start(t);
+          const o=this._ctx.createOscillator(); o.type='sine'; o.frequency.value=800;
+          o.connect(this._gain(t,0.08,0.3)); o.start(t); o.stop(t+0.08); break;
+        }
+        case 'ranged': { // sawtooth sweep
+          const o=this._ctx.createOscillator(); o.type='sawtooth';
+          o.frequency.setValueAtTime(800,t); o.frequency.linearRampToValueAtTime(200,t+0.2);
+          o.connect(this._gain(t,0.2,0.3)); o.start(t); o.stop(t+0.2); break;
+        }
+      }
+    } catch(e) {}
+  }
+}
+
+// TransitionGuard — priority-based state transitions (§5.2)
+class TransitionGuard {
+  constructor(onStateChange) { this._transitioning = false; this._onStateChange = onStateChange; }
+  beginTransition(target, opts) {
+    const immediate = opts && opts.immediate;
+    if (this._transitioning && STATE_PRIORITY[target] <= STATE_PRIORITY[gameState]) return false;
+    if (immediate) { this._onStateChange(target); return true; }
+    this._transitioning = true;
+    const fadeObj = { alpha: 0 };
+    tw.clearImmediate();
+    tw.add(fadeObj, { alpha: 1 }, 200, 'easeIn', () => {
+      this._onStateChange(target);
+      tw.add(fadeObj, { alpha: 0 }, 200, 'easeOut', () => { this._transitioning = false; });
+    });
+    transitionFade = fadeObj;
+    return true;
+  }
+  get transitioning() { return this._transitioning; }
+  reset() { this._transitioning = false; }
+}
+
+// ParticleSystem — lightweight particles
+class ParticleSystem {
+  constructor(max) { this._pool = new ObjectPool(()=>({x:0,y:0,vx:0,vy:0,life:0,maxLife:1,color:'#fff',size:2}), max); }
+  emit(x,y,count,color,speed,life,size) {
+    for(let i=0;i<count;i++){
+      const p=this._pool.acquire();
+      p.x=x; p.y=y;
+      const a=Math.random()*Math.PI*2;
+      p.vx=Math.cos(a)*(speed||30)*(0.5+Math.random()*0.5);
+      p.vy=Math.sin(a)*(speed||30)*(0.5+Math.random()*0.5);
+      p.life=life||0.5; p.maxLife=p.life; p.color=color||'#fff'; p.size=size||2;
+    }
+  }
+  update(dt) {
+    const s = dt/1000;
+    this._pool.forEach((p,i)=>{
+      p.x+=p.vx*s; p.y+=p.vy*s; p.life-=s;
+      if(p.life<=0) this._pool.release(p);
+    });
+  }
+  render(ctx,camX,camY) {
+    this._pool.forEach(p=>{
+      const alpha = Math.max(0, p.life/p.maxLife);
+      ctx.globalAlpha=alpha;
+      ctx.fillStyle=p.color;
+      ctx.fillRect(p.x-camX-p.size/2, p.y-camY-p.size/2, p.size, p.size);
+    });
+    ctx.globalAlpha=1;
+  }
+  clear() { this._pool.clear(); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §2. GLOBAL STATE
+// ═══════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gameState = STATES.LOADING;
+let transitionFade = { alpha: 0 };
+let lastTime = 0;
+let turnCount = 0;
+let playerActed = false;
+let screenShake = { x:0, y:0, intensity:0, decay:0.9 };
+let messageLog = []; // combat messages
+let msgTimer = 0;
+
+// Instances
+const tw = new TweenManager();
+const particles = new ParticleSystem(200);
+const sound = new SoundManager();
+const guard = new TransitionGuard((newState) => { gameState = newState; onStateEnter(newState); });
+
+// Player state
+let player = null;
+let dungeon = null;
+let currentFloor = 1;
+let fovMap = null;
+let revealedMap = null;
+let camera = { x:0, y:0, targetX:0, targetY:0 };
+let minimapExpanded = false;
+
+// Meta progression (cached from localStorage on screen enter)
+let cachedSouls = 0;
+let cachedMeta = [0,0,0,0,0,0];
+let cachedBest = 0;
+let cachedStats = { runs:0, kills:0, floors:0, bossKills:0 };
+
+// Shop state
+let shopItems = [];
+let shopSelected = 0;
+
+// Level-up state
+let levelUpChoices = [];
+let levelUpSelected = 0;
+
+// Title menu
+let titleSelected = 0;
+let metaShopSelected = 0;
+
+// Result state
+let resultData = null;
+
+// Pause menu
+let pauseSelected = 0;
+
+// Inventory
+let invSelected = 0;
+
+// Input state
+let keys = {};
+let inputQueue = []; // queued actions for turn processing
+let touchDpad = { active:false, dir:null };
+let swipeStart = null;
+
+// Floating texts
+let floatingTexts = [];
+
+// Boss warning
+let bossWarning = { active:false, timer:0, positions:[] };
+
+// ═══════════════════════════════════════════════════════════════
+// §3. CANVAS SETUP & RESIZE
+// ═══════════════════════════════════════════════════════════════
+
+let scale = 1, offsetX = 0, offsetY = 0;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth, h = window.innerHeight;
+  scale = Math.min(w / GAME_W, h / GAME_H);
+  const cw = GAME_W * scale, ch = GAME_H * scale;
+  canvas.width = cw * dpr;
+  canvas.height = ch * dpr;
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  offsetX = (w - cw) / 2;
+  offsetY = (h - ch) / 2;
+  canvas.style.marginLeft = offsetX + 'px';
+  canvas.style.marginTop = offsetY + 'px';
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Convert screen coords to game coords
+function screenToGame(sx, sy) {
+  return { x: (sx - offsetX) / scale, y: (sy - offsetY) / scale };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §4. localStorage HELPERS (§12.12 — cached, try-catch)
+// ═══════════════════════════════════════════════════════════════
+
+function loadFromStorage() {
+  try {
+    cachedSouls = parseInt(localStorage.getItem('mrd_souls')) || 0;
+    cachedMeta = JSON.parse(localStorage.getItem('mrd_meta')) || [0,0,0,0,0,0];
+    cachedBest = parseInt(localStorage.getItem('mrd_best')) || 0;
+    cachedStats = JSON.parse(localStorage.getItem('mrd_stats')) || { runs:0, kills:0, floors:0, bossKills:0 };
+  } catch(e) { cachedSouls=0; cachedMeta=[0,0,0,0,0,0]; cachedBest=0; cachedStats={runs:0,kills:0,floors:0,bossKills:0}; }
+}
+
+function saveSouls() { try { localStorage.setItem('mrd_souls', cachedSouls); } catch(e){} }
+function saveMeta() { try { localStorage.setItem('mrd_meta', JSON.stringify(cachedMeta)); } catch(e){} }
+function saveBest(score) {
+  // judge first, save later (§0 Cycle 2)
+  const isNew = score > cachedBest;
+  if (isNew) { cachedBest = score; try { localStorage.setItem('mrd_best', cachedBest); } catch(e){} }
+  return isNew;
+}
+function saveStats() { try { localStorage.setItem('mrd_stats', JSON.stringify(cachedStats)); } catch(e){} }
+
+// ═══════════════════════════════════════════════════════════════
+// §5. DUNGEON GENERATION (BSP — §10, pure function)
+// ═══════════════════════════════════════════════════════════════
+
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randFloat(min, max) { return Math.random() * (max - min) + min; }
+
+// BSP node
+function bspSplit(x, y, w, h, depth) {
+  if (depth <= 0 || w < 12 || h < 12) return { x, y, w, h, left:null, right:null };
+  const horiz = w < h ? true : h < w ? false : Math.random() < 0.5;
+  if (horiz) {
+    const split = randInt(y + 5, y + h - 5);
+    return { x, y, w, h, left: bspSplit(x, y, w, split - y, depth-1), right: bspSplit(x, split, w, y+h-split, depth-1) };
+  } else {
+    const split = randInt(x + 5, x + w - 5);
+    return { x, y, w, h, left: bspSplit(x, y, split - x, h, depth-1), right: bspSplit(split, y, x+w-split, h, depth-1) };
+  }
+}
+
+// Extract rooms from BSP leaves
+function bspRooms(node, rooms) {
+  if (!node.left && !node.right) {
+    const rw = randInt(4, Math.min(10, node.w - 2));
+    const rh = randInt(4, Math.min(8, node.h - 2));
+    const rx = randInt(node.x + 1, node.x + node.w - rw - 1);
+    const ry = randInt(node.y + 1, node.y + node.h - rh - 1);
+    rooms.push({ x:rx, y:ry, w:rw, h:rh, cx: Math.floor(rx+rw/2), cy: Math.floor(ry+rh/2) });
+    return { cx: Math.floor(rx+rw/2), cy: Math.floor(ry+rh/2) };
+  }
+  const l = node.left ? bspRooms(node.left, rooms) : null;
+  const r = node.right ? bspRooms(node.right, rooms) : null;
+  if (l && r) rooms._corridors.push([l, r]);
+  return l || r;
+}
+
+// Generate full dungeon for a floor (pure function)
+function generateDungeon(floor, mapW, mapH) {
+  const cfg = FLOOR_CONFIG[floor];
+  const isBoss = floor === 5 || floor === 10;
+  const tiles = [];
+  for (let y = 0; y < mapH; y++) { tiles[y] = []; for (let x = 0; x < mapW; x++) tiles[y][x] = T.WALL; }
+
+  const rooms = []; rooms._corridors = [];
+
+  if (isBoss) {
+    // Boss floor: single arena room
+    const rw = 16, rh = 12;
+    const rx = Math.floor((mapW - rw) / 2), ry = Math.floor((mapH - rh) / 2);
+    rooms.push({ x:rx, y:ry, w:rw, h:rh, cx:Math.floor(rx+rw/2), cy:Math.floor(ry+rh/2) });
+  } else {
+    const targetRooms = randInt(cfg.rooms[0], cfg.rooms[1]);
+    const depth = targetRooms <= 6 ? 3 : 4;
+    const root = bspSplit(0, 0, mapW, mapH, depth);
+    bspRooms(root, rooms);
+  }
+
+  // Carve rooms
+  for (const r of rooms) {
+    for (let y = r.y; y < r.y + r.h; y++)
+      for (let x = r.x; x < r.x + r.w; x++)
+        if (y > 0 && y < mapH-1 && x > 0 && x < mapW-1) tiles[y][x] = T.FLOOR;
+  }
+
+  // Carve corridors (L-shaped)
+  for (const [a, b] of rooms._corridors) {
+    let cx = a.cx, cy = a.cy;
+    while (cx !== b.cx) { if (cy>=0&&cy<mapH&&cx>=0&&cx<mapW) tiles[cy][cx] = T.FLOOR; cx += cx < b.cx ? 1 : -1; }
+    while (cy !== b.cy) { if (cy>=0&&cy<mapH&&cx>=0&&cx<mapW) tiles[cy][cx] = T.FLOOR; cy += cy < b.cy ? 1 : -1; }
+  }
+
+  // Connect disconnected rooms with direct corridors
+  for (let i = 1; i < rooms.length; i++) {
+    const a = rooms[i-1], b = rooms[i];
+    let cx = a.cx, cy = a.cy;
+    while (cx !== b.cx) { if(cy>=0&&cy<mapH&&cx>=0&&cx<mapW) tiles[cy][cx]=T.FLOOR; cx+=cx<b.cx?1:-1; }
+    while (cy !== b.cy) { if(cy>=0&&cy<mapH&&cx>=0&&cx<mapW) tiles[cy][cx]=T.FLOOR; cy+=cy<b.cy?1:-1; }
+  }
+
+  // Add doors between rooms and corridors
+  for (const r of rooms) {
+    for (let x = r.x; x < r.x + r.w; x++) {
+      if (r.y > 1 && tiles[r.y-1][x] === T.FLOOR && tiles[r.y][x] === T.FLOOR) tiles[r.y][x] = T.DOOR;
+      if (r.y+r.h < mapH-1 && tiles[r.y+r.h][x] === T.FLOOR && tiles[r.y+r.h-1][x] === T.FLOOR) tiles[r.y+r.h-1][x] = T.DOOR;
+    }
+  }
+
+  // Place stairs — start in first room, end in last room
+  const startRoom = rooms[0];
+  const endRoom = rooms[rooms.length - 1];
+  tiles[startRoom.cy][startRoom.cx] = T.STAIR_UP;
+  if (!isBoss) tiles[endRoom.cy][endRoom.cx] = T.STAIR_DOWN;
+
+  // Assign room types (§10.2)
+  const roomTypes = [];
+  roomTypes[0] = 'start';
+  if (!isBoss) {
+    roomTypes[rooms.length - 1] = 'exit';
+    for (let i = 1; i < rooms.length - 1; i++) {
+      const roll = Math.random();
+      if (roll < 0.10) roomTypes[i] = 'shop';
+      else if (roll < 0.25) roomTypes[i] = 'treasure';
+      else if (roll < 0.35) roomTypes[i] = 'elite';
+      else if (roll < 0.45) roomTypes[i] = 'empty';
+      else roomTypes[i] = 'combat';
+    }
+  } else {
+    roomTypes[0] = 'boss';
+  }
+
+  // Place hazards based on theme
+  if (cfg.theme === 'sewer') {
+    for (const r of rooms) {
+      if (Math.random() < 0.3) {
+        const px = randInt(r.x+1, r.x+r.w-2), py = randInt(r.y+1, r.y+r.h-2);
+        if (tiles[py][px] === T.FLOOR) tiles[py][px] = T.POISON;
+      }
+    }
+  }
+  if (cfg.theme === 'lava') {
+    for (const r of rooms) {
+      const count = randInt(1,3);
+      for (let c = 0; c < count; c++) {
+        const px = randInt(r.x+1, r.x+r.w-2), py = randInt(r.y+1, r.y+r.h-2);
+        if (tiles[py][px] === T.FLOOR) tiles[py][px] = T.LAVA;
+      }
+    }
+  }
+  if (cfg.theme === 'crystal') {
+    for (const r of rooms) {
+      if (Math.random() < 0.2) {
+        const px = randInt(r.x+1, r.x+r.w-2), py = randInt(r.y+1, r.y+r.h-2);
+        if (tiles[py][px] === T.FLOOR) tiles[py][px] = T.CRYSTAL_WALL;
+      }
+    }
+  }
+
+  // Place traps
+  if (!isBoss) {
+    for (let i = 1; i < rooms.length; i++) {
+      if (roomTypes[i] === 'combat' && Math.random() < 0.2) {
+        const r = rooms[i];
+        const px = randInt(r.x+1, r.x+r.w-2), py = randInt(r.y+1, r.y+r.h-2);
+        if (tiles[py][px] === T.FLOOR) tiles[py][px] = T.TRAP;
+      }
+    }
+  }
+
+  // Generate enemies
+  const enemies = [];
+  if (isBoss) {
+    const bossType = floor === 5 ? ENEMY_TYPES.BOSS_SEWER : ENEMY_TYPES.BOSS_CORE;
+    enemies.push(createEnemy(bossType, endRoom.cx, endRoom.cy, floor));
+    // Add minions
+    const minionCount = floor === 5 ? 2 : 3;
+    for (let m = 0; m < minionCount; m++) {
+      const mx = randInt(endRoom.x+1, endRoom.x+endRoom.w-2);
+      const my = randInt(endRoom.y+1, endRoom.y+endRoom.h-2);
+      if (tiles[my][mx] === T.FLOOR) {
+        enemies.push(createEnemy(ENEMY_TYPES.SLIME, mx, my, floor));
+      }
+    }
+  } else {
+    for (let i = 1; i < rooms.length; i++) {
+      const r = rooms[i];
+      const rt = roomTypes[i];
+      if (rt === 'combat' || rt === 'exit') {
+        const count = randInt(1, 3);
+        for (let e = 0; e < count; e++) {
+          const ex = randInt(r.x+1, r.x+r.w-2), ey = randInt(r.y+1, r.y+r.h-2);
+          if (tiles[ey][ex] === T.FLOOR || tiles[ey][ex] === T.DOOR) {
+            const type = pickEnemyType(floor, cfg.eliteChance);
+            enemies.push(createEnemy(type, ex, ey, floor));
+          }
+        }
+      } else if (rt === 'elite') {
+        const ex = r.cx, ey = r.cy;
+        const eliteType = pickEnemyType(floor, 1.0); // force elite-grade
+        const en = createEnemy(eliteType, ex, ey, floor);
+        en.isElite = true; en.hp = Math.floor(en.maxHp * 1.5); en.maxHp = en.hp; en.atk += 2;
+        enemies.push(en);
+      }
+    }
+  }
+
+  // Generate items on floor
+  const items = [];
+  for (let i = 0; i < rooms.length; i++) {
+    const r = rooms[i], rt = roomTypes[i];
+    if (rt === 'treasure') {
+      items.push({ x:r.cx, y:r.cy, type:'chest' });
+    }
+    if (rt === 'shop') {
+      // shop NPCs handled separately
+    }
+    // Random gold drops
+    if (rt !== 'start' && rt !== 'boss' && Math.random() < 0.4) {
+      const gx = randInt(r.x+1, r.x+r.w-2), gy = randInt(r.y+1, r.y+r.h-2);
+      if (tiles[gy][gx] === T.FLOOR) {
+        items.push({ x:gx, y:gy, type:'gold', amount: randInt(1, Math.floor(3 * cfg.goldMult)) });
+      }
+    }
+  }
+
+  return { tiles, rooms, roomTypes, enemies, items, startRoom, endRoom, w: mapW, h: mapH, theme: cfg.theme };
+}
+
+// Pick enemy type based on floor
+function pickEnemyType(floor, eliteChance) {
+  if (floor <= 2) return ENEMY_TYPES.SLIME;
+  if (floor <= 4) return Math.random() < 0.4 ? ENEMY_TYPES.SKELETON : (Math.random()<0.3 ? ENEMY_TYPES.BAT : ENEMY_TYPES.SLIME);
+  if (floor <= 7) {
+    const r = Math.random();
+    if (r < 0.2) return ENEMY_TYPES.MAGE;
+    if (r < 0.5) return ENEMY_TYPES.SKELETON;
+    if (r < 0.7) return ENEMY_TYPES.BAT;
+    return ENEMY_TYPES.SLIME;
+  }
+  const r = Math.random();
+  if (r < 0.15) return ENEMY_TYPES.GOLEM;
+  if (r < 0.35) return ENEMY_TYPES.MAGE;
+  if (r < 0.55) return ENEMY_TYPES.SKELETON;
+  if (r < 0.75) return ENEMY_TYPES.BAT;
+  return ENEMY_TYPES.SLIME;
+}
+
+// Create enemy instance
+function createEnemy(type, x, y, floor) {
+  const cfg = FLOOR_CONFIG[floor];
+  const base = {
+    type, x, y, floor,
+    hp: cfg.enemyHP, maxHp: cfg.enemyHP,
+    atk: cfg.enemyATK, def: 0,
+    isElite: false, stunTurns: 0, slowTurns: 0,
+    turnParity: 0, phase: 1, summonCount: 0,
+    poisonCloudTurns: 0, laserWarning: null,
+    alive: true,
+    animOffset: Math.random() * Math.PI * 2
+  };
+  // Type-specific overrides
+  if (type === ENEMY_TYPES.GOLEM) { base.def = 5; base.hp = Math.floor(base.hp * 1.5); base.maxHp = base.hp; }
+  if (type === ENEMY_TYPES.BOSS_SEWER) { base.hp = 60; base.maxHp = 60; base.atk = 8; base.def = 3; }
+  if (type === ENEMY_TYPES.BOSS_CORE) { base.hp = 120; base.maxHp = 120; base.atk = 12; base.def = 4; }
+  return base;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §6. FOV SYSTEM (Raycasting — §10.4, pure function)
+// ═══════════════════════════════════════════════════════════════
+
+function computeFOV(px, py, tiles, mapW, mapH, radius) {
+  const vis = [];
+  for (let y = 0; y < mapH; y++) { vis[y] = []; for (let x = 0; x < mapW; x++) vis[y][x] = false; }
+  vis[py][px] = true;
+  // Cast rays in 360 directions
+  const steps = 72;
+  for (let i = 0; i < steps; i++) {
+    const angle = (i / steps) * Math.PI * 2;
+    const dx = Math.cos(angle) * 0.5;
+    const dy = Math.sin(angle) * 0.5;
+    let rx = px + 0.5, ry = py + 0.5;
+    for (let d = 0; d < radius; d++) {
+      rx += dx; ry += dy;
+      const tx = Math.floor(rx), ty = Math.floor(ry);
+      if (tx < 0 || tx >= mapW || ty < 0 || ty >= mapH) break;
+      vis[ty][tx] = true;
+      if (tiles[ty][tx] === T.WALL || tiles[ty][tx] === T.CRYSTAL_WALL || tiles[ty][tx] === T.SECRET) break;
+    }
+  }
+  return vis;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §7. COMBAT SYSTEM (Pure functions — §8, §12.6)
+// ═══════════════════════════════════════════════════════════════
+
+// Calculate damage (pure function)
+function calcDamage(attackerATK, defenderDEF, weaponBonus, relicMult) {
+  const base = Math.max(1, attackerATK + weaponBonus - defenderDEF);
+  return Math.floor(base * relicMult);
+}
+
+// Check critical hit
+function calcCritical(baseCritChance, relicBonus) {
+  return Math.random() < (baseCritChance + relicBonus);
+}
+
+// Get player weapon bonus
+function getWeaponBonus(p) { return p.weapon ? WEAPONS[p.weapon].atk : 0; }
+
+// Get crit chance from weapon and relics
+function getCritChance(p) {
+  let chance = 0.05;
+  if (p.weapon && WEAPONS[p.weapon].special === 'crit10') chance += 0.10;
+  // Synergy: ghost cloak + swift → guaranteed crit after dodge
+  if (p.nextCritGuaranteed) { p.nextCritGuaranteed = false; return 1.0; }
+  return chance;
+}
+
+// Check if player has a perk
+function hasPerk(p, effect) { return p.perks && p.perks.some(pk => pk.effect === effect); }
+
+// Check if player has a relic
+function hasRelic(p, effect) { return p.relics && p.relics.some(r => r.effect === effect); }
+
+// Check synergy (§9.4)
+function hasSynergy(p, name) {
+  switch(name) {
+    case 'venom': return hasRelic(p, 'poisonBoost') && p.weapon && WEAPONS[p.weapon].special === 'poison';
+    case 'lifeReap': return hasRelic(p, 'soulEater') && hasPerk(p, 'lifesteal');
+    case 'phantom': return hasRelic(p, 'dodge') && hasPerk(p, 'swift');
+    case 'goldKing': return hasRelic(p, 'goldMagnet') && hasRelic(p, 'luckyGold');
+    case 'frostRetaliate': return hasRelic(p, 'iceSlow') && hasPerk(p, 'thorns');
+    case 'fireSmash': return hasRelic(p, 'fireSplash') && p.weapon && WEAPONS[p.weapon].special === 'stun25';
+    default: return false;
+  }
+}
+
+// Apply player attack to enemy
+function playerAttackEnemy(p, enemy, allEnemies) {
+  const weaponBonus = getWeaponBonus(p);
+  const relicMult = 1.0;
+  let dmg = calcDamage(p.atk + weaponBonus, enemy.def, 0, relicMult);
+  const isCrit = calcCritical(getCritChance(p), 0);
+  if (isCrit) dmg = Math.floor(dmg * 1.5);
+
+  enemy.hp -= dmg;
+  addMessage(isCrit ? `크리티컬! ${dmg} 데미지!` : `${dmg} 데미지!`, isCrit ? '#ffd700' : '#ff4444');
+  sound.play('attack');
+
+  // Weapon special effects
+  if (p.weapon) {
+    const w = WEAPONS[p.weapon];
+    if (w.special === 'stun25') {
+      const stunChance = hasSynergy(p, 'fireSmash') ? 0.40 : 0.25;
+      if (Math.random() < stunChance) { enemy.stunTurns = 1; addMessage('스턴!', '#ffaa00'); }
+    }
+    if (w.special === 'poison') {
+      const dur = hasSynergy(p, 'venom') ? 5 : 3;
+      const pdmg = hasSynergy(p, 'venom') ? 6 : 3;
+      enemy.poisonTurns = dur; enemy.poisonDmg = pdmg;
+      addMessage('독!', '#44ff44');
+    }
+  }
+
+  // Relic: fire splash
+  if (hasRelic(p, 'fireSplash')) {
+    const splashRange = hasSynergy(p, 'fireSmash') ? 2 : 1;
+    for (const e2 of allEnemies) {
+      if (e2 !== enemy && e2.alive && Math.abs(e2.x-enemy.x) + Math.abs(e2.y-enemy.y) <= splashRange) {
+        e2.hp -= 2;
+        particles.emit(e2.x * TILE + TILE/2, e2.y * TILE + TILE/2, 3, '#ff6600', 20, 0.3, 3);
+      }
+    }
+  }
+
+  // Perk: lifesteal
+  if (hasPerk(p, 'lifesteal')) {
+    const heal = hasSynergy(p, 'lifeReap') ? 2 : 1;
+    p.hp = Math.min(p.maxHp, p.hp + heal);
+  }
+
+  // Perk: double strike
+  if (hasPerk(p, 'doubleStrike') && Math.random() < 0.20) {
+    const dmg2 = calcDamage(p.atk + weaponBonus, enemy.def, 0, relicMult);
+    enemy.hp -= dmg2;
+    addMessage(`연속 타격! +${dmg2}`, '#ff8800');
+  }
+
+  // Particle effects at enemy position
+  particles.emit(enemy.x * TILE + TILE/2, enemy.y * TILE + TILE/2, 5, '#ff4444', 40, 0.4, 3);
+
+  // Check kill
+  if (enemy.hp <= 0) {
+    enemy.alive = false;
+    onEnemyKilled(p, enemy);
+  }
+}
+
+// Handle enemy killed
+function onEnemyKilled(p, enemy) {
+  sound.play('kill');
+  particles.emit(enemy.x * TILE + TILE/2, enemy.y * TILE + TILE/2, 12, '#ff6644', 60, 0.6, 4);
+
+  // XP
+  const xpTable = { [ENEMY_TYPES.SLIME]:3, [ENEMY_TYPES.SKELETON]:5, [ENEMY_TYPES.BAT]:4, [ENEMY_TYPES.MAGE]:7, [ENEMY_TYPES.GOLEM]:10, [ENEMY_TYPES.BOSS_SEWER]:50, [ENEMY_TYPES.BOSS_CORE]:100 };
+  const xp = xpTable[enemy.type] || 3;
+  p.xp += xp;
+  addFloatingText(enemy.x * TILE, enemy.y * TILE, `+${xp} XP`, '#00e5ff');
+
+  // Gold drop
+  const goldBase = { [ENEMY_TYPES.SLIME]:[1,3], [ENEMY_TYPES.SKELETON]:[2,4], [ENEMY_TYPES.BAT]:[2,3], [ENEMY_TYPES.MAGE]:[3,5], [ENEMY_TYPES.GOLEM]:[4,6], [ENEMY_TYPES.BOSS_SEWER]:[20,20], [ENEMY_TYPES.BOSS_CORE]:[50,50] };
+  const gr = goldBase[enemy.type] || [1,2];
+  let gold = randInt(gr[0], gr[1]);
+  const goldMult = FLOOR_CONFIG[currentFloor].goldMult * (hasPerk(p, 'greed') ? 1.5 : 1) * (hasRelic(p, 'luckyGold') ? (hasSynergy(p, 'goldKing') ? 3 : 2) : 1);
+  gold = Math.floor(gold * goldMult);
+  p.gold += gold;
+  addFloatingText(enemy.x * TILE + 12, enemy.y * TILE + 8, `+${gold}G`, '#ffd700');
+
+  // Score
+  const scoreMult = enemy.isElite ? 30 : (enemy.type >= ENEMY_TYPES.BOSS_SEWER ? 200 * Math.ceil(currentFloor/5) : 10);
+  p.score += scoreMult * currentFloor;
+
+  // Souls
+  if (enemy.isElite) p.runSouls += 3;
+  if (enemy.type === ENEMY_TYPES.BOSS_SEWER || enemy.type === ENEMY_TYPES.BOSS_CORE) p.runSouls += 10;
+
+  // Relic: soul eater
+  if (hasRelic(p, 'soulEater')) {
+    const heal = hasSynergy(p, 'lifeReap') ? 8 : 5;
+    p.hp = Math.min(p.maxHp, p.hp + heal);
+    addFloatingText(p.x * TILE, p.y * TILE - 8, `+${heal} HP`, '#22cc44');
+  }
+
+  // Stats
+  cachedStats.kills++;
+
+  // Relic drop chance
+  if (enemy.isElite && Math.random() < 0.5) {
+    dropRelic(enemy.x, enemy.y);
+  }
+
+  // Boss defeat
+  if (enemy.type === ENEMY_TYPES.BOSS_SEWER) {
+    cachedStats.bossKills++;
+    addMessage('하수도 왕 처치! 보너스 유물!', '#ffd700');
+    dropRelic(enemy.x, enemy.y);
+  }
+  if (enemy.type === ENEMY_TYPES.BOSS_CORE) {
+    cachedStats.bossKills++;
+    p.score += 1000;
+    p.runSouls += 25;
+    // Victory!
+    showResult(true);
+    return;
+  }
+}
+
+// Drop a random relic item on the ground
+function dropRelic(x, y) {
+  if (!dungeon) return;
+  const available = RELICS.filter(r => !player.relics.some(pr => pr.id === r.id));
+  if (available.length === 0) return;
+  const relic = available[randInt(0, available.length - 1)];
+  // Add relic drop boost from meta
+  dungeon.items.push({ x, y, type:'relic', relic });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §8. ENEMY AI (Pure functions — §8.3)
+// ═══════════════════════════════════════════════════════════════
+
+function manhattanDist(ax, ay, bx, by) { return Math.abs(ax - bx) + Math.abs(ay - by); }
+
+function isWalkable(tiles, x, y, mapW, mapH) {
+  if (x < 0 || x >= mapW || y < 0 || y >= mapH) return false;
+  const t = tiles[y][x];
+  return t !== T.WALL && t !== T.CRYSTAL_WALL && t !== T.SECRET;
+}
+
+// Move toward target (greedy manhattan)
+function moveToward(enemy, tx, ty, tiles, mapW, mapH, allEnemies) {
+  const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+  let bestDir = null, bestDist = Infinity;
+  for (const [dx, dy] of dirs) {
+    const nx = enemy.x + dx, ny = enemy.y + dy;
+    if (!isWalkable(tiles, nx, ny, mapW, mapH)) continue;
+    if (allEnemies.some(e => e.alive && e !== enemy && e.x === nx && e.y === ny)) continue;
+    const d = manhattanDist(nx, ny, tx, ty);
+    if (d < bestDist) { bestDist = d; bestDir = [dx, dy]; }
+  }
+  if (bestDir) { enemy.x += bestDir[0]; enemy.y += bestDir[1]; }
+}
+
+// Move away from target
+function moveAway(enemy, tx, ty, tiles, mapW, mapH, allEnemies) {
+  const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+  let bestDir = null, bestDist = -1;
+  for (const [dx, dy] of dirs) {
+    const nx = enemy.x + dx, ny = enemy.y + dy;
+    if (!isWalkable(tiles, nx, ny, mapW, mapH)) continue;
+    if (allEnemies.some(e => e.alive && e !== enemy && e.x === nx && e.y === ny)) continue;
+    const d = manhattanDist(nx, ny, tx, ty);
+    if (d > bestDist) { bestDist = d; bestDir = [dx, dy]; }
+  }
+  if (bestDir) { enemy.x += bestDir[0]; enemy.y += bestDir[1]; }
+}
+
+// Enemy attacks player
+function enemyAttackPlayer(enemy, p) {
+  // Relic: dodge
+  const dodgeChance = hasRelic(p, 'dodge') ? (hasSynergy(p, 'phantom') ? 0.35 : 0.20) : 0;
+  if (Math.random() < dodgeChance) {
+    addMessage('회피!', '#66ccff');
+    if (hasSynergy(p, 'phantom')) p.nextCritGuaranteed = true;
+    return;
+  }
+
+  let dmg = Math.max(1, enemy.atk - p.def);
+  p.hp -= dmg;
+  addMessage(`${dmg} 피해!`, '#ff4444');
+  sound.play('hit');
+  screenShake.intensity = 3;
+  particles.emit(p.x * TILE + TILE/2, p.y * TILE + TILE/2, 4, '#ff4444', 30, 0.3, 2);
+
+  // Perk: thorns
+  if (hasPerk(p, 'thorns')) {
+    const thornsDmg = hasSynergy(p, 'frostRetaliate') ? 4 : 2;
+    enemy.hp -= thornsDmg;
+    if (hasSynergy(p, 'frostRetaliate')) enemy.slowTurns = 2;
+    if (enemy.hp <= 0) { enemy.alive = false; onEnemyKilled(p, enemy); }
+  }
+
+  // Relic: ice slow
+  if (hasRelic(p, 'iceSlow')) {
+    enemy.slowTurns = Math.max(enemy.slowTurns, hasSynergy(p, 'frostRetaliate') ? 2 : 1);
+  }
+}
+
+// Process one turn of all enemies (§8.3)
+function processEnemyTurns(enemies, p, tiles, mapW, mapH) {
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    if (e.stunTurns > 0) { e.stunTurns--; continue; }
+    if (e.slowTurns > 0) { e.slowTurns--; if (e.turnParity % 2 !== 0) { e.turnParity++; continue; } }
+
+    // Poison damage on enemy
+    if (e.poisonTurns > 0) {
+      e.hp -= (e.poisonDmg || 3);
+      e.poisonTurns--;
+      particles.emit(e.x * TILE + TILE/2, e.y * TILE + TILE/2, 2, '#44ff44', 15, 0.3, 2);
+      if (e.hp <= 0) { e.alive = false; onEnemyKilled(p, e); continue; }
+    }
+
+    e.turnParity++;
+    const dist = manhattanDist(e.x, e.y, p.x, p.y);
+
+    // Boss AI
+    if (e.type === ENEMY_TYPES.BOSS_SEWER) {
+      processBossSewer(e, p, tiles, mapW, mapH, enemies);
+      continue;
+    }
+    if (e.type === ENEMY_TYPES.BOSS_CORE) {
+      processBossCore(e, p, tiles, mapW, mapH, enemies);
+      continue;
+    }
+
+    switch (e.type) {
+      case ENEMY_TYPES.SLIME:
+        if (dist <= 1) enemyAttackPlayer(e, p);
+        else if (dist <= 5) moveToward(e, p.x, p.y, tiles, mapW, mapH, enemies);
+        else { /* random move */ const dirs=[[0,-1],[0,1],[-1,0],[1,0]]; const d=dirs[randInt(0,3)]; const nx=e.x+d[0],ny=e.y+d[1]; if(isWalkable(tiles,nx,ny,mapW,mapH)&&!enemies.some(o=>o.alive&&o!==e&&o.x===nx&&o.y===ny)){e.x=nx;e.y=ny;} }
+        break;
+      case ENEMY_TYPES.SKELETON:
+        if (dist <= 1) enemyAttackPlayer(e, p);
+        else moveToward(e, p.x, p.y, tiles, mapW, mapH, enemies);
+        break;
+      case ENEMY_TYPES.BAT:
+        if (dist <= 1) {
+          enemyAttackPlayer(e, p);
+          // Poison on hit
+          if (p.hp > 0) {
+            const poisonResist = hasPerk(p, 'poisonResist') ? 0.5 : 1;
+            p.poisonTurns = Math.max(p.poisonTurns || 0, 2);
+            p.poisonDmg = Math.floor(2 * poisonResist);
+          }
+        } else {
+          moveToward(e, p.x, p.y, tiles, mapW, mapH, enemies);
+          // Bat moves twice
+          if (manhattanDist(e.x, e.y, p.x, p.y) > 1) moveToward(e, p.x, p.y, tiles, mapW, mapH, enemies);
+        }
+        break;
+      case ENEMY_TYPES.MAGE:
+        if (dist <= 1) moveAway(e, p.x, p.y, tiles, mapW, mapH, enemies);
+        else if (dist <= 3) {
+          // Ranged attack
+          let rdmg = Math.max(1, e.atk - p.def);
+          p.hp -= rdmg;
+          addMessage(`마법 공격! ${rdmg} 피해`, '#aa66ff');
+          sound.play('ranged');
+          screenShake.intensity = 2;
+          particles.emit(p.x*TILE+TILE/2, p.y*TILE+TILE/2, 4, '#aa66ff', 25, 0.3, 3);
+        }
+        else moveToward(e, p.x, p.y, tiles, mapW, mapH, enemies);
+        break;
+      case ENEMY_TYPES.GOLEM:
+        if (e.turnParity % 2 !== 0) break; // moves every other turn
+        if (dist <= 1) enemyAttackPlayer(e, p);
+        else moveToward(e, p.x, p.y, tiles, mapW, mapH, enemies);
+        break;
+    }
+  }
+}
+
+// Boss: Sewer King (§8.4)
+function processBossSewer(boss, p, tiles, mapW, mapH, enemies) {
+  const hpPct = boss.hp / boss.maxHp;
+  const dist = manhattanDist(boss.x, boss.y, p.x, p.y);
+
+  if (hpPct > 0.6) {
+    boss.phase = 1; // Charge
+    if (dist <= 1) { enemyAttackPlayer(boss, p); }
+    else {
+      // Charge 2 tiles toward player
+      for (let c = 0; c < 2; c++) moveToward(boss, p.x, p.y, tiles, mapW, mapH, enemies);
+      if (manhattanDist(boss.x, boss.y, p.x, p.y) <= 1) enemyAttackPlayer(boss, p);
+    }
+  } else if (hpPct > 0.3) {
+    boss.phase = 2; // Summon
+    if (boss.turnParity % 2 === 0 && boss.summonCount < 3) {
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (const [dx, dy] of dirs) {
+        const sx = boss.x+dx, sy = boss.y+dy;
+        if (isWalkable(tiles, sx, sy, mapW, mapH) && !enemies.some(e=>e.alive&&e.x===sx&&e.y===sy)) {
+          const minion = createEnemy(ENEMY_TYPES.SLIME, sx, sy, currentFloor);
+          enemies.push(minion);
+          boss.summonCount++;
+          particles.emit(sx*TILE+TILE/2, sy*TILE+TILE/2, 6, '#ff0066', 30, 0.4, 3);
+          break;
+        }
+      }
+    }
+    if (dist <= 1) enemyAttackPlayer(boss, p);
+  } else {
+    boss.phase = 3; // Poison mist
+    // Area poison damage around boss (2 tiles)
+    if (manhattanDist(boss.x, boss.y, p.x, p.y) <= 2) {
+      const poisonResist = hasPerk(p, 'poisonResist') ? 0.5 : 1;
+      const dmg = Math.floor(3 * poisonResist);
+      p.hp -= dmg;
+      addMessage(`독안개 ${dmg} 피해!`, '#44ff44');
+      particles.emit(p.x*TILE+TILE/2, p.y*TILE+TILE/2, 3, '#44ff44', 20, 0.3, 4);
+    }
+    moveToward(boss, p.x, p.y, tiles, mapW, mapH, enemies);
+  }
+}
+
+// Boss: Dungeon Core (§8.4)
+function processBossCore(boss, p, tiles, mapW, mapH, enemies) {
+  const hpPct = boss.hp / boss.maxHp;
+  const dist = manhattanDist(boss.x, boss.y, p.x, p.y);
+
+  if (hpPct > 0.6) {
+    boss.phase = 1; // Laser
+    if (boss.laserWarning) {
+      // Fire laser!
+      for (const pos of boss.laserWarning) {
+        if (pos.x === p.x && pos.y === p.y) {
+          const dmg = Math.max(1, boss.atk - p.def);
+          p.hp -= dmg;
+          addMessage(`레이저! ${dmg} 피해!`, '#ff0066');
+          screenShake.intensity = 5;
+        }
+        particles.emit(pos.x*TILE+TILE/2, pos.y*TILE+TILE/2, 2, '#ff0066', 30, 0.2, 2);
+      }
+      boss.laserWarning = null;
+    } else {
+      // Warn
+      const warnings = [];
+      for (let d = 1; d <= 8; d++) {
+        warnings.push({x:boss.x+d, y:boss.y}); warnings.push({x:boss.x-d, y:boss.y});
+        warnings.push({x:boss.x, y:boss.y+d}); warnings.push({x:boss.x, y:boss.y-d});
+      }
+      boss.laserWarning = warnings;
+      bossWarning = { active:true, timer:0, positions:warnings };
+      addMessage('경고: 레이저 충전 중!', '#ff0066');
+    }
+  } else if (hpPct > 0.3) {
+    boss.phase = 2; // Split
+    if (boss.summonCount < 2) {
+      const dirs = [[2,0],[-2,0]];
+      for (const [dx, dy] of dirs) {
+        const sx = boss.x+dx, sy = boss.y+dy;
+        if (sx >= 0 && sx < mapW && sy >= 0 && sy < mapH && isWalkable(tiles, sx, sy, mapW, mapH)) {
+          const clone = createEnemy(ENEMY_TYPES.BOSS_CORE, sx, sy, currentFloor);
+          clone.hp = 20; clone.maxHp = 20; clone.atk = 6; clone.type = ENEMY_TYPES.SKELETON; // clone acts as skeleton
+          clone.isElite = true;
+          enemies.push(clone);
+          boss.summonCount++;
+          particles.emit(sx*TILE+TILE/2, sy*TILE+TILE/2, 8, '#aa66ff', 40, 0.5, 4);
+        }
+      }
+      boss.def += 5; // defense stance
+      addMessage('보스 방어 자세! 분신 소환!', '#aa66ff');
+    }
+    if (dist <= 1) enemyAttackPlayer(boss, p);
+  } else {
+    boss.phase = 3; // AoE
+    if (boss.turnParity % 3 === 0) {
+      // Area explosion
+      if (manhattanDist(boss.x, boss.y, p.x, p.y) <= 3) {
+        p.hp -= 15;
+        addMessage('광역 폭발! 15 피해!', '#ff0066');
+        screenShake.intensity = 8;
+        particles.emit(boss.x*TILE+TILE/2, boss.y*TILE+TILE/2, 20, '#ff3300', 60, 0.6, 5);
+      }
+    }
+    moveToward(boss, p.x, p.y, tiles, mapW, mapH, enemies);
+    if (dist <= 1) enemyAttackPlayer(boss, p);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §9. PLAYER MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function createPlayer() {
+  const metaHP = cachedMeta[0] > 0 ? META_UPGRADES[0].perLv[cachedMeta[0]-1] : 0;
+  const metaATK = cachedMeta[1] > 0 ? META_UPGRADES[1].perLv[cachedMeta[1]-1] : 0;
+  const metaDEF = cachedMeta[2] > 0 ? META_UPGRADES[2].perLv[cachedMeta[2]-1] : 0;
+  const metaGold = cachedMeta[3] > 0 ? META_UPGRADES[3].perLv[cachedMeta[3]-1] : 0;
+
+  return {
+    x: 0, y: 0,
+    hp: 30 + metaHP, maxHp: 30 + metaHP,
+    atk: 5 + metaATK, def: 2 + metaDEF,
+    level: 1, xp: 0,
+    gold: metaGold,
+    weapon: 0, // index into WEAPONS
+    relics: [], // max 3
+    consumables: [null, null, null, null], // 4 slots
+    perks: [], // level-up perks collected
+    score: 0,
+    runSouls: 0,
+    poisonTurns: 0, poisonDmg: 0,
+    noDamageTaken: true, // for no-damage floor bonus
+    nextCritGuaranteed: false,
+    reviveUsed: false,
+    facing: 0, // 0=down, 1=up, 2=left, 3=right
+    turnsSinceRegen: 0,
+  };
+}
+
+// Check if player leveled up
+function checkLevelUp(p) {
+  if (p.level >= 7) return false;
+  const needed = LEVEL_XP[p.level + 1];
+  if (p.xp >= needed) {
+    p.xp -= needed;
+    p.level++;
+    p.maxHp += [0,0,5,5,5,10,10,10][p.level];
+    p.hp = Math.min(p.hp + [0,0,5,5,5,10,10,10][p.level], p.maxHp);
+    p.atk += [0,0,1,1,2,2,3,3][p.level];
+    sound.play('levelup');
+    // Show level-up choices
+    generateLevelUpChoices();
+    guard.beginTransition(STATES.LEVEL_UP, { immediate: true });
+    return true;
+  }
+  return false;
+}
+
+// Generate 3 random level-up choices (weighted)
+function generateLevelUpChoices() {
+  const pool = PERKS.filter(p => !player.perks.some(pp => pp.id === p.id) || ['maxhp','atk','def'].includes(p.effect));
+  const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0);
+  const choices = [];
+  const used = new Set();
+  while (choices.length < 3 && choices.length < pool.length) {
+    let roll = Math.random() * totalWeight;
+    for (const p of pool) {
+      if (used.has(p.id)) continue;
+      roll -= p.weight;
+      if (roll <= 0) { choices.push(p); used.add(p.id); break; }
+    }
+    if (choices.length === 0) break; // safety
+  }
+  levelUpChoices = choices;
+  levelUpSelected = 0;
+}
+
+// Check player death
+function checkDeath(p) {
+  if (p.hp <= 0) {
+    // Perk: revive
+    if (hasPerk(p, 'revive') && !p.reviveUsed) {
+      p.reviveUsed = true;
+      p.hp = Math.floor(p.maxHp * 0.3);
+      addMessage('두 번째 기회! HP 30% 부활!', '#ffd700');
+      particles.emit(p.x*TILE+TILE/2, p.y*TILE+TILE/2, 15, '#ffd700', 50, 0.8, 4);
+      return false;
+    }
+    p.hp = 0;
+    sound.play('death');
+    screenShake.intensity = 10;
+    showResult(false);
+    return true;
+  }
+  return false;
+}
+
+// Apply player poison tick
+function applyPlayerPoison(p) {
+  if (p.poisonTurns > 0) {
+    const dmg = p.poisonDmg || 2;
+    p.hp -= dmg;
+    p.poisonTurns--;
+    addMessage(`독 ${dmg} 피해!`, '#44ff44');
+    particles.emit(p.x*TILE+TILE/2, p.y*TILE+TILE/2, 2, '#44ff44', 15, 0.2, 2);
+  }
+}
+
+// Relic: regen every 10 turns
+function applyRegenRelic(p) {
+  if (hasRelic(p, 'regen')) {
+    p.turnsSinceRegen++;
+    if (p.turnsSinceRegen >= 10) {
+      p.turnsSinceRegen = 0;
+      p.hp = Math.min(p.maxHp, p.hp + 3);
+      addFloatingText(p.x*TILE, p.y*TILE - 10, '+3 HP', '#22cc44');
+    }
+  }
+}
+
+// Gold magnet — auto-collect nearby gold
+function applyGoldMagnet(p) {
+  if (!hasRelic(p, 'goldMagnet') || !dungeon) return;
+  const range = hasSynergy(p, 'goldKing') ? 4 : 2;
+  for (let i = dungeon.items.length - 1; i >= 0; i--) {
+    const it = dungeon.items[i];
+    if (it.type === 'gold' && manhattanDist(p.x, p.y, it.x, it.y) <= range) {
+      p.gold += it.amount;
+      addFloatingText(it.x*TILE, it.y*TILE, `+${it.amount}G`, '#ffd700');
+      sound.play('gold');
+      dungeon.items.splice(i, 1);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §10. TURN PROCESSING
+// ═══════════════════════════════════════════════════════════════
+
+function processTurn(dx, dy) {
+  if (gameState !== STATES.DUNGEON) return;
+  if (guard.transitioning) return;
+
+  const nx = player.x + dx, ny = player.y + dy;
+  const tiles = dungeon.tiles;
+
+  // Check bounds
+  if (nx < 0 || nx >= dungeon.w || ny < 0 || ny >= dungeon.h) return;
+  const tile = tiles[ny][nx];
+
+  // Wall — can't move (unless crystal wall, attack to break)
+  if (tile === T.WALL) return;
+  if (tile === T.SECRET) {
+    // Attack to reveal
+    tiles[ny][nx] = T.DOOR;
+    addMessage('비밀 통로 발견!', '#ffd700');
+    sound.play('item');
+    player.score += 100;
+    playerActed = true;
+    return;
+  }
+  if (tile === T.CRYSTAL_WALL) {
+    tiles[ny][nx] = T.FLOOR;
+    addMessage('수정 벽 파괴!', '#66ccff');
+    sound.play('attack');
+    particles.emit(nx*TILE+TILE/2, ny*TILE+TILE/2, 8, '#66ccff', 40, 0.5, 3);
+    playerActed = true;
+    return;
+  }
+
+  // Check for enemy at target
+  const targetEnemy = dungeon.enemies.find(e => e.alive && e.x === nx && e.y === ny);
+  if (targetEnemy) {
+    playerAttackEnemy(player, targetEnemy, dungeon.enemies);
+    player.facing = dy < 0 ? 1 : dy > 0 ? 0 : dx < 0 ? 2 : 3;
+    playerActed = true;
+    afterPlayerAction();
+    return;
+  }
+
+  // Move
+  player.x = nx;
+  player.y = ny;
+  player.facing = dy < 0 ? 1 : dy > 0 ? 0 : dx < 0 ? 2 : 3;
+  sound.play('move');
+
+  // Perk: swift — 10% chance no turn cost
+  const freeTurn = hasPerk(player, 'swift') && Math.random() < 0.10;
+  if (freeTurn) addMessage('재빠른 이동!', '#00e5ff');
+
+  // Check tile effects
+  if (tile === T.POISON) {
+    const resist = hasPerk(player, 'poisonResist') ? 0.5 : 1;
+    const dmg = Math.floor(2 * resist);
+    player.hp -= dmg;
+    addMessage(`독 웅덩이! ${dmg} 피해`, '#44ff44');
+    player.noDamageTaken = false;
+  }
+  if (tile === T.LAVA) {
+    const resist = hasPerk(player, 'lavaResist') ? 0.5 : 1;
+    const dmg = Math.floor(5 * resist);
+    player.hp -= dmg;
+    addMessage(`용암! ${dmg} 피해`, '#ff3300');
+    player.noDamageTaken = false;
+    screenShake.intensity = 2;
+  }
+  if (tile === T.TRAP) {
+    tiles[ny][nx] = T.FLOOR; // trigger trap once
+    const dmg = randInt(3, 8);
+    player.hp -= dmg;
+    addMessage(`함정! ${dmg} 피해`, '#ff8800');
+    sound.play('trap');
+    player.noDamageTaken = false;
+    screenShake.intensity = 3;
+  }
+  if (tile === T.STAIR_DOWN) {
+    // Go to next floor
+    sound.play('stairs');
+    player.score += 50 * currentFloor;
+    if (player.noDamageTaken) { player.score += currentFloor * 30; addMessage('무피격 층 클리어 보너스!', '#ffd700'); }
+    player.runSouls += 2;
+    cachedStats.floors++;
+    currentFloor++;
+    if (currentFloor > MAX_FLOOR) { showResult(true); return; }
+    enterNewFloor();
+    return;
+  }
+
+  // Pick up items
+  pickUpItems(player);
+
+  // Check shop room
+  const room = findPlayerRoom();
+  if (room !== null && dungeon.roomTypes[room] === 'shop' && !dungeon.rooms[room]._shopVisited) {
+    dungeon.rooms[room]._shopVisited = true;
+    generateShop();
+    guard.beginTransition(STATES.SHOP, { immediate: true });
+    return;
+  }
+
+  if (!freeTurn) playerActed = true;
+  afterPlayerAction();
+}
+
+// After player takes action (movement or attack)
+function afterPlayerAction() {
+  if (!playerActed) return;
+
+  turnCount++;
+  processEnemyTurns(dungeon.enemies, player, dungeon.tiles, dungeon.w, dungeon.h);
+  applyPlayerPoison(player);
+  applyRegenRelic(player);
+  applyGoldMagnet(player);
+
+  // Update FOV
+  fovMap = computeFOV(player.x, player.y, dungeon.tiles, dungeon.w, dungeon.h, FOV_RADIUS);
+  // Update revealed
+  for (let y = 0; y < dungeon.h; y++)
+    for (let x = 0; x < dungeon.w; x++)
+      if (fovMap[y][x]) revealedMap[y][x] = true;
+
+  // Check death after enemy turns
+  if (checkDeath(player)) return;
+  // Check level up
+  checkLevelUp(player);
+
+  playerActed = false;
+
+  // Boss warning decay
+  if (bossWarning.active) { bossWarning.timer += 1; if (bossWarning.timer > 1) bossWarning.active = false; }
+}
+
+// Skip turn (wait)
+function skipTurn() {
+  playerActed = true;
+  afterPlayerAction();
+}
+
+// Find which room the player is in
+function findPlayerRoom() {
+  if (!dungeon) return null;
+  for (let i = 0; i < dungeon.rooms.length; i++) {
+    const r = dungeon.rooms[i];
+    if (player.x >= r.x && player.x < r.x + r.w && player.y >= r.y && player.y < r.y + r.h) return i;
+  }
+  return null;
+}
+
+// Pick up items at player's position
+function pickUpItems(p) {
+  if (!dungeon) return;
+  for (let i = dungeon.items.length - 1; i >= 0; i--) {
+    const it = dungeon.items[i];
+    if (it.x === p.x && it.y === p.y) {
+      if (it.type === 'gold') {
+        p.gold += it.amount;
+        addFloatingText(it.x*TILE, it.y*TILE, `+${it.amount}G`, '#ffd700');
+        sound.play('gold');
+      } else if (it.type === 'chest') {
+        openChest(p, it);
+      } else if (it.type === 'relic') {
+        if (p.relics.length < 3) {
+          p.relics.push(it.relic);
+          addMessage(`유물 획득: ${it.relic.name}`, '#aa66ff');
+          sound.play('item');
+        } else {
+          addMessage('유물 슬롯 가득! (최대 3개)', '#ff8800');
+          return; // don't remove
+        }
+      } else if (it.type === 'weapon') {
+        p.weapon = it.weaponId;
+        addMessage(`무기 획득: ${WEAPONS[it.weaponId].name}`, '#ffd700');
+        sound.play('item');
+      } else if (it.type === 'consumable') {
+        const emptySlot = p.consumables.indexOf(null);
+        if (emptySlot >= 0) {
+          p.consumables[emptySlot] = it.consumableId;
+          addMessage(`아이템 획득: ${CONSUMABLES[it.consumableId].name}`, '#00e5ff');
+          sound.play('item');
+        } else {
+          addMessage('소모품 슬롯 가득!', '#ff8800');
+          return;
+        }
+      }
+      dungeon.items.splice(i, 1);
+    }
+  }
+}
+
+// Open treasure chest
+function openChest(p, chest) {
+  p.score += 20;
+  sound.play('item');
+  addMessage('보물 상자 열기!', '#ffd700');
+  particles.emit(chest.x*TILE+TILE/2, chest.y*TILE+TILE/2, 8, '#ffd700', 40, 0.5, 3);
+
+  const roll = Math.random();
+  if (roll < 0.3) {
+    // Gold
+    const amount = randInt(5, 15);
+    p.gold += amount;
+    addFloatingText(chest.x*TILE, chest.y*TILE, `+${amount}G`, '#ffd700');
+  } else if (roll < 0.5) {
+    // Consumable
+    const cid = randInt(0, 3);
+    dungeon.items.push({ x:chest.x, y:chest.y, type:'consumable', consumableId:cid });
+  } else if (roll < 0.7) {
+    // Weapon
+    const wid = randInt(1, 4);
+    dungeon.items.push({ x:chest.x, y:chest.y, type:'weapon', weaponId:wid });
+  } else {
+    // Relic
+    dropRelic(chest.x, chest.y);
+  }
+}
+
+// Use consumable
+function useConsumable(slot) {
+  if (slot < 0 || slot >= 4) return;
+  const cid = player.consumables[slot];
+  if (cid === null) return;
+
+  switch(cid) {
+    case 0: // Heal potion
+      player.hp = Math.min(player.maxHp, player.hp + 20);
+      addMessage('치유 물약! HP +20', '#22cc44');
+      break;
+    case 1: // Antidote
+      player.poisonTurns = 0;
+      addMessage('독 해제!', '#22cc44');
+      break;
+    case 2: // Teleport scroll
+      if (dungeon) {
+        const rooms = dungeon.rooms;
+        const target = rooms[randInt(0, rooms.length-1)];
+        player.x = target.cx;
+        player.y = target.cy;
+        addMessage('순간이동!', '#00e5ff');
+      }
+      break;
+    case 3: // Bomb
+      if (dungeon) {
+        for (const e of dungeon.enemies) {
+          if (e.alive && manhattanDist(e.x, e.y, player.x, player.y) <= 2) {
+            e.hp -= 15;
+            particles.emit(e.x*TILE+TILE/2, e.y*TILE+TILE/2, 6, '#ff6600', 40, 0.5, 4);
+            if (e.hp <= 0) { e.alive = false; onEnemyKilled(player, e); }
+          }
+        }
+        addMessage('폭탄! 주변 15 데미지!', '#ff3300');
+        screenShake.intensity = 6;
+      }
+      break;
+  }
+  player.consumables[slot] = null;
+  sound.play('item');
+  playerActed = true;
+  afterPlayerAction();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §11. SHOP SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+function generateShop() {
+  shopItems = [];
+  const discount = cachedMeta[5] > 0 ? META_UPGRADES[5].perLv[cachedMeta[5]-1] / 100 : 0;
+
+  // 3 items: random mix
+  for (let i = 0; i < 3; i++) {
+    const roll = Math.random();
+    if (roll < 0.4) {
+      const cid = randInt(0, 3);
+      const price = Math.floor(CONSUMABLES[cid].price * (1 - discount));
+      shopItems.push({ type:'consumable', id:cid, price, name:CONSUMABLES[cid].name, desc:CONSUMABLES[cid].desc });
+    } else if (roll < 0.7) {
+      const price = Math.floor(15 * (1 - discount));
+      shopItems.push({ type:'heal', price, name:'체력 회복', desc:'HP 15 회복' });
+    } else {
+      const wid = randInt(1, 4);
+      const price = Math.floor((20 + wid * 10) * (1 - discount));
+      shopItems.push({ type:'weapon', id:wid, price, name:WEAPONS[wid].name, desc:WEAPONS[wid].desc });
+    }
+  }
+  shopSelected = 0;
+}
+
+function buyShopItem(idx) {
+  if (idx < 0 || idx >= shopItems.length) return;
+  const item = shopItems[idx];
+  if (!item || player.gold < item.price) { addMessage('골드 부족!', '#ff4444'); return; }
+
+  player.gold -= item.price;
+  if (item.type === 'consumable') {
+    const slot = player.consumables.indexOf(null);
+    if (slot >= 0) { player.consumables[slot] = item.id; addMessage(`구매: ${item.name}`, '#ffd700'); }
+    else { addMessage('슬롯 가득!', '#ff4444'); player.gold += item.price; return; }
+  } else if (item.type === 'heal') {
+    player.hp = Math.min(player.maxHp, player.hp + 15);
+    addMessage('체력 회복!', '#22cc44');
+  } else if (item.type === 'weapon') {
+    player.weapon = item.id;
+    addMessage(`무기 장착: ${item.name}`, '#ffd700');
+  }
+  sound.play('gold');
+  shopItems[idx] = null; // sold
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §12. GAME STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+// Enter new floor
+function enterNewFloor() {
+  const mapW = 40 + currentFloor * 2;
+  const mapH = 30 + currentFloor;
+  dungeon = generateDungeon(currentFloor, mapW, mapH);
+  player.x = dungeon.startRoom.cx;
+  player.y = dungeon.startRoom.cy;
+  player.noDamageTaken = true;
+  fovMap = computeFOV(player.x, player.y, dungeon.tiles, dungeon.w, dungeon.h, FOV_RADIUS);
+  revealedMap = [];
+  for (let y = 0; y < dungeon.h; y++) { revealedMap[y] = []; for (let x = 0; x < dungeon.w; x++) revealedMap[y][x] = false; }
+  for (let y = 0; y < dungeon.h; y++)
+    for (let x = 0; x < dungeon.w; x++)
+      if (fovMap[y][x]) revealedMap[y][x] = true;
+
+  particles.clear();
+  bossWarning = { active:false, timer:0, positions:[] };
+  messageLog = [];
+
+  // Boss floor announcement
+  if (currentFloor === 5 || currentFloor === 10) {
+    sound.play('boss');
+    addMessage(currentFloor === 5 ? '하수도 왕이 나타났다!' : '던전 코어가 깨어났다!', '#ff0066');
+  } else {
+    addMessage(`${currentFloor}층 도착`, '#e0e0e0');
+  }
+}
+
+// Start new game
+function startNewGame() {
+  loadFromStorage();
+  currentFloor = 1;
+  turnCount = 0;
+  player = createPlayer();
+  cachedStats.runs++;
+  enterNewFloor();
+  guard.beginTransition(STATES.DUNGEON);
+}
+
+// Show result screen
+function showResult(victory) {
+  if (gameState === STATES.RESULT) return; // guard
+
+  const soulsEarned = player.runSouls + Math.round(player.gold * 0.1);
+  const isNewBest = saveBest(player.score);
+  cachedSouls += soulsEarned;
+  saveSouls();
+  saveStats();
+
+  resultData = {
+    victory,
+    score: player.score,
+    floor: currentFloor,
+    level: player.level,
+    soulsEarned,
+    isNewBest,
+    kills: cachedStats.kills,
+  };
+
+  guard.beginTransition(STATES.RESULT);
+}
+
+// State enter handler
+function onStateEnter(state) {
+  switch(state) {
+    case STATES.TITLE:
+      loadFromStorage();
+      titleSelected = 0;
+      particles.clear();
+      break;
+    case STATES.META_SHOP:
+      metaShopSelected = 0;
+      break;
+    case STATES.PAUSED:
+      pauseSelected = 0;
+      break;
+    case STATES.INVENTORY:
+      invSelected = 0;
+      break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §13. INPUT HANDLING
+// ═══════════════════════════════════════════════════════════════
+
+// Keyboard
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  sound.resume();
+
+  if (guard.transitioning) return;
+
+  switch(gameState) {
+    case STATES.TITLE:
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') titleSelected = Math.max(0, titleSelected - 1);
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') titleSelected = Math.min(2, titleSelected + 1);
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (titleSelected === 0) startNewGame();
+        else if (titleSelected === 1) guard.beginTransition(STATES.META_SHOP);
+        else if (titleSelected === 2) {} // stats shown on title
+      }
+      break;
+
+    case STATES.META_SHOP:
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') metaShopSelected = Math.max(0, metaShopSelected - 1);
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') metaShopSelected = Math.min(META_UPGRADES.length - 1, metaShopSelected + 1);
+      if (e.code === 'Space' || e.code === 'Enter') buyMetaUpgrade(metaShopSelected);
+      if (e.code === 'Escape') guard.beginTransition(STATES.TITLE);
+      break;
+
+    case STATES.DUNGEON:
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') processTurn(0, -1);
+      else if (e.code === 'ArrowDown' || e.code === 'KeyS') processTurn(0, 1);
+      else if (e.code === 'ArrowLeft' || e.code === 'KeyA') processTurn(-1, 0);
+      else if (e.code === 'ArrowRight' || e.code === 'KeyD') processTurn(1, 0);
+      else if (e.code === 'Space') skipTurn();
+      else if (e.code === 'KeyE') useConsumable(player._selectedSlot || 0);
+      else if (e.code === 'KeyI') guard.beginTransition(STATES.INVENTORY, { immediate: true });
+      else if (e.code === 'Digit1') player._selectedSlot = 0;
+      else if (e.code === 'Digit2') player._selectedSlot = 1;
+      else if (e.code === 'Digit3') player._selectedSlot = 2;
+      else if (e.code === 'Digit4') player._selectedSlot = 3;
+      else if (e.code === 'KeyM') minimapExpanded = !minimapExpanded;
+      else if (e.code === 'Escape') guard.beginTransition(STATES.PAUSED, { immediate: true });
+      break;
+
+    case STATES.LEVEL_UP:
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') levelUpSelected = Math.max(0, levelUpSelected - 1);
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') levelUpSelected = Math.min(levelUpChoices.length - 1, levelUpSelected + 1);
+      if (e.code === 'Space' || e.code === 'Enter') selectLevelUpPerk(levelUpSelected);
+      break;
+
+    case STATES.SHOP:
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') shopSelected = Math.max(0, shopSelected - 1);
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') shopSelected = Math.min(shopItems.length - 1, shopSelected + 1);
+      if (e.code === 'Space' || e.code === 'Enter') buyShopItem(shopSelected);
+      if (e.code === 'Escape') guard.beginTransition(STATES.DUNGEON, { immediate: true });
+      break;
+
+    case STATES.PAUSED:
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') pauseSelected = Math.max(0, pauseSelected - 1);
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') pauseSelected = Math.min(1, pauseSelected + 1);
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (pauseSelected === 0) guard.beginTransition(STATES.DUNGEON, { immediate: true });
+        else guard.beginTransition(STATES.TITLE);
+      }
+      if (e.code === 'Escape') guard.beginTransition(STATES.DUNGEON, { immediate: true });
+      break;
+
+    case STATES.INVENTORY:
+      if (e.code === 'Escape' || e.code === 'KeyI') guard.beginTransition(STATES.DUNGEON, { immediate: true });
+      break;
+
+    case STATES.RESULT:
+      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyR') guard.beginTransition(STATES.TITLE);
+      break;
+  }
+  e.preventDefault();
+});
+window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+// Meta upgrade purchase
+function buyMetaUpgrade(idx) {
+  if (idx < 0 || idx >= META_UPGRADES.length) return;
+  const up = META_UPGRADES[idx];
+  const lvl = cachedMeta[idx];
+  if (lvl >= up.maxLv) { addMessage('최대 레벨!', '#ff8800'); return; }
+  const cost = up.costs[lvl];
+  if (cachedSouls < cost) { addMessage('소울 부족!', '#ff4444'); return; }
+  cachedSouls -= cost;
+  cachedMeta[idx]++;
+  saveSouls();
+  saveMeta();
+  addMessage(`${up.name} Lv.${cachedMeta[idx]} 업그레이드!`, '#ffd700');
+  sound.play('levelup');
+}
+
+// Select level-up perk
+function selectLevelUpPerk(idx) {
+  if (idx < 0 || idx >= levelUpChoices.length) return;
+  const perk = levelUpChoices[idx];
+
+  // Apply perk effect
+  switch(perk.effect) {
+    case 'maxhp': player.maxHp += 10; player.hp = Math.min(player.maxHp, player.hp + 10); break;
+    case 'atk': player.atk += 3; break;
+    case 'def': player.def += 2; break;
+    default: player.perks.push(perk); break;
+  }
+
+  addMessage(`${perk.name} 획득!`, '#ffd700');
+  sound.play('item');
+  guard.beginTransition(STATES.DUNGEON, { immediate: true });
+}
+
+// Touch input
+let touchButtons = []; // computed on render
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  sound.resume();
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const pos = screenToGame(touches[i].clientX, touches[i].clientY);
+    handleTouchDown(pos.x, pos.y);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  swipeStart = null;
+  touchDpad.active = false;
+  touchDpad.dir = null;
+}, { passive: false });
+
+// Mouse input
+canvas.addEventListener('click', (e) => {
+  sound.resume();
+  const pos = screenToGame(e.clientX, e.clientY);
+  handleTouchDown(pos.x, pos.y);
+});
+
+function handleTouchDown(gx, gy) {
+  if (guard.transitioning) return;
+
+  switch(gameState) {
+    case STATES.TITLE: {
+      // Check menu items
+      for (let i = 0; i < 3; i++) {
+        const y = 320 + i * 50;
+        if (gy >= y - 15 && gy <= y + 15 && gx >= 300 && gx <= 500) {
+          titleSelected = i;
+          if (i === 0) startNewGame();
+          else if (i === 1) guard.beginTransition(STATES.META_SHOP);
+          return;
+        }
+      }
+      break;
+    }
+    case STATES.DUNGEON: {
+      // D-pad (bottom-left)
+      const dpadCX = 80, dpadCY = GAME_H - 90;
+      const dpadR = 35;
+      if (Math.abs(gx - dpadCX) < 80 && Math.abs(gy - dpadCY) < 80) {
+        const ddx = gx - dpadCX, ddy = gy - dpadCY;
+        if (Math.abs(ddx) > Math.abs(ddy)) processTurn(ddx > 0 ? 1 : -1, 0);
+        else processTurn(0, ddy > 0 ? 1 : -1);
+        return;
+      }
+      // Action buttons (bottom-right)
+      const btnY = GAME_H - 60;
+      if (gy >= btnY - 25 && gy <= btnY + 25) {
+        if (gx >= GAME_W - 70 && gx <= GAME_W - 30) { skipTurn(); return; } // wait
+        if (gx >= GAME_W - 130 && gx <= GAME_W - 90) { guard.beginTransition(STATES.INVENTORY, { immediate: true }); return; } // inventory
+        if (gx >= GAME_W - 190 && gx <= GAME_W - 150) { useConsumable(player._selectedSlot || 0); return; } // use item
+      }
+      // Consumable slot select (bottom center)
+      for (let s = 0; s < 4; s++) {
+        const sx = 200 + s * 45, sy = GAME_H - 60;
+        if (gx >= sx - 18 && gx <= sx + 18 && gy >= sy - 18 && gy <= sy + 18) {
+          player._selectedSlot = s;
+          return;
+        }
+      }
+      // Click on adjacent tile to move/attack
+      if (dungeon) {
+        const camX = camera.x, camY = camera.y;
+        const worldX = gx + camX, worldY = gy + camY;
+        const tileX = Math.floor(worldX / TILE), tileY = Math.floor(worldY / TILE);
+        const dx = tileX - player.x, dy = tileY - player.y;
+        if (Math.abs(dx) + Math.abs(dy) === 1) processTurn(dx, dy);
+      }
+      break;
+    }
+    case STATES.LEVEL_UP: {
+      for (let i = 0; i < levelUpChoices.length; i++) {
+        const cx = 200 + i * 200, cy = 300;
+        if (gx >= cx - 80 && gx <= cx + 80 && gy >= cy - 80 && gy <= cy + 80) {
+          selectLevelUpPerk(i);
+          return;
+        }
+      }
+      break;
+    }
+    case STATES.SHOP: {
+      for (let i = 0; i < shopItems.length; i++) {
+        const cx = 150 + i * 200, cy = 320;
+        if (gx >= cx - 80 && gx <= cx + 80 && gy >= cy - 60 && gy <= cy + 60) {
+          buyShopItem(i);
+          return;
+        }
+      }
+      // Exit shop button
+      if (gy >= 480 && gy <= 520 && gx >= 320 && gx <= 480) {
+        guard.beginTransition(STATES.DUNGEON, { immediate: true });
+      }
+      break;
+    }
+    case STATES.META_SHOP: {
+      for (let i = 0; i < META_UPGRADES.length; i++) {
+        const y = 180 + i * 55;
+        if (gy >= y - 20 && gy <= y + 20 && gx >= 150 && gx <= 650) {
+          buyMetaUpgrade(i);
+          return;
+        }
+      }
+      if (gy >= 520 && gy <= 560) guard.beginTransition(STATES.TITLE);
+      break;
+    }
+    case STATES.PAUSED: {
+      for (let i = 0; i < 2; i++) {
+        const y = 280 + i * 50;
+        if (gy >= y - 15 && gy <= y + 15 && gx >= 300 && gx <= 500) {
+          if (i === 0) guard.beginTransition(STATES.DUNGEON, { immediate: true });
+          else guard.beginTransition(STATES.TITLE);
+          return;
+        }
+      }
+      break;
+    }
+    case STATES.INVENTORY: {
+      guard.beginTransition(STATES.DUNGEON, { immediate: true });
+      break;
+    }
+    case STATES.RESULT: {
+      guard.beginTransition(STATES.TITLE);
+      break;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §14. RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+// Floating text helper
+function addFloatingText(x, y, text, color) {
+  floatingTexts.push({ x, y, text, color, life: 1.0 });
+}
+
+// Message log helper
+function addMessage(text, color) {
+  messageLog.unshift({ text, color: color || '#e0e0e0', life: 3.0 });
+  if (messageLog.length > 6) messageLog.pop();
+}
+
+// Draw scanline overlay (strategy genre — §4)
+function drawScanlines(ctx) {
+  ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  for (let y = 0; y < GAME_H; y += 3) ctx.fillRect(0, y, GAME_W, 1);
+}
+
+// Draw text with glow
+function drawGlowText(ctx, text, x, y, color, size, align) {
+  ctx.save();
+  ctx.font = `${size}px ${FONT}`;
+  ctx.textAlign = align || 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// Draw tile (§4.2, §4.3)
+function drawTile(ctx, tile, x, y, theme, visible, revealed) {
+  const th = THEMES[theme] || THEMES.stone;
+  const px = x * TILE, py = y * TILE;
+
+  if (!visible && !revealed) { ctx.fillStyle = '#0a0a14'; ctx.fillRect(px, py, TILE, TILE); return; }
+
+  const alpha = visible ? 1.0 : 0.3;
+  ctx.globalAlpha = alpha;
+
+  switch(tile) {
+    case T.WALL:
+      ctx.fillStyle = th.wall;
+      ctx.fillRect(px, py, TILE, TILE);
+      // brick texture
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(px, py + TILE/3); ctx.lineTo(px + TILE, py + TILE/3);
+      ctx.moveTo(px, py + TILE*2/3); ctx.lineTo(px + TILE, py + TILE*2/3);
+      ctx.moveTo(px + TILE/2, py); ctx.lineTo(px + TILE/2, py + TILE/3);
+      ctx.stroke();
+      break;
+    case T.FLOOR:
+      ctx.fillStyle = th.floor;
+      ctx.fillRect(px, py, TILE, TILE);
+      // dots for texture
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      const seed = (x * 7 + y * 13) % 5;
+      if (seed < 2) ctx.fillRect(px + 4 + seed*6, py + 3 + seed*4, 2, 2);
+      break;
+    case T.DOOR:
+      ctx.fillStyle = th.floor;
+      ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = '#8b6914';
+      ctx.beginPath(); ctx.arc(px + TILE/2, py + 4, TILE/2 - 2, Math.PI, 0); ctx.fill();
+      break;
+    case T.STAIR_UP:
+      ctx.fillStyle = th.floor; ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = '#88aa88';
+      for (let s = 0; s < 3; s++) ctx.fillRect(px+2+s*3, py+TILE-6-s*5, TILE-4-s*6, 4);
+      break;
+    case T.STAIR_DOWN:
+      ctx.fillStyle = th.floor; ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = '#aacc44';
+      for (let s = 0; s < 3; s++) ctx.fillRect(px+2+s*3, py+4+s*5, TILE-4-s*6, 4);
+      // glow
+      if (visible) { ctx.shadowColor='#aacc44'; ctx.shadowBlur=6; ctx.fillRect(px+TILE/2-2, py+TILE/2-2, 4, 4); ctx.shadowBlur=0; }
+      break;
+    case T.POISON:
+      ctx.fillStyle = '#1a3322'; ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = 'rgba(68,255,68,0.3)';
+      ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE/2, 6, 0, Math.PI*2); ctx.fill();
+      break;
+    case T.LAVA:
+      ctx.fillStyle = '#3d1a0a'; ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = `rgba(255,${50+Math.sin(Date.now()/300+x)*30|0},0,0.6)`;
+      ctx.fillRect(px+2, py+2, TILE-4, TILE-4);
+      break;
+    case T.CRYSTAL_WALL:
+      ctx.fillStyle = '#2a3a5a'; ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = 'rgba(102,204,255,0.4)';
+      ctx.beginPath(); ctx.moveTo(px+TILE/2,py+2); ctx.lineTo(px+TILE-3,py+TILE/2); ctx.lineTo(px+TILE/2,py+TILE-2); ctx.lineTo(px+3,py+TILE/2); ctx.closePath(); ctx.fill();
+      break;
+    case T.TRAP:
+      ctx.fillStyle = th.floor; ctx.fillRect(px, py, TILE, TILE);
+      // subtle dots (hidden)
+      if (visible && hasPerk(player, 'treasureSense')) {
+        ctx.strokeStyle = 'rgba(255,136,0,0.3)'; ctx.setLineDash([2,2]);
+        ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE/2, 5, 0, Math.PI*2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      break;
+    case T.SECRET:
+      ctx.fillStyle = th.wall; ctx.fillRect(px, py, TILE, TILE);
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(px,py+TILE/3); ctx.lineTo(px+TILE,py+TILE/3); ctx.stroke();
+      break;
+    default:
+      ctx.fillStyle = th.floor; ctx.fillRect(px, py, TILE, TILE);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Draw player character (§4.2)
+function drawPlayer(ctx, p) {
+  const px = p.x * TILE + TILE/2, py = p.y * TILE + TILE/2;
+  // Body circle
+  ctx.fillStyle = '#00e5ff';
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.arc(px, py, TILE/2 - 3, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // Facing indicator (triangle)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  const dirs = [[0,1],[0,-1],[-1,0],[1,0]]; // down,up,left,right
+  const fd = dirs[p.facing];
+  ctx.moveTo(px + fd[0]*8, py + fd[1]*8);
+  if (fd[0] === 0) { ctx.lineTo(px-4, py+fd[1]*2); ctx.lineTo(px+4, py+fd[1]*2); }
+  else { ctx.lineTo(px+fd[0]*2, py-4); ctx.lineTo(px+fd[0]*2, py+4); }
+  ctx.closePath(); ctx.fill();
+  // Arms
+  ctx.fillStyle = '#00b8d4';
+  ctx.fillRect(px-TILE/2+1, py-2, 3, 4);
+  ctx.fillRect(px+TILE/2-4, py-2, 3, 4);
+}
+
+// Draw enemy (§4.2)
+function drawEnemy(ctx, enemy, time) {
+  if (!enemy.alive) return;
+  const px = enemy.x * TILE + TILE/2, py = enemy.y * TILE + TILE/2;
+  const bob = Math.sin(time/400 + enemy.animOffset) * 2;
+  const sz = enemy.isElite ? 1.3 : 1;
+
+  switch(enemy.type) {
+    case ENEMY_TYPES.SLIME:
+      ctx.fillStyle = enemy.isElite ? '#ff8800' : '#ff4444';
+      ctx.beginPath();
+      ctx.arc(px, py - 2 + bob, (TILE/2-3)*sz, Math.PI, 0);
+      ctx.quadraticCurveTo(px+(TILE/2-3)*sz, py+4+bob, px+(TILE/3)*sz, py+5+bob);
+      ctx.quadraticCurveTo(px, py+3+bob, px-(TILE/3)*sz, py+5+bob);
+      ctx.quadraticCurveTo(px-(TILE/2-3)*sz, py+4+bob, px-(TILE/2-3)*sz, py-2+bob);
+      ctx.fill();
+      // eyes
+      ctx.fillStyle='#fff'; ctx.fillRect(px-3*sz, py-4+bob, 2, 2); ctx.fillRect(px+2*sz, py-4+bob, 2, 2);
+      break;
+
+    case ENEMY_TYPES.SKELETON:
+      ctx.fillStyle = '#e0e0e0';
+      ctx.beginPath(); ctx.arc(px, py-2+bob, 5*sz, 0, Math.PI*2); ctx.fill();
+      // cross eyes
+      ctx.strokeStyle='#ff4444'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(px-3,py-4+bob); ctx.lineTo(px-1,py-2+bob); ctx.moveTo(px-1,py-4+bob); ctx.lineTo(px-3,py-2+bob); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px+1,py-4+bob); ctx.lineTo(px+3,py-2+bob); ctx.moveTo(px+3,py-4+bob); ctx.lineTo(px+1,py-2+bob); ctx.stroke();
+      // sword
+      ctx.fillStyle='#aaa'; ctx.fillRect(px+6*sz, py-1+bob, 8, 2);
+      break;
+
+    case ENEMY_TYPES.BAT:
+      ctx.fillStyle = enemy.isElite ? '#ff8800' : '#8844aa';
+      // wings
+      ctx.beginPath(); ctx.moveTo(px, py+bob); ctx.lineTo(px-10*sz, py-6+bob+Math.sin(time/100)*3); ctx.lineTo(px-4, py+bob); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(px, py+bob); ctx.lineTo(px+10*sz, py-6+bob+Math.sin(time/100)*3); ctx.lineTo(px+4, py+bob); ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py+bob, 3*sz, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='#ff0'; ctx.fillRect(px-2, py-1+bob, 1.5, 1.5); ctx.fillRect(px+1, py-1+bob, 1.5, 1.5);
+      break;
+
+    case ENEMY_TYPES.MAGE:
+      // robe (triangle)
+      ctx.fillStyle = enemy.isElite ? '#ff8800' : '#8833cc';
+      ctx.beginPath(); ctx.moveTo(px, py-8+bob); ctx.lineTo(px-7*sz, py+6+bob); ctx.lineTo(px+7*sz, py+6+bob); ctx.closePath(); ctx.fill();
+      // head
+      ctx.fillStyle='#ddd'; ctx.beginPath(); ctx.arc(px, py-6+bob, 3*sz, 0, Math.PI*2); ctx.fill();
+      // staff glow
+      ctx.fillStyle = '#aa66ff';
+      ctx.shadowColor = '#aa66ff'; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.arc(px+8*sz, py-4+bob, 2, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      break;
+
+    case ENEMY_TYPES.GOLEM:
+      ctx.fillStyle = enemy.isElite ? '#ff8800' : '#667788';
+      ctx.fillRect(px-8*sz, py-8+bob, 16*sz, 16*sz);
+      ctx.fillStyle='#445566'; ctx.fillRect(px-6*sz, py-6+bob, 12*sz, 4);
+      ctx.fillStyle='#ff4444'; ctx.fillRect(px-3, py-4+bob, 2, 2); ctx.fillRect(px+2, py-4+bob, 2, 2);
+      break;
+
+    case ENEMY_TYPES.BOSS_SEWER:
+    case ENEMY_TYPES.BOSS_CORE: {
+      const color = enemy.type === ENEMY_TYPES.BOSS_SEWER ? '#ff0066' : '#aa66ff';
+      ctx.fillStyle = color;
+      ctx.shadowColor = color; ctx.shadowBlur = 10;
+      // Large body
+      ctx.beginPath(); ctx.arc(px, py+bob, TILE/2+2, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // Crown
+      ctx.fillStyle='#ffd700';
+      ctx.beginPath();
+      ctx.moveTo(px-8, py-TILE/2+bob);
+      ctx.lineTo(px-6, py-TILE/2-6+bob); ctx.lineTo(px-2, py-TILE/2+bob);
+      ctx.lineTo(px, py-TILE/2-8+bob); ctx.lineTo(px+2, py-TILE/2+bob);
+      ctx.lineTo(px+6, py-TILE/2-6+bob); ctx.lineTo(px+8, py-TILE/2+bob);
+      ctx.closePath(); ctx.fill();
+      // Eyes
+      ctx.fillStyle='#fff';
+      ctx.fillRect(px-4, py-3+bob, 3, 3); ctx.fillRect(px+2, py-3+bob, 3, 3);
+      // Phase indicator
+      ctx.fillStyle='#ffd700'; ctx.font=`8px ${FONT}`;
+      ctx.textAlign='center'; ctx.fillText(`P${enemy.phase}`, px, py+TILE/2+8+bob);
+      break;
+    }
+  }
+
+  // HP bar
+  if (enemy.alive && enemy.hp < enemy.maxHp) {
+    const barW = TILE - 4, barH = 3;
+    ctx.fillStyle = '#333'; ctx.fillRect(px-barW/2, py-TILE/2-4, barW, barH);
+    ctx.fillStyle = enemy.hp/enemy.maxHp > 0.3 ? '#22cc44' : '#ff4444';
+    ctx.fillRect(px-barW/2, py-TILE/2-4, barW * (enemy.hp/enemy.maxHp), barH);
+  }
+
+  // Status indicators
+  if (enemy.stunTurns > 0) { ctx.fillStyle='#ffff00'; ctx.font=`8px ${FONT}`; ctx.textAlign='center'; ctx.fillText('★', px, py-TILE/2-8); }
+  if (enemy.poisonTurns > 0) { ctx.fillStyle='#44ff44'; ctx.font=`8px ${FONT}`; ctx.textAlign='center'; ctx.fillText('☠', px+6, py-TILE/2-8); }
+}
+
+// Draw items on ground
+function drawItems(ctx, items, fov) {
+  for (const it of items) {
+    if (!fov[it.y] || !fov[it.y][it.x]) continue;
+    const px = it.x * TILE + TILE/2, py = it.y * TILE + TILE/2;
+    const bob = Math.sin(Date.now()/500 + it.x + it.y) * 2;
+
+    switch(it.type) {
+      case 'gold':
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath(); ctx.arc(px, py + bob, 4, 0, Math.PI*2); ctx.fill();
+        // sparkle
+        ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+        const rot = Date.now()/300;
+        ctx.beginPath();
+        ctx.moveTo(px+Math.cos(rot)*6, py+bob); ctx.lineTo(px-Math.cos(rot)*6, py+bob);
+        ctx.moveTo(px, py+bob+Math.sin(rot)*6); ctx.lineTo(px, py+bob-Math.sin(rot)*6);
+        ctx.stroke();
+        break;
+      case 'chest':
+        ctx.fillStyle = '#8b6914'; ctx.fillRect(px-6, py-4+bob, 12, 8);
+        ctx.strokeStyle='#ffd700'; ctx.lineWidth=1;
+        ctx.strokeRect(px-6, py-4+bob, 12, 8);
+        ctx.fillStyle='#ffd700'; ctx.fillRect(px-1, py-1+bob, 2, 2);
+        break;
+      case 'relic':
+        ctx.fillStyle = '#aa66ff';
+        ctx.shadowColor='#aa66ff'; ctx.shadowBlur=6;
+        ctx.beginPath();
+        ctx.moveTo(px, py-6+bob); ctx.lineTo(px+5, py+bob); ctx.lineTo(px, py+6+bob); ctx.lineTo(px-5, py+bob);
+        ctx.closePath(); ctx.fill();
+        ctx.shadowBlur=0;
+        break;
+      case 'weapon':
+        ctx.fillStyle='#c0c0c0'; ctx.fillRect(px-1, py-6+bob, 2, 12);
+        ctx.fillStyle='#8b6914'; ctx.fillRect(px-4, py+2+bob, 8, 3);
+        break;
+      case 'consumable':
+        ctx.fillStyle='#22cc44';
+        ctx.beginPath(); ctx.arc(px, py+bob, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font=`7px ${FONT}`; ctx.textAlign='center'; ctx.fillText('+', px, py+2+bob);
+        break;
+    }
+  }
+}
+
+// Draw minimap
+function drawMinimap(ctx, dng, p) {
+  if (!dng) return;
+  const mmScale = minimapExpanded ? 3 : 2;
+  const mmW = dng.w * mmScale, mmH = dng.h * mmScale;
+  const mmX = 8, mmY = GAME_H - mmH - 80;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(mmX-1, mmY-1, mmW+2, mmH+2);
+
+  for (let y = 0; y < dng.h; y++) {
+    for (let x = 0; x < dng.w; x++) {
+      if (!revealedMap[y] || !revealedMap[y][x]) continue;
+      const tile = dng.tiles[y][x];
+      if (tile === T.WALL || tile === T.SECRET || tile === T.CRYSTAL_WALL) ctx.fillStyle = '#4a4a6a';
+      else if (tile === T.STAIR_DOWN) ctx.fillStyle = '#aacc44';
+      else ctx.fillStyle = '#2d2d44';
+      ctx.fillRect(mmX + x*mmScale, mmY + y*mmScale, mmScale, mmScale);
+    }
+  }
+
+  // Enemies visible
+  for (const e of dng.enemies) {
+    if (e.alive && fovMap && fovMap[e.y] && fovMap[e.y][e.x]) {
+      ctx.fillStyle = '#ff4444';
+      ctx.fillRect(mmX + e.x*mmScale, mmY + e.y*mmScale, mmScale, mmScale);
+    }
+  }
+
+  // Treasure sense
+  if (hasPerk(p, 'treasureSense')) {
+    for (const it of dng.items) {
+      if (it.type === 'chest' || it.type === 'relic') {
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(mmX + it.x*mmScale, mmY + it.y*mmScale, mmScale, mmScale);
+      }
+    }
+  }
+
+  // Player
+  ctx.fillStyle = '#00e5ff';
+  ctx.fillRect(mmX + p.x*mmScale - 1, mmY + p.y*mmScale - 1, mmScale+2, mmScale+2);
+}
+
+// Draw HUD (§4.4)
+function drawHUD(ctx, p) {
+  // Top bar background
+  ctx.fillStyle = 'rgba(10,10,20,0.85)';
+  ctx.fillRect(0, 0, GAME_W, 32);
+
+  // HP bar
+  const hpBarX = 10, hpBarW = 140, hpBarH = 14;
+  ctx.fillStyle = '#333'; ctx.fillRect(hpBarX, 9, hpBarW, hpBarH);
+  const hpPct = p.hp / p.maxHp;
+  ctx.fillStyle = hpPct > 0.5 ? '#22cc44' : hpPct > 0.25 ? '#ffaa00' : '#ff4444';
+  ctx.fillRect(hpBarX, 9, hpBarW * hpPct, hpBarH);
+  ctx.strokeStyle = '#555'; ctx.lineWidth=1; ctx.strokeRect(hpBarX, 9, hpBarW, hpBarH);
+  ctx.fillStyle = '#fff'; ctx.font = `10px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText(`${p.hp}/${p.maxHp}`, hpBarX + hpBarW/2, 18);
+
+  // Level
+  ctx.textAlign='left'; ctx.fillStyle='#00e5ff';
+  ctx.fillText(`Lv.${p.level}`, 160, 18);
+
+  // Floor
+  ctx.fillStyle='#e0e0e0';
+  ctx.fillText(`F${currentFloor}`, 210, 18);
+
+  // Gold
+  ctx.fillStyle='#ffd700';
+  ctx.fillText(`💰${p.gold}`, 260, 18);
+
+  // ATK
+  ctx.fillStyle='#ff6644';
+  ctx.fillText(`⚔${p.atk + getWeaponBonus(p)}`, 330, 18);
+
+  // DEF
+  ctx.fillStyle='#66aaff';
+  ctx.fillText(`🛡${p.def}`, 380, 18);
+
+  // Score
+  ctx.textAlign='right'; ctx.fillStyle='#e0e0e0';
+  ctx.fillText(`점수: ${p.score}`, GAME_W - 10, 18);
+
+  // XP bar (below HP)
+  if (p.level < 7) {
+    const xpNeeded = LEVEL_XP[p.level + 1];
+    const xpBarW = 140, xpBarH = 4;
+    ctx.fillStyle='#222'; ctx.fillRect(hpBarX, 24, xpBarW, xpBarH);
+    ctx.fillStyle='#4488ff'; ctx.fillRect(hpBarX, 24, xpBarW * (p.xp / xpNeeded), xpBarH);
+  }
+
+  // Consumable slots (bottom center)
+  for (let s = 0; s < 4; s++) {
+    const sx = 200 + s * 45, sy = GAME_H - 60;
+    const isSelected = (player._selectedSlot || 0) === s;
+    ctx.fillStyle = isSelected ? 'rgba(0,229,255,0.3)' : 'rgba(30,30,48,0.8)';
+    ctx.fillRect(sx-18, sy-18, 36, 36);
+    ctx.strokeStyle = isSelected ? '#00e5ff' : '#555';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.strokeRect(sx-18, sy-18, 36, 36);
+    // Number
+    ctx.fillStyle='#888'; ctx.font=`9px ${FONT}`; ctx.textAlign='left';
+    ctx.fillText(`${s+1}`, sx-15, sy-8);
+    // Item icon
+    if (p.consumables[s] !== null) {
+      const cid = p.consumables[s];
+      const colors = ['#22cc44','#44ff44','#4488ff','#ff6600'];
+      const symbols = ['♥','☠','⟐','✸'];
+      ctx.fillStyle = colors[cid]; ctx.font=`14px ${FONT}`; ctx.textAlign='center';
+      ctx.fillText(symbols[cid], sx, sy+4);
+    }
+  }
+
+  // D-pad (bottom left, for touch)
+  const dpadCX = 80, dpadCY = GAME_H - 90;
+  ctx.fillStyle='rgba(30,30,48,0.6)';
+  ctx.fillRect(dpadCX-15, dpadCY-40, 30, 25); // up
+  ctx.fillRect(dpadCX-15, dpadCY+15, 30, 25); // down
+  ctx.fillRect(dpadCX-40, dpadCY-15, 25, 30); // left
+  ctx.fillRect(dpadCX+15, dpadCY-15, 25, 30); // right
+  ctx.fillStyle='#555'; ctx.font=`12px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText('▲', dpadCX, dpadCY-24);
+  ctx.fillText('▼', dpadCX, dpadCY+32);
+  ctx.fillText('◀', dpadCX-27, dpadCY+4);
+  ctx.fillText('▶', dpadCX+27, dpadCY+4);
+
+  // Action buttons (bottom right)
+  const btnDefs = [
+    { x: GAME_W-170, label:'⚔', tip:'사용' },
+    { x: GAME_W-110, label:'🎒', tip:'인벤' },
+    { x: GAME_W-50, label:'⏳', tip:'대기' },
+  ];
+  for (const b of btnDefs) {
+    ctx.fillStyle='rgba(30,30,48,0.8)';
+    ctx.fillRect(b.x-20, GAME_H-80, 40, 40);
+    ctx.strokeStyle='#555'; ctx.lineWidth=1;
+    ctx.strokeRect(b.x-20, GAME_H-80, 40, 40);
+    ctx.fillStyle='#aaa'; ctx.font=`16px ${FONT}`; ctx.textAlign='center';
+    ctx.fillText(b.label, b.x, GAME_H-55);
+    ctx.fillStyle='#666'; ctx.font=`8px ${FONT}`;
+    ctx.fillText(b.tip, b.x, GAME_H-42);
+  }
+
+  // Relic indicators (top-right area)
+  for (let i = 0; i < p.relics.length; i++) {
+    ctx.fillStyle='rgba(170,102,255,0.2)';
+    ctx.fillRect(GAME_W-30*(i+1)-40, 36, 28, 20);
+    ctx.fillStyle='#aa66ff'; ctx.font=`8px ${FONT}`; ctx.textAlign='center';
+    ctx.fillText(p.relics[i].name.substring(0,2), GAME_W-30*(i+1)-26, 50);
+  }
+
+  // Weapon name
+  if (p.weapon !== undefined) {
+    ctx.fillStyle='#aaa'; ctx.font=`9px ${FONT}`; ctx.textAlign='left';
+    ctx.fillText(WEAPONS[p.weapon].name, 430, 18);
+  }
+
+  // Message log
+  for (let i = 0; i < messageLog.length && i < 5; i++) {
+    const msg = messageLog[i];
+    const alpha = Math.min(1, msg.life);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = msg.color;
+    ctx.font = `10px ${FONT}`; ctx.textAlign='left';
+    ctx.fillText(msg.text, 10, GAME_H - 140 + i * 14);
+  }
+  ctx.globalAlpha = 1;
+
+  // Poison indicator
+  if (p.poisonTurns > 0) {
+    ctx.fillStyle='#44ff44'; ctx.font=`10px ${FONT}`; ctx.textAlign='left';
+    ctx.fillText(`독 ${p.poisonTurns}턴`, 160, 28);
+  }
+}
+
+// Draw floating texts
+function drawFloatingTexts(ctx, dt) {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.life -= dt / 1000;
+    ft.y -= dt * 0.03;
+    if (ft.life <= 0) { floatingTexts.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, ft.life * 2);
+    ctx.fillStyle = ft.color;
+    ctx.font = `bold 11px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(ft.text, ft.x, ft.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Draw boss laser warning
+function drawBossWarning(ctx) {
+  if (!bossWarning.active) return;
+  ctx.globalAlpha = 0.3 + Math.sin(Date.now()/100) * 0.2;
+  ctx.fillStyle = '#ff0066';
+  for (const pos of bossWarning.positions) {
+    if (pos.x >= 0 && pos.x < dungeon.w && pos.y >= 0 && pos.y < dungeon.h) {
+      ctx.fillRect(pos.x * TILE, pos.y * TILE, TILE, TILE);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §15. SCREEN RENDERERS
+// ═══════════════════════════════════════════════════════════════
+
+function renderTitle(ctx, time) {
+  // Background
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+  // Grid pattern (strategy genre)
+  ctx.strokeStyle = 'rgba(0,255,135,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < GAME_W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_H); ctx.stroke(); }
+  for (let y = 0; y < GAME_H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GAME_W, y); ctx.stroke(); }
+
+  // Animated particles (dust/dungeon theme)
+  const t = time / 1000;
+  for (let i = 0; i < 20; i++) {
+    const px = ((i * 137 + t * 20) % GAME_W);
+    const py = ((i * 89 + t * 10) % GAME_H);
+    ctx.fillStyle = `rgba(0,229,255,${0.2 + Math.sin(t + i) * 0.1})`;
+    ctx.fillRect(px, py, 2, 2);
+  }
+
+  // Title text with glow
+  ctx.save();
+  ctx.font = `bold 36px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#00ff87';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#00ff87';
+  ctx.fillText('미니 로그라이크', GAME_W/2, 160);
+  ctx.font = `bold 28px ${FONT}`;
+  ctx.shadowColor = '#00e5ff';
+  ctx.fillStyle = '#00e5ff';
+  ctx.fillText('던 전', GAME_W/2, 210);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // Subtitle
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `12px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('절차적 던전 · 턴 기반 전투 · 빌드 크래프팅', GAME_W/2, 245);
+
+  // Menu items
+  const menuItems = ['▶ 새 게임', '⚙ 업그레이드', '📊 통계'];
+  for (let i = 0; i < 3; i++) {
+    const y = 320 + i * 50;
+    const selected = titleSelected === i;
+    if (selected) {
+      ctx.fillStyle = 'rgba(0,255,135,0.15)';
+      ctx.fillRect(280, y - 18, 240, 36);
+    }
+    ctx.fillStyle = selected ? '#00ff87' : '#8080a0';
+    ctx.font = `${selected ? 'bold ' : ''}16px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(menuItems[i], GAME_W/2, y + 5);
+  }
+
+  // Stats display
+  ctx.fillStyle = '#505070';
+  ctx.font = `10px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`최고 점수: ${cachedBest}  |  소울: ${cachedSouls}  |  런: ${cachedStats.runs}`, GAME_W/2, 500);
+
+  // Controls hint
+  ctx.fillStyle = '#505070';
+  ctx.font = `9px ${FONT}`;
+  ctx.fillText('↑↓ 선택 · SPACE 확인 · 터치로 선택', GAME_W/2, 560);
+
+  drawScanlines(ctx);
+}
+
+function renderMetaShop(ctx) {
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+  // Header
+  drawGlowText(ctx, '영구 업그레이드 상점', GAME_W/2, 60, '#ffd700', 22);
+  ctx.fillStyle='#e0e0e0'; ctx.font=`14px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText(`보유 소울: ${cachedSouls}`, GAME_W/2, 100);
+
+  // Grid pattern
+  ctx.strokeStyle='rgba(0,255,135,0.03)'; ctx.lineWidth=0.5;
+  for(let x=0;x<GAME_W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,GAME_H);ctx.stroke();}
+
+  // Upgrades
+  for (let i = 0; i < META_UPGRADES.length; i++) {
+    const up = META_UPGRADES[i];
+    const lvl = cachedMeta[i];
+    const y = 180 + i * 55;
+    const selected = metaShopSelected === i;
+
+    if (selected) { ctx.fillStyle='rgba(0,255,135,0.1)'; ctx.fillRect(150, y-20, 500, 40); }
+
+    ctx.fillStyle = selected ? '#00ff87' : '#e0e0e0';
+    ctx.font = `13px ${FONT}`; ctx.textAlign = 'left';
+    ctx.fillText(up.name, 170, y);
+
+    // Level dots
+    for (let l = 0; l < up.maxLv; l++) {
+      ctx.fillStyle = l < lvl ? '#ffd700' : '#333';
+      ctx.fillRect(400 + l * 16, y - 5, 10, 10);
+    }
+
+    // Cost
+    if (lvl < up.maxLv) {
+      ctx.fillStyle='#ffd700'; ctx.textAlign='right';
+      ctx.fillText(`${up.costs[lvl]} 소울`, 630, y);
+    } else {
+      ctx.fillStyle='#00ff87'; ctx.textAlign='right';
+      ctx.fillText('MAX', 630, y);
+    }
+  }
+
+  // Back button
+  ctx.fillStyle = '#8080a0'; ctx.font=`12px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText('ESC / 탭하여 돌아가기', GAME_W/2, 540);
+
+  drawScanlines(ctx);
+}
+
+function renderDungeon(ctx, dt, time) {
+  if (!dungeon || !player) return;
+
+  // Update camera (lerp toward player)
+  camera.targetX = player.x * TILE - GAME_W/2 + TILE/2;
+  camera.targetY = player.y * TILE - GAME_H/2 + TILE/2;
+  camera.x += (camera.targetX - camera.x) * 0.15;
+  camera.y += (camera.targetY - camera.y) * 0.15;
+
+  // Screen shake
+  let shakeX = 0, shakeY = 0;
+  if (screenShake.intensity > 0.1) {
+    shakeX = (Math.random() - 0.5) * screenShake.intensity * 2;
+    shakeY = (Math.random() - 0.5) * screenShake.intensity * 2;
+    screenShake.intensity *= screenShake.decay;
+  } else { screenShake.intensity = 0; }
+
+  ctx.save();
+  ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
+
+  // Dark background
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(camera.x - 10, camera.y - 10, GAME_W + 20, GAME_H + 20);
+
+  // Calculate visible tile range
+  const startTX = Math.max(0, Math.floor(camera.x / TILE) - 1);
+  const startTY = Math.max(0, Math.floor(camera.y / TILE) - 1);
+  const endTX = Math.min(dungeon.w, Math.ceil((camera.x + GAME_W) / TILE) + 1);
+  const endTY = Math.min(dungeon.h, Math.ceil((camera.y + GAME_H) / TILE) + 1);
+
+  // Draw tiles
+  for (let y = startTY; y < endTY; y++) {
+    for (let x = startTX; x < endTX; x++) {
+      const visible = fovMap && fovMap[y] && fovMap[y][x];
+      const revealed = revealedMap && revealedMap[y] && revealedMap[y][x];
+      drawTile(ctx, dungeon.tiles[y][x], x, y, dungeon.theme, visible, revealed);
+    }
+  }
+
+  // Boss laser warning
+  drawBossWarning(ctx);
+
+  // Draw items
+  drawItems(ctx, dungeon.items, fovMap || []);
+
+  // Draw enemies
+  for (const e of dungeon.enemies) {
+    if (e.alive && fovMap && fovMap[e.y] && fovMap[e.y][e.x]) {
+      drawEnemy(ctx, e, time);
+    }
+  }
+
+  // Draw player
+  drawPlayer(ctx, player);
+
+  // Particles
+  particles.render(ctx, 0, 0);
+
+  // Floating texts (in world space)
+  drawFloatingTexts(ctx, dt);
+
+  ctx.restore();
+
+  // Vignette for boss floors
+  if (currentFloor === 5 || currentFloor === 10) {
+    const grad = ctx.createRadialGradient(GAME_W/2, GAME_H/2, GAME_W*0.3, GAME_W/2, GAME_H/2, GAME_W*0.7);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, GAME_W, GAME_H);
+  }
+
+  // Theme ambient particles
+  drawAmbientParticles(ctx, time);
+
+  // HUD (always on top)
+  drawHUD(ctx, player);
+
+  // Minimap
+  drawMinimap(ctx, dungeon, player);
+}
+
+function drawAmbientParticles(ctx, time) {
+  const theme = dungeon ? dungeon.theme : 'stone';
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 8; i++) {
+    const t = time / 1000;
+    let px = ((i * 97 + t * (5 + i)) % GAME_W);
+    let py = ((i * 73 + t * (3 + i * 0.5)) % GAME_H);
+    if (theme === 'stone') { ctx.fillStyle='#8080a0'; ctx.fillRect(px, py, 1, 1); }
+    else if (theme === 'sewer') { ctx.fillStyle='#4488aa'; ctx.beginPath(); ctx.arc(px,py,1.5,0,Math.PI*2); ctx.fill(); }
+    else if (theme === 'lava') { ctx.fillStyle=`rgb(255,${100+Math.sin(t+i)*50|0},0)`; ctx.fillRect(px,py,2,2); }
+    else if (theme === 'crystal') { ctx.fillStyle='#66ccff'; ctx.fillRect(px,py,1.5,1.5); }
+    else { ctx.fillStyle='#aa66ff'; ctx.fillRect(px,py,1,1); }
+  }
+  ctx.globalAlpha=1;
+}
+
+function renderLevelUp(ctx) {
+  // Dim background
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+  drawGlowText(ctx, `레벨 업! Lv.${player.level}`, GAME_W/2, 120, '#ffd700', 24);
+  ctx.fillStyle='#e0e0e0'; ctx.font=`12px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText('하나를 선택하세요', GAME_W/2, 160);
+
+  for (let i = 0; i < levelUpChoices.length; i++) {
+    const perk = levelUpChoices[i];
+    const cx = 140 + i * 220;
+    const cy = 300;
+    const selected = levelUpSelected === i;
+
+    ctx.fillStyle = selected ? 'rgba(0,255,135,0.15)' : 'rgba(30,30,48,0.9)';
+    ctx.fillRect(cx - 80, cy - 80, 160, 160);
+    ctx.strokeStyle = selected ? '#00ff87' : '#555';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(cx - 80, cy - 80, 160, 160);
+
+    ctx.fillStyle = selected ? '#00ff87' : '#e0e0e0';
+    ctx.font = `bold 13px ${FONT}`; ctx.textAlign='center';
+    ctx.fillText(perk.name, cx, cy - 30);
+    ctx.fillStyle = '#8080a0'; ctx.font=`10px ${FONT}`;
+    // Word-wrap description
+    const words = perk.desc.split(' ');
+    let line = '', ly = cy;
+    for (const w of words) {
+      if (ctx.measureText(line + w).width > 140) { ctx.fillText(line, cx, ly); ly += 14; line = w + ' '; }
+      else line += w + ' ';
+    }
+    if (line) ctx.fillText(line, cx, ly);
+  }
+
+  ctx.fillStyle='#505070'; ctx.font=`9px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText('←→ 선택 · SPACE 확인 · 터치', GAME_W/2, 460);
+}
+
+function renderShop(ctx) {
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+  drawGlowText(ctx, '상 점', GAME_W/2, 80, '#ffd700', 24);
+  ctx.fillStyle='#ffd700'; ctx.font=`14px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText(`소지 골드: ${player.gold}`, GAME_W/2, 120);
+
+  for (let i = 0; i < shopItems.length; i++) {
+    const item = shopItems[i];
+    const cx = 150 + i * 200, cy = 300;
+    const selected = shopSelected === i;
+
+    if (!item) {
+      ctx.fillStyle='rgba(30,30,48,0.5)'; ctx.fillRect(cx-80,cy-60,160,120);
+      ctx.fillStyle='#555'; ctx.font=`12px ${FONT}`; ctx.textAlign='center';
+      ctx.fillText('판매 완료', cx, cy);
+      continue;
+    }
+
+    ctx.fillStyle = selected ? 'rgba(255,215,0,0.1)' : 'rgba(30,30,48,0.9)';
+    ctx.fillRect(cx-80, cy-60, 160, 120);
+    ctx.strokeStyle = selected ? '#ffd700' : '#555';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(cx-80, cy-60, 160, 120);
+
+    ctx.fillStyle='#e0e0e0'; ctx.font=`bold 12px ${FONT}`; ctx.textAlign='center';
+    ctx.fillText(item.name, cx, cy-30);
+    ctx.fillStyle='#8080a0'; ctx.font=`10px ${FONT}`;
+    ctx.fillText(item.desc, cx, cy);
+    ctx.fillStyle = player.gold >= item.price ? '#ffd700' : '#ff4444';
+    ctx.font=`bold 12px ${FONT}`;
+    ctx.fillText(`${item.price}G`, cx, cy+30);
+  }
+
+  // Exit button
+  ctx.fillStyle='rgba(30,30,48,0.9)';
+  ctx.fillRect(320, 480, 160, 36);
+  ctx.strokeStyle='#555'; ctx.strokeRect(320,480,160,36);
+  ctx.fillStyle='#e0e0e0'; ctx.font=`12px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText('나가기 (ESC)', GAME_W/2, 502);
+}
+
+function renderPaused(ctx) {
+  // Draw frozen dungeon behind
+  if (dungeon) {
+    ctx.save();
+    ctx.translate(-camera.x, -camera.y);
+    const startTX = Math.max(0, Math.floor(camera.x/TILE)-1);
+    const startTY = Math.max(0, Math.floor(camera.y/TILE)-1);
+    const endTX = Math.min(dungeon.w, Math.ceil((camera.x+GAME_W)/TILE)+1);
+    const endTY = Math.min(dungeon.h, Math.ceil((camera.y+GAME_H)/TILE)+1);
+    for(let y=startTY;y<endTY;y++) for(let x=startTX;x<endTX;x++) {
+      const vis=fovMap&&fovMap[y]&&fovMap[y][x]; const rev=revealedMap&&revealedMap[y]&&revealedMap[y][x];
+      drawTile(ctx,dungeon.tiles[y][x],x,y,dungeon.theme,vis,rev);
+    }
+    drawPlayer(ctx, player);
+    ctx.restore();
+  }
+
+  // Overlay
+  ctx.fillStyle='rgba(0,0,0,0.75)';
+  ctx.fillRect(0,0,GAME_W,GAME_H);
+
+  drawGlowText(ctx, '일시정지', GAME_W/2, 200, '#00ff87', 28);
+
+  const opts = ['▶ 이어하기', '✕ 타이틀로'];
+  for (let i = 0; i < 2; i++) {
+    const y = 280 + i * 50;
+    const selected = pauseSelected === i;
+    if (selected) { ctx.fillStyle='rgba(0,255,135,0.1)'; ctx.fillRect(300,y-18,200,36); }
+    ctx.fillStyle = selected ? '#00ff87' : '#8080a0';
+    ctx.font=`${selected?'bold ':''}14px ${FONT}`; ctx.textAlign='center';
+    ctx.fillText(opts[i], GAME_W/2, y+4);
+  }
+}
+
+function renderInventory(ctx) {
+  ctx.fillStyle='rgba(0,0,0,0.8)';
+  ctx.fillRect(0,0,GAME_W,GAME_H);
+
+  drawGlowText(ctx, '인벤토리', GAME_W/2, 50, '#00e5ff', 20);
+
+  // Player stats
+  ctx.fillStyle='#e0e0e0'; ctx.font=`12px ${FONT}`; ctx.textAlign='left';
+  const sl = 60;
+  ctx.fillText(`Lv.${player.level}  HP: ${player.hp}/${player.maxHp}  ATK: ${player.atk}  DEF: ${player.def}`, sl, 90);
+  ctx.fillText(`골드: ${player.gold}  점수: ${player.score}  층: F${currentFloor}`, sl, 110);
+
+  // Weapon
+  ctx.fillStyle='#ffd700'; ctx.fillText('무기:', sl, 150);
+  ctx.fillStyle='#e0e0e0';
+  if (player.weapon !== undefined) {
+    const w = WEAPONS[player.weapon];
+    ctx.fillText(`${w.name} (ATK +${w.atk}) — ${w.desc}`, sl+60, 150);
+  }
+
+  // Relics
+  ctx.fillStyle='#aa66ff'; ctx.fillText('유물:', sl, 190);
+  for (let i = 0; i < 3; i++) {
+    const ry = 210 + i * 22;
+    if (i < player.relics.length) {
+      const r = player.relics[i];
+      ctx.fillStyle='#e0e0e0'; ctx.fillText(`${i+1}. ${r.name} — ${r.desc}`, sl+20, ry);
+    } else {
+      ctx.fillStyle='#505070'; ctx.fillText(`${i+1}. (빈 슬롯)`, sl+20, ry);
+    }
+  }
+
+  // Consumables
+  ctx.fillStyle='#22cc44'; ctx.fillText('소모품:', sl, 290);
+  for (let i = 0; i < 4; i++) {
+    const cy = 310 + i * 22;
+    const cid = player.consumables[i];
+    if (cid !== null) {
+      ctx.fillStyle='#e0e0e0'; ctx.fillText(`[${i+1}] ${CONSUMABLES[cid].name} — ${CONSUMABLES[cid].desc}`, sl+20, cy);
+    } else {
+      ctx.fillStyle='#505070'; ctx.fillText(`[${i+1}] (비어있음)`, sl+20, cy);
+    }
+  }
+
+  // Perks
+  ctx.fillStyle='#00ff87'; ctx.fillText('능력:', sl, 410);
+  if (player.perks.length === 0) {
+    ctx.fillStyle='#505070'; ctx.fillText('(없음)', sl+20, 430);
+  } else {
+    for (let i = 0; i < player.perks.length; i++) {
+      ctx.fillStyle='#e0e0e0'; ctx.fillText(`• ${player.perks[i].name}: ${player.perks[i].desc}`, sl+20, 430+i*18);
+    }
+  }
+
+  // Synergies active
+  const synergies = ['venom','lifeReap','phantom','goldKing','frostRetaliate','fireSmash'];
+  const synergyNames = ['맹독사','생명 착취','환영','황금왕','냉기 보복','화염 분쇄'];
+  const activeSyn = [];
+  for (let i=0;i<synergies.length;i++) { if (hasSynergy(player, synergies[i])) activeSyn.push(synergyNames[i]); }
+  if (activeSyn.length > 0) {
+    ctx.fillStyle='#ffd700'; ctx.fillText('시너지:', sl, 530);
+    ctx.fillStyle='#ffd700'; ctx.fillText(activeSyn.join(', '), sl+80, 530);
+  }
+
+  ctx.fillStyle='#505070'; ctx.font=`9px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText('ESC/I/탭하여 닫기', GAME_W/2, GAME_H-20);
+}
+
+function renderResult(ctx, time) {
+  ctx.fillStyle='#0a0a14';
+  ctx.fillRect(0,0,GAME_W,GAME_H);
+
+  if (!resultData) return;
+
+  // Grid background
+  ctx.strokeStyle='rgba(0,255,135,0.03)'; ctx.lineWidth=0.5;
+  for(let x=0;x<GAME_W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,GAME_H);ctx.stroke();}
+
+  const titleColor = resultData.victory ? '#ffd700' : '#ff4444';
+  const titleText = resultData.victory ? '던전 클리어!' : '사망...';
+  drawGlowText(ctx, titleText, GAME_W/2, 100, titleColor, 32);
+
+  const lines = [
+    `도달 층: F${resultData.floor}`,
+    `레벨: ${resultData.level}`,
+    `점수: ${resultData.score}`,
+    `획득 소울: +${resultData.soulsEarned}`,
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillStyle='#e0e0e0'; ctx.font=`14px ${FONT}`; ctx.textAlign='center';
+    ctx.fillText(lines[i], GAME_W/2, 200 + i * 35);
+  }
+
+  if (resultData.isNewBest) {
+    drawGlowText(ctx, '★ 최고 점수 갱신! ★', GAME_W/2, 380, '#ffd700', 18);
+  }
+
+  ctx.fillStyle='#8080a0'; ctx.font=`12px ${FONT}`; ctx.textAlign='center';
+  ctx.fillText(`최고 점수: ${cachedBest}`, GAME_W/2, 420);
+  ctx.fillText(`총 소울: ${cachedSouls}`, GAME_W/2, 445);
+
+  // Blink hint
+  if (Math.floor(time/500) % 2 === 0) {
+    ctx.fillStyle='#505070'; ctx.font=`11px ${FONT}`;
+    ctx.fillText('SPACE / 탭하여 타이틀로', GAME_W/2, 520);
+  }
+
+  drawScanlines(ctx);
+}
+
+function renderLoading(ctx, time) {
+  ctx.fillStyle='#0a0a14';
+  ctx.fillRect(0,0,GAME_W,GAME_H);
+  ctx.fillStyle='#00ff87'; ctx.font=`14px ${FONT}`; ctx.textAlign='center';
+  const dots = '.'.repeat(Math.floor(time/300) % 4);
+  ctx.fillText(`초기화 중${dots}`, GAME_W/2, GAME_H/2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §16. GAME LOOP (§5.4, §12.9)
+// ═══════════════════════════════════════════════════════════════
+
+function gameLoop(timestamp) {
+  try {
+    const dt = Math.min(timestamp - lastTime, 100); // cap 100ms
+    lastTime = timestamp;
+
+    // Update message lifetimes
+    for (let i = messageLog.length-1; i >= 0; i--) {
+      messageLog[i].life -= dt/1000;
+      if (messageLog[i].life <= 0) messageLog.splice(i, 1);
+    }
+
+    // State-based update and render (§5.3 matrix)
+    switch(gameState) {
+      case STATES.LOADING:
+        tw.update(dt);
+        renderLoading(ctx, timestamp);
+        break;
+      case STATES.TITLE:
+        tw.update(dt);
+        particles.update(dt);
+        renderTitle(ctx, timestamp);
+        break;
+      case STATES.META_SHOP:
+        tw.update(dt);
+        renderMetaShop(ctx);
+        break;
+      case STATES.DUNGEON:
+        tw.update(dt);
+        particles.update(dt);
+        renderDungeon(ctx, dt, timestamp);
+        break;
+      case STATES.LEVEL_UP:
+        tw.update(dt);
+        particles.update(dt);
+        if (dungeon) renderDungeon(ctx, dt, timestamp);
+        renderLevelUp(ctx);
+        break;
+      case STATES.SHOP:
+        tw.update(dt);
+        particles.update(dt);
+        renderShop(ctx);
+        break;
+      case STATES.PAUSED:
+        // No tween update in PAUSED (§5.3)
+        renderPaused(ctx);
+        break;
+      case STATES.INVENTORY:
+        renderInventory(ctx);
+        break;
+      case STATES.RESULT:
+        tw.update(dt);
+        particles.update(dt);
+        renderResult(ctx, timestamp);
+        break;
+    }
+
+    // Transition fade overlay
+    if (transitionFade.alpha > 0.01) {
+      ctx.fillStyle = `rgba(10,10,20,${transitionFade.alpha})`;
+      ctx.fillRect(0, 0, GAME_W, GAME_H);
+    }
+
+  } catch(e) {
+    console.error('[GameLoop Error]', e);
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §17. INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+function init() {
+  loadFromStorage();
+  player = null; // not created yet
+  player = { _selectedSlot: 0 }; // temp for HUD reference safety
+
+  // Transition to title after brief loading
+  const loadObj = { t: 0 };
+  tw.add(loadObj, { t: 1 }, 500, 'linear', () => {
+    guard.beginTransition(STATES.TITLE);
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+
+init();
+
+</script>
+</body>
+</html>

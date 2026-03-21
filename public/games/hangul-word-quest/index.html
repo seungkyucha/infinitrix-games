@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>한글 워드 퀘스트</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #121213;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ============================================================
+// §6.1 CONFIG — 기획서 수치 1:1 대조
+// ============================================================
+const CONFIG = {
+  DIFFICULTY: {
+    EASY:   { syllables: 2, maxJamo: 6,  label: '쉬움 (2글자)' },
+    MEDIUM: { syllables: 3, maxJamo: 9,  label: '보통 (3글자)' },
+    HARD:   { syllables: 4, maxJamo: 12, label: '어려움 (4글자)' },
+  },
+  MAX_ATTEMPTS: 6,
+  CELL_SIZE: 48,
+  CELL_GAP: 4,
+  KEYBOARD_KEY_SIZE: 48,
+  FLIP_DURATION: 300,
+  FLIP_DELAY_PER_TILE: 150,
+  BOUNCE_DURATION: 500,
+  SHAKE_DURATION: 400,
+  TRANSITION_DURATION: 250,
+};
+
+// 색상 팔레트 — §4.2
+const COLORS = {
+  BG:         '#121213',
+  CARD:       '#1A1A1B',
+  BORDER_DIM: '#3A3A3C',
+  BORDER_ACT: '#565656',
+  CORRECT:    '#538D4E',
+  PRESENT:    '#B59F3B',
+  ABSENT:     '#3A3A3C',
+  EMPTY:      '#121213',
+  TEXT:        '#FFFFFF',
+  TEXT_SUB:    '#818384',
+  ACCENT:     '#00D4FF',
+  ACCENT2:    '#FF6B9D',
+};
+
+// 시스템 폰트 스택 — §4.3 (외부 폰트 0건)
+const FONT = "'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+
+// ============================================================
+// 한글 자모 테이블 — §8.1
+// ============================================================
+const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+// 겹받침 분리 맵 — §2.2
+const DOUBLE_JONG = {
+  'ㄳ':['ㄱ','ㅅ'],'ㄵ':['ㄴ','ㅈ'],'ㄶ':['ㄴ','ㅎ'],'ㄺ':['ㄹ','ㄱ'],
+  'ㄻ':['ㄹ','ㅁ'],'ㄼ':['ㄹ','ㅂ'],'ㄽ':['ㄹ','ㅅ'],'ㄾ':['ㄹ','ㅌ'],
+  'ㄿ':['ㄹ','ㅍ'],'ㅀ':['ㄹ','ㅎ'],'ㅄ':['ㅂ','ㅅ'],
+};
+
+// 가상 키보드 레이아웃 — §4.4
+const KB_ROWS = [
+  ['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],
+  ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
+  ['⇧','ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ','⌫'],
+];
+// Shift 상태의 키보드 레이아웃
+const KB_ROWS_SHIFT = [
+  ['ㅃ','ㅉ','ㄸ','ㄲ','ㅆ','ㅛ','ㅕ','ㅑ','ㅒ','ㅖ'],
+  ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
+  ['⇧','ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ','⌫'],
+];
+
+// ============================================================
+// §6.2 단어 사전 (코드 내 JSON 배열)
+// ============================================================
+const DICT_EASY = [
+  '사과','하늘','바다','구름','나비','별빛','노래','사랑','꿈결','땅콩',
+  '달빛','봄날','가을','겨울','여름','강물','꽃잎','눈물','바람','소리',
+  '아침','저녁','우산','이슬','호수','파도','햇살','구두','모래','나무',
+  '새벽','잔디','초록','하루','시간','마음','인형','장미','토끼','고양',
+  '비행','우주','지구','화산','태양','수박','참외','딸기','포도','복숭',
+  '감자','당근','양파','고추','버섯','치즈','빵집','과자','주스','우유',
+  '커피','녹차','라면','국수','만두','된장','김치','떡볶','짜장','한글',
+  '연필','지우','공책','가방','학교','친구','선생','교실','운동','축구',
+  '야구','농구','수영','달리','점프','춤추','노래','피아','기타','드럼',
+  '영화','음악','미술','과학','수학','역사','국어','영어','독서','여행',
+  '기차','버스','택시','비행','자전','헬멧','거울','시계','창문','베개',
+  '이불','침대','의자','책상','서랍','옷장','냉장','세탁','청소','요리',
+  '설거','장보','산책','조깅','등산','낚시','사진','그림','편지','일기',
+  '약속','희망','용기','지혜','감사','평화','자유','행복','건강','성공',
+  '모험','도전','열정','끈기','겸손','정직','배려','소통','화합','존경',
+  '가족','형제','부모','자녀','할머','할아','이모','삼촌','조카','사촌',
+  '동생','언니','오빠','누나','아들','딸래','손자','아기','엄마','아빠',
+  '고래','상어','돌고','펭귄','독수','참새','비둘','까치','기러','백조',
+  '호랑','사자','코끼','기린','얼룩','판다','곰팡','다람','토끼','강아',
+  '고슴','두더','여우','늑대','개구','올챙','나방','잠자','무당','달팽',
+];
+const DICT_MEDIUM = [
+  '고양이','무지개','도서관','수박씨','해바라','컴퓨터','프린터','모니터',
+  '키보드','마우스','스피커','핸드폰','노트북','태블릿','이어폰','충전기',
+  '자판기','엘리베','에스컬','자동차','오토바','헬리콥','잠수함','로봇팔',
+  '피아노','바이올','첼로곡','드럼통','기타줄','하모니','오케스','합창단',
+  '도레미','카메라','필름통','사진첩','앨범집','전시회','미술관','박물관',
+  '과학관','천문대','동물원','수족관','놀이터','운동장','수영장','스케이',
+  '볼링장','당구장','탁구공','배드민','테니스','농구공','축구공','야구장',
+  '치킨집','피자집','햄버거','김밥집','떡볶이','순대국','비빔밥','잡채밥',
+  '불고기','갈비탕','삼겹살','된장국','미역국','콩나물','시금치','깻잎쌈',
+  '단호박','고구마','옥수수','브로콜','양배추','상추잎','토마토','오이절',
+  '냉면집','칼국수','수제비','떡국밥','만둣국','어묵탕','부대찌','김치찌',
+  '초콜릿','사탕봉','아이스','케이크','마카롱','쿠키통','와플집','팬케이',
+  '도너츠','크로와','프레첼','베이글','식빵집','크림빵','소보로','카스텔',
+  '에너지','비타민','단백질','칼슘제','유산균','홍삼차','생강차','꿀레몬',
+  '대나무','소나무','벚꽃나','단풍잎','은행잎','선인장','튤립꽃','장미향',
+  '해바라','민들레','코스모','백합꽃','국화향','라벤더','히아신','프리지',
+  '거북이','카멜레','이구아','도마뱀','악어밥','두꺼비','달팽이','지렁이',
+  '반딧불','매미울','귀뚜라','사마귀','무당벌','하루살','잠자리','풍뎅이',
+  '행복감','슬픔물','분노심','두려움','놀라움','기대감','설렘이','그리움',
+  '외로움','평온함','감동적','흥분상','당황스','부끄러','자랑스','뿌듯함',
+  '그네타','미끄럼','시소놀','숨바꼭','술래잡','딱지치','구슬치','공기놀',
+  '줄넘기','팽이치','연날리','비눗방','풍선껌','스티커','색종이','색연필',
+  '도화지','크레파','물감통','붓글씨','서예장','목공예','도자기','십자수',
+  '뜨개질','자수놓','비즈공','레고블','퍼즐판','보드게','체스판','바둑돌',
+];
+const DICT_HARD = [
+  '인공지능','프로그램','운영체제','데이터베','알고리즘','네트워크','블록체인','메타버스',
+  '가상현실','증강현실','사물인터','클라우드','빅데이터','머신러닝','딥러닝이','자연언어',
+  '소프트웨','하드웨어','반도체칩','디스플레','터치스크','음성인식','얼굴인식','자율주행',
+  '전기자동','수소자동','태양광발','풍력발전','원자력발','지열에너','바이오매','재생에너',
+  '온실가스','탄소중립','기후변화','지구온난','해수면상','빙하녹음','사막화진','생태계보',
+  '동물보호','멸종위기','환경오염','대기오염','수질오염','토양오염','플라스틱','미세먼지',
+  '자외선차','오존층파','열대우림','산호초백','야생동물','생물다양','해양생태','담수생태',
+  '올림픽경','월드컵축','아시안게','세계육상','그랜드슬','프리미어','챔피언스','유럽축구',
+  '마라톤완','트라이애','철인삼종','클라이밍','서핑대회','스노보드','피겨스케','쇼트트랙',
+  '방탄소년','블랙핑크','뉴진스그','아이브팀','스트레이','세븐틴그','엑소멤버','트와이스',
+  '대한민국','자유민주','삼권분립','국민주권','기본권보','헌법재판','국회의원','대통령선',
+  '지방자치','공공기관','사회보장','국민연금','건강보험','고용보험','산재보험','기초연금',
+  '초등학교','중학교졸','고등학교','대학교입','대학원생','평생교육','방과후학','자기주도',
+  '온라인학','원격수업','화상회의','재택근무','디지털노','워라밸생','주4일제','유연근무',
+];
+
+// ============================================================
+// §1 Canvas / Context
+// ============================================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ============================================================
+// §2 게임 상태 객체
+// ============================================================
+let gameState = null; // resizeCanvas 전에 선언 (§11.7 TDZ 방지)
+let lastTime = 0;
+let layoutCache = null; // 레이아웃 캐시
+
+// 상태 상수 — §5.1
+const STATE = {
+  TITLE: 'TITLE',
+  MODE_SELECT: 'MODE_SELECT',
+  PLAYING: 'PLAYING',
+  PAUSED: 'PAUSED',
+  RESULT: 'RESULT',
+  STATS: 'STATS',
+};
+
+// 상태 우선순위 — §5.2 TransitionGuard
+const STATE_PRIORITY = {
+  TITLE: 0, MODE_SELECT: 1, PLAYING: 2, PAUSED: 3, RESULT: 5, STATS: 4,
+};
+
+// ============================================================
+// §3 TweenManager — clearImmediate 포함 (Cycle 4-5 최종)
+// ============================================================
+const tweenManager = {
+  _tweens: [],
+  _pendingCancel: false,
+
+  // 트윈 추가
+  add(obj) {
+    const tw = { ...obj, elapsed: 0, done: false };
+    this._tweens.push(tw);
+    return tw;
+  },
+
+  // 매 프레임 업데이트
+  update(dt) {
+    if (this._pendingCancel) {
+      this._tweens.length = 0;
+      this._pendingCancel = false;
+      return;
+    }
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      tw.elapsed += dt;
+      const t = Math.min(tw.elapsed / tw.duration, 1);
+      const eased = tw.easing ? tw.easing(t) : t;
+      if (tw.onUpdate) tw.onUpdate(eased, t);
+      if (t >= 1) {
+        tw.done = true;
+        if (tw.onComplete) tw.onComplete();
+        this._tweens.splice(i, 1);
+      }
+    }
+  },
+
+  // 즉시 정리 — cancelAll 경쟁 조건 방지 (Cycle 4)
+  clearImmediate() {
+    this._tweens.length = 0;
+    this._pendingCancel = false;
+  },
+};
+
+// ============================================================
+// §4 TransitionGuard — beginTransition (Cycle 5-8)
+// ============================================================
+let _transitioning = false;
+
+// 상태 전환을 보호하며 실행
+function beginTransition(targetState, opts) {
+  const options = opts || {};
+  if (_transitioning && !options.force) return false;
+  if (STATE_PRIORITY[targetState] === undefined) return false;
+
+  if (options.immediate) {
+    enterState(targetState);
+    return true;
+  }
+
+  _transitioning = true;
+  tweenManager.clearImmediate();
+
+  // 페이드 아웃 → 상태 변경 → 페이드 인
+  gameState.fadeAlpha = 0;
+  tweenManager.add({
+    duration: CONFIG.TRANSITION_DURATION,
+    easing: easeInOutQuad,
+    onUpdate(e) { gameState.fadeAlpha = e; },
+    onComplete() {
+      enterState(targetState);
+      tweenManager.add({
+        duration: CONFIG.TRANSITION_DURATION,
+        easing: easeInOutQuad,
+        onUpdate(e) { gameState.fadeAlpha = 1 - e; },
+        onComplete() { gameState.fadeAlpha = 0; _transitioning = false; },
+      });
+    },
+  });
+  return true;
+}
+
+// 상태 진입 초기화 (Cycle 5 패턴)
+function enterState(newState) {
+  gameState.prevState = gameState.state;
+  gameState.state = newState;
+  gameState.stateTime = 0;
+
+  switch (newState) {
+    case STATE.TITLE:
+      gameState.titleGlow = 0;
+      break;
+    case STATE.MODE_SELECT:
+      gameState.selectedMode = 0;
+      gameState.selectedDiff = 1;
+      break;
+    case STATE.PLAYING:
+      initPlayingState(gameState);
+      break;
+    case STATE.RESULT:
+      cacheStats(); // localStorage 읽기 1회 캐싱 (Cycle 12)
+      playResultSound(gameState);
+      break;
+    case STATE.STATS:
+      cacheStats();
+      break;
+    case STATE.PAUSED:
+      break;
+  }
+}
+
+// ============================================================
+// §5 SoundManager — Web Audio API (외부 파일 0건, §12.1)
+// ============================================================
+const soundManager = {
+  ctx: null,
+  enabled: true,
+
+  // AudioContext 초기화 (사용자 제스처 시)
+  init() {
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) { this.enabled = false; }
+  },
+
+  // 키 입력음 — square 440Hz 30ms
+  playKeyPress() {
+    this._tone('square', 440, 0.03, 0.15);
+  },
+
+  // 삭제음 — square 330Hz 30ms
+  playDelete() {
+    this._tone('square', 330, 0.03, 0.12);
+  },
+
+  // 타일 플립음 — triangle 520→660Hz 150ms
+  playFlip() {
+    this._sweep('triangle', 520, 660, 0.15, 0.15);
+  },
+
+  // 승리음 — sine C5→E5→G5 아르페지오
+  playWin() {
+    const t = this._now();
+    if (!t) return;
+    this._toneAt('sine', 523, t, 0.1, 0.2);
+    this._toneAt('sine', 659, t + 0.1, 0.1, 0.2);
+    this._toneAt('sine', 784, t + 0.2, 0.15, 0.25);
+  },
+
+  // 패배음 — sawtooth 220→110Hz 400ms
+  playLose() {
+    this._sweep('sawtooth', 220, 110, 0.4, 0.15);
+  },
+
+  // 유효하지 않은 입력 — 짧은 버즈
+  playError() {
+    this._tone('square', 150, 0.1, 0.1);
+  },
+
+  // 행 제출음 — triangle 440Hz 50ms
+  playSubmit() {
+    this._tone('triangle', 440, 0.05, 0.15);
+  },
+
+  _now() {
+    if (!this.ctx || !this.enabled) return null;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx.currentTime;
+  },
+
+  _tone(type, freq, dur, vol) {
+    const t = this._now();
+    if (!t) return;
+    this._toneAt(type, freq, t, dur, vol);
+  },
+
+  _toneAt(type, freq, startT, dur, vol) {
+    try {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, startT);
+      g.gain.exponentialRampToValueAtTime(0.001, startT + dur);
+      o.connect(g);
+      g.connect(this.ctx.destination);
+      o.start(startT);
+      o.stop(startT + dur + 0.01);
+    } catch (e) { /* 무시 */ }
+  },
+
+  _sweep(type, f1, f2, dur, vol) {
+    const t = this._now();
+    if (!t) return;
+    try {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f1, t);
+      o.frequency.linearRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g);
+      g.connect(this.ctx.destination);
+      o.start(t);
+      o.stop(t + dur + 0.01);
+    } catch (e) { /* 무시 */ }
+  },
+};
+
+// ============================================================
+// §6 이징 함수
+// ============================================================
+function easeInOutQuad(t) { return t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+function easeOutBack(t) { const c=1.70158; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2); }
+function easeOutElastic(t) {
+  if (t===0||t===1) return t;
+  return Math.pow(2,-10*t)*Math.sin((t*10-0.75)*(2*Math.PI)/3)+1;
+}
+function easeOutBounce(t) {
+  if (t<1/2.75) return 7.5625*t*t;
+  if (t<2/2.75) return 7.5625*(t-=1.5/2.75)*t+0.75;
+  if (t<2.5/2.75) return 7.5625*(t-=2.25/2.75)*t+0.9375;
+  return 7.5625*(t-=2.625/2.75)*t+0.984375;
+}
+function easeInOutCubic(t) { return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+
+// ============================================================
+// §7 한글 자모 분해 — 순수 함수 (§10.2)
+// ============================================================
+
+// 한 글자를 자모 배열로 분해
+function decomposeHangul(char) {
+  const code = char.charCodeAt(0) - 0xAC00;
+  if (code < 0 || code > 11171) return [char];
+  const cho  = Math.floor(code / 588);
+  const jung = Math.floor((code % 588) / 28);
+  const jong = code % 28;
+  const result = [CHO[cho], JUNG[jung]];
+  if (jong > 0) {
+    const jongJamo = JONG[jong];
+    if (DOUBLE_JONG[jongJamo]) {
+      result.push(...DOUBLE_JONG[jongJamo]);
+    } else {
+      result.push(jongJamo);
+    }
+  }
+  return result;
+}
+
+// 단어를 자모 배열로 분해
+function decomposeWord(word) {
+  return [...word].flatMap(decomposeHangul);
+}
+
+// 음절별 자모 인덱스 매핑 생성
+function getSyllableMap(word) {
+  const map = [];
+  let idx = 0;
+  for (const char of word) {
+    const jamo = decomposeHangul(char);
+    map.push({ start: idx, end: idx + jamo.length - 1 });
+    idx += jamo.length;
+  }
+  return map;
+}
+
+// ============================================================
+// §8.2 피드백 판정 — 순수 함수
+// ============================================================
+function evaluateGuess(guessJamo, answerJamo) {
+  const result = new Array(guessJamo.length).fill('absent');
+  const answerUsed = new Array(answerJamo.length).fill(false);
+
+  // 1차: 정확한 위치
+  for (let i = 0; i < guessJamo.length; i++) {
+    if (guessJamo[i] === answerJamo[i]) {
+      result[i] = 'correct';
+      answerUsed[i] = true;
+    }
+  }
+  // 2차: 포함되지만 다른 위치
+  for (let i = 0; i < guessJamo.length; i++) {
+    if (result[i] === 'correct') continue;
+    for (let j = 0; j < answerJamo.length; j++) {
+      if (!answerUsed[j] && guessJamo[i] === answerJamo[j]) {
+        result[i] = 'present';
+        answerUsed[j] = true;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+// 승리 조건 확인
+function checkWin(results) {
+  return results.every(r => r === 'correct');
+}
+
+// ============================================================
+// §7.1 점수 계산 — 순수 함수
+// ============================================================
+function calculateScore(attempts, diffKey, elapsedSec, isChosung) {
+  const base = (CONFIG.MAX_ATTEMPTS - attempts + 1) * 100;
+  const diffMul = { EASY: 1.0, MEDIUM: 1.5, HARD: 2.0 }[diffKey] || 1;
+  const timeBonus = Math.max(0, 300 - elapsedSec);
+  let score = Math.floor(base * diffMul + timeBonus);
+  if (isChosung) score = Math.floor(score * 1.3);
+  return score;
+}
+
+// ============================================================
+// §8.4 일일 챌린지 시드 — 순수 함수
+// ============================================================
+function getDailyWord(dictionary, dateStr) {
+  const seed = parseInt(dateStr, 10);
+  return dictionary[seed % dictionary.length];
+}
+
+// 오늘 날짜 문자열 (YYYYMMDD)
+function getTodayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}${m}${day}`;
+}
+
+// ============================================================
+// §8.5 이모지 공유 텍스트 — 순수 함수
+// ============================================================
+function generateShareText(allResults, attemptCount, maxAttempts, date) {
+  const header = `한글 워드 퀘스트 ${date} ${attemptCount}/${maxAttempts}\n\n`;
+  const grid = allResults.map(row =>
+    row.map(r => r === 'correct' ? '🟩' : r === 'present' ? '🟨' : '⬛').join('')
+  ).join('\n');
+  return header + grid;
+}
+
+// ============================================================
+// §14 localStorage 관리 — try-catch 래핑
+// ============================================================
+const STATS_KEY = 'hangul-word-quest-stats';
+const DAILY_KEY = 'hangul-word-quest-daily';
+const SETTINGS_KEY = 'hangul-word-quest-settings';
+
+let cachedStats = null; // localStorage 1회 캐싱 (Cycle 12)
+
+// 통계 로드
+function loadStats() {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* 무시 */ }
+  return {
+    totalPlayed: 0, totalWon: 0, currentStreak: 0, maxStreak: 0,
+    distribution: [0,0,0,0,0,0], bestScore: 0, lastDaily: '',
+  };
+}
+
+// 통계 저장
+function saveStats(stats) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) { /* 무시 */ }
+}
+
+// 통계 캐싱 — 화면 진입 시 1회 (Cycle 12)
+function cacheStats() {
+  cachedStats = loadStats();
+}
+
+// 일일 챌린지 상태 로드
+function loadDaily() {
+  try {
+    const raw = localStorage.getItem(DAILY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* 무시 */ }
+  return null;
+}
+
+// 일일 챌린지 상태 저장
+function saveDaily(data) {
+  try { localStorage.setItem(DAILY_KEY, JSON.stringify(data)); } catch (e) { /* 무시 */ }
+}
+
+// 설정 로드
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* 무시 */ }
+  return { difficulty: 'MEDIUM', sound: true };
+}
+
+// 설정 저장
+function saveSettings(s) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) { /* 무시 */ }
+}
+
+// ============================================================
+// §13 레이아웃 계산 — 순수 함수
+// ============================================================
+function calculateLayout(w, h, jamoCount) {
+  let cellSize, keyW, keyH, fontSize;
+  if (w >= 420) { cellSize = 52; keyW = 48; keyH = 48; fontSize = 0; }
+  else if (w >= 360) { cellSize = 48; keyW = 44; keyH = 48; fontSize = -2; }
+  else { cellSize = 40; keyW = 40; keyH = 44; fontSize = -4; }
+
+  const gridGap = CONFIG.CELL_GAP;
+  const gridW = jamoCount * (cellSize + gridGap) - gridGap;
+  const maxW = w - 20;
+
+  // 자모가 많으면 셀 크기 줄이기
+  if (gridW > maxW) {
+    cellSize = Math.floor((maxW + gridGap) / jamoCount - gridGap);
+    cellSize = Math.max(32, cellSize);
+  }
+
+  const actualGridW = jamoCount * (cellSize + gridGap) - gridGap;
+  const gridX = Math.floor((w - actualGridW) / 2);
+  const titleH = 50;
+  const kbKeyGap = 4;
+  const kbH = 3 * (keyH + kbKeyGap) + 56; // 3 rows + enter button
+  const gridTotalH = 6 * (cellSize + gridGap) - gridGap;
+  const gridY = titleH + Math.floor((h - titleH - kbH - gridTotalH) / 2);
+  const kbY = h - kbH - 8;
+
+  return {
+    cellSize, keyW, keyH, fontSize, gridGap,
+    gridX, gridY, gridW: actualGridW, gridTotalH,
+    kbY, kbKeyGap, titleH,
+    w, h, jamoCount,
+  };
+}
+
+// ============================================================
+// §2 게임 상태 초기화
+// ============================================================
+function createInitialState() {
+  return {
+    state: STATE.TITLE,
+    prevState: null,
+    stateTime: 0,
+    fadeAlpha: 0,
+    titleGlow: 0,
+    // MODE_SELECT
+    selectedMode: 0, // 0=daily, 1=infinite, 2=chosung
+    selectedDiff: 1, // 0=EASY, 1=MEDIUM, 2=HARD
+    // PLAYING
+    mode: 'daily',
+    diffKey: 'MEDIUM',
+    answerWord: '',
+    answerJamo: [],
+    syllableMap: [],
+    grid: [],        // 6 rows of jamo arrays
+    results: [],     // 6 rows of result arrays
+    currentRow: 0,
+    currentCol: 0,
+    jamoCount: 6,
+    shiftOn: false,
+    keyStates: {},   // jamo → best state
+    won: false,
+    lost: false,
+    score: 0,
+    startTimeMs: 0,
+    // 애니메이션
+    flipRow: -1,
+    flipProgress: [],
+    shakeX: 0,
+    shakeTime: 0,
+    bounceTiles: [],
+    tilePop: [],
+    toastMsg: '',
+    toastAlpha: 0,
+    // 결과
+    shareText: '',
+    copyToastAlpha: 0,
+    // 레이아웃
+    layout: null,
+    // chosung quiz
+    chosungHints: [],
+  };
+}
+
+// 플레이 상태 초기화
+function initPlayingState(gs) {
+  const diffKeys = ['EASY','MEDIUM','HARD'];
+  gs.diffKey = diffKeys[gs.selectedDiff];
+  const modes = ['daily','infinite','chosung'];
+  gs.mode = modes[gs.selectedMode];
+
+  const diff = CONFIG.DIFFICULTY[gs.diffKey];
+  let dict;
+  if (gs.diffKey === 'EASY') dict = DICT_EASY;
+  else if (gs.diffKey === 'HARD') dict = DICT_HARD;
+  else dict = DICT_MEDIUM;
+
+  // 단어 선택
+  if (gs.mode === 'daily') {
+    const today = getTodayStr();
+    const dailyData = loadDaily();
+    if (dailyData && dailyData.date === today && dailyData.diffKey === gs.diffKey) {
+      // 이미 오늘 플레이 — 결과로 직행
+      gs.won = dailyData.won;
+      gs.lost = !dailyData.won;
+      gs.score = dailyData.score || 0;
+      gs.answerWord = dailyData.word;
+      gs.answerJamo = decomposeWord(dailyData.word);
+      gs.jamoCount = gs.answerJamo.length;
+      gs.syllableMap = getSyllableMap(dailyData.word);
+      gs.grid = dailyData.grid || [];
+      gs.results = dailyData.results || [];
+      gs.currentRow = gs.grid.length;
+      gs.layout = calculateLayout(layoutCache.w, layoutCache.h, gs.jamoCount);
+      beginTransition(STATE.RESULT, { immediate: true, force: true });
+      return;
+    }
+    gs.answerWord = getDailyWord(dict, today);
+  } else if (gs.mode === 'chosung') {
+    gs.answerWord = dict[Math.floor(Math.random() * dict.length)];
+  } else {
+    gs.answerWord = dict[Math.floor(Math.random() * dict.length)];
+  }
+
+  gs.answerJamo = decomposeWord(gs.answerWord);
+  gs.jamoCount = gs.answerJamo.length;
+  gs.syllableMap = getSyllableMap(gs.answerWord);
+
+  // 그리드 초기화
+  gs.grid = [];
+  gs.results = [];
+  gs.currentRow = 0;
+  gs.currentCol = 0;
+  gs.shiftOn = false;
+  gs.keyStates = {};
+  gs.won = false;
+  gs.lost = false;
+  gs.score = 0;
+  gs.startTimeMs = Date.now();
+  gs.flipRow = -1;
+  gs.flipProgress = [];
+  gs.shakeX = 0;
+  gs.shakeTime = 0;
+  gs.bounceTiles = [];
+  gs.tilePop = [];
+  gs.toastMsg = '';
+  gs.toastAlpha = 0;
+  gs.shareText = '';
+  gs.copyToastAlpha = 0;
+
+  // 초성 퀴즈 — 초성 힌트 채우기
+  gs.chosungHints = [];
+  if (gs.mode === 'chosung') {
+    const map = gs.syllableMap;
+    for (const s of map) {
+      gs.chosungHints.push(s.start); // 각 음절의 첫 자모(초성) 인덱스
+    }
+  }
+
+  // 레이아웃 재계산
+  gs.layout = calculateLayout(layoutCache.w, layoutCache.h, gs.jamoCount);
+}
+
+// ============================================================
+// §13.1 Canvas 리사이즈
+// ============================================================
+function resizeCanvas() {
+  const w = Math.min(window.innerWidth, 500);
+  const h = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  layoutCache = { w, h };
+
+  if (gameState && gameState.state === STATE.PLAYING && gameState.jamoCount > 0) {
+    gameState.layout = calculateLayout(w, h, gameState.jamoCount);
+  }
+}
+
+// ============================================================
+// 입력 처리 — §3
+// ============================================================
+const inputQueue = []; // 입력 큐
+
+// 물리 키보드 — §3.1
+const JAMO_FROM_KEY = {
+  'ㅂ':'ㅂ','ㅈ':'ㅈ','ㄷ':'ㄷ','ㄱ':'ㄱ','ㅅ':'ㅅ','ㅛ':'ㅛ','ㅕ':'ㅕ','ㅑ':'ㅑ','ㅐ':'ㅐ','ㅔ':'ㅔ',
+  'ㅁ':'ㅁ','ㄴ':'ㄴ','ㅇ':'ㅇ','ㄹ':'ㄹ','ㅎ':'ㅎ','ㅗ':'ㅗ','ㅓ':'ㅓ','ㅏ':'ㅏ','ㅣ':'ㅣ',
+  'ㅋ':'ㅋ','ㅌ':'ㅌ','ㅊ':'ㅊ','ㅍ':'ㅍ','ㅠ':'ㅠ','ㅜ':'ㅜ','ㅡ':'ㅡ',
+  'ㅃ':'ㅃ','ㅉ':'ㅉ','ㄸ':'ㄸ','ㄲ':'ㄲ','ㅆ':'ㅆ','ㅒ':'ㅒ','ㅖ':'ㅖ',
+};
+
+// 키보드 keyCode → 자모 매핑 (두벌식)
+const KEYCODE_TO_JAMO = {
+  81:'ㅂ',87:'ㅈ',69:'ㄷ',82:'ㄱ',84:'ㅅ',89:'ㅛ',85:'ㅕ',73:'ㅑ',79:'ㅐ',80:'ㅔ',
+  65:'ㅁ',83:'ㄴ',68:'ㅇ',70:'ㄹ',71:'ㅎ',72:'ㅗ',74:'ㅓ',75:'ㅏ',76:'ㅣ',
+  90:'ㅋ',88:'ㅌ',67:'ㅊ',86:'ㅍ',66:'ㅠ',78:'ㅜ',77:'ㅡ',
+};
+const KEYCODE_TO_JAMO_SHIFT = {
+  81:'ㅃ',87:'ㅉ',69:'ㄸ',82:'ㄲ',84:'ㅆ',79:'ㅒ',80:'ㅖ',
+};
+
+// 키보드 입력 핸들러
+function handleKeyDown(e) {
+  if (_transitioning) return;
+  const gs = gameState;
+  if (!gs) return;
+
+  const key = e.key;
+  const code = e.keyCode;
+
+  // ESC — 일시정지 토글
+  if (key === 'Escape') {
+    if (gs.state === STATE.PLAYING) {
+      beginTransition(STATE.PAUSED, { immediate: true });
+    } else if (gs.state === STATE.PAUSED) {
+      beginTransition(STATE.PLAYING, { immediate: true });
+    }
+    return;
+  }
+
+  if (gs.state === STATE.TITLE) {
+    if (key === ' ' || key === 'Enter') {
+      soundManager.init();
+      beginTransition(STATE.MODE_SELECT);
+    }
+    return;
+  }
+
+  if (gs.state === STATE.MODE_SELECT) {
+    handleModeSelectKey(key, gs);
+    return;
+  }
+
+  if (gs.state === STATE.RESULT) {
+    if (key === 'r' || key === 'R') beginTransition(STATE.MODE_SELECT);
+    if (key === 's' || key === 'S') beginTransition(STATE.STATS);
+    return;
+  }
+
+  if (gs.state === STATE.STATS) {
+    if (key === 'Escape' || key === 'Backspace') beginTransition(STATE.TITLE);
+    return;
+  }
+
+  if (gs.state !== STATE.PLAYING) return;
+  if (gs.flipRow >= 0) return; // 플립 애니메이션 중
+
+  // Enter — 제출
+  if (key === 'Enter') {
+    inputQueue.push({ type: 'submit' });
+    return;
+  }
+  // Backspace — 삭제
+  if (key === 'Backspace') {
+    inputQueue.push({ type: 'delete' });
+    return;
+  }
+
+  // 한글 자모 직접 입력 (IME)
+  if (JAMO_FROM_KEY[key]) {
+    inputQueue.push({ type: 'jamo', value: key });
+    return;
+  }
+
+  // 두벌식 영문→자모 매핑
+  if (e.shiftKey && KEYCODE_TO_JAMO_SHIFT[code]) {
+    inputQueue.push({ type: 'jamo', value: KEYCODE_TO_JAMO_SHIFT[code] });
+  } else if (KEYCODE_TO_JAMO[code]) {
+    inputQueue.push({ type: 'jamo', value: KEYCODE_TO_JAMO[code] });
+  }
+}
+
+// 모드 선택 키 처리
+function handleModeSelectKey(key, gs) {
+  if (key === 'ArrowUp' || key === 'ArrowLeft') {
+    gs.selectedMode = (gs.selectedMode + 2) % 3;
+  }
+  if (key === 'ArrowDown' || key === 'ArrowRight') {
+    gs.selectedMode = (gs.selectedMode + 1) % 3;
+  }
+  if (key === '1') gs.selectedDiff = 0;
+  if (key === '2') gs.selectedDiff = 1;
+  if (key === '3') gs.selectedDiff = 2;
+  if (key === 'Enter' || key === ' ') {
+    beginTransition(STATE.PLAYING);
+  }
+  if (key === 'Escape' || key === 'Backspace') {
+    beginTransition(STATE.TITLE);
+  }
+}
+
+// 입력 큐 처리 — 순수 함수 스타일 (§10.2)
+function processInput(gs) {
+  while (inputQueue.length > 0) {
+    const cmd = inputQueue.shift();
+    if (gs.state !== STATE.PLAYING) continue;
+    if (gs.won || gs.lost) continue;
+    if (gs.flipRow >= 0) continue;
+
+    if (cmd.type === 'jamo') {
+      addJamo(gs, cmd.value);
+    } else if (cmd.type === 'delete') {
+      deleteJamo(gs);
+    } else if (cmd.type === 'submit') {
+      submitRow(gs);
+    }
+  }
+}
+
+// 자모 입력
+function addJamo(gs, jamo) {
+  if (gs.currentRow >= CONFIG.MAX_ATTEMPTS) return;
+  if (!gs.grid[gs.currentRow]) gs.grid[gs.currentRow] = [];
+  const row = gs.grid[gs.currentRow];
+  if (row.length >= gs.jamoCount) return;
+
+  // 초성 퀴즈 — 초성 위치는 스킵
+  if (gs.mode === 'chosung' && gs.chosungHints.includes(row.length)) {
+    row.push(gs.answerJamo[row.length]);
+    // 초성 자동 채운 뒤 다시 시도
+    if (row.length < gs.jamoCount && !gs.chosungHints.includes(row.length)) {
+      row.push(jamo);
+    }
+  } else {
+    row.push(jamo);
+  }
+  gs.currentCol = row.length;
+
+  // 타일 팝 애니메이션
+  if (!gs.tilePop[gs.currentRow]) gs.tilePop[gs.currentRow] = [];
+  gs.tilePop[gs.currentRow][gs.currentCol - 1] = 1.0;
+  tweenManager.add({
+    duration: 100,
+    easing: easeOutBack,
+    onUpdate(e) {
+      // 1.1 → 1.0 스케일
+    },
+  });
+
+  soundManager.playKeyPress();
+}
+
+// 자모 삭제
+function deleteJamo(gs) {
+  if (!gs.grid[gs.currentRow]) return;
+  const row = gs.grid[gs.currentRow];
+  if (row.length === 0) return;
+
+  // 초성 퀴즈 — 초성 위치 삭제 방지
+  if (gs.mode === 'chosung') {
+    while (row.length > 0 && gs.chosungHints.includes(row.length - 1)) {
+      row.pop();
+    }
+    if (row.length > 0) row.pop();
+  } else {
+    row.pop();
+  }
+  gs.currentCol = row.length;
+  soundManager.playDelete();
+}
+
+// 행 제출
+function submitRow(gs) {
+  if (!gs.grid[gs.currentRow]) return;
+  const row = gs.grid[gs.currentRow];
+  if (row.length < gs.jamoCount) {
+    // 칸이 부족 — 오류 흔들림
+    triggerShake(gs);
+    showToast(gs, '자모를 모두 채워주세요');
+    soundManager.playError();
+    return;
+  }
+
+  soundManager.playSubmit();
+
+  // 피드백 판정
+  const result = evaluateGuess(row, gs.answerJamo);
+  gs.results[gs.currentRow] = result;
+
+  // 키보드 상태 업데이트 — §8.3
+  for (let i = 0; i < row.length; i++) {
+    const j = row[i];
+    const r = result[i];
+    const prev = gs.keyStates[j];
+    if (r === 'correct') gs.keyStates[j] = 'correct';
+    else if (r === 'present' && prev !== 'correct') gs.keyStates[j] = 'present';
+    else if (!prev) gs.keyStates[j] = 'absent';
+  }
+
+  // 타일 플립 애니메이션 시작
+  startFlipAnimation(gs, gs.currentRow, result);
+}
+
+// 플립 애니메이션 시작
+function startFlipAnimation(gs, rowIdx, result) {
+  gs.flipRow = rowIdx;
+  gs.flipProgress = new Array(gs.jamoCount).fill(0);
+
+  for (let i = 0; i < gs.jamoCount; i++) {
+    const delay = i * CONFIG.FLIP_DELAY_PER_TILE;
+    const tileIdx = i;
+    tweenManager.add({
+      duration: CONFIG.FLIP_DURATION + delay,
+      easing: easeInOutCubic,
+      onUpdate(e) {
+        const localT = Math.max(0, (e * (CONFIG.FLIP_DURATION + delay) - delay) / CONFIG.FLIP_DURATION);
+        gs.flipProgress[tileIdx] = Math.min(1, localT);
+      },
+      onComplete() {
+        gs.flipProgress[tileIdx] = 1;
+        soundManager.playFlip();
+        // 마지막 타일 플립 완료
+        if (tileIdx === gs.jamoCount - 1) {
+          finishFlip(gs, rowIdx, result);
+        }
+      },
+    });
+  }
+}
+
+// 플립 완료 후 처리
+function finishFlip(gs, rowIdx, result) {
+  gs.flipRow = -1;
+
+  const isWin = checkWin(result);
+  const isLastRow = rowIdx >= CONFIG.MAX_ATTEMPTS - 1;
+
+  if (isWin) {
+    gs.won = true;
+    const elapsed = Math.floor((Date.now() - gs.startTimeMs) / 1000);
+    // 판정 먼저 → 저장 나중에 (Cycle 2)
+    gs.score = calculateScore(rowIdx + 1, gs.diffKey, elapsed, gs.mode === 'chosung');
+    gs.shareText = generateShareText(gs.results.slice(0, rowIdx + 1), rowIdx + 1, CONFIG.MAX_ATTEMPTS, getTodayStr());
+
+    // 승리 바운스 애니메이션
+    startBounceAnimation(gs, rowIdx);
+    soundManager.playWin();
+
+    // 통계 업데이트
+    updateStatsOnWin(gs, rowIdx);
+
+    // 일일 챌린지 저장
+    if (gs.mode === 'daily') {
+      saveDaily({ date: getTodayStr(), diffKey: gs.diffKey, won: true, score: gs.score, word: gs.answerWord, grid: gs.grid, results: gs.results });
+    }
+
+    // 결과 화면 전환 (바운스 애니메이션 후 tween onComplete로 전환)
+    tweenManager.add({
+      duration: 1200,
+      onComplete() { beginTransition(STATE.RESULT); },
+    });
+  } else if (isLastRow) {
+    gs.lost = true;
+    gs.score = 0;
+    gs.shareText = generateShareText(gs.results, 'X', CONFIG.MAX_ATTEMPTS, getTodayStr());
+
+    soundManager.playLose();
+    updateStatsOnLoss(gs);
+
+    if (gs.mode === 'daily') {
+      saveDaily({ date: getTodayStr(), diffKey: gs.diffKey, won: false, score: 0, word: gs.answerWord, grid: gs.grid, results: gs.results });
+    }
+
+    tweenManager.add({
+      duration: 800,
+      onComplete() { beginTransition(STATE.RESULT); },
+    });
+  } else {
+    gs.currentRow++;
+    gs.currentCol = 0;
+    // 초성 퀴즈 — 다음 행 초성 자동 채우기
+    if (gs.mode === 'chosung') {
+      gs.grid[gs.currentRow] = [];
+      for (let i = 0; i < gs.jamoCount; i++) {
+        if (gs.chosungHints.includes(i)) {
+          gs.grid[gs.currentRow].push(gs.answerJamo[i]);
+        } else {
+          break;
+        }
+      }
+      gs.currentCol = gs.grid[gs.currentRow].length;
+    }
+  }
+}
+
+// 승리 바운스 애니메이션
+function startBounceAnimation(gs, rowIdx) {
+  gs.bounceTiles = new Array(gs.jamoCount).fill(0);
+  for (let i = 0; i < gs.jamoCount; i++) {
+    const idx = i;
+    tweenManager.add({
+      duration: CONFIG.BOUNCE_DURATION + i * 50,
+      easing: easeOutBounce,
+      onUpdate(e) {
+        const localT = Math.max(0, e);
+        gs.bounceTiles[idx] = Math.sin(localT * Math.PI) * 12;
+      },
+      onComplete() { gs.bounceTiles[idx] = 0; },
+    });
+  }
+}
+
+// 통계 업데이트 — 승리
+function updateStatsOnWin(gs, rowIdx) {
+  const stats = loadStats();
+  stats.totalPlayed++;
+  stats.totalWon++;
+  stats.currentStreak++;
+  stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+  stats.distribution[rowIdx]++;
+  stats.bestScore = Math.max(stats.bestScore, gs.score);
+  if (gs.mode === 'daily') stats.lastDaily = getTodayStr();
+  saveStats(stats);
+}
+
+// 통계 업데이트 — 패배
+function updateStatsOnLoss(gs) {
+  const stats = loadStats();
+  stats.totalPlayed++;
+  stats.currentStreak = 0;
+  if (gs.mode === 'daily') stats.lastDaily = getTodayStr();
+  saveStats(stats);
+}
+
+// 오류 흔들림 트리거
+function triggerShake(gs) {
+  gs.shakeTime = CONFIG.SHAKE_DURATION;
+}
+
+// 토스트 메시지 표시
+function showToast(gs, msg) {
+  gs.toastMsg = msg;
+  gs.toastAlpha = 1;
+  tweenManager.add({
+    duration: 1500,
+    onUpdate(e) {
+      if (e > 0.7) gs.toastAlpha = 1 - (e - 0.7) / 0.3;
+    },
+    onComplete() { gs.toastAlpha = 0; },
+  });
+}
+
+// ============================================================
+// 터치/클릭 이벤트 — §3.2, §3.3
+// ============================================================
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left);
+  const y = (e.clientY - rect.top);
+  return { x, y };
+}
+
+function handlePointerDown(px, py) {
+  if (_transitioning) return;
+  const gs = gameState;
+  if (!gs) return;
+
+  soundManager.init();
+
+  if (gs.state === STATE.TITLE) {
+    beginTransition(STATE.MODE_SELECT);
+    return;
+  }
+
+  if (gs.state === STATE.MODE_SELECT) {
+    handleModeSelectTouch(px, py, gs);
+    return;
+  }
+
+  if (gs.state === STATE.PAUSED) {
+    // 탭하면 재개
+    beginTransition(STATE.PLAYING, { immediate: true });
+    return;
+  }
+
+  if (gs.state === STATE.RESULT) {
+    handleResultTouch(px, py, gs);
+    return;
+  }
+
+  if (gs.state === STATE.STATS) {
+    beginTransition(STATE.TITLE);
+    return;
+  }
+
+  if (gs.state === STATE.PLAYING) {
+    handlePlayingTouch(px, py, gs);
+    return;
+  }
+}
+
+// 모드 선택 화면 터치 처리
+function handleModeSelectTouch(px, py, gs) {
+  const l = layoutCache;
+  const cx = l.w / 2;
+  const btnW = 220;
+  const btnH = 48;
+  const modeLabels = ['일일 챌린지', '무한 모드', '초성 퀴즈'];
+  const startY = 140;
+
+  // 모드 버튼
+  for (let i = 0; i < 3; i++) {
+    const by = startY + i * 60;
+    if (px >= cx - btnW/2 && px <= cx + btnW/2 && py >= by && py <= by + btnH) {
+      gs.selectedMode = i;
+      return;
+    }
+  }
+
+  // 난이도 버튼
+  const diffY = startY + 200;
+  const diffKeys = ['EASY','MEDIUM','HARD'];
+  const diffBtnW = 100;
+  for (let i = 0; i < 3; i++) {
+    const bx = cx - 160 + i * 110;
+    if (px >= bx && px <= bx + diffBtnW && py >= diffY && py <= diffY + btnH) {
+      gs.selectedDiff = i;
+      return;
+    }
+  }
+
+  // 시작 버튼
+  const goY = diffY + 80;
+  if (px >= cx - 100 && px <= cx + 100 && py >= goY && py <= goY + 52) {
+    beginTransition(STATE.PLAYING);
+    return;
+  }
+
+  // 뒤로 버튼
+  if (py < 50 && px < 60) {
+    beginTransition(STATE.TITLE);
+  }
+}
+
+// 결과 화면 터치 처리
+function handleResultTouch(px, py, gs) {
+  const l = layoutCache;
+  const cx = l.w / 2;
+
+  // 공유 버튼
+  if (px >= cx - 100 && px <= cx + 100 && py >= l.h - 180 && py <= l.h - 130) {
+    copyShareText(gs);
+    return;
+  }
+  // 다시하기 버튼
+  if (px >= cx - 100 && px <= cx + 100 && py >= l.h - 120 && py <= l.h - 70) {
+    beginTransition(STATE.MODE_SELECT);
+    return;
+  }
+  // 통계 버튼
+  if (px >= cx - 100 && px <= cx + 100 && py >= l.h - 60 && py <= l.h - 10) {
+    beginTransition(STATE.STATS);
+    return;
+  }
+}
+
+// 플레이 중 터치 — 가상 키보드
+function handlePlayingTouch(px, py, gs) {
+  if (gs.flipRow >= 0) return;
+  const lay = gs.layout;
+  if (!lay) return;
+
+  // 일시정지 버튼 (우상단) — 48×48 (WCAG)
+  if (px >= lay.w - 56 && px <= lay.w - 8 && py >= 4 && py <= 52) {
+    beginTransition(STATE.PAUSED, { immediate: true });
+    return;
+  }
+
+  // 가상 키보드 영역
+  if (py < lay.kbY) return;
+
+  const kbRows = gs.shiftOn ? KB_ROWS_SHIFT : KB_ROWS;
+  const kw = lay.keyW;
+  const kh = lay.keyH;
+  const gap = lay.kbKeyGap;
+
+  for (let r = 0; r < kbRows.length; r++) {
+    const row = kbRows[r];
+    const rowW = row.length * (kw + gap) - gap;
+    const startX = (lay.w - rowW) / 2;
+    const ky = lay.kbY + r * (kh + gap);
+
+    for (let c = 0; c < row.length; c++) {
+      const kx = startX + c * (kw + gap);
+      if (px >= kx && px <= kx + kw && py >= ky && py <= ky + kh) {
+        const keyVal = row[c];
+        if (keyVal === '⇧') {
+          gs.shiftOn = !gs.shiftOn;
+        } else if (keyVal === '⌫') {
+          inputQueue.push({ type: 'delete' });
+        } else {
+          inputQueue.push({ type: 'jamo', value: keyVal });
+          if (gs.shiftOn) gs.shiftOn = false;
+        }
+        return;
+      }
+    }
+  }
+
+  // 확인 버튼
+  const enterY = lay.kbY + 3 * (kh + gap);
+  const enterW = 160;
+  const enterH = 48;
+  const enterX = (lay.w - enterW) / 2;
+  if (px >= enterX && px <= enterX + enterW && py >= enterY && py <= enterY + enterH) {
+    inputQueue.push({ type: 'submit' });
+  }
+}
+
+// 공유 텍스트 클립보드 복사
+function copyShareText(gs) {
+  try {
+    navigator.clipboard.writeText(gs.shareText).then(() => {
+      gs.copyToastAlpha = 1;
+      tweenManager.add({
+        duration: 1500,
+        onUpdate(e) { if (e > 0.7) gs.copyToastAlpha = 1 - (e - 0.7) / 0.3; },
+        onComplete() { gs.copyToastAlpha = 0; },
+      });
+    });
+  } catch (e) {
+    showToast(gs, '복사에 실패했습니다');
+  }
+}
+
+// 결과 화면 사운드
+function playResultSound(gs) {
+  if (gs.won) soundManager.playWin();
+  else soundManager.playLose();
+}
+
+// ============================================================
+// 렌더링 함수들 — §4, §10.2
+// ============================================================
+
+// 메인 렌더 분기
+function render(c, gs, dt) {
+  const l = layoutCache;
+  c.clearRect(0, 0, l.w, l.h);
+
+  // 배경
+  c.fillStyle = COLORS.BG;
+  c.fillRect(0, 0, l.w, l.h);
+
+  switch (gs.state) {
+    case STATE.TITLE: renderTitle(c, gs, l, dt); break;
+    case STATE.MODE_SELECT: renderModeSelect(c, gs, l, dt); break;
+    case STATE.PLAYING: renderPlaying(c, gs, l, dt); break;
+    case STATE.PAUSED: renderPlaying(c, gs, l, dt); renderPauseOverlay(c, l); break;
+    case STATE.RESULT: renderResult(c, gs, l, dt); break;
+    case STATE.STATS: renderStats(c, gs, l, dt); break;
+  }
+
+  // 페이드 전환 오버레이
+  if (gs.fadeAlpha > 0) {
+    c.fillStyle = `rgba(18,18,19,${gs.fadeAlpha})`;
+    c.fillRect(0, 0, l.w, l.h);
+  }
+
+  // 토스트 메시지
+  if (gs.toastAlpha > 0) {
+    renderToast(c, gs, l);
+  }
+
+  // 복사 토스트
+  if (gs.copyToastAlpha > 0) {
+    c.globalAlpha = gs.copyToastAlpha;
+    c.fillStyle = COLORS.CORRECT;
+    const tw = c.measureText('클립보드에 복사됨!').width + 32;
+    c.beginPath();
+    c.roundRect(l.w/2 - tw/2, l.h/2 - 20, tw, 40, 8);
+    c.fill();
+    c.fillStyle = COLORS.TEXT;
+    c.font = `bold 14px ${FONT}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('클립보드에 복사됨!', l.w/2, l.h/2);
+    c.globalAlpha = 1;
+  }
+}
+
+// 타이틀 화면 — 네온 시안 글로우 + 스캔라인
+function renderTitle(c, gs, l, dt) {
+  gs.titleGlow = (gs.titleGlow + dt * 0.003) % (Math.PI * 2);
+  const glow = Math.sin(gs.titleGlow) * 0.3 + 0.7;
+
+  // 배경 그리드 패턴 (퍼즐 장르)
+  c.strokeStyle = '#1a1a2e';
+  c.lineWidth = 0.5;
+  for (let x = 0; x < l.w; x += 30) {
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, l.h); c.stroke();
+  }
+  for (let y = 0; y < l.h; y += 30) {
+    c.beginPath(); c.moveTo(0, y); c.lineTo(l.w, y); c.stroke();
+  }
+
+  // 스캔라인 효과
+  c.fillStyle = 'rgba(0,212,255,0.02)';
+  for (let y = 0; y < l.h; y += 4) {
+    c.fillRect(0, y, l.w, 2);
+  }
+
+  const cx = l.w / 2;
+
+  // 제목 글로우
+  c.save();
+  c.shadowColor = COLORS.ACCENT;
+  c.shadowBlur = 20 * glow;
+  c.font = `bold 28px ${FONT}`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillStyle = COLORS.ACCENT;
+  c.fillText('한글 워드 퀘스트', cx, l.h * 0.32);
+  c.restore();
+
+  // 부제
+  c.font = `16px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.textAlign = 'center';
+  c.fillText('자모를 풀어서 단어를 맞춰라!', cx, l.h * 0.32 + 40);
+
+  // 데모 그리드 — 한 글 워 드 (장식)
+  const demoJamo = ['ㅎ','ㅏ','ㄴ','ㄱ','ㅡ','ㄹ'];
+  const demoRes = ['correct','correct','correct','correct','correct','correct'];
+  const cs = 40;
+  const gap = 4;
+  const dw = demoJamo.length * (cs + gap) - gap;
+  const dx = (l.w - dw) / 2;
+  const dy = l.h * 0.48;
+  for (let i = 0; i < demoJamo.length; i++) {
+    const x = dx + i * (cs + gap);
+    const pulse = Math.sin(gs.titleGlow + i * 0.4) * 3;
+    c.fillStyle = COLORS.CORRECT;
+    c.beginPath();
+    c.roundRect(x, dy + pulse, cs, cs, 4);
+    c.fill();
+    c.font = `bold 18px ${FONT}`;
+    c.fillStyle = COLORS.TEXT;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(demoJamo[i], x + cs/2, dy + cs/2 + pulse);
+  }
+
+  // 시작 안내
+  const blink = Math.sin(Date.now() * 0.004) > 0;
+  if (blink) {
+    c.font = `bold 16px ${FONT}`;
+    c.fillStyle = COLORS.ACCENT;
+    c.textAlign = 'center';
+    c.fillText('SPACE 또는 터치하여 시작', cx, l.h * 0.72);
+  }
+
+  // 하단 크레딧
+  c.font = `12px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.textAlign = 'center';
+  c.fillText('InfiniTriX Games', cx, l.h - 20);
+}
+
+// 모드 선택 화면
+function renderModeSelect(c, gs, l, dt) {
+  const cx = l.w / 2;
+
+  // 뒤로 버튼
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.font = `bold 20px ${FONT}`;
+  c.textAlign = 'left';
+  c.fillText('←', 16, 32);
+
+  c.font = `bold 22px ${FONT}`;
+  c.textAlign = 'center';
+  c.fillStyle = COLORS.ACCENT;
+  c.fillText('모드 선택', cx, 60);
+
+  // 모드 버튼
+  const modeLabels = ['🗓️ 일일 챌린지', '♾️ 무한 모드', '🔤 초성 퀴즈'];
+  const modeDescs = ['매일 새로운 단어', '랜덤 단어 무제한', '초성 힌트로 도전'];
+  const startY = 100;
+  const btnW = 220;
+  const btnH = 48;
+
+  for (let i = 0; i < 3; i++) {
+    const by = startY + i * 64;
+    const sel = gs.selectedMode === i;
+    c.fillStyle = sel ? COLORS.ACCENT : COLORS.CARD;
+    c.beginPath();
+    c.roundRect(cx - btnW/2, by, btnW, btnH, 8);
+    c.fill();
+    if (sel) {
+      c.strokeStyle = COLORS.ACCENT;
+      c.lineWidth = 2;
+      c.stroke();
+    }
+
+    c.font = `bold 15px ${FONT}`;
+    c.fillStyle = sel ? '#121213' : COLORS.TEXT;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(modeLabels[i], cx, by + 18);
+    c.font = `11px ${FONT}`;
+    c.fillStyle = sel ? '#121213aa' : COLORS.TEXT_SUB;
+    c.fillText(modeDescs[i], cx, by + 36);
+  }
+
+  // 난이도 선택
+  const diffY = startY + 220;
+  c.font = `bold 16px ${FONT}`;
+  c.fillStyle = COLORS.TEXT;
+  c.textAlign = 'center';
+  c.fillText('난이도', cx, diffY - 10);
+
+  const diffLabels = ['쉬움\n2글자', '보통\n3글자', '어려움\n4글자'];
+  const diffBtnW = 90;
+  for (let i = 0; i < 3; i++) {
+    const bx = cx - 150 + i * 110;
+    const sel = gs.selectedDiff === i;
+    c.fillStyle = sel ? COLORS.ACCENT : COLORS.CARD;
+    c.beginPath();
+    c.roundRect(bx, diffY + 10, diffBtnW, btnH, 8);
+    c.fill();
+
+    const lines = diffLabels[i].split('\n');
+    c.font = `bold 13px ${FONT}`;
+    c.fillStyle = sel ? '#121213' : COLORS.TEXT;
+    c.textAlign = 'center';
+    c.fillText(lines[0], bx + diffBtnW/2, diffY + 26);
+    c.font = `11px ${FONT}`;
+    c.fillText(lines[1], bx + diffBtnW/2, diffY + 44);
+  }
+
+  // 시작 버튼
+  const goY = diffY + 90;
+  c.fillStyle = COLORS.ACCENT2;
+  c.beginPath();
+  c.roundRect(cx - 100, goY, 200, 52, 12);
+  c.fill();
+  c.font = `bold 18px ${FONT}`;
+  c.fillStyle = COLORS.TEXT;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('게임 시작', cx, goY + 26);
+
+  // 단축키 안내
+  c.font = `11px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.fillText('↑↓ 모드 선택 / 1·2·3 난이도 / Enter 시작', cx, l.h - 20);
+}
+
+// 플레이 화면 렌더
+function renderPlaying(c, gs, l, dt) {
+  const lay = gs.layout;
+  if (!lay) return;
+
+  // 타이틀 바
+  c.font = `bold 16px ${FONT}`;
+  c.fillStyle = COLORS.ACCENT;
+  c.textAlign = 'center';
+  c.fillText('한글 워드 퀘스트', lay.w / 2, 30);
+
+  // 모드/난이도 표시
+  const modeNames = { daily: '일일', infinite: '무한', chosung: '초성' };
+  c.font = `11px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.textAlign = 'left';
+  c.fillText(`${modeNames[gs.mode]} · ${CONFIG.DIFFICULTY[gs.diffKey].label}`, 10, 30);
+
+  // 일시정지 버튼 — 48×48 (§4.6)
+  c.fillStyle = COLORS.CARD;
+  c.beginPath();
+  c.roundRect(lay.w - 56, 4, 48, 48, 6);
+  c.fill();
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.fillRect(lay.w - 42, 16, 6, 24);
+  c.fillRect(lay.w - 30, 16, 6, 24);
+
+  // 초성 퀴즈 힌트
+  if (gs.mode === 'chosung') {
+    c.font = `bold 13px ${FONT}`;
+    c.fillStyle = COLORS.ACCENT2;
+    c.textAlign = 'center';
+    const hints = gs.syllableMap.map((s, i) => gs.answerJamo[s.start]).join(' ');
+    c.fillText(`초성 힌트: ${hints}`, lay.w / 2, lay.titleH - 4);
+  }
+
+  // 자모 그리드
+  const shakeOffset = gs.shakeTime > 0 ? Math.sin(gs.shakeTime * 0.05) * 6 * (gs.shakeTime / CONFIG.SHAKE_DURATION) : 0;
+
+  for (let row = 0; row < CONFIG.MAX_ATTEMPTS; row++) {
+    const rowData = gs.grid[row] || [];
+    const rowResult = gs.results[row] || [];
+    const isCurrentRow = row === gs.currentRow && !gs.won && !gs.lost;
+    const isFlipping = row === gs.flipRow;
+    const bounceActive = gs.bounceTiles && gs.bounceTiles.length > 0 && gs.won && row === gs.currentRow;
+
+    for (let col = 0; col < gs.jamoCount; col++) {
+      const x = lay.gridX + col * (lay.cellSize + lay.gridGap) + (isCurrentRow ? shakeOffset : 0);
+      const y = lay.gridY + row * (lay.cellSize + lay.gridGap);
+      const bounceY = bounceActive ? -(gs.bounceTiles[col] || 0) : 0;
+
+      const jamo = rowData[col] || '';
+      const result = rowResult[col] || '';
+
+      // 플립 애니메이션
+      if (isFlipping) {
+        const fp = gs.flipProgress[col] || 0;
+        const scaleY = fp < 0.5 ? 1 - fp * 2 : (fp - 0.5) * 2;
+        const bgColor = fp >= 0.5 ? getResultColor(result) : (jamo ? COLORS.EMPTY : COLORS.EMPTY);
+        const borderColor = fp >= 0.5 ? getResultColor(result) : (jamo ? COLORS.BORDER_ACT : COLORS.BORDER_DIM);
+
+        c.save();
+        c.translate(x + lay.cellSize/2, y + lay.cellSize/2);
+        c.scale(1, scaleY);
+        c.fillStyle = bgColor;
+        c.beginPath();
+        c.roundRect(-lay.cellSize/2, -lay.cellSize/2, lay.cellSize, lay.cellSize, 4);
+        c.fill();
+        c.strokeStyle = borderColor;
+        c.lineWidth = 2;
+        c.stroke();
+        if (scaleY > 0.3 && jamo) {
+          c.font = `bold ${lay.cellSize * 0.5 + lay.fontSize}px ${FONT}`;
+          c.fillStyle = COLORS.TEXT;
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+          c.fillText(jamo, 0, 0);
+          // 색맹 대응 아이콘 — §11.6
+          if (fp >= 0.5 && result) {
+            renderAccessibilityIcon(c, result, lay.cellSize/2 - 8, -lay.cellSize/2 + 8, 6);
+          }
+        }
+        c.restore();
+      } else {
+        // 일반 렌더
+        const bgColor = result ? getResultColor(result) : COLORS.EMPTY;
+        const borderColor = result ? getResultColor(result) : (jamo ? COLORS.BORDER_ACT : COLORS.BORDER_DIM);
+
+        c.fillStyle = bgColor;
+        c.beginPath();
+        c.roundRect(x, y + bounceY, lay.cellSize, lay.cellSize, 4);
+        c.fill();
+        c.strokeStyle = borderColor;
+        c.lineWidth = 2;
+        c.stroke();
+
+        if (jamo) {
+          c.font = `bold ${lay.cellSize * 0.5 + lay.fontSize}px ${FONT}`;
+          c.fillStyle = COLORS.TEXT;
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+          c.fillText(jamo, x + lay.cellSize/2, y + lay.cellSize/2 + bounceY);
+
+          // 색맹 대응 아이콘
+          if (result) {
+            renderAccessibilityIcon(c, result, x + lay.cellSize - 8, y + bounceY + 8, 6);
+          }
+        }
+      }
+    }
+
+    // 음절 보조 힌트 — §2.4
+    if (rowResult.length > 0) {
+      renderSyllableHints(c, gs, row, lay);
+    }
+  }
+
+  // 가상 키보드
+  renderKeyboard(c, gs, lay);
+}
+
+// 결과 색상 매핑
+function getResultColor(result) {
+  if (result === 'correct') return COLORS.CORRECT;
+  if (result === 'present') return COLORS.PRESENT;
+  if (result === 'absent') return COLORS.ABSENT;
+  return COLORS.EMPTY;
+}
+
+// 색맹 대응 아이콘 — §11.6
+function renderAccessibilityIcon(c, result, x, y, size) {
+  c.font = `${size}px ${FONT}`;
+  c.fillStyle = 'rgba(255,255,255,0.6)';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  if (result === 'correct') c.fillText('✓', x, y);
+  else if (result === 'present') c.fillText('→', x, y);
+  else if (result === 'absent') c.fillText('✗', x, y);
+}
+
+// 음절 보조 힌트 — §2.4
+function renderSyllableHints(c, gs, rowIdx, lay) {
+  const result = gs.results[rowIdx];
+  if (!result) return;
+
+  for (const syl of gs.syllableMap) {
+    let allCorrect = true;
+    for (let i = syl.start; i <= syl.end; i++) {
+      if (result[i] !== 'correct') { allCorrect = false; break; }
+    }
+    if (allCorrect) {
+      const x = lay.gridX + syl.start * (lay.cellSize + lay.gridGap) - 2;
+      const y = lay.gridY + rowIdx * (lay.cellSize + lay.gridGap) - 2;
+      const w = (syl.end - syl.start + 1) * (lay.cellSize + lay.gridGap) - lay.gridGap + 4;
+      c.save();
+      c.shadowColor = COLORS.ACCENT;
+      c.shadowBlur = 8;
+      c.strokeStyle = COLORS.ACCENT;
+      c.lineWidth = 2;
+      c.beginPath();
+      c.roundRect(x, y, w, lay.cellSize + 4, 6);
+      c.stroke();
+      c.restore();
+    }
+  }
+}
+
+// 가상 키보드 렌더 — §4.4
+function renderKeyboard(c, gs, lay) {
+  const kbRows = gs.shiftOn ? KB_ROWS_SHIFT : KB_ROWS;
+  const kw = lay.keyW;
+  const kh = lay.keyH;
+  const gap = lay.kbKeyGap;
+
+  for (let r = 0; r < kbRows.length; r++) {
+    const row = kbRows[r];
+    const rowW = row.length * (kw + gap) - gap;
+    const startX = (lay.w - rowW) / 2;
+    const ky = lay.kbY + r * (kh + gap);
+
+    for (let ci = 0; ci < row.length; ci++) {
+      const kx = startX + ci * (kw + gap);
+      const keyVal = row[ci];
+
+      // 키 배경색
+      let bgColor = COLORS.TEXT_SUB;
+      if (keyVal === '⇧' || keyVal === '⌫') {
+        bgColor = gs.shiftOn && keyVal === '⇧' ? COLORS.ACCENT : '#505070';
+      } else {
+        const st = gs.keyStates[keyVal];
+        if (st === 'correct') bgColor = COLORS.CORRECT;
+        else if (st === 'present') bgColor = COLORS.PRESENT;
+        else if (st === 'absent') bgColor = '#2a2a2e';
+      }
+
+      c.fillStyle = bgColor;
+      c.beginPath();
+      c.roundRect(kx, ky, kw, kh, 4);
+      c.fill();
+
+      // 키 글자
+      c.font = `bold 14px ${FONT}`;
+      c.fillStyle = COLORS.TEXT;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(keyVal, kx + kw/2, ky + kh/2);
+    }
+  }
+
+  // 확인(Enter) 버튼
+  const enterY = lay.kbY + 3 * (kh + gap);
+  const enterW = 160;
+  const enterH = 48;
+  const enterX = (lay.w - enterW) / 2;
+  c.fillStyle = COLORS.ACCENT;
+  c.beginPath();
+  c.roundRect(enterX, enterY, enterW, enterH, 8);
+  c.fill();
+  c.font = `bold 16px ${FONT}`;
+  c.fillStyle = '#121213';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('확인', enterX + enterW/2, enterY + enterH/2);
+}
+
+// 일시정지 오버레이
+function renderPauseOverlay(c, l) {
+  c.fillStyle = 'rgba(18,18,19,0.75)';
+  c.fillRect(0, 0, l.w, l.h);
+  c.font = `bold 28px ${FONT}`;
+  c.fillStyle = COLORS.ACCENT;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('일시정지', l.w/2, l.h/2 - 20);
+  c.font = `14px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.fillText('ESC 또는 터치하여 계속', l.w/2, l.h/2 + 20);
+}
+
+// 결과 화면
+function renderResult(c, gs, l, dt) {
+  const cx = l.w / 2;
+
+  // 제목
+  c.font = `bold 24px ${FONT}`;
+  c.textAlign = 'center';
+  c.fillStyle = gs.won ? COLORS.CORRECT : COLORS.ACCENT2;
+  c.fillText(gs.won ? '정답!' : '아쉽네요...', cx, 60);
+
+  // 정답 단어
+  c.font = `bold 20px ${FONT}`;
+  c.fillStyle = COLORS.TEXT;
+  c.fillText(gs.answerWord, cx, 100);
+
+  // 자모 분해 표시
+  c.font = `14px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.fillText(gs.answerJamo.join(' '), cx, 125);
+
+  // 점수
+  if (gs.won) {
+    c.save();
+    c.shadowColor = COLORS.ACCENT;
+    c.shadowBlur = 12;
+    c.font = `bold 36px ${FONT}`;
+    c.fillStyle = COLORS.ACCENT;
+    c.fillText(`${gs.score}점`, cx, 175);
+    c.restore();
+
+    c.font = `13px ${FONT}`;
+    c.fillStyle = COLORS.TEXT_SUB;
+    c.fillText(`${gs.currentRow + 1}/${CONFIG.MAX_ATTEMPTS} 시도`, cx, 200);
+  }
+
+  // 이모지 그리드 미리보기
+  if (gs.shareText) {
+    c.font = `13px ${FONT}`;
+    c.fillStyle = COLORS.TEXT_SUB;
+    c.textAlign = 'center';
+    const lines = gs.shareText.split('\n');
+    let sy = 230;
+    for (const line of lines) {
+      c.fillText(line, cx, sy);
+      sy += 20;
+    }
+  }
+
+  // 최고점
+  if (cachedStats) {
+    c.font = `13px ${FONT}`;
+    c.fillStyle = COLORS.TEXT_SUB;
+    c.textAlign = 'center';
+    c.fillText(`최고점: ${cachedStats.bestScore}`, cx, l.h - 200);
+  }
+
+  // 버튼
+  renderButton(c, cx - 100, l.h - 180, 200, 44, '📋 결과 공유', COLORS.ACCENT);
+  renderButton(c, cx - 100, l.h - 120, 200, 44, '🔄 다시하기', COLORS.ACCENT2);
+  renderButton(c, cx - 100, l.h - 60, 200, 44, '📊 통계', COLORS.CARD);
+}
+
+// 통계 화면
+function renderStats(c, gs, l, dt) {
+  const cx = l.w / 2;
+  const stats = cachedStats || loadStats();
+
+  c.font = `bold 22px ${FONT}`;
+  c.fillStyle = COLORS.ACCENT;
+  c.textAlign = 'center';
+  c.fillText('통계', cx, 50);
+
+  // 요약 수치
+  const summaryY = 90;
+  const items = [
+    { label: '플레이', value: stats.totalPlayed },
+    { label: '승률', value: stats.totalPlayed ? Math.round(stats.totalWon / stats.totalPlayed * 100) + '%' : '0%' },
+    { label: '연속', value: stats.currentStreak },
+    { label: '최고연속', value: stats.maxStreak },
+  ];
+
+  const itemW = Math.floor(l.w / 4);
+  for (let i = 0; i < items.length; i++) {
+    const x = i * itemW + itemW / 2;
+    c.font = `bold 28px ${FONT}`;
+    c.fillStyle = COLORS.TEXT;
+    c.textAlign = 'center';
+    c.fillText(String(items[i].value), x, summaryY);
+    c.font = `11px ${FONT}`;
+    c.fillStyle = COLORS.TEXT_SUB;
+    c.fillText(items[i].label, x, summaryY + 20);
+  }
+
+  // 시도 분포 막대 그래프
+  c.font = `bold 14px ${FONT}`;
+  c.fillStyle = COLORS.TEXT;
+  c.textAlign = 'center';
+  c.fillText('시도 분포', cx, 150);
+
+  const barStartY = 170;
+  const barMaxW = l.w - 80;
+  const maxDist = Math.max(...stats.distribution, 1);
+
+  for (let i = 0; i < 6; i++) {
+    const y = barStartY + i * 28;
+    const val = stats.distribution[i];
+    const barW = Math.max(24, (val / maxDist) * barMaxW);
+
+    // 라벨
+    c.font = `bold 13px ${FONT}`;
+    c.fillStyle = COLORS.TEXT;
+    c.textAlign = 'right';
+    c.fillText(String(i + 1), 30, y + 12);
+
+    // 바
+    c.fillStyle = val > 0 ? COLORS.CORRECT : COLORS.ABSENT;
+    c.beginPath();
+    c.roundRect(38, y, barW, 20, 4);
+    c.fill();
+
+    // 값
+    c.fillStyle = COLORS.TEXT;
+    c.textAlign = 'left';
+    c.font = `bold 11px ${FONT}`;
+    c.fillText(String(val), 42 + barW, y + 12);
+  }
+
+  // 최고점
+  c.font = `bold 16px ${FONT}`;
+  c.fillStyle = COLORS.ACCENT;
+  c.textAlign = 'center';
+  c.fillText(`최고점: ${stats.bestScore}`, cx, barStartY + 200);
+
+  // 돌아가기 안내
+  c.font = `12px ${FONT}`;
+  c.fillStyle = COLORS.TEXT_SUB;
+  c.fillText('ESC 또는 터치하여 돌아가기', cx, l.h - 20);
+}
+
+// 범용 버튼 렌더
+function renderButton(c, x, y, w, h, text, color) {
+  c.fillStyle = color;
+  c.beginPath();
+  c.roundRect(x, y, w, h, 8);
+  c.fill();
+  c.font = `bold 14px ${FONT}`;
+  c.fillStyle = COLORS.TEXT;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, x + w/2, y + h/2);
+}
+
+// 토스트 메시지
+function renderToast(c, gs, l) {
+  c.globalAlpha = gs.toastAlpha;
+  c.fillStyle = COLORS.CARD;
+  const tw = c.measureText(gs.toastMsg).width + 32;
+  c.beginPath();
+  c.roundRect(l.w/2 - tw/2, 70, tw, 36, 8);
+  c.fill();
+  c.strokeStyle = COLORS.BORDER_DIM;
+  c.lineWidth = 1;
+  c.stroke();
+  c.font = `bold 13px ${FONT}`;
+  c.fillStyle = COLORS.TEXT;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(gs.toastMsg, l.w/2, 88);
+  c.globalAlpha = 1;
+}
+
+// ============================================================
+// §5.4 게임 루프 — try-catch 래핑 (§11.9)
+// ============================================================
+function gameLoop(timestamp) {
+  try {
+    const dt = Math.min(timestamp - lastTime, 100);
+    lastTime = timestamp;
+
+    gameState.stateTime += dt;
+
+    // §5.3 상태×시스템 매트릭스
+    if (gameState.state !== STATE.PAUSED) {
+      tweenManager.update(dt);
+    }
+
+    // 입력 처리
+    processInput(gameState);
+
+    // 흔들림 업데이트
+    if (gameState.shakeTime > 0) {
+      gameState.shakeTime = Math.max(0, gameState.shakeTime - dt);
+    }
+
+    // 렌더
+    render(ctx, gameState, dt);
+  } catch (e) {
+    console.error('[HangulWordQuest] Loop error:', e);
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// §9 이벤트 리스너 등록
+// ============================================================
+document.addEventListener('keydown', handleKeyDown);
+
+canvas.addEventListener('mousedown', function(e) {
+  const p = getCanvasPos(e);
+  handlePointerDown(p.x, p.y);
+});
+
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  if (e.touches.length > 0) {
+    const p = getCanvasPos(e.touches[0]);
+    handlePointerDown(p.x, p.y);
+  }
+}, { passive: false });
+
+window.addEventListener('resize', resizeCanvas);
+
+// ============================================================
+// §10 초기화
+// ============================================================
+gameState = createInitialState();
+resizeCanvas();
+cacheStats();
+lastTime = performance.now();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

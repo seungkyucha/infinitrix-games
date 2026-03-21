@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-21T18:00:00Z",
-  "totalGames": 13,
+  "lastUpdated": "2026-03-21T21:00:00Z",
+  "totalGames": 14,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -801,6 +801,27 @@
         "키보드: ←→ 조향 / ↑ 가속 / ↓ 브레이크 / Space 부스트",
         "터치: 가상 스티어링(좌) + 가속·브레이크·부스트 버튼(우)",
         "마우스: 메뉴 선택 전용"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "hangul-word-quest",
+      "title": "한글 워드 퀘스트",
+      "description": "한글 자모를 풀어 숨겨진 단어를 맞추는 워드 퍼즐!",
+      "genre": ["puzzle"],
+      "thumbnail": "/games/hangul-word-quest/assets/thumbnail.svg",
+      "path": "/games/hangul-word-quest/index.html",
+      "addedAt": "2026-03-21T21:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["워드퍼즐", "한글", "데일리챌린지"],
+      "controls": [
+        "키보드: 한글 자모 직접 입력 / Enter 제출 / Backspace 삭제",
+        "마우스: 화면 내 가상 키보드 클릭",
+        "터치: 화면 내 가상 키보드 터치"
       ],
       "difficulty": "medium",
       "version": "1.0.0",
