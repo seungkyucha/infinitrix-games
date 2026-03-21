@@ -89,23 +89,50 @@ function readDocRaw(filePath: string): string {
 // ── 사이드바 엔트리 (플랫 리스트) ────────────────────────────────────────────
 
 /** 사이드바에 표시할 문서 목록 (meta + 사이클별 1줄) */
-export function getSidebarEntries(): SidebarEntry[] {
+export function getSidebarEntries(locale: string = 'ko'): SidebarEntry[] {
   const entries: SidebarEntry[] = []
+
+  // 번역 메시지 로드 (wisdom 라벨용)
+  let wisdomLabel = '누적 플랫폼 지혜'
+  if (locale !== 'ko') {
+    try {
+      const msgs = require(`@/messages/${locale}.json`)
+      wisdomLabel = msgs?.devlog?.wisdom ?? 'Platform Wisdom'
+    } catch {
+      wisdomLabel = 'Platform Wisdom'
+    }
+  }
 
   // 누적 플랫폼 지혜
   const wisdomPath = join(DOCS_DIR, 'meta', 'platform-wisdom.md')
   if (existsSync(wisdomPath)) {
-    entries.push({ id: 'wisdom', label: '누적 플랫폼 지혜', icon: '🧠' })
+    entries.push({ id: 'wisdom', label: wisdomLabel, icon: '🧠' })
+  }
+
+  // 게임 레지스트리에서 i18n 타이틀 로드
+  let gameI18n: Record<string, Record<string, { title?: string }>> = {}
+  if (locale !== 'ko') {
+    try {
+      const regPath = join(process.cwd(), 'public', 'games', 'game-registry.json')
+      const reg = JSON.parse(readFileSync(regPath, 'utf-8'))
+      for (const g of reg.games) {
+        if (g.i18n) gameI18n[g.id] = g.i18n
+      }
+    } catch {}
   }
 
   // 사이클 번호 수집
   const cycleNumbers = collectCycleNumbers()
 
   for (const n of cycleNumbers) {
-    const { gameTitle, verdict } = getCycleMeta(n)
+    const { gameTitle, gameId, verdict } = getCycleMeta(n)
+    // i18n 타이틀 우선 사용
+    const localizedTitle = (locale !== 'ko' && gameId && gameI18n[gameId]?.[locale]?.title)
+      ? gameI18n[gameId][locale].title
+      : gameTitle
     entries.push({
       id:      `cycle-${n}`,
-      label:   `#${n} ${gameTitle}`,
+      label:   `#${n} ${localizedTitle}`,
       icon:    '🎮',
       verdict,
     })
@@ -177,7 +204,7 @@ function collectCycleNumbers(): number[] {
   return Array.from(nums).sort((a, b) => b - a)
 }
 
-function getCycleMeta(n: number): { gameTitle: string; verdict: string } {
+function getCycleMeta(n: number): { gameTitle: string; gameId: string; verdict: string } {
   const specPath = join(DOCS_DIR, 'game-specs', `cycle-${n}-spec.md`)
   const pmPath   = join(DOCS_DIR, 'post-mortem', `cycle-${n}-postmortem.md`)
 
@@ -186,6 +213,7 @@ function getCycleMeta(n: number): { gameTitle: string; verdict: string } {
 
   return {
     gameTitle: specMeta['title'] ?? pmMeta['title'] ?? `사이클 #${n}`,
+    gameId:    specMeta['game-id'] ?? '',
     verdict:   pmMeta['verdict'] ?? '',
   }
 }

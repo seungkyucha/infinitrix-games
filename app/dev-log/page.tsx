@@ -18,10 +18,10 @@ interface Props {
 
 export default async function DevLogPage({ searchParams }: Props) {
   const { doc: docParam, tab: tabParam } = await searchParams
-  const entries    = getSidebarEntries()
+  const { t, locale } = await getTranslations()
+  const entries    = getSidebarEntries(locale)
   const defaultId  = entries[0]?.id ?? 'wisdom'
   const activeId   = docParam ?? defaultId
-  const { t, locale } = await getTranslations()
 
   let content: { type: 'wisdom'; html: string }
     | { type: 'cycle';  info: NonNullable<ReturnType<typeof getCycleTabInfo>>; activeTab: string; html: string }
