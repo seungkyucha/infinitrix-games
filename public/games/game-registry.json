@@ -751,7 +751,17 @@
       ],
       "difficulty": "medium",
       "version": "1.0.0",
-      "author": "InfiniTriX AI"
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": { "title": "Mini Platformer", "description": "Break through the ancient tower with wall jumps, dashes, and double jumps! A precision action platformer.", "tags": ["platformer", "precision action", "wall jump", "speedrun", "single player"], "controls": ["Keyboard: Arrow/WASD move, Space jump, Shift dash", "Touch: Virtual D-pad (left) + Jump/Dash buttons (right)", "Mouse: Menu selection only"] },
+        "ja": { "title": "ミニプラットフォーマー", "description": "壁ジャンプ、ダッシュ、二段ジャンプで古代の塔を突破せよ！精密操作アクションプラットフォーマー。", "tags": ["プラットフォーマー", "精密アクション", "壁ジャンプ", "スピードラン", "シングルプレイ"], "controls": ["キーボード: 矢印/WASD移動、Spaceジャンプ、Shiftダッシュ", "タッチ: 仮想Dパッド（左）+ ジャンプ/ダッシュボタン（右）", "マウス: メニュー選択のみ"] },
+        "zh-CN": { "title": "迷你平台跳跃", "description": "用墙跳、冲刺和二段跳突破古塔！精确操作动作平台游戏。", "tags": ["平台跳跃", "精确操作", "墙跳", "速通", "单人"], "controls": ["键盘: 方向键/WASD移动, Space跳跃, Shift冲刺", "触摸: 虚拟方向键(左) + 跳跃/冲刺按钮(右)", "鼠标: 仅菜单选择"] },
+        "zh-TW": { "title": "迷你平台跳躍", "description": "用牆跳、衝刺和二段跳突破古塔！精確操作動作平台遊戲。", "tags": ["平台跳躍", "精確操作", "牆跳", "速通", "單人"], "controls": ["鍵盤: 方向鍵/WASD移動, Space跳躍, Shift衝刺", "觸控: 虛擬方向鍵(左) + 跳躍/衝刺按鈕(右)", "滑鼠: 僅選單選擇"] },
+        "es": { "title": "Mini Plataformas", "description": "¡Supera la torre antigua con saltos de pared, dashes y doble salto! Un plataformas de acción precisa.", "tags": ["plataformas", "acción precisa", "salto de pared", "speedrun", "un jugador"], "controls": ["Teclado: Flechas/WASD mover, Space saltar, Shift dash", "Táctil: D-pad virtual (izq) + Botones salto/dash (der)", "Ratón: Solo selección de menú"] },
+        "fr": { "title": "Mini Plateformer", "description": "Franchissez la tour antique avec des sauts muraux, dashes et doubles sauts ! Un jeu de plateforme d'action précise.", "tags": ["plateforme", "action précise", "saut mural", "speedrun", "solo"], "controls": ["Clavier: Flèches/WASD déplacer, Space sauter, Shift dash", "Tactile: D-pad virtuel (gauche) + Boutons saut/dash (droite)", "Souris: Sélection de menu uniquement"] },
+        "de": { "title": "Mini-Plattformer", "description": "Durchbreche den antiken Turm mit Wandsprüngen, Dashes und Doppelsprüngen! Ein Präzisions-Action-Plattformer.", "tags": ["Plattformer", "Präzisionsaktion", "Wandsprung", "Speedrun", "Einzelspieler"], "controls": ["Tastatur: Pfeile/WASD bewegen, Space springen, Shift dash", "Touch: Virtuelles D-Pad (links) + Sprung/Dash-Tasten (rechts)", "Maus: Nur Menüauswahl"] },
+        "pt": { "title": "Mini Plataforma", "description": "Supere a torre antiga com pulos na parede, dashes e pulo duplo! Um plataforma de ação precisa.", "tags": ["plataforma", "ação precisa", "pulo na parede", "speedrun", "um jogador"], "controls": ["Teclado: Setas/WASD mover, Space pular, Shift dash", "Toque: D-pad virtual (esq) + Botões pulo/dash (dir)", "Mouse: Apenas seleção de menu"] }
+      }
     }
   ]
 }
