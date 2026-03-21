@@ -31,6 +31,89 @@ function loadLastPostmortem(cycleNumber: number): string {
   try { return readFileSync(path, 'utf-8').slice(0, 3000) } catch { return '' }
 }
 
+/** 사이클 번호에 따른 성장 지시문 — 게임 품질을 점진적으로 향상 */
+function buildGrowthDirective(cycleNumber: number): string {
+  const n = cycleNumber
+
+  // 기본 품질 기대치 (누적 성장)
+  const complexity = n <= 5 ? '기본' : n <= 10 ? '중급' : n <= 20 ? '고급' : '프리미엄'
+  const minCodeLines = Math.min(500 + n * 80, 5000)
+
+  const parts: string[] = [
+    `\n## 🚀 사이클 #${n} 성장 목표 (이전 사이클보다 반드시 발전할 것)`,
+    `현재 플랫폼 성숙도: **${complexity}** 단계 (${n}번째 사이클)`,
+    '',
+  ]
+
+  // ── 게임성 (Gameplay) ──
+  parts.push('### 🎮 게임성')
+  if (n <= 5) {
+    parts.push('- 핵심 메카닉 1개를 확실히 재미있게 구현')
+    parts.push('- 최소 3단계 난이도 변화 (쉬움→보통→어려움)')
+    parts.push('- 점수 시스템 + 게임오버 조건')
+  } else if (n <= 10) {
+    parts.push('- 핵심 메카닉 + 보조 메카닉 1~2개 (파워업, 콤보 등)')
+    parts.push('- 최소 5단계 이상 난이도 곡선 (웨이브/레벨)')
+    parts.push('- 점수 보드 + 최고 기록 저장 (localStorage)')
+    parts.push('- 튜토리얼 또는 첫 플레이 가이드')
+  } else if (n <= 20) {
+    parts.push('- 복합 메카닉 (예: 자원관리+전투, 빌드+디펜스)')
+    parts.push('- 10단계 이상 레벨/웨이브 + 보스전 또는 특수 스테이지')
+    parts.push('- 업그레이드/성장 시스템 (런 중 또는 영구 업그레이드)')
+    parts.push('- 다양한 적/장애물 타입 (최소 5종)')
+    parts.push('- 업적/도전과제 시스템')
+  } else {
+    parts.push('- 깊은 전략적 선택지가 있는 복합 시스템')
+    parts.push('- 15단계+ 레벨 + 보스전 + 히든 스테이지')
+    parts.push('- 영구 진행 시스템 (언락, 업그레이드 트리)')
+    parts.push('- 리플레이 가치: 랜덤 생성, 다중 전략 경로')
+    parts.push('- 스토리/내러티브 요소')
+  }
+
+  // ── 그래픽 (Visual) ──
+  parts.push('\n### 🎨 그래픽')
+  if (n <= 5) {
+    parts.push('- 깔끔한 SVG 에셋 + 일관된 컬러 팔레트')
+    parts.push('- 기본 애니메이션 (이동, 페이드)')
+  } else if (n <= 10) {
+    parts.push('- 세밀한 SVG 디테일 (그라데이션, 그림자, 하이라이트)')
+    parts.push('- 파티클 이펙트 (폭발, 스파크, 먼지)')
+    parts.push('- 화면 전환 애니메이션')
+    parts.push('- 배경 패럴랙스 스크롤링')
+  } else if (n <= 20) {
+    parts.push('- 풍부한 SVG 아트 (캐릭터 표정/포즈 변화, 환경 디테일)')
+    parts.push('- 다중 파티클 시스템 (타격, 이동 궤적, 환경 효과)')
+    parts.push('- 화면 흔들림(screen shake), 슬로우모션 연출')
+    parts.push('- 다이나믹 라이팅/글로우 효과')
+    parts.push('- UI 애니메이션 (숫자 카운트업, 바운스, 슬라이드)')
+  } else {
+    parts.push('- 프리미엄급 비주얼 (캐릭터 애니메이션 시퀀스, 보스 등장 연출)')
+    parts.push('- 날씨/시간대 변화 효과')
+    parts.push('- 카메라 줌/팬 연출')
+    parts.push('- 배경 인터랙티브 요소')
+  }
+
+  // ── 분량 (Content Volume) ──
+  parts.push('\n### 📏 분량')
+  parts.push(`- 코드 최소 ${minCodeLines}줄 이상`)
+  if (n <= 5) {
+    parts.push('- 에셋 8~10개')
+  } else if (n <= 10) {
+    parts.push('- 에셋 12~15개 (적/아이템 변형 포함)')
+    parts.push('- 사운드 이펙트 시뮬레이션 (Web Audio API 비프음)')
+  } else {
+    parts.push('- 에셋 15~20개 (캐릭터 변형, 환경 변형 포함)')
+    parts.push('- Web Audio API 기반 BGM + 효과음')
+    parts.push('- 다국어 지원 고려 (한국어 기본, 영어 UI)')
+  }
+
+  parts.push('')
+  parts.push(`> ⚠️ 이 게임은 플랫폼의 ${n}번째 작품입니다. 이전 ${n-1}개 게임보다 확실히 발전된 품질을 보여줘야 합니다.`)
+  parts.push('')
+
+  return parts.join('\n')
+}
+
 /** 분석가·플래너에게 전달할 누적 피드백 블록 생성 */
 function buildFeedbackBlock(cycleNumber: number): string {
   const wisdom    = loadPlatformWisdom()
@@ -137,6 +220,10 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     console.log(`  📚 이전 사이클 학습 컨텍스트 로드됨 (cycle #${cycleNumber - 1})`)
   }
 
+  // 사이클 번호 기반 성장 지시문
+  const growthDirective = buildGrowthDirective(cycleNumber)
+  console.log(`  📈 성장 목표: ${cycleNumber <= 5 ? '기본' : cycleNumber <= 10 ? '중급' : cycleNumber <= 20 ? '고급' : '프리미엄'} 단계`)
+
   const state: CycleState = {
     cycleNumber,
     gameId:     '',
@@ -156,6 +243,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       현재 플랫폼(public/games/game-registry.json)을 분석하고,
       HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
       결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
+      ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.
     `)
@@ -176,6 +264,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       difficulty: [easy/medium/hard]
       ---
       형태로 메타데이터를 포함해줘.
+      ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.
     `)
@@ -196,6 +285,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       - thumbnail.svg (플랫폼 썸네일, 반드시 width="400" height="300" viewBox="0 0 400 300" 포함)
       - manifest.json (에셋 목록)
       기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
+      ${growthDirective}
       ${feedbackBlock}
     `)
     completeAgent('designer')
@@ -210,6 +300,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       public/games/[game-id]/index.html을 작성해줘.
       디자이너가 만든 SVG 에셋을 preloadAssets()로 로드하여 Canvas 렌더링에 활용할 것.
       기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
+      ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 사이클 리뷰에서 지적된 코드 품질 문제(메모리 누수, 터치 이벤트 누락 등)를 반드시 해결할 것.
     `)
