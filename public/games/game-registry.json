@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T01:30:00Z",
-  "totalGames": 19,
+  "lastUpdated": "2026-03-22T06:29:54.474Z",
+  "totalGames": 20,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -3351,6 +3351,202 @@
             "Seta para baixo ou Espaço: Lançar bola",
             "Toque: Toque esq/dir para os flippers",
             "P: Pausar"
+          ]
+        }
+      },
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "runeforge-tactics",
+      "title": "룬포지 택틱스",
+      "description": "룬을 배치해 마법진을 완성하고 적을 격퇴하세요!",
+      "genre": [
+        "puzzle",
+        "strategy"
+      ],
+      "thumbnail": "/games/runeforge-tactics/assets/thumbnail.svg",
+      "path": "/games/runeforge-tactics/index.html",
+      "addedAt": "2026-03-22T06:29:54.474Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "퍼즐",
+        "전략",
+        "룬",
+        "마법진",
+        "턴제",
+        "타워디펜스"
+      ],
+      "controls": [
+        "방향키/WASD: 그리드 커서 이동",
+        "Space/Enter: 룬 배치 및 확인",
+        "1~5: 인벤토리 룬 선택",
+        "클릭/탭: 룬 선택 및 배치",
+        "Q: 마법진 발동",
+        "Tab: 레시피북 열기/닫기"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Runeforge Tactics",
+          "description": "Place runes to complete magic circles and repel enemy waves!",
+          "tags": [
+            "puzzle",
+            "strategy",
+            "rune",
+            "magic circle",
+            "turn-based",
+            "tower defense"
+          ],
+          "controls": [
+            "Arrow keys/WASD: Move grid cursor",
+            "Space/Enter: Place rune / Confirm",
+            "1~5: Select inventory rune",
+            "Click/Tap: Select and place runes",
+            "Q: Activate magic circle",
+            "Tab: Open/close recipe book"
+          ]
+        },
+        "ja": {
+          "title": "ルーンフォージ タクティクス",
+          "description": "ルーンを配置して魔法陣を完成させ、敵の波を撃退しよう！",
+          "tags": [
+            "パズル",
+            "戦略",
+            "ルーン",
+            "魔法陣",
+            "ターン制",
+            "タワーディフェンス"
+          ],
+          "controls": [
+            "矢印キー/WASD: グリッドカーソル移動",
+            "Space/Enter: ルーン配置 / 確認",
+            "1~5: インベントリのルーン選択",
+            "クリック/タップ: ルーンの選択と配置",
+            "Q: 魔法陣発動",
+            "Tab: レシピブックの開閉"
+          ]
+        },
+        "zh-CN": {
+          "title": "符文锻造战术",
+          "description": "放置符文完成魔法阵，击退敌人的进攻！",
+          "tags": [
+            "益智",
+            "策略",
+            "符文",
+            "魔法阵",
+            "回合制",
+            "塔防"
+          ],
+          "controls": [
+            "方向键/WASD: 移动光标",
+            "空格/回车: 放置符文 / 确认",
+            "1~5: 选择背包符文",
+            "点击/触摸: 选择并放置符文",
+            "Q: 激活魔法阵",
+            "Tab: 打开/关闭配方书"
+          ]
+        },
+        "zh-TW": {
+          "title": "符文鍛造戰術",
+          "description": "放置符文完成魔法陣，擊退敵人的進攻！",
+          "tags": [
+            "益智",
+            "策略",
+            "符文",
+            "魔法陣",
+            "回合制",
+            "塔防"
+          ],
+          "controls": [
+            "方向鍵/WASD: 移動光標",
+            "空白鍵/Enter: 放置符文 / 確認",
+            "1~5: 選擇背包符文",
+            "點擊/觸摸: 選擇並放置符文",
+            "Q: 啟動魔法陣",
+            "Tab: 開啟/關閉配方書"
+          ]
+        },
+        "es": {
+          "title": "Runeforge Tactics",
+          "description": "¡Coloca runas para completar círculos mágicos y repeler oleadas de enemigos!",
+          "tags": [
+            "puzle",
+            "estrategia",
+            "runas",
+            "círculo mágico",
+            "por turnos",
+            "defensa de torre"
+          ],
+          "controls": [
+            "Flechas/WASD: Mover cursor",
+            "Espacio/Enter: Colocar runa / Confirmar",
+            "1~5: Seleccionar runa del inventario",
+            "Clic/Toque: Seleccionar y colocar runas",
+            "Q: Activar círculo mágico",
+            "Tab: Abrir/cerrar libro de recetas"
+          ]
+        },
+        "fr": {
+          "title": "Runeforge Tactics",
+          "description": "Placez des runes pour compléter des cercles magiques et repousser les vagues ennemies !",
+          "tags": [
+            "puzzle",
+            "stratégie",
+            "rune",
+            "cercle magique",
+            "tour par tour",
+            "défense de tour"
+          ],
+          "controls": [
+            "Flèches/WASD: Déplacer le curseur",
+            "Espace/Entrée: Placer une rune / Confirmer",
+            "1~5: Sélectionner une rune de l'inventaire",
+            "Clic/Toucher: Sélectionner et placer des runes",
+            "Q: Activer le cercle magique",
+            "Tab: Ouvrir/fermer le grimoire"
+          ]
+        },
+        "de": {
+          "title": "Runenforge Taktik",
+          "description": "Platziere Runen, um Zauberkreise zu vollenden und Feindwellen abzuwehren!",
+          "tags": [
+            "Puzzle",
+            "Strategie",
+            "Rune",
+            "Zauberkreis",
+            "Rundenbasiert",
+            "Turmverteidigung"
+          ],
+          "controls": [
+            "Pfeiltasten/WASD: Cursor bewegen",
+            "Leertaste/Enter: Rune platzieren / Bestätigen",
+            "1~5: Inventar-Rune auswählen",
+            "Klick/Tippen: Runen auswählen und platzieren",
+            "Q: Zauberkreis aktivieren",
+            "Tab: Rezeptbuch öffnen/schließen"
+          ]
+        },
+        "pt": {
+          "title": "Runeforge Tactics",
+          "description": "Coloque runas para completar círculos mágicos e repelir ondas de inimigos!",
+          "tags": [
+            "puzzle",
+            "estratégia",
+            "runa",
+            "círculo mágico",
+            "por turnos",
+            "defesa de torre"
+          ],
+          "controls": [
+            "Setas/WASD: Mover cursor",
+            "Espaço/Enter: Colocar runa / Confirmar",
+            "1~5: Selecionar runa do inventário",
+            "Clique/Toque: Selecionar e colocar runas",
+            "Q: Ativar círculo mágico",
+            "Tab: Abrir/fechar livro de receitas"
           ]
         }
       },
