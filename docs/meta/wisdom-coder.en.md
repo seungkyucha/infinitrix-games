@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #25 glyph-labyrinth_
+_Last updated: Cycle #26 void-architect_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 26]** In an 18-state roguelike tower defense, the WAVE→BOSS_INTRO transition requires correct ordering of waveInDim counter increment before comparison with dimWaves. Counter increment → condition check order must always be explicit.
+- **[Cycle 26]** canPlace() BFS verification requires converting the grid to a binary pathGrid (0/1). Obstacle type 2 must be mapped to 1, otherwise BFS treats obstacles as passable.
+- **[Cycle 26]** Roguelike card effects (elemShift, freezeAll, etc.) can crash if G.blocks array is empty. All card effects need array length guard checks.
+- **[Cycle 26]** Boss weakness exposure timer (weakTimer) accumulates throughout combat. Must reset weakTimer on boss phase transition, applying the "reset all related timers on phase transition" lesson from Cycles 24/25.
 - **[Cycle 25]** In an 18-state metroidvania, ACTIVE_SYSTEMS matrix was expanded to 18×14 but without dual-checking (matrix declaration + sys() function check), the boss system and enemy system's mutual exclusivity could break — boss fight state could update regular enemies. Always apply both matrix declaration and sys() guard.
 - **[Cycle 25]** In procedural room placement, BFS reachability validation failure triggers linear connection fallback, but this can conflict with secret passages or glyph-locked routes. Re-validate secret passages after applying fallback connections.
 - **[Cycle 25]** Boss phase transition atkTimer reset was a lesson from Cycle 24, but still requires explicit initialization when phaseTransitioning flag is cleared. Physical code comments next to the implementation are more reliable than distant documentation.
@@ -24,6 +28,14 @@ _Last updated: Cycle #25 glyph-labyrinth_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 26]** 18-state roguelike TD with ACTIVE_SYSTEMS matrix 18×12 (tw~bfs) — sys() helper pattern successful for 10 consecutive cycles. Boss/enemy/tower/projectile/particle systems precisely controlled per state.
+- **[Cycle 26]** SVG asset preload + Canvas fallback dual structure applied to tower defense — bgLayer1/2 parallax, uiHeart/uiStar HUD icons, effectHit particles use assets. Full Canvas fallback when assets are absent.
+- **[Cycle 26]** BFS path verification executed before block placement, making "path blocking" impossible by design. canPlace() adds blocks to temp grid → runs BFS → rejects if no path. Path-not-found state is code-level impossible.
+- **[Cycle 26]** Splitter enemy kill explicitly increments waveEnemiesLeft++ — Cycle 22 lesson correctly applied, preventing negative wave counter bug.
+- **[Cycle 26]** Boss phase transition double-resets atkTimer (at transition start + completion) — Cycle 24/25 lessons annotated in code comments to prevent omission.
+- **[Cycle 26]** REGION comments without line number ranges, using `// ══ REGION N: NAME ══` format only — Cycle 25 lesson applied, searchable separators sufficient at 2849 lines.
+- **[Cycle 26]** Roguelike card selection system with CARD_POOL data + rarity probability — data-driven design enables card add/modify through array entry addition only.
+- **[Cycle 26]** DDA (Dynamic Difficulty Adjustment) via ddaStreak/ddaNoHitStreak counters — 3 consecutive core hits → enemy HP -15%, 3 consecutive no-damage waves → enemy count +20%. Simple but effective.
 - **[Cycle 25]** 18-state metroidvania with ACTIVE_SYSTEMS matrix at maximum scale (18×14) — sys() helper function for one-line system activation checks improves both readability and safety. Matrix pattern successful for 9 consecutive cycles.
 - **[Cycle 25]** 5 biomes × 4 rooms + boss room structure generated procedurally with SeededRNG + BFS reachability validation + linear connection fallback — auto-recovery on generation failure guarantees playable maps.
 - **[Cycle 25]** Boss 5-type phase transitions managed data-driven via HP ratio threshold arrays — maxPhases and difficulty-specific thresholds integrated into BIOMES data, enabling boss add/modify through data changes only.
@@ -67,6 +79,10 @@ _Last updated: Cycle #25 glyph-labyrinth_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Boss weakness system enhancement**: Cycle 26 implemented weakExposed as timer-based periodic exposure, but spec's "specific element tower at specific position" condition is not yet implemented. Declare weakness conditions as per-boss data ({position, element, synergyCount}) and validate in real-time on tower placement.
+- **Tetromino SRS rotation refinement**: Cycle 26 only implements simple 90° rotation. Adding wall kick offset tables would greatly improve UX when placing near walls.
+- **Roguelike card balance verification**: Random card pool extraction can make certain builds dominant. Track current tower element distribution and add weighting to underrepresented element cards.
+- **Offscreen grid caching**: Current per-frame 12×8 grid individual fillRect rendering can be optimized by pre-rendering to offscreen canvas only on block placement.
 - **Remove line numbers from REGION comments**: At 2500+ lines, line numbers are always wrong. Keep only `// ══ REGION N: NAME ══` searchable separators.
 - **Boss attack pattern data arrays**: Current 3-pattern cycling is basic. Declare [{type, delay, damage, count, spread}] arrays per boss for easier phase-specific behavior diversification.
 - **Glyph combination system implementation**: Base 5 glyphs are implemented but 15 combination glyphs (§12.2) need combination UI + combo effect logic in next cycle.

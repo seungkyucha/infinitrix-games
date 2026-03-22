@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #25 glyph-labyrinth_
+_Last updated: Cycle #26 void-architect_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -10,6 +10,7 @@ _Last updated: Cycle #25 glyph-labyrinth_
 - **[Cycle 23]** bg-layer1.svg again came in at 9.6KB on first pass (under 10KB) → added 20 extra stars, fog wisps, and a shooting star to reach 11.5KB. Thumbnail also needed reinforcement: 13.7KB → 17.3KB. **3 consecutive cycles of bg-layer1 reinforcement — far backgrounds need 60+ elements from the start to pass in one batch.**
 - **[Cycle 24]** ui-heart (2.8KB), powerup (4.6KB), thumbnail (13.2KB) below target on first pass → boosted to 4.4KB, 6.4KB, 19.3KB respectively. **4 consecutive cycles of small asset boost passes. Need a "volume-up patterns" checklist (wave patterns, bubbles, unicode symbols, HUD overlays) included in first pass.** bg-layer1 passed on first attempt at 10.2KB — 55+ star 3-tier strategy was effective, breaking the 3-cycle reinforcement streak.
 - **[Cycle 25]** bg-layer1 (9.5KB) and bg-layer2 (9.7KB) both fell below 10KB on first pass → boosted to 12.3KB and 12.9KB respectively. **5 consecutive cycles of background reinforcement.** 65+ stars were placed but still insufficient — need more complex path-based structural elements (archways, spires, stone debris, flying creatures) which are more KB-efficient than small circle elements.
+- **[Cycle 26]** bg-layer1 (10.6KB) passed on first batch, but bg-layer2 (9.9KB), powerup (4.8KB), and thumbnail (15.2KB) fell short → boosted to 12.2KB, 6.4KB, and 20KB respectively. **6 consecutive cycles with reinforcement passes, BUT bg-layer1 finally passed on first attempt.** Nebula + structural elements + 75+ stars strategy was effective for far backgrounds. For near backgrounds, adding architectural detail (bridges, fallen columns, wall remnants, rune stones) is most KB-efficient.
 
 ## Proven Success Patterns ✅
 - **[Cycle 21]** Directly using the game spec's rune color palette (Fire #FF4444, Water #4488FF, Earth #88AA44, Wind #AADDFF, etc.) ensures natural spec-asset consistency. Referencing §2.6 color codes verbatim was effective.
@@ -37,17 +38,24 @@ _Last updated: Cycle #25 glyph-labyrinth_
 - **[Cycle 25]** Ancient rune Unicode (ᚱ, ᛟ, ᚦ, ᛊ, ᚠ) used as decorative elements across all assets — re-validated Cycle 21 success pattern. Especially effective in powerup (4-direction runes), bg-layers (pillar/floor runes), effect-hit (fragment runes).
 - **[Cycle 25]** ui-heart (3.2KB), ui-star (3.6KB), powerup (5.7KB), effect-hit (5.4KB) all passed size targets on first batch. Volume-up checklist (unicode symbols, theme overlay, energy wisps, texture lines) proved effective.
 - **[Cycle 25]** Thumbnail at 15.3KB passed 15KB+ on first batch. HUD overlay + vignetting + detailed characters + title text "full set" strategy was effective.
+- **[Cycle 26]** "Tetromino block" motif consistently applied across ALL assets — player (shoulder pads + floating blocks), enemy (corrupted fragments embedded in body), bg-layer1/2 (floating I/T/S/L blocks), ui-heart (L-block emblem), ui-star (T-block emblem), powerup (S-block emblem), effect-hit (element-colored block debris), thumbnail (3 tower types on grid + projectiles). **"Geometric blocks" visual language permeates all assets, instantly communicating the tower defense + tetromino hybrid genre.**
+- **[Cycle 26]** Spec §4.2 five-element colors (Fire=#ff4500, Ice=#00bfff, Poison=#32cd32, Lightning=#9b59b6, Void=#2d1b4e) directly mapped to assets. Applied to thumbnail's 3 tower types, effect-hit's 5-color debris, and powerup's 5 elemental orbits — visualizing the element system's diversity.
+- **[Cycle 26]** Placing a "dimensional rift" central feature in bg-layer1 (purple elliptical nebula + gold energy line) creates a strong focal point that star density alone cannot achieve.
+- **[Cycle 26]** bg-layer2 with 3 architectural clusters (left tower, central arch+portal, right tower) creates natural horizontal rhythm. Adding a dimensional portal glow inside the central arch communicates the "core defense" theme even in the background.
+- **[Cycle 26]** Thumbnail with tower defense elements (grid lines, placed towers, projectile trails, range indicators) + semi-transparent HUD overlay (wave counter, core HP, element display, block slots) achieves "actual gameplay screenshot" immersion — re-validated Cycle 22/24 success pattern.
 
 ## Action Items for Next Cycle 🎯
-- **Background 10KB breakthrough strategy**: Star density alone is insufficient. Include path-based structures (archways, spires, stone debris, flying creature silhouettes) + 5 fog layers + 3 nebulae + constellation lines + 8+ rune text elements from the start → first pass 11KB+ target
-- **Near background (bg-layer2)**: Multiple pillar clusters + vines/moss + torches + debris + rune carvings → first pass 12KB+ target
-- UI icons: Volume-up checklist confirmed effective. Continue with unicode symbols + theme overlay + filter chains
-- Thumbnail: HUD overlay + vignetting + dual character confrontation + energy beams/particles "full set" → 15KB+ in one pass
-- **Small Asset Volume-Up Checklist** (must include in first pass):
+- **bg-layer1 first-pass success pattern established**: 75+ stars + 3 nebulae + central focal feature (rift/celestial body/structure) + 6 fog layers + floating debris + distant terrain silhouette → first pass 10.5KB+ target
+- **bg-layer2 first-pass 10KB breakthrough still needed**: 3 architectural clusters + floor rune stones + extra debris (bridges, fallen columns, walls) + floating game-motif shapes → first pass 11KB+ target. **Still required reinforcement in Cycle 26, so over-populate architectural details from the start**
+- **powerup first-pass 5KB target**: Elemental orbits + unicode symbols + extra energy rings + directional arrows → first pass 5.5KB+ target
+- **thumbnail 20KB target**: Base composition (background+characters+enemies+towers+HUD) plus battle effects (explosions, debris, smoke), portal details, terrain, energy lines, block selection UI → first pass 20KB+ target
+- **Small Asset Volume-Up Checklist** (maintained + extended):
   - [ ] 2+ unicode symbol/text decorations
   - [ ] Particle/wisp layer
   - [ ] Theme overlay (game motif shapes)
   - [ ] 4+ energy wisps/sparks
   - [ ] 3+ surface texture lines
+  - [ ] Elemental/skill orbits (use element symbols for strategy games)
+  - [ ] Corner accents/frame decorations
 - Character assets: include "soul point" (glowing eyes) and "brand motif" (chest emblem/weapon) in initial design
-- **Minimize reinforcement passes**: aim to hit all size targets on first batch. For backgrounds, prioritize structural path elements for better KB efficiency
+- **Minimize reinforcement passes**: bg-layer1 passed on first attempt. Aim for all other assets to also pass in one batch using over-population strategy

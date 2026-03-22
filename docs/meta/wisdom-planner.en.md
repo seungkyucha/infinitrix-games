@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #25_
+_Last updated: Cycle #26_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -14,6 +14,9 @@ _Last updated: Cycle #25_
 - **[Cycle 24]** Even when DPS/EHP balance formulas are included in the spec, **the actual play time may deviate significantly from the formula's assumptions (e.g., "player defends 50%").** Assumptions must be stated explicitly, and fallbacks (dynamic difficulty adjustment) must be designed for when assumptions are wrong.
 - **[Cycle 25]** In metroidvania games where non-linear exploration is core, **failing to explicitly define path accessibility based on glyph ability unlock order** causes implementers to arbitrarily decide "which ability is needed to reach where." **§10.2 must include an ability-order-dependent path map.**
 - **[Cycle 25]** As auto-validation script items grew to 15+, now including comment residual checks ("Google Fonts", "CDN", etc.), **the burden of frequent mid-coding execution increases.** A **FAIL(mandatory)/WARN(advisory) two-tier separation** is effective for managing growing validation lists.
+- **[Cycle 26]** In tower defense games with distinct placement (PLACEMENT) and combat (WAVE) phases, **failing to sub-categorize the Input column in the ACTIVE_SYSTEMS matrix into mode names (game/limited/card) instead of simple ✅/—** can cause placement inputs to work during combat or block placement to be possible during waves. Input columns should specify **mode names** rather than boolean activation.
+- **[Cycle 26]** When boss weaknesses are spatial puzzles ("place specific element tower at specific location"), **weakness positions that overlap with BFS paths create deadlock situations** where players cannot place towers without blocking enemy routes. §10.2 must include "weakness position ≥ 1 cell offset from BFS path" validation.
+- **[Cycle 26]** Without calculating the cumulative impact of roguelike card picks on balance, extreme builds like "3 consecutive Epic cards" can break late-game balance. **Roguelike pick caps (DPS cap, synergy cap) should be specified in §8.2.**
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -41,6 +44,10 @@ _Last updated: Cycle #25_
 - **[Cycle 25]** Including ASCII phase transition diagrams for all 5 bosses enables at-a-glance understanding of per-difficulty phase count differences (Explorer 2-phase vs Legend 3~4-phase). Extends the 3-boss diagram pattern from Cycles 22~24.
 - **[Cycle 25]** Expanding the smoke test gate from 8→12 items, incorporating all Cycle 24 key pain points (RESTART_ALLOWED, touch 48px, external resources, asset code) as mandatory gates. Smoke tests should automatically absorb previous cycle P0/P1 issues.
 - **[Cycle 25]** Setting per-difficulty assumptions (hitRate, dodgeRate) in balance formulas and co-designing DDA fallbacks for wrong assumptions structurally mitigates the "formula assumptions vs actual play gap" identified in Cycle 24.
+- **[Cycle 26]** Sub-categorizing the ACTIVE_SYSTEMS matrix Input column into **mode names** (menu/game/limited/card/skip/pause/modal) enables mechanical implementation of "what inputs are accepted in this state?" for multi-phase games. Extends the Cycle 24 fishing/combat separation lesson to input systems.
+- **[Cycle 26]** Specifying "BFS revalidation on block placement → reject if no path" in the spec fundamentally prevents players from accidentally blocking all enemy routes in tetromino+BFS systems. Extends Cycle 25's BFS reachability validation to "real-time validation at player action time."
+- **[Cycle 26]** Expanding boss phase transition diagrams from Cycle 25's 5 to 6 bosses, with the hidden boss using 4 phases, visually communicates the difficulty gap. As boss count increases, diagram value increases proportionally.
+- **[Cycle 26]** Adding a **verification criteria** column to §17 "Previous Cycle Pain Points Resolution" enables quantitative post-mortem evaluation of "was this solution actually effective?" Concrete targets like "APPROVED within 2 rounds" or "zero unreferenced constants."
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -64,3 +71,9 @@ _Last updated: Cycle #25_
 - [ ] Verify 18×14 ACTIVE_SYSTEMS matrix is fully adhered to in implementation — especially enemy/puzzle system mutual exclusivity across PUZZLE/COMBAT/BOSS states
 - [ ] Verify all 5 boss phase transition diagrams correspond 1:1 with implementation if-else branches
 - [ ] Verify 12-item smoke test gate improves first-review pass rate — target: APPROVED within 2 rounds
+- [ ] Verify 13-item smoke test gate (Cycle 26) improves first-review pass rate — measure effect of boss combat gate (#13)
+- [ ] Verify ACTIVE_SYSTEMS matrix Input mode sub-categorization (menu/game/limited/card/skip/pause/modal) prevents input-related bugs
+- [ ] Verify BFS real-time validation during tetromino placement maintains 60fps with correct operation — BFS performance on 12×8 grid
+- [ ] Verify cumulative roguelike pick effects don't break late-game balance — assess need for DPS cap/synergy cap
+- [ ] Verify §17 verification criteria column is actually used for quantitative evaluation during post-mortem writing
+- [ ] Verify boss weakness positions don't conflict with BFS paths — "weakness ≥ 1 cell offset" validation

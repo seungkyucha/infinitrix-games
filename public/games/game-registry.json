@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T16:06:45.835Z",
-  "totalGames": 24,
+  "lastUpdated": "2026-03-22T18:47:12.841Z",
+  "totalGames": 25,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -4389,6 +4389,220 @@
         }
       },
       "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "void-architect",
+      "title": "보이드 아키텍트",
+      "description": "테트로미노 블록으로 타워를 세워 차원 균열을 막아라!",
+      "genre": [
+        "arcade",
+        "strategy"
+      ],
+      "thumbnail": "/games/void-architect/assets/thumbnail.svg",
+      "path": "/games/void-architect/index.html",
+      "addedAt": "2026-03-22T18:47:12.841Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "타워디펜스",
+        "테트로미노",
+        "로그라이크",
+        "전략",
+        "아케이드",
+        "보스전"
+      ],
+      "controls": [
+        "마우스: 블록 미리보기 및 배치",
+        "우클릭/R: 블록 회전",
+        "F: 블록 좌우 반전",
+        "1~5: 블록 슬롯 선택",
+        "Space: 웨이브 시작",
+        "D: 타워 해체",
+        "ESC: 일시정지",
+        "터치: 탭으로 배치, 두 손가락 회전"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Void Architect",
+          "description": "Build towers with tetromino blocks to seal dimensional rifts!",
+          "tags": [
+            "tower defense",
+            "tetromino",
+            "roguelike",
+            "strategy",
+            "arcade",
+            "boss battle"
+          ],
+          "controls": [
+            "Mouse: Preview and place blocks",
+            "Right-click/R: Rotate block",
+            "F: Flip block",
+            "1~5: Select block slot",
+            "Space: Start wave",
+            "D: Dismantle tower",
+            "ESC: Pause",
+            "Touch: Tap to place, two-finger rotate"
+          ]
+        },
+        "ja": {
+          "title": "ヴォイド・アーキテクト",
+          "description": "テトロミノブロックでタワーを建てて次元の裂け目を封じよう！",
+          "tags": [
+            "タワーディフェンス",
+            "テトロミノ",
+            "ローグライク",
+            "戦略",
+            "アーケード",
+            "ボス戦"
+          ],
+          "controls": [
+            "マウス: ブロックのプレビューと配置",
+            "右クリック/R: ブロック回転",
+            "F: ブロック反転",
+            "1~5: ブロックスロット選択",
+            "Space: ウェーブ開始",
+            "D: タワー解体",
+            "ESC: 一時停止",
+            "タッチ: タップで配置、2本指で回転"
+          ]
+        },
+        "zh-CN": {
+          "title": "虚空建筑师",
+          "description": "用俄罗斯方块建造防御塔，封印次元裂隙！",
+          "tags": [
+            "塔防",
+            "俄罗斯方块",
+            "肉鸽",
+            "策略",
+            "街机",
+            "Boss战"
+          ],
+          "controls": [
+            "鼠标: 预览并放置方块",
+            "右键/R: 旋转方块",
+            "F: 翻转方块",
+            "1~5: 选择方块槽位",
+            "Space: 开始波次",
+            "D: 拆除防御塔",
+            "ESC: 暂停",
+            "触屏: 点击放置，双指旋转"
+          ]
+        },
+        "zh-TW": {
+          "title": "虛空建築師",
+          "description": "用俄羅斯方塊建造防禦塔，封印次元裂隙！",
+          "tags": [
+            "塔防",
+            "俄羅斯方塊",
+            "肉鴿",
+            "策略",
+            "街機",
+            "Boss戰"
+          ],
+          "controls": [
+            "滑鼠: 預覽並放置方塊",
+            "右鍵/R: 旋轉方塊",
+            "F: 翻轉方塊",
+            "1~5: 選擇方塊欄位",
+            "Space: 開始波次",
+            "D: 拆除防禦塔",
+            "ESC: 暫停",
+            "觸控: 點擊放置，雙指旋轉"
+          ]
+        },
+        "es": {
+          "title": "Arquitecto del Vacío",
+          "description": "¡Construye torres con bloques de tetrominó y sella las grietas dimensionales!",
+          "tags": [
+            "defensa de torres",
+            "tetrominó",
+            "roguelike",
+            "estrategia",
+            "arcade",
+            "batalla de jefes"
+          ],
+          "controls": [
+            "Ratón: Vista previa y colocar bloques",
+            "Clic derecho/R: Rotar bloque",
+            "F: Voltear bloque",
+            "1~5: Seleccionar ranura de bloque",
+            "Space: Iniciar oleada",
+            "D: Desmontar torre",
+            "ESC: Pausa",
+            "Táctil: Toca para colocar, dos dedos para rotar"
+          ]
+        },
+        "fr": {
+          "title": "Architecte du Vide",
+          "description": "Construisez des tours avec des tétrominos pour sceller les failles dimensionnelles !",
+          "tags": [
+            "défense de tour",
+            "tétromino",
+            "roguelike",
+            "stratégie",
+            "arcade",
+            "combat de boss"
+          ],
+          "controls": [
+            "Souris : Aperçu et placement des blocs",
+            "Clic droit/R : Rotation du bloc",
+            "F : Retourner le bloc",
+            "1~5 : Sélectionner un emplacement",
+            "Space : Lancer la vague",
+            "D : Démanteler la tour",
+            "ESC : Pause",
+            "Tactile : Appuyez pour placer, deux doigts pour tourner"
+          ]
+        },
+        "de": {
+          "title": "Void-Architekt",
+          "description": "Baue Türme aus Tetromino-Blöcken und versiegle die Dimensionsrisse!",
+          "tags": [
+            "Tower Defense",
+            "Tetromino",
+            "Roguelike",
+            "Strategie",
+            "Arcade",
+            "Bosskampf"
+          ],
+          "controls": [
+            "Maus: Blockvorschau und Platzierung",
+            "Rechtsklick/R: Block drehen",
+            "F: Block spiegeln",
+            "1~5: Blockslot wählen",
+            "Space: Welle starten",
+            "D: Turm abbauen",
+            "ESC: Pause",
+            "Touch: Tippen zum Platzieren, Zwei-Finger-Drehung"
+          ]
+        },
+        "pt": {
+          "title": "Arquiteto do Vazio",
+          "description": "Construa torres com blocos de tetrominó e sele as fissuras dimensionais!",
+          "tags": [
+            "defesa de torre",
+            "tetrominó",
+            "roguelike",
+            "estratégia",
+            "arcade",
+            "batalha de chefe"
+          ],
+          "controls": [
+            "Mouse: Pré-visualizar e posicionar blocos",
+            "Clique direito/R: Girar bloco",
+            "F: Inverter bloco",
+            "1~5: Selecionar slot de bloco",
+            "Space: Iniciar onda",
+            "D: Desmontar torre",
+            "ESC: Pausa",
+            "Toque: Toque para posicionar, dois dedos para girar"
+          ]
+        }
+      },
+      "difficulty": "hard",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }

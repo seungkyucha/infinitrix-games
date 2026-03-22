@@ -1,0 +1,3187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>보이드 아키텍트 — Void Architect</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0e1a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 1: CONFIG ══
+// ══════════════════════════════════════════════════════════════════
+'use strict';
+
+// -- Grid & layout constants --
+const GRID_COLS = 12, GRID_ROWS = 8;
+const SPAWN_COL = 0, SPAWN_ROW = 3;
+const CORE_COL = 11, CORE_ROW = 3;
+
+// -- Difficulty presets --
+const DIFF = {
+  easy:   { label:'견습생', labelEn:'Apprentice', coreHP:10, hpMul:0.7, countMul:1.0, bossHpMul:0.8, choices:4, rareGuarantee:true, dda:true, envMul:0.5 },
+  normal: { label:'건축가', labelEn:'Architect',  coreHP:7,  hpMul:1.0, countMul:1.2, bossHpMul:1.0, choices:3, rareGuarantee:false, dda:true, envMul:1.0 },
+  hard:   { label:'차원장인', labelEn:'DimMaster', coreHP:5,  hpMul:1.4, countMul:1.5, bossHpMul:1.3, choices:3, rareGuarantee:false, dda:false, envMul:1.5 }
+};
+
+// -- Element definitions --
+const ELEMENTS = ['fire','ice','poison','lightning','void'];
+const ELEM_COLORS = { fire:'#ff4500', ice:'#00bfff', poison:'#32cd32', lightning:'#9b59b6', void:'#8b008b' };
+const ELEM_GLOW   = { fire:'#ff8c00', ice:'#00ffff', poison:'#50c878', lightning:'#f1c40f', void:'#2d1b4e' };
+
+// -- Tower stats per element (§7.2) --
+const TOWER_DPS   = { fire:12, ice:8, poison:10, lightning:15, void:6 };
+const TOWER_RANGE = { fire:3, ice:3.5, poison:2.5, lightning:4, void:2 };
+const TOWER_SPECIAL = { fire:'dot', ice:'slow', poison:'armorBreak', lightning:'chain', void:'megaSlow' };
+
+// -- Element super-effectiveness cycle (§7.2) --
+const ELEM_STRONG = { fire:'ice', ice:'poison', poison:'lightning', lightning:'void', void:'fire' };
+
+// -- Enemy types (§7.3) --
+const ENEMY_DEFS = {
+  grunt:   { hpMul:1.0, speed:1.0, label:'일반' },
+  rusher:  { hpMul:0.6, speed:1.8, label:'돌격' },
+  tank:    { hpMul:2.5, speed:0.6, label:'중장' },
+  flyer:   { hpMul:0.8, speed:1.2, label:'비행', flying:true },
+  splitter:{ hpMul:1.5, speed:0.8, label:'분열', splits:true },
+  stealth: { hpMul:0.7, speed:1.0, label:'은신', stealth:true },
+  healer:  { hpMul:1.0, speed:0.7, label:'치유', heals:true },
+  voidE:   { hpMul:1.8, speed:0.9, label:'보이드', aura:true }
+};
+
+// -- Kill scores (§11.1) --
+const KILL_SCORE = { grunt:10, rusher:8, tank:20, flyer:15, splitter:25, stealth:12, healer:18, voidE:30 };
+
+// -- Boss definitions (§9) --
+const BOSS_DEFS = [
+  { id:'ignis',   name:'이그니스',  nameEn:'Ignis',   hp:200, phases:[1,0.6,0.3], elem:'fire',      score:500, dim:0 },
+  { id:'glacia',  name:'글라시아',  nameEn:'Glacia',  hp:250, phases:[1,0.5,0.2], elem:'ice',       score:600, dim:1 },
+  { id:'toxia',   name:'톡시아',    nameEn:'Toxia',   hp:300, phases:[1,0.55,0.25],elem:'poison',   score:700, dim:2 },
+  { id:'volta',   name:'볼타',      nameEn:'Volta',   hp:400, phases:[1,0.5,0.2], elem:'lightning', score:800, dim:3 },
+  { id:'nil',     name:'닐',        nameEn:'Nil',     hp:600, phases:[1,0.4,0.15],elem:'void',      score:1000,dim:4 },
+  { id:'destroyer',name:'차원 파괴자',nameEn:'Dim.Destroyer',hp:1000,phases:[1,0.6,0.3,0.1],elem:'all',score:2000,dim:5 }
+];
+
+// -- Dimension themes (§2.3) --
+const DIMENSIONS = [
+  { name:'화염 차원', nameEn:'Fire Dimension',     bg1:'#1a0800', bg2:'#331000', accent:'#ff4500', waves:3 },
+  { name:'빙결 차원', nameEn:'Ice Dimension',      bg1:'#001020', bg2:'#002040', accent:'#00bfff', waves:3 },
+  { name:'독 차원',   nameEn:'Poison Dimension',   bg1:'#001a00', bg2:'#003300', accent:'#32cd32', waves:3 },
+  { name:'번개 차원', nameEn:'Lightning Dimension', bg1:'#100020', bg2:'#200040', accent:'#9b59b6', waves:3 },
+  { name:'보이드 차원',nameEn:'Void Dimension',     bg1:'#0a001a', bg2:'#150030', accent:'#8b008b', waves:3 },
+  { name:'차원의 심연',nameEn:'The Abyss',          bg1:'#050008', bg2:'#0a0010', accent:'#ffd700', waves:0 }
+];
+
+// -- Wave balance table (§8.1, normal difficulty baseline) --
+const WAVE_TABLE = [
+  {count:8,hp:30,speed:0.8},{count:9,hp:35,speed:0.85},{count:10,hp:40,speed:0.9},
+  {count:11,hp:45,speed:0.9},{count:12,hp:50,speed:0.95},{count:14,hp:55,speed:1.0},
+  {count:15,hp:60,speed:1.0},{count:16,hp:65,speed:1.05},{count:18,hp:70,speed:1.05},
+  {count:19,hp:75,speed:1.1},{count:20,hp:80,speed:1.1},{count:22,hp:90,speed:1.15},
+  {count:24,hp:100,speed:1.15},{count:26,hp:120,speed:1.2},{count:28,hp:135,speed:1.2},
+  {count:30,hp:150,speed:1.3}
+];
+
+// -- Tetromino shapes (§7.1) --
+const TETRO_SHAPES = {
+  I: [[0,0],[1,0],[2,0],[3,0]],
+  O: [[0,0],[1,0],[0,1],[1,1]],
+  T: [[1,0],[0,1],[1,1],[2,1]],
+  S: [[1,0],[2,0],[0,1],[1,1]],
+  Z: [[0,0],[1,0],[1,1],[2,1]],
+  L: [[0,0],[0,1],[0,2],[1,2]],
+  J: [[1,0],[1,1],[0,2],[1,2]]
+};
+const TETRO_NAMES = Object.keys(TETRO_SHAPES);
+
+// -- Upgrade trees (§12.1) --
+const UPGRADE_TREES = {
+  attack:  [{name:'강화 포탑',cost:30,eff:'+5% DPS'},{name:'원소 정수',cost:60,eff:'상성 1.7x'},{name:'연쇄 공격',cost:100,eff:'체인+1'},{name:'시너지 증폭',cost:150,eff:'시너지 1.5x'},{name:'차원 포격',cost:250,eff:'전체 10%'}],
+  defense: [{name:'보강 코어',cost:30,eff:'HP+1'},{name:'재생 장벽',cost:60,eff:'3웨이브 HP+1'},{name:'반사 갑옷',cost:100,eff:'반격 50'},{name:'차원 장벽',cost:150,eff:'보스 -30%'},{name:'불멸의 핵',cost:250,eff:'부활 1회'}],
+  utility: [{name:'블록 비축',cost:30,eff:'슬롯 4'},{name:'원소 융합',cost:60,eff:'변환 1회'},{name:'차원 감지',cost:100,eff:'약점 힌트'},{name:'테트로 마스터',cost:150,eff:'5셀+15%'},{name:'아키텍트의 눈',cost:250,eff:'미리보기'}]
+};
+
+// -- Roguelike card pool (§7.4) --
+const CARD_POOL = {
+  common: [
+    {name:'새 블록',nameEn:'New Block',desc:'테트로미노 +1',effect:'addBlock'},
+    {name:'DPS 강화',nameEn:'DPS Up',desc:'전 타워 DPS +10%',effect:'dpsUp'},
+    {name:'사거리 확장',nameEn:'Range Up',desc:'사거리 +0.5셀',effect:'rangeUp'},
+    {name:'코어 수리',nameEn:'Core Repair',desc:'코어 HP +1',effect:'healCore'},
+    {name:'장전 속도',nameEn:'Fire Rate',desc:'공격 속도 +15%',effect:'atkSpeedUp'}
+  ],
+  rare: [
+    {name:'원소 변환',nameEn:'Elem Shift',desc:'블록 원소 교체',effect:'elemShift'},
+    {name:'시너지 범위',nameEn:'Synergy Range',desc:'시너지 +50%',effect:'synergyUp'},
+    {name:'코어 보강',nameEn:'Core Fortify',desc:'코어 HP +2',effect:'healCore2'},
+    {name:'급속 냉각',nameEn:'Quick Cool',desc:'쿨다운 -20%',effect:'cooldownDown'}
+  ],
+  epic: [
+    {name:'차원 정지',nameEn:'Dim Freeze',desc:'전 적 5초 정지',effect:'freezeAll'},
+    {name:'메가 블록',nameEn:'Mega Block',desc:'5셀 블록 획득',effect:'megaBlock'},
+    {name:'골드 타워',nameEn:'Gold Tower',desc:'복합 원소 타워',effect:'goldTower'}
+  ]
+};
+
+// -- State machine (§6.1) --
+const STATE = {
+  TITLE:0, DIFF_SELECT:1, DIM_INTRO:2, PLACEMENT:3, WAVE:4, BOSS_INTRO:5, BOSS:6,
+  WAVE_CLEAR:7, ROGUE_SELECT:8, BOSS_DEFEAT:9, DIM_CLEAR:10, GAMEOVER:11,
+  VICTORY:12, HIDDEN_INTRO:13, HIDDEN_BOSS:14, TRUE_ENDING:15, PAUSE:16, CONFIRM:17
+};
+const STATE_NAMES = Object.entries(STATE).reduce((a,[k,v])=>(a[v]=k,a),{});
+
+// -- State priority (§6.1, F56: used in beginTransition) --
+const STATE_PRIORITY = {
+  [STATE.GAMEOVER]:100,[STATE.VICTORY]:95,[STATE.TRUE_ENDING]:99,
+  [STATE.BOSS_DEFEAT]:80,[STATE.WAVE_CLEAR]:60,[STATE.BOSS_INTRO]:50,[STATE.DIM_INTRO]:40
+};
+
+// -- ACTIVE_SYSTEMS matrix (§6.2, F7) --
+const SYS = {tw:0,input:1,grid:2,enemy:3,tower:4,boss:5,proj:6,particle:7,ui:8,sound:9,cam:10,bfs:11};
+const ACTIVE_SYS = {
+  [STATE.TITLE]:           [1,0,0,0,0,0,0,1,1,1,0,0],
+  [STATE.DIFF_SELECT]:     [1,1,0,0,0,0,0,1,1,0,0,0],
+  [STATE.DIM_INTRO]:       [1,1,0,0,0,0,0,1,1,1,1,0],
+  [STATE.PLACEMENT]:       [1,1,1,0,1,0,0,1,1,1,0,1],
+  [STATE.WAVE]:            [1,1,0,1,1,0,1,1,1,1,1,1],
+  [STATE.BOSS_INTRO]:      [1,1,0,0,0,1,0,1,1,1,1,0],
+  [STATE.BOSS]:            [1,1,0,1,1,1,1,1,1,1,1,1],
+  [STATE.WAVE_CLEAR]:      [1,0,0,0,0,0,0,1,1,1,0,0],
+  [STATE.ROGUE_SELECT]:    [1,1,0,0,0,0,0,1,1,1,0,0],
+  [STATE.BOSS_DEFEAT]:     [1,0,0,0,0,1,0,1,1,1,1,0],
+  [STATE.DIM_CLEAR]:       [1,0,0,0,0,0,0,1,1,1,0,0],
+  [STATE.GAMEOVER]:        [1,1,0,0,0,0,0,0,1,1,0,0],
+  [STATE.VICTORY]:         [1,1,0,0,0,0,0,1,1,1,1,0],
+  [STATE.HIDDEN_INTRO]:    [1,1,0,0,0,1,0,1,1,1,1,0],
+  [STATE.HIDDEN_BOSS]:     [1,1,0,1,1,1,1,1,1,1,1,1],
+  [STATE.TRUE_ENDING]:     [1,1,0,0,0,0,0,1,1,1,1,0],
+  [STATE.PAUSE]:           [1,1,0,0,0,0,0,0,1,0,0,0],
+  [STATE.CONFIRM]:         [1,1,0,0,0,0,0,0,1,0,0,0]
+};
+
+// -- Helper: check if system is active for current state --
+function sys(sysId) { return ACTIVE_SYS[G.state] ? ACTIVE_SYS[G.state][sysId] === 1 : false; }
+
+// -- Restart whitelist (§6.3) --
+const RESTART_ALLOWED = {
+  [STATE.GAMEOVER]:[STATE.TITLE,STATE.DIFF_SELECT],
+  [STATE.VICTORY]:[STATE.TITLE],
+  [STATE.TRUE_ENDING]:[STATE.TITLE],
+  [STATE.PAUSE]:[STATE.TITLE],
+  [STATE.TITLE]:[STATE.DIFF_SELECT]
+};
+
+// -- Touch minimum target --
+const TOUCH_MIN = 48;
+
+// -- I18n texts --
+const TEXT = {
+  ko: {
+    title:'보이드 아키텍트', subtitle:'차원의 방벽을 세워라', tapStart:'SPACE / 탭하여 시작',
+    easy:'견습생', normal:'건축가', hard:'차원장인', selectDiff:'난이도 선택',
+    wave:'웨이브', score:'점수', best:'최고', coreHP:'코어 HP', dimStone:'차원석',
+    placement:'블록을 배치하세요', startWave:'SPACE: 웨이브 시작',
+    rotate:'R: 회전', flip:'F: 반전', slot:'슬롯',
+    gameover:'차원 붕괴', restart:'R / 탭: 타이틀로', finalScore:'최종 점수',
+    newBest:'새 최고 기록!', victory:'차원 봉인 완료!', trueEnd:'아키텍트의 계승',
+    pause:'일시정지', resume:'이어하기', toTitle:'타이틀로', confirm:'타이틀로 돌아가시겠습니까?',
+    yes:'예', no:'아니오', bossAppear:'보스 출현!', cleared:'클리어!',
+    upgrade:'업그레이드', pick:'카드를 선택하세요', locked:'잠김',
+    attack:'공격', defense:'방어', utility:'유틸',
+    dimIntro1:'차원의 균열이 열리고 있다...', dimIntro2:'보이드 피조물이 밀려온다!',
+    epilogue1:'보이드는 파괴가 아닌 재탄생이었다.', epilogue2:'아키텍트의 역할은 재건.',
+    lang:'EN'
+  },
+  en: {
+    title:'VOID ARCHITECT', subtitle:'Build the Dimensional Barrier', tapStart:'SPACE / TAP to Start',
+    easy:'Apprentice', normal:'Architect', hard:'Dim.Master', selectDiff:'Select Difficulty',
+    wave:'WAVE', score:'SCORE', best:'BEST', coreHP:'CORE HP', dimStone:'DIM.STONE',
+    placement:'Place your blocks', startWave:'SPACE: Start Wave',
+    rotate:'R: Rotate', flip:'F: Flip', slot:'SLOT',
+    gameover:'DIMENSION COLLAPSE', restart:'R / TAP: Title', finalScore:'FINAL SCORE',
+    newBest:'NEW BEST!', victory:'DIMENSIONS SEALED!', trueEnd:"Architect's Legacy",
+    pause:'PAUSED', resume:'Resume', toTitle:'Title', confirm:'Return to title?',
+    yes:'Yes', no:'No', bossAppear:'BOSS INCOMING!', cleared:'CLEARED!',
+    upgrade:'UPGRADE', pick:'Pick a card', locked:'LOCKED',
+    attack:'ATK', defense:'DEF', utility:'UTL',
+    dimIntro1:'A rift opens in the dimension...', dimIntro2:'Void creatures approach!',
+    epilogue1:'The Void was rebirth, not destruction.', epilogue2:"The Architect's role: rebuild.",
+    lang:'한'
+  }
+};
+
+// -- Save key --
+const SAVE_KEY = 'voidArchitect_v1';
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 2: UTILS ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- TweenManager (F4: no setTimeout, F13: clearImmediate, F14: single update path) --
+class TweenManager {
+  constructor() { this._tweens = []; this._toAdd = []; }
+  add(obj, props, dur, ease, onComplete) {
+    const tw = { obj, start:{}, end:{}, dur, elapsed:0, ease: ease||'easeOut', onComplete, done:false };
+    for (const k in props) { tw.start[k] = obj[k]; tw.end[k] = props[k]; }
+    this._toAdd.push(tw);
+    return tw;
+  }
+  // clearImmediate: instantly flush all active + pending tweens (F13)
+  clearImmediate() { this._tweens.length = 0; this._toAdd.length = 0; }
+  update(dt) {
+    if (this._toAdd.length) { this._tweens.push(...this._toAdd); this._toAdd.length = 0; }
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      tw.elapsed += dt;
+      let t = Math.min(tw.elapsed / tw.dur, 1);
+      if (tw.ease === 'easeOut') t = 1 - Math.pow(1 - t, 3);
+      else if (tw.ease === 'easeIn') t = t * t * t;
+      else if (tw.ease === 'easeInOut') t = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+      for (const k in tw.end) tw.obj[k] = tw.start[k] + (tw.end[k] - tw.start[k]) * t;
+      if (tw.elapsed >= tw.dur) {
+        tw.done = true;
+        for (const k in tw.end) tw.obj[k] = tw.end[k];
+        if (tw.onComplete) tw.onComplete();
+        this._tweens.splice(i, 1);
+      }
+    }
+  }
+}
+
+// -- ObjectPool for projectiles/particles --
+class ObjectPool {
+  constructor(factory, max) { this.pool = []; this.active = []; this.factory = factory; this.max = max || 500; }
+  get() {
+    const obj = this.pool.length > 0 ? this.pool.pop() : this.factory();
+    this.active.push(obj);
+    return obj;
+  }
+  release(obj) {
+    const idx = this.active.indexOf(obj);
+    if (idx >= 0) { this.active.splice(idx, 1); this.pool.push(obj); }
+  }
+  // Clean up dead objects each frame
+  sweep(isDead) {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      if (isDead(this.active[i])) { this.pool.push(this.active[i]); this.active.splice(i, 1); }
+    }
+  }
+  clear() { this.pool.push(...this.active); this.active.length = 0; }
+}
+
+// -- SeededRNG (F54) --
+class SeededRNG {
+  constructor(seed) { this.seed = seed || Date.now(); }
+  next() { this.seed = (this.seed * 16807 + 0) % 2147483647; return (this.seed - 1) / 2147483646; }
+  nextInt(min, max) { return Math.floor(this.next() * (max - min + 1)) + min; }
+  pick(arr) { return arr[this.nextInt(0, arr.length - 1)]; }
+  shuffle(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = this.nextInt(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+}
+
+// -- SoundManager (Web Audio API, procedural) --
+class SoundManager {
+  constructor() {
+    this.ctx = null; this.master = null; this.bgmGain = null; this.sfxGain = null;
+    this.bgmVolume = 0.5; this.sfxVolume = 0.7;
+    this.currentBgm = null;
+  }
+  init() {
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain(); this.master.connect(this.ctx.destination);
+      this.bgmGain = this.ctx.createGain(); this.bgmGain.gain.value = this.bgmVolume; this.bgmGain.connect(this.master);
+      this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = this.sfxVolume; this.sfxGain.connect(this.master);
+    } catch(e) { /* Web Audio unavailable */ }
+  }
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  // Play a procedural tone
+  playTone(freq, dur, type, gain, dest) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type || 'sine'; osc.frequency.value = freq;
+    g.gain.setValueAtTime(gain || 0.3, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    osc.connect(g); g.connect(dest || this.sfxGain);
+    osc.start(); osc.stop(this.ctx.currentTime + dur);
+  }
+  // Sound effects by id
+  playSfx(id) {
+    if (!this.ctx) return;
+    this.resume();
+    switch(id) {
+      case 'place': this.playTone(440, 0.1, 'square', 0.2); break;
+      case 'rotate': this.playTone(660, 0.08, 'sine', 0.15); break;
+      case 'attack_fire': this.playTone(200, 0.15, 'sawtooth', 0.15); break;
+      case 'attack_ice': this.playTone(800, 0.12, 'sine', 0.12); break;
+      case 'attack_poison': this.playTone(150, 0.2, 'sine', 0.1); break;
+      case 'attack_lightning': this.playTone(1200, 0.08, 'square', 0.15); break;
+      case 'attack_void': this.playTone(100, 0.25, 'sine', 0.12); break;
+      case 'enemyDie': this.playTone(300, 0.15, 'square', 0.2); this.playTone(200, 0.2, 'sawtooth', 0.15); break;
+      case 'bossHit': this.playTone(150, 0.3, 'sawtooth', 0.3); this.playTone(300, 0.2, 'square', 0.2); break;
+      case 'coreHit': this.playTone(100, 0.4, 'square', 0.35); this.playTone(80, 0.5, 'sawtooth', 0.3); break;
+      case 'select': this.playTone(880, 0.1, 'sine', 0.2); break;
+      case 'upgrade': this.playTone(440, 0.15, 'sine', 0.2); this.playTone(660, 0.15, 'sine', 0.2); this.playTone(880, 0.2, 'sine', 0.2); break;
+      case 'victory': for(let i=0;i<5;i++) this.playTone(440+i*110, 0.3, 'sine', 0.15); break;
+      case 'gameover': this.playTone(300, 0.3, 'sawtooth', 0.2); this.playTone(200, 0.4, 'sawtooth', 0.2); this.playTone(100, 0.5, 'sawtooth', 0.25); break;
+    }
+  }
+  // Simple BGM loop using oscillators
+  startBgm(type) {
+    if (!this.ctx) return;
+    this.stopBgm();
+    this.resume();
+    const now = this.ctx.currentTime;
+    const dur = 4; // loop every 4 seconds
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    g.gain.value = 0.08;
+    osc1.type = 'sine'; osc2.type = 'triangle';
+    if (type === 'title') { osc1.frequency.value = 110; osc2.frequency.value = 165; }
+    else if (type === 'build') { osc1.frequency.value = 130; osc2.frequency.value = 195; }
+    else if (type === 'wave') { osc1.frequency.value = 165; osc2.frequency.value = 220; }
+    else if (type === 'boss') { osc1.frequency.value = 82; osc2.frequency.value = 123; }
+    else { osc1.frequency.value = 110; osc2.frequency.value = 146; }
+    osc1.connect(g); osc2.connect(g); g.connect(this.bgmGain);
+    osc1.start(); osc2.start();
+    this.currentBgm = { osc1, osc2, gain: g };
+  }
+  stopBgm() {
+    if (this.currentBgm) {
+      try { this.currentBgm.osc1.stop(); this.currentBgm.osc2.stop(); } catch(e) {}
+      this.currentBgm = null;
+    }
+  }
+}
+
+// -- Utility functions --
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function dist(x1, y1, x2, y2) { return Math.sqrt((x1-x2)**2 + (y1-y2)**2); }
+function randRange(lo, hi) { return Math.random() * (hi - lo) + lo; }
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 3: INPUT ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- InputManager: keyboard + mouse + touch unified --
+class InputManager {
+  constructor() {
+    this.keys = {}; this.justPressed = {}; this.mouseX = 0; this.mouseY = 0;
+    this.mouseDown = false; this.rightClick = false;
+    this.touches = []; this.tapX = -1; this.tapY = -1; this.tapped = false;
+    this.doubleTapped = false; this.lastTapTime = 0; this.dragging = false;
+    this.dragX = 0; this.dragY = 0;
+  }
+  init(canvas) {
+    // Keyboard
+    window.addEventListener('keydown', e => {
+      if (!this.keys[e.code]) this.justPressed[e.code] = true;
+      this.keys[e.code] = true;
+      e.preventDefault();
+    });
+    window.addEventListener('keyup', e => { this.keys[e.code] = false; });
+    // Mouse
+    canvas.addEventListener('mousemove', e => {
+      const r = canvas.getBoundingClientRect();
+      this.mouseX = (e.clientX - r.left) * (canvas.width / r.width);
+      this.mouseY = (e.clientY - r.top) * (canvas.height / r.height);
+    });
+    canvas.addEventListener('mousedown', e => {
+      e.preventDefault();
+      if (e.button === 2) { this.rightClick = true; }
+      else { this.mouseDown = true; this.tapped = true; this.tapX = this.mouseX; this.tapY = this.mouseY; }
+    });
+    canvas.addEventListener('mouseup', e => { if (e.button !== 2) this.mouseDown = false; });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    // Touch
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const r = canvas.getBoundingClientRect();
+      const t = e.changedTouches[0];
+      const tx = (t.clientX - r.left) * (canvas.width / r.width);
+      const ty = (t.clientY - r.top) * (canvas.height / r.height);
+      this.tapX = tx; this.tapY = ty; this.tapped = true;
+      this.mouseX = tx; this.mouseY = ty;
+      // Double tap detection
+      const now = Date.now();
+      if (now - this.lastTapTime < 300) this.doubleTapped = true;
+      this.lastTapTime = now;
+      // Two-finger tap
+      if (e.touches.length >= 2) this.twoFingerTap = true;
+      this.dragging = true; this.dragX = tx; this.dragY = ty;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const r = canvas.getBoundingClientRect();
+      const t = e.changedTouches[0];
+      this.mouseX = (t.clientX - r.left) * (canvas.width / r.width);
+      this.mouseY = (t.clientY - r.top) * (canvas.height / r.height);
+      this.dragX = this.mouseX; this.dragY = this.mouseY;
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => { e.preventDefault(); this.dragging = false; }, { passive: false });
+    // Sound context init on first interaction
+    canvas.addEventListener('pointerdown', () => { sound.resume(); }, { once: false });
+  }
+  // Call at end of each frame
+  flush() {
+    this.justPressed = {};
+    this.tapped = false;
+    this.rightClick = false;
+    this.doubleTapped = false;
+    this.twoFingerTap = false;
+  }
+  jp(code) { return !!this.justPressed[code]; }
+  held(code) { return !!this.keys[code]; }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 4: GRID & TETROMINO & BFS ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Rotate tetromino cells 90° clockwise --
+function rotateCells(cells) {
+  const maxY = Math.max(...cells.map(c => c[1]));
+  return cells.map(([x, y]) => [maxY - y, x]);
+}
+
+// -- Flip tetromino cells horizontally --
+function flipCells(cells) {
+  const maxX = Math.max(...cells.map(c => c[0]));
+  return cells.map(([x, y]) => [maxX - x, y]);
+}
+
+// -- Normalize cells to origin --
+function normCells(cells) {
+  const minX = Math.min(...cells.map(c => c[0]));
+  const minY = Math.min(...cells.map(c => c[1]));
+  return cells.map(([x, y]) => [x - minX, y - minY]);
+}
+
+// -- BFS pathfinding on grid (§7.5) --
+function bfs(grid, startCol, startRow, endCol, endRow) {
+  const rows = grid.length, cols = grid[0].length;
+  const visited = Array.from({length: rows}, () => new Uint8Array(cols));
+  const parent = Array.from({length: rows}, () => Array(cols).fill(null));
+  const queue = [[startRow, startCol]];
+  visited[startRow][startCol] = 1;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  while (queue.length > 0) {
+    const [r, c] = queue.shift();
+    if (r === endRow && c === endCol) {
+      // Reconstruct path
+      const path = [];
+      let cur = [endRow, endCol];
+      while (cur) { path.unshift([cur[1], cur[0]]); cur = parent[cur[0]][cur[1]]; }
+      return path;
+    }
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc] && grid[nr][nc] === 0) {
+        visited[nr][nc] = 1;
+        parent[nr][nc] = [r, c];
+        queue.push([nr, nc]);
+      }
+    }
+  }
+  return null; // No path
+}
+
+// -- Check if placement is valid (doesn't block path) --
+function canPlace(grid, cells, col, row) {
+  const tmpGrid = grid.map(r => [...r]);
+  for (const [cx, cy] of cells) {
+    const gc = col + cx, gr = row + cy;
+    if (gc < 0 || gc >= GRID_COLS || gr < 0 || gr >= GRID_ROWS) return false;
+    if (tmpGrid[gr][gc] !== 0) return false;
+    tmpGrid[gr][gc] = 1;
+  }
+  // Must not block spawn or core
+  if (tmpGrid[SPAWN_ROW][SPAWN_COL] !== 0) return false;
+  if (tmpGrid[CORE_ROW][CORE_COL] !== 0) return false;
+  // BFS check
+  return bfs(tmpGrid, SPAWN_COL, SPAWN_ROW, CORE_COL, CORE_ROW) !== null;
+}
+
+// -- Place tetromino on grid, return tower objects --
+function placeTetromino(grid, towers, cells, col, row, elem) {
+  const newTowers = [];
+  for (const [cx, cy] of cells) {
+    const gc = col + cx, gr = row + cy;
+    grid[gr][gc] = 1;
+    const tw = {
+      col: gc, row: gr, elem, level: 1,
+      dps: TOWER_DPS[elem], range: TOWER_RANGE[elem],
+      atkTimer: 0, atkCooldown: 1.0, target: null,
+      synergyBonus: 0, active: true
+    };
+    towers.push(tw);
+    newTowers.push(tw);
+  }
+  return newTowers;
+}
+
+// -- Compute synergy bonuses --
+function computeSynergy(towers, grid) {
+  // Reset
+  for (const t of towers) t.synergyBonus = 0;
+  // Count adjacent same-element
+  const towerMap = {};
+  for (const t of towers) towerMap[t.row + ',' + t.col] = t;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  for (const t of towers) {
+    let count = 0;
+    for (const [dr, dc] of dirs) {
+      const key = (t.row + dr) + ',' + (t.col + dc);
+      if (towerMap[key] && towerMap[key].elem === t.elem) count++;
+    }
+    if (count >= 3) t.synergyBonus = 0.6; // Splash unlock + range
+    else if (count >= 1) t.synergyBonus = 0.2 * count;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 5: ENTITIES ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Create enemy --
+function createEnemy(type, hp, speed, pathIndex) {
+  const def = ENEMY_DEFS[type] || ENEMY_DEFS.grunt;
+  return {
+    type, x: 0, y: 0, hp: hp * def.hpMul, maxHp: hp * def.hpMul,
+    speed: speed * def.speed, pathIdx: pathIndex || 0, alive: true,
+    flying: !!def.flying, splits: !!def.splits, stealth: !!def.stealth,
+    heals: !!def.heals, aura: !!def.aura,
+    slowTimer: 0, dotTimer: 0, dotDmg: 0, stunTimer: 0,
+    alpha: 1, frame: 0
+  };
+}
+
+// -- Create boss --
+function createBoss(bossIdx, diffMul) {
+  const def = BOSS_DEFS[bossIdx];
+  const hp = def.hp * diffMul;
+  return {
+    id: def.id, name: def.name, nameEn: def.nameEn, elem: def.elem,
+    x: 0, y: 0, hp, maxHp: hp, phase: 0, phases: def.phases,
+    score: def.score, atkTimer: 0, atkCooldown: 3.0,
+    weakExposed: false, weakTimer: 0, invuln: false,
+    phaseTransitioning: false, animFrame: 0, alive: true, alpha: 1,
+    _currentElem: def.elem === 'all' ? 'fire' : def.elem,
+    _activeElems: ['fire', 'ice'], _elemTimer: 0, _reactivateTimer: 0
+  };
+}
+
+// -- Create projectile --
+function createProjectile() {
+  return { x:0, y:0, tx:0, ty:0, elem:'fire', speed:5, dmg:0, alive:false, trail:[] };
+}
+
+// -- Create particle --
+function createParticle() {
+  return { x:0, y:0, vx:0, vy:0, life:0, maxLife:1, color:'#fff', size:3, type:'circle', alive:false, alpha:1 };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 6: GAME LOGIC ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Global game state --
+const G = {
+  state: STATE.TITLE, prevState: STATE.TITLE,
+  lang: 'ko', diff: 'normal',
+  score: 0, bestScore: 0, dimStones: 0,
+  dimension: 0, waveInDim: 0, totalWave: 0,
+  coreHP: 7, coreMaxHP: 7,
+  grid: [], towers: [], enemies: [], path: [],
+  boss: null, bossActive: false,
+  blocks: [], selectedBlock: 0, previewCol: -1, previewRow: -1,
+  rotation: 0, flipped: false,
+  rogueCards: [], selectedCard: -1,
+  upgrades: { attack: 0, defense: 0, utility: 0 },
+  dimsCleared: [false,false,false,false,false],
+  hiddenUnlocked: false, usedAllElements: false,
+  // DDA
+  ddaStreak: 0, ddaNoHitStreak: 0,
+  // Transition
+  transAlpha: 0, transTarget: -1, isTransitioning: false,
+  // Camera
+  camShakeX: 0, camShakeY: 0, camShakeDur: 0, camZoom: 1, camTargetZoom: 1,
+  // Wave spawn
+  waveEnemiesLeft: 0, waveSpawnTimer: 0, waveSpawnIdx: 0, waveSpawnList: [],
+  // Timers
+  playTime: 0, introTimer: 0, clearTimer: 0, endTimer: 0,
+  // Title anim
+  titleAnim: 0, bgParticles: [],
+  // Roguelike bonuses
+  bonusDps: 0, bonusRange: 0, bonusAtkSpeed: 0,
+  // Revive
+  revived: false,
+  // Touch UI buttons (computed on resize)
+  touchBtns: [],
+  // Seed
+  rng: null
+};
+
+// -- Boss weakness conditions per boss/phase (§9.1, §9.2 — tower placement puzzle) --
+const BOSS_WEAKNESS = {
+  ignis: [
+    // Phase 0: 좌하 영역(col 0~3, row 5~7)에 ice 타워 존재
+    { check: (towers) => towers.some(t => t.elem === 'ice' && t.col <= 3 && t.row >= 5) },
+    // Phase 1: 중앙(col 4~7)에 ice 타워 3개 이상 연결
+    { check: (towers) => towers.filter(t => t.elem === 'ice' && t.col >= 4 && t.col <= 7).length >= 3 },
+    // Phase 2: 4면(상하좌우 가장자리)에 ice 타워 존재
+    { check: (towers) => {
+      const top = towers.some(t => t.elem === 'ice' && t.row === 0);
+      const bot = towers.some(t => t.elem === 'ice' && t.row >= GRID_ROWS - 2);
+      const left = towers.some(t => t.elem === 'ice' && t.col <= 1);
+      const right = towers.some(t => t.elem === 'ice' && t.col >= GRID_COLS - 2);
+      return [top, bot, left, right].filter(Boolean).length >= 3;
+    }}
+  ],
+  glacia: [
+    // Phase 0: 우측(col 8~11)에 fire 타워 존재
+    { check: (towers) => towers.some(t => t.elem === 'fire' && t.col >= 8) },
+    // Phase 1: 상/중/하 각 영역에 fire 타워 1개 이상
+    { check: (towers) => {
+      const top = towers.some(t => t.elem === 'fire' && t.row <= 2);
+      const mid = towers.some(t => t.elem === 'fire' && t.row >= 3 && t.row <= 5);
+      const bot = towers.some(t => t.elem === 'fire' && t.row >= 6);
+      return top && mid && bot;
+    }},
+    // Phase 2: fire 시너지 4연결 (synergyBonus >= 0.6)
+    { check: (towers) => towers.some(t => t.elem === 'fire' && t.synergyBonus >= 0.6) }
+  ],
+  toxia: [
+    // Phase 0: 후방(col 8~11)에 lightning 타워
+    { check: (towers) => towers.some(t => t.elem === 'lightning' && t.col >= 8) },
+    // Phase 1: lightning 타워 3개 이상 배치
+    { check: (towers) => towers.filter(t => t.elem === 'lightning').length >= 3 },
+    // Phase 2: lightning 시너지 4연결
+    { check: (towers) => towers.some(t => t.elem === 'lightning' && t.synergyBonus >= 0.6) }
+  ],
+  volta: [
+    // Phase 0: void 타워 사거리 내에 볼타 위치 포함
+    { check: (towers) => towers.some(t => t.elem === 'void') },
+    // Phase 1: void 3연결
+    { check: (towers) => towers.filter(t => t.elem === 'void' && t.synergyBonus > 0).length >= 3 },
+    // Phase 2: void + poison 혼합 배치
+    { check: (towers) => towers.some(t => t.elem === 'void') && towers.some(t => t.elem === 'poison') }
+  ],
+  nil: [
+    // Phase 0: 중앙에 fire 타워
+    { check: (towers) => towers.some(t => t.elem === 'fire' && t.col >= 4 && t.col <= 7 && t.row >= 2 && t.row <= 5) },
+    // Phase 1: 5원소 모두 배치
+    { check: (towers) => new Set(towers.map(t => t.elem)).size >= 5 },
+    // Phase 2: 5원소 동시 시너지
+    { check: (towers) => {
+      const synElems = new Set(towers.filter(t => t.synergyBonus > 0).map(t => t.elem));
+      return synElems.size >= 3;
+    }}
+  ],
+  destroyer: [
+    // Phase 0: 현재 원소 상성 타워 배치 (동적 체크는 updateBoss에서)
+    { check: (towers, boss) => {
+      const counter = ELEM_STRONG[boss._currentElem] || 'fire';
+      return towers.some(t => t.elem === counter);
+    }},
+    // Phase 1: 양쪽 상성 동시
+    { check: (towers, boss) => {
+      const elems = boss._activeElems || ['fire','ice'];
+      return elems.every(e => towers.some(t => t.elem === ELEM_STRONG[e]));
+    }},
+    // Phase 2: 3원소 시너지
+    { check: (towers) => {
+      const synElems = new Set(towers.filter(t => t.synergyBonus > 0).map(t => t.elem));
+      return synElems.size >= 3;
+    }},
+    // Phase 3: 5원소 동시
+    { check: (towers) => new Set(towers.map(t => t.elem)).size >= 5 }
+  ]
+};
+
+// -- Boss attack pattern definitions (§9.2 — per-boss per-phase) --
+const BOSS_ATTACKS = {
+  ignis: [
+    // Phase 0: 용암 투척 — 랜덤 타워 1개 비활성화 3초
+    { name:'lavaThrow', dmgCore:1, disableTowers:1, disableDur:3, particles:'fire' },
+    // Phase 1: 화염 기둥 — 특정 열의 타워 비활성화
+    { name:'firePillar', dmgCore:1, disableCol:true, disableDur:4, particles:'fire' },
+    // Phase 2: 전체 화면 폭발 — 코어 2데미지
+    { name:'eruption', dmgCore:2, disableTowers:2, disableDur:2, particles:'fire' }
+  ],
+  glacia: [
+    // Phase 0: 빙결 브레스 — 부채꼴 범위 타워 감속
+    { name:'iceBreath', dmgCore:1, slowTowers:3, slowDur:4, particles:'ice' },
+    // Phase 1: 3머리 공격 — 코어 피해 + 타워 비활성
+    { name:'triHead', dmgCore:2, disableTowers:1, disableDur:3, particles:'ice' },
+    // Phase 2: 절대영도 — 전 타워 비활성 2초
+    { name:'absZero', dmgCore:2, disableAll:true, disableDur:2, particles:'ice' }
+  ],
+  toxia: [
+    // Phase 0: 독 브레스 + 포자 살포
+    { name:'toxBreath', dmgCore:1, poisonTowers:2, poisonDur:5, particles:'poison' },
+    // Phase 1: 비행 돌진 — 타워 파괴 (제거)
+    { name:'diveBomb', dmgCore:1, destroyTower:1, particles:'poison' },
+    // Phase 2: 독 폭풍 — 전체 독안개
+    { name:'toxStorm', dmgCore:2, poisonAll:true, poisonDur:3, particles:'poison' }
+  ],
+  volta: [
+    // Phase 0: 전기장 — 타워 무력화
+    { name:'emField', dmgCore:1, disableTowers:2, disableDur:3, particles:'lightning' },
+    // Phase 1: 천둥 폭격 — 랜덤 3개 타워 비활성
+    { name:'thunderStrike', dmgCore:1, disableTowers:3, disableDur:2, particles:'lightning' },
+    // Phase 2: 뇌전 융합
+    { name:'thunderFusion', dmgCore:3, disableTowers:2, disableDur:3, particles:'lightning' }
+  ],
+  nil: [
+    // Phase 0: 차원 왜곡
+    { name:'dimWarp', dmgCore:1, disableTowers:1, disableDur:4, particles:'void' },
+    // Phase 1: 보이드 흡수 — 타워 비활성
+    { name:'voidAbsorb', dmgCore:1, disableAll:true, disableDur:1.5, particles:'void' },
+    // Phase 2: 소멸파 — 대량 코어 피해
+    { name:'annihilate', dmgCore:3, destroyTower:1, particles:'void' }
+  ],
+  destroyer: [
+    { name:'elemCycle', dmgCore:1, disableTowers:2, disableDur:3, particles:'fire' },
+    { name:'dualElem', dmgCore:2, disableTowers:3, disableDur:2, particles:'lightning' },
+    { name:'randomElem', dmgCore:2, disableAll:true, disableDur:1.5, particles:'void' },
+    { name:'oblivion', dmgCore:3, destroyTower:2, particles:'void' }
+  ]
+};
+
+// -- localStorage save/load --
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    G.bestScore = data.bestScore || 0;
+    G.dimStones = data.dimensionStones || 0;
+    G.upgrades = data.upgrades || { attack:0, defense:0, utility:0 };
+    G.dimsCleared = data.dimensionsCleared || [false,false,false,false,false];
+    G.hiddenUnlocked = data.hiddenUnlocked || false;
+    if (data.settings) { G.lang = data.settings.language || 'ko'; G.diff = data.settings.difficulty || 'normal'; }
+  } catch(e) {}
+}
+function saveSave() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version: 1, bestScore: G.bestScore, totalRuns: 0,
+      dimensionStones: G.dimStones,
+      upgrades: G.upgrades,
+      dimensionsCleared: G.dimsCleared,
+      hiddenUnlocked: G.hiddenUnlocked,
+      settings: { difficulty: G.diff, language: G.lang, sfxVolume: 0.7, bgmVolume: 0.5 }
+    }));
+  } catch(e) {}
+}
+
+// -- Initialize new run --
+function initRun() {
+  const d = DIFF[G.diff];
+  G.score = 0;
+  G.dimension = 0; G.waveInDim = 0; G.totalWave = 0;
+  G.coreMaxHP = d.coreHP + (G.upgrades.defense >= 1 ? 1 : 0);
+  G.coreHP = G.coreMaxHP;
+  G.grid = Array.from({ length: GRID_ROWS }, () => new Array(GRID_COLS).fill(0));
+  G.towers = []; G.enemies = []; G.path = [];
+  G.boss = null; G.bossActive = false;
+  G.blocks = []; G.selectedBlock = 0; G.rotation = 0; G.flipped = false;
+  G.rogueCards = []; G.selectedCard = -1;
+  G.ddaStreak = 0; G.ddaNoHitStreak = 0;
+  G.bonusDps = 0; G.bonusRange = 0; G.bonusAtkSpeed = 0;
+  G.revived = false; G.usedAllElements = false;
+  G.playTime = 0;
+  G.rng = new SeededRNG(Date.now());
+  projPool.clear(); partPool.clear();
+  // Generate starting blocks
+  const startSlots = G.upgrades.utility >= 1 ? 4 : 3;
+  for (let i = 0; i < startSlots; i++) G.blocks.push(generateBlock());
+  // Place spawn & core markers
+  G.grid[SPAWN_ROW][SPAWN_COL] = 0;
+  G.grid[CORE_ROW][CORE_COL] = 0;
+  // Initial obstacles (seeded)
+  placeRandomObstacles();
+  // Compute initial path
+  G.path = bfs(G.grid, SPAWN_COL, SPAWN_ROW, CORE_COL, CORE_ROW) || [];
+}
+
+// -- Place random obstacles --
+function placeRandomObstacles() {
+  let placed = 0;
+  for (let tries = 0; tries < 20 && placed < 2; tries++) {
+    const c = G.rng.nextInt(2, GRID_COLS - 3);
+    const r = G.rng.nextInt(0, GRID_ROWS - 1);
+    if (G.grid[r][c] === 0) {
+      G.grid[r][c] = 2; // obstacle type
+      // Verify path still exists
+      const testGrid = G.grid.map(row => row.map(v => v > 0 ? 1 : 0));
+      if (!bfs(testGrid, SPAWN_COL, SPAWN_ROW, CORE_COL, CORE_ROW)) {
+        G.grid[r][c] = 0; // undo
+      } else {
+        placed++;
+      }
+    }
+  }
+}
+
+// -- Generate a random block --
+function generateBlock() {
+  const shape = G.rng.pick(TETRO_NAMES);
+  const elem = G.rng.pick(ELEMENTS);
+  return { shape, elem, cells: [...TETRO_SHAPES[shape].map(c => [...c])] };
+}
+
+// -- Get current block cells with rotation/flip --
+function getCurrentCells() {
+  if (G.blocks.length === 0 || G.selectedBlock >= G.blocks.length) return [];
+  let cells = G.blocks[G.selectedBlock].cells.map(c => [...c]);
+  for (let i = 0; i < G.rotation; i++) cells = rotateCells(cells);
+  if (G.flipped) cells = flipCells(cells);
+  return normCells(cells);
+}
+
+// -- Recalculate path --
+function recalcPath() {
+  const pathGrid = G.grid.map(row => row.map(v => v > 0 ? 1 : 0));
+  G.path = bfs(pathGrid, SPAWN_COL, SPAWN_ROW, CORE_COL, CORE_ROW) || [];
+}
+
+// -- Begin wave --
+function beginWave() {
+  if (G.isTransitioning) return;
+  const wi = G.totalWave;
+  const waveData = WAVE_TABLE[Math.min(wi, WAVE_TABLE.length - 1)];
+  const d = DIFF[G.diff];
+  const baseCount = Math.round(waveData.count * d.countMul);
+  const baseHp = Math.round(waveData.hp * d.hpMul);
+  // DDA (F57)
+  let ddaMul = 1;
+  if (d.dda) {
+    if (G.ddaStreak >= 3) ddaMul = 0.85;
+    if (G.ddaNoHitStreak >= 3) ddaMul = 1.2;
+  }
+  // Build spawn list
+  G.waveSpawnList = [];
+  const types = ['grunt','grunt','grunt','rusher','tank','flyer','splitter','stealth','healer','voidE'];
+  for (let i = 0; i < baseCount; i++) {
+    const t = wi < 3 ? 'grunt' : G.rng.pick(types.slice(0, Math.min(3 + wi, types.length)));
+    G.waveSpawnList.push({ type: t, hp: baseHp * ddaMul, speed: waveData.speed });
+  }
+  G.waveEnemiesLeft = G.waveSpawnList.length;
+  G.waveSpawnTimer = 0;
+  G.waveSpawnIdx = 0;
+  beginTransition(STATE.WAVE);
+  sound.playSfx('select');
+  sound.startBgm('wave');
+}
+
+// -- Begin boss fight --
+function beginBossFight() {
+  if (G.isTransitioning) return;
+  const bossIdx = Math.min(G.dimension, BOSS_DEFS.length - 1);
+  const d = DIFF[G.diff];
+  G.boss = createBoss(bossIdx, d.bossHpMul);
+  G.bossActive = true;
+  // Also spawn a few minions
+  const minionCount = 3 + G.dimension;
+  G.waveSpawnList = [];
+  for (let i = 0; i < minionCount; i++) {
+    G.waveSpawnList.push({ type: 'grunt', hp: 30 + G.dimension * 15, speed: 1.0 });
+  }
+  G.waveEnemiesLeft = minionCount;
+  G.waveSpawnTimer = 0; G.waveSpawnIdx = 0;
+  beginTransition(STATE.BOSS);
+  sound.startBgm('boss');
+}
+
+// -- State transition with priority check (F6, F56) --
+function beginTransition(target) {
+  // Priority check: higher priority states cannot be overridden
+  const curPri = STATE_PRIORITY[G.state] || 0;
+  const tarPri = STATE_PRIORITY[target] || 0;
+  if (G.isTransitioning && tarPri < curPri) return;
+  // Whitelist check for restart-type transitions
+  if (RESTART_ALLOWED[G.state] && !RESTART_ALLOWED[G.state].includes(target) &&
+      target !== STATE.PLACEMENT && target !== STATE.WAVE && target !== STATE.BOSS &&
+      target !== STATE.BOSS_INTRO && target !== STATE.DIM_INTRO && target !== STATE.WAVE_CLEAR &&
+      target !== STATE.ROGUE_SELECT && target !== STATE.BOSS_DEFEAT && target !== STATE.DIM_CLEAR &&
+      target !== STATE.GAMEOVER && target !== STATE.VICTORY && target !== STATE.HIDDEN_INTRO &&
+      target !== STATE.HIDDEN_BOSS && target !== STATE.TRUE_ENDING &&
+      target !== STATE.PAUSE && target !== STATE.CONFIRM) return;
+  G.isTransitioning = true; // Guard flag (F5)
+  G.transTarget = target;
+  const transObj = { alpha: 0 };
+  tween.clearImmediate();
+  // Fade out
+  tween.add(transObj, { alpha: 1 }, 300, 'easeIn', () => {
+    G.transAlpha = 1;
+    G.prevState = G.state;
+    G.state = target;
+    G.isTransitioning = false; // Reset guard (F5)
+    onStateEnter(target);
+    // Fade in
+    tween.add(transObj, { alpha: 0 }, 300, 'easeOut', () => { G.transAlpha = 0; });
+  });
+  // Sync alpha to G.transAlpha each frame (handled in render)
+  G._transObj = transObj;
+}
+
+// -- Direct state change (no transition for quick states) --
+function setStateDirect(target) {
+  G.prevState = G.state;
+  G.state = target;
+  onStateEnter(target);
+}
+
+// -- Called when entering a new state --
+function onStateEnter(state) {
+  G.introTimer = 0; G.clearTimer = 0; G.endTimer = 0;
+  switch(state) {
+    case STATE.TITLE:
+      sound.startBgm('title');
+      initBgParticles();
+      break;
+    case STATE.PLACEMENT:
+      sound.startBgm('build');
+      recalcPath();
+      computeSynergy(G.towers, G.grid);
+      break;
+    case STATE.BOSS_INTRO:
+      G.introTimer = 0;
+      G.camTargetZoom = 1.3;
+      break;
+    case STATE.BOSS_DEFEAT:
+      G.clearTimer = 0;
+      G.camTargetZoom = 1;
+      sound.playSfx('victory');
+      break;
+    case STATE.WAVE_CLEAR:
+      G.clearTimer = 0;
+      sound.playSfx('select');
+      break;
+    case STATE.ROGUE_SELECT:
+      generateRogueCards();
+      G.selectedCard = -1;
+      break;
+    case STATE.DIM_INTRO:
+      G.introTimer = 0;
+      G.camTargetZoom = 1;
+      break;
+    case STATE.DIM_CLEAR:
+      G.clearTimer = 0;
+      G.dimsCleared[G.dimension] = true;
+      G.dimStones += 50 + G.dimension * 30;
+      saveSave();
+      break;
+    case STATE.GAMEOVER:
+      sound.playSfx('gameover');
+      sound.stopBgm();
+      G.camShakeDur = 500;
+      // Score finalization (F8: judge first, save later)
+      checkBestScore();
+      saveSave();
+      break;
+    case STATE.VICTORY:
+      sound.playSfx('victory');
+      sound.stopBgm();
+      G.dimStones += 100;
+      checkBestScore();
+      saveSave();
+      break;
+    case STATE.TRUE_ENDING:
+      sound.playSfx('victory');
+      G.endTimer = 0;
+      checkBestScore();
+      saveSave();
+      break;
+    case STATE.HIDDEN_INTRO:
+      G.introTimer = 0;
+      G.camTargetZoom = 1.5;
+      break;
+  }
+}
+
+// -- Check and update best score (F8: judge first, save later) --
+function checkBestScore() {
+  const d = DIFF[G.diff];
+  const diffMul = G.diff === 'easy' ? 0.7 : G.diff === 'hard' ? 1.5 : 1.0;
+  let speedBonus = 1;
+  if (G.playTime < 600) speedBonus = 1.5;
+  else if (G.playTime < 900) speedBonus = 1.2;
+  const hpBonus = G.coreHP * 50;
+  G.score = Math.round((G.score + hpBonus) * diffMul * speedBonus);
+  G.isNewBest = G.score > G.bestScore;
+  if (G.isNewBest) G.bestScore = G.score;
+}
+
+// -- Generate roguelike cards (§7.4) --
+function generateRogueCards() {
+  const d = DIFF[G.diff];
+  const numCards = d.choices;
+  G.rogueCards = [];
+  for (let i = 0; i < numCards; i++) {
+    const roll = G.rng.next();
+    let pool;
+    if (roll < 0.1) pool = CARD_POOL.epic;
+    else if (roll < 0.4 || (d.rareGuarantee && i === 0)) pool = CARD_POOL.rare;
+    else pool = CARD_POOL.common;
+    const card = G.rng.pick(pool);
+    const rarity = pool === CARD_POOL.epic ? 'epic' : pool === CARD_POOL.rare ? 'rare' : 'common';
+    G.rogueCards.push({ ...card, rarity });
+  }
+}
+
+// -- Apply roguelike card effect --
+function applyCard(card) {
+  switch(card.effect) {
+    case 'addBlock': G.blocks.push(generateBlock()); break;
+    case 'dpsUp': G.bonusDps += 0.1; break;
+    case 'rangeUp': G.bonusRange += 0.5; break;
+    case 'healCore': G.coreHP = Math.min(G.coreHP + 1, G.coreMaxHP); break;
+    case 'atkSpeedUp': G.bonusAtkSpeed += 0.15; break;
+    case 'elemShift':
+      if (G.blocks.length > 0) G.blocks[G.selectedBlock].elem = G.rng.pick(ELEMENTS);
+      break;
+    case 'synergyUp': break; // handled in compute
+    case 'healCore2': G.coreHP = Math.min(G.coreHP + 2, G.coreMaxHP); break;
+    case 'cooldownDown': G.bonusAtkSpeed += 0.2; break;
+    case 'freezeAll':
+      for (const e of G.enemies) if (e.alive) e.stunTimer = 5;
+      break;
+    case 'megaBlock':
+      G.blocks.push({ shape: 'L', elem: G.rng.pick(ELEMENTS), cells: [[0,0],[1,0],[2,0],[3,0],[3,1]] });
+      break;
+    case 'goldTower':
+      G.blocks.push({ shape: 'O', elem: 'fire', cells: [[0,0],[1,0],[0,1],[1,1]], gold: true });
+      break;
+  }
+  sound.playSfx('select');
+}
+
+// -- Update wave enemies --
+function updateEnemies(dt) {
+  // Spawn enemies from list
+  if (G.waveSpawnIdx < G.waveSpawnList.length) {
+    G.waveSpawnTimer += dt;
+    if (G.waveSpawnTimer >= 0.5) {
+      G.waveSpawnTimer -= 0.5;
+      const data = G.waveSpawnList[G.waveSpawnIdx];
+      const e = createEnemy(data.type, data.hp, data.speed, 0);
+      if (G.path.length > 0) {
+        e.x = G.path[0][0]; e.y = G.path[0][1];
+      }
+      G.enemies.push(e);
+      G.waveSpawnIdx++;
+    }
+  }
+  // Move & update
+  for (const e of G.enemies) {
+    if (!e.alive) continue;
+    e.frame += dt * 3;
+    // Stun
+    if (e.stunTimer > 0) { e.stunTimer -= dt; continue; }
+    // Slow
+    let speedMul = 1;
+    if (e.slowTimer > 0) { speedMul = 0.6; e.slowTimer -= dt; }
+    // DoT
+    if (e.dotTimer > 0) { e.hp -= e.dotDmg * dt; e.dotTimer -= dt; }
+    // Healer aura
+    if (e.heals) {
+      for (const o of G.enemies) {
+        if (o !== e && o.alive && dist(e.x, e.y, o.x, o.y) < 3) {
+          o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.05 * dt);
+        }
+      }
+    }
+    // Move along path
+    const path = e.flying ? [[SPAWN_COL, SPAWN_ROW], [CORE_COL, CORE_ROW]] : G.path;
+    if (path.length > 0 && e.pathIdx < path.length - 1) {
+      const tx = path[e.pathIdx + 1][0], ty = path[e.pathIdx + 1][1];
+      const dx = tx - e.x, dy = ty - e.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const step = e.speed * speedMul * dt * 2;
+      if (d < step) {
+        e.x = tx; e.y = ty; e.pathIdx++;
+      } else {
+        e.x += (dx / d) * step; e.y += (dy / d) * step;
+      }
+    }
+    // Reached core
+    if (e.pathIdx >= path.length - 1 && path.length > 0) {
+      e.alive = false;
+      coreHit();
+      G.waveEnemiesLeft--;
+    }
+    // Death check
+    if (e.hp <= 0 && e.alive) {
+      killEnemy(e);
+    }
+  }
+  // Remove dead
+  G.enemies = G.enemies.filter(e => e.alive);
+}
+
+// -- Enemy killed --
+function killEnemy(e) {
+  e.alive = false;
+  G.waveEnemiesLeft--;
+  G.score += KILL_SCORE[e.type] || 10;
+  sound.playSfx('enemyDie');
+  // Spawn hit effect particles
+  spawnHitEffect(e.x, e.y, ELEM_COLORS.fire);
+  // Splitter: spawn 2 mini (F: waveEnemiesLeft++ for each)
+  if (e.splits) {
+    for (let i = 0; i < 2; i++) {
+      const mini = createEnemy('grunt', e.maxHp * 0.3, e.speed * 1.2, Math.max(0, e.pathIdx - 1));
+      mini.x = e.x + (i === 0 ? -0.3 : 0.3); mini.y = e.y;
+      G.enemies.push(mini);
+      G.waveEnemiesLeft++; // F: splitter counter fix (Cycle 22)
+    }
+  }
+  // Check wave clear
+  if (G.waveEnemiesLeft <= 0 && G.waveSpawnIdx >= G.waveSpawnList.length && !G.isTransitioning) {
+    onWaveClear();
+  }
+}
+
+// -- Core hit --
+function coreHit() {
+  G.coreHP--;
+  G.ddaStreak++;
+  G.ddaNoHitStreak = 0;
+  G.camShakeDur = 300;
+  sound.playSfx('coreHit');
+  spawnHitEffect(CORE_COL, CORE_ROW, '#ffd700');
+  // Revive check (defense upgrade 5)
+  if (G.coreHP <= 0 && G.upgrades.defense >= 5 && !G.revived) {
+    G.revived = true; G.coreHP = 3; return;
+  }
+  if (G.coreHP <= 0) {
+    beginTransition(STATE.GAMEOVER);
+  }
+}
+
+// -- Wave clear logic --
+function onWaveClear() {
+  if (G.isTransitioning) return;
+  G.isTransitioning = true; // Guard (F5)
+  G.waveInDim++;
+  G.totalWave++;
+  G.ddaNoHitStreak++;
+  // Regen (defense upgrade 2)
+  if (G.upgrades.defense >= 2 && G.totalWave % 3 === 0) {
+    G.coreHP = Math.min(G.coreMaxHP, G.coreHP + 1);
+  }
+  const dimWaves = DIMENSIONS[G.dimension].waves;
+  if (G.waveInDim >= dimWaves && dimWaves > 0) {
+    // Boss wave
+    G.isTransitioning = false;
+    beginTransition(STATE.BOSS_INTRO);
+  } else {
+    // Normal wave clear
+    G.isTransitioning = false;
+    beginTransition(STATE.WAVE_CLEAR);
+  }
+}
+
+// -- Update towers --
+function updateTowers(dt) {
+  for (const t of G.towers) {
+    // Reactivate timer (boss attack disabled towers)
+    if (!t.active && t._reactivateTimer > 0) {
+      t._reactivateTimer -= dt;
+      if (t._reactivateTimer <= 0) { t.active = true; t._reactivateTimer = 0; }
+    }
+    if (!t.active) continue;
+    t.atkTimer += dt;
+    const cd = t.atkCooldown * (1 - G.bonusAtkSpeed);
+    if (t.atkTimer < cd) continue;
+    // Find target
+    const range = (t.range + G.bonusRange) * cellSize;
+    const tx = gridOffX + t.col * cellSize + cellSize / 2;
+    const ty = gridOffY + t.row * cellSize + cellSize / 2;
+    let best = null, bestDist = Infinity;
+    // Target enemies
+    for (const e of G.enemies) {
+      if (!e.alive) continue;
+      if (e.stealth) {
+        const d2 = dist(tx, ty, toScreenX(e.x), toScreenY(e.y));
+        if (d2 > cellSize * 3) continue;
+      }
+      const d2 = dist(tx, ty, toScreenX(e.x), toScreenY(e.y));
+      if (d2 < range && d2 < bestDist) { best = e; bestDist = d2; }
+    }
+    // Target boss
+    if (G.boss && G.boss.alive) {
+      const bd = dist(tx, ty, G.boss.x, G.boss.y);
+      if (bd < range && bd < bestDist) best = G.boss;
+    }
+    if (!best) continue;
+    t.atkTimer = 0;
+    // Fire projectile
+    const p = projPool.get();
+    p.x = tx; p.y = ty;
+    p.tx = best === G.boss ? G.boss.x : toScreenX(best.x);
+    p.ty = best === G.boss ? G.boss.y : toScreenY(best.y);
+    p.elem = t.elem; p.speed = 6; p.alive = true; p.trail = [];
+    // Compute damage
+    let dmg = (t.dps + t.dps * G.bonusDps) * (1 + t.synergyBonus);
+    // Element bonus vs boss
+    if (best === G.boss && ELEM_STRONG[t.elem] === G.boss.elem) dmg *= 1.5;
+    // Upgrade bonus
+    if (G.upgrades.attack >= 1) dmg *= 1.05;
+    if (G.upgrades.attack >= 2 && ELEM_STRONG[t.elem]) dmg *= 1.13;
+    p.dmg = dmg;
+    p.targetRef = best;
+    sound.playSfx('attack_' + t.elem);
+  }
+}
+
+// -- Update projectiles --
+function updateProjectiles(dt) {
+  for (const p of projPool.active) {
+    if (!p.alive) continue;
+    const dx = p.tx - p.x, dy = p.ty - p.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    const step = p.speed * dt * 200;
+    // Trail
+    p.trail.push({ x: p.x, y: p.y, alpha: 1 });
+    if (p.trail.length > 8) p.trail.shift();
+    for (const t of p.trail) t.alpha *= 0.85;
+    if (d < step + 5) {
+      // Hit
+      p.alive = false;
+      if (p.targetRef && p.targetRef === G.boss) {
+        hitBoss(p.dmg, p.elem);
+      } else if (p.targetRef && p.targetRef.alive) {
+        p.targetRef.hp -= p.dmg;
+        // Apply element effects
+        if (p.elem === 'fire') { p.targetRef.dotTimer = 3; p.targetRef.dotDmg = p.dmg * 0.1; }
+        if (p.elem === 'ice') { p.targetRef.slowTimer = 2; }
+        if (p.elem === 'poison') { p.targetRef.dotTimer = 4; p.targetRef.dotDmg = p.dmg * 0.08; }
+        if (p.elem === 'void') { p.targetRef.slowTimer = 3; }
+        // Chain lightning
+        if (p.elem === 'lightning') {
+          let chains = 2 + (G.upgrades.attack >= 3 ? 1 : 0);
+          let last = p.targetRef;
+          for (const e of G.enemies) {
+            if (e !== last && e.alive && chains > 0) {
+              const cd = dist(toScreenX(last.x), toScreenY(last.y), toScreenX(e.x), toScreenY(e.y));
+              if (cd < cellSize * 2.5) { e.hp -= p.dmg * 0.5; chains--; last = e; }
+            }
+          }
+        }
+      }
+      spawnHitEffect(p.tx / (cW || 1) * GRID_COLS, p.ty / (cH || 1) * GRID_ROWS, ELEM_COLORS[p.elem] || '#fff');
+    } else {
+      p.x += (dx / d) * step; p.y += (dy / d) * step;
+    }
+  }
+  projPool.sweep(p => !p.alive);
+}
+
+// -- Hit boss --
+function hitBoss(dmg, elem) {
+  if (!G.boss || !G.boss.alive) return;
+  if (G.boss.invuln) return;
+  // Weakness bonus
+  if (G.boss.weakExposed) dmg *= 3;
+  G.boss.hp -= dmg;
+  sound.playSfx('bossHit');
+  spawnHitEffect(G.boss.x / (cW || 1) * 12, G.boss.y / (cH || 1) * 8, ELEM_COLORS[elem] || '#fff');
+  // Phase transition check
+  const nextPhase = G.boss.phase + 1;
+  if (nextPhase < G.boss.phases.length && G.boss.hp / G.boss.maxHp <= G.boss.phases[nextPhase]) {
+    if (!G.boss.phaseTransitioning) {
+      G.boss.phaseTransitioning = true;
+      G.boss.invuln = true;
+      G.boss.atkTimer = 0; // Reset atk timer on phase transition (Cycle 24/25 lesson)
+      const bObj = { t: 0 };
+      tween.add(bObj, { t: 1 }, 1500, 'easeOut', () => {
+        G.boss.phase = nextPhase;
+        G.boss.invuln = false;
+        G.boss.phaseTransitioning = false;
+        G.boss.atkTimer = 0; // Reset again after transition complete (Cycle 25)
+      });
+    }
+  }
+  // Death check
+  if (G.boss.hp <= 0 && G.boss.alive) {
+    G.boss.alive = false;
+    G.bossActive = false;
+    G.score += G.boss.score;
+    G.dimStones += 50 + G.dimension * 30;
+    beginTransition(STATE.BOSS_DEFEAT);
+  }
+}
+
+// -- Update boss AI --
+function updateBoss(dt) {
+  if (!G.boss || !G.boss.alive) return;
+  G.boss.animFrame += dt * 2;
+  // Position: top center of grid
+  G.boss.x = gridOffX + GRID_COLS * cellSize / 2;
+  G.boss.y = gridOffY - cellSize * 1.5;
+  // Attack timer
+  if (!G.boss.phaseTransitioning) {
+    G.boss.atkTimer += dt;
+    if (G.boss.atkTimer >= G.boss.atkCooldown) {
+      G.boss.atkTimer = 0;
+      bossAttack();
+    }
+  }
+  // Weakness check — tower placement puzzle (§9.1: specific tower positions)
+  G.boss.weakTimer += dt;
+  if (G.boss.weakTimer > 1) { // Check every 1 second
+    G.boss.weakTimer = 0;
+    const weakDef = BOSS_WEAKNESS[G.boss.id];
+    if (weakDef && weakDef[G.boss.phase]) {
+      const prevWeak = G.boss.weakExposed;
+      G.boss.weakExposed = weakDef[G.boss.phase].check(G.towers, G.boss);
+      // Visual/audio cue when weakness first exposed
+      if (G.boss.weakExposed && !prevWeak) {
+        sound.playSfx('bossHit');
+        for (let i = 0; i < 8; i++) spawnParticle(G.boss.x, G.boss.y, '#00ffcc', 'circle', 1.2);
+      }
+    } else {
+      G.boss.weakExposed = false;
+    }
+  }
+  // Destroyer boss: cycle current element (§9.2)
+  if (G.boss.id === 'destroyer') {
+    const cycleTime = G.boss.phase === 0 ? 10 : G.boss.phase === 1 ? 5 : 3;
+    G.boss._elemTimer = (G.boss._elemTimer || 0) + dt;
+    if (G.boss._elemTimer >= cycleTime) {
+      G.boss._elemTimer = 0;
+      const idx = G.rng.nextInt(0, ELEMENTS.length - 1);
+      G.boss._currentElem = ELEMENTS[idx];
+      G.boss.elem = G.boss._currentElem;
+      if (G.boss.phase >= 1) {
+        const idx2 = (idx + 2) % ELEMENTS.length;
+        G.boss._activeElems = [ELEMENTS[idx], ELEMENTS[idx2]];
+      }
+    }
+    if (!G.boss._currentElem) G.boss._currentElem = 'fire';
+  }
+}
+
+// -- Boss attack: per-boss per-phase patterns (§9.2) --
+function bossAttack() {
+  if (!G.boss) return;
+  const patterns = BOSS_ATTACKS[G.boss.id];
+  const phase = Math.min(G.boss.phase, (patterns ? patterns.length : 1) - 1);
+  const atk = patterns ? patterns[phase] : { dmgCore: 1, particles: 'fire' };
+
+  // Core damage (with defense upgrade reduction)
+  let coreDmg = atk.dmgCore || 1;
+  if (G.upgrades.defense >= 4) coreDmg = Math.max(1, coreDmg - 1);
+  G.coreHP -= coreDmg;
+  G.camShakeDur = 200 + coreDmg * 50;
+  sound.playSfx('coreHit');
+
+  // Disable random towers (timed)
+  if (atk.disableTowers && G.towers.length > 0) {
+    const count = Math.min(atk.disableTowers, G.towers.length);
+    const candidates = G.towers.filter(t => t.active);
+    for (let i = 0; i < count && candidates.length > 0; i++) {
+      const idx = G.rng.nextInt(0, candidates.length - 1);
+      const tw = candidates.splice(idx, 1)[0];
+      tw.active = false;
+      tw._reactivateTimer = atk.disableDur || 3;
+    }
+  }
+  // Disable specific column's towers
+  if (atk.disableCol && G.towers.length > 0) {
+    const col = G.rng.nextInt(0, GRID_COLS - 1);
+    for (const tw of G.towers) {
+      if (tw.col === col && tw.active) {
+        tw.active = false;
+        tw._reactivateTimer = atk.disableDur || 4;
+      }
+    }
+  }
+  // Disable all towers briefly
+  if (atk.disableAll) {
+    for (const tw of G.towers) {
+      if (tw.active) { tw.active = false; tw._reactivateTimer = atk.disableDur || 2; }
+    }
+  }
+  // Destroy tower permanently (remove from grid)
+  if (atk.destroyTower && G.towers.length > 0) {
+    for (let d = 0; d < (atk.destroyTower || 1) && G.towers.length > 0; d++) {
+      const idx = G.rng.nextInt(0, G.towers.length - 1);
+      const tw = G.towers[idx];
+      G.grid[tw.row][tw.col] = 0;
+      spawnRadialBurst(gridOffX + tw.col * cellSize + cellSize/2, gridOffY + tw.row * cellSize + cellSize/2, ELEM_COLORS[tw.elem], 8);
+      G.towers.splice(idx, 1);
+    }
+    recalcPath();
+    computeSynergy(G.towers, G.grid);
+  }
+
+  // Boss attack particles from boss to core
+  const elemColor = ELEM_COLORS[atk.particles] || ELEM_COLORS[G.boss.elem] || '#c0392b';
+  for (let i = 0; i < 8; i++) {
+    spawnParticle(G.boss.x + randRange(-30, 30), G.boss.y + randRange(-10, 10), elemColor, 'circle', 1.2);
+  }
+  // Visual indicator: projectile trail from boss to core
+  const coreX = gridOffX + CORE_COL * cellSize + cellSize/2;
+  const coreY = gridOffY + CORE_ROW * cellSize + cellSize/2;
+  for (let i = 0; i < 4; i++) {
+    const t = i / 4;
+    spawnParticle(lerp(G.boss.x, coreX, t), lerp(G.boss.y, coreY, t), elemColor, 'circle', 0.6);
+  }
+
+  // Revive check (defense upgrade 5)
+  if (G.coreHP <= 0 && G.upgrades.defense >= 5 && !G.revived) {
+    G.revived = true; G.coreHP = 3; return;
+  }
+  if (G.coreHP <= 0) {
+    beginTransition(STATE.GAMEOVER);
+  }
+}
+
+// -- Spawn hit effect — radial burst (replaces effectHit SVG) --
+function spawnHitEffect(gx, gy, color) {
+  const sx = gridOffX + gx * cellSize;
+  const sy = gridOffY + gy * cellSize;
+  spawnRadialBurst(sx, sy, color, 6);
+}
+
+// -- Spawn particle --
+function spawnParticle(x, y, color, type, life) {
+  const p = partPool.get();
+  p.x = x; p.y = y;
+  p.vx = randRange(-60, 60); p.vy = randRange(-60, 60);
+  p.life = life || 1; p.maxLife = p.life;
+  p.color = color; p.size = randRange(2, 5); p.type = type || 'circle';
+  p.alive = true; p.alpha = 1;
+}
+
+// -- Update particles --
+function updateParticles(dt) {
+  for (const p of partPool.active) {
+    if (!p.alive) continue;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt;
+    p.alpha = Math.max(0, p.life / p.maxLife);
+    if (p.life <= 0) p.alive = false;
+  }
+  partPool.sweep(p => !p.alive);
+}
+
+// -- Advance to next dimension --
+function advanceDimension() {
+  G.dimension++;
+  G.waveInDim = 0;
+  // Check victory
+  if (G.dimension >= 5) {
+    // Check hidden boss conditions
+    const allElems = new Set(G.towers.map(t => t.elem));
+    G.usedAllElements = allElems.size >= 5;
+    const canHidden = G.coreHP >= G.coreMaxHP * 0.5 && G.usedAllElements && G.upgrades.utility >= 3;
+    if (canHidden) {
+      beginTransition(STATE.HIDDEN_INTRO);
+    } else {
+      beginTransition(STATE.VICTORY);
+    }
+    return;
+  }
+  // Reset grid for new dimension
+  G.grid = Array.from({ length: GRID_ROWS }, () => new Array(GRID_COLS).fill(0));
+  G.towers = [];
+  G.enemies = [];
+  projPool.clear(); partPool.clear();
+  placeRandomObstacles();
+  recalcPath();
+  // Add new blocks
+  for (let i = 0; i < 2; i++) G.blocks.push(generateBlock());
+  beginTransition(STATE.DIM_INTRO);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 7: PROGRESSION ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Upgrade purchase --
+function purchaseUpgrade(tree) {
+  const lvl = G.upgrades[tree];
+  if (lvl >= 5) return;
+  const cost = UPGRADE_TREES[tree][lvl].cost;
+  if (G.dimStones >= cost) {
+    G.dimStones -= cost;
+    G.upgrades[tree]++;
+    sound.playSfx('upgrade');
+    saveSave();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 8: RENDER ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Canvas & layout variables --
+let canvas, ctx, cW, cH, dpr;
+let cellSize, gridOffX, gridOffY;
+let bgScrollX = 0;
+
+// -- Convert grid coords to screen --
+function toScreenX(gx) { return gridOffX + gx * cellSize + cellSize / 2; }
+function toScreenY(gy) { return gridOffY + gy * cellSize + cellSize / 2; }
+
+// -- Resize handler --
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  cW = window.innerWidth;
+  cH = window.innerHeight;
+  canvas.width = cW * dpr;
+  canvas.height = cH * dpr;
+  canvas.style.width = cW + 'px';
+  canvas.style.height = cH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Compute grid layout
+  const maxCellW = (cW * 0.8) / GRID_COLS;
+  const maxCellH = (cH * 0.6) / GRID_ROWS;
+  cellSize = Math.floor(Math.min(maxCellW, maxCellH));
+  gridOffX = Math.floor((cW - cellSize * GRID_COLS) / 2);
+  gridOffY = Math.floor((cH - cellSize * GRID_ROWS) / 2) + 20;
+  // Recompute touch buttons
+  computeTouchButtons();
+}
+
+// -- Compute touch button positions --
+function computeTouchButtons() {
+  const s = Math.max(TOUCH_MIN, cellSize * 0.9);
+  const pad = 8;
+  G.touchBtns = [
+    { id:'rotate', x: cW - s - pad, y: gridOffY + GRID_ROWS * cellSize + pad, w: s, h: s, label:'🔄' },
+    { id:'flip', x: cW - s*2 - pad*2, y: gridOffY + GRID_ROWS * cellSize + pad, w: s, h: s, label:'↔' },
+    { id:'startWave', x: cW/2 - s*0.75, y: gridOffY + GRID_ROWS * cellSize + pad, w: s*1.5, h: s, label:'▶' },
+    { id:'pause', x: cW - s - pad, y: pad, w: s, h: s, label:'⏸' },
+    { id:'dismantle', x: pad, y: gridOffY + GRID_ROWS * cellSize + pad, w: s, h: s, label:'🗑' },
+    { id:'upgrade', x: pad + s + pad, y: gridOffY + GRID_ROWS * cellSize + pad, w: s, h: s, label:'⬆' }
+  ];
+  // Block slots
+  for (let i = 0; i < 5; i++) {
+    G.touchBtns.push({
+      id: 'slot' + i, x: pad + i * (s + pad), y: gridOffY - s - pad, w: s, h: s, label: (i+1)+''
+    });
+  }
+}
+
+// -- Init background particles --
+function initBgParticles() {
+  G.bgParticles = [];
+  for (let i = 0; i < 50; i++) {
+    G.bgParticles.push({
+      x: Math.random() * cW, y: Math.random() * cH,
+      size: Math.random() * 2 + 1, speed: Math.random() * 20 + 5,
+      alpha: Math.random() * 0.5 + 0.3
+    });
+  }
+}
+
+// -- Draw heart icon (Canvas, pure) --
+function drawHeartIcon(ctx, cx, cy, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r * 0.5);
+  ctx.bezierCurveTo(cx - r * 1.2, cy - r * 0.3, cx - r * 0.6, cy - r * 1.2, cx, cy - r * 0.4);
+  ctx.bezierCurveTo(cx + r * 0.6, cy - r * 1.2, cx + r * 1.2, cy - r * 0.3, cx, cy + r * 0.5);
+  ctx.fill();
+}
+
+// -- Draw star icon (Canvas, pure) --
+function drawStarIcon(ctx, cx, cy, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const pr = i % 2 === 0 ? r : r * 0.45;
+    if (i === 0) ctx.moveTo(cx + Math.cos(a) * pr, cy + Math.sin(a) * pr);
+    else ctx.lineTo(cx + Math.cos(a) * pr, cy + Math.sin(a) * pr);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+// -- Draw architect character (Canvas, pure — dimensional guardian figure) --
+function drawArchitect(ctx, cx, cy, size) {
+  const s = size;
+  // Cloak / body — triangular robe
+  ctx.fillStyle = '#2d1b4e';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - s * 0.8);
+  ctx.lineTo(cx + s * 0.5, cy + s * 0.6);
+  ctx.lineTo(cx - s * 0.5, cy + s * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  // Cloak glow edge
+  ctx.strokeStyle = '#6c3cf7'; ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // Head — circle
+  ctx.fillStyle = '#e0e6ed';
+  ctx.beginPath(); ctx.arc(cx, cy - s * 0.6, s * 0.22, 0, Math.PI * 2); ctx.fill();
+  // Eyes — two dots
+  ctx.fillStyle = '#00ffcc';
+  ctx.beginPath(); ctx.arc(cx - s * 0.08, cy - s * 0.64, s * 0.04, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + s * 0.08, cy - s * 0.64, s * 0.04, 0, Math.PI * 2); ctx.fill();
+  // Dimensional staff — line with glowing orb
+  ctx.strokeStyle = '#8080a0'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx + s * 0.3, cy - s * 0.4); ctx.lineTo(cx + s * 0.45, cy + s * 0.5); ctx.stroke();
+  // Staff orb
+  ctx.fillStyle = '#ffd700';
+  ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.arc(cx + s * 0.3, cy - s * 0.45, s * 0.08, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // Floating element particles around
+  const time = performance.now() / 1000;
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 + time * 0.8;
+    const pr = s * 0.65;
+    ctx.fillStyle = ELEM_COLORS[ELEMENTS[i]];
+    ctx.globalAlpha = 0.5 + Math.sin(time * 2 + i) * 0.3;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(angle) * pr, cy - s * 0.1 + Math.sin(angle) * pr * 0.4, s * 0.04, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// -- Spawn radial burst effect (replaces effectHit image usage) --
+function spawnRadialBurst(x, y, color, count) {
+  for (let i = 0; i < (count || 8); i++) {
+    const angle = (i / (count || 8)) * Math.PI * 2;
+    const speed = randRange(60, 120);
+    const p = partPool.get();
+    p.x = x; p.y = y;
+    p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed;
+    p.life = 0.6; p.maxLife = 0.6;
+    p.color = color; p.size = randRange(3, 6); p.type = 'circle';
+    p.alive = true; p.alpha = 1;
+  }
+  // Center flash particle
+  const cp = partPool.get();
+  cp.x = x; cp.y = y; cp.vx = 0; cp.vy = 0;
+  cp.life = 0.3; cp.maxLife = 0.3;
+  cp.color = '#fff'; cp.size = 12; cp.type = 'circle';
+  cp.alive = true; cp.alpha = 1;
+}
+
+// -- Draw background with parallax layers --
+function drawBackground(ctx, w, h, dim) {
+  const theme = DIMENSIONS[Math.min(dim, DIMENSIONS.length - 1)];
+  // Gradient base
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, theme.bg1);
+  grad.addColorStop(1, theme.bg2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // Layer 1 (far) — parallax star field
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 97 + bgScrollX * 0.1) % w + w) % w;
+    const sy = (i * 73) % h;
+    const twinkle = 0.3 + (i % 3) * 0.2 + Math.sin(performance.now() / 800 + i) * 0.1;
+    ctx.globalAlpha = twinkle;
+    ctx.beginPath(); ctx.arc(sx, sy, 0.8 + (i % 4) * 0.4, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Layer 2 (near) — nebula clouds with parallax scroll
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = theme.accent;
+  const nebX = ((bgScrollX * 0.3) % w + w) % w;
+  ctx.beginPath(); ctx.arc(nebX, h * 0.4, 120, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc((nebX + w * 0.6) % w, h * 0.7, 80, 0, Math.PI * 2); ctx.fill();
+  // Additional near-layer dust streaks
+  ctx.globalAlpha = 0.04;
+  for (let i = 0; i < 6; i++) {
+    const dx = ((i * 157 + bgScrollX * 0.5) % w + w) % w;
+    const dy = (i * 113) % h;
+    ctx.beginPath(); ctx.arc(dx, dy, 40 + i * 12, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Dimension-specific effects
+  drawDimensionEffect(ctx, w, h, dim);
+}
+
+// -- Dimension-specific effects (§4.3) --
+function drawDimensionEffect(ctx, w, h, dim) {
+  const t = performance.now() / 1000;
+  ctx.globalAlpha = 0.15;
+  switch(dim) {
+    case 0: // Fire: lava flow at bottom
+      ctx.fillStyle = '#ff4500';
+      for (let x = 0; x < w; x += 20) {
+        const lavaH = 15 + Math.sin(x * 0.05 + t * 2) * 8;
+        ctx.fillRect(x, h - lavaH, 20, lavaH);
+      }
+      break;
+    case 1: // Ice: snow particles
+      ctx.fillStyle = '#aaddff';
+      for (let i = 0; i < 30; i++) {
+        const sx = (i * 43 + t * 15) % w;
+        const sy = (i * 67 + t * 30) % h;
+        ctx.fillRect(sx, sy, 2, 2);
+      }
+      break;
+    case 2: // Poison: fog layer
+      ctx.fillStyle = '#32cd32';
+      for (let x = 0; x < w; x += 40) {
+        const fogH = 30 + Math.sin(x * 0.03 + t) * 15;
+        ctx.fillRect(x, h - fogH - 20, 40, fogH);
+      }
+      break;
+    case 3: // Lightning: periodic flash
+      if (Math.sin(t * 3) > 0.95) {
+        ctx.fillStyle = '#f1c40f';
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(0, 0, w, h);
+      }
+      break;
+    case 4: // Void: distortion circles
+      ctx.strokeStyle = '#8b008b';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const r = 30 + Math.sin(t + i) * 20;
+        ctx.beginPath();
+        ctx.arc(w * 0.5 + Math.cos(t * 0.5 + i) * 100, h * 0.3 + Math.sin(t * 0.7 + i) * 50, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      break;
+  }
+  ctx.globalAlpha = 1;
+}
+
+// -- Draw grid --
+function drawGrid(ctx, offX, offY, cs, grid, preview, canPlacePreview) {
+  // Grid cells
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const x = offX + c * cs, y = offY + r * cs;
+      // Cell background
+      ctx.fillStyle = (r + c) % 2 === 0 ? '#0d1520' : '#101828';
+      ctx.fillRect(x, y, cs, cs);
+      // Grid lines
+      ctx.strokeStyle = '#1a3040';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x, y, cs, cs);
+      // Obstacle
+      if (grid[r][c] === 2) {
+        ctx.fillStyle = '#2a2a3a';
+        ctx.fillRect(x + 2, y + 2, cs - 4, cs - 4);
+        ctx.strokeStyle = '#3a3a4a';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 2, y + 2, cs - 4, cs - 4);
+      }
+    }
+  }
+  // Spawn & core markers
+  const spX = offX + SPAWN_COL * cs, spY = offY + SPAWN_ROW * cs;
+  ctx.fillStyle = 'rgba(192,57,43,0.3)';
+  ctx.fillRect(spX, spY, cs, cs);
+  ctx.fillStyle = '#c0392b';
+  ctx.font = `${cs*0.4}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('S', spX + cs/2, spY + cs/2);
+
+  const coX = offX + CORE_COL * cs, coY = offY + CORE_ROW * cs;
+  ctx.fillStyle = 'rgba(255,215,0,0.3)';
+  ctx.fillRect(coX, coY, cs, cs);
+  // Core icon — Canvas diamond with glow
+  ctx.fillStyle = '#ffd700';
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(coX + cs/2, coY + 3);
+  ctx.lineTo(coX + cs - 3, coY + cs/2);
+  ctx.lineTo(coX + cs/2, coY + cs - 3);
+  ctx.lineTo(coX + 3, coY + cs/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Path highlight
+  if (G.path.length > 1) {
+    ctx.strokeStyle = 'rgba(0,255,204,0.15)';
+    ctx.lineWidth = cs * 0.3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(offX + G.path[0][0] * cs + cs/2, offY + G.path[0][1] * cs + cs/2);
+    for (let i = 1; i < G.path.length; i++) {
+      ctx.lineTo(offX + G.path[i][0] * cs + cs/2, offY + G.path[i][1] * cs + cs/2);
+    }
+    ctx.stroke();
+  }
+  // Preview
+  if (preview && preview.length > 0) {
+    const col = canPlacePreview ? 'rgba(0,255,204,0.4)' : 'rgba(255,50,50,0.4)';
+    for (const [cx, cy] of preview) {
+      const px = offX + (G.previewCol + cx) * cs;
+      const py = offY + (G.previewRow + cy) * cs;
+      ctx.fillStyle = col;
+      ctx.fillRect(px, py, cs, cs);
+    }
+  }
+}
+
+// -- Draw towers --
+function drawTowers(ctx, offX, offY, cs, towers) {
+  for (const t of towers) {
+    const x = offX + t.col * cs, y = offY + t.row * cs;
+    const ec = ELEM_COLORS[t.elem] || '#888';
+    // Disabled tower overlay
+    if (!t.active) {
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + 2, y + 2, cs - 4, cs - 4);
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(x + 2, y + 2, cs - 4, cs - 4);
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    // Tower base
+    ctx.fillStyle = ec;
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(x + 3, y + 3, cs - 6, cs - 6);
+    // Glow
+    ctx.globalAlpha = 0.3 + Math.sin(performance.now() / 500 + t.col) * 0.1;
+    ctx.strokeStyle = ELEM_GLOW[t.elem] || ec;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, y + 1, cs - 2, cs - 2);
+    ctx.globalAlpha = 1;
+    // Level indicator
+    if (t.level > 1) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `${cs*0.25}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('Lv' + t.level, x + cs/2, y + cs/2);
+    }
+    // Synergy glow
+    if (t.synergyBonus > 0) {
+      ctx.globalAlpha = 0.2 * t.synergyBonus;
+      ctx.fillStyle = '#00ffcc';
+      ctx.fillRect(x, y, cs, cs);
+      ctx.globalAlpha = 1;
+    }
+    // Range indicator on hover
+    if (Math.abs(input.mouseX - (x + cs/2)) < cs/2 && Math.abs(input.mouseY - (y + cs/2)) < cs/2) {
+      const range = (t.range + G.bonusRange) * cs;
+      ctx.strokeStyle = 'rgba(0,255,204,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x + cs/2, y + cs/2, range, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
+
+// -- Draw enemies --
+function drawEnemies(ctx, enemies) {
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const sx = toScreenX(e.x), sy = toScreenY(e.y);
+    const sz = cellSize * 0.7;
+    // Stealth alpha
+    const alpha = e.stealth ? 0.4 : 1;
+    ctx.globalAlpha = alpha;
+    // Canvas enemy rendering — 8 types visually distinct
+    const r = sz / 3;
+    switch(e.type) {
+      case 'grunt': // 원형 — 붉은 보라
+        ctx.fillStyle = '#c0392b';
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'rusher': // 삼각형 (전진 방향) — 주황
+        ctx.fillStyle = '#e67e22';
+        ctx.beginPath();
+        ctx.moveTo(sx + r, sy); ctx.lineTo(sx - r * 0.7, sy - r * 0.6); ctx.lineTo(sx - r * 0.7, sy + r * 0.6);
+        ctx.closePath(); ctx.fill();
+        break;
+      case 'tank': // 큰 사각형 + 갑옷선 — 진회색
+        ctx.fillStyle = '#5a6a7a';
+        ctx.fillRect(sx - r, sy - r, r * 2, r * 2);
+        ctx.strokeStyle = '#8a9aaa'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(sx - r * 0.7, sy - r * 0.7, r * 1.4, r * 1.4);
+        break;
+      case 'flyer': // 다이아몬드 + 날개 — 하늘색
+        ctx.fillStyle = '#5dade2';
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - r); ctx.lineTo(sx + r * 0.6, sy); ctx.lineTo(sx, sy + r); ctx.lineTo(sx - r * 0.6, sy);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#aed6f1'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(sx - r, sy - r * 0.4); ctx.lineTo(sx - r * 0.3, sy); ctx.lineTo(sx - r, sy + r * 0.4);
+        ctx.moveTo(sx + r, sy - r * 0.4); ctx.lineTo(sx + r * 0.3, sy); ctx.lineTo(sx + r, sy + r * 0.4);
+        ctx.stroke();
+        break;
+      case 'splitter': // 이중 원 (분열 표시) — 자주
+        ctx.fillStyle = '#a569bd';
+        ctx.beginPath(); ctx.arc(sx - r * 0.25, sy, r * 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + r * 0.25, sy, r * 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#d2b4de'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+        break;
+      case 'stealth': // 점선 윤곽만 — 투명 회색
+        ctx.strokeStyle = '#778899'; ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(119,136,153,0.3)';
+        ctx.beginPath(); ctx.arc(sx, sy, r * 0.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'healer': // 십자가 — 녹색
+        ctx.fillStyle = '#32cd32';
+        ctx.fillRect(sx - r * 0.2, sy - r, r * 0.4, r * 2);
+        ctx.fillRect(sx - r, sy - r * 0.2, r * 2, r * 0.4);
+        ctx.strokeStyle = '#50c878'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+        break;
+      case 'voidE': // 별 모양 + 오라 — 딥 퍼플
+        ctx.fillStyle = 'rgba(139,0,139,0.3)';
+        ctx.beginPath(); ctx.arc(sx, sy, r * 1.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#8b008b';
+        ctx.beginPath();
+        for (let s = 0; s < 6; s++) {
+          const a = (s / 6) * Math.PI * 2 - Math.PI / 2;
+          const pr = s % 2 === 0 ? r : r * 0.4;
+          if (s === 0) ctx.moveTo(sx + Math.cos(a) * pr, sy + Math.sin(a) * pr);
+          else ctx.lineTo(sx + Math.cos(a) * pr, sy + Math.sin(a) * pr);
+        }
+        ctx.closePath(); ctx.fill();
+        break;
+      default: // 기본 원형
+        ctx.fillStyle = '#c0392b';
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // HP bar
+    const hpRatio = e.hp / e.maxHp;
+    const barW = sz * 0.8, barH = 3;
+    const barX = sx - barW/2, barY = sy - sz/2 - 6;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = hpRatio > 0.5 ? '#2ecc71' : hpRatio > 0.25 ? '#f1c40f' : '#e74c3c';
+    ctx.fillRect(barX, barY, barW * Math.max(0, hpRatio), barH);
+    // Slow indicator
+    if (e.slowTimer > 0) {
+      ctx.fillStyle = 'rgba(0,191,255,0.5)';
+      ctx.beginPath(); ctx.arc(sx, sy, sz/4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+// -- Draw boss --
+function drawBoss(ctx, boss) {
+  if (!boss || !boss.alive) return;
+  const bx = boss.x, by = boss.y;
+  const sz = cellSize * 3;
+  // Invuln flash
+  if (boss.invuln && Math.floor(boss.animFrame * 4) % 2 === 0) ctx.globalAlpha = 0.5;
+  // Boss body
+  const ec = ELEM_COLORS[boss.elem] || '#c0392b';
+  ctx.fillStyle = ec;
+  ctx.beginPath();
+  ctx.arc(bx, by, sz/2, 0, Math.PI * 2);
+  ctx.fill();
+  // Inner glow
+  ctx.fillStyle = ELEM_GLOW[boss.elem] || '#fff';
+  ctx.globalAlpha = 0.4 + Math.sin(boss.animFrame * 2) * 0.2;
+  ctx.beginPath();
+  ctx.arc(bx, by, sz/3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // Phase indicator
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${cellSize*0.4}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const bName = G.lang === 'ko' ? boss.name : boss.nameEn;
+  ctx.fillText(bName, bx, by - sz/2 - 10);
+  // HP bar
+  const hpR = boss.hp / boss.maxHp;
+  const barW = sz * 1.2, barH = 8;
+  ctx.fillStyle = '#222';
+  ctx.fillRect(bx - barW/2, by + sz/2 + 5, barW, barH);
+  ctx.fillStyle = hpR > 0.5 ? '#2ecc71' : hpR > 0.25 ? '#f1c40f' : '#e74c3c';
+  ctx.fillRect(bx - barW/2, by + sz/2 + 5, barW * Math.max(0, hpR), barH);
+  // Phase markers
+  for (let i = 1; i < boss.phases.length; i++) {
+    const px = bx - barW/2 + barW * boss.phases[i];
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, by + sz/2 + 5); ctx.lineTo(px, by + sz/2 + 13); ctx.stroke();
+  }
+  // Weakness indicator
+  if (boss.weakExposed) {
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.arc(bx, by, sz/2 + 5, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = `${cellSize*0.3}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText('WEAK! ×3', bx, by + sz/2 + 25);
+  }
+  // Weakness hint (utility upgrade 3: 차원 감지 — §12.1)
+  if (G.upgrades.utility >= 3 && !boss.weakExposed) {
+    const weakDef = BOSS_WEAKNESS[boss.id];
+    if (weakDef && weakDef[boss.phase]) {
+      ctx.fillStyle = 'rgba(255,215,0,0.6)';
+      ctx.font = `${cellSize*0.22}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+      // Hint: show the required element based on boss's weakness definition
+      const hintMap = { ignis:'ice', glacia:'fire', toxia:'lightning', volta:'void', nil:'fire+all', destroyer:'counter' };
+      const hint = hintMap[boss.id] || '?';
+      ctx.fillText(`⚡ ${hint}`, bx, by + sz/2 + 25);
+    }
+  }
+}
+
+// -- Draw projectiles --
+function drawProjectiles(ctx) {
+  for (const p of projPool.active) {
+    if (!p.alive) continue;
+    const ec = ELEM_COLORS[p.elem] || '#fff';
+    // Trail
+    for (const t of p.trail) {
+      ctx.globalAlpha = t.alpha * 0.5;
+      ctx.fillStyle = ec;
+      ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Projectile
+    ctx.fillStyle = ec;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// -- Draw particles --
+function drawParticles(ctx) {
+  for (const p of partPool.active) {
+    if (!p.alive) continue;
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// -- Draw HUD --
+function drawHUD(ctx, w, h) {
+  const t = TEXT[G.lang];
+  const fs = Math.max(14, Math.min(20, w * 0.025));
+  ctx.font = `bold ${fs}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  const pad = 10;
+  // Core HP — Canvas heart icon
+  const heartSize = fs * 1.2;
+  drawHeartIcon(ctx, pad + heartSize/2, pad + heartSize/2, heartSize * 0.45, G.coreHP <= 2 ? '#e74c3c' : '#ffd700');
+  ctx.fillStyle = G.coreHP <= 2 ? '#e74c3c' : '#ffd700';
+  ctx.fillText(`${t.coreHP}: ${G.coreHP}/${G.coreMaxHP}`, pad + heartSize + 5, pad + 2);
+  // Score — Canvas star icon
+  const starSize = fs * 1.2;
+  drawStarIcon(ctx, pad + starSize/2, pad + fs + 8 + starSize/2, starSize * 0.45, '#32cd32');
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(`${t.score}: ${G.score}`, pad + starSize + 5, pad + fs + 10);
+  // Best score
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `${fs*0.75}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillText(`${t.best}: ${G.bestScore}`, pad + starSize + 5, pad + fs * 2 + 14);
+  // Wave info (top right)
+  ctx.textAlign = 'right';
+  ctx.font = `bold ${fs}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  const dimName = G.lang === 'ko' ? DIMENSIONS[Math.min(G.dimension, 5)].name : DIMENSIONS[Math.min(G.dimension, 5)].nameEn;
+  ctx.fillText(dimName, w - pad, pad);
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `${fs*0.8}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillText(`${t.wave} ${G.waveInDim + 1}/${DIMENSIONS[Math.min(G.dimension, 5)].waves || '?'}  |  ${t.dimStone}: ${G.dimStones}`, w - pad, pad + fs + 4);
+  // Enemies remaining
+  if (G.state === STATE.WAVE || G.state === STATE.BOSS || G.state === STATE.HIDDEN_BOSS) {
+    ctx.fillStyle = '#c0392b';
+    ctx.fillText(`Enemies: ${G.waveEnemiesLeft}`, w - pad, pad + fs * 2 + 10);
+  }
+  // Mini architect character in placement phase
+  if (G.state === STATE.PLACEMENT) {
+    drawArchitect(ctx, w - pad - 30, h - 60, 22);
+  }
+  // Language toggle button (top center)
+  ctx.textAlign = 'center';
+  ctx.font = `bold ${fs*0.8}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#505070';
+  ctx.fillText(`[${t.lang}]`, w / 2, pad);
+}
+
+// -- Draw block slots --
+function drawBlockSlots(ctx, offX, offY, cs) {
+  const slotSize = Math.max(TOUCH_MIN, cs * 1.2);
+  const pad = 6;
+  const startX = offX;
+  const startY = offY - slotSize - pad * 2;
+  for (let i = 0; i < G.blocks.length && i < 5; i++) {
+    const x = startX + i * (slotSize + pad);
+    const y = startY;
+    const selected = i === G.selectedBlock;
+    // Background
+    ctx.fillStyle = selected ? '#1a3050' : '#0d1520';
+    ctx.strokeStyle = selected ? '#00ffcc' : '#1a3040';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.fillRect(x, y, slotSize, slotSize);
+    ctx.strokeRect(x, y, slotSize, slotSize);
+    // Mini tetromino preview
+    const block = G.blocks[i];
+    const miniCS = slotSize / 5;
+    const ec = ELEM_COLORS[block.elem];
+    for (const [cx, cy] of block.cells) {
+      ctx.fillStyle = ec;
+      ctx.fillRect(x + 4 + cx * miniCS, y + 4 + cy * miniCS, miniCS - 1, miniCS - 1);
+    }
+    // Slot number
+    ctx.fillStyle = '#8080a0';
+    ctx.font = `${miniCS*1.5}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(i + 1, x + slotSize - 3, y + slotSize - 2);
+  }
+}
+
+// -- Draw touch buttons --
+function drawTouchButtons(ctx) {
+  if (!('ontouchstart' in window) && !navigator.maxTouchPoints) return;
+  const isPlacement = G.state === STATE.PLACEMENT;
+  const isWave = G.state === STATE.WAVE || G.state === STATE.BOSS || G.state === STATE.HIDDEN_BOSS;
+  for (const btn of G.touchBtns) {
+    if (btn.id === 'startWave' && !isPlacement) continue;
+    if (btn.id === 'rotate' && !isPlacement) continue;
+    if (btn.id === 'flip' && !isPlacement) continue;
+    if (btn.id === 'dismantle' && !isPlacement) continue;
+    if (btn.id === 'upgrade' && !isPlacement) continue;
+    if (btn.id.startsWith('slot') && !isPlacement) continue;
+    ctx.fillStyle = 'rgba(20,20,40,0.7)';
+    ctx.strokeStyle = '#1a3040';
+    ctx.lineWidth = 1;
+    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+    ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+    ctx.fillStyle = '#e0e6ed';
+    ctx.font = `${btn.h*0.4}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
+  }
+}
+
+// -- Draw title screen --
+function drawTitle(ctx, w, h) {
+  const t = TEXT[G.lang];
+  // Background gradient
+  const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w * 0.7);
+  grad.addColorStop(0, '#0f0f2a');
+  grad.addColorStop(1, '#0a0a0f');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // Background particles
+  for (const p of G.bgParticles) {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = '#6c3cf7';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Dimensional rift effect (signature visual)
+  const time = performance.now() / 1000;
+  ctx.save();
+  ctx.translate(w/2, h * 0.35);
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + time * 0.5;
+    const r = 60 + Math.sin(time * 2 + i) * 15;
+    ctx.strokeStyle = ELEM_COLORS[ELEMENTS[i % 5]];
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.4 + Math.sin(time + i) * 0.2;
+    ctx.beginPath();
+    ctx.arc(Math.cos(angle) * r, Math.sin(angle) * r, 15 + Math.sin(time * 3 + i) * 5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  // Architect character — Canvas-drawn (§4.1: pure Canvas, no Image)
+  drawArchitect(ctx, w/2, h * 0.22, Math.min(60, w * 0.08));
+  // Title text with glow
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(48, w * 0.07)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  // Glow effect
+  ctx.shadowColor = '#6c3cf7';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(t.title, w/2, h * 0.52);
+  ctx.shadowBlur = 0;
+  // Subtitle
+  ctx.font = `${Math.min(20, w * 0.03)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText(t.subtitle, w/2, h * 0.6);
+  // Start prompt (blinking)
+  if (Math.floor(time * 2) % 2 === 0) {
+    ctx.font = `${Math.min(18, w * 0.025)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillText(t.tapStart, w/2, h * 0.72);
+  }
+  // Language toggle
+  ctx.font = `bold ${Math.min(16, w*0.022)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#505070';
+  ctx.fillText(`[${t.lang}]`, w / 2, h * 0.85);
+  // Decorative tetrominos
+  drawDecorTetrominos(ctx, w, h, time);
+}
+
+// -- Decorative floating tetrominos on title --
+function drawDecorTetrominos(ctx, w, h, time) {
+  const shapes = [TETRO_SHAPES.T, TETRO_SHAPES.L, TETRO_SHAPES.S, TETRO_SHAPES.I];
+  for (let i = 0; i < 6; i++) {
+    const cells = shapes[i % shapes.length];
+    const cx = w * (0.1 + (i * 0.15));
+    const cy = h * 0.88 + Math.sin(time + i * 1.2) * 10;
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = ELEM_COLORS[ELEMENTS[i % 5]];
+    for (const [bx, by] of cells) {
+      ctx.fillRect(cx + bx * 10, cy + by * 10, 9, 9);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// -- Draw difficulty selection --
+function drawDiffSelect(ctx, w, h) {
+  const t = TEXT[G.lang];
+  drawBackground(ctx, w, h, 0);
+  // Title
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(32, w*0.05)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(t.selectDiff, w/2, h * 0.15);
+  // Difficulty cards
+  const diffs = ['easy', 'normal', 'hard'];
+  const cardW = Math.min(200, w * 0.25);
+  const cardH = Math.min(280, h * 0.5);
+  const gap = Math.min(30, w * 0.03);
+  const startX = w/2 - (diffs.length * cardW + (diffs.length - 1) * gap) / 2;
+  const colors = ['#2ecc71', '#3498db', '#e74c3c'];
+  for (let i = 0; i < diffs.length; i++) {
+    const d = DIFF[diffs[i]];
+    const x = startX + i * (cardW + gap);
+    const y = h * 0.25;
+    const hover = input.mouseX >= x && input.mouseX <= x + cardW && input.mouseY >= y && input.mouseY <= y + cardH;
+    // Card bg
+    ctx.fillStyle = hover ? '#1a1a2e' : '#12121e';
+    ctx.fillRect(x, y, cardW, cardH);
+    ctx.strokeStyle = colors[i];
+    ctx.lineWidth = hover ? 3 : 1;
+    ctx.strokeRect(x, y, cardW, cardH);
+    // Title
+    ctx.fillStyle = colors[i];
+    ctx.font = `bold ${cardW*0.1}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(G.lang === 'ko' ? d.label : d.labelEn, x + cardW/2, y + cardH * 0.12);
+    // Stats
+    ctx.fillStyle = '#8080a0';
+    ctx.font = `${cardW*0.07}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    const stats = [
+      `${t.coreHP}: ${d.coreHP}`,
+      `HP: ×${d.hpMul}`,
+      `${t.wave}: ×${d.countMul}`,
+      `Cards: ${d.choices}`
+    ];
+    for (let j = 0; j < stats.length; j++) {
+      ctx.fillText(stats[j], x + cardW/2, y + cardH * 0.3 + j * cardH * 0.1);
+    }
+    // Lock indicator for hard
+    if (diffs[i] === 'hard' && !G.dimsCleared[2]) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(x, y, cardW, cardH);
+      ctx.fillStyle = '#e74c3c';
+      ctx.font = `bold ${cardW*0.08}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+      ctx.fillText(t.locked, x + cardW/2, y + cardH/2);
+    }
+  }
+  // Upgrade section
+  drawUpgradePanel(ctx, w, h, startX, h * 0.25 + cardH + 20, cardW * 3 + gap * 2);
+}
+
+// -- Draw upgrade panel --
+function drawUpgradePanel(ctx, w, h, x, y, totalW) {
+  const t = TEXT[G.lang];
+  const trees = ['attack', 'defense', 'utility'];
+  const treeLabels = [t.attack, t.defense, t.utility];
+  const treeColors = ['#e74c3c', '#3498db', '#2ecc71'];
+  const panelW = totalW / 3 - 10;
+  ctx.font = `bold ${Math.min(14, panelW*0.08)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 3; i++) {
+    const px = x + i * (panelW + 10);
+    ctx.fillStyle = '#0d1520';
+    ctx.fillRect(px, y, panelW, 60);
+    ctx.strokeStyle = treeColors[i];
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px, y, panelW, 60);
+    ctx.fillStyle = treeColors[i];
+    ctx.fillText(`${treeLabels[i]} Lv${G.upgrades[trees[i]]}`, px + panelW/2, y + 15);
+    const lvl = G.upgrades[trees[i]];
+    if (lvl < 5) {
+      const cost = UPGRADE_TREES[trees[i]][lvl].cost;
+      ctx.fillStyle = G.dimStones >= cost ? '#ffd700' : '#505070';
+      ctx.font = `${Math.min(11, panelW*0.06)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+      ctx.fillText(`${UPGRADE_TREES[trees[i]][lvl].name} (${cost}💎)`, px + panelW/2, y + 35);
+      ctx.fillText(UPGRADE_TREES[trees[i]][lvl].eff, px + panelW/2, y + 50);
+    } else {
+      ctx.fillStyle = '#ffd700';
+      ctx.fillText('MAX', px + panelW/2, y + 40);
+    }
+  }
+}
+
+// -- Draw dimension intro cutscene --
+function drawDimIntro(ctx, w, h) {
+  const dim = DIMENSIONS[Math.min(G.dimension, 5)];
+  const t = TEXT[G.lang];
+  drawBackground(ctx, w, h, G.dimension);
+  // Dim name fade in
+  const alpha = Math.min(1, G.introTimer / 1);
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(40, w*0.06)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.shadowColor = dim.accent;
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(G.lang === 'ko' ? dim.name : dim.nameEn, w/2, h * 0.35);
+  ctx.shadowBlur = 0;
+  // Story text
+  ctx.font = `${Math.min(18, w*0.025)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText(t.dimIntro1, w/2, h * 0.5);
+  ctx.fillText(t.dimIntro2, w/2, h * 0.57);
+  ctx.globalAlpha = 1;
+  // Skip prompt
+  if (Math.floor(performance.now() / 500) % 2 === 0) {
+    ctx.fillStyle = '#505070';
+    ctx.font = `${Math.min(14, w*0.02)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText('SPACE / TAP', w/2, h * 0.8);
+  }
+}
+
+// -- Draw roguelike card selection --
+function drawRogueSelect(ctx, w, h) {
+  drawBackground(ctx, w, h, G.dimension);
+  const t = TEXT[G.lang];
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(28, w*0.04)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(t.pick, w/2, h * 0.1);
+  const cardW = Math.min(180, w * 0.22);
+  const cardH = Math.min(250, h * 0.45);
+  const gap = Math.min(20, w * 0.02);
+  const total = G.rogueCards.length;
+  const startX = w/2 - (total * cardW + (total - 1) * gap) / 2;
+  const rarityColor = { common: '#aaa', rare: '#3498db', epic: '#9b59b6' };
+  const rarityBg = { common: '#1a1a2e', rare: '#0d1a30', epic: '#1a0d2e' };
+  for (let i = 0; i < total; i++) {
+    const card = G.rogueCards[i];
+    const x = startX + i * (cardW + gap);
+    const y = h * 0.2;
+    const hover = input.mouseX >= x && input.mouseX <= x + cardW && input.mouseY >= y && input.mouseY <= y + cardH;
+    const sel = G.selectedCard === i;
+    // Card bg
+    ctx.fillStyle = sel ? '#2a2a4e' : (hover ? rarityBg[card.rarity] : '#12121e');
+    ctx.fillRect(x, y, cardW, cardH);
+    ctx.strokeStyle = rarityColor[card.rarity];
+    ctx.lineWidth = sel ? 3 : (hover ? 2 : 1);
+    ctx.strokeRect(x, y, cardW, cardH);
+    // Rarity strip
+    ctx.fillStyle = rarityColor[card.rarity];
+    ctx.fillRect(x, y, cardW, 4);
+    // Powerup icon — Canvas gem shape
+    const gemX = x + cardW/2, gemY = y + 44, gemR = cardW * 0.09;
+    ctx.fillStyle = rarityColor[card.rarity];
+    ctx.beginPath();
+    ctx.moveTo(gemX, gemY - gemR * 1.3);
+    ctx.lineTo(gemX + gemR, gemY - gemR * 0.3);
+    ctx.lineTo(gemX + gemR * 0.6, gemY + gemR);
+    ctx.lineTo(gemX - gemR * 0.6, gemY + gemR);
+    ctx.lineTo(gemX - gemR, gemY - gemR * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
+    ctx.beginPath(); ctx.moveTo(gemX - gemR * 0.5, gemY - gemR * 0.3);
+    ctx.lineTo(gemX + gemR * 0.5, gemY - gemR * 0.3); ctx.stroke();
+    ctx.globalAlpha = 1;
+    // Name
+    ctx.fillStyle = '#e0e6ed';
+    ctx.font = `bold ${cardW*0.08}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(G.lang === 'ko' ? card.name : card.nameEn, x + cardW/2, y + cardH * 0.4);
+    // Desc
+    ctx.fillStyle = '#8080a0';
+    ctx.font = `${cardW*0.065}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(card.desc, x + cardW/2, y + cardH * 0.55);
+    // Rarity label
+    ctx.fillStyle = rarityColor[card.rarity];
+    ctx.font = `${cardW*0.06}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(card.rarity.toUpperCase(), x + cardW/2, y + cardH * 0.85);
+  }
+}
+
+// -- Draw game over screen --
+function drawGameOver(ctx, w, h) {
+  const t = TEXT[G.lang];
+  // Dark overlay
+  ctx.fillStyle = 'rgba(10,10,15,0.85)';
+  ctx.fillRect(0, 0, w, h);
+  // Red vignette
+  const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w*0.6);
+  grad.addColorStop(0, 'rgba(200,0,0,0)');
+  grad.addColorStop(1, 'rgba(200,0,0,0.3)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // Title
+  ctx.font = `bold ${Math.min(44, w*0.07)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.shadowColor = '#e74c3c';
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillText(t.gameover, w/2, h * 0.3);
+  ctx.shadowBlur = 0;
+  // Score
+  ctx.font = `${Math.min(24, w*0.035)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(`${t.finalScore}: ${G.score}`, w/2, h * 0.45);
+  // New best
+  if (G.isNewBest) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = `bold ${Math.min(22, w*0.032)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(t.newBest, w/2, h * 0.53);
+  }
+  // Dim stones earned
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `${Math.min(18, w*0.025)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillText(`${t.dimStone}: ${G.dimStones}`, w/2, h * 0.62);
+  // Fallen architect
+  ctx.globalAlpha = 0.5;
+  drawArchitect(ctx, w/2, h * 0.7, Math.min(30, w * 0.04));
+  ctx.globalAlpha = 1;
+  // Restart
+  if (Math.floor(performance.now() / 600) % 2 === 0) {
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = `${Math.min(16, w*0.022)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(t.restart, w/2, h * 0.82);
+  }
+}
+
+// -- Draw victory screen --
+function drawVictory(ctx, w, h) {
+  const t = TEXT[G.lang];
+  drawBackground(ctx, w, h, 4);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(40, w*0.06)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText(t.victory, w/2, h * 0.3);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.font = `${Math.min(22, w*0.03)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillText(`${t.finalScore}: ${G.score}`, w/2, h * 0.45);
+  if (G.isNewBest) {
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText(t.newBest, w/2, h * 0.53);
+  }
+  // Triumphant architect
+  drawArchitect(ctx, w/2, h * 0.68, Math.min(45, w * 0.06));
+  if (Math.floor(performance.now() / 600) % 2 === 0) {
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = `${Math.min(16, w*0.022)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(t.restart, w/2, h * 0.85);
+  }
+}
+
+// -- Draw true ending --
+function drawTrueEnding(ctx, w, h) {
+  const t = TEXT[G.lang];
+  ctx.fillStyle = '#050008';
+  ctx.fillRect(0, 0, w, h);
+  // Epilogue scroll
+  const alpha = Math.min(1, G.endTimer / 2);
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(36, w*0.05)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText(t.trueEnd, w/2, h * 0.25);
+  ctx.font = `${Math.min(18, w*0.025)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(t.epilogue1, w/2, h * 0.45);
+  ctx.fillText(t.epilogue2, w/2, h * 0.52);
+  ctx.globalAlpha = 1;
+  if (G.endTimer > 3 && Math.floor(performance.now() / 600) % 2 === 0) {
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = `${Math.min(14, w*0.02)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillText(t.restart, w/2, h * 0.8);
+  }
+}
+
+// -- Draw pause overlay --
+function drawPause(ctx, w, h) {
+  const t = TEXT[G.lang];
+  ctx.fillStyle = 'rgba(10,10,20,0.8)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(36, w*0.05)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(t.pause, w/2, h * 0.3);
+  // Resume button
+  const btnW = Math.max(TOUCH_MIN * 3, w * 0.3);
+  const btnH = Math.max(TOUCH_MIN, 40);
+  const bx = w/2 - btnW/2, by = h * 0.45;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 2;
+  ctx.fillRect(bx, by, btnW, btnH);
+  ctx.strokeRect(bx, by, btnW, btnH);
+  ctx.fillStyle = '#00ffcc';
+  ctx.font = `${btnH*0.4}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillText(t.resume, w/2, by + btnH/2);
+  // Title button
+  const by2 = by + btnH + 20;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.strokeStyle = '#e74c3c';
+  ctx.fillRect(bx, by2, btnW, btnH);
+  ctx.strokeRect(bx, by2, btnW, btnH);
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillText(t.toTitle, w/2, by2 + btnH/2);
+  // Store button areas for click detection
+  G._pauseResume = { x: bx, y: by, w: btnW, h: btnH };
+  G._pauseTitle = { x: bx, y: by2, w: btnW, h: btnH };
+}
+
+// -- Draw confirm modal (F3: no alert/confirm) --
+function drawConfirmModal(ctx, w, h) {
+  const t = TEXT[G.lang];
+  ctx.fillStyle = 'rgba(10,10,20,0.85)';
+  ctx.fillRect(0, 0, w, h);
+  const mW = Math.min(350, w * 0.7);
+  const mH = Math.min(180, h * 0.3);
+  const mx = w/2 - mW/2, my = h/2 - mH/2;
+  ctx.fillStyle = '#12121e';
+  ctx.strokeStyle = '#1e1e30';
+  ctx.lineWidth = 2;
+  ctx.fillRect(mx, my, mW, mH);
+  ctx.strokeRect(mx, my, mW, mH);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.min(18, mW*0.06)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#e0e6ed';
+  ctx.fillText(t.confirm, mx + mW/2, my + mH * 0.3);
+  // Yes / No buttons
+  const bw = Math.max(TOUCH_MIN * 2, mW * 0.3);
+  const bh = Math.max(TOUCH_MIN, 36);
+  const yesX = mx + mW/2 - bw - 10, noX = mx + mW/2 + 10;
+  const btnY = my + mH * 0.6;
+  ctx.fillStyle = '#2ecc71'; ctx.fillRect(yesX, btnY, bw, bh);
+  ctx.fillStyle = '#fff'; ctx.fillText(t.yes, yesX + bw/2, btnY + bh/2);
+  ctx.fillStyle = '#e74c3c'; ctx.fillRect(noX, btnY, bw, bh);
+  ctx.fillStyle = '#fff'; ctx.fillText(t.no, noX + bw/2, btnY + bh/2);
+  G._confirmYes = { x: yesX, y: btnY, w: bw, h: bh };
+  G._confirmNo = { x: noX, y: btnY, w: bw, h: bh };
+}
+
+// -- Draw boss intro --
+function drawBossIntro(ctx, w, h) {
+  const t = TEXT[G.lang];
+  drawBackground(ctx, w, h, G.dimension);
+  const alpha = Math.min(1, G.introTimer / 0.5);
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(40, w*0.06)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.shadowColor = '#e74c3c';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillText(t.bossAppear, w/2, h * 0.35);
+  ctx.shadowBlur = 0;
+  // Boss name
+  if (G.boss) {
+    ctx.font = `bold ${Math.min(30, w*0.045)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+    ctx.fillStyle = ELEM_COLORS[G.boss.elem] || '#c0392b';
+    ctx.fillText(G.lang === 'ko' ? G.boss.name : G.boss.nameEn, w/2, h * 0.5);
+  }
+  // Architect facing boss (confrontation scene)
+  drawArchitect(ctx, w * 0.25, h * 0.65, Math.min(40, w * 0.05));
+  ctx.globalAlpha = 1;
+}
+
+// -- Draw wave clear --
+function drawWaveClear(ctx, w, h) {
+  const t = TEXT[G.lang];
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(36, w*0.05)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#00ffcc';
+  ctx.fillText(t.cleared, w/2, h * 0.4);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `${Math.min(16, w*0.022)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillText(`+${10 + G.totalWave * 5} ${t.dimStone}`, w/2, h * 0.55);
+}
+
+// -- Draw placement hints --
+function drawPlacementHints(ctx, w, h) {
+  const t = TEXT[G.lang];
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.font = `${Math.min(14, w*0.02)}px 'Segoe UI',system-ui,-apple-system,sans-serif`;
+  ctx.fillStyle = '#505070';
+  ctx.fillText(`${t.placement}  |  ${t.rotate}  |  ${t.flip}  |  ${t.startWave}`, w/2, h - 8);
+}
+
+// -- Transition overlay --
+function drawTransition(ctx, w, h) {
+  if (G._transObj && G._transObj.alpha > 0) {
+    ctx.fillStyle = `rgba(10,10,15,${G._transObj.alpha})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 9: UI & UPDATE ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Process input based on state (all input in update, not render — Cycle 23 lesson) --
+function processInput(dt) {
+  if (!sys(SYS.input)) return;
+  const t = TEXT[G.lang];
+
+  switch(G.state) {
+    case STATE.TITLE:
+      if (input.jp('Space') || input.tapped) {
+        // Check if tapped language toggle
+        if (input.tapped) {
+          const lx = cW/2 - 30, ly = cH * 0.85 - 12, lw = 60, lh = 25;
+          if (input.tapX >= lx && input.tapX <= lx + lw && input.tapY >= ly && input.tapY <= ly + lh) {
+            G.lang = G.lang === 'ko' ? 'en' : 'ko';
+            saveSave();
+            break;
+          }
+        }
+        beginTransition(STATE.DIFF_SELECT);
+        sound.init();
+        sound.playSfx('select');
+      }
+      break;
+
+    case STATE.DIFF_SELECT:
+      if (input.tapped) {
+        const diffs = ['easy', 'normal', 'hard'];
+        const cardW = Math.min(200, cW * 0.25);
+        const cardH = Math.min(280, cH * 0.5);
+        const gap = Math.min(30, cW * 0.03);
+        const startX = cW/2 - (3 * cardW + 2 * gap) / 2;
+        for (let i = 0; i < 3; i++) {
+          const x = startX + i * (cardW + gap);
+          const y = cH * 0.25;
+          if (input.tapX >= x && input.tapX <= x + cardW && input.tapY >= y && input.tapY <= y + cardH) {
+            if (diffs[i] === 'hard' && !G.dimsCleared[2]) break;
+            G.diff = diffs[i];
+            initRun();
+            beginTransition(STATE.DIM_INTRO);
+            sound.playSfx('select');
+            break;
+          }
+        }
+        // Upgrade buttons
+        const trees = ['attack', 'defense', 'utility'];
+        const panelW = (cardW * 3 + gap * 2) / 3 - 10;
+        const uy = cH * 0.25 + cardH + 20;
+        for (let i = 0; i < 3; i++) {
+          const px = startX + i * (panelW + 10);
+          if (input.tapX >= px && input.tapX <= px + panelW && input.tapY >= uy && input.tapY <= uy + 60) {
+            purchaseUpgrade(trees[i]);
+            break;
+          }
+        }
+      }
+      if (input.jp('Escape')) { beginTransition(STATE.TITLE); }
+      break;
+
+    case STATE.DIM_INTRO:
+    case STATE.BOSS_INTRO:
+    case STATE.HIDDEN_INTRO:
+      G.introTimer += dt;
+      if (G.introTimer > 3 || input.jp('Space') || input.tapped) {
+        if (G.state === STATE.DIM_INTRO) {
+          beginTransition(STATE.PLACEMENT);
+        } else if (G.state === STATE.BOSS_INTRO || G.state === STATE.HIDDEN_INTRO) {
+          beginBossFight();
+        }
+      }
+      break;
+
+    case STATE.PLACEMENT: {
+      // Mouse/touch grid position
+      const mx = input.mouseX, my = input.mouseY;
+      const gc = Math.floor((mx - gridOffX) / cellSize);
+      const gr = Math.floor((my - gridOffY) / cellSize);
+      G.previewCol = gc; G.previewRow = gr;
+
+      // Block slot selection (keys 1-5)
+      for (let i = 0; i < 5; i++) {
+        if (input.jp('Digit' + (i+1)) || input.jp('Numpad' + (i+1))) {
+          if (i < G.blocks.length) { G.selectedBlock = i; G.rotation = 0; G.flipped = false; }
+        }
+      }
+      // Rotate (R or right click or double tap)
+      if (input.jp('KeyR') || input.rightClick || input.doubleTapped) {
+        G.rotation = (G.rotation + 1) % 4;
+        sound.playSfx('rotate');
+      }
+      // Flip (F or two-finger tap)
+      if (input.jp('KeyF') || input.twoFingerTap) {
+        G.flipped = !G.flipped;
+        sound.playSfx('rotate');
+      }
+      // Place block (click/tap on grid)
+      if (input.tapped && gc >= 0 && gc < GRID_COLS && gr >= 0 && gr < GRID_ROWS) {
+        // Check if tap hit a touch button first
+        let hitBtn = false;
+        for (const btn of G.touchBtns) {
+          if (input.tapX >= btn.x && input.tapX <= btn.x + btn.w && input.tapY >= btn.y && input.tapY <= btn.y + btn.h) {
+            hitBtn = true;
+            handleTouchButton(btn.id);
+            break;
+          }
+        }
+        if (!hitBtn) {
+          const cells = getCurrentCells();
+          const pathGrid = G.grid.map(row => row.map(v => v > 0 ? 1 : 0));
+          if (cells.length > 0 && canPlace(pathGrid, cells, gc, gr)) {
+            const elem = G.blocks[G.selectedBlock].elem;
+            placeTetromino(G.grid, G.towers, cells, gc, gr, elem);
+            G.blocks.splice(G.selectedBlock, 1);
+            if (G.selectedBlock >= G.blocks.length) G.selectedBlock = Math.max(0, G.blocks.length - 1);
+            G.rotation = 0; G.flipped = false;
+            recalcPath();
+            computeSynergy(G.towers, G.grid);
+            sound.playSfx('place');
+          }
+        }
+      }
+      // Touch button hits outside grid area (non-grid taps only)
+      if (input.tapped && (gc < 0 || gc >= GRID_COLS || gr < 0 || gr >= GRID_ROWS)) {
+        for (const btn of G.touchBtns) {
+          if (input.tapX >= btn.x && input.tapX <= btn.x + btn.w && input.tapY >= btn.y && input.tapY <= btn.y + btn.h) {
+            handleTouchButton(btn.id);
+            break;
+          }
+        }
+      }
+      // Start wave
+      if (input.jp('Space')) { beginWave(); }
+      // Pause
+      if (input.jp('Escape')) { setStateDirect(STATE.PAUSE); G.prevState = STATE.PLACEMENT; }
+      // Tower info on Q
+      if (input.jp('KeyQ')) { /* toggle info panel - minimal for now */ }
+      break;
+    }
+
+    case STATE.WAVE:
+    case STATE.BOSS:
+    case STATE.HIDDEN_BOSS:
+      // Pause
+      if (input.jp('Escape')) { setStateDirect(STATE.PAUSE); }
+      // Touch pause button
+      if (input.tapped) {
+        for (const btn of G.touchBtns) {
+          if (btn.id === 'pause' && input.tapX >= btn.x && input.tapX <= btn.x + btn.w && input.tapY >= btn.y && input.tapY <= btn.y + btn.h) {
+            setStateDirect(STATE.PAUSE);
+          }
+        }
+      }
+      break;
+
+    case STATE.WAVE_CLEAR:
+      G.clearTimer += dt;
+      if (G.clearTimer > 2) {
+        G.dimStones += 10 + G.totalWave * 5;
+        saveSave();
+        beginTransition(STATE.ROGUE_SELECT);
+      }
+      break;
+
+    case STATE.ROGUE_SELECT:
+      if (input.tapped) {
+        const cardW = Math.min(180, cW * 0.22);
+        const cardH = Math.min(250, cH * 0.45);
+        const gap = Math.min(20, cW * 0.02);
+        const total = G.rogueCards.length;
+        const startX = cW/2 - (total * cardW + (total - 1) * gap) / 2;
+        for (let i = 0; i < total; i++) {
+          const x = startX + i * (cardW + gap);
+          const y = cH * 0.2;
+          if (input.tapX >= x && input.tapX <= x + cardW && input.tapY >= y && input.tapY <= y + cardH) {
+            G.selectedCard = i;
+            applyCard(G.rogueCards[i]);
+            // Back to placement
+            beginTransition(STATE.PLACEMENT);
+            break;
+          }
+        }
+      }
+      break;
+
+    case STATE.BOSS_DEFEAT:
+      G.clearTimer += dt;
+      if (G.clearTimer > 2.5) {
+        advanceDimension();
+      }
+      break;
+
+    case STATE.DIM_CLEAR:
+      G.clearTimer += dt;
+      if (G.clearTimer > 2) {
+        beginTransition(STATE.DIM_INTRO);
+      }
+      break;
+
+    case STATE.GAMEOVER:
+    case STATE.VICTORY:
+      if (input.jp('KeyR') || input.tapped) {
+        beginTransition(STATE.TITLE);
+      }
+      break;
+
+    case STATE.TRUE_ENDING:
+      G.endTimer += dt;
+      if (G.endTimer > 5 && (input.jp('KeyR') || input.tapped)) {
+        beginTransition(STATE.TITLE);
+      }
+      break;
+
+    case STATE.PAUSE:
+      if (input.jp('Escape') || input.jp('Space')) {
+        setStateDirect(G.prevState);
+      }
+      if (input.tapped && G._pauseResume) {
+        const r = G._pauseResume;
+        if (input.tapX >= r.x && input.tapX <= r.x + r.w && input.tapY >= r.y && input.tapY <= r.y + r.h) {
+          setStateDirect(G.prevState);
+        }
+        const t2 = G._pauseTitle;
+        if (t2 && input.tapX >= t2.x && input.tapX <= t2.x + t2.w && input.tapY >= t2.y && input.tapY <= t2.y + t2.h) {
+          setStateDirect(STATE.CONFIRM);
+        }
+      }
+      break;
+
+    case STATE.CONFIRM:
+      if (input.tapped && G._confirmYes) {
+        const y = G._confirmYes;
+        if (input.tapX >= y.x && input.tapX <= y.x + y.w && input.tapY >= y.y && input.tapY <= y.y + y.h) {
+          beginTransition(STATE.TITLE);
+        }
+        const n = G._confirmNo;
+        if (input.tapX >= n.x && input.tapX <= n.x + n.w && input.tapY >= n.y && input.tapY <= n.y + n.h) {
+          setStateDirect(STATE.PAUSE);
+        }
+      }
+      if (input.jp('Escape')) { setStateDirect(STATE.PAUSE); }
+      break;
+  }
+}
+
+// -- Handle touch button press --
+function handleTouchButton(id) {
+  switch(id) {
+    case 'rotate':
+      G.rotation = (G.rotation + 1) % 4;
+      sound.playSfx('rotate');
+      break;
+    case 'flip':
+      G.flipped = !G.flipped;
+      sound.playSfx('rotate');
+      break;
+    case 'startWave':
+      beginWave();
+      break;
+    case 'pause':
+      setStateDirect(STATE.PAUSE); G.prevState = STATE.PLACEMENT;
+      break;
+    case 'dismantle':
+      // Dismantle tower at mouse position
+      for (let i = G.towers.length - 1; i >= 0; i--) {
+        const t = G.towers[i];
+        const tx = gridOffX + t.col * cellSize + cellSize/2;
+        const ty = gridOffY + t.row * cellSize + cellSize/2;
+        if (dist(input.tapX, input.tapY, tx, ty) < cellSize) {
+          G.grid[t.row][t.col] = 0;
+          G.towers.splice(i, 1);
+          G.dimStones += 5; // partial refund
+          recalcPath();
+          computeSynergy(G.towers, G.grid);
+          break;
+        }
+      }
+      break;
+    case 'upgrade':
+      // Upgrade tower at mouse position
+      for (const t of G.towers) {
+        const tx = gridOffX + t.col * cellSize + cellSize/2;
+        const ty = gridOffY + t.row * cellSize + cellSize/2;
+        if (dist(input.tapX, input.tapY, tx, ty) < cellSize && G.dimStones >= 15) {
+          t.level++;
+          t.dps *= 1.2;
+          t.range *= 1.1;
+          G.dimStones -= 15;
+          sound.playSfx('upgrade');
+          saveSave();
+          break;
+        }
+      }
+      break;
+    default:
+      if (id.startsWith('slot')) {
+        const idx = parseInt(id.replace('slot', ''));
+        if (idx < G.blocks.length) { G.selectedBlock = idx; G.rotation = 0; G.flipped = false; }
+      }
+      break;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 10: INIT & GAME LOOP ══
+// ══════════════════════════════════════════════════════════════════
+
+// -- Global instances --
+const tween = new TweenManager();
+const input = new InputManager();
+const sound = new SoundManager();
+const projPool = new ObjectPool(createProjectile, 200);
+const partPool = new ObjectPool(createParticle, 500);
+
+// -- Main update --
+function update(dt) {
+  // Tween always updates (all states)
+  if (sys(SYS.tw)) tween.update(dt);
+
+  // Play time
+  if (G.state === STATE.WAVE || G.state === STATE.BOSS || G.state === STATE.PLACEMENT || G.state === STATE.HIDDEN_BOSS) {
+    G.playTime += dt;
+  }
+
+  // Input processing (in update, not render — Cycle 23)
+  processInput(dt);
+
+  // Camera shake
+  if (G.camShakeDur > 0) {
+    G.camShakeDur -= dt * 1000;
+    G.camShakeX = randRange(-4, 4) * (G.camShakeDur / 300);
+    G.camShakeY = randRange(-4, 4) * (G.camShakeDur / 300);
+  } else {
+    G.camShakeX = 0; G.camShakeY = 0;
+  }
+
+  // Camera zoom lerp
+  G.camZoom = lerp(G.camZoom, G.camTargetZoom, dt * 3);
+
+  // Enemies
+  if (sys(SYS.enemy)) updateEnemies(dt);
+
+  // Towers
+  if (sys(SYS.tower)) updateTowers(dt);
+
+  // Boss
+  if (sys(SYS.boss)) updateBoss(dt);
+
+  // Projectiles
+  if (sys(SYS.proj)) updateProjectiles(dt);
+
+  // Particles
+  if (sys(SYS.particle)) updateParticles(dt);
+
+  // Background scroll
+  bgScrollX += dt * 20;
+
+  // Title particles
+  if (G.state === STATE.TITLE) {
+    G.titleAnim += dt;
+    for (const p of G.bgParticles) {
+      p.y -= p.speed * dt;
+      if (p.y < -10) { p.y = cH + 10; p.x = Math.random() * cW; }
+    }
+  }
+}
+
+// -- Main render --
+function render() {
+  ctx.clearRect(0, 0, cW, cH);
+
+  // Camera transform
+  ctx.save();
+  ctx.translate(G.camShakeX, G.camShakeY);
+  if (G.camZoom !== 1) {
+    ctx.translate(cW/2, cH/2);
+    ctx.scale(G.camZoom, G.camZoom);
+    ctx.translate(-cW/2, -cH/2);
+  }
+
+  switch(G.state) {
+    case STATE.TITLE:
+      drawTitle(ctx, cW, cH);
+      break;
+
+    case STATE.DIFF_SELECT:
+      drawDiffSelect(ctx, cW, cH);
+      break;
+
+    case STATE.DIM_INTRO:
+      drawDimIntro(ctx, cW, cH);
+      break;
+
+    case STATE.PLACEMENT:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGrid(ctx, gridOffX, gridOffY, cellSize, G.grid, getCurrentCells(),
+        G.blocks.length > 0 && canPlace(G.grid.map(r=>r.map(v=>v>0?1:0)), getCurrentCells(), G.previewCol, G.previewRow));
+      drawTowers(ctx, gridOffX, gridOffY, cellSize, G.towers);
+      drawBlockSlots(ctx, gridOffX, gridOffY, cellSize);
+      drawParticles(ctx);
+      drawHUD(ctx, cW, cH);
+      drawPlacementHints(ctx, cW, cH);
+      drawTouchButtons(ctx);
+      break;
+
+    case STATE.WAVE:
+    case STATE.HIDDEN_BOSS:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGrid(ctx, gridOffX, gridOffY, cellSize, G.grid, null, false);
+      drawTowers(ctx, gridOffX, gridOffY, cellSize, G.towers);
+      drawEnemies(ctx, G.enemies);
+      drawProjectiles(ctx);
+      drawParticles(ctx);
+      drawHUD(ctx, cW, cH);
+      drawTouchButtons(ctx);
+      if (G.bossActive) drawBoss(ctx, G.boss);
+      break;
+
+    case STATE.BOSS_INTRO:
+    case STATE.HIDDEN_INTRO:
+      drawBossIntro(ctx, cW, cH);
+      break;
+
+    case STATE.BOSS:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGrid(ctx, gridOffX, gridOffY, cellSize, G.grid, null, false);
+      drawTowers(ctx, gridOffX, gridOffY, cellSize, G.towers);
+      drawEnemies(ctx, G.enemies);
+      drawBoss(ctx, G.boss);
+      drawProjectiles(ctx);
+      drawParticles(ctx);
+      drawHUD(ctx, cW, cH);
+      drawTouchButtons(ctx);
+      break;
+
+    case STATE.WAVE_CLEAR:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGrid(ctx, gridOffX, gridOffY, cellSize, G.grid, null, false);
+      drawTowers(ctx, gridOffX, gridOffY, cellSize, G.towers);
+      drawWaveClear(ctx, cW, cH);
+      break;
+
+    case STATE.ROGUE_SELECT:
+      drawRogueSelect(ctx, cW, cH);
+      break;
+
+    case STATE.BOSS_DEFEAT:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGrid(ctx, gridOffX, gridOffY, cellSize, G.grid, null, false);
+      drawTowers(ctx, gridOffX, gridOffY, cellSize, G.towers);
+      drawWaveClear(ctx, cW, cH); // Reuse clear overlay
+      break;
+
+    case STATE.DIM_CLEAR:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawWaveClear(ctx, cW, cH);
+      break;
+
+    case STATE.GAMEOVER:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGameOver(ctx, cW, cH);
+      break;
+
+    case STATE.VICTORY:
+      drawVictory(ctx, cW, cH);
+      break;
+
+    case STATE.TRUE_ENDING:
+      drawTrueEnding(ctx, cW, cH);
+      break;
+
+    case STATE.PAUSE:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawGrid(ctx, gridOffX, gridOffY, cellSize, G.grid, null, false);
+      drawTowers(ctx, gridOffX, gridOffY, cellSize, G.towers);
+      drawPause(ctx, cW, cH);
+      break;
+
+    case STATE.CONFIRM:
+      drawBackground(ctx, cW, cH, G.dimension);
+      drawConfirmModal(ctx, cW, cH);
+      break;
+  }
+
+  ctx.restore();
+
+  // Transition overlay (on top of everything, outside camera transform)
+  drawTransition(ctx, cW, cH);
+}
+
+// -- Game loop (F4: no setTimeout, 60fps target) --
+let lastTime = 0;
+function gameLoop(timestamp) {
+  const raw = timestamp - lastTime;
+  const dt = Math.min(raw, 33.33) / 1000; // Cap at 2 frames, convert to seconds
+  lastTime = timestamp;
+
+  update(dt);
+  render();
+  input.flush();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// -- Initialization --
+function init() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+
+  // Load saved data
+  loadSave();
+
+  // Setup (§4.1: pure Canvas, no external assets)
+  resize();
+  input.init(canvas);
+  window.addEventListener('resize', resize);
+  resize();
+  initBgParticles();
+
+  // Start
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+init();
+</script>
+</body>
+</html>

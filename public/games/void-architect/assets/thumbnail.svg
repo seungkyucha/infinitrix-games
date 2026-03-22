@@ -1,0 +1,366 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="tSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#020510"/>
+      <stop offset="40%" stop-color="#0a0e1a"/>
+      <stop offset="70%" stop-color="#0d1225"/>
+      <stop offset="100%" stop-color="#1a1535"/>
+    </linearGradient>
+    <radialGradient id="tRift" cx="50%" cy="30%" r="40%">
+      <stop offset="0%" stop-color="#8b008b" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#2d1b4e" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0a0e1a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="40%" stop-color="#ffaa00" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ff6600" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tPlayerEye" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#00ffcc"/>
+      <stop offset="100%" stop-color="#009988" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tEnemyEye" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ff4444"/>
+      <stop offset="50%" stop-color="#cc0000"/>
+      <stop offset="100%" stop-color="#660000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tCloakGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2a4a"/>
+      <stop offset="100%" stop-color="#0d1525"/>
+    </linearGradient>
+    <linearGradient id="tTitleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="50%" stop-color="#ffaa00"/>
+      <stop offset="100%" stop-color="#cc7700"/>
+    </linearGradient>
+    <linearGradient id="tSubGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00ffcc" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00ffcc" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00ffcc" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tSmGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="tTextShadow">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.8"/>
+    </filter>
+    <linearGradient id="tGridLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a3040" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#1a3040" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1a3040" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="tVoidAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8b008b" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#2d1b4e" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a0e1a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background sky -->
+  <rect width="400" height="300" fill="url(#tSky)"/>
+  <rect width="400" height="300" fill="url(#tRift)"/>
+
+  <!-- Stars -->
+  <g fill="#fff">
+    <circle cx="20" cy="15" r="0.8" opacity="0.7"/><circle cx="55" cy="30" r="0.6" opacity="0.5"/>
+    <circle cx="90" cy="12" r="1" opacity="0.8"/><circle cx="130" cy="40" r="0.7" opacity="0.6"/>
+    <circle cx="170" cy="18" r="0.5" opacity="0.4"/><circle cx="210" cy="35" r="0.9" opacity="0.7"/>
+    <circle cx="250" cy="10" r="0.6" opacity="0.5"/><circle cx="290" cy="28" r="0.8" opacity="0.6"/>
+    <circle cx="330" cy="15" r="1.1" opacity="0.8"/><circle cx="370" cy="38" r="0.7" opacity="0.5"/>
+    <circle cx="40" cy="55" r="0.5" opacity="0.4"/><circle cx="105" cy="65" r="0.7" opacity="0.5"/>
+    <circle cx="180" cy="58" r="0.6" opacity="0.4"/><circle cx="260" cy="52" r="0.8" opacity="0.6"/>
+    <circle cx="340" cy="60" r="0.5" opacity="0.3"/><circle cx="385" cy="48" r="0.6" opacity="0.4"/>
+    <circle cx="60" cy="80" r="0.4" opacity="0.3"/><circle cx="150" cy="85" r="0.6" opacity="0.4"/>
+    <circle cx="310" cy="75" r="0.5" opacity="0.3"/><circle cx="390" cy="70" r="0.4" opacity="0.3"/>
+  </g>
+
+  <!-- Bright glowing stars -->
+  <g filter="url(#tSmGlow)">
+    <circle cx="75" cy="25" r="1.2" fill="#ffd700" opacity="0.5"/>
+    <circle cx="220" cy="20" r="1.5" fill="#00bfff" opacity="0.4"/>
+    <circle cx="350" cy="30" r="1.0" fill="#9b59b6" opacity="0.4"/>
+  </g>
+
+  <!-- Dimensional rift (dramatic center feature) -->
+  <ellipse cx="200" cy="80" rx="120" ry="35" fill="url(#tRift)" opacity="0.8"/>
+  <path d="M120 80 Q160 60 200 80 Q240 100 280 80" fill="none" stroke="#ffd700" stroke-width="1" opacity="0.4" filter="url(#tGlow)"/>
+  <ellipse cx="200" cy="80" rx="60" ry="15" fill="#8b008b" opacity="0.15" filter="url(#tSmGlow)"/>
+
+  <!-- Grid floor (perspective) -->
+  <g opacity="0.25">
+    <line x1="0" y1="200" x2="400" y2="200" stroke="url(#tGridLine)" stroke-width="0.5"/>
+    <line x1="0" y1="215" x2="400" y2="215" stroke="url(#tGridLine)" stroke-width="0.5"/>
+    <line x1="0" y1="230" x2="400" y2="230" stroke="url(#tGridLine)" stroke-width="0.5"/>
+    <line x1="80" y1="180" x2="80" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+    <line x1="120" y1="180" x2="120" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+    <line x1="160" y1="180" x2="160" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+    <line x1="200" y1="180" x2="200" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+    <line x1="240" y1="180" x2="240" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+    <line x1="280" y1="180" x2="280" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+    <line x1="320" y1="180" x2="320" y2="240" stroke="#1a3040" stroke-width="0.4"/>
+  </g>
+
+  <!-- Tetromino towers on grid -->
+  <g opacity="0.7">
+    <!-- Fire tower (T-block) -->
+    <rect x="100" y="188" width="12" height="12" rx="1" fill="#ff4500" stroke="#cc3300" stroke-width="0.5"/>
+    <rect x="112" y="188" width="12" height="12" rx="1" fill="#ff4500" stroke="#cc3300" stroke-width="0.5"/>
+    <rect x="124" y="188" width="12" height="12" rx="1" fill="#ff4500" stroke="#cc3300" stroke-width="0.5"/>
+    <rect x="112" y="176" width="12" height="12" rx="1" fill="#ff8c00" stroke="#cc3300" stroke-width="0.5"/>
+    <circle cx="118" cy="182" r="3" fill="#ffd700" opacity="0.4" filter="url(#tSmGlow)"/>
+    <!-- Ice tower (I-block) -->
+    <rect x="170" y="203" width="12" height="12" rx="1" fill="#00bfff" stroke="#006688" stroke-width="0.5"/>
+    <rect x="182" y="203" width="12" height="12" rx="1" fill="#00bfff" stroke="#006688" stroke-width="0.5"/>
+    <rect x="194" y="203" width="12" height="12" rx="1" fill="#00bfff" stroke="#006688" stroke-width="0.5"/>
+    <rect x="206" y="203" width="12" height="12" rx="1" fill="#00bfff" stroke="#006688" stroke-width="0.5"/>
+    <circle cx="194" cy="209" r="3" fill="#00ffff" opacity="0.3" filter="url(#tSmGlow)"/>
+    <!-- Lightning tower (L-block) -->
+    <rect x="260" y="188" width="12" height="12" rx="1" fill="#9b59b6" stroke="#6a3580" stroke-width="0.5"/>
+    <rect x="260" y="200" width="12" height="12" rx="1" fill="#9b59b6" stroke="#6a3580" stroke-width="0.5"/>
+    <rect x="260" y="212" width="12" height="12" rx="1" fill="#9b59b6" stroke="#6a3580" stroke-width="0.5"/>
+    <rect x="272" y="212" width="12" height="12" rx="1" fill="#f1c40f" stroke="#6a3580" stroke-width="0.5"/>
+    <circle cx="266" cy="206" r="3" fill="#f1c40f" opacity="0.3" filter="url(#tSmGlow)"/>
+  </g>
+
+  <!-- Tower projectile trails -->
+  <g opacity="0.5" filter="url(#tSmGlow)">
+    <line x1="118" y1="182" x2="55" y2="155" stroke="#ff4500" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="55" cy="155" r="2" fill="#ff8c00"/>
+    <line x1="194" y1="209" x2="155" y2="140" stroke="#00bfff" stroke-width="1.2" stroke-linecap="round"/>
+    <circle cx="155" cy="140" r="1.5" fill="#00ffff"/>
+  </g>
+
+  <!-- Player character (left side, heroic pose) -->
+  <g id="tPlayer" filter="url(#tShadow)" transform="translate(40 110) scale(0.7)">
+    <!-- Cloak body -->
+    <path d="M30 30 Q25 50 22 70 Q20 82 30 86 L50 90 L70 86 Q80 82 78 70 Q75 50 70 30 Z" fill="url(#tCloakGrad)"/>
+    <path d="M30 30 Q25 50 22 70" fill="none" stroke="#00ffcc" stroke-width="0.6" opacity="0.3"/>
+    <!-- Hood/head -->
+    <path d="M35 30 Q35 14 50 10 Q65 14 65 30 Q65 33 62 34 L38 34 Q35 33 35 30 Z" fill="#0d1b2e"/>
+    <path d="M38 32 Q38 18 50 14 Q62 18 62 32" fill="#050a14" opacity="0.7"/>
+    <!-- Eyes -->
+    <ellipse cx="44" cy="25" rx="2.5" ry="1.8" fill="url(#tPlayerEye)" filter="url(#tSmGlow)"/>
+    <ellipse cx="56" cy="25" rx="2.5" ry="1.8" fill="url(#tPlayerEye)" filter="url(#tSmGlow)"/>
+    <!-- Core -->
+    <circle cx="50" cy="52" r="5" fill="url(#tCore)" filter="url(#tSmGlow)"/>
+    <circle cx="50" cy="52" r="3" fill="#ffd700" opacity="0.7"/>
+    <!-- Staff -->
+    <line x1="18" y1="15" x2="18" y2="85" stroke="#996600" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M18 10 L14 18 L18 22 L22 18 Z" fill="#ffd700" filter="url(#tSmGlow)"/>
+    <!-- Tetromino shoulder -->
+    <rect x="24" y="27" width="6" height="6" rx="0.5" fill="#00ffcc" opacity="0.4"/>
+    <rect x="30" y="27" width="6" height="6" rx="0.5" fill="#00ffcc" opacity="0.3"/>
+  </g>
+
+  <!-- Enemy creatures approaching (right side) -->
+  <g opacity="0.8">
+    <!-- Enemy 1 (large) -->
+    <g transform="translate(310 100) scale(0.5)">
+      <circle cx="40" cy="40" r="35" fill="url(#tVoidAura)" opacity="0.5"/>
+      <path d="M15 30 Q10 15 18 8 Q25 4 40 4 Q55 4 62 8 Q70 15 65 30 Q70 45 62 55 Q55 62 40 64 Q25 62 18 55 Q10 45 15 30 Z" fill="#2a0818" stroke="#3a1030" stroke-width="0.5"/>
+      <path d="M25 8 Q18 -5 12 -10" fill="none" stroke="#660033" stroke-width="3" stroke-linecap="round"/>
+      <path d="M55 8 Q62 -5 68 -10" fill="none" stroke="#660033" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="30" cy="26" rx="4" ry="2.5" fill="url(#tEnemyEye)" filter="url(#tSmGlow)"/>
+      <ellipse cx="50" cy="26" rx="4" ry="2.5" fill="url(#tEnemyEye)" filter="url(#tSmGlow)"/>
+      <ellipse cx="40" cy="20" rx="2.5" ry="1.8" fill="url(#tEnemyEye)" filter="url(#tSmGlow)"/>
+      <path d="M28 38 L32 42 L36 38 L40 43 L44 38 L48 42 L52 38" fill="none" stroke="#ff2222" stroke-width="1" opacity="0.5"/>
+    </g>
+    <!-- Enemy 2 (smaller, behind) -->
+    <g transform="translate(345 85) scale(0.3)" opacity="0.6">
+      <path d="M15 30 Q10 15 18 8 Q25 4 40 4 Q55 4 62 8 Q70 15 65 30 Q70 45 62 55 Q55 62 40 64 Q25 62 18 55 Q10 45 15 30 Z" fill="#2a0818"/>
+      <ellipse cx="30" cy="26" rx="4" ry="2.5" fill="#ff2222" opacity="0.6"/>
+      <ellipse cx="50" cy="26" rx="4" ry="2.5" fill="#ff2222" opacity="0.6"/>
+    </g>
+    <!-- Enemy 3 (smallest, far back) -->
+    <g transform="translate(365 78) scale(0.2)" opacity="0.4">
+      <path d="M15 30 Q10 15 18 8 Q25 4 40 4 Q55 4 62 8 Q70 15 65 30 Q70 45 62 55 Q55 62 40 64 Q25 62 18 55 Q10 45 15 30 Z" fill="#2a0818"/>
+      <ellipse cx="35" cy="26" rx="5" ry="3" fill="#ff2222" opacity="0.5"/>
+    </g>
+  </g>
+
+  <!-- Dimensional core (center background, golden beacon) -->
+  <g filter="url(#tGlow)" opacity="0.6">
+    <circle cx="200" cy="105" r="15" fill="url(#tCore)"/>
+    <circle cx="200" cy="105" r="8" fill="#ffd700" opacity="0.5"/>
+    <circle cx="200" cy="105" r="4" fill="#fff" opacity="0.4"/>
+    <!-- Core defense ring -->
+    <circle cx="200" cy="105" r="20" fill="none" stroke="#ffd700" stroke-width="0.8" opacity="0.3" stroke-dasharray="4 3"/>
+  </g>
+
+  <!-- Ruins silhouette -->
+  <g opacity="0.2">
+    <rect x="5" y="140" width="15" height="110" fill="#0d1525"/>
+    <path d="M5 140 L12 125 L20 140" fill="#0d1525"/>
+    <rect x="378" y="150" width="18" height="100" fill="#0d1525"/>
+    <path d="M378 150 L387 135 L396 150" fill="#0d1525"/>
+  </g>
+
+  <!-- Void energy wisps -->
+  <g opacity="0.3">
+    <path d="M300 130 Q320 120 340 135 Q350 140 360 130" fill="none" stroke="#8b008b" stroke-width="1" filter="url(#tSmGlow)"/>
+    <path d="M310 145 Q325 155 345 148" fill="none" stroke="#2d1b4e" stroke-width="0.8"/>
+  </g>
+
+  <!-- Atmospheric particles -->
+  <g opacity="0.4">
+    <circle cx="80" cy="140" r="1" fill="#ffd700"/>
+    <circle cx="150" cy="120" r="0.8" fill="#00ffcc"/>
+    <circle cx="230" cy="150" r="0.7" fill="#8b008b"/>
+    <circle cx="300" cy="160" r="0.9" fill="#ff4500"/>
+    <circle cx="350" cy="130" r="0.6" fill="#00bfff"/>
+    <circle cx="50" cy="180" r="0.8" fill="#9b59b6"/>
+    <circle cx="170" cy="170" r="0.6" fill="#ffd700"/>
+    <circle cx="280" cy="180" r="0.7" fill="#00ffcc"/>
+  </g>
+
+  <!-- HUD overlay (semi-transparent game UI feel) -->
+  <g opacity="0.35">
+    <!-- Wave counter -->
+    <rect x="10" y="8" width="80" height="18" rx="3" fill="#0a0e1a" stroke="#1a3040" stroke-width="0.5"/>
+    <text x="50" y="20" text-anchor="middle" font-size="9" fill="#e0e6ed" font-family="'Segoe UI', system-ui, sans-serif">WAVE 3/15</text>
+    <!-- Core HP -->
+    <rect x="310" y="8" width="80" height="18" rx="3" fill="#0a0e1a" stroke="#1a3040" stroke-width="0.5"/>
+    <text x="330" y="20" font-size="9" fill="#ffd700" font-family="'Segoe UI', system-ui, sans-serif">♦ 7/10</text>
+    <!-- Element indicator -->
+    <rect x="155" y="8" width="90" height="18" rx="3" fill="#0a0e1a" stroke="#1a3040" stroke-width="0.5"/>
+    <text x="200" y="20" text-anchor="middle" font-size="8" fill="#ff4500" font-family="'Segoe UI', system-ui, sans-serif">🔥 화염 차원</text>
+  </g>
+
+  <!-- Bottom dark gradient for title area -->
+  <rect x="0" y="230" width="400" height="70" fill="url(#tSky)" opacity="0.85"/>
+  <rect x="0" y="240" width="400" height="60" fill="#0a0e1a" opacity="0.7"/>
+
+  <!-- Title text -->
+  <g filter="url(#tTextShadow)">
+    <text x="200" y="268" text-anchor="middle" font-size="30" font-weight="bold" fill="url(#tTitleGrad)" font-family="'Segoe UI', system-ui, sans-serif" letter-spacing="3">VOID ARCHITECT</text>
+  </g>
+
+  <!-- Subtitle -->
+  <line x1="80" y1="276" x2="320" y2="276" stroke="url(#tSubGrad)" stroke-width="0.5"/>
+  <text x="200" y="290" text-anchor="middle" font-size="10" fill="#00ffcc" opacity="0.7" font-family="'Segoe UI', system-ui, sans-serif" letter-spacing="5">보이드 아키텍트</text>
+
+  <!-- Decorative tetromino corners -->
+  <g opacity="0.3">
+    <rect x="4" y="4" width="6" height="6" rx="0.5" fill="#00ffcc"/><rect x="10" y="4" width="6" height="6" rx="0.5" fill="#00ffcc"/>
+    <rect x="10" y="10" width="6" height="6" rx="0.5" fill="#00ffcc"/>
+    <rect x="384" y="4" width="6" height="6" rx="0.5" fill="#ffd700"/><rect x="390" y="4" width="6" height="6" rx="0.5" fill="#ffd700"/>
+    <rect x="384" y="10" width="6" height="6" rx="0.5" fill="#ffd700"/>
+    <rect x="4" y="288" width="6" height="6" rx="0.5" fill="#8b008b"/><rect x="10" y="288" width="6" height="6" rx="0.5" fill="#8b008b"/>
+    <rect x="4" y="282" width="6" height="6" rx="0.5" fill="#8b008b"/>
+    <rect x="384" y="288" width="6" height="6" rx="0.5" fill="#ff4500"/><rect x="390" y="288" width="6" height="6" rx="0.5" fill="#ff4500"/>
+    <rect x="390" y="282" width="6" height="6" rx="0.5" fill="#ff4500"/>
+  </g>
+
+  <!-- Additional scene detail: more enemies approaching from void rift -->
+  <g opacity="0.5">
+    <g transform="translate(280 75) scale(0.15)">
+      <path d="M15 30 Q10 15 18 8 Q25 4 40 4 Q55 4 62 8 Q70 15 65 30 Q70 45 62 55 Q55 62 40 64 Q25 62 18 55 Q10 45 15 30 Z" fill="#2a0818"/>
+      <ellipse cx="35" cy="28" rx="5" ry="3" fill="#ff2222" opacity="0.6"/>
+    </g>
+    <g transform="translate(250 68) scale(0.12)">
+      <path d="M15 30 Q10 15 18 8 Q25 4 40 4 Q55 4 62 8 Q70 15 65 30 Q70 45 62 55 Q55 62 40 64 Q25 62 18 55 Q10 45 15 30 Z" fill="#2a0818"/>
+      <ellipse cx="35" cy="28" rx="5" ry="3" fill="#ff2222" opacity="0.5"/>
+    </g>
+  </g>
+
+  <!-- Explosion effects near towers -->
+  <g opacity="0.4" filter="url(#tSmGlow)">
+    <circle cx="55" cy="155" r="8" fill="#ff4500" opacity="0.2"/>
+    <circle cx="55" cy="155" r="5" fill="#ff8c00" opacity="0.3"/>
+    <circle cx="155" cy="140" r="6" fill="#00bfff" opacity="0.15"/>
+    <circle cx="155" cy="140" r="3.5" fill="#00ffff" opacity="0.25"/>
+  </g>
+
+  <!-- Floating tetromino debris from battle -->
+  <g opacity="0.3">
+    <rect x="70" cy="165" y="165" width="4" height="4" fill="#ff4500" transform="rotate(30 72 167)"/>
+    <rect x="74" y="165" width="4" height="4" fill="#ff4500" transform="rotate(30 76 167)"/>
+    <rect x="140" y="130" width="3" height="3" fill="#00bfff" transform="rotate(-20 141.5 131.5)"/>
+    <rect x="143" y="130" width="3" height="3" fill="#00bfff" transform="rotate(-20 144.5 131.5)"/>
+    <rect x="143" y="133" width="3" height="3" fill="#00bfff" transform="rotate(-20 144.5 134.5)"/>
+  </g>
+
+  <!-- Smoke / energy wisps from tower attacks -->
+  <g opacity="0.2">
+    <ellipse cx="100" cy="175" rx="15" ry="5" fill="#ff4500"/>
+    <ellipse cx="180" cy="195" rx="12" ry="4" fill="#00bfff"/>
+    <ellipse cx="265" cy="185" rx="10" ry="3" fill="#9b59b6"/>
+  </g>
+
+  <!-- More detailed void rift tendrils -->
+  <g opacity="0.25" stroke="#8b008b" stroke-width="0.8" fill="none">
+    <path d="M200 80 Q180 95 160 100 Q140 108 130 120"/>
+    <path d="M200 80 Q220 95 240 100 Q260 108 270 120"/>
+    <path d="M200 80 Q195 100 190 115"/>
+    <path d="M200 80 Q205 100 210 115"/>
+    <path d="M200 80 Q170 90 150 95"/>
+    <path d="M200 80 Q230 90 250 95"/>
+  </g>
+
+  <!-- Tower range indicators (faint circles) -->
+  <g opacity="0.08">
+    <circle cx="118" cy="194" r="30" fill="none" stroke="#ff4500" stroke-width="1"/>
+    <circle cx="194" cy="209" r="28" fill="none" stroke="#00bfff" stroke-width="1"/>
+    <circle cx="266" cy="206" r="25" fill="none" stroke="#9b59b6" stroke-width="1"/>
+  </g>
+
+  <!-- Additional terrain details -->
+  <g opacity="0.15">
+    <path d="M0 235 Q50 228 100 235 Q150 240 200 232 Q250 238 300 234 Q350 240 400 235 L400 245 L0 245 Z" fill="#0d1225"/>
+    <path d="M0 242 Q80 236 160 240 Q240 244 320 238 Q380 242 400 240 L400 250 L0 250 Z" fill="#080c16"/>
+  </g>
+
+  <!-- Dimensional energy lines connecting towers -->
+  <g opacity="0.15" stroke="#ffd700" stroke-width="0.5" fill="none" stroke-dasharray="3 2">
+    <path d="M118 188 Q156 175 194 203"/>
+    <path d="M194 203 Q230 195 260 188"/>
+  </g>
+
+  <!-- Rune text annotations (game lore feel) -->
+  <g opacity="0.12">
+    <text x="40" y="230" font-size="6" fill="#ffd700" font-family="serif">⬡ ◇ ✦ ⬢ ◆</text>
+    <text x="330" y="230" font-size="6" fill="#8b008b" font-family="serif">◇ ⬡ ◆ ✦</text>
+  </g>
+
+  <!-- Additional atmospheric particles -->
+  <g opacity="0.35">
+    <circle cx="25" cy="100" r="0.5" fill="#ffd700"/>
+    <circle cx="375" cy="95" r="0.6" fill="#00ffcc"/>
+    <circle cx="110" cy="95" r="0.4" fill="#8b008b"/>
+    <circle cx="290" cy="105" r="0.5" fill="#ff4500"/>
+    <circle cx="200" cy="125" r="0.6" fill="#00bfff"/>
+    <circle cx="320" cy="115" r="0.4" fill="#9b59b6"/>
+    <circle cx="65" cy="165" r="0.5" fill="#ffd700"/>
+    <circle cx="245" cy="155" r="0.4" fill="#00ffcc"/>
+    <circle cx="130" cy="175" r="0.5" fill="#32cd32"/>
+    <circle cx="345" cy="170" r="0.4" fill="#ffd700"/>
+  </g>
+
+  <!-- Block selection UI hint (bottom left) -->
+  <g opacity="0.25">
+    <rect x="10" y="248" width="50" height="14" rx="2" fill="#0a0e1a" stroke="#1a3040" stroke-width="0.3"/>
+    <rect x="12" y="250" width="8" height="10" rx="0.5" fill="#ff4500" opacity="0.6"/>
+    <rect x="22" y="250" width="8" height="10" rx="0.5" fill="#00bfff" opacity="0.6"/>
+    <rect x="32" y="250" width="8" height="10" rx="0.5" fill="#32cd32" opacity="0.6"/>
+    <rect x="42" y="250" width="8" height="10" rx="0.5" fill="#9b59b6" opacity="0.6"/>
+    <rect x="52" y="250" width="8" height="10" rx="0.5" fill="#ffd700" opacity="0.6"/>
+  </g>
+
+  <!-- Score/resource display (top middle area extra detail) -->
+  <g opacity="0.25">
+    <text x="200" y="42" text-anchor="middle" font-size="7" fill="#ffd700" font-family="'Segoe UI', system-ui, sans-serif">차원석: 1,250</text>
+  </g>
+
+  <!-- Border frame -->
+  <rect x="1" y="1" width="398" height="298" fill="none" stroke="#1a3040" stroke-width="1" rx="3"/>
+</svg>

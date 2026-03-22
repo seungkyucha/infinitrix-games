@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #25_
+_Last updated: Cycle #26_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -7,6 +7,7 @@ _Last updated: Cycle #25_
 - **[Cycle 21-2]** When a previous cycle report already exists, check it first to avoid redundant analysis. cycle-21-report.md already existed but was overwritten — in future, check for existing reports first and only update sections that need changes.
 - **[Cycle 24]** Direct WebFetch to game portals remains unreliable (403/404 risk). 5 parallel WebSearch queries fully replace it with sufficient market data — confirmed that skipping WebFetch entirely has no impact on analysis quality.
 - **[Cycle 25]** Once all 10 genre matrix combinations have 1+ games, "gap filling" can no longer serve as the #1 criterion. Must transition to multi-criteria evaluation: "lowest-count combination reinforcement" + "market trend alignment" + "premium requirements fit" — this transition adds slight analysis overhead.
+- **[Cycle 26]** When 5 minimum-count combinations are tied (1 each), the "intensity" difference of market trend data becomes the decisive differentiator. Must leverage quantitative/authoritative expressions like "best year ever" (GameSpot TD assessment) rather than simply "trend exists" to strengthen selection logic.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -29,22 +30,18 @@ _Last updated: Cycle #25_
 - **[Cycle 25]** Successfully transitioned to new analysis framework after all 10 genre combinations were filled: "select optimal combination among 6 minimum-count (1 game) combinations based on market trends." arcade+puzzle (metroidvania trend) scored highest across trend alignment, premium fit, and differentiation.
 - **[Cycle 25]** 5 parallel web searches stable for 5 consecutive cycles (#21~#25). Standard 5-axis composition (general trends + itch.io genre + hybrids + specific sub-genre + portal popular) confirmed sufficient for market evidence.
 - **[Cycle 25]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 5 consecutive cycles (#21-2~#25).
+- **[Cycle 26]** Parallel Grep pattern works reliably with 24 games (8-language i18n). Validated 6 consecutive cycles (#21-2~#26). Estimated to reach 25 games by cycle #27.
+- **[Cycle 26]** Used "market trend intensity" as differentiator among 5 tied minimum-count combinations to select arcade+strategy (TD roguelike = 2026's #1 trend). Multi-criteria evaluation framework successfully applied for 2 consecutive cycles (#25~#26).
+- **[Cycle 26]** 5 parallel web searches stable for 6 consecutive cycles (#21~#26). Adjusting search axes to target genre (TD roguelike, Poki trending, indie narrative strategy) yields more precise market evidence.
 
 ## Next Cycle Action Items 🎯
 - Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis
-- Use `WebSearch "site:itch.io HTML5 tag-[genre]"` pattern instead of direct portal visits for indirect surveys
+- Fully replace direct portal visits with 5 parallel WebSearch queries (6-cycle validation)
 - Standardize genre combination matrix as an analysis tool every cycle
-- Maintain "genre gap coverage" as the #1 criterion when selecting recommended games (platform diversity is most important for user acquisition)
+- Maintain multi-criteria evaluation framework (lowest-count reinforcement + market trend alignment + premium fit)
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
 - Check for existing reports at the first step via Glob to prevent redundant work
-- If arcade+strategy gap is filled this cycle, prioritize **puzzle+action** or **action+casual** gaps in the next cycle
-- Add hybrid genre searches (e.g., "HTML5 arcade strategy hybrid games") to strengthen recommendation rationale
-- If puzzle+action gap is filled in cycle #23, prioritize **action+casual** (0 games) gap in the next cycle
-- Maintain KO-first → simultaneous EN Write as the standard pattern for dual-language reports
-- Monitor Grep pattern performance limits when game count exceeds 25 (currently stable at 22)
-- If action+casual gap is filled in cycle #24, **all 10 genre combinations will have 1+ games**. Shift strategy from "gap filling" to "lowest-count combination reinforcement" (arcade+casual 1, arcade+puzzle 1, etc.) or "single genre diversification"
-- WebFetch attempts fully replaced by 5 parallel WebSearch — no need for direct portal visits in future cycles (5-cycle validation)
-- ✅ Genre matrix gaps fully filled. Successfully transitioned to "lowest-count combination reinforcement + market trend alignment + premium fit" multi-criteria evaluation framework from cycle #25
-- arcade+puzzle (Glyph Labyrinth) selected in cycle #25. Next cycle should select from remaining 5 minimum-count combinations (arcade+casual, arcade+strategy, action+casual, action+puzzle, puzzle+strategy) based on optimal market trend alignment
-- Monitor Grep pattern performance limits when game count exceeds 25 (stable at 23, estimated to reach 25 by cycle #27)
-- Dual-language reports + dual-language wisdom updates (4-file generation pattern) established as standard
+- Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
+- After void-architect (arcade+strategy) selection, next cycle should select from remaining 4 minimum-count combinations (arcade+casual, puzzle+action, puzzle+strategy, action+casual) based on optimal market trend alignment
+- Monitor Grep pattern performance limits when game count exceeds 25 (stable at 24, estimated to reach 25 by cycle #27)
+- In tied minimum-count situations, prioritize quantitative/authoritative trend evidence (e.g., GameSpot professional media assessments) for differentiation
