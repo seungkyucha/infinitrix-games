@@ -1,0 +1,372 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="th-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#050D18"/>
+      <stop offset="25%" stop-color="#0A1628"/>
+      <stop offset="50%" stop-color="#0D2847"/>
+      <stop offset="75%" stop-color="#1A4B7A"/>
+      <stop offset="100%" stop-color="#0A1628"/>
+    </linearGradient>
+    <radialGradient id="th-light" cx="28%" cy="35%" r="35%">
+      <stop offset="0%" stop-color="#FFD93D" stop-opacity="0.4"/>
+      <stop offset="40%" stop-color="#FFA94D" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FFA94D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="th-moon" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFBE6"/>
+      <stop offset="70%" stop-color="#FFE8AA"/>
+      <stop offset="100%" stop-color="#FFD93D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="th-lighthouse" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8DDD0"/>
+      <stop offset="50%" stop-color="#B0A090"/>
+      <stop offset="100%" stop-color="#6A5D50"/>
+    </linearGradient>
+    <radialGradient id="th-monster-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BE4BDB" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#BE4BDB" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="th-water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A4B7A" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#050D18"/>
+    </linearGradient>
+    <linearGradient id="th-rock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3A3530"/>
+      <stop offset="100%" stop-color="#1A1510"/>
+    </linearGradient>
+    <linearGradient id="th-title-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD93D"/>
+      <stop offset="100%" stop-color="#FFA94D"/>
+    </linearGradient>
+    <filter id="th-glow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="th-text-glow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="th-shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <radialGradient id="th-abyss-glow" cx="50%" cy="90%" r="40%">
+      <stop offset="0%" stop-color="#C92A2A" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#C92A2A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background sky -->
+  <rect width="400" height="300" fill="url(#th-sky)"/>
+
+  <!-- Abyss glow from below -->
+  <rect width="400" height="300" fill="url(#th-abyss-glow)"/>
+
+  <!-- Moon -->
+  <circle cx="320" cy="45" r="25" fill="url(#th-moon)" opacity="0.8"/>
+  <circle cx="316" cy="42" r="2.5" fill="#EED88A" opacity="0.2"/>
+  <circle cx="326" cy="48" r="2" fill="#EED88A" opacity="0.15"/>
+
+  <!-- Stars -->
+  <g opacity="0.7">
+    <circle cx="30" cy="20" r="1.2" fill="#FFFFFF"/>
+    <circle cx="80" cy="35" r="1" fill="#E9ECEF"/>
+    <circle cx="150" cy="15" r="1.3" fill="#FFFFFF"/>
+    <circle cx="200" cy="30" r="0.9" fill="#E9ECEF"/>
+    <circle cx="260" cy="20" r="1.1" fill="#FFFFFF"/>
+    <circle cx="370" cy="25" r="1" fill="#E9ECEF"/>
+    <circle cx="50" cy="55" r="0.8" fill="#ADB5BD"/>
+    <circle cx="120" cy="50" r="0.9" fill="#ADB5BD"/>
+    <circle cx="180" cy="60" r="0.7" fill="#ADB5BD"/>
+    <circle cx="240" cy="45" r="0.8" fill="#FFFFFF"/>
+    <circle cx="350" cy="55" r="0.9" fill="#ADB5BD"/>
+    <circle cx="390" cy="40" r="0.7" fill="#ADB5BD"/>
+    <!-- Colored stars -->
+    <circle cx="100" cy="25" r="1" fill="#38D9A9" opacity="0.6"/>
+    <circle cx="290" cy="35" r="0.8" fill="#FFD93D" opacity="0.5"/>
+  </g>
+
+  <!-- Light beam from lighthouse -->
+  <rect width="400" height="300" fill="url(#th-light)"/>
+
+  <!-- Lighthouse light beam cone -->
+  <g filter="url(#th-glow)" opacity="0.5">
+    <path d="M105,100 L240,60 L280,80 L105,108 Z" fill="#FFD93D" opacity="0.2"/>
+    <path d="M105,100 L20,70 L-10,85 L105,108 Z" fill="#FFD93D" opacity="0.15"/>
+  </g>
+
+  <!-- Rock island -->
+  <path d="M50,165 Q70,140 95,150 Q110,135 130,148 Q145,140 165,155 L175,175 L175,300 L50,300 Z" fill="url(#th-rock)"/>
+  <path d="M60,160 Q70,152 80,155" fill="none" stroke="#4A4540" stroke-width="0.6" opacity="0.4"/>
+  <path d="M120,145 Q130,140 140,148" fill="none" stroke="#4A4540" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- Lighthouse -->
+  <g filter="url(#th-shadow)">
+    <!-- Tower body -->
+    <path d="M98,155 L105,80 L115,80 L122,155 Z" fill="url(#th-lighthouse)"/>
+    <!-- Red stripes -->
+    <rect x="100" y="100" width="20" height="10" fill="#C92A2A" opacity="0.6"/>
+    <rect x="101" y="120" width="18" height="10" fill="#C92A2A" opacity="0.6"/>
+    <rect x="102" y="140" width="16" height="10" fill="#C92A2A" opacity="0.6"/>
+    <!-- Gallery -->
+    <rect x="93" y="76" width="34" height="5" rx="1" fill="#5A4D40"/>
+    <!-- Railing -->
+    <line x1="95" y1="76" x2="95" y2="73" stroke="#6A5D50" stroke-width="0.7"/>
+    <line x1="103" y1="76" x2="103" y2="73" stroke="#6A5D50" stroke-width="0.7"/>
+    <line x1="110" y1="76" x2="110" y2="73" stroke="#6A5D50" stroke-width="0.7"/>
+    <line x1="117" y1="76" x2="117" y2="73" stroke="#6A5D50" stroke-width="0.7"/>
+    <line x1="125" y1="76" x2="125" y2="73" stroke="#6A5D50" stroke-width="0.7"/>
+    <line x1="93" y1="73" x2="127" y2="73" stroke="#6A5D50" stroke-width="0.7"/>
+    <!-- Lantern room -->
+    <rect x="101" y="62" width="18" height="15" rx="1" fill="#3D2B1F"/>
+    <rect x="103" y="64" width="6" height="11" rx="1" fill="#FFD93D" opacity="0.7"/>
+    <rect x="111" y="64" width="6" height="11" rx="1" fill="#FFD93D" opacity="0.6"/>
+    <!-- Dome -->
+    <path d="M101,62 Q110,52 119,62" fill="#C92A2A"/>
+    <!-- Lightning rod -->
+    <line x1="110" y1="52" x2="110" y2="44" stroke="#808080" stroke-width="1"/>
+    <circle cx="110" cy="43" r="1.5" fill="#FFD93D" opacity="0.8"/>
+    <!-- Light source glow -->
+    <circle cx="110" cy="70" r="10" fill="#FFD93D" opacity="0.3" filter="url(#th-glow)"/>
+  </g>
+
+  <!-- Pier -->
+  <rect x="130" y="168" width="60" height="3" rx="0.5" fill="#5A4D40"/>
+  <line x1="145" y1="171" x2="143" y2="185" stroke="#3A3020" stroke-width="2"/>
+  <line x1="170" y1="171" x2="168" y2="188" stroke="#3A3020" stroke-width="2"/>
+
+  <!-- Keeper character (on pier) -->
+  <g id="th-keeper">
+    <!-- Body -->
+    <rect x="148" y="152" width="10" height="14" rx="2" fill="#163A52"/>
+    <!-- Head -->
+    <circle cx="153" cy="148" r="5" fill="#D4A574"/>
+    <!-- Hat -->
+    <ellipse cx="153" cy="144" rx="6" ry="2" fill="#1A252F"/>
+    <path d="M148,144 C148,140 150,137 153,137 C156,137 158,140 158,144" fill="#1A252F"/>
+    <!-- Lantern in hand -->
+    <rect x="143" y="155" width="3" height="5" rx="0.5" fill="#3D2B1F"/>
+    <circle cx="144.5" cy="153" r="2.5" fill="#FFA94D" opacity="0.7" filter="url(#th-glow)"/>
+    <!-- Harpoon -->
+    <line x1="161" y1="140" x2="161" y2="166" stroke="#8A8A8A" stroke-width="1.5"/>
+    <path d="M161,140 L159,144 L161,138 L163,144 Z" fill="#C0C0C0"/>
+  </g>
+
+  <!-- Ocean surface -->
+  <path d="M0,175 Q50,170 100,175 Q150,180 200,175 Q250,170 300,175 Q350,180 400,175 L400,300 L0,300 Z" fill="url(#th-water)"/>
+
+  <!-- Wave lines -->
+  <g opacity="0.25">
+    <path d="M0,178 Q40,174 80,178 Q120,182 160,178 Q200,174 240,178 Q280,182 320,178 Q360,174 400,178" fill="none" stroke="#3A7AAA" stroke-width="0.8"/>
+    <path d="M0,190 Q50,186 100,190 Q150,194 200,190 Q250,186 300,190 Q350,194 400,190" fill="none" stroke="#2A5A7A" stroke-width="0.6"/>
+  </g>
+
+  <!-- Monster emerging from water (right side) -->
+  <g id="th-monster">
+    <circle cx="310" cy="180" r="30" fill="url(#th-monster-glow)"/>
+    <!-- Monster body emerging -->
+    <path d="M290,195 C285,180 290,165 300,158 C310,152 320,152 330,158 C340,165 345,180 340,195 Q330,205 315,208 Q300,205 290,195 Z" fill="#2A1040" stroke="#4A2A6A" stroke-width="0.5" opacity="0.9"/>
+    <!-- Monster eyes (glowing) -->
+    <g filter="url(#th-glow)">
+      <ellipse cx="304" cy="172" rx="5" ry="4" fill="#1A0020"/>
+      <ellipse cx="304" cy="172" rx="3.5" ry="3" fill="#BE4BDB"/>
+      <ellipse cx="304" cy="172" rx="1.5" ry="2.5" fill="#1A0020"/>
+      <circle cx="303" cy="171" r="0.7" fill="#FF88FF"/>
+      <ellipse cx="326" cy="172" rx="5" ry="4" fill="#1A0020"/>
+      <ellipse cx="326" cy="172" rx="3.5" ry="3" fill="#BE4BDB"/>
+      <ellipse cx="326" cy="172" rx="1.5" ry="2.5" fill="#1A0020"/>
+      <circle cx="325" cy="171" r="0.7" fill="#FF88FF"/>
+    </g>
+    <!-- Monster mouth -->
+    <path d="M302,182 Q310,188 315,186 Q320,188 328,182" fill="#1A0020" stroke="#3A1050" stroke-width="0.5"/>
+    <path d="M305,182 L307,186 L309,182" fill="#C0C0C0" opacity="0.7"/>
+    <path d="M313,182 L315,187 L317,182" fill="#C0C0C0" opacity="0.7"/>
+    <path d="M321,182 L323,186 L325,182" fill="#C0C0C0" opacity="0.7"/>
+    <!-- Tentacles in water -->
+    <path d="M288,200 C275,215 268,230 272,245" fill="none" stroke="#2A1040" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <path d="M342,200 C355,215 362,230 358,245" fill="none" stroke="#2A1040" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <path d="M295,208 C285,225 280,245 285,260" fill="none" stroke="#2A1040" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+    <path d="M335,208 C345,225 350,245 345,260" fill="none" stroke="#2A1040" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+    <!-- Lure -->
+    <path d="M315,158 C315,148 312,142 310,140" fill="none" stroke="#3A1A5A" stroke-width="1.2"/>
+    <circle cx="310" cy="139" r="3" fill="#BE4BDB" opacity="0.7" filter="url(#th-glow)"/>
+    <circle cx="310" cy="139" r="1.5" fill="#FF88FF"/>
+    <!-- Bio spots -->
+    <circle cx="296" cy="165" r="1" fill="#BE4BDB" opacity="0.5"/>
+    <circle cx="334" cy="165" r="1" fill="#BE4BDB" opacity="0.5"/>
+    <circle cx="315" cy="195" r="0.8" fill="#FF6BFF" opacity="0.4"/>
+  </g>
+
+  <!-- Bioluminescent spots in water -->
+  <g opacity="0.5">
+    <circle cx="40" cy="220" r="2" fill="#38D9A9"/>
+    <circle cx="90" cy="240" r="1.5" fill="#38D9A9"/>
+    <circle cx="200" cy="230" r="1.8" fill="#38D9A9"/>
+    <circle cx="250" cy="250" r="1.2" fill="#38D9A9"/>
+    <circle cx="360" cy="225" r="1.5" fill="#38D9A9"/>
+    <circle cx="380" cy="245" r="1" fill="#38D9A9"/>
+    <circle cx="150" cy="260" r="1.3" fill="#BE4BDB" opacity="0.3"/>
+    <circle cx="270" cy="270" r="1.5" fill="#BE4BDB" opacity="0.25"/>
+  </g>
+
+  <!-- Coral at bottom -->
+  <g opacity="0.3">
+    <path d="M20,290 Q22,275 18,265" fill="none" stroke="#38D9A9" stroke-width="2" stroke-linecap="round"/>
+    <path d="M28,292 Q30,278 26,268" fill="none" stroke="#FF6B6B" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="18" cy="264" r="1.5" fill="#38D9A9" opacity="0.7"/>
+    <path d="M370,288 Q372,273 368,263" fill="none" stroke="#38D9A9" stroke-width="2" stroke-linecap="round"/>
+    <path d="M380,290 Q382,277 378,268" fill="none" stroke="#BE4BDB" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="368" cy="262" r="1.5" fill="#38D9A9" opacity="0.7"/>
+  </g>
+
+  <!-- Bubbles -->
+  <g opacity="0.25">
+    <circle cx="105" cy="200" r="1.5" fill="none" stroke="#4A8ABB" stroke-width="0.5"/>
+    <circle cx="108" cy="190" r="1" fill="none" stroke="#4A8ABB" stroke-width="0.4"/>
+    <circle cx="320" cy="210" r="2" fill="none" stroke="#4A8ABB" stroke-width="0.5"/>
+    <circle cx="316" cy="195" r="1.2" fill="none" stroke="#4A8ABB" stroke-width="0.4"/>
+  </g>
+
+  <!-- Fish silhouette -->
+  <path d="M220,215 Q228,210 236,215 Q228,220 220,215 Z" fill="#38D9A9" opacity="0.15"/>
+
+  <!-- Title text area (dark overlay at bottom) -->
+  <rect x="0" y="258" width="400" height="42" fill="#050D18" opacity="0.75"/>
+  <rect x="0" y="256" width="400" height="2" fill="#FFD93D" opacity="0.3"/>
+
+  <!-- Title text -->
+  <g filter="url(#th-text-glow)">
+    <text x="200" y="284" font-family="'Georgia','Times New Roman',serif" font-size="28" font-weight="bold" fill="url(#th-title-fill)" text-anchor="middle" letter-spacing="3">
+      ABYSS KEEPER
+    </text>
+  </g>
+  <!-- Subtitle -->
+  <text x="200" y="296" font-family="'Arial','Helvetica',sans-serif" font-size="9" fill="#ADB5BD" text-anchor="middle" letter-spacing="4" opacity="0.7">
+    심해의 마지막 등대를 지켜라
+  </text>
+
+  <!-- Decorative anchor symbol near title -->
+  <g opacity="0.3">
+    <path d="M60,276 L60,288 M56,284 L64,284 M57,288 Q60,292 63,288" fill="none" stroke="#FFD93D" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="60" cy="275" r="1.5" fill="none" stroke="#FFD93D" stroke-width="0.8"/>
+    <path d="M340,276 L340,288 M336,284 L344,284 M337,288 Q340,292 343,288" fill="none" stroke="#FFD93D" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="340" cy="275" r="1.5" fill="none" stroke="#FFD93D" stroke-width="0.8"/>
+  </g>
+
+  <!-- Additional stars (density boost) -->
+  <g opacity="0.5">
+    <circle cx="15" cy="40" r="0.6" fill="#ADB5BD"/>
+    <circle cx="42" cy="48" r="0.7" fill="#E9ECEF"/>
+    <circle cx="68" cy="18" r="0.8" fill="#FFFFFF"/>
+    <circle cx="135" cy="42" r="0.6" fill="#ADB5BD"/>
+    <circle cx="165" cy="55" r="0.7" fill="#E9ECEF"/>
+    <circle cx="215" cy="18" r="0.5" fill="#ADB5BD"/>
+    <circle cx="235" cy="52" r="0.6" fill="#E9ECEF"/>
+    <circle cx="275" cy="12" r="0.7" fill="#FFFFFF"/>
+    <circle cx="305" cy="30" r="0.5" fill="#ADB5BD"/>
+    <circle cx="345" cy="15" r="0.6" fill="#E9ECEF"/>
+    <circle cx="385" cy="55" r="0.5" fill="#ADB5BD"/>
+    <circle cx="55" cy="65" r="0.5" fill="#ADB5BD"/>
+    <circle cx="145" cy="68" r="0.6" fill="#ADB5BD"/>
+    <circle cx="225" cy="65" r="0.5" fill="#ADB5BD"/>
+    <circle cx="310" cy="58" r="0.6" fill="#E9ECEF"/>
+  </g>
+
+  <!-- Nebula wisps -->
+  <g opacity="0.06">
+    <ellipse cx="120" cy="50" rx="60" ry="25" fill="#BE4BDB"/>
+    <ellipse cx="280" cy="40" rx="50" ry="20" fill="#38D9A9"/>
+    <ellipse cx="60" cy="70" rx="40" ry="15" fill="#1A4B7A"/>
+  </g>
+
+  <!-- Additional underwater details -->
+  <g opacity="0.35">
+    <!-- More bioluminescent spots -->
+    <circle cx="60" cy="200" r="1.2" fill="#38D9A9"/>
+    <circle cx="120" cy="235" r="1" fill="#38D9A9"/>
+    <circle cx="170" cy="210" r="1.4" fill="#38D9A9"/>
+    <circle cx="230" cy="245" r="0.9" fill="#38D9A9"/>
+    <circle cx="300" cy="235" r="1.1" fill="#38D9A9"/>
+    <circle cx="340" cy="215" r="1.3" fill="#38D9A9"/>
+    <!-- Deep purple spots -->
+    <circle cx="80" cy="250" r="1" fill="#BE4BDB" opacity="0.3"/>
+    <circle cx="190" cy="255" r="0.8" fill="#BE4BDB" opacity="0.25"/>
+    <circle cx="320" cy="250" r="0.9" fill="#BE4BDB" opacity="0.3"/>
+  </g>
+
+  <!-- More fish silhouettes -->
+  <g opacity="0.12">
+    <path d="M70,225 Q78,220 86,225 Q78,230 70,225 Z" fill="#38D9A9"/>
+    <path d="M310,240 Q316,236 322,240 Q316,244 310,240 Z" fill="#38D9A9"/>
+    <path d="M160,248 Q166,244 172,248 Q166,252 160,248 Z" fill="#38D9A9"/>
+  </g>
+
+  <!-- More coral details -->
+  <g opacity="0.25">
+    <path d="M55,292 Q57,280 53,272" fill="none" stroke="#38D9A9" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M62,294 Q64,282 60,274" fill="none" stroke="#FF6B6B" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="53" cy="271" r="1.2" fill="#38D9A9" opacity="0.6"/>
+    <path d="M340,292 Q342,280 338,272" fill="none" stroke="#38D9A9" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M348,294 Q350,282 346,274" fill="none" stroke="#BE4BDB" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="338" cy="271" r="1.2" fill="#38D9A9" opacity="0.6"/>
+    <!-- Center coral -->
+    <path d="M195,295 Q197,285 193,278" fill="none" stroke="#FF6B6B" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M203,296 Q205,286 201,280" fill="none" stroke="#38D9A9" stroke-width="1.2" stroke-linecap="round"/>
+    <circle cx="193" cy="277" r="1" fill="#FF6B6B" opacity="0.5"/>
+    <circle cx="201" cy="279" r="1" fill="#38D9A9" opacity="0.6"/>
+  </g>
+
+  <!-- Kelp strands -->
+  <g opacity="0.2">
+    <path d="M35,300 Q33,280 37,265 Q34,255 38,245" fill="none" stroke="#2A6A4A" stroke-width="2" stroke-linecap="round"/>
+    <path d="M390,300 Q388,282 392,268 Q389,258 393,248" fill="none" stroke="#2A6A4A" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- More bubbles -->
+  <g opacity="0.2">
+    <circle cx="140" cy="205" r="1.2" fill="none" stroke="#4A8ABB" stroke-width="0.4"/>
+    <circle cx="143" cy="195" r="0.8" fill="none" stroke="#4A8ABB" stroke-width="0.3"/>
+    <circle cx="250" cy="215" r="1.5" fill="none" stroke="#4A8ABB" stroke-width="0.4"/>
+    <circle cx="247" cy="200" r="1" fill="none" stroke="#4A8ABB" stroke-width="0.3"/>
+    <circle cx="80" cy="210" r="1" fill="none" stroke="#4A8ABB" stroke-width="0.3"/>
+    <circle cx="350" cy="205" r="1.3" fill="none" stroke="#4A8ABB" stroke-width="0.4"/>
+    <circle cx="348" cy="192" r="0.9" fill="none" stroke="#4A8ABB" stroke-width="0.3"/>
+  </g>
+
+  <!-- Additional wave lines -->
+  <g opacity="0.15">
+    <path d="M0,200 Q40,196 80,200 Q120,204 160,200 Q200,196 240,200 Q280,204 320,200 Q360,196 400,200" fill="none" stroke="#2A5A7A" stroke-width="0.5"/>
+    <path d="M0,215 Q50,212 100,215 Q150,218 200,215 Q250,212 300,215 Q350,218 400,215" fill="none" stroke="#1A4B6A" stroke-width="0.4"/>
+    <path d="M0,230 Q60,226 120,230 Q180,234 240,230 Q300,226 360,230 Q380,234 400,230" fill="none" stroke="#1A4B6A" stroke-width="0.3"/>
+  </g>
+
+  <!-- Second monster tentacle (far background) -->
+  <g opacity="0.2">
+    <path d="M380,200 C385,215 390,230 386,245" fill="none" stroke="#2A1040" stroke-width="2" stroke-linecap="round"/>
+    <path d="M260,205 C255,218 253,232 258,245" fill="none" stroke="#2A1040" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- HUD overlay elements (semi-transparent game UI feel) -->
+  <g opacity="0.3">
+    <!-- HP bar frame -->
+    <rect x="12" y="8" width="60" height="8" rx="3" fill="#0A1628" stroke="#38D9A9" stroke-width="0.5"/>
+    <rect x="13" y="9" width="40" height="6" rx="2" fill="#51CF66" opacity="0.6"/>
+    <!-- Tide counter -->
+    <text x="388" y="16" font-family="monospace" font-size="8" fill="#E9ECEF" text-anchor="end" opacity="0.6">TIDE 08</text>
+    <!-- Phase indicator -->
+    <text x="200" y="14" font-family="monospace" font-size="7" fill="#FF6B6B" text-anchor="middle" opacity="0.5">⚔ ACTION PHASE ⚔</text>
+  </g>
+
+  <!-- Moon reflection on water -->
+  <g opacity="0.08">
+    <ellipse cx="320" cy="185" rx="15" ry="3" fill="#FFD93D"/>
+    <ellipse cx="320" cy="195" rx="10" ry="2" fill="#FFD93D"/>
+    <ellipse cx="320" cy="205" rx="6" ry="1.5" fill="#FFD93D"/>
+  </g>
+
+  <!-- Lightning rod light rays detail -->
+  <g opacity="0.12">
+    <line x1="110" y1="43" x2="100" y2="35" stroke="#FFD93D" stroke-width="0.5" stroke-linecap="round"/>
+    <line x1="110" y1="43" x2="120" y2="35" stroke="#FFD93D" stroke-width="0.5" stroke-linecap="round"/>
+    <line x1="110" y1="43" x2="110" y2="33" stroke="#FFD93D" stroke-width="0.5" stroke-linecap="round"/>
+  </g>
+</svg>

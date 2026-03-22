@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T10:37:50.427Z",
-  "totalGames": 22,
+  "lastUpdated": "2026-03-22T13:21:55.864Z",
+  "totalGames": 23,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -3722,6 +3722,81 @@
         }
       },
       "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "abyss-keeper",
+      "title": "어비스 키퍼",
+      "description": "심해 등대지기가 되어 낮엔 낚시, 밤엔 괴수를 격퇴하라!",
+      "genre": ["action", "casual"],
+      "thumbnail": "/games/abyss-keeper/assets/thumbnail.svg",
+      "path": "/games/abyss-keeper/index.html",
+      "addedAt": "2026-03-22T13:21:55.864Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["심해", "등대", "낚시", "괴수전투", "서바이벌", "업그레이드"],
+      "controls": [
+        "WASD/방향키: 이동",
+        "Space: 낚시 / 공격",
+        "E: 채집 / 보조무기",
+        "Q: 업그레이드 / 소나",
+        "1~3: 무기 전환",
+        "ESC: 일시정지",
+        "터치: 가상 조이스틱 + 버튼"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Abyss Keeper",
+          "description": "Become a deep-sea lighthouse keeper — fish by day, fight abyssal monsters by night!",
+          "tags": ["deep sea", "lighthouse", "fishing", "monster combat", "survival", "upgrade"],
+          "controls": ["WASD/Arrow Keys: Move", "Space: Fish / Attack", "E: Gather / Sub-weapon", "Q: Upgrade / Sonar", "1~3: Switch weapons", "ESC: Pause", "Touch: Virtual joystick + buttons"]
+        },
+        "ja": {
+          "title": "アビスキーパー",
+          "description": "深海の灯台守となり、昼は釣り、夜は深淵の怪物を撃退せよ！",
+          "tags": ["深海", "灯台", "釣り", "怪物戦闘", "サバイバル", "アップグレード"],
+          "controls": ["WASD/矢印キー: 移動", "Space: 釣り / 攻撃", "E: 採集 / サブ武器", "Q: アップグレード / ソナー", "1~3: 武器切替", "ESC: 一時停止", "タッチ: 仮想ジョイスティック + ボタン"]
+        },
+        "zh-CN": {
+          "title": "深渊守灯人",
+          "description": "成为深海灯塔守护者——白天钓鱼，夜晚击退深渊怪物！",
+          "tags": ["深海", "灯塔", "钓鱼", "怪物战斗", "生存", "升级"],
+          "controls": ["WASD/方向键: 移动", "Space: 钓鱼 / 攻击", "E: 采集 / 副武器", "Q: 升级 / 声纳", "1~3: 切换武器", "ESC: 暂停", "触屏: 虚拟摇杆 + 按钮"]
+        },
+        "zh-TW": {
+          "title": "深淵守燈人",
+          "description": "成為深海燈塔守護者——白天釣魚，夜晚擊退深淵怪物！",
+          "tags": ["深海", "燈塔", "釣魚", "怪物戰鬥", "生存", "升級"],
+          "controls": ["WASD/方向鍵: 移動", "Space: 釣魚 / 攻擊", "E: 採集 / 副武器", "Q: 升級 / 聲納", "1~3: 切換武器", "ESC: 暫停", "觸控: 虛擬搖桿 + 按鈕"]
+        },
+        "es": {
+          "title": "Guardián del Abismo",
+          "description": "¡Conviértete en farero del abismo: pesca de día y combate monstruos marinos de noche!",
+          "tags": ["mar profundo", "faro", "pesca", "combate de monstruos", "supervivencia", "mejoras"],
+          "controls": ["WASD/Flechas: Movimiento", "Space: Pescar / Atacar", "E: Recolectar / Arma secundaria", "Q: Mejoras / Sónar", "1~3: Cambiar arma", "ESC: Pausa", "Toque: Joystick virtual + botones"]
+        },
+        "fr": {
+          "title": "Gardien de l'Abîme",
+          "description": "Devenez gardien de phare des abysses : pêchez le jour, combattez les monstres la nuit !",
+          "tags": ["abysses", "phare", "pêche", "combat de monstres", "survie", "améliorations"],
+          "controls": ["WASD/Flèches: Déplacement", "Space: Pêcher / Attaquer", "E: Récolter / Arme secondaire", "Q: Améliorations / Sonar", "1~3: Changer d'arme", "ESC: Pause", "Tactile: Joystick virtuel + boutons"]
+        },
+        "de": {
+          "title": "Hüter der Tiefe",
+          "description": "Werde Leuchtturmwärter der Tiefsee — angle am Tag, bekämpfe Abgrundmonster in der Nacht!",
+          "tags": ["Tiefsee", "Leuchtturm", "Angeln", "Monsterkampf", "Überleben", "Upgrades"],
+          "controls": ["WASD/Pfeiltasten: Bewegung", "Space: Angeln / Angriff", "E: Sammeln / Zweitwaffe", "Q: Upgrades / Sonar", "1~3: Waffe wechseln", "ESC: Pause", "Touch: Virtueller Joystick + Tasten"]
+        },
+        "pt": {
+          "title": "Guardião do Abismo",
+          "description": "Torne-se o faroleiro do abismo — pesque de dia e enfrente monstros marinhos à noite!",
+          "tags": ["mar profundo", "farol", "pesca", "combate de monstros", "sobrevivência", "melhorias"],
+          "controls": ["WASD/Setas: Movimento", "Space: Pescar / Atacar", "E: Coletar / Arma secundária", "Q: Melhorias / Sonar", "1~3: Trocar arma", "ESC: Pausa", "Toque: Joystick virtual + botões"]
+        }
+      },
+      "difficulty": "medium",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }

@@ -1,7 +1,11 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #23 phantom-shift_
+_마지막 갱신: 사이클 #24 abyss-keeper_
 
 ## 반복되는 실수 🚫
+- **[Cycle 24]** 이중 페이즈(casual/action) 게임에서 페이즈 전환 시 fishingState를 초기화하지 않으면, 이전 페이즈의 낚시 미니게임 상태가 잔존하여 액션 페이즈에서 의도치 않은 UI가 표시된다. 페이즈 전환 시 서브시스템 상태를 명시적으로 리셋하는 체크리스트 필요.
+- **[Cycle 24]** 디자이너 에셋이 manifest.json에 존재할 때, 기획서가 "100% Canvas 드로잉"을 명시하더라도 유저 요청에 따라 에셋 preload + Canvas 폴백 이중 구조를 구현해야 한다. 기획서 원칙과 유저 지시가 충돌할 때는 유저 지시가 우선.
+- **[Cycle 24]** 보스 AI에서 공격 쿨다운과 페이즈 전환이 동시에 발생하면, 페이즈 전환 후 첫 공격 타이밍이 불균일해진다. 페이즈 전환 시 atkTimer를 리셋하는 로직이 필요.
+- **[Cycle 24]** 2200줄 규모에서 기획서 §5.3의 REGION 가이드(10개 영역, 줄번호 범위)를 정확히 맞추기 어렵다. REGION 주석은 유지하되, 줄번호 범위는 실제 코드 기준으로 사후 조정하는 것이 현실적.
 - **[Cycle 23]** 프로시저럴 던전 생성에서 방이 충분히 배치되지 않을 수 있다. BSP 외에 반복 랜덤 배치 시 최소 보장 방 수를 fallback으로 두어야 한다. `if (rooms.length < 3)` 같은 안전망 필수.
 - **[Cycle 23]** 이중 차원(light/shadow) 맵에서 양쪽 모두 출구까지 경로가 존재하는지 BFS로 검증해야 한다. 그림자 맵의 랜덤 벽 추가가 출구를 막을 수 있다. 출구 주변 타일을 강제로 열어두는 패턴으로 보완.
 - **[Cycle 23]** 적 차원 속성(shadow_only, light_only, both, adaptive)에 따른 가시성/데미지 분기가 많아지면 getEnemyVisibility/getEnemyDamageMul 같은 전용 순수 함수로 분리해야 한다. update() 안에 인라인 조건문으로 작성하면 누락/불일치가 발생한다.
@@ -16,6 +20,14 @@ _마지막 갱신: 사이클 #23 phantom-shift_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 24]** 이중 페이즈(캐주얼 낚시 + 액션 전투) 서바이벌에서 ACTIVE_SYSTEMS 매트릭스를 16상태 × 11시스템으로 확장 — fishing, combat, camera 등 서브시스템이 페이즈별로 정확히 활성화/비활성화됨을 확인. 매트릭스 패턴 8사이클 연속 성공.
+- **[Cycle 24]** SVG 에셋 preload + Canvas 폴백 이중 구조에서, drawKeeper/drawMonster/drawBoss 등 모든 드로잉 함수에 sprites 파라미터를 전달하는 순수 함수 패턴 — 에셋 존재 여부에 따른 분기가 드로잉 함수 내부에서만 발생하여 호출측 코드가 깔끔해진다.
+- **[Cycle 24]** RESTART_ALLOWED 화이트리스트를 기획서 단계에서 명시하고 코드에 그대로 반영 — GAMEOVER/VICTORY/HIDDEN_STAGE에서 TITLE로의 역방향 전환이 1차 구현에서 정상 작동. 5사이클간 P0 버그였던 문제의 완전 해소를 확인.
+- **[Cycle 24]** 낚시 미니게임의 타이밍 바 시스템 — 단순 barPos 핑퐁 + hitCenter/hitZone 범위 판정으로 "찌 흔들림→타이밍 적중" 루프를 구현. SeededRNG로 어획물 등급을 결정하여 리플레이 가치 확보.
+- **[Cycle 24]** 보스 3종의 페이즈 전환을 HP 비율 threshold로 데이터 기반 관리 — angler(3페이즈), kraken(3페이즈), lord(4페이즈)가 각기 다른 HP 구간에서 전환되며, bossDefeatedGuard 플래그로 처치 보상 중복 방지.
+- **[Cycle 24]** 날씨 시스템 5종(clear/rain/fog/storm/moonlit)을 Tide별 출현 범위 테이블(CFG.WEATHER_TIDES)로 관리 — 날씨가 낚시 보상과 전투 난이도에 영향을 주면서도 프로시저럴하게 결정.
+- **[Cycle 24]** 동적 난이도 보정(§8.3)을 perfectTideStreak/lowHpTideStreak 카운터로 구현 — 3연속 무손상이면 괴수 수 +10%, 3연속 저HP면 -10%. 단순하지만 효과적인 적응형 밸런싱.
+- **[Cycle 24]** Web Audio API로 12종 효과음을 절차적으로 생성 — 외부 오디오 파일 0개로 모든 사운드를 OscillatorNode + GainNode 조합으로 구현. 각 무기(작살/그물/음파)에 고유한 주파수 커브.
 - **[Cycle 23]** 퍼즐-액션 로그라이크에서 차원 전환(dimension shift) 메카닉을 에너지 + 쿨다운 이중 게이트로 구현 — 에너지 관리가 전략적 선택이 되면서 무분별한 전환을 자연스럽게 억제한다.
 - **[Cycle 23]** 프로시저럴 던전에서 이중 레이어 맵(lightMap/shadowMap) 구조 — Uint8Array로 메모리 효율적이고, 차원별 지형을 독립 인덱스로 빠르게 조회 가능.
 - **[Cycle 23]** 적 정의를 ENEMY_DEFS 데이터 객체로, 보스를 BOSS_DEFS 배열로 분리 — drawEnemy()에서 type 기반 switch로 각 유닛의 고유 비주얼을 구현하는 패턴이 5종 적 + 3 보스에서도 관리 가능함을 확인.
@@ -44,6 +56,9 @@ _마지막 갱신: 사이클 #23 phantom-shift_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **페이즈 전환 시 서브시스템 리셋 체크리스트**: 캐주얼→액션 전환 시 fishingState, driftItems, weatherParticles 등 이전 페이즈 전용 데이터를 명시적으로 초기화하는 함수(resetPhaseData)를 만들어 누락 방지.
+- **보스 AI 패턴 데이터화**: 현재 보스 공격이 쿨다운 기반 단순 데미지지만, 패턴을 [{type, delay, damage, area}] 배열로 선언하고 확률 선택하면 페이즈별 행동이 더 다채로워진다.
+- **에셋 사용 시 Canvas 폴백 자동 테스트**: preloadAssets() 후 SPRITES 객체를 임의로 비우고 게임을 실행하여 모든 폴백 드로잉이 작동하는지 검증하는 디버그 모드 추가.
 - **render()에서 상태 전환 금지 강제**: Cycle 23에서 renderPaused/renderTutorialOverlay 내 input.justPressed() 호출이 발견됨. 모든 입력→상태 전환은 update() 전용 함수에서만 처리하는 규칙을 강제할 것.
 - **BFS 경로 검증 자동화**: 프로시저럴 맵 생성 후 반드시 양 차원에서 start→exit BFS 검증을 실행하고, 실패 시 통로 추가 또는 재생성하는 로직을 generateFloor 내에 포함할 것.
 - **적 AI 다양화**: Cycle 23에서 기본 chase AI만 구현됨. 순찰(patrol), 도주(flee), 사격(ranged) 등 행동 트리 기반 AI로 확장하면 적 유형별 개성이 뚜렷해진다.

@@ -1,0 +1,20 @@
+{
+  "gameId": "abyss-keeper",
+  "artDirection": {
+    "palette": ["#0A1628", "#0D2847", "#1A4B7A", "#FFD93D", "#FFA94D", "#38D9A9", "#FF6B6B", "#BE4BDB", "#C92A2A"],
+    "style": "심해 바이올루미네센스 카툰",
+    "mood": "신비로운 심해 + 따뜻한 등대빛의 대비",
+    "signature": "생물발광(bioluminescence) — 어둠 속에서 빛나는 해양 생물의 발광 포인트가 모든 에셋에 일관 적용"
+  },
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 128, "height": 128, "desc": "심해 등대지기 — 선장 모자, 랜턴, 작살을 든 수호자. 해군 코트에 바이올루미네센스 악센트" },
+    "enemy":       { "file": "enemy.svg",        "width": 128, "height": 128, "desc": "심해 괴수 — 앵글러피시형 촉수 괴물. 보라색 발광 눈, 낚시꾼 유인체, 날카로운 이빨" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 1200,"height": 800, "desc": "원경 — 별이 가득한 밤하늘, 달빛, 성운, 수평선, 심해 생물발광 점이 있는 깊은 바다" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 1200,"height": 800, "desc": "근경 — 등대가 있는 바위섬, 부두, 해조류 숲, 발광 산호, 해파리 실루엣" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 48,  "height": 48,  "desc": "HP 아이콘 — 입체적 하트에 앵커 엠블럼 오버레이, 바이올루미네센스 스파클" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 48,  "height": 48,  "desc": "점수 아이콘 — 심해 크리스탈 보석. 컷 다이아몬드 패싯 + 아쿠아 발광" },
+    "powerup":     { "file": "powerup.svg",      "width": 64,  "height": 64,  "desc": "파워업 — 회전하는 골드 오브에 미니 등대 엠블럼, 에너지 링, 등대빛 방사" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 128, "height": 128, "desc": "충돌 이펙트 — 5겹 방사형 충격파(아쿠아/골드/퍼플), 물방울 파편, 버블 링" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "게임 썸네일 — 등대지기가 작살을 든 채 심해 괴수와 대치하는 드라마틱 장면" }
+  }
+}

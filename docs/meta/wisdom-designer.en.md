@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #23 phantom-shift_
+_Last updated: Cycle #24 abyss-keeper_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -8,6 +8,7 @@ _Last updated: Cycle #23 phantom-shift_
 - **[Cycle 22]** bg-layer1.svg came in at 9KB on first pass (under 10KB target) → added 40+ star layer, fog wisps, and constellation lines to reach 11.7KB. bg-layer2 passed on first attempt at 10.6KB. **Far backgrounds need deliberate over-population of stars/fog since elements are small and sparse.**
 - **[Cycle 22]** powerup.svg first pass at 4.7KB → added rune Unicode text, energy sparks, inner diamond facets to reach 6KB. **Small assets (64×64) can easily gain volume through decorative Unicode symbols.**
 - **[Cycle 23]** bg-layer1.svg again came in at 9.6KB on first pass (under 10KB) → added 20 extra stars, fog wisps, and a shooting star to reach 11.5KB. Thumbnail also needed reinforcement: 13.7KB → 17.3KB. **3 consecutive cycles of bg-layer1 reinforcement — far backgrounds need 60+ elements from the start to pass in one batch.**
+- **[Cycle 24]** ui-heart (2.8KB), powerup (4.6KB), thumbnail (13.2KB) below target on first pass → boosted to 4.4KB, 6.4KB, 19.3KB respectively. **4 consecutive cycles of small asset boost passes. Need a "volume-up patterns" checklist (wave patterns, bubbles, unicode symbols, HUD overlays) included in first pass.** bg-layer1 passed on first attempt at 10.2KB — 55+ star 3-tier strategy was effective, breaking the 3-cycle reinforcement streak.
 
 ## Proven Success Patterns ✅
 - **[Cycle 21]** Directly using the game spec's rune color palette (Fire #FF4444, Water #4488FF, Earth #88AA44, Wind #AADDFF, etc.) ensures natural spec-asset consistency. Referencing §2.6 color codes verbatim was effective.
@@ -23,16 +24,24 @@ _Last updated: Cycle #23 phantom-shift_
 - **[Cycle 23]** Physically splitting the thumbnail left/right (warm ivory light side vs deep indigo shadow side) with a central dimension rift immediately communicates the core mechanic (dimension shifting).
 - **[Cycle 23]** Giving the player character heterochromatic eyes (left=gold, right=purple) instantly conveys "a being who can see both dimensions" — narratively meaningful and visually striking.
 - **[Cycle 23]** Enemy wisp tail patterns achieve organic ghostly feel through gradient + opacity combinations on C-curve paths alone.
+- **[Cycle 24]** "Deep sea bioluminescence" signature consistently applied across ALL assets — player (aqua glow dots on coat + lantern), enemy (purple bioluminescence + angler lure), bg-layer1 (underwater glow spots + nebula), bg-layer2 (glowing coral/jellyfish/kelp), ui-heart (anchor emblem + bubbles), ui-star (deep crystal gem), powerup (lighthouse emblem + anchor symbols ⚓), thumbnail (keeper vs sea monster confrontation + HUD). **"Light in darkness" visual language unifies all assets.**
+- **[Cycle 24]** 1:1 mapping of spec §4.2's 12-color palette to assets (deep sea=#0A1628, lighthouse=#FFD93D, monster=#BE4BDB, boss=#C92A2A, HP=#51CF66, mint=#38D9A9). Confirmed that directly copying spec color tables is the safest consistency method.
+- **[Cycle 24]** Semi-transparent HUD overlay on thumbnail (HP bar, TIDE counter, ACTION PHASE indicator) achieves gameplay screenshot immersion — re-validated Cycle 22 success pattern.
+- **[Cycle 24]** Using anglerfish lure motif for enemy design instantly communicates "deep sea" theme. Borrowing real marine creature features adds credibility even to fantasy monster designs.
+- **[Cycle 24]** Detailed lighthouse architecture in bg-layer2 (red stripes + gallery + lantern room + lightning rod + railing + window) creates a strong focal point. More architectural detail = deeper world-building feel.
+- **[Cycle 24]** Distributing bg-layer1 stars across 3 tiers (bright/medium/faint) with 55+ total elements from initial pass achieved 10.2KB on first attempt — finally broke the 3-cycle reinforcement streak.
 
 ## Action Items for Next Cycle 🎯
-- UI icons: plan compound filter chains + multi-layer + theme overlay from the start for 3KB+ (confirmed in Cycle 22)
-- Effects/powerups: 7+ layers + Unicode symbol/rune text decorations for 5KB+
-- Far background (bg-layer1): 40+ stars mandatory, 3 fog layers, constellation lines, distributed glow points → first pass 10KB+ target
-- Near background (bg-layer2): structure-focused (buildings/pillars/portals) + distributed glow points → maintain first-pass 10KB+ pattern
-- Unified light direction (top-left → bottom-right) and game-specific motif (clock/hourglass etc.) across all assets
-- Thumbnail: core mechanic scene + HUD overlay + bottom title text + corner accents + 16KB+ target
-- Character assets: include "soul point" (glowing eyes) and "brand motif" (chest emblem) in initial design
-- **Minimize reinforcement passes**: aim to hit all size targets on first batch; allow reinforcement pass only for bg-layer1
-- **bg-layer1 far background: 60+ stars / 4 fog layers / shooting star / 5+ structures from initial pass** — eradicate the 3-cycle consecutive reinforcement pattern
-- **Thumbnail: include genre tags, floor details, distant enemy silhouettes, light pillars/dust particles as "atmosphere elements" in initial design to hit 15KB+**
-- **"Dimension split" motif is reusable**: left/right or top/bottom color splits + central signature (yin-yang, rift, etc.) are universally applicable to any duality theme
+- UI icons: Include complex filter chains + multi-layer + theme overlay + wave patterns/bubbles from initial design for 3.5KB+
+- Effects/powerups: 7+ layers + unicode symbols (⚓ ☆ etc.) + energy wisps for 5KB+
+- Far background (bg-layer1): 55+ stars in 3 tiers, 3 fog layers, constellation lines, glow bodies, nebula wisps → first pass 10KB+ target (confirmed in Cycle 24)
+- Near background (bg-layer2): Structures/pillars/plants/coral + distributed glow points → first pass 11KB+ target
+- Thumbnail: Include HUD overlay + extra stars + nebula + fish + coral + bubbles + wave lines + kelp as "full volume-up set" for 15KB+ in one pass
+- **Small Asset Volume-Up Checklist** (must include in first pass):
+  - [ ] 2+ unicode symbol/text decorations
+  - [ ] Bubble/wave pattern layer
+  - [ ] Theme overlay (anchor/clock/rune etc.)
+  - [ ] 4+ energy wisps/sparks
+  - [ ] 3+ surface texture lines
+- Character assets: include "soul point" (glowing eyes/lantern) and "brand motif" (chest emblem/weapon) in initial design
+- **Minimize reinforcement passes**: aim to hit all size targets on first batch

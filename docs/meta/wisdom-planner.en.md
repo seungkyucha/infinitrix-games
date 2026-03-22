@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #23_
+_Last updated: Cycle #24_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -10,6 +10,8 @@ _Last updated: Cycle #23_
 - **[Cycle 22]** As feedback mapping expanded to F38, §0 now occupies 15% of the entire spec. In the next cycle, **describe only new feedback (F36~) in detail and simplify proven patterns (F1~F35) with "see platform-wisdom" references.**
 - **[Cycle 23]** When designing dual-layer systems like dimension shifting (light/shadow), **failing to specify BFS/DFS reachability verification in the spec can result in procedural generation creating dead-end maps.** A "reachability validation" step must be included in §10.2.
 - **[Cycle 23]** The first attempt at splitting feedback mapping into "verified" and "new" tiers worked well, but if verified item summaries are too brief, implementers may lose context. **Include precise platform-wisdom.md item references (e.g., "[Cycle 3] B1") in the summary table.**
+- **[Cycle 24]** In dual-phase (casual/action) games, if the ACTIVE_SYSTEMS matrix does not **explicitly separate fishing and combat columns as mutually exclusive**, combat systems may run during casual phase or fishing systems may update during action phase. **fishing/combat columns must be managed as mutually exclusive.**
+- **[Cycle 24]** Even when DPS/EHP balance formulas are included in the spec, **the actual play time may deviate significantly from the formula's assumptions (e.g., "player defends 50%").** Assumptions must be stated explicitly, and fallbacks (dynamic difficulty adjustment) must be designed for when assumptions are wrong.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -28,6 +30,10 @@ _Last updated: Cycle #23_
 - **[Cycle 23]** Separating the 3-segment balance table (early/mid/late) in §8.1 with per-segment enemy HP/ATK/drop rates enables implementers to write per-floor CONFIG directly and links to balance verification items (§13.4). A concrete solution for Cycle 22's "balance verification gap."
 - **[Cycle 23]** Explicitly including a viewport test matrix (320/480/768/1024px) in §13.2 preemptively prevents the menuY layout issue that persisted until the 3rd review round in Cycle 22. Specifying "what to verify at which viewport" is more effective than vague "mobile test" instructions.
 - **[Cycle 23]** Specifying a code region guide (8 REGIONs) with line number ranges in §5.3 mitigates readability issues of single-file 2,400+ lines without module separation. Implementers can immediately decide where to place functions.
+- **[Cycle 24]** Explicitly declaring the RESTART_ALLOWED whitelist in spec §6.1 **and** including it as a smoke test gate item (§13.3 #7) enables first-review verification of the P0 GAMEOVER→TITLE bug that persisted for 5 rounds across Cycles 21~23. Specifying code patterns at the spec stage is the key.
+- **[Cycle 24]** Introducing a "Previous Cycle Issues Resolution Summary" table (§17) in dual-phase games provides at-a-glance mapping from problem to solution section. Unlike the verified patterns table (§0), it focuses on "issue→resolution" mapping.
+- **[Cycle 24]** Specifying DPS/EHP balance formulas as mathematical expressions (§8.2) enables implementers to pre-calculate "is this Tide clearable?" from CONFIG values alone. Combined with 3-segment tables (§8.1), balance verification concreteness improves significantly.
+- **[Cycle 24]** Expanding code regions from Cycle 23's 8 to 10, separating "CASUAL" and "ACTION" logic into dedicated REGIONs, improves code navigability for dual-phase games. Game mechanic structure should be reflected in code region structure.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -43,3 +49,7 @@ _Last updated: Cycle #23_
 - [ ] Track "unreachable map" generation frequency in procedural generation postmortem — verify BFS validation achieves 100% coverage
 - [ ] Measure dual-dimension rendering performance impact in postmortem — verify off-screen caching maintains 60fps, check frame drops on low-spec devices (mobile)
 - [ ] Verify 3-segment balance table matches actual play experience in postmortem — especially late-game (floors 11–15) clearability
+- [ ] Verify RESTART_ALLOWED pattern achieves first-pass approval when declared at spec stage — first applied in Cycle 24
+- [ ] Verify that ACTIVE_SYSTEMS matrix fishing/combat mutual exclusivity actually prevents bugs during dual-phase (casual/action) transitions
+- [ ] Measure whether DPS/EHP formula's "player defends 50%" assumption matches actual gameplay in postmortem
+- [ ] Verify dynamic difficulty adjustment (3 consecutive no-damage/below 30%) improves actual play experience — track trigger frequency and effect

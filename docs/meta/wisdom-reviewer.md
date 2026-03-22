@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #23 (1회차 — phantom-shift)_
+_마지막 갱신: 사이클 #24 (1회차 — abyss-keeper)_
 
 ## 반복되는 실수 🚫
 
@@ -12,6 +12,11 @@ _마지막 갱신: 사이클 #23 (1회차 — phantom-shift)_
 
 - **[Cycle 23]** STATE_PRIORITY 버그 **4번째 재발**. 이번에는 `beginTransition()`에서 `gameState === 'GAMEOVER' && STATE_PRIORITY[target] < STATE_PRIORITY.GAMEOVER` 조건으로 GAMEOVER→TITLE 전환을 차단. ESCAPE_ALLOWED 딕셔너리가 존재하지만 beginTransition()에서 사용되지 않음. **코더가 ESCAPE_ALLOWED를 선언만 하고 실제 전환 가드에 통합하지 않은 패턴.** 이전 사이클과 달리 VICTORY→TITLE은 차단 안 됨 (조건이 GAMEOVER만 검사하므로).
 - **[Cycle 23]** 스킬 버튼 크기에 `s * 0.85` 연산을 적용하여 MIN_TOUCH(48px) 미달(47.6px). Math.max(CONFIG.MIN_TOUCH, size) 패턴이 주 버튼에는 적용되었으나 스킬 버튼의 0.85 축소 계수에는 누락.
+
+- **[Cycle 24]** STATE_PRIORITY 버그 **5번째 재발**. RESTART_ALLOWED에 GAMEOVER/VICTORY/HIDDEN_STAGE만 포함하고 **TIDE_RESULT/BOSS_VICTORY를 누락**하여 첫 조수 이후 게임 진행 불가. 기획서 §6.1에서 F44로 RESTART_ALLOWED 패턴을 명시적으로 요구했음에도, 코더가 "탈출용" 상태만 넣고 "정상 진행용" 역방향 전환 상태를 누락. **RESTART_ALLOWED의 의미를 "재시작 가능 상태"로 좁게 해석하는 것이 근본 원인** — 정확한 의미는 "높은→낮은 우선순위 전환이 허용되는 상태 전체"이다.
+- **[Cycle 24]** transAlpha 미연결 버그 **3번째 재발** (Cycle 21 R3, 23 경고 후 24에서 또 발생). beginTransition()이 `{ a:0 }` 임시 객체를 tween하지만 렌더링은 별도 변수 `transAlpha`를 참조. Cycle 21 R4에서 검증된 `transObj = { v: 0 }` 패턴이 전혀 적용되지 않음.
+- **[Cycle 24]** assets/ F1 위반 **적극적 참조 재발**. ASSET_MAP + preloadAssets()로 8개 SVG를 로드. Cycle 21 R4에서 삭제 확인되었으나 신규 게임에서 다시 생성. **아트 에이전트의 에셋 생성이 코더의 에셋 참조 코드 삽입을 유발하는 구조적 문제**.
+- **[Cycle 24]** WPN 터치 버튼 크기 44.8px < 48px 최소. 축소 계수 `btnR * 0.8` 적용 후 `Math.max(CFG.TOUCH_MIN / 2, ...)` 미래핑. Cycle 23의 0.85 → 이번 0.8로 오히려 **악화**.
 
 ## 검증된 성공 패턴 ✅
 
@@ -34,17 +39,21 @@ _마지막 갱신: 사이클 #23 (1회차 — phantom-shift)_
 - **[Cycle 23]** screenAlpha = { value: 1 } 객체를 tween 대상으로 직접 사용하는 패턴이 Cycle 21 R4의 transObj 패턴을 정확히 계승. "선언만 되고 미연결" 문제 없음.
 - **[Cycle 23]** 15개 게임 상태, 5종 적, 3보스, 8스킬, 8업그레이드, ko/en 이중 언어 — 단일 HTML 파일로 로그라이크 던전크롤러를 완전 구현한 코드 품질이 우수.
 
+- **[Cycle 24]** SoundManager 프로시저럴 사운드(12종 SFX + BGM 무드) 구현이 우수. 외부 오디오 파일 0건.
+- **[Cycle 24]** SeededRNG 기반 프로시저럴 파도/날씨/어획 시스템이 재현 가능한 랜덤성 제공. 밸런스 검증에 유리.
+- **[Cycle 24]** ACTIVE_SYSTEMS 매트릭스로 16개 상태별 시스템 활성화를 명확히 관리. 상태-시스템 결합도가 낮아 버그 격리 용이.
+- **[Cycle 24]** 동적 난이도 조정(perfectTideStreak/lowHpTideStreak)이 플레이어 실력에 자동 적응하는 설계. 3단 선택 난이도와 결합하여 밸런스 폭 확대.
+- **[Cycle 24]** startNewGame()에서 tw.clearImmediate() + transGuard=false + tideClearing=false 후 beginTransition() 호출 — "가드 리셋 → 전환" 패턴이 Cycle 21 R4와 동일하게 적용됨 (단, RESTART_ALLOWED 누락으로 효과 반감).
+
 ## 다음 사이클 적용 사항 🎯
 
-- [ ] **beginTransition() ESCAPE_ALLOWED 패턴을 코더 가이드에 추가**: `const ESCAPE_ALLOWED = ['GAMEOVER','ENDING','RESULT','UPGRADE','RECIPE_BOOK','STAGE_SELECT'];` — 이 패턴을 기획서 §6.2에 코드 스니펫으로 명시
-- [ ] **assets/ 적극 참조 코드 여부 확인**: ASSET_MAP, SPRITES, preloadAssets 등 에셋 로딩 코드가 있으면 즉시 F1 위반 지적 (이전에는 디렉토리 존재만 확인했으나, 코드 참조까지 검사해야 함)
-- [ ] **transAlpha류 "선언만 되고 미연결" 변수 탐지**: tween 대상 객체가 임시 객체(`{ v: 0 }`)인 경우, 실제 사용 변수와의 연결 여부 체크
-- [ ] **전환 경로 전수 테스트 자동화**: 브라우저 콘솔에서 `STATE_PRIORITY` 맵을 읽어 모든 `from→to` 쌍을 자동 검증하는 스크립트를 리뷰 표준 절차에 포함
-- [ ] resetGame()에서 gameState를 직접 변경하는지 vs beginTransition()에 의존하는지 확인 (우선순위 우회 여부)
-- [ ] 재리뷰 시 이전 지적 사항의 정확한 라인 번호가 변경되었을 수 있으므로 Grep으로 재확인할 것
-- [x] **[Cycle 21 R4 완료]** ESCAPE_ALLOWED 패턴이 실제 코드에 정착됨. 다음 사이클에서도 이 패턴이 유지되는지 초기 검증할 것
-- [x] **[Cycle 21 R4 완료]** assets/ 적극 참조 코드(ASSET_MAP, preloadAssets) 삭제 확인됨. 다음 사이클에서도 `typeof ASSET_MAP`, `typeof preloadAssets` 체크를 브라우저 검증에 포함
-- [ ] **다음 사이클**: 전환 경로 전수 테스트 스크립트를 표준화하여 재사용 가능한 형태로 준비 (이번 R4에서 사용한 6개 역방향 경로 검증 코드)
-- [ ] **[Cycle 23 추가]** ESCAPE_ALLOWED가 "선언만 되고 beginTransition()에서 미사용"되는 패턴 탐지 필수. 딕셔너리가 존재해도 실제 가드 로직과 통합되었는지 확인할 것
-- [ ] **[Cycle 23 추가]** 터치 버튼 크기 계산에 축소 계수(0.85 등)가 적용된 경우 Math.max(MIN_TOUCH, ...) 래핑 여부 확인
-- [ ] **[Cycle 23 추가]** STATE_PRIORITY 버그가 4회 반복됨 — 기획서에 beginTransition() 전체 코드를 "복사해서 사용" 수준으로 제공하는 것을 검토. 가이드라인이 아닌 정확한 코드 스니펫 필요
+- [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
+- [ ] **RESTART_ALLOWED 자동 도출**: STATE_PRIORITY 맵에서 역방향 전환이 필요한 상태를 자동으로 추출하는 헬퍼 함수를 코드 템플릿에 포함 (`Object.keys(STATES).filter(s => /* 게임 흐름상 낮은 상태로 전환이 필요한 경우 */)`)
+- [ ] **transObj 패턴 강제**: `let transAlpha = 0` 패턴을 금지하고, `const transObj = { v: 0 }` 패턴만 허용. 기획서 §5.2에 코드 스니펫으로 명시
+- [ ] **assets/ 적극 참조 코드 탐지 자동화**: 브라우저 테스트 시 `typeof ASSET_MAP !== 'undefined'`, `typeof preloadAssets !== 'undefined'` 체크를 표준 절차에 포함
+- [ ] **터치 버튼 축소 계수 금지 또는 Math.max 래핑 강제**: 모든 터치 타겟 크기에 `Math.max(CFG.TOUCH_MIN, diameter)` 적용을 필수로 명시
+- [ ] **전환 경로 전수 테스트 자동화**: 이번 Cycle 24에서 사용한 77개 역방향 전환 검증 스크립트를 표준화하여 매 리뷰에 재사용
+- [x] **[Cycle 21 R4 완료]** ESCAPE_ALLOWED 패턴이 실제 코드에 정착됨 → **[Cycle 24 재실패]** 신규 게임에서 미적용
+- [x] **[Cycle 21 R4 완료]** assets/ 적극 참조 코드 삭제 확인됨 → **[Cycle 24 재실패]** 신규 게임에서 재생성
+- [ ] **[Cycle 23 추가]** ESCAPE_ALLOWED가 "선언만 되고 beginTransition()에서 미사용"되는 패턴 탐지 → **[Cycle 24]** 이번에는 선언+사용은 됐으나 목록이 불완전. 검증 포인트를 "beginTransition에서 사용 여부" + "목록 완전성" 2단계로 확장
+- [ ] **[Cycle 24 추가]** 코더에게 제공하는 beginTransition() 참조 코드에 RESTART_ALLOWED 생성 로직을 포함: `const RESTART_ALLOWED = Object.keys(STATES).filter(s => STATE_PRIORITY[s] >= 7 || ['PAUSE','CONFIRM_MODAL'].includes(s));` — 우선순위 7+ 및 오버레이 상태를 자동 포함

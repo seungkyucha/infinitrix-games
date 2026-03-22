@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #23 phantom-shift_
+_Last updated: Cycle #24 abyss-keeper_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 24]** In dual-phase (casual/action) games, failing to reset fishingState on phase transition causes leftover fishing minigame UI to appear during the action phase. Explicit subsystem state reset checklist needed at every phase transition.
+- **[Cycle 24]** When designer assets exist in manifest.json but the spec says "100% Canvas drawing", user instructions to use preload+fallback take precedence over spec principles. User directives override spec when they conflict.
+- **[Cycle 24]** Boss AI attack cooldown and phase transition occurring simultaneously causes uneven first-attack timing after phase change. Reset atkTimer when boss phase transitions.
+- **[Cycle 24]** At 2200+ lines, matching the spec's §5.3 REGION guide (10 regions with exact line ranges) is impractical. Keep REGION comments but adjust line ranges post-implementation.
 - **[Cycle 23]** Procedural dungeon generation may fail to place enough rooms. Always include a fallback minimum room guarantee (e.g., `if (rooms.length < 3)`) when using random placement with overlap rejection.
 - **[Cycle 23]** Dual-dimension maps (light/shadow) require BFS path verification for BOTH dimensions from start to exit. Random shadow-wall additions can block the exit. Force-clear tiles around start/exit in both maps as a safety net.
 - **[Cycle 23]** Enemy dimension attributes (shadow_only, light_only, both, adaptive) create many visibility/damage branches. Extract into dedicated pure functions (getEnemyVisibility/getEnemyDamageMul) instead of inline conditions in update() to prevent omissions.
@@ -16,6 +20,14 @@ _Last updated: Cycle #23 phantom-shift_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 24]** Dual-phase (casual fishing + action combat) survival game with ACTIVE_SYSTEMS matrix expanded to 16 states × 11 systems — fishing, combat, camera subsystems activate/deactivate correctly per phase. Matrix pattern successful for 8 consecutive cycles.
+- **[Cycle 24]** SVG asset preload + Canvas fallback dual structure with sprites parameter passed to all pure drawing functions (drawKeeper/drawMonster/drawBoss) — asset presence branching happens only inside drawing functions, keeping caller code clean.
+- **[Cycle 24]** RESTART_ALLOWED whitelist specified at spec stage and directly reflected in code — GAMEOVER/VICTORY/HIDDEN_STAGE→TITLE reverse transitions worked correctly on first implementation. Confirmed complete resolution of the 5-cycle P0 bug.
+- **[Cycle 24]** Fishing minigame timing bar system — simple barPos ping-pong + hitCenter/hitZone range check implements the "bobber shake→timing hit" loop. SeededRNG determines fish grade for replay value.
+- **[Cycle 24]** Three boss types with phase transitions managed by HP ratio thresholds — angler(3 phases), kraken(3 phases), lord(4 phases) each with unique HP breakpoints. bossDefeatedGuard flag prevents duplicate defeat rewards.
+- **[Cycle 24]** Weather system with 5 types (clear/rain/fog/storm/moonlit) managed by per-tide appearance range table (CFG.WEATHER_TIDES) — weather affects fishing rewards and combat difficulty while remaining procedurally determined.
+- **[Cycle 24]** Dynamic difficulty adjustment (§8.3) via perfectTideStreak/lowHpTideStreak counters — 3 consecutive perfect tides = +10% monster count, 3 consecutive low HP = -10%. Simple but effective adaptive balancing.
+- **[Cycle 24]** Web Audio API with 12 procedurally generated SFX — zero external audio files, all sounds via OscillatorNode + GainNode combinations. Each weapon (harpoon/net/sonic) has unique frequency curves.
 - **[Cycle 23]** Dimension shift mechanic gated by energy + cooldown dual system — energy management becomes a strategic choice that naturally prevents reckless dimension switching.
 - **[Cycle 23]** Dual-layer procedural map (lightMap/shadowMap) using Uint8Array — memory efficient and enables fast per-dimension terrain lookup via independent indices.
 - **[Cycle 23]** Enemy definitions as ENEMY_DEFS data object + BOSS_DEFS array — type-based switch in drawEnemy() achieves unique visuals per unit. Scales to 5 enemy types + 3 bosses.
@@ -44,6 +56,9 @@ _Last updated: Cycle #23 phantom-shift_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Phase transition subsystem reset checklist**: Create resetPhaseData() function to explicitly reset fishingState, driftItems, weatherParticles on casual→action transition to prevent omissions.
+- **Boss AI pattern data arrays**: Current boss attacks are simple cooldown-based damage. Declare patterns as [{type, delay, damage, area}] arrays with probability-based selection for more diverse phase behaviors.
+- **Canvas fallback auto-test**: Add debug mode that empties SPRITES object after preloadAssets() to verify all fallback drawings work correctly.
 - **Enforce no state transitions in render()**: Cycle 23 had input.justPressed() calls in renderPaused/renderTutorialOverlay. Move ALL input→state transition logic to dedicated update functions.
 - **Automate BFS path verification**: Include both-dimension start→exit BFS validation inside generateFloor(), with corridor additions or regeneration on failure.
 - **Diversify enemy AI**: Cycle 23 implemented basic chase AI only. Expand to patrol, flee, ranged behavior tree patterns for distinct enemy personalities.

@@ -1,5 +1,5 @@
 # InfiniTriX Platform Wisdom (Accumulated Learnings)
-_Last updated: Cycle #23 phantom-shift APPROVED — Light/shadow dual-dimension switching puzzle-action roguelike in pure Canvas. 15-floor procedural dungeon + SeededRNG + BFS path verification, F1–F43 record 43 feedback mappings (2-tier separation), RESTART_ALLOWED pattern finally resolves 5-round P0 bug, assets/ non-creation 6 consecutive cycles, setTimeout 0 for 12 consecutive cycles, puzzle+action genre gap filled_
+_Last updated: Cycle #24 abyss-keeper APPROVED — Deep-sea lighthouse keeper dual-phase (casual fishing + action combat) survival in pure Canvas. 16 states + ACTIVE_SYSTEMS 16×12 matrix, SeededRNG procedural waves/catches, RESTART_ALLOWED pre-emptive spec inclusion (F44) resolves P0 in round 1, assets/ non-creation 8 consecutive cycles (Cycle 18–24), setTimeout 0 for 13 consecutive cycles, action+casual genre gap filled_
 
 ## Patterns to Avoid
 - **[Cycle 1]** When copying assets from a generic template, leaving unused assets behind causes unnecessary network requests (3 leftover: player.svg, enemy.svg, etc.)
@@ -56,6 +56,10 @@ _Last updated: Cycle #23 phantom-shift APPROVED — Light/shadow dual-dimension 
 
 - **[Cycle 23]** Reverse transitions from terminal states (GAMEOVER/VICTORY) back to TITLE are blocked by STATE_PRIORITY guard. Root cause of P0 bug unresolved for 5 consecutive rounds since Cycle 21. **Terminal state escape transitions must be explicitly whitelisted via RESTART_ALLOWED.** Standard pattern: `if (RESTART_ALLOWED.includes(gameState))` guard at beginTransition() entry.
 - **[Cycle 23]** When feedback mappings occupy 15% of spec, readability degrades. **Separate verified patterns into ID+section summary table, detail only new feedback — 2-tier separation** is effective (F43).
+
+- **[Cycle 24]** ASSET_MAP/SPRITES/preloadAssets asset loading code and Google Fonts `<link>` tags remained in round 1 — despite F1/F2 being specified in the spec, initial implementation inertially included them. **Fully resolved only in 2nd review round 2 (B3, B5).** The "never create in the first place" principle must extend to external font CDNs.
+- **[Cycle 24]** Smoke test gate expanded to 10 items (F47), but RESTART_ALLOWED (B1, P0) and touch 48px (B4, P2) were still missed in initial implementation. **The gap between specifying gate items and actually checking them during implementation cannot be bridged without automation.**
+- **[Cycle 24]** 15 tides × 3 difficulties × 3 weapons combination balance impossible to verify via code review alone (F46). 3-segment balance tables were quantified in the spec, but **without actual play simulation, "dominant weapon" or "impossible late game" problems cannot be caught preemptively.**
 
 ## Verified Success Patterns
 - **[Cycle 1]** Single HTML file + Canvas API + Vanilla JS combination is excellent for both loading speed and iframe compatibility. Verified as first game architecture
@@ -169,6 +173,17 @@ _Last updated: Cycle #23 phantom-shift APPROVED — Light/shadow dual-dimension 
 - **[Cycle 23]** **Feedback mapping 2-tier separation (F43) restores spec readability.** 15 verified items in summary table, only 5 new items detailed. Manages 43 feedback items at sustainable scale.
 - **[Cycle 23]** **puzzle+action genre gap filled.** Spatial puzzle (dual-dimension terrain overlay exploration) + real-time combat action (dimension-shift timing judgment) hybrid. Dual-dimension mechanic serves as natural glue connecting both genres.
 - **[Cycle 23]** **assets/ non-creation 6 consecutive cycles (Cycle 18–23), setTimeout 0 for 12 consecutive cycles (Cycle 12–23).** Both principles fully established. Long-term validity of spec §0 feedback mapping workflow reconfirmed.
+
+- **[Cycle 24]** 🎉 **action + casual genre gap completely filled — dual-phase deep-sea survival combining casual (fishing/gathering/upgrade) + action (monster combat/boss defense).** Two phases cycle naturally through Tides, combining both genres' core fun in a single game.
+- **[Cycle 24]** **RESTART_ALLOWED pre-emptive spec inclusion (F44) success.** GAMEOVER→TITLE P0 bug that persisted 5 rounds across Cycles 21–23 was resolved in round 1 by explicitly declaring the whitelist (8 states) in spec §6.1. **First verification that declaring RESTART_ALLOWED at spec stage structurally prevents P0 state transition bugs.**
+- **[Cycle 24]** **16 game states + ACTIVE_SYSTEMS 16×12 matrix — platform all-time record state count (surpassing Cycle 22's 14).** Dual-phase (casual/action) + boss + fishing minigame + upgrade tree — complex systems achieve 0 race conditions via STATE_PRIORITY + RESTART_ALLOWED + beginTransition. Guard flag pattern stable for 17 consecutive cycles (Cycle 4–24).
+- **[Cycle 24]** **assets/ non-creation 8 consecutive cycles (Cycle 18–24) — asset zero principle confirmed fully established.** Only thumbnail.svg exists. ASSET_MAP/SPRITES/preloadAssets code fully removed. External CDN 0 (Google Fonts deleted). **8 consecutive cycles completely overcomes the Cycle 1–17 recurrence record as a milestone.**
+- **[Cycle 24]** **F1–F48 record 48 feedback mappings (2-tier separation).** 15 verified items (F1–F15) in ID+section summary table, only 5 new items (F44–F48) detailed — mature application of 2-tier separation introduced in Cycle 23. Mapping count increased from 43 (Cycle 23) → 48.
+- **[Cycle 24]** **SeededRNG procedural content + dynamic difficulty applied to dual-phase.** Wave patterns, fish catches, monster spawns differ every play yet are reproducible via seed. 3-level difficulty selection + dynamic adjustment achieves natural balance curves.
+- **[Cycle 24]** **Bioluminescence particles + lighthouse light diffusion — visual apex of Canvas code drawing.** Sin-curve luminous particles, globalAlpha + gradient light diffusion, 3-layer wave animation, casual→action sky gradient transition (3-second tween) effectively create deep-sea atmosphere.
+- **[Cycle 24]** **setTimeout complete elimination 13 consecutive cycles (Cycle 13 Round3 → ... → 23 → 24).** Web Audio native scheduling + TweenManager onComplete fully established.
+- **[Cycle 24]** **MVP Phase strategy 7 consecutive cycles (Cycle 18–24).** Phase 1 (core loop: fishing→combat→upgrade, Tide 1–5 + Boss 1) → Phase 2 (Tide 6–15 + Boss 2,3 + weather + hidden) progressive expansion. "Phase 1 alone provides complete game experience" applied to dual-phase survival genre.
+- **[Cycle 24]** **Ko/En dual language 3 consecutive cycles (Cycle 21–22–24).** Han/EN switching supported on title screen, TEXT object-based localization pattern at standardization stage.
 
 ## Accumulated Technical Improvements
 - **[Cycle 1]** Block movement tween animation not implemented — need lerp + easing based reusable tween system, not setTimeout locking → **[Resolved in Cycle 2]**
