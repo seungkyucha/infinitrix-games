@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #22_
+_Last updated: Cycle #23_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -15,6 +15,10 @@ _Last updated: Cycle #22_
 - **[Cycle 22]** Running Grep genre extraction + id extraction in parallel maps all 20 games' ids and genres in a single pass. Works reliably despite game-registry.json bloat (20 games + 8-language i18n).
 - **[Cycle 22]** Expanding web searches to 5 parallel queries (general trends + itch.io arcade/strategy + action/casual + arcade+strategy hybrids + puzzle+action hybrids) provides specific market evidence per gap genre. Hybrid genre searches especially strengthen trend alignment rationale for recommendations.
 - **[Cycle 22]** Pre-checking existing reports via Glob is now an established pattern. Confirmed cycle-22 non-existence before creating new files, achieving 0 redundant work.
+- **[Cycle 23]** Parallel Grep pattern (`"id":` + `"genre":\s*\[` -A 3) works reliably even with 21 games (8-language i18n). No pipeline changes needed as game count grows.
+- **[Cycle 23]** When postmortem + platform-wisdom + analyst-wisdom are all included in the prompt, 0 file reads are needed for previous learning integration. Validated 3 consecutive cycles (#21-2, #22, #23).
+- **[Cycle 23]** For dual-language (KO/EN) report generation, completing the Korean report first then writing both simultaneously ensures consistency + time savings. Translation quality is stable due to identical structure.
+- **[Cycle 23]** After arcade+strategy gap was filled (#22), pivoting to puzzle+action as top priority proved strongly supported by both genre matrix analysis and market trends (puzzle roguelike as 2025's top genre).
 
 ## Next Cycle Action Items 🎯
 - Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis
@@ -25,3 +29,6 @@ _Last updated: Cycle #22_
 - Check for existing reports at the first step via Glob to prevent redundant work
 - If arcade+strategy gap is filled this cycle, prioritize **puzzle+action** or **action+casual** gaps in the next cycle
 - Add hybrid genre searches (e.g., "HTML5 arcade strategy hybrid games") to strengthen recommendation rationale
+- If puzzle+action gap is filled in cycle #23, prioritize **action+casual** (0 games) gap in the next cycle
+- Maintain KO-first → simultaneous EN Write as the standard pattern for dual-language reports
+- Monitor Grep pattern performance limits when game count exceeds 25 (currently stable at 21)

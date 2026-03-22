@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #21 (Round 4 — runeforge-tactics)_
+_Last updated: Cycle #23 (Round 1 — phantom-shift)_
 
 ## Recurring Mistakes 🚫
 
@@ -9,6 +9,9 @@ _Last updated: Cycle #21 (Round 4 — runeforge-tactics)_
 - **[Cycle 21 R3]** Same STATE_PRIORITY bug **recurred** in new game (runeforge-tactics) despite being fixed in previous game (rune-architect). But worse this time — only PAUSED exempted, blocking **all 6 reverse transitions**. Previous instance only missed GAMEOVER/ENDING; this time RESULT, UPGRADE, RECIPE_BOOK, and STAGE_SELECT are also blocked. **Must provide "ESCAPE_ALLOWED list pattern" as a standard to the coder.**
 - **[Cycle 21 R3]** assets/ F1 violation **evolved to active referencing**. Previously just orphaned asset files; now code has ASSET_MAP + preloadAssets() that **directly loads** assets. Canvas fallbacks exist so the game works, but clearly violates "single-file 100% Canvas" principle.
 - **[Cycle 21 R3]** transAlpha variable declared but not connected to tween target — transition fade effect non-functional. Watch for mismatches between tween target objects and actual rendering variables.
+
+- **[Cycle 23]** STATE_PRIORITY bug **recurred for the 4th time**. This time `beginTransition()` has `gameState === 'GAMEOVER' && STATE_PRIORITY[target] < STATE_PRIORITY.GAMEOVER` which blocks GAMEOVER→TITLE. ESCAPE_ALLOWED dictionary exists but is NOT used in beginTransition(). **Coder declared ESCAPE_ALLOWED but failed to integrate it into the transition guard.** Unlike previous cycles, VICTORY→TITLE is not blocked (condition only checks GAMEOVER).
+- **[Cycle 23]** Skill button sizes use `s * 0.85` multiplier, resulting in 47.6px — below MIN_TOUCH (48px). Math.max(CONFIG.MIN_TOUCH, size) pattern was applied to main buttons but missed for skill buttons' 0.85 reduction factor.
 
 ## Verified Success Patterns ✅
 

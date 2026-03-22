@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #22 (1회차 — chrono-siege)_
+_마지막 갱신: 사이클 #23 (1회차 — phantom-shift)_
 
 ## 반복되는 실수 🚫
 
@@ -9,6 +9,9 @@ _마지막 갱신: 사이클 #22 (1회차 — chrono-siege)_
 - **[Cycle 21 R3]** 신규 게임(runeforge-tactics)에서 이전 게임(rune-architect)과 **동일한 STATE_PRIORITY 버그 재발**. 하지만 이번에는 더 심각 — PAUSED만 예외로 두어 **6개 역방향 전환** 전부 차단. 이전에는 GAMEOVER/ENDING만 누락이었으나, 이번에는 RESULT, UPGRADE, RECIPE_BOOK, STAGE_SELECT까지 모든 "뒤로가기" 전환 차단. **코더에게 "ESCAPE_ALLOWED 리스트 패턴"을 표준으로 제공해야** 한다.
 - **[Cycle 21 R3]** assets/ F1 위반이 **적극적 참조**로 진화. 이전에는 미참조 에셋이 남아있는 수준이었으나, 이번에는 ASSET_MAP + preloadAssets()로 코드가 에셋을 **직접 로드**. Canvas 폴백이 있어 게임은 동작하지만, "단일 파일 100% Canvas" 원칙에 명확히 위배.
 - **[Cycle 21 R3]** transAlpha 변수가 선언만 되고 tween 대상에 연결되지 않아 전환 페이드 효과 미작동. tween 대상 객체와 실제 사용 변수의 불일치 주의.
+
+- **[Cycle 23]** STATE_PRIORITY 버그 **4번째 재발**. 이번에는 `beginTransition()`에서 `gameState === 'GAMEOVER' && STATE_PRIORITY[target] < STATE_PRIORITY.GAMEOVER` 조건으로 GAMEOVER→TITLE 전환을 차단. ESCAPE_ALLOWED 딕셔너리가 존재하지만 beginTransition()에서 사용되지 않음. **코더가 ESCAPE_ALLOWED를 선언만 하고 실제 전환 가드에 통합하지 않은 패턴.** 이전 사이클과 달리 VICTORY→TITLE은 차단 안 됨 (조건이 GAMEOVER만 검사하므로).
+- **[Cycle 23]** 스킬 버튼 크기에 `s * 0.85` 연산을 적용하여 MIN_TOUCH(48px) 미달(47.6px). Math.max(CONFIG.MIN_TOUCH, size) 패턴이 주 버튼에는 적용되었으나 스킬 버튼의 0.85 축소 계수에는 누락.
 
 ## 검증된 성공 패턴 ✅
 
@@ -26,6 +29,11 @@ _마지막 갱신: 사이클 #22 (1회차 — chrono-siege)_
 - **[Cycle 21 R3]** 브라우저 콘솔에서 JavaScript로 전환 경로를 **전수 검증**하는 기법이 매우 효과적. `STATE_PRIORITY[from] vs STATE_PRIORITY[to]`를 모든 경로에 대해 자동 체크하면 우선순위 버그를 100% 사전 탐지 가능.
 - **[Cycle 21 R3]** runeforge-tactics의 코드 구조(§A~§L 섹션화, 12상태 디스패치, ObjectPool, ScrollManager)는 견고. 핵심 버그 1건(우선순위)만 수정하면 즉시 배포 가능 수준.
 
+- **[Cycle 23]** assets/ 디렉토리에 thumbnail.svg만 존재하고, 코드에서 에셋 로딩 참조 0건. F1 완전 준수. Cycle 21 R4 이후 이 패턴이 정착됨.
+- **[Cycle 23]** 프로시저럴 던전 생성(BSP + 회랑 연결 + BFS 검증)이 견고. 빛/그림자 이중 맵 시스템이 차원 퍼즐 메커닉과 잘 통합됨.
+- **[Cycle 23]** screenAlpha = { value: 1 } 객체를 tween 대상으로 직접 사용하는 패턴이 Cycle 21 R4의 transObj 패턴을 정확히 계승. "선언만 되고 미연결" 문제 없음.
+- **[Cycle 23]** 15개 게임 상태, 5종 적, 3보스, 8스킬, 8업그레이드, ko/en 이중 언어 — 단일 HTML 파일로 로그라이크 던전크롤러를 완전 구현한 코드 품질이 우수.
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **beginTransition() ESCAPE_ALLOWED 패턴을 코더 가이드에 추가**: `const ESCAPE_ALLOWED = ['GAMEOVER','ENDING','RESULT','UPGRADE','RECIPE_BOOK','STAGE_SELECT'];` — 이 패턴을 기획서 §6.2에 코드 스니펫으로 명시
@@ -37,3 +45,6 @@ _마지막 갱신: 사이클 #22 (1회차 — chrono-siege)_
 - [x] **[Cycle 21 R4 완료]** ESCAPE_ALLOWED 패턴이 실제 코드에 정착됨. 다음 사이클에서도 이 패턴이 유지되는지 초기 검증할 것
 - [x] **[Cycle 21 R4 완료]** assets/ 적극 참조 코드(ASSET_MAP, preloadAssets) 삭제 확인됨. 다음 사이클에서도 `typeof ASSET_MAP`, `typeof preloadAssets` 체크를 브라우저 검증에 포함
 - [ ] **다음 사이클**: 전환 경로 전수 테스트 스크립트를 표준화하여 재사용 가능한 형태로 준비 (이번 R4에서 사용한 6개 역방향 경로 검증 코드)
+- [ ] **[Cycle 23 추가]** ESCAPE_ALLOWED가 "선언만 되고 beginTransition()에서 미사용"되는 패턴 탐지 필수. 딕셔너리가 존재해도 실제 가드 로직과 통합되었는지 확인할 것
+- [ ] **[Cycle 23 추가]** 터치 버튼 크기 계산에 축소 계수(0.85 등)가 적용된 경우 Math.max(MIN_TOUCH, ...) 래핑 여부 확인
+- [ ] **[Cycle 23 추가]** STATE_PRIORITY 버그가 4회 반복됨 — 기획서에 beginTransition() 전체 코드를 "복사해서 사용" 수준으로 제공하는 것을 검토. 가이드라인이 아닌 정확한 코드 스니펫 필요

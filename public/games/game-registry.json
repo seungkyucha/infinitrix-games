@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T08:13:46.383Z",
-  "totalGames": 21,
+  "lastUpdated": "2026-03-22T10:37:50.427Z",
+  "totalGames": 22,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -3634,6 +3634,91 @@
           "description": "Combine magia temporal e torres para repelir inimigos das fendas do tempo!",
           "tags": ["defesa de torre", "manipulação temporal", "estratégia", "arcade", "cromante", "viagem no tempo"],
           "controls": ["1~7: Selecionar torre", "Q/W/E: Selecionar feitiço temporal (Lento/Rápido/Reverso)", "Space: Lançar feitiço", "Clique: Colocar/selecionar torre", "Clique direito: Vender torre", "Toque: Tocar para colocar, segurar para mover", "F: Invocar onda antecipada", "ESC: Pausa"]
+        }
+      },
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "phantom-shift",
+      "title": "팬텀 시프트",
+      "description": "빛과 그림자 차원을 전환하며 던전을 탐험하는 퍼즐-액션!",
+      "genre": [
+        "puzzle",
+        "action"
+      ],
+      "thumbnail": "/games/phantom-shift/assets/thumbnail.svg",
+      "path": "/games/phantom-shift/index.html",
+      "addedAt": "2026-03-22T10:37:50.427Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "로그라이크",
+        "퍼즐액션",
+        "차원전환",
+        "프로시저럴",
+        "던전탐험",
+        "보스전"
+      ],
+      "controls": [
+        "WASD/방향키: 8방향 이동",
+        "Q: 차원 전환 (빛 ↔ 그림자)",
+        "Space/클릭: 공격",
+        "E: 상호작용",
+        "1~3: 스킬 사용",
+        "ESC: 일시정지",
+        "터치: 가상 조이스틱 + 버튼"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Phantom Shift",
+          "description": "Switch between light and shadow dimensions to explore procedural dungeons!",
+          "tags": ["roguelike", "puzzle action", "dimension shift", "procedural", "dungeon crawler", "boss fight"],
+          "controls": ["WASD/Arrow keys: 8-directional movement", "Q: Dimension shift (Light ↔ Shadow)", "Space/Click: Attack", "E: Interact", "1~3: Use skills", "ESC: Pause", "Touch: Virtual joystick + buttons"]
+        },
+        "ja": {
+          "title": "ファントムシフト",
+          "description": "光と影の次元を切り替えながらプロシージャルダンジョンを探索しよう！",
+          "tags": ["ローグライク", "パズルアクション", "次元転換", "プロシージャル", "ダンジョン探索", "ボス戦"],
+          "controls": ["WASD/矢印キー: 8方向移動", "Q: 次元切り替え（光 ↔ 影）", "Space/クリック: 攻撃", "E: インタラクト", "1~3: スキル使用", "ESC: 一時停止", "タッチ: 仮想ジョイスティック＋ボタン"]
+        },
+        "zh-CN": {
+          "title": "幻影转换",
+          "description": "在光明与暗影维度间切换，探索程序生成的地牢！",
+          "tags": ["肉鸽", "解谜动作", "维度切换", "程序生成", "地牢探险", "Boss战"],
+          "controls": ["WASD/方向键: 8方向移动", "Q: 维度切换（光明 ↔ 暗影）", "Space/点击: 攻击", "E: 互动", "1~3: 使用技能", "ESC: 暂停", "触屏: 虚拟摇杆 + 按钮"]
+        },
+        "zh-TW": {
+          "title": "幻影轉換",
+          "description": "在光明與暗影維度間切換，探索程序生成的地牢！",
+          "tags": ["肉鴿", "解謎動作", "維度切換", "程序生成", "地牢探險", "Boss戰"],
+          "controls": ["WASD/方向鍵: 8方向移動", "Q: 維度切換（光明 ↔ 暗影）", "Space/點擊: 攻擊", "E: 互動", "1~3: 使用技能", "ESC: 暫停", "觸控: 虛擬搖桿 + 按鈕"]
+        },
+        "es": {
+          "title": "Cambio Fantasma",
+          "description": "¡Alterna entre dimensiones de luz y sombra para explorar mazmorras procedurales!",
+          "tags": ["roguelike", "puzzle acción", "cambio dimensional", "procedural", "exploración de mazmorras", "jefe final"],
+          "controls": ["WASD/Flechas: Movimiento en 8 direcciones", "Q: Cambio dimensional (Luz ↔ Sombra)", "Space/Clic: Atacar", "E: Interactuar", "1~3: Usar habilidades", "ESC: Pausa", "Toque: Joystick virtual + botones"]
+        },
+        "fr": {
+          "title": "Phantom Shift",
+          "description": "Basculez entre les dimensions de lumière et d'ombre pour explorer des donjons procéduraux !",
+          "tags": ["roguelike", "puzzle action", "changement dimensionnel", "procédural", "exploration de donjon", "combat de boss"],
+          "controls": ["WASD/Flèches: Déplacement 8 directions", "Q: Changement de dimension (Lumière ↔ Ombre)", "Space/Clic: Attaquer", "E: Interagir", "1~3: Utiliser compétences", "ESC: Pause", "Tactile: Joystick virtuel + boutons"]
+        },
+        "de": {
+          "title": "Phantom Shift",
+          "description": "Wechsle zwischen Licht- und Schattendimensionen und erkunde prozedurale Dungeons!",
+          "tags": ["Roguelike", "Puzzle-Action", "Dimensionswechsel", "Prozedural", "Dungeon-Erkundung", "Bosskampf"],
+          "controls": ["WASD/Pfeiltasten: 8-Richtungen-Bewegung", "Q: Dimensionswechsel (Licht ↔ Schatten)", "Space/Klick: Angreifen", "E: Interagieren", "1~3: Fähigkeiten einsetzen", "ESC: Pause", "Touch: Virtueller Joystick + Tasten"]
+        },
+        "pt": {
+          "title": "Phantom Shift",
+          "description": "Alterne entre dimensões de luz e sombra para explorar masmorras procedurais!",
+          "tags": ["roguelike", "puzzle ação", "troca dimensional", "procedural", "exploração de masmorras", "luta de chefe"],
+          "controls": ["WASD/Setas: Movimento em 8 direções", "Q: Troca dimensional (Luz ↔ Sombra)", "Space/Clique: Atacar", "E: Interagir", "1~3: Usar habilidades", "ESC: Pausa", "Toque: Joystick virtual + botões"]
         }
       },
       "difficulty": "hard",

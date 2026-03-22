@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #22 chrono-siege_
+_Last updated: Cycle #23 phantom-shift_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 23]** Procedural dungeon generation may fail to place enough rooms. Always include a fallback minimum room guarantee (e.g., `if (rooms.length < 3)`) when using random placement with overlap rejection.
+- **[Cycle 23]** Dual-dimension maps (light/shadow) require BFS path verification for BOTH dimensions from start to exit. Random shadow-wall additions can block the exit. Force-clear tiles around start/exit in both maps as a safety net.
+- **[Cycle 23]** Enemy dimension attributes (shadow_only, light_only, both, adaptive) create many visibility/damage branches. Extract into dedicated pure functions (getEnemyVisibility/getEnemyDamageMul) instead of inline conditions in update() to prevent omissions.
+- **[Cycle 23]** input.justPressed() calls appeared inside render() functions (renderPaused, renderTutorialOverlay), violating update/render separation. All input→state transitions must be processed exclusively in update().
 - **[Cycle 22]** In tower defense genre, enemy paths (waypoints) and grid placement must not conflict — mark path tiles as 1 during grid initialization. Missing path markers allows towers to be placed on the path, a critical bug.
 - **[Cycle 22]** Wave completion check (waveEnemiesLeft === 0) can go negative when splitter enemies spawn additional enemies on death. Always increment waveEnemiesLeft++ when split-spawning.
 - **[Cycle 22]** When a boss reaches the path end and simply resets to the start, core HP decreases infinitely. Boss arrival should include either a repeat limit or speed increase to force game end.
@@ -12,6 +16,14 @@ _Last updated: Cycle #22 chrono-siege_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 23]** Dimension shift mechanic gated by energy + cooldown dual system — energy management becomes a strategic choice that naturally prevents reckless dimension switching.
+- **[Cycle 23]** Dual-layer procedural map (lightMap/shadowMap) using Uint8Array — memory efficient and enables fast per-dimension terrain lookup via independent indices.
+- **[Cycle 23]** Enemy definitions as ENEMY_DEFS data object + BOSS_DEFS array — type-based switch in drawEnemy() achieves unique visuals per unit. Scales to 5 enemy types + 3 bosses.
+- **[Cycle 23]** SeededRNG class ensures procedural generation reproducibility — same seed generates same dungeon, aiding debugging and sharing.
+- **[Cycle 23]** 15-state machine continuing ACTIVE_SYSTEMS matrix pattern from Cycle 22 — new states like DIMENSION_SHIFT and BOSS_CUTSCENE only need one matrix line addition.
+- **[Cycle 23]** Camera system (lerp tracking + zoom) leveraged for boss cutscene choreography — changing camera.targetZoom with per-frame lerp creates dramatic transitions smoothly.
+- **[Cycle 23]** Cleaned assets/ directory before coding, keeping only thumbnail.svg — 6 consecutive cycles (Cycle 18~23) of zero-asset principle maintained.
+- **[Cycle 23]** Korean/English dual language via TEXT object with lang variable toggle — single button press on title screen instantly switches all UI text.
 - **[Cycle 22]** ACTIVE_SYSTEMS matrix declared as data and checked via includes() in update() — declaring a 14-state × 10-system matrix once at the top means adding a new state only requires editing one line in the matrix.
 - **[Cycle 22]** Tower defense with asset preload + Canvas fallback dual structure, drawing 8 enemy types × 7 tower types × 5 bosses uniquely in Canvas code. switch(type) branching achieves visual identity per unit.
 - **[Cycle 22]** Boss phase transitions via HP ratio thresholds — including def.phaseThresholds array in BOSS_DEFS data enables data-driven per-boss transition points.
@@ -32,6 +44,10 @@ _Last updated: Cycle #22 chrono-siege_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Enforce no state transitions in render()**: Cycle 23 had input.justPressed() calls in renderPaused/renderTutorialOverlay. Move ALL input→state transition logic to dedicated update functions.
+- **Automate BFS path verification**: Include both-dimension start→exit BFS validation inside generateFloor(), with corridor additions or regeneration on failure.
+- **Diversify enemy AI**: Cycle 23 implemented basic chase AI only. Expand to patrol, flee, ranged behavior tree patterns for distinct enemy personalities.
+- **Offscreen map caching**: Per-tile drawing each frame is inefficient for 48×48 maps. Pre-render entire map to offscreen canvas via buildMapCache(), rebuild only on dimension shift.
 - **Boss AI enhancement**: Cycle 22 established executeBossPattern() basic structure, but each boss needs more diverse phase-specific behaviors. Expand with pattern arrays and probability-based selection.
 - **In-game tower upgrade UI**: Lv2/Lv3 upgrade logic and visual changes have data but lack in-game UI (click→upgrade menu). Provide upgrade/sell popup panel on tower click.
 - **Flying enemy path improvement**: Current linear-to-core implementation is basic. Adding evasion maneuvers or curved paths increases tactical depth.
