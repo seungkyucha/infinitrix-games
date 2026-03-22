@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T23:30:00Z",
-  "totalGames": 23,
+  "lastUpdated": "2026-03-22T12:00:00Z",
+  "totalGames": 24,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -1613,6 +1613,78 @@
           "description": "Use cartas estrategicamente para conquistar a masmorra de 10 andares!",
           "tags": ["estratégia", "cartas", "construção de deck", "roguelike", "masmorra", "por turnos"],
           "controls": ["Clique do mouse: Selecionar/jogar cartas", "Toque: Selecionar/jogar cartas (mobile)", "Teclas numéricas 1-5: Seleção rápida", "Tecla E: Finalizar turno"]
+        }
+      },
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "crystal-pinball",
+      "title": "크리스탈 핀볼",
+      "description": "마법 크리스탈 핀볼 테이블에서 볼을 쏘아 타겟을 파괴하세요!",
+      "genre": ["arcade"],
+      "thumbnail": "/games/crystal-pinball/assets/thumbnail.svg",
+      "path": "/games/crystal-pinball/index.html",
+      "addedAt": "2026-03-22T12:00:00Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["핀볼", "아케이드", "물리", "크리스탈", "플리퍼", "스테이지"],
+      "controls": [
+        "좌/우 방향키 또는 Z/M: 플리퍼 조작",
+        "아래 방향키 또는 Space: 플런저 발사",
+        "터치: 화면 좌/우 탭으로 플리퍼 조작",
+        "P키: 일시정지"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Crystal Pinball",
+          "description": "Launch the ball and smash crystal targets on a magical pinball table!",
+          "tags": ["pinball", "arcade", "physics", "crystal", "flipper", "stages"],
+          "controls": ["Left/Right Arrow or Z/M: Flipper control", "Down Arrow or Space: Plunger launch", "Touch: Tap left/right side for flippers", "P: Pause"]
+        },
+        "ja": {
+          "title": "クリスタルピンボール",
+          "description": "魔法のピンボール台でボールを打ってクリスタルターゲットを破壊しよう！",
+          "tags": ["ピンボール", "アーケード", "物理", "クリスタル", "フリッパー", "ステージ"],
+          "controls": ["左右キーまたはZ/M: フリッパー操作", "下キーまたはSpace: プランジャー発射", "タッチ: 画面の左右タップでフリッパー操作", "P: 一時停止"]
+        },
+        "zh-CN": {
+          "title": "水晶弹珠台",
+          "description": "在魔法弹珠台上发射弹珠，击碎水晶靶标！",
+          "tags": ["弹珠台", "街机", "物理", "水晶", "挡板", "关卡"],
+          "controls": ["左/右方向键或Z/M：挡板操作", "下方向键或空格：弹射发球", "触屏：点击左/右侧操作挡板", "P：暂停"]
+        },
+        "zh-TW": {
+          "title": "水晶彈珠台",
+          "description": "在魔法彈珠台上發射彈珠，擊碎水晶靶標！",
+          "tags": ["彈珠台", "街機", "物理", "水晶", "擋板", "關卡"],
+          "controls": ["左/右方向鍵或Z/M：擋板操作", "下方向鍵或空白鍵：彈射發球", "觸控：點擊左/右側操作擋板", "P：暫停"]
+        },
+        "es": {
+          "title": "Pinball de Cristal",
+          "description": "¡Lanza la bola y destruye los objetivos de cristal en una mesa de pinball mágica!",
+          "tags": ["pinball", "arcade", "física", "cristal", "flipper", "niveles"],
+          "controls": ["Flechas izq/der o Z/M: Control de flippers", "Flecha abajo o Espacio: Lanzar bola", "Táctil: Toca izq/der para los flippers", "P: Pausa"]
+        },
+        "fr": {
+          "title": "Flipper Cristallin",
+          "description": "Lancez la bille et détruisez les cibles de cristal sur un flipper magique !",
+          "tags": ["flipper", "arcade", "physique", "cristal", "batteurs", "niveaux"],
+          "controls": ["Flèches gauche/droite ou Z/M: Contrôle des batteurs", "Flèche bas ou Espace: Lancer la bille", "Tactile: Appuyez à gauche/droite pour les batteurs", "P: Pause"]
+        },
+        "de": {
+          "title": "Kristall-Flipper",
+          "description": "Schieße die Kugel ab und zerstöre Kristallziele auf einem magischen Flippertisch!",
+          "tags": ["Flipper", "Arcade", "Physik", "Kristall", "Flipperhebel", "Level"],
+          "controls": ["Links/Rechts oder Z/M: Flipper steuern", "Runter oder Leertaste: Kugel abschießen", "Touch: Links/rechts tippen für Flipper", "P: Pause"]
+        },
+        "pt": {
+          "title": "Pinball de Cristal",
+          "description": "Lance a bola e destrua os alvos de cristal em uma mesa de pinball mágica!",
+          "tags": ["pinball", "arcade", "física", "cristal", "flipper", "fases"],
+          "controls": ["Setas esq/dir ou Z/M: Controle dos flippers", "Seta para baixo ou Espaço: Lançar bola", "Toque: Toque esq/dir para os flippers", "P: Pausar"]
         }
       },
       "difficulty": "medium",
