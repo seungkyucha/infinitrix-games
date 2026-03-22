@@ -466,6 +466,124 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       completeAgent('coder')
     }
 
+    // ── 5.5단계: 플래너·디자이너 재검토 → 코더 개선 → 2차 리뷰 ──
+    console.log(`\n🔄 [5.5/7] 플래너·디자이너 재검토 + 코더 개선 + 2차 리뷰`)
+
+    // 플래너 재검토: 기획서 대비 구현 점검
+    startAgent('planner', 5, '기획 적합성 재검토', 'Design Conformance Review')
+    const plannerReview = await runAgent('planner', `
+      docs/game-specs/cycle-${cycleNumber}-spec.md(기획서)와
+      public/games/[game-id]/index.html(구현 결과)을 비교하여 개선 사항을 정리해줘.
+      기획서의 game-id를 먼저 확인할 것.
+
+      검토 항목:
+      1. 기획서에 명시된 게임 규칙이 모두 구현되었는가?
+      2. 조작 방법이 기획서와 일치하는가? (키 매핑, 터치 조작)
+      3. 난이도 시스템이 기획대로 동작하는가?
+      4. 점수/보상 시스템이 기획서와 일치하는가?
+      5. 시각 스타일이 기획서의 컨셉에 부합하는가?
+      6. 누락된 기능이나 기획과 다르게 구현된 부분
+
+      개선 사항을 구체적으로 나열해줘 (코더가 바로 수정할 수 있도록).
+      결과를 텍스트로 출력해줘 (파일 저장 불필요).
+    `)
+    completeAgent('planner')
+
+    // 디자이너 재검토: 비주얼 품질 점검
+    startAgent('designer', 5, '비주얼 품질 재검토', 'Visual Quality Review')
+    const designerReview = await runAgent('designer', `
+      public/games/[game-id]/index.html과
+      public/games/[game-id]/assets/ 폴더의 에셋을 검토해줘.
+      기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
+
+      검토 항목:
+      1. 에셋이 게임에서 올바르게 사용되고 있는가? (preloadAssets + drawImage)
+      2. Canvas 폴백 드로잉이 에셋 없이도 식별 가능한가?
+      3. UI 요소(HUD, 버튼, 메뉴)의 시각적 완성도
+      4. 파티클/이펙트의 시각적 퀄리티
+      5. 색상 팔레트의 일관성
+      6. 시작 화면, 게임 화면, 게임 오버 화면의 비주얼 완성도
+      7. 모바일에서 가상 조이스틱/버튼의 시각적 명확성
+
+      개선 사항을 구체적으로 나열해줘.
+      결과를 텍스트로 출력해줘 (파일 저장 불필요).
+    `)
+    completeAgent('designer')
+
+    // 코더 개선: 플래너+디자이너 피드백 반영
+    const hasFeedback = (plannerReview.output + designerReview.output).length > 100
+    if (hasFeedback) {
+      console.log(`\n🔧 [5.5/7] 코더 — 플래너·디자이너 피드백 반영`)
+      startAgent('coder', 5, '기획·비주얼 피드백 반영', 'Planner+Designer Feedback')
+      await runAgent('coder', `
+        아래 피드백을 반영하여 public/games/[game-id]/index.html을 수정해줘.
+        기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
+
+        ═══ 플래너 피드백 ═══
+        ${plannerReview.output.slice(0, 2000)}
+
+        ═══ 디자이너 피드백 ═══
+        ${designerReview.output.slice(0, 2000)}
+
+        ⚠️ 모든 피드백을 빠짐없이 반영할 것.
+        ⚠️ 기존에 동작하던 기능을 깨뜨리지 말 것.
+      `)
+      completeAgent('coder')
+
+      // 2차 리뷰 (최대 3회 반복)
+      const MAX_REVIEW2_ROUNDS = 3
+      for (let round2 = 1; round2 <= MAX_REVIEW2_ROUNDS; round2++) {
+        const isRetry2 = round2 > 1
+        console.log(`\n🔍 [5.5/7] 2차 리뷰 (${round2}/${MAX_REVIEW2_ROUNDS}회차)`)
+        startAgent('reviewer', 5, `2차 리뷰 (${round2}회차)`, `2nd Review (round ${round2})`)
+        const review2Result = await runAgent('reviewer', `
+          docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
+          public/games/[game-id]/index.html을 재검토해줘.
+
+          ${isRetry2 ? `⚠️ 이번은 2차 리뷰 ${round2}회차입니다. 이전 지적 사항이 수정되었는지 중점 검증.` : ''}
+
+          이것은 플래너·디자이너 피드백 반영 후 2차 리뷰입니다.
+          1차 리뷰와 동일한 기준(📌 1~7)으로 검증하되,
+          특히 다음을 중점 확인:
+          - 플래너 피드백 반영 여부 (기획 적합성)
+          - 디자이너 피드백 반영 여부 (비주얼 품질)
+          - 기존 기능이 깨지지 않았는지 (회귀 테스트)
+
+          결과를 docs/reviews/cycle-${cycleNumber}-review.md에 덮어쓰기 저장.
+          ⚠️ 영문 버전도 갱신: docs/reviews/cycle-${cycleNumber}-review.en.md
+          최종 판정: APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX
+          YAML front-matter에 verdict 포함.
+        `)
+        completeAgent('reviewer')
+
+        const needsFix2 = review2Result.output.includes('NEEDS_MAJOR_FIX')
+          || review2Result.output.includes('NEEDS_MINOR_FIX')
+
+        if (!needsFix2) {
+          console.log(`  ✅ 2차 리뷰 통과 (${round2}회차)`)
+          break
+        }
+
+        if (round2 === MAX_REVIEW2_ROUNDS) {
+          console.log(`  ⚠️ 2차 리뷰 최대 횟수(${MAX_REVIEW2_ROUNDS}회) 도달`)
+          break
+        }
+
+        // 코더 재수정
+        console.log(`\n🔧 [2차 피드백] 코더 재작업 (${round2}회차)`)
+        startAgent('coder', 5, `2차 재작업 (${round2}회차)`, `2nd Rework (round ${round2})`)
+        await runAgent('coder', `
+          docs/reviews/cycle-${cycleNumber}-review.md의 2차 리뷰 피드백을 반영하여
+          public/games/[game-id]/index.html을 수정해줘.
+          기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)의 game-id를 먼저 확인할 것.
+          ⚠️ 지적된 모든 항목을 수정하되 기존 기능을 깨뜨리지 말 것.
+        `)
+        completeAgent('coder')
+      }
+    } else {
+      console.log(`  ✅ 플래너·디자이너 피드백 없음 — 2차 리뷰 생략`)
+    }
+
     // ── 6단계: 포스트모템 ──────────────────────────────────────
     console.log(`\n📝 [6/7] 포스트모템 — 사이클 총정리 + 플랫폼 지혜 갱신`)
     state.status = 'reviewing'
