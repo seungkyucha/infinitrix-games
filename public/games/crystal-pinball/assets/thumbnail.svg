@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a2e"/>
+      <stop offset="100%" stop-color="#1a0a3e"/>
+    </linearGradient>
+    <linearGradient id="table" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e5a"/>
+      <stop offset="100%" stop-color="#12123a"/>
+    </linearGradient>
+    <radialGradient id="crystal1" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#a0f0ff"/>
+      <stop offset="60%" stop-color="#40c0ff"/>
+      <stop offset="100%" stop-color="#2060c0"/>
+    </radialGradient>
+    <radialGradient id="crystal2" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffa0ff"/>
+      <stop offset="60%" stop-color="#c040ff"/>
+      <stop offset="100%" stop-color="#6020c0"/>
+    </radialGradient>
+    <radialGradient id="crystal3" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#a0ffa0"/>
+      <stop offset="60%" stop-color="#40c060"/>
+      <stop offset="100%" stop-color="#208040"/>
+    </radialGradient>
+    <radialGradient id="ball" cx="35%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#c0c0d0"/>
+      <stop offset="100%" stop-color="#606080"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#80d0ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#80d0ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="neon">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-filter">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="300" fill="url(#bg)"/>
+
+  <!-- Pinball table body -->
+  <path d="M100,280 L80,60 Q80,30 110,25 L290,25 Q320,30 320,60 L300,280 Z" fill="url(#table)" stroke="#4040a0" stroke-width="3"/>
+
+  <!-- Table inner border glow -->
+  <path d="M110,270 L92,65 Q92,40 118,35 L282,35 Q308,40 308,65 L290,270 Z" fill="none" stroke="#3060c0" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Bumpers (circles) -->
+  <circle cx="170" cy="110" r="18" fill="#2a2a6a" stroke="#60a0ff" stroke-width="2" filter="url(#neon)"/>
+  <circle cx="230" cy="110" r="18" fill="#2a2a6a" stroke="#60a0ff" stroke-width="2" filter="url(#neon)"/>
+  <circle cx="200" cy="155" r="18" fill="#2a2a6a" stroke="#ff60a0" stroke-width="2" filter="url(#neon)"/>
+
+  <!-- Crystal 1 (top left) - diamond shape -->
+  <g filter="url(#glow-filter)">
+    <polygon points="150,70 162,55 174,70 162,90" fill="url(#crystal1)" opacity="0.9"/>
+    <polygon points="150,70 162,55 162,70" fill="white" opacity="0.3"/>
+  </g>
+
+  <!-- Crystal 2 (top right) - diamond shape -->
+  <g filter="url(#glow-filter)">
+    <polygon points="226,70 238,55 250,70 238,90" fill="url(#crystal2)" opacity="0.9"/>
+    <polygon points="226,70 238,55 238,70" fill="white" opacity="0.3"/>
+  </g>
+
+  <!-- Crystal 3 (center) - larger diamond -->
+  <g filter="url(#glow-filter)">
+    <polygon points="185,180 200,160 215,180 200,205" fill="url(#crystal3)" opacity="0.9"/>
+    <polygon points="185,180 200,160 200,180" fill="white" opacity="0.3"/>
+  </g>
+
+  <!-- Sparkle effects -->
+  <circle cx="155" cy="60" r="2" fill="#a0f0ff" opacity="0.8"/>
+  <circle cx="245" cy="62" r="1.5" fill="#ffa0ff" opacity="0.8"/>
+  <circle cx="210" cy="165" r="2" fill="#a0ffa0" opacity="0.8"/>
+  <circle cx="180" cy="130" r="1" fill="white" opacity="0.6"/>
+  <circle cx="220" cy="140" r="1.2" fill="white" opacity="0.6"/>
+
+  <!-- Left flipper -->
+  <g transform="translate(155,245) rotate(-20)">
+    <rect x="-5" y="-7" width="50" height="14" rx="7" fill="#e04040" stroke="#ff6060" stroke-width="1.5"/>
+  </g>
+
+  <!-- Right flipper -->
+  <g transform="translate(245,245) rotate(20)">
+    <rect x="-45" y="-7" width="50" height="14" rx="7" fill="#e04040" stroke="#ff6060" stroke-width="1.5"/>
+  </g>
+
+  <!-- Ball -->
+  <circle cx="260" cy="200" r="9" fill="url(#ball)"/>
+  <circle cx="257" cy="197" r="3" fill="white" opacity="0.6"/>
+
+  <!-- Ball glow trail -->
+  <ellipse cx="260" cy="200" rx="18" ry="18" fill="url(#glow)"/>
+
+  <!-- Plunger lane -->
+  <rect x="305" y="100" width="8" height="170" rx="4" fill="#1a1a4a" stroke="#4040a0" stroke-width="1"/>
+  <rect x="306" y="250" width="6" height="20" rx="3" fill="#c04040"/>
+
+  <!-- Score display area -->
+  <rect x="120" y="5" width="160" height="18" rx="4" fill="#000020" opacity="0.6"/>
+  <text x="200" y="18" text-anchor="middle" font-family="monospace" font-size="11" fill="#40ffff" font-weight="bold">125,000</text>
+
+  <!-- Title -->
+  <text x="200" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#c0c0ff" font-weight="bold" letter-spacing="2">CRYSTAL PINBALL</text>
+
+  <!-- Decorative side lights -->
+  <circle cx="88" cy="100" r="4" fill="#ff4040" opacity="0.7"/>
+  <circle cx="88" cy="130" r="4" fill="#40ff40" opacity="0.7"/>
+  <circle cx="88" cy="160" r="4" fill="#4040ff" opacity="0.7"/>
+  <circle cx="88" cy="190" r="4" fill="#ffff40" opacity="0.7"/>
+  <circle cx="312" cy="100" r="4" fill="#ff4040" opacity="0.7"/>
+  <circle cx="312" cy="130" r="4" fill="#40ff40" opacity="0.7"/>
+  <circle cx="312" cy="160" r="4" fill="#4040ff" opacity="0.7"/>
+  <circle cx="312" cy="190" r="4" fill="#ffff40" opacity="0.7"/>
+
+  <!-- Star particles -->
+  <polygon points="140,45 142,40 144,45 149,45 145,48 147,53 142,50 137,53 139,48 135,45" fill="#ffe080" opacity="0.5" transform="scale(0.6) translate(90,30)"/>
+  <polygon points="270,45 272,40 274,45 279,45 275,48 277,53 272,50 267,53 269,48 265,45" fill="#ffe080" opacity="0.5" transform="scale(0.5) translate(270,40)"/>
+</svg>
