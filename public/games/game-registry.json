@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T06:29:54.474Z",
-  "totalGames": 20,
+  "lastUpdated": "2026-03-22T08:13:46.383Z",
+  "totalGames": 21,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -3551,6 +3551,92 @@
         }
       },
       "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "chrono-siege",
+      "title": "크로노 시즈",
+      "description": "시간 마법과 타워를 조합해 시간 균열의 적을 격퇴하세요!",
+      "genre": [
+        "arcade",
+        "strategy"
+      ],
+      "thumbnail": "/games/chrono-siege/assets/thumbnail.svg",
+      "path": "/games/chrono-siege/index.html",
+      "addedAt": "2026-03-22T08:13:46.383Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "타워디펜스",
+        "시간조작",
+        "전략",
+        "아케이드",
+        "크로노맨서",
+        "시대여행"
+      ],
+      "controls": [
+        "1~7: 타워 선택",
+        "Q/W/E: 시간 마법 선택 (감속/가속/역전)",
+        "Space: 마법 시전",
+        "마우스 클릭: 타워 배치/선택",
+        "우클릭: 타워 판매",
+        "터치: 탭으로 배치, 롱프레스로 이동",
+        "F: 웨이브 조기 소환",
+        "ESC: 일시정지"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Chrono Siege",
+          "description": "Combine time magic and towers to repel enemies from temporal rifts!",
+          "tags": ["tower defense", "time manipulation", "strategy", "arcade", "chronomancer", "time travel"],
+          "controls": ["1~7: Select tower", "Q/W/E: Select time spell (Slow/Fast/Reverse)", "Space: Cast spell", "Mouse click: Place/select tower", "Right-click: Sell tower", "Touch: Tap to place, long-press to move", "F: Early wave summon", "ESC: Pause"]
+        },
+        "ja": {
+          "title": "クロノシージ",
+          "description": "時間魔法とタワーを組み合わせて時間の裂け目から敵を撃退しよう！",
+          "tags": ["タワーディフェンス", "時間操作", "戦略", "アーケード", "クロノマンサー", "時代旅行"],
+          "controls": ["1~7: タワー選択", "Q/W/E: 時間魔法選択（減速/加速/逆転）", "Space: 魔法発動", "マウスクリック: タワー配置/選択", "右クリック: タワー売却", "タッチ: タップで配置、長押しで移動", "F: ウェーブ早期召喚", "ESC: 一時停止"]
+        },
+        "zh-CN": {
+          "title": "时空围城",
+          "description": "组合时间魔法与防御塔，击退时间裂缝中涌出的敌人！",
+          "tags": ["塔防", "时间操控", "策略", "街机", "时间法师", "时代旅行"],
+          "controls": ["1~7: 选择防御塔", "Q/W/E: 选择时间魔法（减速/加速/逆转）", "Space: 施放魔法", "鼠标点击: 放置/选择防御塔", "右键: 出售防御塔", "触屏: 点击放置，长按移动", "F: 提前召唤波次", "ESC: 暂停"]
+        },
+        "zh-TW": {
+          "title": "時空圍城",
+          "description": "組合時間魔法與防禦塔，擊退時間裂縫中湧出的敵人！",
+          "tags": ["塔防", "時間操控", "策略", "街機", "時間法師", "時代旅行"],
+          "controls": ["1~7: 選擇防禦塔", "Q/W/E: 選擇時間魔法（減速/加速/逆轉）", "Space: 施放魔法", "滑鼠點擊: 放置/選擇防禦塔", "右鍵: 出售防禦塔", "觸控: 點擊放置，長按移動", "F: 提前召喚波次", "ESC: 暫停"]
+        },
+        "es": {
+          "title": "Asedio Crono",
+          "description": "¡Combina magia temporal y torres para repeler enemigos de las grietas del tiempo!",
+          "tags": ["defensa de torres", "manipulación temporal", "estrategia", "arcade", "cronomante", "viaje en el tiempo"],
+          "controls": ["1~7: Seleccionar torre", "Q/W/E: Seleccionar hechizo temporal (Lento/Rápido/Reversa)", "Space: Lanzar hechizo", "Clic: Colocar/seleccionar torre", "Clic derecho: Vender torre", "Toque: Tocar para colocar, mantener para mover", "F: Invocar oleada anticipada", "ESC: Pausa"]
+        },
+        "fr": {
+          "title": "Siège Chrono",
+          "description": "Combinez magie temporelle et tours pour repousser les ennemis des failles temporelles !",
+          "tags": ["défense de tour", "manipulation temporelle", "stratégie", "arcade", "chronomancien", "voyage temporel"],
+          "controls": ["1~7: Sélectionner une tour", "Q/W/E: Sélectionner un sort temporel (Ralenti/Accéléré/Inversé)", "Space: Lancer le sort", "Clic: Placer/sélectionner une tour", "Clic droit: Vendre une tour", "Tactile: Appuyer pour placer, maintenir pour déplacer", "F: Invoquer une vague anticipée", "ESC: Pause"]
+        },
+        "de": {
+          "title": "Chrono-Belagerung",
+          "description": "Kombiniere Zeitmagie und Türme, um Feinde aus Zeitrissen zurückzuschlagen!",
+          "tags": ["Tower Defense", "Zeitmanipulation", "Strategie", "Arcade", "Chronomant", "Zeitreise"],
+          "controls": ["1~7: Turm auswählen", "Q/W/E: Zeitzauber wählen (Verlangsamung/Beschleunigung/Umkehr)", "Space: Zauber wirken", "Mausklick: Turm platzieren/auswählen", "Rechtsklick: Turm verkaufen", "Touch: Tippen zum Platzieren, gedrückt halten zum Bewegen", "F: Welle vorzeitig beschwören", "ESC: Pause"]
+        },
+        "pt": {
+          "title": "Cerco Crono",
+          "description": "Combine magia temporal e torres para repelir inimigos das fendas do tempo!",
+          "tags": ["defesa de torre", "manipulação temporal", "estratégia", "arcade", "cromante", "viagem no tempo"],
+          "controls": ["1~7: Selecionar torre", "Q/W/E: Selecionar feitiço temporal (Lento/Rápido/Reverso)", "Space: Lançar feitiço", "Clique: Colocar/selecionar torre", "Clique direito: Vender torre", "Toque: Tocar para colocar, segurar para mover", "F: Invocar onda antecipada", "ESC: Pausa"]
+        }
+      },
+      "difficulty": "hard",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
     }

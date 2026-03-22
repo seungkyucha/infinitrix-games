@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #21 (4회차 — runeforge-tactics)_
+_마지막 갱신: 사이클 #22 (1회차 — chrono-siege)_
 
 ## 반복되는 실수 🚫
 
