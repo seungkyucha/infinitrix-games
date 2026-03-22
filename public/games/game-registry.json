@@ -1,19 +1,28 @@
 {
   "lastUpdated": "2026-03-22T12:00:00Z",
-  "totalGames": 24,
+  "totalGames": 19,
   "games": [
     {
       "id": "color-merge-puzzle",
       "title": "컬러 머지 퍼즐",
       "description": "같은 색 블록을 합쳐 무지개를 완성하세요!",
-      "genre": ["puzzle"],
+      "genre": [
+        "puzzle"
+      ],
       "thumbnail": "/games/color-merge-puzzle/assets/thumbnail.svg",
       "path": "/games/color-merge-puzzle/index.html",
       "addedAt": "2026-03-20T09:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["퍼즐", "머지", "2048", "캐주얼", "무지개", "중독성"],
+      "tags": [
+        "퍼즐",
+        "머지",
+        "2048",
+        "캐주얼",
+        "무지개",
+        "중독성"
+      ],
       "controls": [
         "방향키/WASD: 블록 이동",
         "터치 스와이프: 블록 이동 (모바일)",
@@ -24,50 +33,146 @@
         "en": {
           "title": "Color Merge Puzzle",
           "description": "Merge same-colored blocks to complete the rainbow!",
-          "tags": ["puzzle", "merge", "2048", "casual", "rainbow", "addictive"],
-          "controls": ["Arrow/WASD: Move blocks", "Touch swipe: Move blocks (mobile)", "Mouse drag: Move blocks", "R: Restart"]
+          "tags": [
+            "puzzle",
+            "merge",
+            "2048",
+            "casual",
+            "rainbow",
+            "addictive"
+          ],
+          "controls": [
+            "Arrow/WASD: Move blocks",
+            "Touch swipe: Move blocks (mobile)",
+            "Mouse drag: Move blocks",
+            "R: Restart"
+          ]
         },
         "ja": {
           "title": "カラーマージパズル",
           "description": "同じ色のブロックを合体させて虹を完成させよう！",
-          "tags": ["パズル", "マージ", "2048", "カジュアル", "虹", "中毒性"],
-          "controls": ["矢印キー/WASD: ブロック移動", "タッチスワイプ: ブロック移動（モバイル）", "マウスドラッグ: ブロック移動", "Rキー: リスタート"]
+          "tags": [
+            "パズル",
+            "マージ",
+            "2048",
+            "カジュアル",
+            "虹",
+            "中毒性"
+          ],
+          "controls": [
+            "矢印キー/WASD: ブロック移動",
+            "タッチスワイプ: ブロック移動（モバイル）",
+            "マウスドラッグ: ブロック移動",
+            "Rキー: リスタート"
+          ]
         },
         "zh-CN": {
           "title": "颜色合并拼图",
           "description": "合并相同颜色的方块，完成彩虹！",
-          "tags": ["拼图", "合并", "2048", "休闲", "彩虹", "上瘾"],
-          "controls": ["方向键/WASD: 移动方块", "触摸滑动: 移动方块（手机）", "鼠标拖动: 移动方块", "R键: 重新开始"]
+          "tags": [
+            "拼图",
+            "合并",
+            "2048",
+            "休闲",
+            "彩虹",
+            "上瘾"
+          ],
+          "controls": [
+            "方向键/WASD: 移动方块",
+            "触摸滑动: 移动方块（手机）",
+            "鼠标拖动: 移动方块",
+            "R键: 重新开始"
+          ]
         },
         "zh-TW": {
           "title": "顏色合併拼圖",
           "description": "合併相同顏色的方塊，完成彩虹！",
-          "tags": ["拼圖", "合併", "2048", "休閒", "彩虹", "上癮"],
-          "controls": ["方向鍵/WASD: 移動方塊", "觸控滑動: 移動方塊（手機）", "滑鼠拖曳: 移動方塊", "R鍵: 重新開始"]
+          "tags": [
+            "拼圖",
+            "合併",
+            "2048",
+            "休閒",
+            "彩虹",
+            "上癮"
+          ],
+          "controls": [
+            "方向鍵/WASD: 移動方塊",
+            "觸控滑動: 移動方塊（手機）",
+            "滑鼠拖曳: 移動方塊",
+            "R鍵: 重新開始"
+          ]
         },
         "es": {
           "title": "Puzzle de Fusión de Colores",
           "description": "¡Fusiona bloques del mismo color para completar el arcoíris!",
-          "tags": ["puzzle", "fusión", "2048", "casual", "arcoíris", "adictivo"],
-          "controls": ["Flechas/WASD: Mover bloques", "Deslizar: Mover bloques (móvil)", "Arrastrar ratón: Mover bloques", "R: Reiniciar"]
+          "tags": [
+            "puzzle",
+            "fusión",
+            "2048",
+            "casual",
+            "arcoíris",
+            "adictivo"
+          ],
+          "controls": [
+            "Flechas/WASD: Mover bloques",
+            "Deslizar: Mover bloques (móvil)",
+            "Arrastrar ratón: Mover bloques",
+            "R: Reiniciar"
+          ]
         },
         "fr": {
           "title": "Puzzle de Fusion de Couleurs",
           "description": "Fusionnez les blocs de même couleur pour compléter l'arc-en-ciel !",
-          "tags": ["puzzle", "fusion", "2048", "casual", "arc-en-ciel", "addictif"],
-          "controls": ["Flèches/WASD: Déplacer les blocs", "Glisser: Déplacer les blocs (mobile)", "Glisser souris: Déplacer les blocs", "R: Recommencer"]
+          "tags": [
+            "puzzle",
+            "fusion",
+            "2048",
+            "casual",
+            "arc-en-ciel",
+            "addictif"
+          ],
+          "controls": [
+            "Flèches/WASD: Déplacer les blocs",
+            "Glisser: Déplacer les blocs (mobile)",
+            "Glisser souris: Déplacer les blocs",
+            "R: Recommencer"
+          ]
         },
         "de": {
           "title": "Farbverschmelzungs-Puzzle",
           "description": "Verschmelze gleichfarbige Blöcke und vervollständige den Regenbogen!",
-          "tags": ["Puzzle", "Verschmelzung", "2048", "Casual", "Regenbogen", "Suchtfaktor"],
-          "controls": ["Pfeiltasten/WASD: Blöcke bewegen", "Wischen: Blöcke bewegen (Mobil)", "Maus ziehen: Blöcke bewegen", "R: Neustart"]
+          "tags": [
+            "Puzzle",
+            "Verschmelzung",
+            "2048",
+            "Casual",
+            "Regenbogen",
+            "Suchtfaktor"
+          ],
+          "controls": [
+            "Pfeiltasten/WASD: Blöcke bewegen",
+            "Wischen: Blöcke bewegen (Mobil)",
+            "Maus ziehen: Blöcke bewegen",
+            "R: Neustart"
+          ]
         },
         "pt": {
           "title": "Puzzle de Fusão de Cores",
           "description": "Funda blocos da mesma cor para completar o arco-íris!",
-          "tags": ["puzzle", "fusão", "2048", "casual", "arco-íris", "viciante"],
-          "controls": ["Setas/WASD: Mover blocos", "Deslizar: Mover blocos (celular)", "Arrastar mouse: Mover blocos", "R: Reiniciar"]
+          "tags": [
+            "puzzle",
+            "fusão",
+            "2048",
+            "casual",
+            "arco-íris",
+            "viciante"
+          ],
+          "controls": [
+            "Setas/WASD: Mover blocos",
+            "Deslizar: Mover blocos (celular)",
+            "Arrastar mouse: Mover blocos",
+            "R: Reiniciar"
+          ]
         }
       },
       "difficulty": "easy",
@@ -78,14 +183,24 @@
       "id": "star-guardian",
       "title": "스타 가디언",
       "description": "우주를 지키는 전투기 파일럿이 되어 끝없는 적 웨이브를 격파하세요!",
-      "genre": ["arcade", "action"],
+      "genre": [
+        "arcade",
+        "action"
+      ],
       "thumbnail": "/games/star-guardian/assets/thumbnail.svg",
       "path": "/games/star-guardian/index.html",
       "addedAt": "2026-03-20T12:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["슈팅", "아케이드", "우주", "보스전", "파워업", "네온"],
+      "tags": [
+        "슈팅",
+        "아케이드",
+        "우주",
+        "보스전",
+        "파워업",
+        "네온"
+      ],
       "controls": [
         "방향키/WASD: 이동",
         "Space/Z: 발사",
@@ -98,50 +213,162 @@
         "en": {
           "title": "Star Guardian",
           "description": "Become a starfighter pilot defending the universe against endless enemy waves!",
-          "tags": ["shooter", "arcade", "space", "boss battle", "power-up", "neon"],
-          "controls": ["Arrow/WASD: Move", "Space/Z: Fire", "P/Esc: Pause", "Mouse: Move + left-click to fire", "Touch: Virtual joystick + auto-fire", "R: Restart (after confirm)"]
+          "tags": [
+            "shooter",
+            "arcade",
+            "space",
+            "boss battle",
+            "power-up",
+            "neon"
+          ],
+          "controls": [
+            "Arrow/WASD: Move",
+            "Space/Z: Fire",
+            "P/Esc: Pause",
+            "Mouse: Move + left-click to fire",
+            "Touch: Virtual joystick + auto-fire",
+            "R: Restart (after confirm)"
+          ]
         },
         "ja": {
           "title": "スターガーディアン",
           "description": "宇宙を守る戦闘機パイロットとなり、終わりなき敵ウェーブを撃破せよ！",
-          "tags": ["シューティング", "アーケード", "宇宙", "ボス戦", "パワーアップ", "ネオン"],
-          "controls": ["矢印キー/WASD: 移動", "Space/Z: 発射", "P/Esc: 一時停止", "マウス: 移動＋左クリックで発射", "タッチ: 仮想ジョイスティック＋オートファイア", "R: リスタート（確認後）"]
+          "tags": [
+            "シューティング",
+            "アーケード",
+            "宇宙",
+            "ボス戦",
+            "パワーアップ",
+            "ネオン"
+          ],
+          "controls": [
+            "矢印キー/WASD: 移動",
+            "Space/Z: 発射",
+            "P/Esc: 一時停止",
+            "マウス: 移動＋左クリックで発射",
+            "タッチ: 仮想ジョイスティック＋オートファイア",
+            "R: リスタート（確認後）"
+          ]
         },
         "zh-CN": {
           "title": "星际守护者",
           "description": "成为保卫宇宙的战机飞行员，击退无尽的敌人波次！",
-          "tags": ["射击", "街机", "太空", "Boss战", "强化道具", "霓虹"],
-          "controls": ["方向键/WASD: 移动", "Space/Z: 射击", "P/Esc: 暂停", "鼠标: 移动+左键射击", "触摸: 虚拟摇杆+自动射击", "R: 重新开始（确认后）"]
+          "tags": [
+            "射击",
+            "街机",
+            "太空",
+            "Boss战",
+            "强化道具",
+            "霓虹"
+          ],
+          "controls": [
+            "方向键/WASD: 移动",
+            "Space/Z: 射击",
+            "P/Esc: 暂停",
+            "鼠标: 移动+左键射击",
+            "触摸: 虚拟摇杆+自动射击",
+            "R: 重新开始（确认后）"
+          ]
         },
         "zh-TW": {
           "title": "星際守護者",
           "description": "成為保衛宇宙的戰機飛行員，擊退無盡的敵人波次！",
-          "tags": ["射擊", "街機", "太空", "Boss戰", "強化道具", "霓虹"],
-          "controls": ["方向鍵/WASD: 移動", "Space/Z: 射擊", "P/Esc: 暫停", "滑鼠: 移動+左鍵射擊", "觸控: 虛擬搖桿+自動射擊", "R: 重新開始（確認後）"]
+          "tags": [
+            "射擊",
+            "街機",
+            "太空",
+            "Boss戰",
+            "強化道具",
+            "霓虹"
+          ],
+          "controls": [
+            "方向鍵/WASD: 移動",
+            "Space/Z: 射擊",
+            "P/Esc: 暫停",
+            "滑鼠: 移動+左鍵射擊",
+            "觸控: 虛擬搖桿+自動射擊",
+            "R: 重新開始（確認後）"
+          ]
         },
         "es": {
           "title": "Guardián Estelar",
           "description": "¡Conviértete en piloto de combate espacial y destruye oleadas interminables de enemigos!",
-          "tags": ["disparos", "arcade", "espacio", "jefe", "potenciador", "neón"],
-          "controls": ["Flechas/WASD: Mover", "Space/Z: Disparar", "P/Esc: Pausa", "Ratón: Mover + clic izquierdo para disparar", "Táctil: Joystick virtual + auto-disparo", "R: Reiniciar (tras confirmar)"]
+          "tags": [
+            "disparos",
+            "arcade",
+            "espacio",
+            "jefe",
+            "potenciador",
+            "neón"
+          ],
+          "controls": [
+            "Flechas/WASD: Mover",
+            "Space/Z: Disparar",
+            "P/Esc: Pausa",
+            "Ratón: Mover + clic izquierdo para disparar",
+            "Táctil: Joystick virtual + auto-disparo",
+            "R: Reiniciar (tras confirmar)"
+          ]
         },
         "fr": {
           "title": "Gardien des Étoiles",
           "description": "Devenez pilote de chasse spatiale et repoussez les vagues d'ennemis sans fin !",
-          "tags": ["tir", "arcade", "espace", "boss", "bonus", "néon"],
-          "controls": ["Flèches/WASD: Déplacer", "Space/Z: Tirer", "P/Esc: Pause", "Souris: Déplacer + clic gauche pour tirer", "Tactile: Joystick virtuel + tir auto", "R: Recommencer (après confirmation)"]
+          "tags": [
+            "tir",
+            "arcade",
+            "espace",
+            "boss",
+            "bonus",
+            "néon"
+          ],
+          "controls": [
+            "Flèches/WASD: Déplacer",
+            "Space/Z: Tirer",
+            "P/Esc: Pause",
+            "Souris: Déplacer + clic gauche pour tirer",
+            "Tactile: Joystick virtuel + tir auto",
+            "R: Recommencer (après confirmation)"
+          ]
         },
         "de": {
           "title": "Sternenwächter",
           "description": "Werde zum Kampfpiloten und verteidige das Universum gegen endlose Feindwellen!",
-          "tags": ["Shooter", "Arcade", "Weltraum", "Bosskampf", "Power-up", "Neon"],
-          "controls": ["Pfeiltasten/WASD: Bewegen", "Space/Z: Feuern", "P/Esc: Pause", "Maus: Bewegen + Linksklick zum Feuern", "Touch: Virtueller Joystick + Auto-Feuer", "R: Neustart (nach Bestätigung)"]
+          "tags": [
+            "Shooter",
+            "Arcade",
+            "Weltraum",
+            "Bosskampf",
+            "Power-up",
+            "Neon"
+          ],
+          "controls": [
+            "Pfeiltasten/WASD: Bewegen",
+            "Space/Z: Feuern",
+            "P/Esc: Pause",
+            "Maus: Bewegen + Linksklick zum Feuern",
+            "Touch: Virtueller Joystick + Auto-Feuer",
+            "R: Neustart (nach Bestätigung)"
+          ]
         },
         "pt": {
           "title": "Guardião Estelar",
           "description": "Torne-se um piloto de caça espacial e destrua ondas infinitas de inimigos!",
-          "tags": ["tiro", "arcade", "espaço", "chefe", "power-up", "neon"],
-          "controls": ["Setas/WASD: Mover", "Space/Z: Atirar", "P/Esc: Pausar", "Mouse: Mover + clique esquerdo para atirar", "Toque: Joystick virtual + tiro automático", "R: Reiniciar (após confirmar)"]
+          "tags": [
+            "tiro",
+            "arcade",
+            "espaço",
+            "chefe",
+            "power-up",
+            "neon"
+          ],
+          "controls": [
+            "Setas/WASD: Mover",
+            "Space/Z: Atirar",
+            "P/Esc: Pausar",
+            "Mouse: Mover + clique esquerdo para atirar",
+            "Toque: Joystick virtual + tiro automático",
+            "R: Reiniciar (após confirmar)"
+          ]
         }
       },
       "difficulty": "medium",
@@ -152,14 +379,22 @@
       "id": "mini-tower-defense",
       "title": "미니 타워 디펜스",
       "description": "3종 타워를 배치하여 20웨이브의 적을 막아라!",
-      "genre": ["strategy"],
+      "genre": [
+        "strategy"
+      ],
       "thumbnail": "/games/mini-tower-defense/assets/thumbnail.svg",
       "path": "/games/mini-tower-defense/index.html",
       "addedAt": "2026-03-20T15:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["타워디펜스", "전략", "웨이브서바이벌", "업그레이드", "판타지"],
+      "tags": [
+        "타워디펜스",
+        "전략",
+        "웨이브서바이벌",
+        "업그레이드",
+        "판타지"
+      ],
       "controls": [
         "마우스 클릭: 타워 배치/선택/업그레이드",
         "1/2/3키: 타워 종류 선택",
@@ -172,50 +407,154 @@
         "en": {
           "title": "Mini Tower Defense",
           "description": "Place 3 types of towers to survive 20 waves of enemies!",
-          "tags": ["tower defense", "strategy", "wave survival", "upgrade", "fantasy"],
-          "controls": ["Mouse click: Place/select/upgrade tower", "1/2/3: Select tower type", "U: Upgrade, S: Sell", "P: Pause", "Space: Start wave early", "Touch: Tap for all actions"]
+          "tags": [
+            "tower defense",
+            "strategy",
+            "wave survival",
+            "upgrade",
+            "fantasy"
+          ],
+          "controls": [
+            "Mouse click: Place/select/upgrade tower",
+            "1/2/3: Select tower type",
+            "U: Upgrade, S: Sell",
+            "P: Pause",
+            "Space: Start wave early",
+            "Touch: Tap for all actions"
+          ]
         },
         "ja": {
           "title": "ミニタワーディフェンス",
           "description": "3種のタワーを配置して20ウェーブの敵を食い止めろ！",
-          "tags": ["タワーディフェンス", "戦略", "ウェーブサバイバル", "アップグレード", "ファンタジー"],
-          "controls": ["マウスクリック: タワー配置/選択/アップグレード", "1/2/3キー: タワー種類選択", "Uキー: アップグレード、Sキー: 売却", "Pキー: 一時停止", "Space: ウェーブ早期開始", "タッチ: タップで全操作"]
+          "tags": [
+            "タワーディフェンス",
+            "戦略",
+            "ウェーブサバイバル",
+            "アップグレード",
+            "ファンタジー"
+          ],
+          "controls": [
+            "マウスクリック: タワー配置/選択/アップグレード",
+            "1/2/3キー: タワー種類選択",
+            "Uキー: アップグレード、Sキー: 売却",
+            "Pキー: 一時停止",
+            "Space: ウェーブ早期開始",
+            "タッチ: タップで全操作"
+          ]
         },
         "zh-CN": {
           "title": "迷你塔防",
           "description": "部署3种塔楼，抵御20波敌人进攻！",
-          "tags": ["塔防", "策略", "波次生存", "升级", "奇幻"],
-          "controls": ["鼠标点击: 放置/选择/升级塔楼", "1/2/3键: 选择塔楼类型", "U键: 升级, S键: 出售", "P键: 暂停", "Space: 提前开始波次", "触摸: 点击进行所有操作"]
+          "tags": [
+            "塔防",
+            "策略",
+            "波次生存",
+            "升级",
+            "奇幻"
+          ],
+          "controls": [
+            "鼠标点击: 放置/选择/升级塔楼",
+            "1/2/3键: 选择塔楼类型",
+            "U键: 升级, S键: 出售",
+            "P键: 暂停",
+            "Space: 提前开始波次",
+            "触摸: 点击进行所有操作"
+          ]
         },
         "zh-TW": {
           "title": "迷你塔防",
           "description": "部署3種塔樓，抵禦20波敵人進攻！",
-          "tags": ["塔防", "策略", "波次生存", "升級", "奇幻"],
-          "controls": ["滑鼠點擊: 放置/選擇/升級塔樓", "1/2/3鍵: 選擇塔樓類型", "U鍵: 升級, S鍵: 出售", "P鍵: 暫停", "Space: 提前開始波次", "觸控: 點擊進行所有操作"]
+          "tags": [
+            "塔防",
+            "策略",
+            "波次生存",
+            "升級",
+            "奇幻"
+          ],
+          "controls": [
+            "滑鼠點擊: 放置/選擇/升級塔樓",
+            "1/2/3鍵: 選擇塔樓類型",
+            "U鍵: 升級, S鍵: 出售",
+            "P鍵: 暫停",
+            "Space: 提前開始波次",
+            "觸控: 點擊進行所有操作"
+          ]
         },
         "es": {
           "title": "Mini Defensa de Torres",
           "description": "¡Coloca 3 tipos de torres para sobrevivir a 20 oleadas de enemigos!",
-          "tags": ["tower defense", "estrategia", "supervivencia por oleadas", "mejoras", "fantasía"],
-          "controls": ["Clic: Colocar/seleccionar/mejorar torre", "1/2/3: Seleccionar tipo de torre", "U: Mejorar, S: Vender", "P: Pausa", "Space: Iniciar oleada anticipada", "Táctil: Tocar para todas las acciones"]
+          "tags": [
+            "tower defense",
+            "estrategia",
+            "supervivencia por oleadas",
+            "mejoras",
+            "fantasía"
+          ],
+          "controls": [
+            "Clic: Colocar/seleccionar/mejorar torre",
+            "1/2/3: Seleccionar tipo de torre",
+            "U: Mejorar, S: Vender",
+            "P: Pausa",
+            "Space: Iniciar oleada anticipada",
+            "Táctil: Tocar para todas las acciones"
+          ]
         },
         "fr": {
           "title": "Mini Défense de Tours",
           "description": "Placez 3 types de tours pour résister à 20 vagues d'ennemis !",
-          "tags": ["tower defense", "stratégie", "survie par vagues", "améliorations", "fantaisie"],
-          "controls": ["Clic souris: Placer/sélectionner/améliorer tour", "1/2/3: Choisir type de tour", "U: Améliorer, S: Vendre", "P: Pause", "Space: Lancer la vague en avance", "Tactile: Appuyer pour toutes les actions"]
+          "tags": [
+            "tower defense",
+            "stratégie",
+            "survie par vagues",
+            "améliorations",
+            "fantaisie"
+          ],
+          "controls": [
+            "Clic souris: Placer/sélectionner/améliorer tour",
+            "1/2/3: Choisir type de tour",
+            "U: Améliorer, S: Vendre",
+            "P: Pause",
+            "Space: Lancer la vague en avance",
+            "Tactile: Appuyer pour toutes les actions"
+          ]
         },
         "de": {
           "title": "Mini Tower Defense",
           "description": "Platziere 3 Turmarten und überstehe 20 Feindwellen!",
-          "tags": ["Tower Defense", "Strategie", "Wellenüberleben", "Upgrade", "Fantasy"],
-          "controls": ["Mausklick: Turm platzieren/auswählen/upgraden", "1/2/3: Turmtyp wählen", "U: Upgraden, S: Verkaufen", "P: Pause", "Space: Welle vorzeitig starten", "Touch: Tippen für alle Aktionen"]
+          "tags": [
+            "Tower Defense",
+            "Strategie",
+            "Wellenüberleben",
+            "Upgrade",
+            "Fantasy"
+          ],
+          "controls": [
+            "Mausklick: Turm platzieren/auswählen/upgraden",
+            "1/2/3: Turmtyp wählen",
+            "U: Upgraden, S: Verkaufen",
+            "P: Pause",
+            "Space: Welle vorzeitig starten",
+            "Touch: Tippen für alle Aktionen"
+          ]
         },
         "pt": {
           "title": "Mini Tower Defense",
           "description": "Posicione 3 tipos de torres para sobreviver a 20 ondas de inimigos!",
-          "tags": ["tower defense", "estratégia", "sobrevivência por ondas", "upgrade", "fantasia"],
-          "controls": ["Clique: Posicionar/selecionar/melhorar torre", "1/2/3: Selecionar tipo de torre", "U: Melhorar, S: Vender", "P: Pausar", "Space: Iniciar onda antecipada", "Toque: Tocar para todas as ações"]
+          "tags": [
+            "tower defense",
+            "estratégia",
+            "sobrevivência por ondas",
+            "upgrade",
+            "fantasia"
+          ],
+          "controls": [
+            "Clique: Posicionar/selecionar/melhorar torre",
+            "1/2/3: Selecionar tipo de torre",
+            "U: Melhorar, S: Vender",
+            "P: Pausar",
+            "Space: Iniciar onda antecipada",
+            "Toque: Tocar para todas as ações"
+          ]
         }
       },
       "difficulty": "medium",
@@ -226,14 +565,24 @@
       "id": "neon-dash-runner",
       "title": "네온 대시 러너",
       "description": "네온 사이버펑크 도시를 질주하며 장애물을 피하고 코인을 모아라!",
-      "genre": ["arcade", "casual"],
+      "genre": [
+        "arcade",
+        "casual"
+      ],
       "thumbnail": "/games/neon-dash-runner/assets/thumbnail.svg",
       "path": "/games/neon-dash-runner/index.html",
       "addedAt": "2026-03-20T18:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["무한러너", "네온", "사이버펑크", "캐주얼", "아케이드", "절차적생성"],
+      "tags": [
+        "무한러너",
+        "네온",
+        "사이버펑크",
+        "캐주얼",
+        "아케이드",
+        "절차적생성"
+      ],
       "controls": [
         "↑↓ / W·S: 레인 전환",
         "Space: 점프",
@@ -245,123 +594,154 @@
         "en": {
           "title": "Neon Dash Runner",
           "description": "Sprint through a neon cyberpunk city, dodge obstacles and collect coins!",
-          "tags": ["endless runner", "neon", "cyberpunk", "casual", "arcade", "procedural"],
-          "controls": ["Up/Down / W/S: Switch lanes", "Space: Jump", "P / ESC: Pause", "Touch: Swipe (lane) / Tap (jump)", "Mouse: Click area (lane/jump)"]
+          "tags": [
+            "endless runner",
+            "neon",
+            "cyberpunk",
+            "casual",
+            "arcade",
+            "procedural"
+          ],
+          "controls": [
+            "Up/Down / W/S: Switch lanes",
+            "Space: Jump",
+            "P / ESC: Pause",
+            "Touch: Swipe (lane) / Tap (jump)",
+            "Mouse: Click area (lane/jump)"
+          ]
         },
         "ja": {
           "title": "ネオンダッシュランナー",
           "description": "ネオンサイバーパンクの街を駆け抜け、障害物を避けてコインを集めろ！",
-          "tags": ["エンドレスラン", "ネオン", "サイバーパンク", "カジュアル", "アーケード", "自動生成"],
-          "controls": ["↑↓ / W・S: レーン切替", "Space: ジャンプ", "P / ESC: 一時停止", "タッチ: スワイプ（レーン）/ タップ（ジャンプ）", "マウス: エリアクリック（レーン/ジャンプ）"]
+          "tags": [
+            "エンドレスラン",
+            "ネオン",
+            "サイバーパンク",
+            "カジュアル",
+            "アーケード",
+            "自動生成"
+          ],
+          "controls": [
+            "↑↓ / W・S: レーン切替",
+            "Space: ジャンプ",
+            "P / ESC: 一時停止",
+            "タッチ: スワイプ（レーン）/ タップ（ジャンプ）",
+            "マウス: エリアクリック（レーン/ジャンプ）"
+          ]
         },
         "zh-CN": {
           "title": "霓虹冲刺跑者",
           "description": "在霓虹赛博朋克城市中疾驰，躲避障碍收集金币！",
-          "tags": ["无尽跑酷", "霓虹", "赛博朋克", "休闲", "街机", "程序生成"],
-          "controls": ["↑↓ / W·S: 切换跑道", "Space: 跳跃", "P / ESC: 暂停", "触摸: 滑动（跑道）/ 点击（跳跃）", "鼠标: 点击区域（跑道/跳跃）"]
+          "tags": [
+            "无尽跑酷",
+            "霓虹",
+            "赛博朋克",
+            "休闲",
+            "街机",
+            "程序生成"
+          ],
+          "controls": [
+            "↑↓ / W·S: 切换跑道",
+            "Space: 跳跃",
+            "P / ESC: 暂停",
+            "触摸: 滑动（跑道）/ 点击（跳跃）",
+            "鼠标: 点击区域（跑道/跳跃）"
+          ]
         },
         "zh-TW": {
           "title": "霓虹衝刺跑者",
           "description": "在霓虹賽博龐克城市中疾馳，躲避障礙收集金幣！",
-          "tags": ["無盡跑酷", "霓虹", "賽博龐克", "休閒", "街機", "程序生成"],
-          "controls": ["↑↓ / W·S: 切換跑道", "Space: 跳躍", "P / ESC: 暫停", "觸控: 滑動（跑道）/ 點擊（跳躍）", "滑鼠: 點擊區域（跑道/跳躍）"]
+          "tags": [
+            "無盡跑酷",
+            "霓虹",
+            "賽博龐克",
+            "休閒",
+            "街機",
+            "程序生成"
+          ],
+          "controls": [
+            "↑↓ / W·S: 切換跑道",
+            "Space: 跳躍",
+            "P / ESC: 暫停",
+            "觸控: 滑動（跑道）/ 點擊（跳躍）",
+            "滑鼠: 點擊區域（跑道/跳躍）"
+          ]
         },
         "es": {
           "title": "Neon Dash Runner",
           "description": "¡Corre por una ciudad cyberpunk neón, esquiva obstáculos y recoge monedas!",
-          "tags": ["runner infinito", "neón", "cyberpunk", "casual", "arcade", "procedural"],
-          "controls": ["↑↓ / W·S: Cambiar carril", "Space: Saltar", "P / ESC: Pausa", "Táctil: Deslizar (carril) / Tocar (saltar)", "Ratón: Clic en área (carril/saltar)"]
+          "tags": [
+            "runner infinito",
+            "neón",
+            "cyberpunk",
+            "casual",
+            "arcade",
+            "procedural"
+          ],
+          "controls": [
+            "↑↓ / W·S: Cambiar carril",
+            "Space: Saltar",
+            "P / ESC: Pausa",
+            "Táctil: Deslizar (carril) / Tocar (saltar)",
+            "Ratón: Clic en área (carril/saltar)"
+          ]
         },
         "fr": {
           "title": "Neon Dash Runner",
           "description": "Sprintez dans une ville cyberpunk néon, évitez les obstacles et collectez les pièces !",
-          "tags": ["runner infini", "néon", "cyberpunk", "casual", "arcade", "procédural"],
-          "controls": ["↑↓ / W·S: Changer de voie", "Space: Sauter", "P / ESC: Pause", "Tactile: Glisser (voie) / Appuyer (sauter)", "Souris: Cliquer zone (voie/sauter)"]
+          "tags": [
+            "runner infini",
+            "néon",
+            "cyberpunk",
+            "casual",
+            "arcade",
+            "procédural"
+          ],
+          "controls": [
+            "↑↓ / W·S: Changer de voie",
+            "Space: Sauter",
+            "P / ESC: Pause",
+            "Tactile: Glisser (voie) / Appuyer (sauter)",
+            "Souris: Cliquer zone (voie/sauter)"
+          ]
         },
         "de": {
           "title": "Neon Dash Runner",
           "description": "Sprinte durch eine Neon-Cyberpunk-Stadt, weiche Hindernissen aus und sammle Münzen!",
-          "tags": ["Endlos-Runner", "Neon", "Cyberpunk", "Casual", "Arcade", "Prozedural"],
-          "controls": ["↑↓ / W·S: Spur wechseln", "Space: Springen", "P / ESC: Pause", "Touch: Wischen (Spur) / Tippen (Springen)", "Maus: Bereich klicken (Spur/Springen)"]
+          "tags": [
+            "Endlos-Runner",
+            "Neon",
+            "Cyberpunk",
+            "Casual",
+            "Arcade",
+            "Prozedural"
+          ],
+          "controls": [
+            "↑↓ / W·S: Spur wechseln",
+            "Space: Springen",
+            "P / ESC: Pause",
+            "Touch: Wischen (Spur) / Tippen (Springen)",
+            "Maus: Bereich klicken (Spur/Springen)"
+          ]
         },
         "pt": {
           "title": "Neon Dash Runner",
           "description": "Corra por uma cidade cyberpunk neon, desvie de obstáculos e colete moedas!",
-          "tags": ["corrida infinita", "neon", "cyberpunk", "casual", "arcade", "procedural"],
-          "controls": ["↑↓ / W·S: Trocar faixa", "Space: Pular", "P / ESC: Pausar", "Toque: Deslizar (faixa) / Tocar (pular)", "Mouse: Clicar área (faixa/pular)"]
-        }
-      },
-      "difficulty": "medium",
-      "version": "1.0.0",
-      "author": "InfiniTriX AI"
-    },
-    {
-      "id": "beat-rush",
-      "title": "비트 러시",
-      "description": "비트에 맞춰 4레인 노트를 타이밍에 맞게 입력하는 리듬 아케이드!",
-      "genre": ["arcade", "casual"],
-      "thumbnail": "/games/beat-rush/assets/thumbnail.svg",
-      "path": "/games/beat-rush/index.html",
-      "addedAt": "2026-03-20T21:00:00Z",
-      "featured": true,
-      "playCount": 0,
-      "rating": 0,
-      "tags": ["리듬게임", "비트", "음악", "아케이드", "캐주얼", "절차적음악", "WebAudio"],
-      "controls": [
-        "D·F·J·K: 4레인 입력",
-        "키 홀드: 롱 노트 유지",
-        "P / ESC: 일시정지",
-        "터치: 레인 영역 탭/홀드",
-        "마우스: 레인 영역 클릭"
-      ],
-      "i18n": {
-        "en": {
-          "title": "Beat Rush",
-          "description": "Hit 4-lane notes to the beat in this rhythm arcade game!",
-          "tags": ["rhythm game", "beat", "music", "arcade", "casual", "procedural music", "WebAudio"],
-          "controls": ["D/F/J/K: 4-lane input", "Hold key: Sustain long notes", "P / ESC: Pause", "Touch: Tap/hold lane areas", "Mouse: Click lane areas"]
-        },
-        "ja": {
-          "title": "ビートラッシュ",
-          "description": "ビートに合わせて4レーンのノートをタイミングよく入力するリズムアーケード！",
-          "tags": ["リズムゲーム", "ビート", "音楽", "アーケード", "カジュアル", "自動生成音楽", "WebAudio"],
-          "controls": ["D・F・J・K: 4レーン入力", "キー長押し: ロングノート維持", "P / ESC: 一時停止", "タッチ: レーンエリアをタップ/ホールド", "マウス: レーンエリアをクリック"]
-        },
-        "zh-CN": {
-          "title": "节拍冲刺",
-          "description": "跟着节拍在4条轨道上精准输入音符的节奏街机游戏！",
-          "tags": ["节奏游戏", "节拍", "音乐", "街机", "休闲", "程序音乐", "WebAudio"],
-          "controls": ["D·F·J·K: 4轨道输入", "长按: 维持长音符", "P / ESC: 暂停", "触摸: 点击/长按轨道区域", "鼠标: 点击轨道区域"]
-        },
-        "zh-TW": {
-          "title": "節拍衝刺",
-          "description": "跟著節拍在4條軌道上精準輸入音符的節奏街機遊戲！",
-          "tags": ["節奏遊戲", "節拍", "音樂", "街機", "休閒", "程序音樂", "WebAudio"],
-          "controls": ["D·F·J·K: 4軌道輸入", "長按: 維持長音符", "P / ESC: 暫停", "觸控: 點擊/長按軌道區域", "滑鼠: 點擊軌道區域"]
-        },
-        "es": {
-          "title": "Beat Rush",
-          "description": "¡Pulsa notas en 4 carriles al ritmo en este juego de arcade rítmico!",
-          "tags": ["juego de ritmo", "beat", "música", "arcade", "casual", "música procedural", "WebAudio"],
-          "controls": ["D/F/J/K: Entrada de 4 carriles", "Mantener tecla: Sostener notas largas", "P / ESC: Pausa", "Táctil: Tocar/mantener áreas de carril", "Ratón: Clic en áreas de carril"]
-        },
-        "fr": {
-          "title": "Beat Rush",
-          "description": "Frappez les notes sur 4 voies en rythme dans ce jeu d'arcade musical !",
-          "tags": ["jeu de rythme", "beat", "musique", "arcade", "casual", "musique procédurale", "WebAudio"],
-          "controls": ["D/F/J/K: Entrée 4 voies", "Maintenir touche: Tenir les longues notes", "P / ESC: Pause", "Tactile: Appuyer/maintenir zones de voie", "Souris: Cliquer zones de voie"]
-        },
-        "de": {
-          "title": "Beat Rush",
-          "description": "Triff 4-Spur-Noten im Takt in diesem Rhythmus-Arcade-Spiel!",
-          "tags": ["Rhythmusspiel", "Beat", "Musik", "Arcade", "Casual", "Prozedurale Musik", "WebAudio"],
-          "controls": ["D/F/J/K: 4-Spur-Eingabe", "Taste halten: Lange Noten halten", "P / ESC: Pause", "Touch: Spurbereich tippen/halten", "Maus: Spurbereich klicken"]
-        },
-        "pt": {
-          "title": "Beat Rush",
-          "description": "Acerte notas em 4 faixas no ritmo neste jogo de arcade rítmico!",
-          "tags": ["jogo de ritmo", "beat", "música", "arcade", "casual", "música procedural", "WebAudio"],
-          "controls": ["D/F/J/K: Entrada de 4 faixas", "Segurar tecla: Manter notas longas", "P / ESC: Pausar", "Toque: Tocar/segurar áreas de faixa", "Mouse: Clicar áreas de faixa"]
+          "tags": [
+            "corrida infinita",
+            "neon",
+            "cyberpunk",
+            "casual",
+            "arcade",
+            "procedural"
+          ],
+          "controls": [
+            "↑↓ / W·S: Trocar faixa",
+            "Space: Pular",
+            "P / ESC: Pausar",
+            "Toque: Deslizar (faixa) / Tocar (pular)",
+            "Mouse: Clicar área (faixa/pular)"
+          ]
         }
       },
       "difficulty": "medium",
@@ -372,14 +752,25 @@
       "id": "beat-crafter",
       "title": "비트 크래프터",
       "description": "음표 블록을 배치해 화음을 만드는 리듬 퍼즐!",
-      "genre": ["puzzle", "casual"],
+      "genre": [
+        "puzzle",
+        "casual"
+      ],
       "thumbnail": "/games/beat-crafter/assets/thumbnail.svg",
       "path": "/games/beat-crafter/index.html",
       "addedAt": "2026-03-20T23:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["리듬퍼즐", "음악", "퍼즐", "블록", "캐주얼", "절차적음악", "WebAudio"],
+      "tags": [
+        "리듬퍼즐",
+        "음악",
+        "퍼즐",
+        "블록",
+        "캐주얼",
+        "절차적음악",
+        "WebAudio"
+      ],
       "controls": [
         "← → : 블록 좌우 이동",
         "↓ : 소프트 드롭",
@@ -392,50 +783,170 @@
         "en": {
           "title": "Beat Crafter",
           "description": "Place note blocks to create harmonies in this rhythm puzzle!",
-          "tags": ["rhythm puzzle", "music", "puzzle", "blocks", "casual", "procedural music", "WebAudio"],
-          "controls": ["Left/Right: Move block sideways", "Down: Soft drop", "Space: Hard drop (instant land)", "P / ESC: Pause", "Touch: Swipe to move / tap column", "Mouse: Click column to place"]
+          "tags": [
+            "rhythm puzzle",
+            "music",
+            "puzzle",
+            "blocks",
+            "casual",
+            "procedural music",
+            "WebAudio"
+          ],
+          "controls": [
+            "Left/Right: Move block sideways",
+            "Down: Soft drop",
+            "Space: Hard drop (instant land)",
+            "P / ESC: Pause",
+            "Touch: Swipe to move / tap column",
+            "Mouse: Click column to place"
+          ]
         },
         "ja": {
           "title": "ビートクラフター",
           "description": "音符ブロックを配置してハーモニーを作るリズムパズル！",
-          "tags": ["リズムパズル", "音楽", "パズル", "ブロック", "カジュアル", "自動生成音楽", "WebAudio"],
-          "controls": ["← →: ブロック左右移動", "↓: ソフトドロップ", "Space: ハードドロップ（即着地）", "P / ESC: 一時停止", "タッチ: スワイプ移動 / 列タップ", "マウス: 列クリックで配置"]
+          "tags": [
+            "リズムパズル",
+            "音楽",
+            "パズル",
+            "ブロック",
+            "カジュアル",
+            "自動生成音楽",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: ブロック左右移動",
+            "↓: ソフトドロップ",
+            "Space: ハードドロップ（即着地）",
+            "P / ESC: 一時停止",
+            "タッチ: スワイプ移動 / 列タップ",
+            "マウス: 列クリックで配置"
+          ]
         },
         "zh-CN": {
           "title": "节拍工匠",
           "description": "放置音符方块，创造和弦的节奏拼图游戏！",
-          "tags": ["节奏拼图", "音乐", "拼图", "方块", "休闲", "程序音乐", "WebAudio"],
-          "controls": ["← →: 左右移动方块", "↓: 慢速下落", "Space: 快速下落（立即着陆）", "P / ESC: 暂停", "触摸: 滑动移动 / 点击列", "鼠标: 点击列放置"]
+          "tags": [
+            "节奏拼图",
+            "音乐",
+            "拼图",
+            "方块",
+            "休闲",
+            "程序音乐",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: 左右移动方块",
+            "↓: 慢速下落",
+            "Space: 快速下落（立即着陆）",
+            "P / ESC: 暂停",
+            "触摸: 滑动移动 / 点击列",
+            "鼠标: 点击列放置"
+          ]
         },
         "zh-TW": {
           "title": "節拍工匠",
           "description": "放置音符方塊，創造和弦的節奏拼圖遊戲！",
-          "tags": ["節奏拼圖", "音樂", "拼圖", "方塊", "休閒", "程序音樂", "WebAudio"],
-          "controls": ["← →: 左右移動方塊", "↓: 慢速下落", "Space: 快速下落（立即著陸）", "P / ESC: 暫停", "觸控: 滑動移動 / 點擊列", "滑鼠: 點擊列放置"]
+          "tags": [
+            "節奏拼圖",
+            "音樂",
+            "拼圖",
+            "方塊",
+            "休閒",
+            "程序音樂",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: 左右移動方塊",
+            "↓: 慢速下落",
+            "Space: 快速下落（立即著陸）",
+            "P / ESC: 暫停",
+            "觸控: 滑動移動 / 點擊列",
+            "滑鼠: 點擊列放置"
+          ]
         },
         "es": {
           "title": "Beat Crafter",
           "description": "¡Coloca bloques de notas para crear armonías en este puzzle rítmico!",
-          "tags": ["puzzle rítmico", "música", "puzzle", "bloques", "casual", "música procedural", "WebAudio"],
-          "controls": ["← →: Mover bloque lateralmente", "↓: Caída suave", "Space: Caída rápida (aterrizaje instantáneo)", "P / ESC: Pausa", "Táctil: Deslizar para mover / tocar columna", "Ratón: Clic en columna para colocar"]
+          "tags": [
+            "puzzle rítmico",
+            "música",
+            "puzzle",
+            "bloques",
+            "casual",
+            "música procedural",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: Mover bloque lateralmente",
+            "↓: Caída suave",
+            "Space: Caída rápida (aterrizaje instantáneo)",
+            "P / ESC: Pausa",
+            "Táctil: Deslizar para mover / tocar columna",
+            "Ratón: Clic en columna para colocar"
+          ]
         },
         "fr": {
           "title": "Beat Crafter",
           "description": "Placez des blocs de notes pour créer des harmonies dans ce puzzle rythmique !",
-          "tags": ["puzzle rythmique", "musique", "puzzle", "blocs", "casual", "musique procédurale", "WebAudio"],
-          "controls": ["← →: Déplacer le bloc latéralement", "↓: Descente douce", "Space: Descente rapide (atterrissage immédiat)", "P / ESC: Pause", "Tactile: Glisser pour déplacer / appuyer colonne", "Souris: Cliquer colonne pour placer"]
+          "tags": [
+            "puzzle rythmique",
+            "musique",
+            "puzzle",
+            "blocs",
+            "casual",
+            "musique procédurale",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: Déplacer le bloc latéralement",
+            "↓: Descente douce",
+            "Space: Descente rapide (atterrissage immédiat)",
+            "P / ESC: Pause",
+            "Tactile: Glisser pour déplacer / appuyer colonne",
+            "Souris: Cliquer colonne pour placer"
+          ]
         },
         "de": {
           "title": "Beat Crafter",
           "description": "Platziere Notenblöcke und erschaffe Harmonien in diesem Rhythmus-Puzzle!",
-          "tags": ["Rhythmus-Puzzle", "Musik", "Puzzle", "Blöcke", "Casual", "Prozedurale Musik", "WebAudio"],
-          "controls": ["← →: Block seitlich bewegen", "↓: Sanftes Fallen", "Space: Hartes Fallen (sofortige Landung)", "P / ESC: Pause", "Touch: Wischen zum Bewegen / Spalte tippen", "Maus: Spalte klicken zum Platzieren"]
+          "tags": [
+            "Rhythmus-Puzzle",
+            "Musik",
+            "Puzzle",
+            "Blöcke",
+            "Casual",
+            "Prozedurale Musik",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: Block seitlich bewegen",
+            "↓: Sanftes Fallen",
+            "Space: Hartes Fallen (sofortige Landung)",
+            "P / ESC: Pause",
+            "Touch: Wischen zum Bewegen / Spalte tippen",
+            "Maus: Spalte klicken zum Platzieren"
+          ]
         },
         "pt": {
           "title": "Beat Crafter",
           "description": "Posicione blocos de notas para criar harmonias neste puzzle rítmico!",
-          "tags": ["puzzle rítmico", "música", "puzzle", "blocos", "casual", "música procedural", "WebAudio"],
-          "controls": ["← →: Mover bloco lateralmente", "↓: Queda suave", "Space: Queda rápida (pouso instantâneo)", "P / ESC: Pausar", "Toque: Deslizar para mover / tocar coluna", "Mouse: Clicar coluna para posicionar"]
+          "tags": [
+            "puzzle rítmico",
+            "música",
+            "puzzle",
+            "blocos",
+            "casual",
+            "música procedural",
+            "WebAudio"
+          ],
+          "controls": [
+            "← →: Mover bloco lateralmente",
+            "↓: Queda suave",
+            "Space: Queda rápida (pouso instantâneo)",
+            "P / ESC: Pausar",
+            "Toque: Deslizar para mover / tocar coluna",
+            "Mouse: Clicar coluna para posicionar"
+          ]
         }
       },
       "difficulty": "medium",
@@ -446,14 +957,24 @@
       "id": "mini-golf-adventure",
       "title": "미니 골프 어드벤처",
       "description": "드래그로 공을 쳐서 최소 타수로 홀인원을 노려보세요!",
-      "genre": ["puzzle", "casual"],
+      "genre": [
+        "puzzle",
+        "casual"
+      ],
       "thumbnail": "/games/mini-golf-adventure/assets/thumbnail.svg",
       "path": "/games/mini-golf-adventure/index.html",
       "addedAt": "2026-03-20T23:30:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["미니골프", "물리퍼즐", "드래그에이밍", "레벨기반", "벽반사", "별3개"],
+      "tags": [
+        "미니골프",
+        "물리퍼즐",
+        "드래그에이밍",
+        "레벨기반",
+        "벽반사",
+        "별3개"
+      ],
       "controls": [
         "마우스 드래그: 에이밍 + 힘 조절",
         "마우스 놓기: 공 발사",
@@ -466,50 +987,162 @@
         "en": {
           "title": "Mini Golf Adventure",
           "description": "Drag to aim and shoot the ball — aim for a hole-in-one with minimum strokes!",
-          "tags": ["mini golf", "physics puzzle", "drag aiming", "level-based", "wall bounce", "3 stars"],
-          "controls": ["Mouse drag: Aim + adjust power", "Mouse release: Shoot ball", "Touch drag: Mobile aiming", "R: Restart level", "ESC: Pause", "Space: Speed up ball"]
+          "tags": [
+            "mini golf",
+            "physics puzzle",
+            "drag aiming",
+            "level-based",
+            "wall bounce",
+            "3 stars"
+          ],
+          "controls": [
+            "Mouse drag: Aim + adjust power",
+            "Mouse release: Shoot ball",
+            "Touch drag: Mobile aiming",
+            "R: Restart level",
+            "ESC: Pause",
+            "Space: Speed up ball"
+          ]
         },
         "ja": {
           "title": "ミニゴルフアドベンチャー",
           "description": "ドラッグでボールを打って最少打数でホールインワンを狙おう！",
-          "tags": ["ミニゴルフ", "物理パズル", "ドラッグエイム", "レベル制", "壁反射", "星3つ"],
-          "controls": ["マウスドラッグ: エイム＋パワー調整", "マウスリリース: ボール発射", "タッチドラッグ: モバイルエイム", "R: レベルリスタート", "ESC: 一時停止", "Space: ボール加速"]
+          "tags": [
+            "ミニゴルフ",
+            "物理パズル",
+            "ドラッグエイム",
+            "レベル制",
+            "壁反射",
+            "星3つ"
+          ],
+          "controls": [
+            "マウスドラッグ: エイム＋パワー調整",
+            "マウスリリース: ボール発射",
+            "タッチドラッグ: モバイルエイム",
+            "R: レベルリスタート",
+            "ESC: 一時停止",
+            "Space: ボール加速"
+          ]
         },
         "zh-CN": {
           "title": "迷你高尔夫冒险",
           "description": "拖动瞄准击球，用最少杆数实现一杆进洞！",
-          "tags": ["迷你高尔夫", "物理拼图", "拖动瞄准", "关卡制", "墙壁反弹", "三星"],
-          "controls": ["鼠标拖动: 瞄准+调整力度", "释放鼠标: 发球", "触摸拖动: 手机瞄准", "R: 重新开始关卡", "ESC: 暂停", "Space: 加速球移动"]
+          "tags": [
+            "迷你高尔夫",
+            "物理拼图",
+            "拖动瞄准",
+            "关卡制",
+            "墙壁反弹",
+            "三星"
+          ],
+          "controls": [
+            "鼠标拖动: 瞄准+调整力度",
+            "释放鼠标: 发球",
+            "触摸拖动: 手机瞄准",
+            "R: 重新开始关卡",
+            "ESC: 暂停",
+            "Space: 加速球移动"
+          ]
         },
         "zh-TW": {
           "title": "迷你高爾夫冒險",
           "description": "拖動瞄準擊球，用最少桿數實現一桿進洞！",
-          "tags": ["迷你高爾夫", "物理拼圖", "拖動瞄準", "關卡制", "牆壁反彈", "三星"],
-          "controls": ["滑鼠拖曳: 瞄準+調整力道", "釋放滑鼠: 發球", "觸控拖曳: 手機瞄準", "R: 重新開始關卡", "ESC: 暫停", "Space: 加速球移動"]
+          "tags": [
+            "迷你高爾夫",
+            "物理拼圖",
+            "拖動瞄準",
+            "關卡制",
+            "牆壁反彈",
+            "三星"
+          ],
+          "controls": [
+            "滑鼠拖曳: 瞄準+調整力道",
+            "釋放滑鼠: 發球",
+            "觸控拖曳: 手機瞄準",
+            "R: 重新開始關卡",
+            "ESC: 暫停",
+            "Space: 加速球移動"
+          ]
         },
         "es": {
           "title": "Mini Golf Aventura",
           "description": "¡Arrastra para apuntar y golpear — intenta un hoyo en uno con el mínimo de golpes!",
-          "tags": ["mini golf", "puzzle físico", "apuntar arrastrando", "niveles", "rebote en paredes", "3 estrellas"],
-          "controls": ["Arrastrar ratón: Apuntar + ajustar potencia", "Soltar ratón: Lanzar bola", "Arrastrar táctil: Apuntar en móvil", "R: Reiniciar nivel", "ESC: Pausa", "Space: Acelerar bola"]
+          "tags": [
+            "mini golf",
+            "puzzle físico",
+            "apuntar arrastrando",
+            "niveles",
+            "rebote en paredes",
+            "3 estrellas"
+          ],
+          "controls": [
+            "Arrastrar ratón: Apuntar + ajustar potencia",
+            "Soltar ratón: Lanzar bola",
+            "Arrastrar táctil: Apuntar en móvil",
+            "R: Reiniciar nivel",
+            "ESC: Pausa",
+            "Space: Acelerar bola"
+          ]
         },
         "fr": {
           "title": "Mini Golf Aventure",
           "description": "Glissez pour viser et frapper la balle — visez le trou en un avec un minimum de coups !",
-          "tags": ["mini golf", "puzzle physique", "visée par glissement", "niveaux", "rebond sur murs", "3 étoiles"],
-          "controls": ["Glisser souris: Viser + ajuster la puissance", "Relâcher souris: Lancer la balle", "Glisser tactile: Viser sur mobile", "R: Recommencer le niveau", "ESC: Pause", "Space: Accélérer la balle"]
+          "tags": [
+            "mini golf",
+            "puzzle physique",
+            "visée par glissement",
+            "niveaux",
+            "rebond sur murs",
+            "3 étoiles"
+          ],
+          "controls": [
+            "Glisser souris: Viser + ajuster la puissance",
+            "Relâcher souris: Lancer la balle",
+            "Glisser tactile: Viser sur mobile",
+            "R: Recommencer le niveau",
+            "ESC: Pause",
+            "Space: Accélérer la balle"
+          ]
         },
         "de": {
           "title": "Mini Golf Abenteuer",
           "description": "Ziehe zum Zielen und schlage den Ball — schaffe ein Hole-in-One mit minimalen Schlägen!",
-          "tags": ["Minigolf", "Physik-Puzzle", "Zieh-Zielen", "Levelbasiert", "Wandabpraller", "3 Sterne"],
-          "controls": ["Maus ziehen: Zielen + Kraft einstellen", "Maus loslassen: Ball schlagen", "Touch ziehen: Mobiles Zielen", "R: Level neustarten", "ESC: Pause", "Space: Ball beschleunigen"]
+          "tags": [
+            "Minigolf",
+            "Physik-Puzzle",
+            "Zieh-Zielen",
+            "Levelbasiert",
+            "Wandabpraller",
+            "3 Sterne"
+          ],
+          "controls": [
+            "Maus ziehen: Zielen + Kraft einstellen",
+            "Maus loslassen: Ball schlagen",
+            "Touch ziehen: Mobiles Zielen",
+            "R: Level neustarten",
+            "ESC: Pause",
+            "Space: Ball beschleunigen"
+          ]
         },
         "pt": {
           "title": "Mini Golfe Aventura",
           "description": "Arraste para mirar e acertar a bola — tente um hole-in-one com o mínimo de tacadas!",
-          "tags": ["mini golfe", "puzzle físico", "mira por arrasto", "baseado em fases", "rebote na parede", "3 estrelas"],
-          "controls": ["Arrastar mouse: Mirar + ajustar força", "Soltar mouse: Lançar bola", "Arrastar toque: Mira no celular", "R: Reiniciar fase", "ESC: Pausar", "Space: Acelerar bola"]
+          "tags": [
+            "mini golfe",
+            "puzzle físico",
+            "mira por arrasto",
+            "baseado em fases",
+            "rebote na parede",
+            "3 estrelas"
+          ],
+          "controls": [
+            "Arrastar mouse: Mirar + ajustar força",
+            "Soltar mouse: Lançar bola",
+            "Arrastar toque: Mira no celular",
+            "R: Reiniciar fase",
+            "ESC: Pausar",
+            "Space: Acelerar bola"
+          ]
         }
       },
       "difficulty": "easy",
@@ -520,14 +1153,24 @@
       "id": "mini-survivor-arena",
       "title": "미니 서바이버 아레나",
       "description": "360도 몬스터 웨이브 속에서 자동 공격과 스킬 빌드로 생존하라!",
-      "genre": ["action", "arcade"],
+      "genre": [
+        "action",
+        "arcade"
+      ],
       "thumbnail": "/games/mini-survivor-arena/assets/thumbnail.svg",
       "path": "/games/mini-survivor-arena/index.html",
       "addedAt": "2026-03-20T23:45:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["서바이버", "자동공격", "스킬빌드", "웨이브생존", "뱀서라이크", "로그라이트"],
+      "tags": [
+        "서바이버",
+        "자동공격",
+        "스킬빌드",
+        "웨이브생존",
+        "뱀서라이크",
+        "로그라이트"
+      ],
       "controls": [
         "WASD / 방향키: 이동",
         "1/2/3: 레벨업 스킬 선택",
@@ -538,50 +1181,146 @@
         "en": {
           "title": "Mini Survivor Arena",
           "description": "Survive 360-degree monster waves with auto-attacks and skill builds!",
-          "tags": ["survivor", "auto-attack", "skill build", "wave survival", "vampire survivors-like", "roguelite"],
-          "controls": ["WASD / Arrows: Move", "1/2/3: Choose level-up skill", "P / ESC: Pause", "Touch: Virtual joystick movement"]
+          "tags": [
+            "survivor",
+            "auto-attack",
+            "skill build",
+            "wave survival",
+            "vampire survivors-like",
+            "roguelite"
+          ],
+          "controls": [
+            "WASD / Arrows: Move",
+            "1/2/3: Choose level-up skill",
+            "P / ESC: Pause",
+            "Touch: Virtual joystick movement"
+          ]
         },
         "ja": {
           "title": "ミニサバイバーアリーナ",
           "description": "360度のモンスターウェーブの中でオート攻撃とスキルビルドで生き延びろ！",
-          "tags": ["サバイバー", "オート攻撃", "スキルビルド", "ウェーブサバイバル", "ヴァンサバ系", "ローグライト"],
-          "controls": ["WASD / 矢印キー: 移動", "1/2/3: レベルアップスキル選択", "P / ESC: 一時停止", "タッチ: 仮想ジョイスティック移動"]
+          "tags": [
+            "サバイバー",
+            "オート攻撃",
+            "スキルビルド",
+            "ウェーブサバイバル",
+            "ヴァンサバ系",
+            "ローグライト"
+          ],
+          "controls": [
+            "WASD / 矢印キー: 移動",
+            "1/2/3: レベルアップスキル選択",
+            "P / ESC: 一時停止",
+            "タッチ: 仮想ジョイスティック移動"
+          ]
         },
         "zh-CN": {
           "title": "迷你幸存者竞技场",
           "description": "在360度怪物波次中靠自动攻击和技能构筑生存下去！",
-          "tags": ["幸存者", "自动攻击", "技能构筑", "波次生存", "吸血鬼幸存者类", "肉鸽轻度"],
-          "controls": ["WASD / 方向键: 移动", "1/2/3: 选择升级技能", "P / ESC: 暂停", "触摸: 虚拟摇杆移动"]
+          "tags": [
+            "幸存者",
+            "自动攻击",
+            "技能构筑",
+            "波次生存",
+            "吸血鬼幸存者类",
+            "肉鸽轻度"
+          ],
+          "controls": [
+            "WASD / 方向键: 移动",
+            "1/2/3: 选择升级技能",
+            "P / ESC: 暂停",
+            "触摸: 虚拟摇杆移动"
+          ]
         },
         "zh-TW": {
           "title": "迷你倖存者競技場",
           "description": "在360度怪物波次中靠自動攻擊和技能構築生存下去！",
-          "tags": ["倖存者", "自動攻擊", "技能構築", "波次生存", "吸血鬼倖存者類", "肉鴿輕度"],
-          "controls": ["WASD / 方向鍵: 移動", "1/2/3: 選擇升級技能", "P / ESC: 暫停", "觸控: 虛擬搖桿移動"]
+          "tags": [
+            "倖存者",
+            "自動攻擊",
+            "技能構築",
+            "波次生存",
+            "吸血鬼倖存者類",
+            "肉鴿輕度"
+          ],
+          "controls": [
+            "WASD / 方向鍵: 移動",
+            "1/2/3: 選擇升級技能",
+            "P / ESC: 暫停",
+            "觸控: 虛擬搖桿移動"
+          ]
         },
         "es": {
           "title": "Mini Arena de Supervivencia",
           "description": "¡Sobrevive a oleadas de monstruos en 360 grados con ataques automáticos y builds de habilidades!",
-          "tags": ["supervivencia", "ataque automático", "build de habilidades", "supervivencia por oleadas", "tipo Vampire Survivors", "roguelite"],
-          "controls": ["WASD / Flechas: Mover", "1/2/3: Elegir habilidad al subir de nivel", "P / ESC: Pausa", "Táctil: Joystick virtual para moverse"]
+          "tags": [
+            "supervivencia",
+            "ataque automático",
+            "build de habilidades",
+            "supervivencia por oleadas",
+            "tipo Vampire Survivors",
+            "roguelite"
+          ],
+          "controls": [
+            "WASD / Flechas: Mover",
+            "1/2/3: Elegir habilidad al subir de nivel",
+            "P / ESC: Pausa",
+            "Táctil: Joystick virtual para moverse"
+          ]
         },
         "fr": {
           "title": "Mini Arène de Survie",
           "description": "Survivez aux vagues de monstres à 360 degrés avec des attaques auto et des builds de compétences !",
-          "tags": ["survie", "attaque auto", "build de compétences", "survie par vagues", "type Vampire Survivors", "roguelite"],
-          "controls": ["WASD / Flèches: Se déplacer", "1/2/3: Choisir compétence de montée de niveau", "P / ESC: Pause", "Tactile: Joystick virtuel pour se déplacer"]
+          "tags": [
+            "survie",
+            "attaque auto",
+            "build de compétences",
+            "survie par vagues",
+            "type Vampire Survivors",
+            "roguelite"
+          ],
+          "controls": [
+            "WASD / Flèches: Se déplacer",
+            "1/2/3: Choisir compétence de montée de niveau",
+            "P / ESC: Pause",
+            "Tactile: Joystick virtuel pour se déplacer"
+          ]
         },
         "de": {
           "title": "Mini Überlebensarena",
           "description": "Überlebe 360-Grad-Monsterwellen mit Auto-Angriffen und Skill-Builds!",
-          "tags": ["Überlebende", "Auto-Angriff", "Skill-Build", "Wellenüberleben", "Vampire-Survivors-artig", "Roguelite"],
-          "controls": ["WASD / Pfeiltasten: Bewegen", "1/2/3: Level-Up-Fähigkeit wählen", "P / ESC: Pause", "Touch: Virtueller Joystick zum Bewegen"]
+          "tags": [
+            "Überlebende",
+            "Auto-Angriff",
+            "Skill-Build",
+            "Wellenüberleben",
+            "Vampire-Survivors-artig",
+            "Roguelite"
+          ],
+          "controls": [
+            "WASD / Pfeiltasten: Bewegen",
+            "1/2/3: Level-Up-Fähigkeit wählen",
+            "P / ESC: Pause",
+            "Touch: Virtueller Joystick zum Bewegen"
+          ]
         },
         "pt": {
           "title": "Mini Arena de Sobrevivência",
           "description": "Sobreviva a ondas de monstros em 360 graus com ataques automáticos e builds de habilidades!",
-          "tags": ["sobrevivência", "ataque automático", "build de habilidades", "sobrevivência por ondas", "tipo Vampire Survivors", "roguelite"],
-          "controls": ["WASD / Setas: Mover", "1/2/3: Escolher habilidade ao subir de nível", "P / ESC: Pausar", "Toque: Joystick virtual para mover"]
+          "tags": [
+            "sobrevivência",
+            "ataque automático",
+            "build de habilidades",
+            "sobrevivência por ondas",
+            "tipo Vampire Survivors",
+            "roguelite"
+          ],
+          "controls": [
+            "WASD / Setas: Mover",
+            "1/2/3: Escolher habilidade ao subir de nível",
+            "P / ESC: Pausar",
+            "Toque: Joystick virtual para mover"
+          ]
         }
       },
       "difficulty": "medium",
@@ -592,14 +1331,24 @@
       "id": "mini-coffee-tycoon",
       "title": "미니 커피숍 타이쿤",
       "description": "작은 커피 노점에서 시작해 도시 최고의 커피 체인으로! 음료를 직접 제조하고 매장을 확장하세요.",
-      "genre": ["casual", "strategy"],
+      "genre": [
+        "casual",
+        "strategy"
+      ],
       "thumbnail": "/games/mini-coffee-tycoon/assets/thumbnail.svg",
       "path": "/games/mini-coffee-tycoon/index.html",
       "addedAt": "2026-03-20T23:50:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["커피숍", "타이쿤", "경영시뮬레이션", "아이들", "캐주얼", "전략"],
+      "tags": [
+        "커피숍",
+        "타이쿤",
+        "경영시뮬레이션",
+        "아이들",
+        "캐주얼",
+        "전략"
+      ],
       "controls": [
         "마우스/터치: 재료 슬롯 클릭으로 음료 제조",
         "1~6 키: 재료 슬롯 바로가기",
@@ -611,50 +1360,154 @@
         "en": {
           "title": "Mini Coffee Shop Tycoon",
           "description": "Start from a small coffee stand and build the city's greatest coffee chain! Brew drinks and expand your shops.",
-          "tags": ["coffee shop", "tycoon", "business simulation", "idle", "casual", "strategy"],
-          "controls": ["Mouse/Touch: Click ingredient slots to brew", "1-6: Ingredient slot shortcuts", "Space: Complete/serve drink", "P/Esc: Pause", "Tab: Switch upgrade category"]
+          "tags": [
+            "coffee shop",
+            "tycoon",
+            "business simulation",
+            "idle",
+            "casual",
+            "strategy"
+          ],
+          "controls": [
+            "Mouse/Touch: Click ingredient slots to brew",
+            "1-6: Ingredient slot shortcuts",
+            "Space: Complete/serve drink",
+            "P/Esc: Pause",
+            "Tab: Switch upgrade category"
+          ]
         },
         "ja": {
           "title": "ミニコーヒーショップタイクーン",
           "description": "小さなコーヒー屋台から始めて街一番のコーヒーチェーンへ！ドリンクを自分で作って店舗を拡大しよう。",
-          "tags": ["コーヒーショップ", "タイクーン", "経営シミュレーション", "放置系", "カジュアル", "戦略"],
-          "controls": ["マウス/タッチ: 材料スロットをクリックして調理", "1〜6キー: 材料スロットショートカット", "Space: ドリンク完成/提供", "P/Esc: 一時停止", "Tab: アップグレードカテゴリ切替"]
+          "tags": [
+            "コーヒーショップ",
+            "タイクーン",
+            "経営シミュレーション",
+            "放置系",
+            "カジュアル",
+            "戦略"
+          ],
+          "controls": [
+            "マウス/タッチ: 材料スロットをクリックして調理",
+            "1〜6キー: 材料スロットショートカット",
+            "Space: ドリンク完成/提供",
+            "P/Esc: 一時停止",
+            "Tab: アップグレードカテゴリ切替"
+          ]
         },
         "zh-CN": {
           "title": "迷你咖啡店大亨",
           "description": "从小咖啡摊起步，打造城市最强咖啡连锁！亲手制作饮品，扩张店铺。",
-          "tags": ["咖啡店", "大亨", "经营模拟", "放置", "休闲", "策略"],
-          "controls": ["鼠标/触摸: 点击材料槽制作饮品", "1~6键: 材料槽快捷键", "Space: 完成/送出饮品", "P/Esc: 暂停", "Tab: 切换升级类别"]
+          "tags": [
+            "咖啡店",
+            "大亨",
+            "经营模拟",
+            "放置",
+            "休闲",
+            "策略"
+          ],
+          "controls": [
+            "鼠标/触摸: 点击材料槽制作饮品",
+            "1~6键: 材料槽快捷键",
+            "Space: 完成/送出饮品",
+            "P/Esc: 暂停",
+            "Tab: 切换升级类别"
+          ]
         },
         "zh-TW": {
           "title": "迷你咖啡店大亨",
           "description": "從小咖啡攤起步，打造城市最強咖啡連鎖！親手製作飲品，擴張店鋪。",
-          "tags": ["咖啡店", "大亨", "經營模擬", "放置", "休閒", "策略"],
-          "controls": ["滑鼠/觸控: 點擊材料槽製作飲品", "1~6鍵: 材料槽快捷鍵", "Space: 完成/送出飲品", "P/Esc: 暫停", "Tab: 切換升級類別"]
+          "tags": [
+            "咖啡店",
+            "大亨",
+            "經營模擬",
+            "放置",
+            "休閒",
+            "策略"
+          ],
+          "controls": [
+            "滑鼠/觸控: 點擊材料槽製作飲品",
+            "1~6鍵: 材料槽快捷鍵",
+            "Space: 完成/送出飲品",
+            "P/Esc: 暫停",
+            "Tab: 切換升級類別"
+          ]
         },
         "es": {
           "title": "Mini Magnate del Café",
           "description": "¡Empieza con un pequeño puesto de café y construye la mayor cadena de cafeterías de la ciudad! Prepara bebidas y expande tus tiendas.",
-          "tags": ["cafetería", "magnate", "simulación de negocios", "idle", "casual", "estrategia"],
-          "controls": ["Ratón/Táctil: Clic en ranuras de ingredientes para preparar", "1-6: Atajos de ranuras", "Space: Completar/servir bebida", "P/Esc: Pausa", "Tab: Cambiar categoría de mejora"]
+          "tags": [
+            "cafetería",
+            "magnate",
+            "simulación de negocios",
+            "idle",
+            "casual",
+            "estrategia"
+          ],
+          "controls": [
+            "Ratón/Táctil: Clic en ranuras de ingredientes para preparar",
+            "1-6: Atajos de ranuras",
+            "Space: Completar/servir bebida",
+            "P/Esc: Pausa",
+            "Tab: Cambiar categoría de mejora"
+          ]
         },
         "fr": {
           "title": "Mini Coffee Shop Tycoon",
           "description": "Partez d'un petit stand de café et bâtissez la plus grande chaîne de cafés de la ville ! Préparez des boissons et développez vos boutiques.",
-          "tags": ["café", "tycoon", "simulation de gestion", "idle", "casual", "stratégie"],
-          "controls": ["Souris/Tactile: Cliquer les emplacements d'ingrédients", "1-6: Raccourcis d'emplacements", "Space: Terminer/servir la boisson", "P/Esc: Pause", "Tab: Changer catégorie d'amélioration"]
+          "tags": [
+            "café",
+            "tycoon",
+            "simulation de gestion",
+            "idle",
+            "casual",
+            "stratégie"
+          ],
+          "controls": [
+            "Souris/Tactile: Cliquer les emplacements d'ingrédients",
+            "1-6: Raccourcis d'emplacements",
+            "Space: Terminer/servir la boisson",
+            "P/Esc: Pause",
+            "Tab: Changer catégorie d'amélioration"
+          ]
         },
         "de": {
           "title": "Mini Kaffee-Tycoon",
           "description": "Starte mit einem kleinen Kaffeestand und baue die größte Kaffeekette der Stadt! Bereite Getränke zu und erweitere deine Filialen.",
-          "tags": ["Café", "Tycoon", "Wirtschaftssimulation", "Idle", "Casual", "Strategie"],
-          "controls": ["Maus/Touch: Zutatenfächer klicken zum Brauen", "1-6: Zutatenfach-Shortcuts", "Space: Getränk fertigstellen/servieren", "P/Esc: Pause", "Tab: Upgrade-Kategorie wechseln"]
+          "tags": [
+            "Café",
+            "Tycoon",
+            "Wirtschaftssimulation",
+            "Idle",
+            "Casual",
+            "Strategie"
+          ],
+          "controls": [
+            "Maus/Touch: Zutatenfächer klicken zum Brauen",
+            "1-6: Zutatenfach-Shortcuts",
+            "Space: Getränk fertigstellen/servieren",
+            "P/Esc: Pause",
+            "Tab: Upgrade-Kategorie wechseln"
+          ]
         },
         "pt": {
           "title": "Mini Magnata do Café",
           "description": "Comece com uma pequena barraca de café e construa a maior rede de cafeterias da cidade! Prepare bebidas e expanda suas lojas.",
-          "tags": ["cafeteria", "magnata", "simulação de negócios", "idle", "casual", "estratégia"],
-          "controls": ["Mouse/Toque: Clicar slots de ingredientes para preparar", "1-6: Atalhos de slots", "Space: Completar/servir bebida", "P/Esc: Pausar", "Tab: Trocar categoria de melhoria"]
+          "tags": [
+            "cafeteria",
+            "magnata",
+            "simulação de negócios",
+            "idle",
+            "casual",
+            "estratégia"
+          ],
+          "controls": [
+            "Mouse/Toque: Clicar slots de ingredientes para preparar",
+            "1-6: Atalhos de slots",
+            "Space: Completar/servir bebida",
+            "P/Esc: Pausar",
+            "Tab: Trocar categoria de melhoria"
+          ]
         }
       },
       "difficulty": "medium",
@@ -665,14 +1518,23 @@
       "id": "mini-card-battler",
       "title": "미니 카드 배틀러",
       "description": "카드를 무기 삼아 어둠의 탑을 돌파하라! 턴제 덱빌딩 로그라이크.",
-      "genre": ["strategy", "casual"],
+      "genre": [
+        "strategy",
+        "casual"
+      ],
       "thumbnail": "/games/mini-card-battler/assets/thumbnail.svg",
       "path": "/games/mini-card-battler/index.html",
       "addedAt": "2026-03-21T09:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["덱빌딩", "카드배틀", "로그라이크", "턴제전략", "싱글플레이"],
+      "tags": [
+        "덱빌딩",
+        "카드배틀",
+        "로그라이크",
+        "턴제전략",
+        "싱글플레이"
+      ],
       "controls": [
         "마우스: 카드 클릭으로 플레이, 적 클릭으로 타겟 선택",
         "터치: 카드 탭으로 플레이, 적 탭으로 타겟 선택",
@@ -682,50 +1544,130 @@
         "en": {
           "title": "Mini Card Battler",
           "description": "Wield cards as weapons to conquer the Dark Tower! A turn-based deck-building roguelike.",
-          "tags": ["deck building", "card battle", "roguelike", "turn-based strategy", "single player"],
-          "controls": ["Mouse: Click card to play, click enemy to target", "Touch: Tap card to play, tap enemy to target", "Keyboard: 1-5 select card, E end turn, Space proceed, ESC pause"]
+          "tags": [
+            "deck building",
+            "card battle",
+            "roguelike",
+            "turn-based strategy",
+            "single player"
+          ],
+          "controls": [
+            "Mouse: Click card to play, click enemy to target",
+            "Touch: Tap card to play, tap enemy to target",
+            "Keyboard: 1-5 select card, E end turn, Space proceed, ESC pause"
+          ]
         },
         "ja": {
           "title": "ミニカードバトラー",
           "description": "カードを武器に闇の塔を突破せよ！ターン制デッキビルディング・ローグライク。",
-          "tags": ["デッキビルディング", "カードバトル", "ローグライク", "ターン制戦略", "シングルプレイ"],
-          "controls": ["マウス: カードクリックでプレイ、敵クリックでターゲット選択", "タッチ: カードタップでプレイ、敵タップでターゲット選択", "キーボード: 1〜5カード選択、Eターン終了、Space進行、ESC一時停止"]
+          "tags": [
+            "デッキビルディング",
+            "カードバトル",
+            "ローグライク",
+            "ターン制戦略",
+            "シングルプレイ"
+          ],
+          "controls": [
+            "マウス: カードクリックでプレイ、敵クリックでターゲット選択",
+            "タッチ: カードタップでプレイ、敵タップでターゲット選択",
+            "キーボード: 1〜5カード選択、Eターン終了、Space進行、ESC一時停止"
+          ]
         },
         "zh-CN": {
           "title": "迷你卡牌战士",
           "description": "以卡牌为武器突破黑暗之塔！回合制构筑卡牌肉鸽。",
-          "tags": ["构筑卡组", "卡牌对战", "肉鸽", "回合制策略", "单人"],
-          "controls": ["鼠标: 点击卡牌出牌，点击敌人选择目标", "触摸: 点击卡牌出牌，点击敌人选择目标", "键盘: 1~5选卡，E结束回合，Space继续，ESC暂停"]
+          "tags": [
+            "构筑卡组",
+            "卡牌对战",
+            "肉鸽",
+            "回合制策略",
+            "单人"
+          ],
+          "controls": [
+            "鼠标: 点击卡牌出牌，点击敌人选择目标",
+            "触摸: 点击卡牌出牌，点击敌人选择目标",
+            "键盘: 1~5选卡，E结束回合，Space继续，ESC暂停"
+          ]
         },
         "zh-TW": {
           "title": "迷你卡牌戰士",
           "description": "以卡牌為武器突破黑暗之塔！回合制構築卡牌肉鴿。",
-          "tags": ["構築牌組", "卡牌對戰", "肉鴿", "回合制策略", "單人"],
-          "controls": ["滑鼠: 點擊卡牌出牌，點擊敵人選擇目標", "觸控: 點擊卡牌出牌，點擊敵人選擇目標", "鍵盤: 1~5選卡，E結束回合，Space繼續，ESC暫停"]
+          "tags": [
+            "構築牌組",
+            "卡牌對戰",
+            "肉鴿",
+            "回合制策略",
+            "單人"
+          ],
+          "controls": [
+            "滑鼠: 點擊卡牌出牌，點擊敵人選擇目標",
+            "觸控: 點擊卡牌出牌，點擊敵人選擇目標",
+            "鍵盤: 1~5選卡，E結束回合，Space繼續，ESC暫停"
+          ]
         },
         "es": {
           "title": "Mini Batallador de Cartas",
           "description": "¡Usa cartas como armas para conquistar la Torre Oscura! Un roguelike de construcción de mazos por turnos.",
-          "tags": ["construcción de mazos", "batalla de cartas", "roguelike", "estrategia por turnos", "un jugador"],
-          "controls": ["Ratón: Clic en carta para jugar, clic en enemigo para seleccionar objetivo", "Táctil: Tocar carta para jugar, tocar enemigo para objetivo", "Teclado: 1-5 seleccionar carta, E fin de turno, Space avanzar, ESC pausa"]
+          "tags": [
+            "construcción de mazos",
+            "batalla de cartas",
+            "roguelike",
+            "estrategia por turnos",
+            "un jugador"
+          ],
+          "controls": [
+            "Ratón: Clic en carta para jugar, clic en enemigo para seleccionar objetivo",
+            "Táctil: Tocar carta para jugar, tocar enemigo para objetivo",
+            "Teclado: 1-5 seleccionar carta, E fin de turno, Space avanzar, ESC pausa"
+          ]
         },
         "fr": {
           "title": "Mini Combattant de Cartes",
           "description": "Utilisez les cartes comme armes pour conquérir la Tour Sombre ! Un roguelike de construction de deck au tour par tour.",
-          "tags": ["construction de deck", "combat de cartes", "roguelike", "stratégie au tour par tour", "solo"],
-          "controls": ["Souris: Cliquer carte pour jouer, cliquer ennemi pour cibler", "Tactile: Appuyer carte pour jouer, appuyer ennemi pour cibler", "Clavier: 1-5 sélectionner carte, E fin de tour, Space continuer, ESC pause"]
+          "tags": [
+            "construction de deck",
+            "combat de cartes",
+            "roguelike",
+            "stratégie au tour par tour",
+            "solo"
+          ],
+          "controls": [
+            "Souris: Cliquer carte pour jouer, cliquer ennemi pour cibler",
+            "Tactile: Appuyer carte pour jouer, appuyer ennemi pour cibler",
+            "Clavier: 1-5 sélectionner carte, E fin de tour, Space continuer, ESC pause"
+          ]
         },
         "de": {
           "title": "Mini Kartenkämpfer",
           "description": "Nutze Karten als Waffen und erobere den Dunklen Turm! Ein rundenbasiertes Deckbuilding-Roguelike.",
-          "tags": ["Deckbuilding", "Kartenkampf", "Roguelike", "Rundenbasierte Strategie", "Einzelspieler"],
-          "controls": ["Maus: Karte klicken zum Spielen, Feind klicken zum Zielen", "Touch: Karte tippen zum Spielen, Feind tippen zum Zielen", "Tastatur: 1-5 Karte wählen, E Zug beenden, Space weiter, ESC Pause"]
+          "tags": [
+            "Deckbuilding",
+            "Kartenkampf",
+            "Roguelike",
+            "Rundenbasierte Strategie",
+            "Einzelspieler"
+          ],
+          "controls": [
+            "Maus: Karte klicken zum Spielen, Feind klicken zum Zielen",
+            "Touch: Karte tippen zum Spielen, Feind tippen zum Zielen",
+            "Tastatur: 1-5 Karte wählen, E Zug beenden, Space weiter, ESC Pause"
+          ]
         },
         "pt": {
           "title": "Mini Batalha de Cartas",
           "description": "Use cartas como armas para conquistar a Torre Sombria! Um roguelike de construção de deck por turnos.",
-          "tags": ["construção de deck", "batalha de cartas", "roguelike", "estratégia por turnos", "single player"],
-          "controls": ["Mouse: Clicar carta para jogar, clicar inimigo para mirar", "Toque: Tocar carta para jogar, tocar inimigo para mirar", "Teclado: 1-5 selecionar carta, E encerrar turno, Space prosseguir, ESC pausar"]
+          "tags": [
+            "construção de deck",
+            "batalha de cartas",
+            "roguelike",
+            "estratégia por turnos",
+            "single player"
+          ],
+          "controls": [
+            "Mouse: Clicar carta para jogar, clicar inimigo para mirar",
+            "Toque: Tocar carta para jogar, tocar inimigo para mirar",
+            "Teclado: 1-5 selecionar carta, E encerrar turno, Space prosseguir, ESC pausar"
+          ]
         }
       },
       "difficulty": "easy",
@@ -736,14 +1678,23 @@
       "id": "mini-platformer",
       "title": "미니 플랫포머",
       "description": "벽점프, 대시, 이중점프로 고대 탑을 돌파하라! 정밀 조작 액션 플랫포머.",
-      "genre": ["action", "arcade"],
+      "genre": [
+        "action",
+        "arcade"
+      ],
       "thumbnail": "/games/mini-platformer/assets/thumbnail.svg",
       "path": "/games/mini-platformer/index.html",
       "addedAt": "2026-03-21T12:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["플랫포머", "정밀액션", "벽점프", "스피드런", "싱글플레이"],
+      "tags": [
+        "플랫포머",
+        "정밀액션",
+        "벽점프",
+        "스피드런",
+        "싱글플레이"
+      ],
       "controls": [
         "키보드: 화살표/WASD 이동, Space 점프, Shift 대시",
         "터치: 가상 D패드(좌) + 점프/대시 버튼(우)",
@@ -753,100 +1704,156 @@
       "version": "1.0.0",
       "author": "InfiniTriX AI",
       "i18n": {
-        "en": { "title": "Mini Platformer", "description": "Break through the ancient tower with wall jumps, dashes, and double jumps! A precision action platformer.", "tags": ["platformer", "precision action", "wall jump", "speedrun", "single player"], "controls": ["Keyboard: Arrow/WASD move, Space jump, Shift dash", "Touch: Virtual D-pad (left) + Jump/Dash buttons (right)", "Mouse: Menu selection only"] },
-        "ja": { "title": "ミニプラットフォーマー", "description": "壁ジャンプ、ダッシュ、二段ジャンプで古代の塔を突破せよ！精密操作アクションプラットフォーマー。", "tags": ["プラットフォーマー", "精密アクション", "壁ジャンプ", "スピードラン", "シングルプレイ"], "controls": ["キーボード: 矢印/WASD移動、Spaceジャンプ、Shiftダッシュ", "タッチ: 仮想Dパッド（左）+ ジャンプ/ダッシュボタン（右）", "マウス: メニュー選択のみ"] },
-        "zh-CN": { "title": "迷你平台跳跃", "description": "用墙跳、冲刺和二段跳突破古塔！精确操作动作平台游戏。", "tags": ["平台跳跃", "精确操作", "墙跳", "速通", "单人"], "controls": ["键盘: 方向键/WASD移动, Space跳跃, Shift冲刺", "触摸: 虚拟方向键(左) + 跳跃/冲刺按钮(右)", "鼠标: 仅菜单选择"] },
-        "zh-TW": { "title": "迷你平台跳躍", "description": "用牆跳、衝刺和二段跳突破古塔！精確操作動作平台遊戲。", "tags": ["平台跳躍", "精確操作", "牆跳", "速通", "單人"], "controls": ["鍵盤: 方向鍵/WASD移動, Space跳躍, Shift衝刺", "觸控: 虛擬方向鍵(左) + 跳躍/衝刺按鈕(右)", "滑鼠: 僅選單選擇"] },
-        "es": { "title": "Mini Plataformas", "description": "¡Supera la torre antigua con saltos de pared, dashes y doble salto! Un plataformas de acción precisa.", "tags": ["plataformas", "acción precisa", "salto de pared", "speedrun", "un jugador"], "controls": ["Teclado: Flechas/WASD mover, Space saltar, Shift dash", "Táctil: D-pad virtual (izq) + Botones salto/dash (der)", "Ratón: Solo selección de menú"] },
-        "fr": { "title": "Mini Plateformer", "description": "Franchissez la tour antique avec des sauts muraux, dashes et doubles sauts ! Un jeu de plateforme d'action précise.", "tags": ["plateforme", "action précise", "saut mural", "speedrun", "solo"], "controls": ["Clavier: Flèches/WASD déplacer, Space sauter, Shift dash", "Tactile: D-pad virtuel (gauche) + Boutons saut/dash (droite)", "Souris: Sélection de menu uniquement"] },
-        "de": { "title": "Mini-Plattformer", "description": "Durchbreche den antiken Turm mit Wandsprüngen, Dashes und Doppelsprüngen! Ein Präzisions-Action-Plattformer.", "tags": ["Plattformer", "Präzisionsaktion", "Wandsprung", "Speedrun", "Einzelspieler"], "controls": ["Tastatur: Pfeile/WASD bewegen, Space springen, Shift dash", "Touch: Virtuelles D-Pad (links) + Sprung/Dash-Tasten (rechts)", "Maus: Nur Menüauswahl"] },
-        "pt": { "title": "Mini Plataforma", "description": "Supere a torre antiga com pulos na parede, dashes e pulo duplo! Um plataforma de ação precisa.", "tags": ["plataforma", "ação precisa", "pulo na parede", "speedrun", "um jogador"], "controls": ["Teclado: Setas/WASD mover, Space pular, Shift dash", "Toque: D-pad virtual (esq) + Botões pulo/dash (dir)", "Mouse: Apenas seleção de menu"] }
-      }
-    },
-    {
-      "id": "mini-drift-racer",
-      "title": "미니 드리프트 레이서",
-      "description": "드리프트로 부스트를 채우고 5개 트랙을 정복하라!",
-      "genre": ["arcade"],
-      "thumbnail": "/games/mini-drift-racer/assets/thumbnail.svg",
-      "path": "/games/mini-drift-racer/index.html",
-      "addedAt": "2026-03-21T15:00:00Z",
-      "featured": false,
-      "playCount": 0,
-      "rating": 0,
-      "tags": ["레이싱", "드리프트", "아케이드", "타임어택", "싱글플레이"],
-      "controls": [
-        "방향키/WASD: 가속·브레이크·스티어링",
-        "Space: 핸드브레이크 (드리프트)",
-        "Shift: 부스트 사용",
-        "Esc/P: 일시정지"
-      ],
-      "i18n": {
         "en": {
-          "title": "Mini Drift Racer",
-          "description": "Fill your boost with drifts and conquer 5 tracks!",
-          "tags": ["racing", "drift", "arcade", "time attack", "single player"],
-          "controls": ["Arrow/WASD: Accelerate/Brake/Steering", "Space: Handbrake (drift)", "Shift: Use boost", "Esc/P: Pause"]
+          "title": "Mini Platformer",
+          "description": "Break through the ancient tower with wall jumps, dashes, and double jumps! A precision action platformer.",
+          "tags": [
+            "platformer",
+            "precision action",
+            "wall jump",
+            "speedrun",
+            "single player"
+          ],
+          "controls": [
+            "Keyboard: Arrow/WASD move, Space jump, Shift dash",
+            "Touch: Virtual D-pad (left) + Jump/Dash buttons (right)",
+            "Mouse: Menu selection only"
+          ]
         },
         "ja": {
-          "title": "ミニドリフトレーサー",
-          "description": "ドリフトでブーストを溜めて5つのトラックを制覇せよ！",
-          "tags": ["レーシング", "ドリフト", "アーケード", "タイムアタック", "シングルプレイ"],
-          "controls": ["矢印キー/WASD: 加速・ブレーキ・ステアリング", "Space: ハンドブレーキ（ドリフト）", "Shift: ブースト使用", "Esc/P: 一時停止"]
+          "title": "ミニプラットフォーマー",
+          "description": "壁ジャンプ、ダッシュ、二段ジャンプで古代の塔を突破せよ！精密操作アクションプラットフォーマー。",
+          "tags": [
+            "プラットフォーマー",
+            "精密アクション",
+            "壁ジャンプ",
+            "スピードラン",
+            "シングルプレイ"
+          ],
+          "controls": [
+            "キーボード: 矢印/WASD移動、Spaceジャンプ、Shiftダッシュ",
+            "タッチ: 仮想Dパッド（左）+ ジャンプ/ダッシュボタン（右）",
+            "マウス: メニュー選択のみ"
+          ]
         },
         "zh-CN": {
-          "title": "迷你漂移赛车",
-          "description": "用漂移充满加速槽，征服5条赛道！",
-          "tags": ["赛车", "漂移", "街机", "计时赛", "单人"],
-          "controls": ["方向键/WASD: 加速·刹车·转向", "Space: 手刹（漂移）", "Shift: 使用加速", "Esc/P: 暂停"]
+          "title": "迷你平台跳跃",
+          "description": "用墙跳、冲刺和二段跳突破古塔！精确操作动作平台游戏。",
+          "tags": [
+            "平台跳跃",
+            "精确操作",
+            "墙跳",
+            "速通",
+            "单人"
+          ],
+          "controls": [
+            "键盘: 方向键/WASD移动, Space跳跃, Shift冲刺",
+            "触摸: 虚拟方向键(左) + 跳跃/冲刺按钮(右)",
+            "鼠标: 仅菜单选择"
+          ]
         },
         "zh-TW": {
-          "title": "迷你漂移賽車",
-          "description": "用漂移充滿加速槽，征服5條賽道！",
-          "tags": ["賽車", "漂移", "街機", "計時賽", "單人"],
-          "controls": ["方向鍵/WASD: 加速·煞車·轉向", "Space: 手煞車（漂移）", "Shift: 使用加速", "Esc/P: 暫停"]
+          "title": "迷你平台跳躍",
+          "description": "用牆跳、衝刺和二段跳突破古塔！精確操作動作平台遊戲。",
+          "tags": [
+            "平台跳躍",
+            "精確操作",
+            "牆跳",
+            "速通",
+            "單人"
+          ],
+          "controls": [
+            "鍵盤: 方向鍵/WASD移動, Space跳躍, Shift衝刺",
+            "觸控: 虛擬方向鍵(左) + 跳躍/衝刺按鈕(右)",
+            "滑鼠: 僅選單選擇"
+          ]
         },
         "es": {
-          "title": "Mini Drift Racer",
-          "description": "¡Llena tu turbo con derrapes y conquista 5 pistas!",
-          "tags": ["carreras", "derrape", "arcade", "contrarreloj", "un jugador"],
-          "controls": ["Flechas/WASD: Acelerar/Frenar/Dirección", "Space: Freno de mano (derrape)", "Shift: Usar turbo", "Esc/P: Pausa"]
+          "title": "Mini Plataformas",
+          "description": "¡Supera la torre antigua con saltos de pared, dashes y doble salto! Un plataformas de acción precisa.",
+          "tags": [
+            "plataformas",
+            "acción precisa",
+            "salto de pared",
+            "speedrun",
+            "un jugador"
+          ],
+          "controls": [
+            "Teclado: Flechas/WASD mover, Space saltar, Shift dash",
+            "Táctil: D-pad virtual (izq) + Botones salto/dash (der)",
+            "Ratón: Solo selección de menú"
+          ]
         },
         "fr": {
-          "title": "Mini Drift Racer",
-          "description": "Remplissez votre boost en dérapant et conquérez 5 circuits !",
-          "tags": ["course", "dérapage", "arcade", "contre-la-montre", "solo"],
-          "controls": ["Flèches/WASD: Accélérer/Freiner/Direction", "Space: Frein à main (dérapage)", "Shift: Utiliser le boost", "Esc/P: Pause"]
+          "title": "Mini Plateformer",
+          "description": "Franchissez la tour antique avec des sauts muraux, dashes et doubles sauts ! Un jeu de plateforme d'action précise.",
+          "tags": [
+            "plateforme",
+            "action précise",
+            "saut mural",
+            "speedrun",
+            "solo"
+          ],
+          "controls": [
+            "Clavier: Flèches/WASD déplacer, Space sauter, Shift dash",
+            "Tactile: D-pad virtuel (gauche) + Boutons saut/dash (droite)",
+            "Souris: Sélection de menu uniquement"
+          ]
         },
         "de": {
-          "title": "Mini Drift Racer",
-          "description": "Fülle deinen Boost mit Drifts und erobere 5 Strecken!",
-          "tags": ["Rennen", "Drift", "Arcade", "Zeitangriff", "Einzelspieler"],
-          "controls": ["Pfeiltasten/WASD: Gas/Bremse/Lenkung", "Space: Handbremse (Drift)", "Shift: Boost verwenden", "Esc/P: Pause"]
+          "title": "Mini-Plattformer",
+          "description": "Durchbreche den antiken Turm mit Wandsprüngen, Dashes und Doppelsprüngen! Ein Präzisions-Action-Plattformer.",
+          "tags": [
+            "Plattformer",
+            "Präzisionsaktion",
+            "Wandsprung",
+            "Speedrun",
+            "Einzelspieler"
+          ],
+          "controls": [
+            "Tastatur: Pfeile/WASD bewegen, Space springen, Shift dash",
+            "Touch: Virtuelles D-Pad (links) + Sprung/Dash-Tasten (rechts)",
+            "Maus: Nur Menüauswahl"
+          ]
         },
         "pt": {
-          "title": "Mini Drift Racer",
-          "description": "Encha seu turbo com derrapagens e conquiste 5 pistas!",
-          "tags": ["corrida", "derrapagem", "arcade", "contra o relógio", "um jogador"],
-          "controls": ["Setas/WASD: Acelerar/Frear/Direção", "Space: Freio de mão (derrapagem)", "Shift: Usar turbo", "Esc/P: Pausar"]
+          "title": "Mini Plataforma",
+          "description": "Supere a torre antiga com pulos na parede, dashes e pulo duplo! Um plataforma de ação precisa.",
+          "tags": [
+            "plataforma",
+            "ação precisa",
+            "pulo na parede",
+            "speedrun",
+            "um jogador"
+          ],
+          "controls": [
+            "Teclado: Setas/WASD mover, Space pular, Shift dash",
+            "Toque: D-pad virtual (esq) + Botões pulo/dash (dir)",
+            "Mouse: Apenas seleção de menu"
+          ]
         }
-      },
-      "difficulty": "medium",
-      "version": "1.0.0",
-      "author": "InfiniTriX AI"
+      }
     },
     {
       "id": "neon-drift-racer",
       "title": "네온 드리프트 레이서",
       "description": "네온 도시에서 드리프트와 부스트로 1위를 차지하라!",
-      "genre": ["arcade"],
+      "genre": [
+        "arcade"
+      ],
       "thumbnail": "/games/neon-drift-racer/assets/thumbnail.svg",
       "path": "/games/neon-drift-racer/index.html",
       "addedAt": "2026-03-21T18:00:00Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["레이싱", "드리프트", "네온", "아케이드", "싱글플레이"],
+      "tags": [
+        "레이싱",
+        "드리프트",
+        "네온",
+        "아케이드",
+        "싱글플레이"
+      ],
       "controls": [
         "키보드: ←→ 조향 / ↑ 가속 / ↓ 브레이크 / Space 부스트",
         "터치: 가상 스티어링(좌) + 가속·브레이크·부스트 버튼(우)",
@@ -856,121 +1863,130 @@
         "en": {
           "title": "Neon Drift Racer",
           "description": "Drift and boost your way to 1st place in a neon city!",
-          "tags": ["racing", "drift", "neon", "arcade", "single player"],
-          "controls": ["Keyboard: Left/Right steer / Up accelerate / Down brake / Space boost", "Touch: Virtual steering (left) + Accel/Brake/Boost buttons (right)", "Mouse: Menu selection only"]
+          "tags": [
+            "racing",
+            "drift",
+            "neon",
+            "arcade",
+            "single player"
+          ],
+          "controls": [
+            "Keyboard: Left/Right steer / Up accelerate / Down brake / Space boost",
+            "Touch: Virtual steering (left) + Accel/Brake/Boost buttons (right)",
+            "Mouse: Menu selection only"
+          ]
         },
         "ja": {
           "title": "ネオンドリフトレーサー",
           "description": "ネオンシティでドリフトとブーストで1位を目指せ！",
-          "tags": ["レーシング", "ドリフト", "ネオン", "アーケード", "シングルプレイ"],
-          "controls": ["キーボード: ←→ ステアリング / ↑ 加速 / ↓ ブレーキ / Space ブースト", "タッチ: 仮想ステアリング（左）+ 加速・ブレーキ・ブーストボタン（右）", "マウス: メニュー選択のみ"]
+          "tags": [
+            "レーシング",
+            "ドリフト",
+            "ネオン",
+            "アーケード",
+            "シングルプレイ"
+          ],
+          "controls": [
+            "キーボード: ←→ ステアリング / ↑ 加速 / ↓ ブレーキ / Space ブースト",
+            "タッチ: 仮想ステアリング（左）+ 加速・ブレーキ・ブーストボタン（右）",
+            "マウス: メニュー選択のみ"
+          ]
         },
         "zh-CN": {
           "title": "霓虹漂移赛车",
           "description": "在霓虹都市中用漂移和加速夺取第一名！",
-          "tags": ["赛车", "漂移", "霓虹", "街机", "单人"],
-          "controls": ["键盘: ←→转向 / ↑加速 / ↓刹车 / Space加速", "触摸: 虚拟方向盘(左) + 加速·刹车·加速按钮(右)", "鼠标: 仅菜单选择"]
+          "tags": [
+            "赛车",
+            "漂移",
+            "霓虹",
+            "街机",
+            "单人"
+          ],
+          "controls": [
+            "键盘: ←→转向 / ↑加速 / ↓刹车 / Space加速",
+            "触摸: 虚拟方向盘(左) + 加速·刹车·加速按钮(右)",
+            "鼠标: 仅菜单选择"
+          ]
         },
         "zh-TW": {
           "title": "霓虹漂移賽車",
           "description": "在霓虹都市中用漂移和加速奪取第一名！",
-          "tags": ["賽車", "漂移", "霓虹", "街機", "單人"],
-          "controls": ["鍵盤: ←→轉向 / ↑加速 / ↓煞車 / Space加速", "觸控: 虛擬方向盤(左) + 加速·煞車·加速按鈕(右)", "滑鼠: 僅選單選擇"]
+          "tags": [
+            "賽車",
+            "漂移",
+            "霓虹",
+            "街機",
+            "單人"
+          ],
+          "controls": [
+            "鍵盤: ←→轉向 / ↑加速 / ↓煞車 / Space加速",
+            "觸控: 虛擬方向盤(左) + 加速·煞車·加速按鈕(右)",
+            "滑鼠: 僅選單選擇"
+          ]
         },
         "es": {
           "title": "Neon Drift Racer",
           "description": "¡Derrapa y usa el turbo para llegar al 1er lugar en una ciudad neón!",
-          "tags": ["carreras", "derrape", "neón", "arcade", "un jugador"],
-          "controls": ["Teclado: ←→ dirección / ↑ acelerar / ↓ frenar / Space turbo", "Táctil: Volante virtual (izq) + Botones acelerador/freno/turbo (der)", "Ratón: Solo selección de menú"]
+          "tags": [
+            "carreras",
+            "derrape",
+            "neón",
+            "arcade",
+            "un jugador"
+          ],
+          "controls": [
+            "Teclado: ←→ dirección / ↑ acelerar / ↓ frenar / Space turbo",
+            "Táctil: Volante virtual (izq) + Botones acelerador/freno/turbo (der)",
+            "Ratón: Solo selección de menú"
+          ]
         },
         "fr": {
           "title": "Neon Drift Racer",
           "description": "Dérapez et boostez pour atteindre la 1re place dans une ville néon !",
-          "tags": ["course", "dérapage", "néon", "arcade", "solo"],
-          "controls": ["Clavier: ←→ direction / ↑ accélérer / ↓ freiner / Space boost", "Tactile: Volant virtuel (gauche) + Boutons accélérateur/frein/boost (droite)", "Souris: Sélection de menu uniquement"]
+          "tags": [
+            "course",
+            "dérapage",
+            "néon",
+            "arcade",
+            "solo"
+          ],
+          "controls": [
+            "Clavier: ←→ direction / ↑ accélérer / ↓ freiner / Space boost",
+            "Tactile: Volant virtuel (gauche) + Boutons accélérateur/frein/boost (droite)",
+            "Souris: Sélection de menu uniquement"
+          ]
         },
         "de": {
           "title": "Neon Drift Racer",
           "description": "Drifte und booste dich in einer Neonstadt auf Platz 1!",
-          "tags": ["Rennen", "Drift", "Neon", "Arcade", "Einzelspieler"],
-          "controls": ["Tastatur: ←→ Lenken / ↑ Gas / ↓ Bremse / Space Boost", "Touch: Virtuelles Lenkrad (links) + Gas/Bremse/Boost-Tasten (rechts)", "Maus: Nur Menüauswahl"]
+          "tags": [
+            "Rennen",
+            "Drift",
+            "Neon",
+            "Arcade",
+            "Einzelspieler"
+          ],
+          "controls": [
+            "Tastatur: ←→ Lenken / ↑ Gas / ↓ Bremse / Space Boost",
+            "Touch: Virtuelles Lenkrad (links) + Gas/Bremse/Boost-Tasten (rechts)",
+            "Maus: Nur Menüauswahl"
+          ]
         },
         "pt": {
           "title": "Neon Drift Racer",
           "description": "Derrape e use turbo para chegar em 1o lugar numa cidade neon!",
-          "tags": ["corrida", "derrapagem", "neon", "arcade", "um jogador"],
-          "controls": ["Teclado: ←→ direção / ↑ acelerar / ↓ frear / Space turbo", "Toque: Volante virtual (esq) + Botões acelerador/freio/turbo (dir)", "Mouse: Apenas seleção de menu"]
-        }
-      },
-      "difficulty": "medium",
-      "version": "1.0.0",
-      "author": "InfiniTriX AI"
-    },
-    {
-      "id": "hangul-word-quest",
-      "title": "한글 워드 퀘스트",
-      "description": "한글 자모를 풀어 숨겨진 단어를 맞추는 워드 퍼즐!",
-      "genre": ["puzzle"],
-      "thumbnail": "/games/hangul-word-quest/assets/thumbnail.svg",
-      "path": "/games/hangul-word-quest/index.html",
-      "addedAt": "2026-03-21T21:00:00Z",
-      "featured": false,
-      "playCount": 0,
-      "rating": 0,
-      "tags": ["워드퍼즐", "한글", "데일리챌린지"],
-      "controls": [
-        "키보드: 한글 자모 직접 입력 / Enter 제출 / Backspace 삭제",
-        "마우스: 화면 내 가상 키보드 클릭",
-        "터치: 화면 내 가상 키보드 터치"
-      ],
-      "i18n": {
-        "en": {
-          "title": "Hangul Word Quest",
-          "description": "Solve hidden words by assembling Hangul letters in this word puzzle!",
-          "tags": ["word puzzle", "Hangul", "daily challenge"],
-          "controls": ["Keyboard: Type Hangul letters / Enter to submit / Backspace to delete", "Mouse: Click on-screen virtual keyboard", "Touch: Tap on-screen virtual keyboard"]
-        },
-        "ja": {
-          "title": "ハングルワードクエスト",
-          "description": "ハングルの字母を組み合わせて隠された単語を当てるワードパズル！",
-          "tags": ["ワードパズル", "ハングル", "デイリーチャレンジ"],
-          "controls": ["キーボード: ハングル字母を直接入力 / Enter送信 / Backspace削除", "マウス: 画面内の仮想キーボードをクリック", "タッチ: 画面内の仮想キーボードをタッチ"]
-        },
-        "zh-CN": {
-          "title": "韩文拼字挑战",
-          "description": "拼合韩文字母猜出隐藏单词的文字拼图游戏！",
-          "tags": ["文字拼图", "韩文", "每日挑战"],
-          "controls": ["键盘: 直接输入韩文字母 / Enter提交 / Backspace删除", "鼠标: 点击屏幕虚拟键盘", "触摸: 点击屏幕虚拟键盘"]
-        },
-        "zh-TW": {
-          "title": "韓文拼字挑戰",
-          "description": "拼合韓文字母猜出隱藏單詞的文字拼圖遊戲！",
-          "tags": ["文字拼圖", "韓文", "每日挑戰"],
-          "controls": ["鍵盤: 直接輸入韓文字母 / Enter提交 / Backspace刪除", "滑鼠: 點擊螢幕虛擬鍵盤", "觸控: 點擊螢幕虛擬鍵盤"]
-        },
-        "es": {
-          "title": "Hangul Word Quest",
-          "description": "¡Resuelve palabras ocultas ensamblando letras Hangul en este puzzle de palabras!",
-          "tags": ["puzzle de palabras", "Hangul", "desafío diario"],
-          "controls": ["Teclado: Escribir letras Hangul / Enter enviar / Backspace borrar", "Ratón: Clic en teclado virtual en pantalla", "Táctil: Tocar teclado virtual en pantalla"]
-        },
-        "fr": {
-          "title": "Hangul Word Quest",
-          "description": "Résolvez des mots cachés en assemblant des lettres Hangul dans ce puzzle de mots !",
-          "tags": ["puzzle de mots", "Hangul", "défi quotidien"],
-          "controls": ["Clavier: Taper les lettres Hangul / Entrée soumettre / Retour supprimer", "Souris: Cliquer le clavier virtuel à l'écran", "Tactile: Appuyer le clavier virtuel à l'écran"]
-        },
-        "de": {
-          "title": "Hangul-Worträtsel",
-          "description": "Löse versteckte Wörter durch Zusammensetzen von Hangul-Buchstaben in diesem Worträtsel!",
-          "tags": ["Worträtsel", "Hangul", "Tägliche Herausforderung"],
-          "controls": ["Tastatur: Hangul-Buchstaben eingeben / Enter absenden / Backspace löschen", "Maus: Bildschirmtastatur klicken", "Touch: Bildschirmtastatur tippen"]
-        },
-        "pt": {
-          "title": "Hangul Word Quest",
-          "description": "Resolva palavras ocultas montando letras Hangul neste puzzle de palavras!",
-          "tags": ["puzzle de palavras", "Hangul", "desafio diário"],
-          "controls": ["Teclado: Digitar letras Hangul / Enter enviar / Backspace apagar", "Mouse: Clicar teclado virtual na tela", "Toque: Tocar teclado virtual na tela"]
+          "tags": [
+            "corrida",
+            "derrapagem",
+            "neon",
+            "arcade",
+            "um jogador"
+          ],
+          "controls": [
+            "Teclado: ←→ direção / ↑ acelerar / ↓ frear / Space turbo",
+            "Toque: Volante virtual (esq) + Botões acelerador/freio/turbo (dir)",
+            "Mouse: Apenas seleção de menu"
+          ]
         }
       },
       "difficulty": "medium",
@@ -981,14 +1997,22 @@
       "id": "mini-idle-farm",
       "title": "미니 아이들 팜",
       "description": "빈 땅에서 작물·가축·가공으로 농장 제국을 키우는 방치형 시뮬레이션!",
-      "genre": ["casual", "strategy"],
+      "genre": [
+        "casual",
+        "strategy"
+      ],
       "thumbnail": "/games/mini-idle-farm/assets/thumbnail.svg",
       "path": "/games/mini-idle-farm/index.html",
       "addedAt": "2026-03-21T23:00:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["아이들", "농장", "시뮬레이션", "방치형"],
+      "tags": [
+        "아이들",
+        "농장",
+        "시뮬레이션",
+        "방치형"
+      ],
       "controls": [
         "마우스: 클릭으로 수확/구매/탭 전환",
         "터치: 탭으로 수확/구매, 스와이프로 탭 전환",
@@ -998,50 +2022,122 @@
         "en": {
           "title": "Mini Idle Farm",
           "description": "Grow your farm empire from empty land with crops, livestock, and processing — an idle simulation!",
-          "tags": ["idle", "farm", "simulation", "incremental"],
-          "controls": ["Mouse: Click to harvest/buy/switch tabs", "Touch: Tap to harvest/buy, swipe to switch tabs", "Keyboard: 1-3 switch tabs / Space manual harvest / P pause"]
+          "tags": [
+            "idle",
+            "farm",
+            "simulation",
+            "incremental"
+          ],
+          "controls": [
+            "Mouse: Click to harvest/buy/switch tabs",
+            "Touch: Tap to harvest/buy, swipe to switch tabs",
+            "Keyboard: 1-3 switch tabs / Space manual harvest / P pause"
+          ]
         },
         "ja": {
           "title": "ミニ放置ファーム",
           "description": "空き地から作物・家畜・加工で農場帝国を育てる放置型シミュレーション！",
-          "tags": ["放置系", "農場", "シミュレーション", "インクリメンタル"],
-          "controls": ["マウス: クリックで収穫/購入/タブ切替", "タッチ: タップで収穫/購入、スワイプでタブ切替", "キーボード: 1〜3タブ切替 / Space手動収穫 / P一時停止"]
+          "tags": [
+            "放置系",
+            "農場",
+            "シミュレーション",
+            "インクリメンタル"
+          ],
+          "controls": [
+            "マウス: クリックで収穫/購入/タブ切替",
+            "タッチ: タップで収穫/購入、スワイプでタブ切替",
+            "キーボード: 1〜3タブ切替 / Space手動収穫 / P一時停止"
+          ]
         },
         "zh-CN": {
           "title": "迷你放置农场",
           "description": "从空地开始，用农作物、牲畜和加工建立农场帝国的放置模拟游戏！",
-          "tags": ["放置", "农场", "模拟", "增量"],
-          "controls": ["鼠标: 点击收获/购买/切换标签", "触摸: 点击收获/购买, 滑动切换标签", "键盘: 1~3切换标签 / Space手动收获 / P暂停"]
+          "tags": [
+            "放置",
+            "农场",
+            "模拟",
+            "增量"
+          ],
+          "controls": [
+            "鼠标: 点击收获/购买/切换标签",
+            "触摸: 点击收获/购买, 滑动切换标签",
+            "键盘: 1~3切换标签 / Space手动收获 / P暂停"
+          ]
         },
         "zh-TW": {
           "title": "迷你放置農場",
           "description": "從空地開始，用農作物、牲畜和加工建立農場帝國的放置模擬遊戲！",
-          "tags": ["放置", "農場", "模擬", "增量"],
-          "controls": ["滑鼠: 點擊收穫/購買/切換標籤", "觸控: 點擊收穫/購買, 滑動切換標籤", "鍵盤: 1~3切換標籤 / Space手動收穫 / P暫停"]
+          "tags": [
+            "放置",
+            "農場",
+            "模擬",
+            "增量"
+          ],
+          "controls": [
+            "滑鼠: 點擊收穫/購買/切換標籤",
+            "觸控: 點擊收穫/購買, 滑動切換標籤",
+            "鍵盤: 1~3切換標籤 / Space手動收穫 / P暫停"
+          ]
         },
         "es": {
           "title": "Mini Granja Idle",
           "description": "¡Haz crecer tu imperio agrícola desde un terreno vacío con cultivos, ganado y procesamiento — simulación idle!",
-          "tags": ["idle", "granja", "simulación", "incremental"],
-          "controls": ["Ratón: Clic para cosechar/comprar/cambiar pestaña", "Táctil: Tocar para cosechar/comprar, deslizar para cambiar pestaña", "Teclado: 1-3 cambiar pestaña / Space cosecha manual / P pausa"]
+          "tags": [
+            "idle",
+            "granja",
+            "simulación",
+            "incremental"
+          ],
+          "controls": [
+            "Ratón: Clic para cosechar/comprar/cambiar pestaña",
+            "Táctil: Tocar para cosechar/comprar, deslizar para cambiar pestaña",
+            "Teclado: 1-3 cambiar pestaña / Space cosecha manual / P pausa"
+          ]
         },
         "fr": {
           "title": "Mini Ferme Idle",
           "description": "Développez votre empire agricole à partir d'un terrain vide avec cultures, bétail et transformation — simulation idle !",
-          "tags": ["idle", "ferme", "simulation", "incrémentiel"],
-          "controls": ["Souris: Cliquer pour récolter/acheter/changer d'onglet", "Tactile: Appuyer pour récolter/acheter, glisser pour changer d'onglet", "Clavier: 1-3 changer d'onglet / Space récolte manuelle / P pause"]
+          "tags": [
+            "idle",
+            "ferme",
+            "simulation",
+            "incrémentiel"
+          ],
+          "controls": [
+            "Souris: Cliquer pour récolter/acheter/changer d'onglet",
+            "Tactile: Appuyer pour récolter/acheter, glisser pour changer d'onglet",
+            "Clavier: 1-3 changer d'onglet / Space récolte manuelle / P pause"
+          ]
         },
         "de": {
           "title": "Mini Idle Farm",
           "description": "Baue dein Farmimperium von leerem Land mit Feldfrüchten, Vieh und Verarbeitung auf — eine Idle-Simulation!",
-          "tags": ["Idle", "Farm", "Simulation", "Inkrementell"],
-          "controls": ["Maus: Klicken zum Ernten/Kaufen/Tab-Wechsel", "Touch: Tippen zum Ernten/Kaufen, Wischen zum Tab-Wechsel", "Tastatur: 1-3 Tab wechseln / Space manuelle Ernte / P Pause"]
+          "tags": [
+            "Idle",
+            "Farm",
+            "Simulation",
+            "Inkrementell"
+          ],
+          "controls": [
+            "Maus: Klicken zum Ernten/Kaufen/Tab-Wechsel",
+            "Touch: Tippen zum Ernten/Kaufen, Wischen zum Tab-Wechsel",
+            "Tastatur: 1-3 Tab wechseln / Space manuelle Ernte / P Pause"
+          ]
         },
         "pt": {
           "title": "Mini Fazenda Idle",
           "description": "Construa seu império agrícola do zero com plantações, gado e processamento — simulação idle!",
-          "tags": ["idle", "fazenda", "simulação", "incremental"],
-          "controls": ["Mouse: Clicar para colher/comprar/trocar aba", "Toque: Tocar para colher/comprar, deslizar para trocar aba", "Teclado: 1-3 trocar aba / Space colheita manual / P pausar"]
+          "tags": [
+            "idle",
+            "fazenda",
+            "simulação",
+            "incremental"
+          ],
+          "controls": [
+            "Mouse: Clicar para colher/comprar/trocar aba",
+            "Toque: Tocar para colher/comprar, deslizar para trocar aba",
+            "Teclado: 1-3 trocar aba / Space colheita manual / P pausar"
+          ]
         }
       },
       "difficulty": "easy",
@@ -1049,87 +2145,27 @@
       "author": "InfiniTriX AI"
     },
     {
-      "id": "fruits-merge",
-      "title": "프루츠 머지",
-      "description": "같은 과일을 합체시켜 큰 과일로 진화시키는 물리 머지 퍼즐!",
-      "genre": ["puzzle"],
-      "thumbnail": "/games/fruits-merge/assets/thumbnail.svg",
-      "path": "/games/fruits-merge/index.html",
-      "addedAt": "2026-03-21T23:30:00Z",
-      "featured": false,
-      "playCount": 0,
-      "rating": 0,
-      "tags": ["퍼즐", "머지", "물리", "과일", "수박게임", "캐주얼"],
-      "controls": [
-        "마우스/터치: 좌우 이동 후 클릭으로 과일 드롭",
-        "키보드: ←→ 이동, Space/↓ 드롭"
-      ],
-      "i18n": {
-        "en": {
-          "title": "Fruits Merge",
-          "description": "Merge same fruits to evolve them into bigger ones — a physics merge puzzle!",
-          "tags": ["puzzle", "merge", "physics", "fruit", "watermelon game", "casual"],
-          "controls": ["Mouse/Touch: Move left/right then click to drop fruit", "Keyboard: Left/Right move, Space/Down drop"]
-        },
-        "ja": {
-          "title": "フルーツマージ",
-          "description": "同じフルーツを合体させて大きなフルーツに進化させる物理マージパズル！",
-          "tags": ["パズル", "マージ", "物理", "フルーツ", "スイカゲーム", "カジュアル"],
-          "controls": ["マウス/タッチ: 左右移動後クリックでフルーツドロップ", "キーボード: ←→移動、Space/↓ドロップ"]
-        },
-        "zh-CN": {
-          "title": "水果合成",
-          "description": "合并相同水果进化成更大的水果——物理合成拼图！",
-          "tags": ["拼图", "合成", "物理", "水果", "西瓜游戏", "休闲"],
-          "controls": ["鼠标/触摸: 左右移动后点击投放水果", "键盘: ←→移动, Space/↓投放"]
-        },
-        "zh-TW": {
-          "title": "水果合成",
-          "description": "合併相同水果進化成更大的水果——物理合成拼圖！",
-          "tags": ["拼圖", "合成", "物理", "水果", "西瓜遊戲", "休閒"],
-          "controls": ["滑鼠/觸控: 左右移動後點擊投放水果", "鍵盤: ←→移動, Space/↓投放"]
-        },
-        "es": {
-          "title": "Fruits Merge",
-          "description": "¡Fusiona frutas iguales para evolucionar a frutas más grandes — puzzle de fusión con física!",
-          "tags": ["puzzle", "fusión", "física", "fruta", "juego de sandía", "casual"],
-          "controls": ["Ratón/Táctil: Mover izquierda/derecha y clic para soltar fruta", "Teclado: ←→ mover, Space/↓ soltar"]
-        },
-        "fr": {
-          "title": "Fruits Merge",
-          "description": "Fusionnez les mêmes fruits pour les faire évoluer en plus gros — un puzzle de fusion physique !",
-          "tags": ["puzzle", "fusion", "physique", "fruit", "jeu de pastèque", "casual"],
-          "controls": ["Souris/Tactile: Déplacer gauche/droite puis cliquer pour lâcher le fruit", "Clavier: ←→ déplacer, Space/↓ lâcher"]
-        },
-        "de": {
-          "title": "Fruits Merge",
-          "description": "Verschmelze gleiche Früchte zu größeren — ein Physik-Merge-Puzzle!",
-          "tags": ["Puzzle", "Verschmelzung", "Physik", "Frucht", "Wassermelonenspiel", "Casual"],
-          "controls": ["Maus/Touch: Links/rechts bewegen und klicken zum Fallenlassen", "Tastatur: ←→ bewegen, Space/↓ fallenlassen"]
-        },
-        "pt": {
-          "title": "Fruits Merge",
-          "description": "Funda frutas iguais para evoluí-las em frutas maiores — puzzle de fusão com física!",
-          "tags": ["puzzle", "fusão", "física", "fruta", "jogo da melancia", "casual"],
-          "controls": ["Mouse/Toque: Mover esquerda/direita e clicar para soltar fruta", "Teclado: ←→ mover, Space/↓ soltar"]
-        }
-      },
-      "difficulty": "medium",
-      "version": "1.0.0",
-      "author": "InfiniTriX AI"
-    },
-    {
       "id": "mini-dungeon-dice",
       "title": "미니 던전 다이스",
       "description": "주사위를 굴려 던전을 탐험하는 턴 기반 로그라이트!",
-      "genre": ["action", "strategy"],
+      "genre": [
+        "action",
+        "strategy"
+      ],
       "thumbnail": "/games/mini-dungeon-dice/assets/thumbnail.svg",
       "path": "/games/mini-dungeon-dice/index.html",
       "addedAt": "2026-03-21T23:45:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["액션", "전략", "로그라이트", "던전", "주사위", "턴제"],
+      "tags": [
+        "액션",
+        "전략",
+        "로그라이트",
+        "던전",
+        "주사위",
+        "턴제"
+      ],
       "controls": [
         "마우스/터치: 주사위 드래그로 슬롯 배치",
         "키보드: 1~3 슬롯 선택, Space 턴 확정"
@@ -1138,50 +2174,130 @@
         "en": {
           "title": "Mini Dungeon Dice",
           "description": "Roll dice to explore dungeons in this turn-based roguelite!",
-          "tags": ["action", "strategy", "roguelite", "dungeon", "dice", "turn-based"],
-          "controls": ["Mouse/Touch: Drag dice to place in slots", "Keyboard: 1-3 select slot, Space confirm turn"]
+          "tags": [
+            "action",
+            "strategy",
+            "roguelite",
+            "dungeon",
+            "dice",
+            "turn-based"
+          ],
+          "controls": [
+            "Mouse/Touch: Drag dice to place in slots",
+            "Keyboard: 1-3 select slot, Space confirm turn"
+          ]
         },
         "ja": {
           "title": "ミニダンジョンダイス",
           "description": "サイコロを振ってダンジョンを探索するターン制ローグライト！",
-          "tags": ["アクション", "戦略", "ローグライト", "ダンジョン", "サイコロ", "ターン制"],
-          "controls": ["マウス/タッチ: サイコロをドラッグしてスロットに配置", "キーボード: 1〜3スロット選択、Spaceターン確定"]
+          "tags": [
+            "アクション",
+            "戦略",
+            "ローグライト",
+            "ダンジョン",
+            "サイコロ",
+            "ターン制"
+          ],
+          "controls": [
+            "マウス/タッチ: サイコロをドラッグしてスロットに配置",
+            "キーボード: 1〜3スロット選択、Spaceターン確定"
+          ]
         },
         "zh-CN": {
           "title": "迷你地牢骰子",
           "description": "掷骰子探索地牢的回合制肉鸽轻度游戏！",
-          "tags": ["动作", "策略", "肉鸽轻度", "地牢", "骰子", "回合制"],
-          "controls": ["鼠标/触摸: 拖动骰子放入槽位", "键盘: 1~3选择槽位, Space确认回合"]
+          "tags": [
+            "动作",
+            "策略",
+            "肉鸽轻度",
+            "地牢",
+            "骰子",
+            "回合制"
+          ],
+          "controls": [
+            "鼠标/触摸: 拖动骰子放入槽位",
+            "键盘: 1~3选择槽位, Space确认回合"
+          ]
         },
         "zh-TW": {
           "title": "迷你地牢骰子",
           "description": "擲骰子探索地牢的回合制肉鴿輕度遊戲！",
-          "tags": ["動作", "策略", "肉鴿輕度", "地牢", "骰子", "回合制"],
-          "controls": ["滑鼠/觸控: 拖動骰子放入槽位", "鍵盤: 1~3選擇槽位, Space確認回合"]
+          "tags": [
+            "動作",
+            "策略",
+            "肉鴿輕度",
+            "地牢",
+            "骰子",
+            "回合制"
+          ],
+          "controls": [
+            "滑鼠/觸控: 拖動骰子放入槽位",
+            "鍵盤: 1~3選擇槽位, Space確認回合"
+          ]
         },
         "es": {
           "title": "Mini Dungeon Dice",
           "description": "¡Lanza dados para explorar mazmorras en este roguelite por turnos!",
-          "tags": ["acción", "estrategia", "roguelite", "mazmorra", "dados", "por turnos"],
-          "controls": ["Ratón/Táctil: Arrastrar dados a las ranuras", "Teclado: 1-3 seleccionar ranura, Space confirmar turno"]
+          "tags": [
+            "acción",
+            "estrategia",
+            "roguelite",
+            "mazmorra",
+            "dados",
+            "por turnos"
+          ],
+          "controls": [
+            "Ratón/Táctil: Arrastrar dados a las ranuras",
+            "Teclado: 1-3 seleccionar ranura, Space confirmar turno"
+          ]
         },
         "fr": {
           "title": "Mini Dungeon Dice",
           "description": "Lancez les dés pour explorer des donjons dans ce roguelite au tour par tour !",
-          "tags": ["action", "stratégie", "roguelite", "donjon", "dés", "tour par tour"],
-          "controls": ["Souris/Tactile: Glisser les dés dans les emplacements", "Clavier: 1-3 sélectionner emplacement, Space confirmer le tour"]
+          "tags": [
+            "action",
+            "stratégie",
+            "roguelite",
+            "donjon",
+            "dés",
+            "tour par tour"
+          ],
+          "controls": [
+            "Souris/Tactile: Glisser les dés dans les emplacements",
+            "Clavier: 1-3 sélectionner emplacement, Space confirmer le tour"
+          ]
         },
         "de": {
           "title": "Mini Dungeon Dice",
           "description": "Würfle und erkunde Dungeons in diesem rundenbasierten Roguelite!",
-          "tags": ["Action", "Strategie", "Roguelite", "Dungeon", "Würfel", "Rundenbasiert"],
-          "controls": ["Maus/Touch: Würfel in Slots ziehen", "Tastatur: 1-3 Slot wählen, Space Zug bestätigen"]
+          "tags": [
+            "Action",
+            "Strategie",
+            "Roguelite",
+            "Dungeon",
+            "Würfel",
+            "Rundenbasiert"
+          ],
+          "controls": [
+            "Maus/Touch: Würfel in Slots ziehen",
+            "Tastatur: 1-3 Slot wählen, Space Zug bestätigen"
+          ]
         },
         "pt": {
           "title": "Mini Dungeon Dice",
           "description": "Lance dados para explorar masmorras neste roguelite por turnos!",
-          "tags": ["ação", "estratégia", "roguelite", "masmorra", "dados", "por turnos"],
-          "controls": ["Mouse/Toque: Arrastar dados para os slots", "Teclado: 1-3 selecionar slot, Space confirmar turno"]
+          "tags": [
+            "ação",
+            "estratégia",
+            "roguelite",
+            "masmorra",
+            "dados",
+            "por turnos"
+          ],
+          "controls": [
+            "Mouse/Toque: Arrastar dados para os slots",
+            "Teclado: 1-3 selecionar slot, Space confirmar turno"
+          ]
         }
       },
       "difficulty": "medium",
@@ -1192,14 +2308,23 @@
       "id": "gem-match-blitz",
       "title": "보석 매치 블리츠",
       "description": "보석을 스와이프해 3개 이상 맞추고 연쇄 폭발을 즐기세요!",
-      "genre": ["puzzle"],
+      "genre": [
+        "puzzle"
+      ],
       "thumbnail": "/games/gem-match-blitz/assets/thumbnail.svg",
       "path": "/games/gem-match-blitz/index.html",
       "addedAt": "2026-03-22T09:00:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["퍼즐", "매치3", "보석", "연쇄폭발", "캐주얼", "중독성"],
+      "tags": [
+        "퍼즐",
+        "매치3",
+        "보석",
+        "연쇄폭발",
+        "캐주얼",
+        "중독성"
+      ],
       "controls": [
         "마우스 클릭/드래그: 인접 보석 교환",
         "터치 스와이프: 보석 교환 (모바일)",
@@ -1212,50 +2337,138 @@
         "en": {
           "title": "Gem Match Blitz",
           "description": "Swipe gems to match 3 or more and enjoy chain explosions!",
-          "tags": ["puzzle", "match-3", "gems", "chain-reaction", "casual", "addictive"],
-          "controls": ["Mouse click/drag: Swap adjacent gems", "Touch swipe: Swap gems (mobile)", "R: Restart"]
+          "tags": [
+            "puzzle",
+            "match-3",
+            "gems",
+            "chain-reaction",
+            "casual",
+            "addictive"
+          ],
+          "controls": [
+            "Mouse click/drag: Swap adjacent gems",
+            "Touch swipe: Swap gems (mobile)",
+            "R: Restart"
+          ]
         },
         "ja": {
           "title": "ジェムマッチ・ブリッツ",
           "description": "宝石をスワイプして3つ以上揃え、連鎖爆発を楽しもう！",
-          "tags": ["パズル", "マッチ3", "宝石", "連鎖", "カジュアル", "中毒性"],
-          "controls": ["マウスクリック/ドラッグ: 隣の宝石と交換", "タッチスワイプ: 宝石を交換（モバイル）", "R: リスタート"]
+          "tags": [
+            "パズル",
+            "マッチ3",
+            "宝石",
+            "連鎖",
+            "カジュアル",
+            "中毒性"
+          ],
+          "controls": [
+            "マウスクリック/ドラッグ: 隣の宝石と交換",
+            "タッチスワイプ: 宝石を交換（モバイル）",
+            "R: リスタート"
+          ]
         },
         "zh-CN": {
           "title": "宝石消消乐",
           "description": "滑动宝石匹配3个以上，享受连锁爆炸的快感！",
-          "tags": ["益智", "三消", "宝石", "连锁反应", "休闲", "上瘾"],
-          "controls": ["鼠标点击/拖拽：交换相邻宝石", "触屏滑动：交换宝石（移动端）", "R键：重新开始"]
+          "tags": [
+            "益智",
+            "三消",
+            "宝石",
+            "连锁反应",
+            "休闲",
+            "上瘾"
+          ],
+          "controls": [
+            "鼠标点击/拖拽：交换相邻宝石",
+            "触屏滑动：交换宝石（移动端）",
+            "R键：重新开始"
+          ]
         },
         "zh-TW": {
           "title": "寶石消消樂",
           "description": "滑動寶石配對3個以上，享受連鎖爆炸的快感！",
-          "tags": ["益智", "三消", "寶石", "連鎖反應", "休閒", "上癮"],
-          "controls": ["滑鼠點擊/拖曳：交換相鄰寶石", "觸控滑動：交換寶石（行動裝置）", "R鍵：重新開始"]
+          "tags": [
+            "益智",
+            "三消",
+            "寶石",
+            "連鎖反應",
+            "休閒",
+            "上癮"
+          ],
+          "controls": [
+            "滑鼠點擊/拖曳：交換相鄰寶石",
+            "觸控滑動：交換寶石（行動裝置）",
+            "R鍵：重新開始"
+          ]
         },
         "es": {
           "title": "Gem Match Blitz",
           "description": "¡Desliza gemas para hacer coincidir 3 o más y disfruta de explosiones en cadena!",
-          "tags": ["rompecabezas", "match-3", "gemas", "reacción en cadena", "casual", "adictivo"],
-          "controls": ["Clic/arrastrar: Intercambiar gemas adyacentes", "Deslizar (táctil): Intercambiar gemas (móvil)", "R: Reiniciar"]
+          "tags": [
+            "rompecabezas",
+            "match-3",
+            "gemas",
+            "reacción en cadena",
+            "casual",
+            "adictivo"
+          ],
+          "controls": [
+            "Clic/arrastrar: Intercambiar gemas adyacentes",
+            "Deslizar (táctil): Intercambiar gemas (móvil)",
+            "R: Reiniciar"
+          ]
         },
         "fr": {
           "title": "Gem Match Blitz",
           "description": "Glissez les gemmes pour en aligner 3 ou plus et déclenchez des explosions en chaîne !",
-          "tags": ["puzzle", "match-3", "gemmes", "réaction en chaîne", "casual", "addictif"],
-          "controls": ["Clic/glisser : Échanger les gemmes adjacentes", "Glisser (tactile) : Échanger les gemmes (mobile)", "R : Recommencer"]
+          "tags": [
+            "puzzle",
+            "match-3",
+            "gemmes",
+            "réaction en chaîne",
+            "casual",
+            "addictif"
+          ],
+          "controls": [
+            "Clic/glisser : Échanger les gemmes adjacentes",
+            "Glisser (tactile) : Échanger les gemmes (mobile)",
+            "R : Recommencer"
+          ]
         },
         "de": {
           "title": "Juwelen-Match Blitz",
           "description": "Wische Juwelen, um 3 oder mehr zu kombinieren und genieße Kettenexplosionen!",
-          "tags": ["Puzzle", "Match-3", "Juwelen", "Kettenreaktion", "Casual", "Suchtfaktor"],
-          "controls": ["Mausklick/Ziehen: Benachbarte Juwelen tauschen", "Touch-Wischen: Juwelen tauschen (Mobil)", "R: Neustart"]
+          "tags": [
+            "Puzzle",
+            "Match-3",
+            "Juwelen",
+            "Kettenreaktion",
+            "Casual",
+            "Suchtfaktor"
+          ],
+          "controls": [
+            "Mausklick/Ziehen: Benachbarte Juwelen tauschen",
+            "Touch-Wischen: Juwelen tauschen (Mobil)",
+            "R: Neustart"
+          ]
         },
         "pt": {
           "title": "Gem Match Blitz",
           "description": "Deslize gemas para combinar 3 ou mais e aproveite explosões em cadeia!",
-          "tags": ["puzzle", "match-3", "gemas", "reação em cadeia", "casual", "viciante"],
-          "controls": ["Clique/arraste: Trocar gemas adjacentes", "Deslizar (toque): Trocar gemas (mobile)", "R: Reiniciar"]
+          "tags": [
+            "puzzle",
+            "match-3",
+            "gemas",
+            "reação em cadeia",
+            "casual",
+            "viciante"
+          ],
+          "controls": [
+            "Clique/arraste: Trocar gemas adjacentes",
+            "Deslizar (toque): Trocar gemas (mobile)",
+            "R: Reiniciar"
+          ]
         }
       }
     },
@@ -1263,14 +2476,24 @@
       "id": "neon-hex-drop",
       "title": "네온 헥스 드롭",
       "description": "헥사곤을 회전시켜 낙하 블록을 정렬하고 소멸하세요!",
-      "genre": ["puzzle", "arcade"],
+      "genre": [
+        "puzzle",
+        "arcade"
+      ],
       "thumbnail": "/games/neon-hex-drop/assets/thumbnail.svg",
       "path": "/games/neon-hex-drop/index.html",
       "addedAt": "2026-03-22T18:00:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["퍼즐", "아케이드", "낙하블록", "헥사곤", "회전", "연쇄소멸"],
+      "tags": [
+        "퍼즐",
+        "아케이드",
+        "낙하블록",
+        "헥사곤",
+        "회전",
+        "연쇄소멸"
+      ],
       "controls": [
         "←/→ 방향키: 헥사곤 좌/우 60도 회전",
         "화면 좌/우 탭: 회전 (모바일)",
@@ -1281,140 +2504,173 @@
         "en": {
           "title": "Neon Hex Drop",
           "description": "Rotate the hexagon to align falling blocks and clear them!",
-          "tags": ["puzzle", "arcade", "falling blocks", "hexagon", "rotation", "chain clear"],
-          "controls": ["Left/Right arrow: Rotate hexagon 60 degrees left/right", "Tap left/right side: Rotate (mobile)", "P: Pause", "R: Restart"]
+          "tags": [
+            "puzzle",
+            "arcade",
+            "falling blocks",
+            "hexagon",
+            "rotation",
+            "chain clear"
+          ],
+          "controls": [
+            "Left/Right arrow: Rotate hexagon 60 degrees left/right",
+            "Tap left/right side: Rotate (mobile)",
+            "P: Pause",
+            "R: Restart"
+          ]
         },
         "ja": {
           "title": "ネオンヘックスドロップ",
           "description": "ヘキサゴンを回転させて落下ブロックを整列・消去しよう！",
-          "tags": ["パズル", "アーケード", "落下ブロック", "ヘキサゴン", "回転", "連鎖消去"],
-          "controls": ["←/→矢印キー: ヘキサゴンを左/右60度回転", "画面左/右タップ: 回転（モバイル）", "Pキー: 一時停止", "Rキー: リスタート"]
+          "tags": [
+            "パズル",
+            "アーケード",
+            "落下ブロック",
+            "ヘキサゴン",
+            "回転",
+            "連鎖消去"
+          ],
+          "controls": [
+            "←/→矢印キー: ヘキサゴンを左/右60度回転",
+            "画面左/右タップ: 回転（モバイル）",
+            "Pキー: 一時停止",
+            "Rキー: リスタート"
+          ]
         },
         "zh-CN": {
           "title": "霓虹六边消除",
           "description": "旋转六边形对齐下落方块并消除它们！",
-          "tags": ["拼图", "街机", "下落方块", "六边形", "旋转", "连锁消除"],
-          "controls": ["←/→方向键: 六边形左/右旋转60度", "点击屏幕左/右: 旋转（手机）", "P键: 暂停", "R键: 重新开始"]
+          "tags": [
+            "拼图",
+            "街机",
+            "下落方块",
+            "六边形",
+            "旋转",
+            "连锁消除"
+          ],
+          "controls": [
+            "←/→方向键: 六边形左/右旋转60度",
+            "点击屏幕左/右: 旋转（手机）",
+            "P键: 暂停",
+            "R键: 重新开始"
+          ]
         },
         "zh-TW": {
           "title": "霓虹六邊消除",
           "description": "旋轉六邊形對齊下落方塊並消除它們！",
-          "tags": ["拼圖", "街機", "下落方塊", "六邊形", "旋轉", "連鎖消除"],
-          "controls": ["←/→方向鍵: 六邊形左/右旋轉60度", "點擊螢幕左/右: 旋轉（手機）", "P鍵: 暫停", "R鍵: 重新開始"]
+          "tags": [
+            "拼圖",
+            "街機",
+            "下落方塊",
+            "六邊形",
+            "旋轉",
+            "連鎖消除"
+          ],
+          "controls": [
+            "←/→方向鍵: 六邊形左/右旋轉60度",
+            "點擊螢幕左/右: 旋轉（手機）",
+            "P鍵: 暫停",
+            "R鍵: 重新開始"
+          ]
         },
         "es": {
           "title": "Neon Hex Drop",
           "description": "¡Rota el hexágono para alinear los bloques que caen y elimínalos!",
-          "tags": ["puzzle", "arcade", "bloques cayendo", "hexágono", "rotación", "eliminación en cadena"],
-          "controls": ["←/→ Flechas: Rotar hexágono 60 grados izquierda/derecha", "Tocar lado izquierdo/derecho: Rotar (móvil)", "P: Pausa", "R: Reiniciar"]
+          "tags": [
+            "puzzle",
+            "arcade",
+            "bloques cayendo",
+            "hexágono",
+            "rotación",
+            "eliminación en cadena"
+          ],
+          "controls": [
+            "←/→ Flechas: Rotar hexágono 60 grados izquierda/derecha",
+            "Tocar lado izquierdo/derecho: Rotar (móvil)",
+            "P: Pausa",
+            "R: Reiniciar"
+          ]
         },
         "fr": {
           "title": "Neon Hex Drop",
           "description": "Faites pivoter l'hexagone pour aligner les blocs tombants et les éliminer !",
-          "tags": ["puzzle", "arcade", "blocs tombants", "hexagone", "rotation", "élimination en chaîne"],
-          "controls": ["←/→ Flèches: Pivoter l'hexagone de 60 degrés gauche/droite", "Appuyer côté gauche/droit: Pivoter (mobile)", "P: Pause", "R: Recommencer"]
+          "tags": [
+            "puzzle",
+            "arcade",
+            "blocs tombants",
+            "hexagone",
+            "rotation",
+            "élimination en chaîne"
+          ],
+          "controls": [
+            "←/→ Flèches: Pivoter l'hexagone de 60 degrés gauche/droite",
+            "Appuyer côté gauche/droit: Pivoter (mobile)",
+            "P: Pause",
+            "R: Recommencer"
+          ]
         },
         "de": {
           "title": "Neon Hex Drop",
           "description": "Drehe das Hexagon, um fallende Blöcke auszurichten und aufzulösen!",
-          "tags": ["Puzzle", "Arcade", "Fallende Blöcke", "Hexagon", "Rotation", "Kettenauflösung"],
-          "controls": ["←/→ Pfeiltasten: Hexagon 60 Grad links/rechts drehen", "Links/rechts tippen: Drehen (Mobil)", "P: Pause", "R: Neustart"]
+          "tags": [
+            "Puzzle",
+            "Arcade",
+            "Fallende Blöcke",
+            "Hexagon",
+            "Rotation",
+            "Kettenauflösung"
+          ],
+          "controls": [
+            "←/→ Pfeiltasten: Hexagon 60 Grad links/rechts drehen",
+            "Links/rechts tippen: Drehen (Mobil)",
+            "P: Pause",
+            "R: Neustart"
+          ]
         },
         "pt": {
           "title": "Neon Hex Drop",
           "description": "Gire o hexágono para alinhar blocos em queda e eliminá-los!",
-          "tags": ["puzzle", "arcade", "blocos em queda", "hexágono", "rotação", "eliminação em cadeia"],
-          "controls": ["←/→ Setas: Girar hexágono 60 graus esquerda/direita", "Tocar lado esquerdo/direito: Girar (celular)", "P: Pausar", "R: Reiniciar"]
+          "tags": [
+            "puzzle",
+            "arcade",
+            "blocos em queda",
+            "hexágono",
+            "rotação",
+            "eliminação em cadeia"
+          ],
+          "controls": [
+            "←/→ Setas: Girar hexágono 60 graus esquerda/direita",
+            "Tocar lado esquerdo/direito: Girar (celular)",
+            "P: Pausar",
+            "R: Reiniciar"
+          ]
         }
       },
       "difficulty": "medium",
       "version": "1.0.0"
     },
     {
-      "id": "neon-bubble-pop",
-      "title": "네온 버블 팝",
-      "description": "네온 버블을 조준·발사해 같은 색 3개를 터뜨리세요!",
-      "genre": ["arcade", "casual"],
-      "thumbnail": "/games/neon-bubble-pop/assets/thumbnail.svg",
-      "path": "/games/neon-bubble-pop/index.html",
-      "addedAt": "2026-03-22T21:00:00Z",
-      "featured": false,
-      "playCount": 0,
-      "rating": 0,
-      "tags": ["아케이드", "캐주얼", "버블슈터", "네온", "퍼즐", "중독성"],
-      "controls": [
-        "←/→ 방향키 또는 A/D: 조준 각도 조절",
-        "Space/↑/W: 버블 발사",
-        "마우스 이동+클릭: 조준 및 발사",
-        "터치 드래그+릴리스: 조준 및 발사 (모바일)",
-        "P/Esc: 일시정지"
-      ],
-      "i18n": {
-        "en": {
-          "title": "Neon Bubble Pop",
-          "description": "Aim and shoot neon bubbles to pop clusters of 3 or more same-colored ones!",
-          "tags": ["arcade", "casual", "bubble shooter", "neon", "puzzle", "addictive"],
-          "controls": ["Left/Right or A/D: Adjust aim angle", "Space/Up/W: Shoot bubble", "Mouse move + click: Aim and shoot", "Touch drag + release: Aim and shoot (mobile)", "P/Esc: Pause"]
-        },
-        "ja": {
-          "title": "ネオンバブルポップ",
-          "description": "ネオンバブルを狙って撃ち、同じ色3つを弾けさせよう！",
-          "tags": ["アーケード", "カジュアル", "バブルシューター", "ネオン", "パズル", "中毒性"],
-          "controls": ["←/→またはA/D: 照準角度調整", "Space/↑/W: バブル発射", "マウス移動＋クリック: 照準＆発射", "タッチドラッグ＋リリース: 照準＆発射（モバイル）", "P/Esc: 一時停止"]
-        },
-        "zh-CN": {
-          "title": "霓虹泡泡射击",
-          "description": "瞄准并发射霓虹泡泡，消除3个以上同色泡泡！",
-          "tags": ["街机", "休闲", "泡泡射击", "霓虹", "益智", "上瘾"],
-          "controls": ["←/→或A/D: 调整瞄准角度", "Space/↑/W: 发射泡泡", "鼠标移动+点击: 瞄准并发射", "触摸拖动+释放: 瞄准并发射（手机）", "P/Esc: 暂停"]
-        },
-        "zh-TW": {
-          "title": "霓虹泡泡射擊",
-          "description": "瞄準並發射霓虹泡泡，消除3個以上同色泡泡！",
-          "tags": ["街機", "休閒", "泡泡射擊", "霓虹", "益智", "上癮"],
-          "controls": ["←/→或A/D: 調整瞄準角度", "Space/↑/W: 發射泡泡", "滑鼠移動+點擊: 瞄準並發射", "觸控拖動+釋放: 瞄準並發射（手機）", "P/Esc: 暫停"]
-        },
-        "es": {
-          "title": "Neon Bubble Pop",
-          "description": "¡Apunta y dispara burbujas neón para reventar grupos de 3 o más del mismo color!",
-          "tags": ["arcade", "casual", "lanzador de burbujas", "neón", "puzzle", "adictivo"],
-          "controls": ["←/→ o A/D: Ajustar ángulo de apuntado", "Space/↑/W: Disparar burbuja", "Mover ratón + clic: Apuntar y disparar", "Arrastrar táctil + soltar: Apuntar y disparar (móvil)", "P/Esc: Pausa"]
-        },
-        "fr": {
-          "title": "Neon Bubble Pop",
-          "description": "Visez et tirez des bulles néon pour éclater les groupes de 3 ou plus de même couleur !",
-          "tags": ["arcade", "casual", "lance-bulles", "néon", "puzzle", "addictif"],
-          "controls": ["←/→ ou A/D: Ajuster l'angle de visée", "Space/↑/W: Tirer la bulle", "Déplacer souris + clic: Viser et tirer", "Glisser tactile + relâcher: Viser et tirer (mobile)", "P/Esc: Pause"]
-        },
-        "de": {
-          "title": "Neon Bubble Pop",
-          "description": "Ziele und schieße Neon-Blasen, um Gruppen von 3 oder mehr gleichfarbigen zum Platzen zu bringen!",
-          "tags": ["Arcade", "Casual", "Bubble-Shooter", "Neon", "Puzzle", "Suchtfaktor"],
-          "controls": ["←/→ oder A/D: Zielwinkel anpassen", "Space/↑/W: Blase schießen", "Maus bewegen + Klick: Zielen und schießen", "Touch ziehen + loslassen: Zielen und schießen (Mobil)", "P/Esc: Pause"]
-        },
-        "pt": {
-          "title": "Neon Bubble Pop",
-          "description": "Mire e dispare bolhas neon para estourar grupos de 3 ou mais da mesma cor!",
-          "tags": ["arcade", "casual", "atirador de bolhas", "neon", "puzzle", "viciante"],
-          "controls": ["←/→ ou A/D: Ajustar ângulo de mira", "Space/↑/W: Disparar bolha", "Mover mouse + clique: Mirar e disparar", "Arrastar toque + soltar: Mirar e disparar (celular)", "P/Esc: Pausar"]
-        }
-      },
-      "difficulty": "medium",
-      "version": "1.0.0",
-      "author": "InfiniTriX AI"
-    },
-    {
       "id": "arcane-bastion",
       "title": "아케인 바스티온",
       "description": "마법사가 되어 타워를 세우고 몰려오는 적을 막아라!",
-      "genre": ["action", "strategy"],
+      "genre": [
+        "action",
+        "strategy"
+      ],
       "thumbnail": "/games/arcane-bastion/assets/thumbnail.svg",
       "path": "/games/arcane-bastion/index.html",
       "addedAt": "2026-03-22T22:00:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["액션", "전략", "타워디펜스", "로그라이크", "마법", "보스전"],
+      "tags": [
+        "액션",
+        "전략",
+        "타워디펜스",
+        "로그라이크",
+        "마법",
+        "보스전"
+      ],
       "controls": [
         "WASD/방향키: 마법사 이동",
         "마우스 클릭/터치: 주문 시전 (방향 지정)",
@@ -1426,50 +2682,154 @@
         "en": {
           "title": "Arcane Bastion",
           "description": "Become a wizard, build towers, and defend against waves of enemies!",
-          "tags": ["action", "strategy", "tower defense", "roguelike", "magic", "boss battle"],
-          "controls": ["WASD/Arrows: Move wizard", "Mouse click/Touch: Cast spell (directional)", "1-4 number keys: Select tower to place", "Space: Start wave", "P/Esc: Pause"]
+          "tags": [
+            "action",
+            "strategy",
+            "tower defense",
+            "roguelike",
+            "magic",
+            "boss battle"
+          ],
+          "controls": [
+            "WASD/Arrows: Move wizard",
+            "Mouse click/Touch: Cast spell (directional)",
+            "1-4 number keys: Select tower to place",
+            "Space: Start wave",
+            "P/Esc: Pause"
+          ]
         },
         "ja": {
           "title": "アーケインバスティオン",
           "description": "魔法使いとなりタワーを建て、押し寄せる敵を撃退せよ！",
-          "tags": ["アクション", "戦略", "タワーディフェンス", "ローグライク", "魔法", "ボス戦"],
-          "controls": ["WASD/矢印キー: 魔法使い移動", "マウスクリック/タッチ: 呪文詠唱（方向指定）", "1〜4数字キー: 配置タワー選択", "Space: ウェーブ開始", "P/Esc: 一時停止"]
+          "tags": [
+            "アクション",
+            "戦略",
+            "タワーディフェンス",
+            "ローグライク",
+            "魔法",
+            "ボス戦"
+          ],
+          "controls": [
+            "WASD/矢印キー: 魔法使い移動",
+            "マウスクリック/タッチ: 呪文詠唱（方向指定）",
+            "1〜4数字キー: 配置タワー選択",
+            "Space: ウェーブ開始",
+            "P/Esc: 一時停止"
+          ]
         },
         "zh-CN": {
           "title": "奥术堡垒",
           "description": "成为法师，建造塔楼，抵御蜂拥而至的敌人！",
-          "tags": ["动作", "策略", "塔防", "肉鸽", "魔法", "Boss战"],
-          "controls": ["WASD/方向键: 移动法师", "鼠标点击/触摸: 施放法术（指定方向）", "1~4数字键: 选择放置塔楼", "Space: 开始波次", "P/Esc: 暂停"]
+          "tags": [
+            "动作",
+            "策略",
+            "塔防",
+            "肉鸽",
+            "魔法",
+            "Boss战"
+          ],
+          "controls": [
+            "WASD/方向键: 移动法师",
+            "鼠标点击/触摸: 施放法术（指定方向）",
+            "1~4数字键: 选择放置塔楼",
+            "Space: 开始波次",
+            "P/Esc: 暂停"
+          ]
         },
         "zh-TW": {
           "title": "奧術堡壘",
           "description": "成為法師，建造塔樓，抵禦蜂擁而至的敵人！",
-          "tags": ["動作", "策略", "塔防", "肉鴿", "魔法", "Boss戰"],
-          "controls": ["WASD/方向鍵: 移動法師", "滑鼠點擊/觸控: 施放法術（指定方向）", "1~4數字鍵: 選擇放置塔樓", "Space: 開始波次", "P/Esc: 暫停"]
+          "tags": [
+            "動作",
+            "策略",
+            "塔防",
+            "肉鴿",
+            "魔法",
+            "Boss戰"
+          ],
+          "controls": [
+            "WASD/方向鍵: 移動法師",
+            "滑鼠點擊/觸控: 施放法術（指定方向）",
+            "1~4數字鍵: 選擇放置塔樓",
+            "Space: 開始波次",
+            "P/Esc: 暫停"
+          ]
         },
         "es": {
           "title": "Bastión Arcano",
           "description": "¡Conviértete en mago, construye torres y defiéndete de oleadas de enemigos!",
-          "tags": ["acción", "estrategia", "tower defense", "roguelike", "magia", "jefe"],
-          "controls": ["WASD/Flechas: Mover mago", "Clic ratón/Táctil: Lanzar hechizo (direccional)", "1-4: Seleccionar torre a colocar", "Space: Iniciar oleada", "P/Esc: Pausa"]
+          "tags": [
+            "acción",
+            "estrategia",
+            "tower defense",
+            "roguelike",
+            "magia",
+            "jefe"
+          ],
+          "controls": [
+            "WASD/Flechas: Mover mago",
+            "Clic ratón/Táctil: Lanzar hechizo (direccional)",
+            "1-4: Seleccionar torre a colocar",
+            "Space: Iniciar oleada",
+            "P/Esc: Pausa"
+          ]
         },
         "fr": {
           "title": "Bastion Arcanique",
           "description": "Devenez un mage, construisez des tours et repoussez les vagues d'ennemis !",
-          "tags": ["action", "stratégie", "tower defense", "roguelike", "magie", "boss"],
-          "controls": ["WASD/Flèches: Déplacer le mage", "Clic souris/Tactile: Lancer un sort (directionnel)", "1-4: Sélectionner la tour à placer", "Space: Lancer la vague", "P/Esc: Pause"]
+          "tags": [
+            "action",
+            "stratégie",
+            "tower defense",
+            "roguelike",
+            "magie",
+            "boss"
+          ],
+          "controls": [
+            "WASD/Flèches: Déplacer le mage",
+            "Clic souris/Tactile: Lancer un sort (directionnel)",
+            "1-4: Sélectionner la tour à placer",
+            "Space: Lancer la vague",
+            "P/Esc: Pause"
+          ]
         },
         "de": {
           "title": "Arkane Bastion",
           "description": "Werde ein Magier, baue Türme und verteidige dich gegen Feindwellen!",
-          "tags": ["Action", "Strategie", "Tower Defense", "Roguelike", "Magie", "Bosskampf"],
-          "controls": ["WASD/Pfeiltasten: Magier bewegen", "Mausklick/Touch: Zauber wirken (gerichtet)", "1-4: Turm zum Platzieren auswählen", "Space: Welle starten", "P/Esc: Pause"]
+          "tags": [
+            "Action",
+            "Strategie",
+            "Tower Defense",
+            "Roguelike",
+            "Magie",
+            "Bosskampf"
+          ],
+          "controls": [
+            "WASD/Pfeiltasten: Magier bewegen",
+            "Mausklick/Touch: Zauber wirken (gerichtet)",
+            "1-4: Turm zum Platzieren auswählen",
+            "Space: Welle starten",
+            "P/Esc: Pause"
+          ]
         },
         "pt": {
           "title": "Bastião Arcano",
           "description": "Torne-se um mago, construa torres e defenda-se contra ondas de inimigos!",
-          "tags": ["ação", "estratégia", "tower defense", "roguelike", "magia", "chefe"],
-          "controls": ["WASD/Setas: Mover mago", "Clique mouse/Toque: Lançar feitiço (direcional)", "1-4: Selecionar torre para posicionar", "Space: Iniciar onda", "P/Esc: Pausar"]
+          "tags": [
+            "ação",
+            "estratégia",
+            "tower defense",
+            "roguelike",
+            "magia",
+            "chefe"
+          ],
+          "controls": [
+            "WASD/Setas: Mover mago",
+            "Clique mouse/Toque: Lançar feitiço (direcional)",
+            "1-4: Selecionar torre para posicionar",
+            "Space: Iniciar onda",
+            "P/Esc: Pausar"
+          ]
         }
       },
       "difficulty": "hard",
@@ -1480,14 +2840,23 @@
       "id": "rune-survivor",
       "title": "룬 서바이버",
       "description": "룬 마법사로 몬스터 무리 속에서 살아남으세요!",
-      "genre": ["action"],
+      "genre": [
+        "action"
+      ],
       "thumbnail": "/games/rune-survivor/assets/thumbnail.svg",
       "path": "/games/rune-survivor/index.html",
       "addedAt": "2026-03-22T23:00:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["액션", "서바이버", "로그라이크", "뱀서라이크", "룬", "마법"],
+      "tags": [
+        "액션",
+        "서바이버",
+        "로그라이크",
+        "뱀서라이크",
+        "룬",
+        "마법"
+      ],
       "controls": [
         "WASD / 방향키: 이동",
         "공격은 자동 발사",
@@ -1497,50 +2866,138 @@
         "en": {
           "title": "Rune Survivor",
           "description": "Survive endless monster hordes as a rune mage!",
-          "tags": ["action", "survivor", "roguelike", "vampire-survivors", "rune", "magic"],
-          "controls": ["WASD / Arrow keys: Move", "Attacks fire automatically", "Touch: Virtual joystick to move"]
+          "tags": [
+            "action",
+            "survivor",
+            "roguelike",
+            "vampire-survivors",
+            "rune",
+            "magic"
+          ],
+          "controls": [
+            "WASD / Arrow keys: Move",
+            "Attacks fire automatically",
+            "Touch: Virtual joystick to move"
+          ]
         },
         "ja": {
           "title": "ルーン・サバイバー",
           "description": "ルーン魔法使いとなりモンスターの大群を生き延びろ！",
-          "tags": ["アクション", "サバイバー", "ローグライク", "ヴァンサバ系", "ルーン", "魔法"],
-          "controls": ["WASD / 矢印キー: 移動", "攻撃は自動発射", "タッチ: 仮想ジョイスティックで移動"]
+          "tags": [
+            "アクション",
+            "サバイバー",
+            "ローグライク",
+            "ヴァンサバ系",
+            "ルーン",
+            "魔法"
+          ],
+          "controls": [
+            "WASD / 矢印キー: 移動",
+            "攻撃は自動発射",
+            "タッチ: 仮想ジョイスティックで移動"
+          ]
         },
         "zh-CN": {
           "title": "符文幸存者",
           "description": "化身符文法师，在怪物潮中存活下来！",
-          "tags": ["动作", "幸存者", "肉鸽", "吸血鬼幸存者", "符文", "魔法"],
-          "controls": ["WASD / 方向键: 移动", "自动攻击", "触摸: 虚拟摇杆移动"]
+          "tags": [
+            "动作",
+            "幸存者",
+            "肉鸽",
+            "吸血鬼幸存者",
+            "符文",
+            "魔法"
+          ],
+          "controls": [
+            "WASD / 方向键: 移动",
+            "自动攻击",
+            "触摸: 虚拟摇杆移动"
+          ]
         },
         "zh-TW": {
           "title": "符文倖存者",
           "description": "化身符文法師，在怪物潮中存活下來！",
-          "tags": ["動作", "倖存者", "肉鴿", "吸血鬼倖存者", "符文", "魔法"],
-          "controls": ["WASD / 方向鍵: 移動", "自動攻擊", "觸控: 虛擬搖桿移動"]
+          "tags": [
+            "動作",
+            "倖存者",
+            "肉鴿",
+            "吸血鬼倖存者",
+            "符文",
+            "魔法"
+          ],
+          "controls": [
+            "WASD / 方向鍵: 移動",
+            "自動攻擊",
+            "觸控: 虛擬搖桿移動"
+          ]
         },
         "es": {
           "title": "Rune Survivor",
           "description": "¡Sobrevive a hordas de monstruos como un mago de runas!",
-          "tags": ["acción", "supervivencia", "roguelike", "vampire survivors", "runas", "magia"],
-          "controls": ["WASD / Flechas: Mover", "Ataques automáticos", "Táctil: Joystick virtual para moverse"]
+          "tags": [
+            "acción",
+            "supervivencia",
+            "roguelike",
+            "vampire survivors",
+            "runas",
+            "magia"
+          ],
+          "controls": [
+            "WASD / Flechas: Mover",
+            "Ataques automáticos",
+            "Táctil: Joystick virtual para moverse"
+          ]
         },
         "fr": {
           "title": "Rune Survivor",
           "description": "Survivez aux hordes de monstres en tant que mage runique !",
-          "tags": ["action", "survie", "roguelike", "vampire survivors", "runes", "magie"],
-          "controls": ["WASD / Flèches: Se déplacer", "Attaques automatiques", "Tactile: Joystick virtuel pour se déplacer"]
+          "tags": [
+            "action",
+            "survie",
+            "roguelike",
+            "vampire survivors",
+            "runes",
+            "magie"
+          ],
+          "controls": [
+            "WASD / Flèches: Se déplacer",
+            "Attaques automatiques",
+            "Tactile: Joystick virtuel pour se déplacer"
+          ]
         },
         "de": {
           "title": "Rune Survivor",
           "description": "Überlebe als Runenmagier endlose Monsterhorden!",
-          "tags": ["Action", "Survivor", "Roguelike", "Vampire Survivors", "Runen", "Magie"],
-          "controls": ["WASD / Pfeiltasten: Bewegen", "Angriffe erfolgen automatisch", "Touch: Virtueller Joystick zum Bewegen"]
+          "tags": [
+            "Action",
+            "Survivor",
+            "Roguelike",
+            "Vampire Survivors",
+            "Runen",
+            "Magie"
+          ],
+          "controls": [
+            "WASD / Pfeiltasten: Bewegen",
+            "Angriffe erfolgen automatisch",
+            "Touch: Virtueller Joystick zum Bewegen"
+          ]
         },
         "pt": {
           "title": "Rune Survivor",
           "description": "Sobreviva a hordas de monstros como um mago de runas!",
-          "tags": ["ação", "sobrevivência", "roguelike", "vampire survivors", "runas", "magia"],
-          "controls": ["WASD / Setas: Mover", "Ataques automáticos", "Toque: Joystick virtual para mover"]
+          "tags": [
+            "ação",
+            "sobrevivência",
+            "roguelike",
+            "vampire survivors",
+            "runas",
+            "magia"
+          ],
+          "controls": [
+            "WASD / Setas: Mover",
+            "Ataques automáticos",
+            "Toque: Joystick virtual para mover"
+          ]
         }
       },
       "difficulty": "medium",
@@ -1551,14 +3008,23 @@
       "id": "spell-card-dungeon",
       "title": "스펠 카드 던전",
       "description": "카드를 전략적으로 사용해 던전 10층을 정복하세요!",
-      "genre": ["strategy"],
+      "genre": [
+        "strategy"
+      ],
       "thumbnail": "/games/spell-card-dungeon/assets/thumbnail.svg",
       "path": "/games/spell-card-dungeon/index.html",
       "addedAt": "2026-03-22T23:30:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["전략", "카드", "덱빌딩", "로그라이크", "던전", "턴제"],
+      "tags": [
+        "전략",
+        "카드",
+        "덱빌딩",
+        "로그라이크",
+        "던전",
+        "턴제"
+      ],
       "controls": [
         "마우스 클릭: 카드 선택/사용",
         "터치: 카드 선택/사용 (모바일)",
@@ -1569,50 +3035,146 @@
         "en": {
           "title": "Spell Card Dungeon",
           "description": "Use cards strategically to conquer the 10-floor dungeon!",
-          "tags": ["strategy", "card", "deckbuilding", "roguelike", "dungeon", "turn-based"],
-          "controls": ["Mouse click: Select/play cards", "Touch: Select/play cards (mobile)", "Number keys 1-5: Quick select card", "E key: End turn"]
+          "tags": [
+            "strategy",
+            "card",
+            "deckbuilding",
+            "roguelike",
+            "dungeon",
+            "turn-based"
+          ],
+          "controls": [
+            "Mouse click: Select/play cards",
+            "Touch: Select/play cards (mobile)",
+            "Number keys 1-5: Quick select card",
+            "E key: End turn"
+          ]
         },
         "ja": {
           "title": "スペルカードダンジョン",
           "description": "カードを駆使してダンジョン10階を攻略しよう！",
-          "tags": ["戦略", "カード", "デッキ構築", "ローグライク", "ダンジョン", "ターン制"],
-          "controls": ["マウスクリック: カード選択/使用", "タッチ: カード選択/使用（モバイル）", "数字キー1~5: カード素早く選択", "Eキー: ターン終了"]
+          "tags": [
+            "戦略",
+            "カード",
+            "デッキ構築",
+            "ローグライク",
+            "ダンジョン",
+            "ターン制"
+          ],
+          "controls": [
+            "マウスクリック: カード選択/使用",
+            "タッチ: カード選択/使用（モバイル）",
+            "数字キー1~5: カード素早く選択",
+            "Eキー: ターン終了"
+          ]
         },
         "zh-CN": {
           "title": "魔法卡牌地牢",
           "description": "策略性地使用卡牌征服10层地牢！",
-          "tags": ["策略", "卡牌", "构筑牌组", "肉鸽", "地牢", "回合制"],
-          "controls": ["鼠标点击：选择/使用卡牌", "触屏：选择/使用卡牌（移动端）", "数字键1~5：快速选择卡牌", "E键：结束回合"]
+          "tags": [
+            "策略",
+            "卡牌",
+            "构筑牌组",
+            "肉鸽",
+            "地牢",
+            "回合制"
+          ],
+          "controls": [
+            "鼠标点击：选择/使用卡牌",
+            "触屏：选择/使用卡牌（移动端）",
+            "数字键1~5：快速选择卡牌",
+            "E键：结束回合"
+          ]
         },
         "zh-TW": {
           "title": "魔法卡牌地城",
           "description": "策略性地使用卡牌征服10層地城！",
-          "tags": ["策略", "卡牌", "牌組構築", "肉鴿", "地城", "回合制"],
-          "controls": ["滑鼠點擊：選擇/使用卡牌", "觸控：選擇/使用卡牌（行動裝置）", "數字鍵1~5：快速選擇卡牌", "E鍵：結束回合"]
+          "tags": [
+            "策略",
+            "卡牌",
+            "牌組構築",
+            "肉鴿",
+            "地城",
+            "回合制"
+          ],
+          "controls": [
+            "滑鼠點擊：選擇/使用卡牌",
+            "觸控：選擇/使用卡牌（行動裝置）",
+            "數字鍵1~5：快速選擇卡牌",
+            "E鍵：結束回合"
+          ]
         },
         "es": {
           "title": "Mazmorra de Cartas Mágicas",
           "description": "¡Usa cartas estratégicamente para conquistar la mazmorra de 10 pisos!",
-          "tags": ["estrategia", "cartas", "construcción de mazos", "roguelike", "mazmorra", "por turnos"],
-          "controls": ["Clic del ratón: Seleccionar/jugar cartas", "Toque: Seleccionar/jugar cartas (móvil)", "Teclas numéricas 1-5: Selección rápida", "Tecla E: Finalizar turno"]
+          "tags": [
+            "estrategia",
+            "cartas",
+            "construcción de mazos",
+            "roguelike",
+            "mazmorra",
+            "por turnos"
+          ],
+          "controls": [
+            "Clic del ratón: Seleccionar/jugar cartas",
+            "Toque: Seleccionar/jugar cartas (móvil)",
+            "Teclas numéricas 1-5: Selección rápida",
+            "Tecla E: Finalizar turno"
+          ]
         },
         "fr": {
           "title": "Donjon de Cartes Magiques",
           "description": "Utilisez vos cartes stratégiquement pour conquérir le donjon à 10 étages !",
-          "tags": ["stratégie", "cartes", "deckbuilding", "roguelike", "donjon", "tour par tour"],
-          "controls": ["Clic souris: Sélectionner/jouer des cartes", "Tactile: Sélectionner/jouer des cartes (mobile)", "Touches 1-5: Sélection rapide", "Touche E: Fin du tour"]
+          "tags": [
+            "stratégie",
+            "cartes",
+            "deckbuilding",
+            "roguelike",
+            "donjon",
+            "tour par tour"
+          ],
+          "controls": [
+            "Clic souris: Sélectionner/jouer des cartes",
+            "Tactile: Sélectionner/jouer des cartes (mobile)",
+            "Touches 1-5: Sélection rapide",
+            "Touche E: Fin du tour"
+          ]
         },
         "de": {
           "title": "Zauberspruch-Karten-Dungeon",
           "description": "Setze Karten strategisch ein, um den 10-stöckigen Dungeon zu erobern!",
-          "tags": ["Strategie", "Karten", "Deckbau", "Roguelike", "Dungeon", "Rundenbasiert"],
-          "controls": ["Mausklick: Karten auswählen/spielen", "Touch: Karten auswählen/spielen (mobil)", "Zifferntasten 1-5: Schnellauswahl", "E-Taste: Zug beenden"]
+          "tags": [
+            "Strategie",
+            "Karten",
+            "Deckbau",
+            "Roguelike",
+            "Dungeon",
+            "Rundenbasiert"
+          ],
+          "controls": [
+            "Mausklick: Karten auswählen/spielen",
+            "Touch: Karten auswählen/spielen (mobil)",
+            "Zifferntasten 1-5: Schnellauswahl",
+            "E-Taste: Zug beenden"
+          ]
         },
         "pt": {
           "title": "Masmorra de Cartas Mágicas",
           "description": "Use cartas estrategicamente para conquistar a masmorra de 10 andares!",
-          "tags": ["estratégia", "cartas", "construção de deck", "roguelike", "masmorra", "por turnos"],
-          "controls": ["Clique do mouse: Selecionar/jogar cartas", "Toque: Selecionar/jogar cartas (mobile)", "Teclas numéricas 1-5: Seleção rápida", "Tecla E: Finalizar turno"]
+          "tags": [
+            "estratégia",
+            "cartas",
+            "construção de deck",
+            "roguelike",
+            "masmorra",
+            "por turnos"
+          ],
+          "controls": [
+            "Clique do mouse: Selecionar/jogar cartas",
+            "Toque: Selecionar/jogar cartas (mobile)",
+            "Teclas numéricas 1-5: Seleção rápida",
+            "Tecla E: Finalizar turno"
+          ]
         }
       },
       "difficulty": "medium",
@@ -1623,14 +3185,23 @@
       "id": "crystal-pinball",
       "title": "크리스탈 핀볼",
       "description": "마법 크리스탈 핀볼 테이블에서 볼을 쏘아 타겟을 파괴하세요!",
-      "genre": ["arcade"],
+      "genre": [
+        "arcade"
+      ],
       "thumbnail": "/games/crystal-pinball/assets/thumbnail.svg",
       "path": "/games/crystal-pinball/index.html",
       "addedAt": "2026-03-22T12:00:00Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["핀볼", "아케이드", "물리", "크리스탈", "플리퍼", "스테이지"],
+      "tags": [
+        "핀볼",
+        "아케이드",
+        "물리",
+        "크리스탈",
+        "플리퍼",
+        "스테이지"
+      ],
       "controls": [
         "좌/우 방향키 또는 Z/M: 플리퍼 조작",
         "아래 방향키 또는 Space: 플런저 발사",
@@ -1641,50 +3212,146 @@
         "en": {
           "title": "Crystal Pinball",
           "description": "Launch the ball and smash crystal targets on a magical pinball table!",
-          "tags": ["pinball", "arcade", "physics", "crystal", "flipper", "stages"],
-          "controls": ["Left/Right Arrow or Z/M: Flipper control", "Down Arrow or Space: Plunger launch", "Touch: Tap left/right side for flippers", "P: Pause"]
+          "tags": [
+            "pinball",
+            "arcade",
+            "physics",
+            "crystal",
+            "flipper",
+            "stages"
+          ],
+          "controls": [
+            "Left/Right Arrow or Z/M: Flipper control",
+            "Down Arrow or Space: Plunger launch",
+            "Touch: Tap left/right side for flippers",
+            "P: Pause"
+          ]
         },
         "ja": {
           "title": "クリスタルピンボール",
           "description": "魔法のピンボール台でボールを打ってクリスタルターゲットを破壊しよう！",
-          "tags": ["ピンボール", "アーケード", "物理", "クリスタル", "フリッパー", "ステージ"],
-          "controls": ["左右キーまたはZ/M: フリッパー操作", "下キーまたはSpace: プランジャー発射", "タッチ: 画面の左右タップでフリッパー操作", "P: 一時停止"]
+          "tags": [
+            "ピンボール",
+            "アーケード",
+            "物理",
+            "クリスタル",
+            "フリッパー",
+            "ステージ"
+          ],
+          "controls": [
+            "左右キーまたはZ/M: フリッパー操作",
+            "下キーまたはSpace: プランジャー発射",
+            "タッチ: 画面の左右タップでフリッパー操作",
+            "P: 一時停止"
+          ]
         },
         "zh-CN": {
           "title": "水晶弹珠台",
           "description": "在魔法弹珠台上发射弹珠，击碎水晶靶标！",
-          "tags": ["弹珠台", "街机", "物理", "水晶", "挡板", "关卡"],
-          "controls": ["左/右方向键或Z/M：挡板操作", "下方向键或空格：弹射发球", "触屏：点击左/右侧操作挡板", "P：暂停"]
+          "tags": [
+            "弹珠台",
+            "街机",
+            "物理",
+            "水晶",
+            "挡板",
+            "关卡"
+          ],
+          "controls": [
+            "左/右方向键或Z/M：挡板操作",
+            "下方向键或空格：弹射发球",
+            "触屏：点击左/右侧操作挡板",
+            "P：暂停"
+          ]
         },
         "zh-TW": {
           "title": "水晶彈珠台",
           "description": "在魔法彈珠台上發射彈珠，擊碎水晶靶標！",
-          "tags": ["彈珠台", "街機", "物理", "水晶", "擋板", "關卡"],
-          "controls": ["左/右方向鍵或Z/M：擋板操作", "下方向鍵或空白鍵：彈射發球", "觸控：點擊左/右側操作擋板", "P：暫停"]
+          "tags": [
+            "彈珠台",
+            "街機",
+            "物理",
+            "水晶",
+            "擋板",
+            "關卡"
+          ],
+          "controls": [
+            "左/右方向鍵或Z/M：擋板操作",
+            "下方向鍵或空白鍵：彈射發球",
+            "觸控：點擊左/右側操作擋板",
+            "P：暫停"
+          ]
         },
         "es": {
           "title": "Pinball de Cristal",
           "description": "¡Lanza la bola y destruye los objetivos de cristal en una mesa de pinball mágica!",
-          "tags": ["pinball", "arcade", "física", "cristal", "flipper", "niveles"],
-          "controls": ["Flechas izq/der o Z/M: Control de flippers", "Flecha abajo o Espacio: Lanzar bola", "Táctil: Toca izq/der para los flippers", "P: Pausa"]
+          "tags": [
+            "pinball",
+            "arcade",
+            "física",
+            "cristal",
+            "flipper",
+            "niveles"
+          ],
+          "controls": [
+            "Flechas izq/der o Z/M: Control de flippers",
+            "Flecha abajo o Espacio: Lanzar bola",
+            "Táctil: Toca izq/der para los flippers",
+            "P: Pausa"
+          ]
         },
         "fr": {
           "title": "Flipper Cristallin",
           "description": "Lancez la bille et détruisez les cibles de cristal sur un flipper magique !",
-          "tags": ["flipper", "arcade", "physique", "cristal", "batteurs", "niveaux"],
-          "controls": ["Flèches gauche/droite ou Z/M: Contrôle des batteurs", "Flèche bas ou Espace: Lancer la bille", "Tactile: Appuyez à gauche/droite pour les batteurs", "P: Pause"]
+          "tags": [
+            "flipper",
+            "arcade",
+            "physique",
+            "cristal",
+            "batteurs",
+            "niveaux"
+          ],
+          "controls": [
+            "Flèches gauche/droite ou Z/M: Contrôle des batteurs",
+            "Flèche bas ou Espace: Lancer la bille",
+            "Tactile: Appuyez à gauche/droite pour les batteurs",
+            "P: Pause"
+          ]
         },
         "de": {
           "title": "Kristall-Flipper",
           "description": "Schieße die Kugel ab und zerstöre Kristallziele auf einem magischen Flippertisch!",
-          "tags": ["Flipper", "Arcade", "Physik", "Kristall", "Flipperhebel", "Level"],
-          "controls": ["Links/Rechts oder Z/M: Flipper steuern", "Runter oder Leertaste: Kugel abschießen", "Touch: Links/rechts tippen für Flipper", "P: Pause"]
+          "tags": [
+            "Flipper",
+            "Arcade",
+            "Physik",
+            "Kristall",
+            "Flipperhebel",
+            "Level"
+          ],
+          "controls": [
+            "Links/Rechts oder Z/M: Flipper steuern",
+            "Runter oder Leertaste: Kugel abschießen",
+            "Touch: Links/rechts tippen für Flipper",
+            "P: Pause"
+          ]
         },
         "pt": {
           "title": "Pinball de Cristal",
           "description": "Lance a bola e destrua os alvos de cristal em uma mesa de pinball mágica!",
-          "tags": ["pinball", "arcade", "física", "cristal", "flipper", "fases"],
-          "controls": ["Setas esq/dir ou Z/M: Controle dos flippers", "Seta para baixo ou Espaço: Lançar bola", "Toque: Toque esq/dir para os flippers", "P: Pausar"]
+          "tags": [
+            "pinball",
+            "arcade",
+            "física",
+            "cristal",
+            "flipper",
+            "fases"
+          ],
+          "controls": [
+            "Setas esq/dir ou Z/M: Controle dos flippers",
+            "Seta para baixo ou Espaço: Lançar bola",
+            "Toque: Toque esq/dir para os flippers",
+            "P: Pausar"
+          ]
         }
       },
       "difficulty": "medium",
