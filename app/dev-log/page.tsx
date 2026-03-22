@@ -1,5 +1,5 @@
 import { Suspense }  from 'react'
-import { getSidebarEntries, getCycleTabInfo, getPlatformWisdomHtml } from '@/lib/devlog'
+import { getSidebarEntries, getCycleTabInfo, getWisdomHtml } from '@/lib/devlog'
 import DevLogSidebar from '@/components/DevLogSidebar'
 import DevLogTabs    from '@/components/DevLogTabs'
 import { getTranslations } from '@/lib/i18n'
@@ -27,8 +27,8 @@ export default async function DevLogPage({ searchParams }: Props) {
     | { type: 'cycle';  info: NonNullable<ReturnType<typeof getCycleTabInfo>>; activeTab: string; html: string }
     | { type: 'empty' }
 
-  if (activeId === 'wisdom') {
-    const html = getPlatformWisdomHtml(locale)
+  if (activeId.startsWith('wisdom')) {
+    const html = getWisdomHtml(activeId, locale)
     content = html ? { type: 'wisdom', html } : { type: 'empty' }
   } else {
     const m = activeId.match(/^cycle-(\d+)$/)
@@ -76,7 +76,7 @@ export default async function DevLogPage({ searchParams }: Props) {
         </aside>
 
         <main className="flex-1 min-w-0">
-          {content.type === 'wisdom' && <WisdomViewer html={content.html} title={t.devlog.wisdom} />}
+          {content.type === 'wisdom' && <WisdomViewer html={content.html} title={entries.find(e => e.id === activeId)?.label ?? t.devlog.wisdom} icon={entries.find(e => e.id === activeId)?.icon ?? '🧠'} />}
           {content.type === 'cycle' && (
             <CycleViewer info={content.info} activeTab={content.activeTab} html={content.html} docId={activeId} />
           )}
@@ -136,11 +136,11 @@ function CycleViewer({ info, activeTab, html, docId }: {
   )
 }
 
-function WisdomViewer({ html, title }: { html: string; title: string }) {
+function WisdomViewer({ html, title, icon = '🧠' }: { html: string; title: string; icon?: string }) {
   return (
     <article className="rounded-xl border border-border-dim bg-bg-card overflow-hidden">
       <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border-dim bg-bg-secondary/40 flex items-center gap-3">
-        <span className="text-lg">🧠</span>
+        <span className="text-lg">{icon}</span>
         <h2 className="text-sm font-bold text-text-primary">{title}</h2>
       </div>
       <div className="px-4 md:px-6 py-4 md:py-6">

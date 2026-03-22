@@ -16,6 +16,45 @@ const PROJECT_ROOT = resolve(__dirname, '..', '..')
 
 // ── 이전 사이클 피드백 컨텍스트 로더 ──────────────────────────────────────────
 
+/** 에이전트별 누적 지혜 로드 (없으면 빈 문자열) */
+function loadAgentWisdom(agentId: string): string {
+  const path = `${PROJECT_ROOT}/docs/meta/wisdom-${agentId}.md`
+  if (!existsSync(path)) return ''
+  try { return readFileSync(path, 'utf-8').slice(0, 3000) } catch { return '' }
+}
+
+/** 에이전트별 지혜 갱신 프롬프트 블록 생성 */
+function agentWisdomBlock(agentId: string, cycleNumber: number): string {
+  const wisdom = loadAgentWisdom(agentId)
+  const wisdomFile = `docs/meta/wisdom-${agentId}.md`
+  const wisdomEnFile = `docs/meta/wisdom-${agentId}.en.md`
+
+  return `
+---
+## 📚 에이전트 누적 지혜 (${agentId})
+
+${wisdom ? `### 기존 지혜 (반드시 참고할 것)\n${wisdom}` : '(아직 작성된 지혜가 없습니다)'}
+
+### ⚠️ 작업 완료 후 반드시 수행:
+${wisdomFile} 파일을 읽고(없으면 새로 생성), 이번 사이클에서 배운 점을 추가해줘.
+${wisdomEnFile} 영문 버전도 생성/갱신해줘.
+기존 내용은 유지하고 새 인사이트만 추가할 것.
+형식:
+# ${agentId} 누적 지혜
+_마지막 갱신: 사이클 #${cycleNumber}_
+
+## 반복되는 실수 🚫
+[사이클 번호와 함께 기록]
+
+## 검증된 성공 패턴 ✅
+[사이클 번호와 함께 기록]
+
+## 다음 사이클 적용 사항 🎯
+[구체적인 액션 아이템]
+---
+`
+}
+
 /** 누적 플랫폼 지혜 파일 읽기 (없으면 빈 문자열) */
 function loadPlatformWisdom(): string {
   const path = `${PROJECT_ROOT}/docs/meta/platform-wisdom.md`
@@ -268,6 +307,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.
+      ${agentWisdomBlock('analyst', cycleNumber)}
     `)
     completeAgent('analyst')
 
@@ -290,6 +330,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.
+      ${agentWisdomBlock('planner', cycleNumber)}
     `)
     completeAgent('planner')
 
@@ -318,6 +359,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       ⚠️ thumbnail.svg가 누락되면 게임 목록에서 빈 화면이 표시됩니다. 반드시 생성하세요.
       ${growthDirective}
       ${feedbackBlock}
+      ${agentWisdomBlock('designer', cycleNumber)}
     `)
     completeAgent('designer')
 
@@ -347,6 +389,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       6. Canvas: devicePixelRatio 대응 + resize 이벤트 + 전체 화면 맞춤
       7. 외부 의존 제거: Google Fonts 같은 외부 CDN 사용 금지. 시스템 폰트만 사용.
          → font-family: 'Segoe UI', system-ui, -apple-system, sans-serif
+      ${agentWisdomBlock('coder', cycleNumber)}
     `)
     completeAgent('coder')
 
@@ -435,6 +478,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
         ⚠️ 영문 버전도 반드시 생성: docs/reviews/cycle-${cycleNumber}-review.en.md (같은 내용을 영어로 작성)
         최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
         YAML front-matter에 verdict: [판정] 을 반드시 포함할 것.
+        ${agentWisdomBlock('reviewer', cycleNumber)}
       `)
       completeAgent('reviewer')
 

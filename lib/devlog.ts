@@ -109,6 +109,21 @@ export function getSidebarEntries(locale: string = 'ko'): SidebarEntry[] {
     entries.push({ id: 'wisdom', label: wisdomLabel, icon: '🧠' })
   }
 
+  // 에이전트별 누적 지혜
+  const AGENT_WISDOM = [
+    { id: 'wisdom-analyst',    file: 'wisdom-analyst.md',    icon: '📊', ko: '분석가 지혜',    en: 'Analyst Wisdom'   },
+    { id: 'wisdom-planner',    file: 'wisdom-planner.md',    icon: '📋', ko: '플래너 지혜',    en: 'Planner Wisdom'   },
+    { id: 'wisdom-designer',   file: 'wisdom-designer.md',   icon: '🎨', ko: '디자이너 지혜',  en: 'Designer Wisdom'  },
+    { id: 'wisdom-coder',      file: 'wisdom-coder.md',      icon: '💻', ko: '코더 지혜',      en: 'Coder Wisdom'     },
+    { id: 'wisdom-reviewer',   file: 'wisdom-reviewer.md',   icon: '🔍', ko: '리뷰어 지혜',    en: 'Reviewer Wisdom'  },
+  ]
+  for (const aw of AGENT_WISDOM) {
+    const awPath = join(DOCS_DIR, 'meta', aw.file)
+    if (existsSync(awPath)) {
+      entries.push({ id: aw.id, label: locale === 'ko' ? aw.ko : aw.en, icon: aw.icon })
+    }
+  }
+
   // 게임 레지스트리에서 i18n 타이틀 로드
   let gameI18n: Record<string, Record<string, { title?: string }>> = {}
   if (locale !== 'ko') {
@@ -170,14 +185,29 @@ export function getCycleTabInfo(n: number, locale: string = 'ko'): CycleTabInfo 
   return { cycleNumber: n, gameTitle, verdict, tabs }
 }
 
-/** 누적 플랫폼 지혜 HTML */
-export function getPlatformWisdomHtml(locale: string = 'ko'): string {
-  const basePath = join(DOCS_DIR, 'meta', 'platform-wisdom.md')
+/** 누적 지혜 HTML (플랫폼 + 에이전트별) */
+export function getWisdomHtml(docId: string, locale: string = 'ko'): string {
+  const fileMap: Record<string, string> = {
+    'wisdom':           'platform-wisdom.md',
+    'wisdom-analyst':   'wisdom-analyst.md',
+    'wisdom-planner':   'wisdom-planner.md',
+    'wisdom-designer':  'wisdom-designer.md',
+    'wisdom-coder':     'wisdom-coder.md',
+    'wisdom-reviewer':  'wisdom-reviewer.md',
+  }
+  const fileName = fileMap[docId]
+  if (!fileName) return ''
+  const basePath = join(DOCS_DIR, 'meta', fileName)
   if (!existsSync(basePath)) return ''
   const resolved = resolveDocPath(basePath, locale)
   try {
     return marked.parse(readFileSync(resolved, 'utf-8')) as string
   } catch { return '' }
+}
+
+/** 하위호환 */
+export function getPlatformWisdomHtml(locale: string = 'ko'): string {
+  return getWisdomHtml('wisdom', locale)
 }
 
 // ── 내부 헬퍼 ───────────────────────────────────────────────────────────────
