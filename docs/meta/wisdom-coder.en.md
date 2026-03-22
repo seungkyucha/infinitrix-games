@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #24 abyss-keeper_
+_Last updated: Cycle #25 glyph-labyrinth_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 25]** In an 18-state metroidvania, ACTIVE_SYSTEMS matrix was expanded to 18×14 but without dual-checking (matrix declaration + sys() function check), the boss system and enemy system's mutual exclusivity could break — boss fight state could update regular enemies. Always apply both matrix declaration and sys() guard.
+- **[Cycle 25]** In procedural room placement, BFS reachability validation failure triggers linear connection fallback, but this can conflict with secret passages or glyph-locked routes. Re-validate secret passages after applying fallback connections.
+- **[Cycle 25]** Boss phase transition atkTimer reset was a lesson from Cycle 24, but still requires explicit initialization when phaseTransitioning flag is cleared. Physical code comments next to the implementation are more reliable than distant documentation.
+- **[Cycle 25]** At 2985 lines, REGION comment line number ranges are always inaccurate. Keep REGION markers as searchable separators (`// ══ REGION N: NAME ══`) but remove line numbers.
 - **[Cycle 24]** In dual-phase (casual/action) games, failing to reset fishingState on phase transition causes leftover fishing minigame UI to appear during the action phase. Explicit subsystem state reset checklist needed at every phase transition.
 - **[Cycle 24]** When designer assets exist in manifest.json but the spec says "100% Canvas drawing", user instructions to use preload+fallback take precedence over spec principles. User directives override spec when they conflict.
 - **[Cycle 24]** Boss AI attack cooldown and phase transition occurring simultaneously causes uneven first-attack timing after phase change. Reset atkTimer when boss phase transitions.
@@ -20,6 +24,13 @@ _Last updated: Cycle #24 abyss-keeper_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 25]** 18-state metroidvania with ACTIVE_SYSTEMS matrix at maximum scale (18×14) — sys() helper function for one-line system activation checks improves both readability and safety. Matrix pattern successful for 9 consecutive cycles.
+- **[Cycle 25]** 5 biomes × 4 rooms + boss room structure generated procedurally with SeededRNG + BFS reachability validation + linear connection fallback — auto-recovery on generation failure guarantees playable maps.
+- **[Cycle 25]** Boss 5-type phase transitions managed data-driven via HP ratio threshold arrays — maxPhases and difficulty-specific thresholds integrated into BIOMES data, enabling boss add/modify through data changes only.
+- **[Cycle 25]** RESTART_ALLOWED whitelist enforced inside beginTransition — unauthorized transitions from GAMEOVER are blocked at code level. 3 consecutive cycles with 0 P0 bugs.
+- **[Cycle 25]** SVG asset preload + Canvas fallback with bgLayer1/bgLayer2 used as parallax scroll, gracefully degrading to gradient backgrounds when absent — minimal asset dependency.
+- **[Cycle 25]** processInput() unified with per-state branching, 0 state changes in render() — update/render separation principle fully achieved. Cycle 23 issue resolved.
+- **[Cycle 25]** DDA (Dynamic Difficulty Adjustment) via per-roomKey death counter — enemy damage reduction multiplier on 3/5 consecutive deaths. Functions as balance fallback without being saved to localStorage, resetting per run.
 - **[Cycle 24]** Dual-phase (casual fishing + action combat) survival game with ACTIVE_SYSTEMS matrix expanded to 16 states × 11 systems — fishing, combat, camera subsystems activate/deactivate correctly per phase. Matrix pattern successful for 8 consecutive cycles.
 - **[Cycle 24]** SVG asset preload + Canvas fallback dual structure with sprites parameter passed to all pure drawing functions (drawKeeper/drawMonster/drawBoss) — asset presence branching happens only inside drawing functions, keeping caller code clean.
 - **[Cycle 24]** RESTART_ALLOWED whitelist specified at spec stage and directly reflected in code — GAMEOVER/VICTORY/HIDDEN_STAGE→TITLE reverse transitions worked correctly on first implementation. Confirmed complete resolution of the 5-cycle P0 bug.
@@ -56,6 +67,11 @@ _Last updated: Cycle #24 abyss-keeper_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Remove line numbers from REGION comments**: At 2500+ lines, line numbers are always wrong. Keep only `// ══ REGION N: NAME ══` searchable separators.
+- **Boss attack pattern data arrays**: Current 3-pattern cycling is basic. Declare [{type, delay, damage, count, spread}] arrays per boss for easier phase-specific behavior diversification.
+- **Glyph combination system implementation**: Base 5 glyphs are implemented but 15 combination glyphs (§12.2) need combination UI + combo effect logic in next cycle.
+- **Offscreen tilemap caching**: Current per-frame 16×12 individual fillRect is inefficient. Pre-render to offscreen canvas on room entry for 2-3x performance improvement.
+- **Puzzle system concretization**: Only traps exist now. Spec's environment puzzles (fire path timing, ice sliding) require biome-specific puzzle classes.
 - **Phase transition subsystem reset checklist**: Create resetPhaseData() function to explicitly reset fishingState, driftItems, weatherParticles on casual→action transition to prevent omissions.
 - **Boss AI pattern data arrays**: Current boss attacks are simple cooldown-based damage. Declare patterns as [{type, delay, damage, area}] arrays with probability-based selection for more diverse phase behaviors.
 - **Canvas fallback auto-test**: Add debug mode that empties SPRITES object after preloadAssets() to verify all fallback drawings work correctly.

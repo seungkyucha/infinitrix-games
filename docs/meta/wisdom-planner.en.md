@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #24_
+_Last updated: Cycle #25_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -12,6 +12,8 @@ _Last updated: Cycle #24_
 - **[Cycle 23]** The first attempt at splitting feedback mapping into "verified" and "new" tiers worked well, but if verified item summaries are too brief, implementers may lose context. **Include precise platform-wisdom.md item references (e.g., "[Cycle 3] B1") in the summary table.**
 - **[Cycle 24]** In dual-phase (casual/action) games, if the ACTIVE_SYSTEMS matrix does not **explicitly separate fishing and combat columns as mutually exclusive**, combat systems may run during casual phase or fishing systems may update during action phase. **fishing/combat columns must be managed as mutually exclusive.**
 - **[Cycle 24]** Even when DPS/EHP balance formulas are included in the spec, **the actual play time may deviate significantly from the formula's assumptions (e.g., "player defends 50%").** Assumptions must be stated explicitly, and fallbacks (dynamic difficulty adjustment) must be designed for when assumptions are wrong.
+- **[Cycle 25]** In metroidvania games where non-linear exploration is core, **failing to explicitly define path accessibility based on glyph ability unlock order** causes implementers to arbitrarily decide "which ability is needed to reach where." **§10.2 must include an ability-order-dependent path map.**
+- **[Cycle 25]** As auto-validation script items grew to 15+, now including comment residual checks ("Google Fonts", "CDN", etc.), **the burden of frequent mid-coding execution increases.** A **FAIL(mandatory)/WARN(advisory) two-tier separation** is effective for managing growing validation lists.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -34,6 +36,11 @@ _Last updated: Cycle #24_
 - **[Cycle 24]** Introducing a "Previous Cycle Issues Resolution Summary" table (§17) in dual-phase games provides at-a-glance mapping from problem to solution section. Unlike the verified patterns table (§0), it focuses on "issue→resolution" mapping.
 - **[Cycle 24]** Specifying DPS/EHP balance formulas as mathematical expressions (§8.2) enables implementers to pre-calculate "is this Tide clearable?" from CONFIG values alone. Combined with 3-segment tables (§8.1), balance verification concreteness improves significantly.
 - **[Cycle 24]** Expanding code regions from Cycle 23's 8 to 10, separating "CASUAL" and "ACTION" logic into dedicated REGIONs, improves code navigability for dual-phase games. Game mechanic structure should be reflected in code region structure.
+- **[Cycle 25]** Fully defining an 18×14 ACTIVE_SYSTEMS matrix (18 states × 14 systems) for a metroidvania in the spec enables mechanical application of mutually exclusive enemy/boss/puzzle system activation at implementation. Extends the previous dual-phase (casual/action) pattern to a 3-axis (explore/combat/puzzle) structure.
+- **[Cycle 25]** Detailing §17 "Previous Cycle Pain Points Resolution Summary" with 5 items (2nd review/Google Fonts/asset code/balance/file size), each with "resolution section + resolution method," ensures complete traceability of post-mortem feedback.
+- **[Cycle 25]** Including ASCII phase transition diagrams for all 5 bosses enables at-a-glance understanding of per-difficulty phase count differences (Explorer 2-phase vs Legend 3~4-phase). Extends the 3-boss diagram pattern from Cycles 22~24.
+- **[Cycle 25]** Expanding the smoke test gate from 8→12 items, incorporating all Cycle 24 key pain points (RESTART_ALLOWED, touch 48px, external resources, asset code) as mandatory gates. Smoke tests should automatically absorb previous cycle P0/P1 issues.
+- **[Cycle 25]** Setting per-difficulty assumptions (hitRate, dodgeRate) in balance formulas and co-designing DDA fallbacks for wrong assumptions structurally mitigates the "formula assumptions vs actual play gap" identified in Cycle 24.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -53,3 +60,7 @@ _Last updated: Cycle #24_
 - [ ] Verify that ACTIVE_SYSTEMS matrix fishing/combat mutual exclusivity actually prevents bugs during dual-phase (casual/action) transitions
 - [ ] Measure whether DPS/EHP formula's "player defends 50%" assumption matches actual gameplay in postmortem
 - [ ] Verify dynamic difficulty adjustment (3 consecutive no-damage/below 30%) improves actual play experience — track trigger frequency and effect
+- [ ] Verify BFS reachability validation in metroidvania correctly covers "ability-order-dependent paths" in post-mortem — check no rooms accessible without required glyph abilities
+- [ ] Verify 18×14 ACTIVE_SYSTEMS matrix is fully adhered to in implementation — especially enemy/puzzle system mutual exclusivity across PUZZLE/COMBAT/BOSS states
+- [ ] Verify all 5 boss phase transition diagrams correspond 1:1 with implementation if-else branches
+- [ ] Verify 12-item smoke test gate improves first-review pass rate — target: APPROVED within 2 rounds

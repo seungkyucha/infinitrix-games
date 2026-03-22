@@ -1,0 +1,65 @@
+{
+  "gameId": "glyph-labyrinth",
+  "artDirection": {
+    "palette": ["#0A0E1A", "#2A2D3A", "#FFD700", "#00FFCC", "#FF4500", "#8B00FF", "#E74C3C"],
+    "style": "미스티컬 카툰 — 고대 유적 탐험가와 마법 글리프",
+    "mood": "어두운 미궁 + 마법적 발광 포인트",
+    "signature": "8각형 글리프(Octagon Glyph) 문양이 모든 에셋에 일관 반복"
+  },
+  "assets": {
+    "player": {
+      "file": "player.svg",
+      "width": 128,
+      "height": 128,
+      "desc": "로브를 입은 금빛 탐험가. 시안 발광 눈, 가슴 글리프 엠블럼, 크리스탈 지팡이, 왼손 골드 오브. 5개 그룹(후드/얼굴/몸통/지팡이/파티클) + 7개 그라디언트"
+    },
+    "enemy": {
+      "file": "enemy.svg",
+      "width": 128,
+      "height": 128,
+      "desc": "화염 신전의 용암 골렘 이그니스. 뿔 달린 석재 갑옷, 빨간 눈, 용암 균열, 부패된 글리프. 플레이어와 명확히 대비되는 오렌지-레드 팔레트"
+    },
+    "bgLayer1": {
+      "file": "bg-layer1.svg",
+      "width": 1200,
+      "height": 800,
+      "desc": "심야 하늘 원경. 성운, 달, 65개+ 별, 아르카나 별자리, 먼 신전 첨탑 실루엣, 유성, 안개 층, 고대 룬 문자 패턴"
+    },
+    "bgLayer2": {
+      "file": "bg-layer2.svg",
+      "width": 1200,
+      "height": 800,
+      "desc": "유적 근경. 석조 기둥 클러스터, 중앙 아치 유적(키스톤 글리프), 횃불, 발광 이끼, 보라빛 위스프, 석재 잔해, 덩굴"
+    },
+    "uiHeart": {
+      "file": "ui-heart.svg",
+      "width": 48,
+      "height": 48,
+      "desc": "3D 입체 하트 아이콘. 레드 그라디언트 + 하이라이트 + 드롭섀도우 + 글리프 8각형 오버레이"
+    },
+    "uiStar": {
+      "file": "ui-star.svg",
+      "width": 48,
+      "height": 48,
+      "desc": "빛나는 금빛 별. 다면체 패싯 + 중심 하이라이트 + 글로우 헤일로 + 글리프 룬 ᚱ 오버레이"
+    },
+    "powerup": {
+      "file": "powerup.svg",
+      "width": 64,
+      "height": 64,
+      "desc": "글리프 크리스탈 파워업. 시안 보석 + 금색 8각 봉인 링 + 회전 에너지 파동 + 룬 문자(ᛟ, ᚦ, ᛊ, ᚠ, ᚱ) 장식"
+    },
+    "effectHit": {
+      "file": "effect-hit.svg",
+      "width": 128,
+      "height": 128,
+      "desc": "방사형 충돌 이펙트. 5겹 동심원(쇼크웨이브→골드링→오렌지→핫코어→백열 중심) + 16방향 버스트 라인 + 글리프 파편 + 룬 스캐터"
+    },
+    "thumbnail": {
+      "file": "thumbnail.svg",
+      "width": 400,
+      "height": 300,
+      "desc": "시네마틱 포스터. 중앙 아치 유적 앞 플레이어(금빛 탐험가)와 적(용암 골렘) 대치 장면. 달, 별, 떠다니는 글리프, HUD 오버레이. 하단 타이틀 'GLYPH LABYRINTH'"
+    }
+  }
+}

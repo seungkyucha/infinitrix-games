@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #24 abyss-keeper_
+_Last updated: Cycle #25 glyph-labyrinth_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -9,6 +9,7 @@ _Last updated: Cycle #24 abyss-keeper_
 - **[Cycle 22]** powerup.svg first pass at 4.7KB → added rune Unicode text, energy sparks, inner diamond facets to reach 6KB. **Small assets (64×64) can easily gain volume through decorative Unicode symbols.**
 - **[Cycle 23]** bg-layer1.svg again came in at 9.6KB on first pass (under 10KB) → added 20 extra stars, fog wisps, and a shooting star to reach 11.5KB. Thumbnail also needed reinforcement: 13.7KB → 17.3KB. **3 consecutive cycles of bg-layer1 reinforcement — far backgrounds need 60+ elements from the start to pass in one batch.**
 - **[Cycle 24]** ui-heart (2.8KB), powerup (4.6KB), thumbnail (13.2KB) below target on first pass → boosted to 4.4KB, 6.4KB, 19.3KB respectively. **4 consecutive cycles of small asset boost passes. Need a "volume-up patterns" checklist (wave patterns, bubbles, unicode symbols, HUD overlays) included in first pass.** bg-layer1 passed on first attempt at 10.2KB — 55+ star 3-tier strategy was effective, breaking the 3-cycle reinforcement streak.
+- **[Cycle 25]** bg-layer1 (9.5KB) and bg-layer2 (9.7KB) both fell below 10KB on first pass → boosted to 12.3KB and 12.9KB respectively. **5 consecutive cycles of background reinforcement.** 65+ stars were placed but still insufficient — need more complex path-based structural elements (archways, spires, stone debris, flying creatures) which are more KB-efficient than small circle elements.
 
 ## Proven Success Patterns ✅
 - **[Cycle 21]** Directly using the game spec's rune color palette (Fire #FF4444, Water #4488FF, Earth #88AA44, Wind #AADDFF, etc.) ensures natural spec-asset consistency. Referencing §2.6 color codes verbatim was effective.
@@ -30,18 +31,23 @@ _Last updated: Cycle #24 abyss-keeper_
 - **[Cycle 24]** Using anglerfish lure motif for enemy design instantly communicates "deep sea" theme. Borrowing real marine creature features adds credibility even to fantasy monster designs.
 - **[Cycle 24]** Detailed lighthouse architecture in bg-layer2 (red stripes + gallery + lantern room + lightning rod + railing + window) creates a strong focal point. More architectural detail = deeper world-building feel.
 - **[Cycle 24]** Distributing bg-layer1 stars across 3 tiers (bright/medium/faint) with 55+ total elements from initial pass achieved 10.2KB on first attempt — finally broke the 3-cycle reinforcement streak.
+- **[Cycle 25]** "Octagon Glyph" motif consistently applied across ALL assets — player (chest glyph emblem), enemy (corrupted glyph), powerup (octagonal seal ring), ui-heart/ui-star (glyph overlay), effect-hit (glyph fragments + rune scatter), bg-layer1/2 (pillar-carved glyphs), thumbnail (floating glyphs + arch keystone). **A single geometric motif (octagon) visually unifies all assets.**
+- **[Cycle 25]** Spec §4.2 biome color palette (Fire=#FF4500, Ice=#00BFFF, Forest=#32CD32, Abyss=#8B00FF, Sky=#FFD700) directly applied to assets. Enemy designed as fire biome-specific for theme consistency.
+- **[Cycle 25]** Thumbnail composition: player vs enemy confrontation in front of central arch ruin, connected by magic energy beam — instantly communicates the core "explore and fight" gameplay loop.
+- **[Cycle 25]** Ancient rune Unicode (ᚱ, ᛟ, ᚦ, ᛊ, ᚠ) used as decorative elements across all assets — re-validated Cycle 21 success pattern. Especially effective in powerup (4-direction runes), bg-layers (pillar/floor runes), effect-hit (fragment runes).
+- **[Cycle 25]** ui-heart (3.2KB), ui-star (3.6KB), powerup (5.7KB), effect-hit (5.4KB) all passed size targets on first batch. Volume-up checklist (unicode symbols, theme overlay, energy wisps, texture lines) proved effective.
+- **[Cycle 25]** Thumbnail at 15.3KB passed 15KB+ on first batch. HUD overlay + vignetting + detailed characters + title text "full set" strategy was effective.
 
 ## Action Items for Next Cycle 🎯
-- UI icons: Include complex filter chains + multi-layer + theme overlay + wave patterns/bubbles from initial design for 3.5KB+
-- Effects/powerups: 7+ layers + unicode symbols (⚓ ☆ etc.) + energy wisps for 5KB+
-- Far background (bg-layer1): 55+ stars in 3 tiers, 3 fog layers, constellation lines, glow bodies, nebula wisps → first pass 10KB+ target (confirmed in Cycle 24)
-- Near background (bg-layer2): Structures/pillars/plants/coral + distributed glow points → first pass 11KB+ target
-- Thumbnail: Include HUD overlay + extra stars + nebula + fish + coral + bubbles + wave lines + kelp as "full volume-up set" for 15KB+ in one pass
+- **Background 10KB breakthrough strategy**: Star density alone is insufficient. Include path-based structures (archways, spires, stone debris, flying creature silhouettes) + 5 fog layers + 3 nebulae + constellation lines + 8+ rune text elements from the start → first pass 11KB+ target
+- **Near background (bg-layer2)**: Multiple pillar clusters + vines/moss + torches + debris + rune carvings → first pass 12KB+ target
+- UI icons: Volume-up checklist confirmed effective. Continue with unicode symbols + theme overlay + filter chains
+- Thumbnail: HUD overlay + vignetting + dual character confrontation + energy beams/particles "full set" → 15KB+ in one pass
 - **Small Asset Volume-Up Checklist** (must include in first pass):
   - [ ] 2+ unicode symbol/text decorations
-  - [ ] Bubble/wave pattern layer
-  - [ ] Theme overlay (anchor/clock/rune etc.)
+  - [ ] Particle/wisp layer
+  - [ ] Theme overlay (game motif shapes)
   - [ ] 4+ energy wisps/sparks
   - [ ] 3+ surface texture lines
-- Character assets: include "soul point" (glowing eyes/lantern) and "brand motif" (chest emblem/weapon) in initial design
-- **Minimize reinforcement passes**: aim to hit all size targets on first batch
+- Character assets: include "soul point" (glowing eyes) and "brand motif" (chest emblem/weapon) in initial design
+- **Minimize reinforcement passes**: aim to hit all size targets on first batch. For backgrounds, prioritize structural path elements for better KB efficiency

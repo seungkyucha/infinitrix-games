@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T13:21:55.864Z",
-  "totalGames": 23,
+  "lastUpdated": "2026-03-22T16:06:45.835Z",
+  "totalGames": 24,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -3590,50 +3590,178 @@
         "en": {
           "title": "Chrono Siege",
           "description": "Combine time magic and towers to repel enemies from temporal rifts!",
-          "tags": ["tower defense", "time manipulation", "strategy", "arcade", "chronomancer", "time travel"],
-          "controls": ["1~7: Select tower", "Q/W/E: Select time spell (Slow/Fast/Reverse)", "Space: Cast spell", "Mouse click: Place/select tower", "Right-click: Sell tower", "Touch: Tap to place, long-press to move", "F: Early wave summon", "ESC: Pause"]
+          "tags": [
+            "tower defense",
+            "time manipulation",
+            "strategy",
+            "arcade",
+            "chronomancer",
+            "time travel"
+          ],
+          "controls": [
+            "1~7: Select tower",
+            "Q/W/E: Select time spell (Slow/Fast/Reverse)",
+            "Space: Cast spell",
+            "Mouse click: Place/select tower",
+            "Right-click: Sell tower",
+            "Touch: Tap to place, long-press to move",
+            "F: Early wave summon",
+            "ESC: Pause"
+          ]
         },
         "ja": {
           "title": "クロノシージ",
           "description": "時間魔法とタワーを組み合わせて時間の裂け目から敵を撃退しよう！",
-          "tags": ["タワーディフェンス", "時間操作", "戦略", "アーケード", "クロノマンサー", "時代旅行"],
-          "controls": ["1~7: タワー選択", "Q/W/E: 時間魔法選択（減速/加速/逆転）", "Space: 魔法発動", "マウスクリック: タワー配置/選択", "右クリック: タワー売却", "タッチ: タップで配置、長押しで移動", "F: ウェーブ早期召喚", "ESC: 一時停止"]
+          "tags": [
+            "タワーディフェンス",
+            "時間操作",
+            "戦略",
+            "アーケード",
+            "クロノマンサー",
+            "時代旅行"
+          ],
+          "controls": [
+            "1~7: タワー選択",
+            "Q/W/E: 時間魔法選択（減速/加速/逆転）",
+            "Space: 魔法発動",
+            "マウスクリック: タワー配置/選択",
+            "右クリック: タワー売却",
+            "タッチ: タップで配置、長押しで移動",
+            "F: ウェーブ早期召喚",
+            "ESC: 一時停止"
+          ]
         },
         "zh-CN": {
           "title": "时空围城",
           "description": "组合时间魔法与防御塔，击退时间裂缝中涌出的敌人！",
-          "tags": ["塔防", "时间操控", "策略", "街机", "时间法师", "时代旅行"],
-          "controls": ["1~7: 选择防御塔", "Q/W/E: 选择时间魔法（减速/加速/逆转）", "Space: 施放魔法", "鼠标点击: 放置/选择防御塔", "右键: 出售防御塔", "触屏: 点击放置，长按移动", "F: 提前召唤波次", "ESC: 暂停"]
+          "tags": [
+            "塔防",
+            "时间操控",
+            "策略",
+            "街机",
+            "时间法师",
+            "时代旅行"
+          ],
+          "controls": [
+            "1~7: 选择防御塔",
+            "Q/W/E: 选择时间魔法（减速/加速/逆转）",
+            "Space: 施放魔法",
+            "鼠标点击: 放置/选择防御塔",
+            "右键: 出售防御塔",
+            "触屏: 点击放置，长按移动",
+            "F: 提前召唤波次",
+            "ESC: 暂停"
+          ]
         },
         "zh-TW": {
           "title": "時空圍城",
           "description": "組合時間魔法與防禦塔，擊退時間裂縫中湧出的敵人！",
-          "tags": ["塔防", "時間操控", "策略", "街機", "時間法師", "時代旅行"],
-          "controls": ["1~7: 選擇防禦塔", "Q/W/E: 選擇時間魔法（減速/加速/逆轉）", "Space: 施放魔法", "滑鼠點擊: 放置/選擇防禦塔", "右鍵: 出售防禦塔", "觸控: 點擊放置，長按移動", "F: 提前召喚波次", "ESC: 暫停"]
+          "tags": [
+            "塔防",
+            "時間操控",
+            "策略",
+            "街機",
+            "時間法師",
+            "時代旅行"
+          ],
+          "controls": [
+            "1~7: 選擇防禦塔",
+            "Q/W/E: 選擇時間魔法（減速/加速/逆轉）",
+            "Space: 施放魔法",
+            "滑鼠點擊: 放置/選擇防禦塔",
+            "右鍵: 出售防禦塔",
+            "觸控: 點擊放置，長按移動",
+            "F: 提前召喚波次",
+            "ESC: 暫停"
+          ]
         },
         "es": {
           "title": "Asedio Crono",
           "description": "¡Combina magia temporal y torres para repeler enemigos de las grietas del tiempo!",
-          "tags": ["defensa de torres", "manipulación temporal", "estrategia", "arcade", "cronomante", "viaje en el tiempo"],
-          "controls": ["1~7: Seleccionar torre", "Q/W/E: Seleccionar hechizo temporal (Lento/Rápido/Reversa)", "Space: Lanzar hechizo", "Clic: Colocar/seleccionar torre", "Clic derecho: Vender torre", "Toque: Tocar para colocar, mantener para mover", "F: Invocar oleada anticipada", "ESC: Pausa"]
+          "tags": [
+            "defensa de torres",
+            "manipulación temporal",
+            "estrategia",
+            "arcade",
+            "cronomante",
+            "viaje en el tiempo"
+          ],
+          "controls": [
+            "1~7: Seleccionar torre",
+            "Q/W/E: Seleccionar hechizo temporal (Lento/Rápido/Reversa)",
+            "Space: Lanzar hechizo",
+            "Clic: Colocar/seleccionar torre",
+            "Clic derecho: Vender torre",
+            "Toque: Tocar para colocar, mantener para mover",
+            "F: Invocar oleada anticipada",
+            "ESC: Pausa"
+          ]
         },
         "fr": {
           "title": "Siège Chrono",
           "description": "Combinez magie temporelle et tours pour repousser les ennemis des failles temporelles !",
-          "tags": ["défense de tour", "manipulation temporelle", "stratégie", "arcade", "chronomancien", "voyage temporel"],
-          "controls": ["1~7: Sélectionner une tour", "Q/W/E: Sélectionner un sort temporel (Ralenti/Accéléré/Inversé)", "Space: Lancer le sort", "Clic: Placer/sélectionner une tour", "Clic droit: Vendre une tour", "Tactile: Appuyer pour placer, maintenir pour déplacer", "F: Invoquer une vague anticipée", "ESC: Pause"]
+          "tags": [
+            "défense de tour",
+            "manipulation temporelle",
+            "stratégie",
+            "arcade",
+            "chronomancien",
+            "voyage temporel"
+          ],
+          "controls": [
+            "1~7: Sélectionner une tour",
+            "Q/W/E: Sélectionner un sort temporel (Ralenti/Accéléré/Inversé)",
+            "Space: Lancer le sort",
+            "Clic: Placer/sélectionner une tour",
+            "Clic droit: Vendre une tour",
+            "Tactile: Appuyer pour placer, maintenir pour déplacer",
+            "F: Invoquer une vague anticipée",
+            "ESC: Pause"
+          ]
         },
         "de": {
           "title": "Chrono-Belagerung",
           "description": "Kombiniere Zeitmagie und Türme, um Feinde aus Zeitrissen zurückzuschlagen!",
-          "tags": ["Tower Defense", "Zeitmanipulation", "Strategie", "Arcade", "Chronomant", "Zeitreise"],
-          "controls": ["1~7: Turm auswählen", "Q/W/E: Zeitzauber wählen (Verlangsamung/Beschleunigung/Umkehr)", "Space: Zauber wirken", "Mausklick: Turm platzieren/auswählen", "Rechtsklick: Turm verkaufen", "Touch: Tippen zum Platzieren, gedrückt halten zum Bewegen", "F: Welle vorzeitig beschwören", "ESC: Pause"]
+          "tags": [
+            "Tower Defense",
+            "Zeitmanipulation",
+            "Strategie",
+            "Arcade",
+            "Chronomant",
+            "Zeitreise"
+          ],
+          "controls": [
+            "1~7: Turm auswählen",
+            "Q/W/E: Zeitzauber wählen (Verlangsamung/Beschleunigung/Umkehr)",
+            "Space: Zauber wirken",
+            "Mausklick: Turm platzieren/auswählen",
+            "Rechtsklick: Turm verkaufen",
+            "Touch: Tippen zum Platzieren, gedrückt halten zum Bewegen",
+            "F: Welle vorzeitig beschwören",
+            "ESC: Pause"
+          ]
         },
         "pt": {
           "title": "Cerco Crono",
           "description": "Combine magia temporal e torres para repelir inimigos das fendas do tempo!",
-          "tags": ["defesa de torre", "manipulação temporal", "estratégia", "arcade", "cromante", "viagem no tempo"],
-          "controls": ["1~7: Selecionar torre", "Q/W/E: Selecionar feitiço temporal (Lento/Rápido/Reverso)", "Space: Lançar feitiço", "Clique: Colocar/selecionar torre", "Clique direito: Vender torre", "Toque: Tocar para colocar, segurar para mover", "F: Invocar onda antecipada", "ESC: Pausa"]
+          "tags": [
+            "defesa de torre",
+            "manipulação temporal",
+            "estratégia",
+            "arcade",
+            "cromante",
+            "viagem no tempo"
+          ],
+          "controls": [
+            "1~7: Selecionar torre",
+            "Q/W/E: Selecionar feitiço temporal (Lento/Rápido/Reverso)",
+            "Space: Lançar feitiço",
+            "Clique: Colocar/selecionar torre",
+            "Clique direito: Vender torre",
+            "Toque: Tocar para colocar, segurar para mover",
+            "F: Invocar onda antecipada",
+            "ESC: Pausa"
+          ]
         }
       },
       "difficulty": "hard",
@@ -3675,50 +3803,170 @@
         "en": {
           "title": "Phantom Shift",
           "description": "Switch between light and shadow dimensions to explore procedural dungeons!",
-          "tags": ["roguelike", "puzzle action", "dimension shift", "procedural", "dungeon crawler", "boss fight"],
-          "controls": ["WASD/Arrow keys: 8-directional movement", "Q: Dimension shift (Light ↔ Shadow)", "Space/Click: Attack", "E: Interact", "1~3: Use skills", "ESC: Pause", "Touch: Virtual joystick + buttons"]
+          "tags": [
+            "roguelike",
+            "puzzle action",
+            "dimension shift",
+            "procedural",
+            "dungeon crawler",
+            "boss fight"
+          ],
+          "controls": [
+            "WASD/Arrow keys: 8-directional movement",
+            "Q: Dimension shift (Light ↔ Shadow)",
+            "Space/Click: Attack",
+            "E: Interact",
+            "1~3: Use skills",
+            "ESC: Pause",
+            "Touch: Virtual joystick + buttons"
+          ]
         },
         "ja": {
           "title": "ファントムシフト",
           "description": "光と影の次元を切り替えながらプロシージャルダンジョンを探索しよう！",
-          "tags": ["ローグライク", "パズルアクション", "次元転換", "プロシージャル", "ダンジョン探索", "ボス戦"],
-          "controls": ["WASD/矢印キー: 8方向移動", "Q: 次元切り替え（光 ↔ 影）", "Space/クリック: 攻撃", "E: インタラクト", "1~3: スキル使用", "ESC: 一時停止", "タッチ: 仮想ジョイスティック＋ボタン"]
+          "tags": [
+            "ローグライク",
+            "パズルアクション",
+            "次元転換",
+            "プロシージャル",
+            "ダンジョン探索",
+            "ボス戦"
+          ],
+          "controls": [
+            "WASD/矢印キー: 8方向移動",
+            "Q: 次元切り替え（光 ↔ 影）",
+            "Space/クリック: 攻撃",
+            "E: インタラクト",
+            "1~3: スキル使用",
+            "ESC: 一時停止",
+            "タッチ: 仮想ジョイスティック＋ボタン"
+          ]
         },
         "zh-CN": {
           "title": "幻影转换",
           "description": "在光明与暗影维度间切换，探索程序生成的地牢！",
-          "tags": ["肉鸽", "解谜动作", "维度切换", "程序生成", "地牢探险", "Boss战"],
-          "controls": ["WASD/方向键: 8方向移动", "Q: 维度切换（光明 ↔ 暗影）", "Space/点击: 攻击", "E: 互动", "1~3: 使用技能", "ESC: 暂停", "触屏: 虚拟摇杆 + 按钮"]
+          "tags": [
+            "肉鸽",
+            "解谜动作",
+            "维度切换",
+            "程序生成",
+            "地牢探险",
+            "Boss战"
+          ],
+          "controls": [
+            "WASD/方向键: 8方向移动",
+            "Q: 维度切换（光明 ↔ 暗影）",
+            "Space/点击: 攻击",
+            "E: 互动",
+            "1~3: 使用技能",
+            "ESC: 暂停",
+            "触屏: 虚拟摇杆 + 按钮"
+          ]
         },
         "zh-TW": {
           "title": "幻影轉換",
           "description": "在光明與暗影維度間切換，探索程序生成的地牢！",
-          "tags": ["肉鴿", "解謎動作", "維度切換", "程序生成", "地牢探險", "Boss戰"],
-          "controls": ["WASD/方向鍵: 8方向移動", "Q: 維度切換（光明 ↔ 暗影）", "Space/點擊: 攻擊", "E: 互動", "1~3: 使用技能", "ESC: 暫停", "觸控: 虛擬搖桿 + 按鈕"]
+          "tags": [
+            "肉鴿",
+            "解謎動作",
+            "維度切換",
+            "程序生成",
+            "地牢探險",
+            "Boss戰"
+          ],
+          "controls": [
+            "WASD/方向鍵: 8方向移動",
+            "Q: 維度切換（光明 ↔ 暗影）",
+            "Space/點擊: 攻擊",
+            "E: 互動",
+            "1~3: 使用技能",
+            "ESC: 暫停",
+            "觸控: 虛擬搖桿 + 按鈕"
+          ]
         },
         "es": {
           "title": "Cambio Fantasma",
           "description": "¡Alterna entre dimensiones de luz y sombra para explorar mazmorras procedurales!",
-          "tags": ["roguelike", "puzzle acción", "cambio dimensional", "procedural", "exploración de mazmorras", "jefe final"],
-          "controls": ["WASD/Flechas: Movimiento en 8 direcciones", "Q: Cambio dimensional (Luz ↔ Sombra)", "Space/Clic: Atacar", "E: Interactuar", "1~3: Usar habilidades", "ESC: Pausa", "Toque: Joystick virtual + botones"]
+          "tags": [
+            "roguelike",
+            "puzzle acción",
+            "cambio dimensional",
+            "procedural",
+            "exploración de mazmorras",
+            "jefe final"
+          ],
+          "controls": [
+            "WASD/Flechas: Movimiento en 8 direcciones",
+            "Q: Cambio dimensional (Luz ↔ Sombra)",
+            "Space/Clic: Atacar",
+            "E: Interactuar",
+            "1~3: Usar habilidades",
+            "ESC: Pausa",
+            "Toque: Joystick virtual + botones"
+          ]
         },
         "fr": {
           "title": "Phantom Shift",
           "description": "Basculez entre les dimensions de lumière et d'ombre pour explorer des donjons procéduraux !",
-          "tags": ["roguelike", "puzzle action", "changement dimensionnel", "procédural", "exploration de donjon", "combat de boss"],
-          "controls": ["WASD/Flèches: Déplacement 8 directions", "Q: Changement de dimension (Lumière ↔ Ombre)", "Space/Clic: Attaquer", "E: Interagir", "1~3: Utiliser compétences", "ESC: Pause", "Tactile: Joystick virtuel + boutons"]
+          "tags": [
+            "roguelike",
+            "puzzle action",
+            "changement dimensionnel",
+            "procédural",
+            "exploration de donjon",
+            "combat de boss"
+          ],
+          "controls": [
+            "WASD/Flèches: Déplacement 8 directions",
+            "Q: Changement de dimension (Lumière ↔ Ombre)",
+            "Space/Clic: Attaquer",
+            "E: Interagir",
+            "1~3: Utiliser compétences",
+            "ESC: Pause",
+            "Tactile: Joystick virtuel + boutons"
+          ]
         },
         "de": {
           "title": "Phantom Shift",
           "description": "Wechsle zwischen Licht- und Schattendimensionen und erkunde prozedurale Dungeons!",
-          "tags": ["Roguelike", "Puzzle-Action", "Dimensionswechsel", "Prozedural", "Dungeon-Erkundung", "Bosskampf"],
-          "controls": ["WASD/Pfeiltasten: 8-Richtungen-Bewegung", "Q: Dimensionswechsel (Licht ↔ Schatten)", "Space/Klick: Angreifen", "E: Interagieren", "1~3: Fähigkeiten einsetzen", "ESC: Pause", "Touch: Virtueller Joystick + Tasten"]
+          "tags": [
+            "Roguelike",
+            "Puzzle-Action",
+            "Dimensionswechsel",
+            "Prozedural",
+            "Dungeon-Erkundung",
+            "Bosskampf"
+          ],
+          "controls": [
+            "WASD/Pfeiltasten: 8-Richtungen-Bewegung",
+            "Q: Dimensionswechsel (Licht ↔ Schatten)",
+            "Space/Klick: Angreifen",
+            "E: Interagieren",
+            "1~3: Fähigkeiten einsetzen",
+            "ESC: Pause",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
         },
         "pt": {
           "title": "Phantom Shift",
           "description": "Alterne entre dimensões de luz e sombra para explorar masmorras procedurais!",
-          "tags": ["roguelike", "puzzle ação", "troca dimensional", "procedural", "exploração de masmorras", "luta de chefe"],
-          "controls": ["WASD/Setas: Movimento em 8 direções", "Q: Troca dimensional (Luz ↔ Sombra)", "Space/Clique: Atacar", "E: Interagir", "1~3: Usar habilidades", "ESC: Pausa", "Toque: Joystick virtual + botões"]
+          "tags": [
+            "roguelike",
+            "puzzle ação",
+            "troca dimensional",
+            "procedural",
+            "exploração de masmorras",
+            "luta de chefe"
+          ],
+          "controls": [
+            "WASD/Setas: Movimento em 8 direções",
+            "Q: Troca dimensional (Luz ↔ Sombra)",
+            "Space/Clique: Atacar",
+            "E: Interagir",
+            "1~3: Usar habilidades",
+            "ESC: Pausa",
+            "Toque: Joystick virtual + botões"
+          ]
         }
       },
       "difficulty": "hard",
@@ -3729,14 +3977,24 @@
       "id": "abyss-keeper",
       "title": "어비스 키퍼",
       "description": "심해 등대지기가 되어 낮엔 낚시, 밤엔 괴수를 격퇴하라!",
-      "genre": ["action", "casual"],
+      "genre": [
+        "action",
+        "casual"
+      ],
       "thumbnail": "/games/abyss-keeper/assets/thumbnail.svg",
       "path": "/games/abyss-keeper/index.html",
       "addedAt": "2026-03-22T13:21:55.864Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["심해", "등대", "낚시", "괴수전투", "서바이벌", "업그레이드"],
+      "tags": [
+        "심해",
+        "등대",
+        "낚시",
+        "괴수전투",
+        "서바이벌",
+        "업그레이드"
+      ],
       "controls": [
         "WASD/방향키: 이동",
         "Space: 낚시 / 공격",
@@ -3750,50 +4008,384 @@
         "en": {
           "title": "Abyss Keeper",
           "description": "Become a deep-sea lighthouse keeper — fish by day, fight abyssal monsters by night!",
-          "tags": ["deep sea", "lighthouse", "fishing", "monster combat", "survival", "upgrade"],
-          "controls": ["WASD/Arrow Keys: Move", "Space: Fish / Attack", "E: Gather / Sub-weapon", "Q: Upgrade / Sonar", "1~3: Switch weapons", "ESC: Pause", "Touch: Virtual joystick + buttons"]
+          "tags": [
+            "deep sea",
+            "lighthouse",
+            "fishing",
+            "monster combat",
+            "survival",
+            "upgrade"
+          ],
+          "controls": [
+            "WASD/Arrow Keys: Move",
+            "Space: Fish / Attack",
+            "E: Gather / Sub-weapon",
+            "Q: Upgrade / Sonar",
+            "1~3: Switch weapons",
+            "ESC: Pause",
+            "Touch: Virtual joystick + buttons"
+          ]
         },
         "ja": {
           "title": "アビスキーパー",
           "description": "深海の灯台守となり、昼は釣り、夜は深淵の怪物を撃退せよ！",
-          "tags": ["深海", "灯台", "釣り", "怪物戦闘", "サバイバル", "アップグレード"],
-          "controls": ["WASD/矢印キー: 移動", "Space: 釣り / 攻撃", "E: 採集 / サブ武器", "Q: アップグレード / ソナー", "1~3: 武器切替", "ESC: 一時停止", "タッチ: 仮想ジョイスティック + ボタン"]
+          "tags": [
+            "深海",
+            "灯台",
+            "釣り",
+            "怪物戦闘",
+            "サバイバル",
+            "アップグレード"
+          ],
+          "controls": [
+            "WASD/矢印キー: 移動",
+            "Space: 釣り / 攻撃",
+            "E: 採集 / サブ武器",
+            "Q: アップグレード / ソナー",
+            "1~3: 武器切替",
+            "ESC: 一時停止",
+            "タッチ: 仮想ジョイスティック + ボタン"
+          ]
         },
         "zh-CN": {
           "title": "深渊守灯人",
           "description": "成为深海灯塔守护者——白天钓鱼，夜晚击退深渊怪物！",
-          "tags": ["深海", "灯塔", "钓鱼", "怪物战斗", "生存", "升级"],
-          "controls": ["WASD/方向键: 移动", "Space: 钓鱼 / 攻击", "E: 采集 / 副武器", "Q: 升级 / 声纳", "1~3: 切换武器", "ESC: 暂停", "触屏: 虚拟摇杆 + 按钮"]
+          "tags": [
+            "深海",
+            "灯塔",
+            "钓鱼",
+            "怪物战斗",
+            "生存",
+            "升级"
+          ],
+          "controls": [
+            "WASD/方向键: 移动",
+            "Space: 钓鱼 / 攻击",
+            "E: 采集 / 副武器",
+            "Q: 升级 / 声纳",
+            "1~3: 切换武器",
+            "ESC: 暂停",
+            "触屏: 虚拟摇杆 + 按钮"
+          ]
         },
         "zh-TW": {
           "title": "深淵守燈人",
           "description": "成為深海燈塔守護者——白天釣魚，夜晚擊退深淵怪物！",
-          "tags": ["深海", "燈塔", "釣魚", "怪物戰鬥", "生存", "升級"],
-          "controls": ["WASD/方向鍵: 移動", "Space: 釣魚 / 攻擊", "E: 採集 / 副武器", "Q: 升級 / 聲納", "1~3: 切換武器", "ESC: 暫停", "觸控: 虛擬搖桿 + 按鈕"]
+          "tags": [
+            "深海",
+            "燈塔",
+            "釣魚",
+            "怪物戰鬥",
+            "生存",
+            "升級"
+          ],
+          "controls": [
+            "WASD/方向鍵: 移動",
+            "Space: 釣魚 / 攻擊",
+            "E: 採集 / 副武器",
+            "Q: 升級 / 聲納",
+            "1~3: 切換武器",
+            "ESC: 暫停",
+            "觸控: 虛擬搖桿 + 按鈕"
+          ]
         },
         "es": {
           "title": "Guardián del Abismo",
           "description": "¡Conviértete en farero del abismo: pesca de día y combate monstruos marinos de noche!",
-          "tags": ["mar profundo", "faro", "pesca", "combate de monstruos", "supervivencia", "mejoras"],
-          "controls": ["WASD/Flechas: Movimiento", "Space: Pescar / Atacar", "E: Recolectar / Arma secundaria", "Q: Mejoras / Sónar", "1~3: Cambiar arma", "ESC: Pausa", "Toque: Joystick virtual + botones"]
+          "tags": [
+            "mar profundo",
+            "faro",
+            "pesca",
+            "combate de monstruos",
+            "supervivencia",
+            "mejoras"
+          ],
+          "controls": [
+            "WASD/Flechas: Movimiento",
+            "Space: Pescar / Atacar",
+            "E: Recolectar / Arma secundaria",
+            "Q: Mejoras / Sónar",
+            "1~3: Cambiar arma",
+            "ESC: Pausa",
+            "Toque: Joystick virtual + botones"
+          ]
         },
         "fr": {
           "title": "Gardien de l'Abîme",
           "description": "Devenez gardien de phare des abysses : pêchez le jour, combattez les monstres la nuit !",
-          "tags": ["abysses", "phare", "pêche", "combat de monstres", "survie", "améliorations"],
-          "controls": ["WASD/Flèches: Déplacement", "Space: Pêcher / Attaquer", "E: Récolter / Arme secondaire", "Q: Améliorations / Sonar", "1~3: Changer d'arme", "ESC: Pause", "Tactile: Joystick virtuel + boutons"]
+          "tags": [
+            "abysses",
+            "phare",
+            "pêche",
+            "combat de monstres",
+            "survie",
+            "améliorations"
+          ],
+          "controls": [
+            "WASD/Flèches: Déplacement",
+            "Space: Pêcher / Attaquer",
+            "E: Récolter / Arme secondaire",
+            "Q: Améliorations / Sonar",
+            "1~3: Changer d'arme",
+            "ESC: Pause",
+            "Tactile: Joystick virtuel + boutons"
+          ]
         },
         "de": {
           "title": "Hüter der Tiefe",
           "description": "Werde Leuchtturmwärter der Tiefsee — angle am Tag, bekämpfe Abgrundmonster in der Nacht!",
-          "tags": ["Tiefsee", "Leuchtturm", "Angeln", "Monsterkampf", "Überleben", "Upgrades"],
-          "controls": ["WASD/Pfeiltasten: Bewegung", "Space: Angeln / Angriff", "E: Sammeln / Zweitwaffe", "Q: Upgrades / Sonar", "1~3: Waffe wechseln", "ESC: Pause", "Touch: Virtueller Joystick + Tasten"]
+          "tags": [
+            "Tiefsee",
+            "Leuchtturm",
+            "Angeln",
+            "Monsterkampf",
+            "Überleben",
+            "Upgrades"
+          ],
+          "controls": [
+            "WASD/Pfeiltasten: Bewegung",
+            "Space: Angeln / Angriff",
+            "E: Sammeln / Zweitwaffe",
+            "Q: Upgrades / Sonar",
+            "1~3: Waffe wechseln",
+            "ESC: Pause",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
         },
         "pt": {
           "title": "Guardião do Abismo",
           "description": "Torne-se o faroleiro do abismo — pesque de dia e enfrente monstros marinhos à noite!",
-          "tags": ["mar profundo", "farol", "pesca", "combate de monstros", "sobrevivência", "melhorias"],
-          "controls": ["WASD/Setas: Movimento", "Space: Pescar / Atacar", "E: Coletar / Arma secundária", "Q: Melhorias / Sonar", "1~3: Trocar arma", "ESC: Pausa", "Toque: Joystick virtual + botões"]
+          "tags": [
+            "mar profundo",
+            "farol",
+            "pesca",
+            "combate de monstros",
+            "sobrevivência",
+            "melhorias"
+          ],
+          "controls": [
+            "WASD/Setas: Movimento",
+            "Space: Pescar / Atacar",
+            "E: Coletar / Arma secundária",
+            "Q: Melhorias / Sonar",
+            "1~3: Trocar arma",
+            "ESC: Pausa",
+            "Toque: Joystick virtual + botões"
+          ]
+        }
+      },
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI"
+    },
+    {
+      "id": "glyph-labyrinth",
+      "title": "글리프 래버린스",
+      "description": "고대 미궁을 탐험하며 글리프를 조합해 퍼즐을 풀어라!",
+      "genre": [
+        "arcade",
+        "puzzle"
+      ],
+      "thumbnail": "/games/glyph-labyrinth/assets/thumbnail.svg",
+      "path": "/games/glyph-labyrinth/index.html",
+      "addedAt": "2026-03-22T16:06:45.835Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "미궁",
+        "글리프",
+        "퍼즐",
+        "메트로이드바니아",
+        "탐험",
+        "보스전"
+      ],
+      "controls": [
+        "WASD/방향키: 8방향 이동",
+        "Space: 글리프 능력 발동",
+        "E: 상호작용",
+        "Q: 글리프 메뉴",
+        "1~5: 글리프 슬롯 전환",
+        "Shift: 대시",
+        "ESC: 일시정지",
+        "터치: 가상 조이스틱 + 버튼"
+      ],
+      "i18n": {
+        "en": {
+          "title": "Glyph Labyrinth",
+          "description": "Explore ancient labyrinths and combine glyphs to solve puzzles!",
+          "tags": [
+            "labyrinth",
+            "glyph",
+            "puzzle",
+            "metroidvania",
+            "exploration",
+            "boss battle"
+          ],
+          "controls": [
+            "WASD/Arrow Keys: 8-direction movement",
+            "Space: Activate glyph ability",
+            "E: Interact",
+            "Q: Glyph menu",
+            "1~5: Switch glyph slot",
+            "Shift: Dash",
+            "ESC: Pause",
+            "Touch: Virtual joystick + buttons"
+          ]
+        },
+        "ja": {
+          "title": "グリフ・ラビリンス",
+          "description": "古代の迷宮を探索し、グリフを組み合わせてパズルを解こう！",
+          "tags": [
+            "迷宮",
+            "グリフ",
+            "パズル",
+            "メトロイドヴァニア",
+            "探索",
+            "ボス戦"
+          ],
+          "controls": [
+            "WASD/矢印キー: 8方向移動",
+            "Space: グリフ能力発動",
+            "E: インタラクト",
+            "Q: グリフメニュー",
+            "1~5: グリフスロット切替",
+            "Shift: ダッシュ",
+            "ESC: 一時停止",
+            "タッチ: 仮想ジョイスティック + ボタン"
+          ]
+        },
+        "zh-CN": {
+          "title": "符文迷宫",
+          "description": "探索古代迷宫，组合符文解开谜题！",
+          "tags": [
+            "迷宫",
+            "符文",
+            "解谜",
+            "银河恶魔城",
+            "探索",
+            "Boss战"
+          ],
+          "controls": [
+            "WASD/方向键: 8方向移动",
+            "Space: 发动符文能力",
+            "E: 互动",
+            "Q: 符文菜单",
+            "1~5: 切换符文槽",
+            "Shift: 冲刺",
+            "ESC: 暂停",
+            "触屏: 虚拟摇杆 + 按钮"
+          ]
+        },
+        "zh-TW": {
+          "title": "符文迷宮",
+          "description": "探索古代迷宮，組合符文解開謎題！",
+          "tags": [
+            "迷宮",
+            "符文",
+            "解謎",
+            "銀河惡魔城",
+            "探索",
+            "Boss戰"
+          ],
+          "controls": [
+            "WASD/方向鍵: 8方向移動",
+            "Space: 發動符文能力",
+            "E: 互動",
+            "Q: 符文選單",
+            "1~5: 切換符文欄",
+            "Shift: 衝刺",
+            "ESC: 暫停",
+            "觸控: 虛擬搖桿 + 按鈕"
+          ]
+        },
+        "es": {
+          "title": "Laberinto de Glifos",
+          "description": "¡Explora laberintos ancestrales y combina glifos para resolver acertijos!",
+          "tags": [
+            "laberinto",
+            "glifo",
+            "puzzle",
+            "metroidvania",
+            "exploración",
+            "batalla de jefe"
+          ],
+          "controls": [
+            "WASD/Flechas: Movimiento en 8 direcciones",
+            "Space: Activar habilidad de glifo",
+            "E: Interactuar",
+            "Q: Menú de glifos",
+            "1~5: Cambiar ranura de glifo",
+            "Shift: Dash",
+            "ESC: Pausa",
+            "Toque: Joystick virtual + botones"
+          ]
+        },
+        "fr": {
+          "title": "Labyrinthe des Glyphes",
+          "description": "Explorez des labyrinthes antiques et combinez les glyphes pour résoudre des énigmes !",
+          "tags": [
+            "labyrinthe",
+            "glyphe",
+            "puzzle",
+            "metroidvania",
+            "exploration",
+            "combat de boss"
+          ],
+          "controls": [
+            "WASD/Flèches: Déplacement 8 directions",
+            "Space: Activer pouvoir de glyphe",
+            "E: Interagir",
+            "Q: Menu des glyphes",
+            "1~5: Changer de glyphe",
+            "Shift: Dash",
+            "ESC: Pause",
+            "Tactile: Joystick virtuel + boutons"
+          ]
+        },
+        "de": {
+          "title": "Glyphen-Labyrinth",
+          "description": "Erkunde antike Labyrinthe und kombiniere Glyphen, um Rätsel zu lösen!",
+          "tags": [
+            "Labyrinth",
+            "Glyphe",
+            "Puzzle",
+            "Metroidvania",
+            "Erkundung",
+            "Bosskampf"
+          ],
+          "controls": [
+            "WASD/Pfeiltasten: 8-Richtungen-Bewegung",
+            "Space: Glyphenfähigkeit aktivieren",
+            "E: Interagieren",
+            "Q: Glyphenmenü",
+            "1~5: Glyphenslot wechseln",
+            "Shift: Dash",
+            "ESC: Pause",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
+        },
+        "pt": {
+          "title": "Labirinto de Glifos",
+          "description": "Explore labirintos ancestrais e combine glifos para resolver enigmas!",
+          "tags": [
+            "labirinto",
+            "glifo",
+            "puzzle",
+            "metroidvania",
+            "exploração",
+            "batalha de chefe"
+          ],
+          "controls": [
+            "WASD/Setas: Movimento em 8 direções",
+            "Space: Ativar habilidade de glifo",
+            "E: Interagir",
+            "Q: Menu de glifos",
+            "1~5: Trocar slot de glifo",
+            "Shift: Dash",
+            "ESC: Pausa",
+            "Toque: Joystick virtual + botões"
+          ]
         }
       },
       "difficulty": "medium",

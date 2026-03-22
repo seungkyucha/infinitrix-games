@@ -1,11 +1,12 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #24_
+_Last updated: Cycle #25_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
 - **[Cycle 21]** game-registry.json exceeds 10,000 tokens and fails full read. 19 games each with 8-language i18n bloat the file. Use Grep to extract only id/genre/title as the first step in future cycles.
 - **[Cycle 21-2]** When a previous cycle report already exists, check it first to avoid redundant analysis. cycle-21-report.md already existed but was overwritten — in future, check for existing reports first and only update sections that need changes.
 - **[Cycle 24]** Direct WebFetch to game portals remains unreliable (403/404 risk). 5 parallel WebSearch queries fully replace it with sufficient market data — confirmed that skipping WebFetch entirely has no impact on analysis quality.
+- **[Cycle 25]** Once all 10 genre matrix combinations have 1+ games, "gap filling" can no longer serve as the #1 criterion. Must transition to multi-criteria evaluation: "lowest-count combination reinforcement" + "market trend alignment" + "premium requirements fit" — this transition adds slight analysis overhead.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -24,6 +25,10 @@ _Last updated: Cycle #24_
 - **[Cycle 24]** After puzzle+action gap was filled (#23), pivoting to action+casual (the only remaining 0-count gap) as top priority. Entering the final gap-filling phase for all 10 genre combinations.
 - **[Cycle 24]** 5 parallel web searches (general trends + action casual itch.io + roguelike survival + itch.io hybrid + tower defense) provided concrete market evidence for action+casual hybrids (Dave the Diver/Webfishing/Vampire Survivors effect).
 - **[Cycle 24]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 4 consecutive cycles (#21-2~#24). Only wisdom files need reading for updates.
+- **[Cycle 25]** Parallel Grep pattern works reliably with 23 games (8-language i18n). Validated 5 consecutive cycles (#21-2~#25).
+- **[Cycle 25]** Successfully transitioned to new analysis framework after all 10 genre combinations were filled: "select optimal combination among 6 minimum-count (1 game) combinations based on market trends." arcade+puzzle (metroidvania trend) scored highest across trend alignment, premium fit, and differentiation.
+- **[Cycle 25]** 5 parallel web searches stable for 5 consecutive cycles (#21~#25). Standard 5-axis composition (general trends + itch.io genre + hybrids + specific sub-genre + portal popular) confirmed sufficient for market evidence.
+- **[Cycle 25]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 5 consecutive cycles (#21-2~#25).
 
 ## Next Cycle Action Items 🎯
 - Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis
@@ -38,5 +43,8 @@ _Last updated: Cycle #24_
 - Maintain KO-first → simultaneous EN Write as the standard pattern for dual-language reports
 - Monitor Grep pattern performance limits when game count exceeds 25 (currently stable at 22)
 - If action+casual gap is filled in cycle #24, **all 10 genre combinations will have 1+ games**. Shift strategy from "gap filling" to "lowest-count combination reinforcement" (arcade+casual 1, arcade+puzzle 1, etc.) or "single genre diversification"
-- WebFetch attempts fully replaced by 5 parallel WebSearch — no need for direct portal visits in future cycles (4-cycle validation)
-- Prepare framework transition for post-gap-filling analysis (gap coverage → depth/quality-based recommendations)
+- WebFetch attempts fully replaced by 5 parallel WebSearch — no need for direct portal visits in future cycles (5-cycle validation)
+- ✅ Genre matrix gaps fully filled. Successfully transitioned to "lowest-count combination reinforcement + market trend alignment + premium fit" multi-criteria evaluation framework from cycle #25
+- arcade+puzzle (Glyph Labyrinth) selected in cycle #25. Next cycle should select from remaining 5 minimum-count combinations (arcade+casual, arcade+strategy, action+casual, action+puzzle, puzzle+strategy) based on optimal market trend alignment
+- Monitor Grep pattern performance limits when game count exceeds 25 (stable at 23, estimated to reach 25 by cycle #27)
+- Dual-language reports + dual-language wisdom updates (4-file generation pattern) established as standard
