@@ -444,6 +444,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       1. public/games/game-registry.json에 새 게임을 추가해줘
          ⚠️ thumbnail 경로는 반드시 "/games/[game-id]/assets/thumbnail.svg" 형식으로 등록할 것
          (assets/ 폴더 포함 — 빠뜨리면 썸네일이 표시되지 않음)
+         ⚠️ addedAt은 반드시 new Date().toISOString() 으로 현재 시각을 사용할 것!
+         (임의 시간 입력 금지 — 최신순 정렬에 영향)
 
       2. ⚠️ 반드시 "i18n" 필드를 포함하여 다국어 메타데이터를 추가해줘!
          i18n 필드에 en, ja, zh-CN, zh-TW, es, fr, de, pt 8개 언어로
