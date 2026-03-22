@@ -334,6 +334,19 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 사이클 리뷰에서 지적된 코드 품질 문제(메모리 누수, 터치 이벤트 누락 등)를 반드시 해결할 것.
+
+      ⚠️⚠️⚠️ 필수 구현 체크리스트 (하나라도 빠지면 리뷰 FAIL):
+
+      1. 게임 시작: 타이틀 화면 → SPACE/클릭/탭으로 시작 → 상태 초기화
+      2. 키보드 조작: keydown/keyup으로 이동(WASD/화살표) + 액션(Space 등) 실제 동작
+      3. 모바일 조작: touchstart/touchmove/touchend + 화면에 가상 조이스틱/버튼 렌더링
+         → 터치 입력이 실제 플레이어 이동/액션으로 연결될 것
+         → 터치만으로 시작/플레이/재시작 모든 흐름이 가능할 것
+      4. 게임 오버: 명확한 종료 조건 + 게임 오버 화면 + 최고점수 localStorage 저장
+      5. 재시작: R키/탭으로 모든 상태(점수, 적, 위치) 완전 초기화 후 재시작
+      6. Canvas: devicePixelRatio 대응 + resize 이벤트 + 전체 화면 맞춤
+      7. 외부 의존 제거: Google Fonts 같은 외부 CDN 사용 금지. 시스템 폰트만 사용.
+         → font-family: 'Segoe UI', system-ui, -apple-system, sans-serif
     `)
     completeAgent('coder')
 
@@ -350,13 +363,73 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
         에셋 로딩(assets/manifest.json, SVG 파일들) 여부도 확인할 것.
         ${isRetry ? `⚠️ 이번은 ${round}회차 재리뷰입니다. 이전 리뷰(docs/reviews/cycle-${cycleNumber}-review.md)에서 지적한 사항이 실제로 수정되었는지 중점 검증해줘.` : ''}
 
-        📱 모바일 조작 대응 검사 항목 (반드시 확인):
-        - 터치 이벤트(touchstart/touchmove/touchend) 등록 여부
-        - 가상 조이스틱 또는 터치 버튼 UI 존재 여부
-        - 터치 영역이 44px 이상인지 (탭 타겟 사이즈)
-        - 모바일 뷰포트 meta 태그 설정 여부
-        - 가로/세로 스크롤 방지 (touch-action, overflow 처리)
-        - 키보드 입력 없이 게임 플레이가 가능한지 여부
+        ═══════════════════════════════════════════════════
+        🎮 게임 플레이 완전성 검증 (가장 중요 — 반드시 통과해야 APPROVED)
+        ═══════════════════════════════════════════════════
+
+        아래 항목을 코드에서 직접 확인하고, 각 항목별 PASS/FAIL을 명시할 것.
+        하나라도 FAIL이면 NEEDS_MAJOR_FIX 판정.
+
+        📌 1. 게임 시작 흐름
+        - 타이틀/시작 화면이 존재하는가?
+        - SPACE 키 또는 클릭/탭으로 게임이 시작되는가?
+        - 시작 시 게임 상태(점수, 위치, 체력 등)가 올바르게 초기화되는가?
+
+        📌 2. 입력(조작) 시스템 — 데스크톱
+        - keydown/keyup 이벤트 리스너가 등록되어 있는가?
+        - 이동 키(WASD 또는 화살표)가 실제로 플레이어를 움직이는가?
+          → 키 입력 → 상태 변경 → 렌더링까지 코드 흐름을 추적할 것
+        - 공격/액션 키(Space, Z 등)가 실제로 동작하는가?
+        - 일시정지(P/ESC)가 게임 루프를 정지시키는가?
+
+        📌 3. 입력(조작) 시스템 — 모바일
+        - touchstart/touchmove/touchend 이벤트가 등록되어 있는가?
+        - 가상 조이스틱 또는 터치 버튼이 화면에 렌더링되는가?
+        - 터치 입력이 실제로 게임 로직에 연결되는가?
+          → 터치 좌표 → 조이스틱 방향 → 플레이어 이동까지 추적
+        - 터치 타겟이 44px 이상인가?
+        - touch-action: none, overflow: hidden 등 스크롤 방지가 되어 있는가?
+
+        📌 4. 게임 루프 & 로직
+        - requestAnimationFrame 기반 게임 루프가 있는가?
+        - delta time(dt)을 계산하여 프레임 독립적 업데이트를 하는가?
+        - 충돌 감지가 올바르게 구현되어 있는가? (거리 계산, hitbox 등)
+        - 점수가 실제로 증가하는 코드 경로가 있는가?
+        - 난이도 변화가 실제로 적용되는가? (웨이브/레벨/속도 증가 등)
+
+        📌 5. 게임 오버 & 재시작
+        - 게임 오버 조건이 명확히 구현되어 있는가? (HP 0, 시간 초과 등)
+        - 게임 오버 화면이 표시되는가?
+        - 최고 점수가 localStorage에 저장/로드되는가?
+        - R키 또는 탭으로 재시작 시 모든 상태가 완전히 초기화되는가?
+          → 점수, 적, 플레이어 위치, 타이머 등 모두 리셋 확인
+        - 재시작 후 게임이 정상적으로 다시 진행되는가?
+
+        📌 6. 화면 렌더링
+        - canvas 크기가 window.innerWidth/Height에 맞게 설정되는가?
+        - devicePixelRatio가 적용되어 선명하게 렌더링되는가?
+        - resize 이벤트에서 canvas가 재조정되는가?
+        - 배경, 캐릭터, UI 요소가 모두 렌더링되는가?
+          → 시작 화면, 게임 중, 게임 오버 각 상태에서 확인
+
+        📌 7. 외부 의존성 안전성
+        - Google Fonts 등 외부 CDN이 로드 실패해도 게임이 동작하는가?
+          → font-family에 시스템 폰트 폴백이 있는가?
+        - 에셋(SVG) 로드 실패 시 Canvas 폴백 드로잉이 있는가?
+
+        ═══════════════════════════════════════════════════
+        📱 모바일 조작 대응 검사
+        ═══════════════════════════════════════════════════
+        - 모바일 뷰포트 meta 태그 (width=device-width, user-scalable=no)
+        - 키보드 입력 없이 게임의 모든 기능(시작, 플레이, 재시작)이 가능한지
+        - 가상 조이스틱/버튼이 게임 화면을 가리지 않는 위치에 배치되는지
+
+        ═══════════════════════════════════════════════════
+
+        ⚠️ 판정 기준 (엄격 적용):
+        - APPROVED: 📌 1~7 모두 PASS + 모바일 조작 가능
+        - NEEDS_MINOR_FIX: 핵심 플레이는 되지만 일부 미흡 (UI 깨짐 등)
+        - NEEDS_MAJOR_FIX: 📌 1~5 중 하나라도 FAIL (게임이 플레이 불가능)
 
         결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
         ⚠️ 영문 버전도 반드시 생성: docs/reviews/cycle-${cycleNumber}-review.en.md (같은 내용을 영어로 작성)
