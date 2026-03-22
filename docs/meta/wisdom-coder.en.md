@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #26 void-architect_
+_Last updated: Cycle #27 elemental-cascade_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 27]** In a match-3 engine, detecting 5→T→L→4→3 priority matches requires O(n²) cross-match comparison for intersecting horizontal+vertical matches. Using a `used[][]` array to prevent double-counting is correct but the marking order matters. Always mark larger matches first.
+- **[Cycle 27]** In turn-based RPG with match-3, the COMBO_DISPLAY→next state transition must check hasUsableSpell() to auto-advance to ENEMY_TURN when mana is 0. Without this, players can be stuck in spell selection with no castable spells.
+- **[Cycle 27]** Even when spec says "pure Canvas drawing" + "new Image() 0 count", user instruction to preload assets takes precedence. Smoke test #4 (new Image 0) must be conditionally applied when asset preloader is explicitly requested by user.
+- **[Cycle 27]** Comment strings like "setTimeout" or "Math.random" trigger false positives in grep-based smoke tests. Tests should exclude comment lines or use regex that filters `//` prefixed lines.
 - **[Cycle 26]** In an 18-state roguelike tower defense, the WAVE→BOSS_INTRO transition requires correct ordering of waveInDim counter increment before comparison with dimWaves. Counter increment → condition check order must always be explicit.
 - **[Cycle 26]** canPlace() BFS verification requires converting the grid to a binary pathGrid (0/1). Obstacle type 2 must be mapped to 1, otherwise BFS treats obstacles as passable.
 - **[Cycle 26]** Roguelike card effects (elemShift, freezeAll, etc.) can crash if G.blocks array is empty. All card effects need array length guard checks.
@@ -28,6 +32,14 @@ _Last updated: Cycle #26 void-architect_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 27]** Match-3 RPG (Elemental Cascade) with 25 states managed via ACTIVE_SYSTEMS matrix + state-based switch dispatch. Turn-based match→combo→spell→enemy loop cycles cleanly through state machine. 11 consecutive cycles of success.
+- **[Cycle 27]** findMatches() with 5→T→L→4→3 priority detection + used[][] double-count prevention works accurately on 8×8 grid. Marking larger matches first ensures no overlap in score/mana calculations.
+- **[Cycle 27]** 6-element affinity matrix initialized via IIFE closure — cyclic affinity (Fire→Earth→Wind→Water→Fire) + mutual affinity (Light↔Dark) in 6×6 2D array for O(1) lookup. Immediately applicable to boss weakness and elemental damage calculations.
+- **[Cycle 27]** Relic caps (DPS cap 200%, synergy cap 150%) enforced via Math.min in getRelicEffects() — prevents balance breakage even with extreme builds. F62 requirement satisfied.
+- **[Cycle 27]** hitTest(px, py, {x,y,w,h}) single function unifying all touch/click detection — F60 requirement met, consistent UX without scattered hit area logic.
+- **[Cycle 27]** Board generation with wouldMatch() pre-check guarantees zero initial matches — compares against 2 previous gems in both directions.
+- **[Cycle 27]** Boss phase transition with weakTimer/weakExposed reset, phaseTransitioning guard flag, and tween-based transition animation as triple safety net — cumulative application of Cycle 24~26 lessons.
+- **[Cycle 27]** DDA (Dynamic Difficulty Adjustment) 3-tier — auto-hint at comboFailStreak 3, boss ATK -20% at HP<30% + boss>50%, hidden damage at noDmgStreak 5. Simple counter-based but effective.
 - **[Cycle 26]** 18-state roguelike TD with ACTIVE_SYSTEMS matrix 18×12 (tw~bfs) — sys() helper pattern successful for 10 consecutive cycles. Boss/enemy/tower/projectile/particle systems precisely controlled per state.
 - **[Cycle 26]** SVG asset preload + Canvas fallback dual structure applied to tower defense — bgLayer1/2 parallax, uiHeart/uiStar HUD icons, effectHit particles use assets. Full Canvas fallback when assets are absent.
 - **[Cycle 26]** BFS path verification executed before block placement, making "path blocking" impossible by design. canPlace() adds blocks to temp grid → runs BFS → rejects if no path. Path-not-found state is code-level impossible.
@@ -79,6 +91,10 @@ _Last updated: Cycle #26 void-architect_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Match-3 special gem activation**: Cycle 27 designed data structures for 4-match→cross gem and 5-match→rainbow gem, but special gem type storage (-2/-3) in grid and cascading explosion logic remain unimplemented. Need to add special gem creation+activation+chain logic.
+- **Boss-specific board mechanics**: Spec's per-boss board mutations (lava gem conversion, ink darkening, root obstacles, gem shuffle, mana disruption) are declared as data but actual board manipulation code is not implemented. Each boss phase entry should trigger a board mutation function.
+- **Smoke test comment exclusion**: Grep-based smoke tests produce false positives from comment strings. Add `grep -v '^\s*//' | grep -c 'pattern'` to filter comment lines.
+- **Shared engine module extraction**: 27 cycles of copy-pasting TweenManager/ObjectPool/SoundManager/InputManager. Extracting REGION 2~3 to shared/engine.js is urgent.
 - **Boss weakness system enhancement**: Cycle 26 implemented weakExposed as timer-based periodic exposure, but spec's "specific element tower at specific position" condition is not yet implemented. Declare weakness conditions as per-boss data ({position, element, synergyCount}) and validate in real-time on tower placement.
 - **Tetromino SRS rotation refinement**: Cycle 26 only implements simple 90° rotation. Adding wall kick offset tables would greatly improve UX when placing near walls.
 - **Roguelike card balance verification**: Random card pool extraction can make certain builds dominant. Track current tower element distribution and add weighting to underrepresented element cards.

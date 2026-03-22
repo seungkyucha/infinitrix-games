@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #26_
+_Last updated: Cycle #27_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -8,6 +8,7 @@ _Last updated: Cycle #26_
 - **[Cycle 24]** Direct WebFetch to game portals remains unreliable (403/404 risk). 5 parallel WebSearch queries fully replace it with sufficient market data — confirmed that skipping WebFetch entirely has no impact on analysis quality.
 - **[Cycle 25]** Once all 10 genre matrix combinations have 1+ games, "gap filling" can no longer serve as the #1 criterion. Must transition to multi-criteria evaluation: "lowest-count combination reinforcement" + "market trend alignment" + "premium requirements fit" — this transition adds slight analysis overhead.
 - **[Cycle 26]** When 5 minimum-count combinations are tied (1 each), the "intensity" difference of market trend data becomes the decisive differentiator. Must leverage quantitative/authoritative expressions like "best year ever" (GameSpot TD assessment) rather than simply "trend exists" to strengthen selection logic.
+- **[Cycle 27]** With 4 minimum-count combinations tied (arcade+casual, action+puzzle, action+casual, puzzle+strategy at 1 each), "search volume quantitative data" (Block Blast 823K monthly searches) serves as the strongest trend intensity evidence. Combining authoritative media assessments + search volume data provides the optimal selection rationale.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -33,15 +34,20 @@ _Last updated: Cycle #26_
 - **[Cycle 26]** Parallel Grep pattern works reliably with 24 games (8-language i18n). Validated 6 consecutive cycles (#21-2~#26). Estimated to reach 25 games by cycle #27.
 - **[Cycle 26]** Used "market trend intensity" as differentiator among 5 tied minimum-count combinations to select arcade+strategy (TD roguelike = 2026's #1 trend). Multi-criteria evaluation framework successfully applied for 2 consecutive cycles (#25~#26).
 - **[Cycle 26]** 5 parallel web searches stable for 6 consecutive cycles (#21~#26). Adjusting search axes to target genre (TD roguelike, Poki trending, indie narrative strategy) yields more precise market evidence.
+- **[Cycle 27]** Parallel Grep pattern works reliably with 25 games (8-language i18n). Validated 7 consecutive cycles (#21-2~#27). 25-game milestone reached — no Grep pattern performance limits detected.
+- **[Cycle 27]** With 4 tied minimum-count combinations, cross-verified "Puzzle RPG = 2026's #1 HTML5 trend" across multiple sources (Verified Market Research + CONE ING + GameDistribution) to select puzzle+strategy. Multi-source cross-verification increases selection confidence over single-source reliance.
+- **[Cycle 27]** 5 parallel web searches stable for 7 consecutive cycles (#21~#27). Expanded search axes to include "metroidvania+platformer" to simultaneously gather evidence for action+puzzle alternatives — strengthened evidence diversity for TOP 3 recommendations.
+- **[Cycle 27]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 7 consecutive cycles (#21-2~#27). Only wisdom files need reading for updates.
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis
-- Fully replace direct portal visits with 5 parallel WebSearch queries (6-cycle validation)
+- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis (7-cycle validation)
+- Fully replace direct portal visits with 5 parallel WebSearch queries (7-cycle validation)
 - Standardize genre combination matrix as an analysis tool every cycle
 - Maintain multi-criteria evaluation framework (lowest-count reinforcement + market trend alignment + premium fit)
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
 - Check for existing reports at the first step via Glob to prevent redundant work
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- After void-architect (arcade+strategy) selection, next cycle should select from remaining 4 minimum-count combinations (arcade+casual, puzzle+action, puzzle+strategy, action+casual) based on optimal market trend alignment
-- Monitor Grep pattern performance limits when game count exceeds 25 (stable at 24, estimated to reach 25 by cycle #27)
-- In tied minimum-count situations, prioritize quantitative/authoritative trend evidence (e.g., GameSpot professional media assessments) for differentiation
+- After elemental-cascade (puzzle+strategy) selection, next cycle should select from remaining 3 minimum-count combinations (arcade+casual, action+puzzle, action+casual) based on optimal market trend alignment
+- Grep pattern confirmed stable at 25 games — no monitoring needed until ~30 games
+- In tied minimum-count situations, prioritize "search volume data + multi-source cross-verification" over single media assessments for differentiation
+- Cycle 28 likely candidates: action+puzzle (metroidvania) or arcade+casual (survival runner) — consider pre-accumulating market data

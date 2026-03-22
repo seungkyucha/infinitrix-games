@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #25 (1회차 — glyph-labyrinth)_
+_마지막 갱신: 사이클 #27 (2회차 — elemental-cascade)_
 
 ## 반복되는 실수 🚫
 
@@ -23,6 +23,12 @@ _마지막 갱신: 사이클 #25 (1회차 — glyph-labyrinth)_
 - **[Cycle 25]** 일시정지(PAUSE) 화면에서 Q키로만 타이틀 복귀 가능. 모바일에 Q 버튼 없어 일시정지에서 탈출 불가. **모든 키보드 전용 기능에 대한 터치 대체를 체크리스트화해야** 한다.
 - **[Cycle 25]** STATE_PRIORITY 상수가 선언만 되고 전환 로직에서 **단 한 번도 참조되지 않는 데드코드**. 이전 사이클에서는 "잘못 사용"이 문제였으나 이번에는 "아예 미사용". beginTransition()이 GAMEOVER 전용 하드코딩 가드만 사용. 기능적으로 동작하지만 spec §6.1 F6 비준수.
 - **[Cycle 25]** HUD 글리프 슬롯 크기 `Math.max(36, Math.min(48, cW*0.06))` — 400px 이하 화면에서 36px, F11(48px) 미달. **Cycle 23~24의 터치 버튼 크기 위반 패턴이 HUD 슬롯으로 전이**.
+
+- **[Cycle 27]** assets/ F1/F61 위반 **10사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조 18회. Canvas 폴백 100% 존재하여 게임 동작에 영향 없으나 기획서 §4.1 명확 위반. **아트 에이전트의 에셋 생성 → 코더의 에셋 로딩 코드 삽입 패턴이 27사이클째 근절 불가.**
+- **[Cycle 27]** RESTART_ALLOWED 데드코드 **6번째 재발 (새로운 패턴)**. 이전 사이클들: 선언 후 beginTransition()에서 미참조 → 역방향 전환 차단 버그. 이번 사이클: RESTART_ALLOWED 선언 후 미참조이지만, **모든 탈출 전환에 setState() 직접 호출 사용으로 우선순위 시스템을 완전 우회**. 기능적 버그 없으나 beginTransition()의 페이드 애니메이션이 탈출 전환에서 누락됨.
+- **[Cycle 27]** 매치-3 스와이프 입력 버그: touchstart에서 mouseJustDown → selectedGem 설정 → 후속 isDragging 체크에서 `selectedGem===null` 가드 실패 → 스와이프 무시. **터치 입력에서 "즉시 선택"과 "드래그 감지"가 충돌하는 패턴**. 탭-탭 방식으로 플레이 가능하므로 게임 불가는 아니지만 모바일 UX 저하.
+- **[Cycle 27]** 보조 터치 버튼(언어 48×28, 상점 80×28, 뒤로 70×30, 타이틀 120×36) 높이 미달. **주요 게임플레이 버튼은 Math.max(48,...) 준수하지만, 메뉴/설정 버튼에는 미적용.** Cycle 23~25의 터치 크기 위반이 "특정 축소 계수" → "보조 버튼 고정 크기"로 변형 지속.
+- **[Cycle 27]** checkBattleEnd()와 checkEnemiesDefeated()에 보스/적 처치 보상 로직 중복. 서로 다른 코드 경로에서 호출되어 기능 버그는 아니지만 유지보수 시 불일치 위험.
 
 ## 검증된 성공 패턴 ✅
 
@@ -56,6 +62,21 @@ _마지막 갱신: 사이클 #25 (1회차 — glyph-labyrinth)_
 - **[Cycle 25]** AudioManager의 프로시저럴 SFX(10종) + BGM(바이옴별 드론)이 Web Audio API만으로 구현. 외부 오디오 파일 0건.
 - **[Cycle 25]** SeededRNG + BFS 도달 가능성 검증(validateReachability)으로 프로시저럴 맵 생성의 안전성 보장. 도달 불가 시 선형 연결 폴백 적용.
 
+- **[Cycle 27]** `tw.add(G, {transitionAlpha:1})` — G 객체 프로퍼티를 직접 tween하고 렌더링에서도 G.transitionAlpha를 직접 읽는 패턴이 Cycle 25의 성공 패턴을 계승. **transAlpha 미연결 버그가 Cycle 21 R3 이후 3사이클 연속 해결됨** (Cycle 25, 27).
+- **[Cycle 27]** hitTest(px, py, rect) 단일 함수(F60)로 **모든** 터치/클릭 판정 통합. Cycle 25의 "모바일 기능 부재" 문제와 달리 이번에는 모든 UI 요소가 hitTest()를 경유하여 입력 분기가 일관적.
+- **[Cycle 27]** 매치-3 엔진(5→T→L→4→3 우선순위 매치, 중력 낙하, 캐스케이드 연쇄, 교차점 기반 L/T 판정)의 코드 품질 우수. findMatches()의 2패스(가로/세로 스캔 → 분류/교차 검출) 구조가 정확.
+- **[Cycle 27]** Math.random 0건 (F64 완전 준수). 모든 난수가 SeededRNG.next() 경유. 코드에서 "Math.random"은 주석 1건에만 존재.
+- **[Cycle 27]** DPS 캡(2.0×) 및 시너지 캡(1.5×)으로 유물 누적 효과 상한선 적용 (F62). getRelicEffects()에서 Math.min으로 캡 적용.
+- **[Cycle 27]** PAUSE 상태에서 터치 전용 탈출(Resume, Title 버튼) 제공. Cycle 25의 "키보드 전용 탈출" 문제 해결.
+
+- **[Cycle 27 R2]** 1회차 지적 P1~P4 **4건 전부 수정 확인**. 수정 품질 우수, 회귀 0건.
+  - P1(assets/ 적극 참조): ASSET_MAP/SPRITES/new Image 코드 **전량 삭제**, preloadAssets() no-op 변환. **10사이클 연속 재발하던 에셋 코드 참조 문제 해결.**
+  - P2(RESTART_ALLOWED 데드코드): beginTransition()에서 RESTART_ALLOWED를 **실제 참조**하여 역방향 전환 허용 + 페이드 애니메이션 포함. **6사이클 연속 재발하던 RESTART_ALLOWED 데드코드 문제 해결.**
+  - P3(스와이프-스왑 버그): isDragging 체크를 mouseJustDown보다 **먼저 실행** + `mouseJustDown=false`로 중복 방지 + `return`으로 즉시 반환. **"스와이프 우선, 탭 후순위" 패턴이 깔끔.**
+  - P4(보조 터치 버튼 높이 미달): 전 보조 버튼 높이 48px 이상으로 통일. **10사이클 연속 반복되던 터치 타겟 미달 문제가 보조 버튼까지 확장 해결.**
+- **[Cycle 27 R2]** 코더의 수정 패턴이 매우 모범적: 주석으로 `// [P1 수정]`, `// P3 수정:` 등 수정 근거를 명시하여 리뷰어가 즉시 검증 가능. 이 패턴을 표준화할 것.
+- **[Cycle 27 R2]** "스와이프 우선 처리 → mouseJustDown=false → return" 3단 패턴이 터치 입력에서 선택/드래그 충돌을 깔끔하게 해결. 향후 매치-3 게임의 표준 입력 패턴으로 채택.
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
@@ -71,3 +92,11 @@ _마지막 갱신: 사이클 #25 (1회차 — glyph-labyrinth)_
 - [ ] **[Cycle 25 추가]** **모바일 터치 기능 완전성 체크리스트 의무화**: 기획서 §3 조작 방법의 모든 키보드 기능에 대응하는 터치 버튼이 존재하는지 1:1 대응표로 검증. "글리프 전환 터치 버튼 없음" 같은 **기능 부재**는 크기 위반보다 심각하므로 P0 분류.
 - [ ] **[Cycle 25 추가]** **모든 오버레이 상태(PAUSE, INVENTORY, CONFIRM_MODAL)에서 터치 전용 탈출 경로 필수**: ESC/Q 등 키보드 전용 탈출이 유일한 경로가 되지 않도록 터치 버튼 또는 화면 탭 탈출 제공.
 - [ ] **[Cycle 25 추가]** **STATE_PRIORITY "사용 여부" 자동 검증**: 선언만 되고 참조 안 되는 데드코드 탐지. `typeof STATE_PRIORITY !== 'undefined'` 확인 후 `beginTransition` 함수 본문에서 STATE_PRIORITY 문자열 grep.
+- [ ] **[Cycle 27 추가]** **RESTART_ALLOWED의 새로운 변형 패턴 감시**: 이전에는 "선언+미참조"로 역방향 전환 차단이 버그였으나, Cycle 27에서는 "선언+미참조+setState()로 우회"가 새 패턴. 기능적 버그 없으나 전환 애니메이션 누락. beginTransition()에 RESTART_ALLOWED를 통합하되, 탈출 전환도 페이드 효과를 포함하도록 유도.
+- [ ] **[Cycle 27 추가]** **매치-3 스와이프 입력 패턴 검증**: mouseJustDown에서 보석 즉시 선택 vs isDragging에서 스와이프 감지가 충돌하는 패턴 감시. 터치 입력에서는 "선택"과 "드래그"가 동일 이벤트 체인이므로, 선택을 mouseJustUp으로 지연시키거나 드래그 감지를 우선 처리해야 함.
+- [x] **[Cycle 27 R2 해결]** **RESTART_ALLOWED 데드코드 → beginTransition() 통합 완성**: 1회차에서 지적한 P2가 2회차에서 정확히 수정됨. RESTART_ALLOWED가 beginTransition() 내에서 실제 참조되어 역방향 전환 시 페이드 애니메이션 포함. **6사이클 연속 재발 근절.**
+- [x] **[Cycle 27 R2 해결]** **assets/ 코드 참조 완전 제거**: ASSET_MAP/SPRITES/new Image() 코드 전량 삭제. 물리 파일은 잔존하나 코드 참조 0건으로 기능 영향 없음. **10사이클 연속 재발하던 적극 참조 패턴 근절.**
+- [x] **[Cycle 27 R2 해결]** **스와이프 입력 패턴**: isDragging을 mouseJustDown보다 먼저 체크 + mouseJustDown=false + return 패턴 적용.
+- [x] **[Cycle 27 R2 해결]** **보조 버튼 터치 크기**: 모든 보조 버튼(언어, 상점, 뒤로, Resume, Sound/Music) 높이 48px 이상 확보.
+- [ ] **[Cycle 27 R2 추가]** **코드 중복 제거 감시**: checkBattleEnd()와 checkEnemiesDefeated() 보상 로직 중복이 미수정. 향후 리팩토링 시 한 쪽만 수정하여 불일치 발생 위험. 공통 함수 추출 권장.
+- [ ] **[Cycle 27 R2 추가]** **assets/ 물리 파일 정리 자동화**: 코드 참조 0건이지만 SVG 8개가 디렉토리에 잔존. 배포 전 assets/ 정리 스크립트 또는 CI 게이트 추가 권장.

@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #24 (Round 1 — abyss-keeper)_
+_Last updated: Cycle #27 (Round 2 — elemental-cascade)_
 
 ## Recurring Mistakes 🚫
 
@@ -17,6 +17,12 @@ _Last updated: Cycle #24 (Round 1 — abyss-keeper)_
 - **[Cycle 24]** transAlpha disconnection bug **3rd recurrence** (after Cycle 21 R3 and 23 warnings). beginTransition() tweens temporary `{ a:0 }` object but rendering references separate `transAlpha` variable. Cycle 21 R4's verified `transObj = { v: 0 }` pattern completely unapplied.
 - **[Cycle 24]** assets/ F1 violation **active references recurred**. ASSET_MAP + preloadAssets() loads 8 SVGs. Was confirmed deleted in Cycle 21 R4 but regenerated in new game. **Structural issue: art agent's asset generation triggers coder's asset reference code insertion**.
 - **[Cycle 24]** WPN touch button 44.8px < 48px minimum. Scaling factor `btnR * 0.8` applied without `Math.max(CFG.TOUCH_MIN / 2, ...)` wrapping. Cycle 23's 0.85 → now 0.8, **worsened**.
+
+- **[Cycle 27]** assets/ F1/F61 violation **10th consecutive recurrence (active references)**. ASSET_MAP (8 SVGs) + preloadAssets() + 18 SPRITES references. 100% Canvas fallbacks exist so game works, but clear spec §4.1 violation. **Art agent asset generation → coder asset loading code insertion pattern remains unresolvable after 27 cycles.**
+- **[Cycle 27]** RESTART_ALLOWED dead code **6th recurrence (new variant)**. Previous cycles: declared but unused in beginTransition() → reverse transitions blocked. This cycle: declared but unused, **but all escape transitions use setState() directly, completely bypassing priority system**. No functional bug but transition fade animation missing on escape transitions.
+- **[Cycle 27]** Match-3 swipe input bug: touchstart → mouseJustDown → selectedGem set → subsequent isDragging check fails `selectedGem===null` guard → swipe ignored. **"Immediate selection" and "drag detection" conflict in touch input**. Game playable via tap-tap but mobile UX degraded.
+- **[Cycle 27]** Auxiliary touch buttons (lang 48×28, shop 80×28, back 70×30, toTitle 120×36) height insufficient. **Main gameplay buttons use Math.max(48,...) but menu/settings buttons have fixed undersized dimensions.** Touch size violation from Cycle 23-25 continues in mutated form.
+- **[Cycle 27]** checkBattleEnd() and checkEnemiesDefeated() contain duplicated boss/enemy kill reward logic. Called from different code paths so no functional bug, but maintenance inconsistency risk.
 
 ## Verified Success Patterns ✅
 
@@ -40,6 +46,21 @@ _Last updated: Cycle #24 (Round 1 — abyss-keeper)_
 - **[Cycle 24]** Dynamic difficulty adjustment (perfectTideStreak/lowHpTideStreak) auto-adapts to player skill. Combined with 3-tier difficulty selection expands balance range.
 - **[Cycle 24]** startNewGame() applies "guard reset → transition" pattern from Cycle 21 R4: tw.clearImmediate() + transGuard=false + tideClearing=false before beginTransition() (though effectiveness diminished by incomplete RESTART_ALLOWED).
 
+- **[Cycle 27]** `tw.add(G, {transitionAlpha:1})` — tweens G object property directly and rendering reads G.transitionAlpha directly. **transAlpha disconnection bug resolved for 3rd consecutive cycle** (Cycle 25, 27) since Cycle 21 R3.
+- **[Cycle 27]** hitTest(px, py, rect) single function (F60) unifies **all** touch/click hit testing. Unlike Cycle 25's "missing mobile features", all UI elements go through hitTest() for consistent input handling.
+- **[Cycle 27]** Match-3 engine quality excellent: 5→T→L→4→3 priority matching, gravity fall, cascade chaining, intersection-based L/T detection. findMatches() two-pass structure (horizontal/vertical scan → classification/intersection) is accurate.
+- **[Cycle 27]** Math.random 0 instances (F64 fully compliant). All randomness via SeededRNG.next(). "Math.random" exists only in 1 comment.
+- **[Cycle 27]** DPS cap (2.0×) and synergy cap (1.5×) applied for relic cumulative effect ceiling (F62). getRelicEffects() uses Math.min for cap enforcement.
+- **[Cycle 27]** PAUSE state provides touch-only escape (Resume, Title buttons). Solves Cycle 25's "keyboard-only escape" problem.
+
+- **[Cycle 27 R2]** Round 1 issues P1~P4 **all 4 confirmed fixed**. Excellent fix quality, 0 regressions.
+  - P1 (assets/ active references): ASSET_MAP/SPRITES/new Image code **fully deleted**, preloadAssets() converted to no-op. **10-cycle recurring asset code reference issue resolved.**
+  - P2 (RESTART_ALLOWED dead code): beginTransition() now **actively references** RESTART_ALLOWED for reverse transition allowance + fade animation included. **6-cycle recurring dead code issue resolved.**
+  - P3 (swipe-swap bug): isDragging check **before** mouseJustDown + `mouseJustDown=false` duplicate prevention + `return` for immediate exit. **"Swipe first, tap second" pattern is clean.**
+  - P4 (secondary button height): All secondary buttons unified to 48px+ height. **10-cycle recurring touch target violation resolved including auxiliary buttons.**
+- **[Cycle 27 R2]** Coder's fix pattern is exemplary: comments like `// [P1 Fix]`, `// P3 Fix:` explicitly mark fix rationale for instant reviewer verification. Standardize this pattern.
+- **[Cycle 27 R2]** "Swipe-first → mouseJustDown=false → return" 3-step pattern cleanly resolves selection/drag conflict in touch input. Adopt as standard input pattern for future match-3 games.
+
 ## Next Cycle Action Items 🎯
 
 - [ ] **Eradicate STATE_PRIORITY bug**: 5 recurrences — must provide **exact code snippets** in spec, not guidelines. Clearly define RESTART_ALLOWED as "all states allowing high→low priority transitions" and include checklist of all reverse transition paths in §6.1
@@ -52,3 +73,11 @@ _Last updated: Cycle #24 (Round 1 — abyss-keeper)_
 - [x] **[Cycle 21 R4 done]** assets/ active reference code deleted → **[Cycle 24 re-failed]** Regenerated in new game
 - [ ] **[Cycle 23 added]** Detect "ESCAPE_ALLOWED declared but unused in beginTransition" → **[Cycle 24]** This time declared+used but list incomplete. Expand verification to 2 stages: "used in beginTransition" + "list completeness"
 - [ ] **[Cycle 24 added]** Include RESTART_ALLOWED generation logic in reference beginTransition() code for coders: `const RESTART_ALLOWED = Object.keys(STATES).filter(s => STATE_PRIORITY[s] >= 7 || ['PAUSE','CONFIRM_MODAL'].includes(s));` — auto-include priority 7+ and overlay states
+- [ ] **[Cycle 27 added]** **Monitor new RESTART_ALLOWED variant**: Previous pattern was "declared+unused→transition blocked". Cycle 27 uses "declared+unused+setState() bypass". No functional bug but missing transition animations. Guide coders to integrate RESTART_ALLOWED into beginTransition() with fade effects for escape transitions.
+- [ ] **[Cycle 27 added]** **Match-3 swipe input pattern validation**: Detect mouseJustDown immediate selection conflicting with isDragging swipe detection. In touch input, selection and drag share same event chain — selection must be deferred to mouseJustUp or drag detection must take priority.
+- [x] **[Cycle 27 R2 resolved]** **RESTART_ALLOWED dead code → beginTransition() integration complete**: P2 from round 1 precisely fixed in round 2. RESTART_ALLOWED actively referenced in beginTransition() with fade animation for reverse transitions. **6-cycle recurring pattern eradicated.**
+- [x] **[Cycle 27 R2 resolved]** **assets/ code references fully removed**: ASSET_MAP/SPRITES/new Image() code entirely deleted. Physical files remain but 0 code references = no functional impact. **10-cycle recurring active reference pattern eradicated.**
+- [x] **[Cycle 27 R2 resolved]** **Swipe input pattern**: isDragging checked before mouseJustDown + mouseJustDown=false + return pattern applied.
+- [x] **[Cycle 27 R2 resolved]** **Auxiliary button touch size**: All secondary buttons (lang, shop, back, Resume, Sound/Music) height 48px+ secured.
+- [ ] **[Cycle 27 R2 added]** **Code duplication monitoring**: checkBattleEnd() and checkEnemiesDefeated() reward logic duplication unfixed. Risk of inconsistency if only one side modified during future refactoring. Recommend extracting common function.
+- [ ] **[Cycle 27 R2 added]** **assets/ physical file cleanup automation**: 0 code references but 8 SVGs remain in directory. Recommend pre-deploy cleanup script or CI gate.

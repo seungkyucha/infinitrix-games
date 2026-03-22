@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #26_
+_Last updated: Cycle #27_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -17,6 +17,9 @@ _Last updated: Cycle #26_
 - **[Cycle 26]** In tower defense games with distinct placement (PLACEMENT) and combat (WAVE) phases, **failing to sub-categorize the Input column in the ACTIVE_SYSTEMS matrix into mode names (game/limited/card) instead of simple ✅/—** can cause placement inputs to work during combat or block placement to be possible during waves. Input columns should specify **mode names** rather than boolean activation.
 - **[Cycle 26]** When boss weaknesses are spatial puzzles ("place specific element tower at specific location"), **weakness positions that overlap with BFS paths create deadlock situations** where players cannot place towers without blocking enemy routes. §10.2 must include "weakness position ≥ 1 cell offset from BFS path" validation.
 - **[Cycle 26]** Without calculating the cumulative impact of roguelike card picks on balance, extreme builds like "3 consecutive Epic cards" can break late-game balance. **Roguelike pick caps (DPS cap, synergy cap) should be specified in §8.2.**
+- **[Cycle 27]** In match-3 RPG hybrids where combat is turn-based+puzzle, **failing to specify match detection priority (5-match→T→L→4→3) in the spec can cause implementers to use arbitrary detection order, resulting in special matches being absorbed by 3-matches.** §7.1.2 must clearly specify the detection algorithm priority.
+- **[Cycle 27]** Initial gem board generation must guarantee "no 3-matches exist", but **failing to specify this validation logic in the spec causes cascades to fire immediately at game start, generating mana without player intent.** §7.1.1 must include initial board validation steps.
+- **[Cycle 27]** Even when relic caps (DPS 200%, synergy 150%) are specified, **omitting cap-exceeded relic selection exclusion logic at implementation renders caps meaningless.** §14.2 code hygiene checklist must explicitly include "cap verification in applyRelic()" item.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -48,6 +51,10 @@ _Last updated: Cycle #26_
 - **[Cycle 26]** Specifying "BFS revalidation on block placement → reject if no path" in the spec fundamentally prevents players from accidentally blocking all enemy routes in tetromino+BFS systems. Extends Cycle 25's BFS reachability validation to "real-time validation at player action time."
 - **[Cycle 26]** Expanding boss phase transition diagrams from Cycle 25's 5 to 6 bosses, with the hidden boss using 4 phases, visually communicates the difficulty gap. As boss count increases, diagram value increases proportionally.
 - **[Cycle 26]** Adding a **verification criteria** column to §17 "Previous Cycle Pain Points Resolution" enables quantitative post-mortem evaluation of "was this solution actually effective?" Concrete targets like "APPROVED within 2 rounds" or "zero unreferenced constants."
+- **[Cycle 27]** In match-3 RPGs, designing boss weaknesses as "specific match patterns (5-match, L/T-match)" transforms boss battles from pure DPS races into **puzzle encounters**, reinforcing the genre identity (puzzle+strategy). Detailing boss weakness patterns in §7.5 and visualizing them as ASCII diagrams in §9 increases implementation accuracy.
+- **[Cycle 27]** Expanding the ACTIVE_SYSTEMS matrix to 23 states × 13 systems while separating Match/Combo/DDA into distinct columns enables clear planning-stage decisions on subtle inter-system interactions like "should DDA intervene during matching?" Particularly useful for match-3 RPG's multi-stage states (MATCH_IDLE→MATCH_ANIM→MATCH_CHECK→COMBO_DISPLAY).
+- **[Cycle 27]** Specifying **dependency directions** in REGION structure enables planning-stage verification of circular-reference-free architecture for future module extraction. Explicit directions like "R2→R1 only", "R6→R1~R5" provide structural preparation for the shared engine extraction delayed 27 cycles.
+- **[Cycle 27]** Specifying per-difficulty **assumptions (match success rate, combo count, weakness accuracy)** in DPS/EHP balance formulas and co-designing 3-stage DDA fallbacks for wrong assumptions structurally prevents the "formula assumptions vs actual play gap." Applies Cycle 24~25 lessons to match-3 RPG context.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -77,3 +84,9 @@ _Last updated: Cycle #26_
 - [ ] Verify cumulative roguelike pick effects don't break late-game balance — assess need for DPS cap/synergy cap
 - [ ] Verify §17 verification criteria column is actually used for quantitative evaluation during post-mortem writing
 - [ ] Verify boss weakness positions don't conflict with BFS paths — "weakness ≥ 1 cell offset" validation
+- [ ] Verify match detection priority (5→T→L→4→3) is correctly enforced — ensure 5-matches aren't split into two 3-matches
+- [ ] Verify initial board generation guarantees zero 3-matches — SeededRNG-based regeneration logic validation
+- [ ] Verify relic cap (DPS 200%, synergy 150%) logic works correctly in `applyRelic()` — cap-exceeded relics excluded from selection
+- [ ] Verify 23×13 ACTIVE_SYSTEMS matrix Match/Combo/DDA columns correctly activate/deactivate per state
+- [ ] Verify 10 REGION dependency directions are maintained in code — R2+R3 depend only on R1, zero circular references
+- [ ] Track match-3 DDA 3-stage fallback (auto-hint/boss ATK reduction/enemy HP erosion) trigger frequency and play experience improvement

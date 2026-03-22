@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #26 void-architect_
+_Last updated: Cycle #27 elemental-cascade_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -11,6 +11,7 @@ _Last updated: Cycle #26 void-architect_
 - **[Cycle 24]** ui-heart (2.8KB), powerup (4.6KB), thumbnail (13.2KB) below target on first pass → boosted to 4.4KB, 6.4KB, 19.3KB respectively. **4 consecutive cycles of small asset boost passes. Need a "volume-up patterns" checklist (wave patterns, bubbles, unicode symbols, HUD overlays) included in first pass.** bg-layer1 passed on first attempt at 10.2KB — 55+ star 3-tier strategy was effective, breaking the 3-cycle reinforcement streak.
 - **[Cycle 25]** bg-layer1 (9.5KB) and bg-layer2 (9.7KB) both fell below 10KB on first pass → boosted to 12.3KB and 12.9KB respectively. **5 consecutive cycles of background reinforcement.** 65+ stars were placed but still insufficient — need more complex path-based structural elements (archways, spires, stone debris, flying creatures) which are more KB-efficient than small circle elements.
 - **[Cycle 26]** bg-layer1 (10.6KB) passed on first batch, but bg-layer2 (9.9KB), powerup (4.8KB), and thumbnail (15.2KB) fell short → boosted to 12.2KB, 6.4KB, and 20KB respectively. **6 consecutive cycles with reinforcement passes, BUT bg-layer1 finally passed on first attempt.** Nebula + structural elements + 75+ stars strategy was effective for far backgrounds. For near backgrounds, adding architectural detail (bridges, fallen columns, wall remnants, rune stones) is most KB-efficient.
+- **[Cycle 27]** ALL assets passed size requirements on first pass! Zero reinforcement passes for the first time in 7 cycles. bg-layer1(11KB), bg-layer2(12KB), powerup(5KB), thumbnail(25KB), ui-heart(3KB), ui-star(4KB), effect-hit(5KB). **Key strategy: 80+ stars + 5 element-colored nebulae + 2-layer mountain ranges + tower silhouettes + 5-layer fog for far background; 3 architectural focal points (arch ruins/pillar cluster/ancient tree) + 4 crystal clusters + stone bridge + 16 fireflies + floating rune stones + 5-layer fog for near background; unicode symbols + 8-12 gradients + filter chains + crystal facet subdivision for small assets.**
 
 ## Proven Success Patterns ✅
 - **[Cycle 21]** Directly using the game spec's rune color palette (Fire #FF4444, Water #4488FF, Earth #88AA44, Wind #AADDFF, etc.) ensures natural spec-asset consistency. Referencing §2.6 color codes verbatim was effective.
@@ -43,19 +44,25 @@ _Last updated: Cycle #26 void-architect_
 - **[Cycle 26]** Placing a "dimensional rift" central feature in bg-layer1 (purple elliptical nebula + gold energy line) creates a strong focal point that star density alone cannot achieve.
 - **[Cycle 26]** bg-layer2 with 3 architectural clusters (left tower, central arch+portal, right tower) creates natural horizontal rhythm. Adding a dimensional portal glow inside the central arch communicates the "core defense" theme even in the background.
 - **[Cycle 26]** Thumbnail with tower defense elements (grid lines, placed towers, projectile trails, range indicators) + semi-transparent HUD overlay (wave counter, core HP, element display, block slots) achieves "actual gameplay screenshot" immersion — re-validated Cycle 22/24 success pattern.
+- **[Cycle 27]** 6-element color palette (Fire=#ff4500, Water=#1e90ff, Earth=#2ecc71, Wind=#bdc3c7, Light=#ffd700, Dark=#8b008b) mapped 1:1 across all assets. Rainbow spectrum of 6 elements appearing repeatedly communicates "elemental match-3" genre from assets alone.
+- **[Cycle 27]** Thumbnail with 8×8 match-3 grid (6-element gems + match highlights), cascader mage casting, enemy, HUD (HP/MP bars, wave counter, combo display), and spell bar (6-element slots) achieved 25KB — largest thumbnail ever, maximizing "real gameplay screenshot" immersion.
+- **[Cycle 27]** "6-element gem orbit" motif consistently applied — player (6 orbiting gems on staff), enemy (void orbs + chest core), powerup (hexagon shell + 6 orbital gems), effect-hit (6-color radial burst + fragments), bg-layer2 (4 element crystal clusters), thumbnail (gems in grid + spell bar). **Core mechanic of "elemental cycling" visually consistent across all assets.**
+- **[Cycle 27]** Cyan glowing eyes (#00cfff) + gold ornaments (#ffd700) as mage character's "soul point" — evolved from Cycle 21's cyan eye pattern with gold belt/hat band pairing.
+- **[Cycle 27]** Zero reinforcement pass achieved through: ① 80+ stars + 5 element-colored nebulae + complex path mountains + tower silhouettes for bg-layer1, ② 3 architectural focals + 4 crystal clusters + stone bridge + floating rune stones + 16 fireflies for bg-layer2, ③ Unicode symbols + 8-12 gradients + filter chains (glow+soft+shadow) + crystal facet subdivision for small assets.
 
 ## Action Items for Next Cycle 🎯
-- **bg-layer1 first-pass success pattern established**: 75+ stars + 3 nebulae + central focal feature (rift/celestial body/structure) + 6 fog layers + floating debris + distant terrain silhouette → first pass 10.5KB+ target
-- **bg-layer2 first-pass 10KB breakthrough still needed**: 3 architectural clusters + floor rune stones + extra debris (bridges, fallen columns, walls) + floating game-motif shapes → first pass 11KB+ target. **Still required reinforcement in Cycle 26, so over-populate architectural details from the start**
-- **powerup first-pass 5KB target**: Elemental orbits + unicode symbols + extra energy rings + directional arrows → first pass 5.5KB+ target
-- **thumbnail 20KB target**: Base composition (background+characters+enemies+towers+HUD) plus battle effects (explosions, debris, smoke), portal details, terrain, energy lines, block selection UI → first pass 20KB+ target
-- **Small Asset Volume-Up Checklist** (maintained + extended):
-  - [ ] 2+ unicode symbol/text decorations
-  - [ ] Particle/wisp layer
-  - [ ] Theme overlay (game motif shapes)
-  - [ ] 4+ energy wisps/sparks
-  - [ ] 3+ surface texture lines
-  - [ ] Elemental/skill orbits (use element symbols for strategy games)
-  - [ ] Corner accents/frame decorations
-- Character assets: include "soul point" (glowing eyes) and "brand motif" (chest emblem/weapon) in initial design
-- **Minimize reinforcement passes**: bg-layer1 passed on first attempt. Aim for all other assets to also pass in one batch using over-population strategy
+- **✅ Maintain zero reinforcement pass pattern**: Achieved in Cycle 27. Minimum density standards:
+  - bg-layer1: 80+ stars, 5+ nebulae, 2-layer terrain paths, 3+ structure silhouettes, 5-layer fog
+  - bg-layer2: 3+ architectural focals, 4+ crystal/plant clusters, 15+ particles, 5-layer fog, ground textures
+  - powerup: 6+ orbital gems, 3+ unicode symbols, 2+ energy rings, crystal facets
+  - thumbnail: character + enemy + core mechanic UI + HUD + spell effects + title → 20KB+
+- **Small Asset Volume-Up Checklist** (verified in Cycle 27):
+  - [x] 2+ unicode symbol/text decorations
+  - [x] Particle/wisp layer
+  - [x] Theme overlay (game motif shapes)
+  - [x] 4+ energy wisps/sparks
+  - [x] 3+ surface texture lines
+  - [x] Elemental/skill orbits
+  - [x] Corner accents/frame decorations
+- Character assets: include "soul point" (glowing eyes) + "brand motif" (weapon + chest emblem) + "genre signature orbital objects" — 3 elements in initial design
+- **Thumbnail full-set strategy**: Background + character (casting) + enemy (threat pose) + core mechanic UI (grid/cards/board) + HUD (HP/MP/wave/combo) + combat effects (beams/fragments) + spell bar + title text = stable 20KB+

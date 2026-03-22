@@ -1,0 +1,463 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <!-- Sky -->
+    <linearGradient id="tSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#050315"/>
+      <stop offset="40%" stop-color="#0d0b1e"/>
+      <stop offset="100%" stop-color="#1a1040"/>
+    </linearGradient>
+    <!-- Player robe -->
+    <linearGradient id="tRobe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d1b6e"/>
+      <stop offset="100%" stop-color="#0d0833"/>
+    </linearGradient>
+    <!-- Staff orb -->
+    <radialGradient id="tOrb" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="30%" stop-color="#00cfff"/>
+      <stop offset="100%" stop-color="#1e90ff"/>
+    </radialGradient>
+    <!-- Fire gem -->
+    <radialGradient id="tFire" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fffacd"/>
+      <stop offset="30%" stop-color="#ff8c00"/>
+      <stop offset="100%" stop-color="#ff4500"/>
+    </radialGradient>
+    <!-- Water gem -->
+    <radialGradient id="tWater" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#e0f7ff"/>
+      <stop offset="40%" stop-color="#00cfff"/>
+      <stop offset="100%" stop-color="#1e90ff"/>
+    </radialGradient>
+    <!-- Earth gem -->
+    <radialGradient id="tEarth" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#a8e6cf"/>
+      <stop offset="40%" stop-color="#7dcea0"/>
+      <stop offset="100%" stop-color="#2ecc71"/>
+    </radialGradient>
+    <!-- Wind gem -->
+    <radialGradient id="tWind" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="40%" stop-color="#ecf0f1"/>
+      <stop offset="100%" stop-color="#bdc3c7"/>
+    </radialGradient>
+    <!-- Light gem -->
+    <radialGradient id="tLight" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fffef0"/>
+      <stop offset="40%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#daa520"/>
+    </radialGradient>
+    <!-- Dark gem -->
+    <radialGradient id="tDark" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#b388ff"/>
+      <stop offset="40%" stop-color="#8b008b"/>
+      <stop offset="100%" stop-color="#2d1b4e"/>
+    </radialGradient>
+    <!-- Enemy body -->
+    <radialGradient id="tEnemy" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#4a1942"/>
+      <stop offset="60%" stop-color="#2d1133"/>
+      <stop offset="100%" stop-color="#150a1e"/>
+    </radialGradient>
+    <!-- Enemy core -->
+    <radialGradient id="tECore" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#ff6600"/>
+      <stop offset="40%" stop-color="#cc2200"/>
+      <stop offset="100%" stop-color="#660011"/>
+    </radialGradient>
+    <!-- Enemy eye -->
+    <radialGradient id="tEEye" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ff2222"/>
+      <stop offset="50%" stop-color="#cc0000"/>
+      <stop offset="100%" stop-color="#880000"/>
+    </radialGradient>
+    <!-- Nebula -->
+    <radialGradient id="tNeb1" cx="25%" cy="30%" r="40%">
+      <stop offset="0%" stop-color="#1e90ff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#0d0b1e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tNeb2" cx="75%" cy="25%" r="30%">
+      <stop offset="0%" stop-color="#8b008b" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#0d0b1e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tNeb3" cx="50%" cy="60%" r="35%">
+      <stop offset="0%" stop-color="#ff4500" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0d0b1e" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Title gradient -->
+    <linearGradient id="tTitle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="50%" stop-color="#fffacd"/>
+      <stop offset="100%" stop-color="#ffd700"/>
+    </linearGradient>
+    <linearGradient id="tSubTitle" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00cfff"/>
+      <stop offset="50%" stop-color="#e8e0f0"/>
+      <stop offset="100%" stop-color="#00cfff"/>
+    </linearGradient>
+    <!-- Glow filters -->
+    <filter id="tGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tTextGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tShadow">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <!-- Grid cell gradient -->
+    <linearGradient id="tCellBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1833"/>
+      <stop offset="100%" stop-color="#0d0b1e"/>
+    </linearGradient>
+    <!-- Moon -->
+    <radialGradient id="tMoon" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#fffef0"/>
+      <stop offset="40%" stop-color="#e8e0f0"/>
+      <stop offset="100%" stop-color="#bdc3c7"/>
+    </radialGradient>
+    <radialGradient id="tMoonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e8e0f0" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#e8e0f0" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#e8e0f0" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Horn -->
+    <linearGradient id="tHorn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ddd"/>
+      <stop offset="100%" stop-color="#555"/>
+    </linearGradient>
+    <!-- Hat -->
+    <linearGradient id="tHat" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#3a2d8e"/>
+      <stop offset="100%" stop-color="#0d0833"/>
+    </linearGradient>
+    <!-- HUD bar -->
+    <linearGradient id="tHPBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e74c3c"/>
+      <stop offset="100%" stop-color="#ff6b6b"/>
+    </linearGradient>
+    <linearGradient id="tManaBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1e90ff"/>
+      <stop offset="100%" stop-color="#00cfff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background sky -->
+  <rect width="400" height="300" fill="url(#tSky)"/>
+  <rect width="400" height="300" fill="url(#tNeb1)"/>
+  <rect width="400" height="300" fill="url(#tNeb2)"/>
+  <rect width="400" height="300" fill="url(#tNeb3)"/>
+
+  <!-- Moon -->
+  <circle cx="340" cy="45" r="28" fill="url(#tMoonGlow)"/>
+  <circle cx="340" cy="45" r="16" fill="url(#tMoon)" filter="url(#tSoft)"/>
+  <circle cx="335" cy="40" r="4" fill="#d0c8e0" opacity="0.15"/>
+
+  <!-- Stars -->
+  <g fill="#fff">
+    <circle cx="30" cy="20" r="1" opacity="0.8"/><circle cx="80" cy="15" r="0.8" opacity="0.7"/>
+    <circle cx="140" cy="25" r="1.2" opacity="0.85"/><circle cx="200" cy="10" r="0.9" opacity="0.75"/>
+    <circle cx="260" cy="30" r="1" opacity="0.8"/><circle cx="310" cy="18" r="0.7" opacity="0.65"/>
+    <circle cx="370" cy="22" r="1.1" opacity="0.8"/><circle cx="50" cy="50" r="0.8" opacity="0.6"/>
+    <circle cx="120" cy="55" r="1" opacity="0.7"/><circle cx="180" cy="40" r="0.7" opacity="0.55"/>
+    <circle cx="240" cy="52" r="0.9" opacity="0.65"/><circle cx="290" cy="48" r="0.8" opacity="0.6"/>
+    <circle cx="380" cy="58" r="0.7" opacity="0.5"/><circle cx="20" cy="75" r="0.9" opacity="0.55"/>
+    <circle cx="70" cy="80" r="0.6" opacity="0.45"/><circle cx="150" cy="70" r="0.8" opacity="0.5"/>
+    <circle cx="350" cy="72" r="0.7" opacity="0.5"/><circle cx="395" cy="40" r="0.5" opacity="0.4"/>
+    <circle cx="5" cy="35" r="0.6" opacity="0.5"/><circle cx="105" cy="38" r="0.7" opacity="0.55"/>
+  </g>
+
+  <!-- Colored element stars -->
+  <circle cx="60" cy="30" r="0.8" fill="#ff4500" opacity="0.5"/>
+  <circle cx="160" cy="18" r="0.9" fill="#1e90ff" opacity="0.5"/>
+  <circle cx="230" cy="42" r="0.7" fill="#2ecc71" opacity="0.4"/>
+  <circle cx="320" cy="35" r="0.8" fill="#ffd700" opacity="0.5"/>
+  <circle cx="100" cy="65" r="0.7" fill="#8b008b" opacity="0.4"/>
+  <circle cx="280" cy="60" r="0.6" fill="#ecf0f1" opacity="0.4"/>
+
+  <!-- Distant mountains -->
+  <path d="M0 190 C30 170, 60 165, 90 180 C120 160, 160 150, 200 170 C240 150, 280 145, 320 165 C350 148, 375 152, 400 160 L400 300 L0 300 Z" fill="#1a1040" opacity="0.4"/>
+
+  <!-- Ruins in background -->
+  <g opacity="0.2">
+    <rect x="50" y="160" width="4" height="30" fill="#2d2755"/>
+    <polygon points="46,160 52,148 58,160" fill="#2d2755"/>
+    <rect x="330" y="155" width="5" height="35" fill="#2d2755"/>
+    <polygon points="326,155 333,142 340,155" fill="#2d2755"/>
+  </g>
+
+  <!-- === MATCH-3 GRID (center-right) === -->
+  <g id="grid" transform="translate(215, 75)">
+    <!-- Grid background -->
+    <rect x="-5" y="-5" width="170" height="170" rx="6" fill="#0d0b1e" stroke="#2d2755" stroke-width="1.5" opacity="0.85"/>
+
+    <!-- 8x8 grid cells (showing 8x8 but small) -->
+    <!-- Row 0 -->
+    <rect x="0" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="20" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="40" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="60" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="80" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="100" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="120" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="140" y="0" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <!-- Row 1 -->
+    <rect x="0" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="20" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="40" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="60" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="80" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="100" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="120" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="140" y="20" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <!-- Row 2 -->
+    <rect x="0" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="20" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="40" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="60" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="80" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="100" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="120" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="140" y="40" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <!-- Row 3 -->
+    <rect x="0" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="20" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="40" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="60" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="80" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="100" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="120" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <rect x="140" y="60" width="19" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3"/>
+    <!-- Rows 4-7 (abbreviated with fewer details) -->
+    <rect x="0" y="80" width="159" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3" opacity="0.7"/>
+    <rect x="0" y="100" width="159" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3" opacity="0.6"/>
+    <rect x="0" y="120" width="159" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3" opacity="0.5"/>
+    <rect x="0" y="140" width="159" height="19" rx="2" fill="url(#tCellBg)" stroke="#2d2755" stroke-width="0.3" opacity="0.4"/>
+
+    <!-- Gems on grid (showing a match in progress!) -->
+    <!-- Fire gems (3-match horizontal - Row 0) -->
+    <circle cx="10" cy="10" r="6" fill="url(#tFire)" filter="url(#tSoft)"/>
+    <circle cx="30" cy="10" r="6" fill="url(#tFire)" filter="url(#tSoft)"/>
+    <circle cx="50" cy="10" r="6" fill="url(#tFire)" filter="url(#tSoft)"/>
+    <!-- Match glow highlight -->
+    <rect x="-2" y="-2" width="62" height="22" rx="4" fill="none" stroke="#ff8c00" stroke-width="1.5" opacity="0.6"/>
+
+    <!-- Other gems scattered -->
+    <circle cx="70" cy="10" r="6" fill="url(#tWater)"/>
+    <circle cx="90" cy="10" r="6" fill="url(#tEarth)"/>
+    <circle cx="110" cy="10" r="6" fill="url(#tDark)"/>
+    <circle cx="130" cy="10" r="6" fill="url(#tLight)"/>
+    <circle cx="150" cy="10" r="6" fill="url(#tWind)"/>
+
+    <!-- Row 1 gems -->
+    <circle cx="10" cy="30" r="6" fill="url(#tWater)"/>
+    <circle cx="30" cy="30" r="6" fill="url(#tLight)"/>
+    <circle cx="50" cy="30" r="6" fill="url(#tEarth)"/>
+    <circle cx="70" cy="30" r="6" fill="url(#tFire)"/>
+    <circle cx="90" cy="30" r="6" fill="url(#tDark)"/>
+    <circle cx="110" cy="30" r="6" fill="url(#tWind)"/>
+    <circle cx="130" cy="30" r="6" fill="url(#tWater)"/>
+    <circle cx="150" cy="30" r="6" fill="url(#tFire)"/>
+
+    <!-- Row 2 gems -->
+    <circle cx="10" cy="50" r="6" fill="url(#tDark)"/>
+    <circle cx="30" cy="50" r="6" fill="url(#tWind)"/>
+    <circle cx="50" cy="50" r="6" fill="url(#tWater)"/>
+    <circle cx="70" cy="50" r="6" fill="url(#tLight)"/>
+    <circle cx="90" cy="50" r="6" fill="url(#tFire)"/>
+    <circle cx="110" cy="50" r="6" fill="url(#tEarth)"/>
+    <circle cx="130" cy="50" r="6" fill="url(#tDark)"/>
+    <circle cx="150" cy="50" r="6" fill="url(#tLight)"/>
+
+    <!-- Row 3 - partial with cascade effect -->
+    <circle cx="10" cy="70" r="6" fill="url(#tEarth)"/>
+    <circle cx="30" cy="70" r="6" fill="url(#tFire)"/>
+    <circle cx="50" cy="70" r="6" fill="url(#tLight)"/>
+    <circle cx="70" cy="70" r="6" fill="url(#tWater)"/>
+    <circle cx="90" cy="70" r="6" fill="url(#tWater)"/>
+    <circle cx="110" cy="70" r="6" fill="url(#tWater)"/>
+    <!-- Another match highlight -->
+    <rect x="68" y="58" width="62" height="22" rx="4" fill="none" stroke="#00cfff" stroke-width="1" opacity="0.4"/>
+    <circle cx="130" cy="70" r="6" fill="url(#tEarth)"/>
+    <circle cx="150" cy="70" r="6" fill="url(#tWind)"/>
+
+    <!-- Cascade sparkle effects -->
+    <circle cx="10" cy="10" r="8" fill="none" stroke="#ff8c00" stroke-width="0.5" opacity="0.4"/>
+    <circle cx="30" cy="10" r="8" fill="none" stroke="#ff8c00" stroke-width="0.5" opacity="0.3"/>
+    <circle cx="50" cy="10" r="8" fill="none" stroke="#ff8c00" stroke-width="0.5" opacity="0.4"/>
+  </g>
+
+  <!-- === PLAYER CHARACTER (left side) === -->
+  <g id="t-player" transform="translate(55, 95) scale(0.9)">
+    <!-- Cape -->
+    <path d="M-10 20 C-15 40, -18 65, -12 85 Q-5 90, 10 88 Q25 90, 32 85 C38 65, 35 40, 30 20 Z" fill="#1a1050" opacity="0.6"/>
+    <!-- Body/Robe -->
+    <path d="M-2 18 C-4 30, -6 50, -8 70 Q-6 78, 2 80 L10 82 L18 80 Q26 78, 28 70 C26 50, 24 30, 22 18 Z" fill="url(#tRobe)" stroke="#2d2755" stroke-width="0.5"/>
+    <!-- Belt -->
+    <path d="M-2 35 Q5 37, 10 36 Q15 35, 22 35" stroke="#ffd700" stroke-width="1" fill="none" opacity="0.7"/>
+    <circle cx="10" cy="36" r="1.5" fill="#ffd700" opacity="0.8"/>
+    <!-- Robe folds -->
+    <path d="M4 40 C5 55, 5 65, 4 78" stroke="#0d0833" stroke-width="0.4" fill="none" opacity="0.4"/>
+    <path d="M16 40 C15 55, 15 65, 16 78" stroke="#0d0833" stroke-width="0.4" fill="none" opacity="0.4"/>
+    <!-- Robe hem decoration -->
+    <path d="M-8 75 Q-3 72, 2 75 Q7 72, 10 75 Q13 72, 18 75 Q23 72, 28 75" stroke="#ffd700" stroke-width="0.5" fill="none" opacity="0.4"/>
+
+    <!-- Staff arm -->
+    <path d="M-2 20 C-8 24, -14 30, -18 38" fill="url(#tRobe)" stroke="#2d2755" stroke-width="0.4"/>
+    <ellipse cx="-18" cy="38" rx="2.5" ry="2" fill="#d4a574"/>
+
+    <!-- Staff -->
+    <line x1="-18" y1="38" x2="-14" y2="-25" stroke="#8B7355" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-18" y1="38" x2="-14" y2="-25" stroke="#a08060" stroke-width="1" opacity="0.4" stroke-linecap="round"/>
+    <!-- Staff head -->
+    <path d="M-20 -22 C-22 -28, -18 -34, -14 -36 C-10 -38, -6 -34, -8 -28 L-14 -24 Z" fill="#2d1b6e" stroke="#ffd700" stroke-width="0.5"/>
+    <!-- Staff orb (main focal glow) -->
+    <circle cx="-14" cy="-30" r="8" fill="url(#tOrb)" filter="url(#tGlow)"/>
+    <circle cx="-14" cy="-30" r="5" fill="#00cfff" opacity="0.5"/>
+    <circle cx="-16" cy="-32" r="2" fill="#fff" opacity="0.5"/>
+
+    <!-- Casting arm -->
+    <path d="M22 20 C28 18, 32 14, 35 8" fill="url(#tRobe)" stroke="#2d2755" stroke-width="0.4"/>
+    <ellipse cx="35" cy="8" rx="2.5" ry="2" fill="#d4a574"/>
+    <!-- Casting sparks -->
+    <circle cx="38" cy="4" r="1.5" fill="#ffd700" opacity="0.7" filter="url(#tSoft)"/>
+    <circle cx="40" cy="7" r="1" fill="#ff4500" opacity="0.6"/>
+    <circle cx="36" cy="2" r="1" fill="#00cfff" opacity="0.6"/>
+    <circle cx="42" cy="5" r="0.8" fill="#2ecc71" opacity="0.5"/>
+
+    <!-- Orbiting gems around staff -->
+    <circle cx="-22" cy="-36" r="2" fill="url(#tFire)" opacity="0.7" filter="url(#tSoft)"/>
+    <circle cx="-6" cy="-36" r="2" fill="url(#tEarth)" opacity="0.7" filter="url(#tSoft)"/>
+    <circle cx="-14" cy="-40" r="2" fill="url(#tLight)" opacity="0.7" filter="url(#tSoft)"/>
+
+    <!-- Head -->
+    <ellipse cx="10" cy="8" rx="9" ry="10" fill="#d4a574"/>
+    <ellipse cx="10" cy="10" rx="7" ry="7" fill="#c49464" opacity="0.2"/>
+    <!-- Eyes (signature cyan) -->
+    <circle cx="6" cy="6" r="1.5" fill="#0d0b1e"/>
+    <circle cx="14" cy="6" r="1.5" fill="#0d0b1e"/>
+    <circle cx="6" cy="6" r="0.8" fill="#00cfff" filter="url(#tSoft)"/>
+    <circle cx="14" cy="6" r="0.8" fill="#00cfff" filter="url(#tSoft)"/>
+    <circle cx="5.5" cy="5.5" r="0.3" fill="#fff" opacity="0.8"/>
+    <circle cx="13.5" cy="5.5" r="0.3" fill="#fff" opacity="0.8"/>
+    <!-- Eyebrows -->
+    <path d="M3.5 3 Q6 1.5, 8 3" stroke="#4a3728" stroke-width="0.6" fill="none"/>
+    <path d="M12 3 Q14 1.5, 16.5 3" stroke="#4a3728" stroke-width="0.6" fill="none"/>
+    <!-- Nose & mouth -->
+    <path d="M10 8 L9.5 10 L10.5 10" stroke="#b8956a" stroke-width="0.3" fill="none"/>
+    <path d="M7 12 Q10 14, 13 12" stroke="#a0644a" stroke-width="0.5" fill="none"/>
+
+    <!-- Hat -->
+    <ellipse cx="10" cy="1" rx="13" ry="3" fill="url(#tHat)" stroke="#2d2755" stroke-width="0.3"/>
+    <path d="M-2 1 C0 -10, 4 -20, 6 -28 Q10 -32, 14 -25 C16 -18, 20 -8, 22 1 Z" fill="url(#tHat)" stroke="#2d2755" stroke-width="0.3"/>
+    <path d="M-2 1 Q5 -1, 10 0 Q15 -1, 22 1" stroke="#ffd700" stroke-width="1.2" fill="none"/>
+    <!-- Hat stars -->
+    <circle cx="5" cy="-12" r="0.6" fill="#ffd700" opacity="0.5"/>
+    <circle cx="14" cy="-18" r="0.5" fill="#ffd700" opacity="0.4"/>
+  </g>
+
+  <!-- === ENEMY (far right, behind grid) === -->
+  <g id="t-enemy" transform="translate(370, 55) scale(0.5)" opacity="0.7">
+    <!-- Dark aura -->
+    <ellipse cx="0" cy="0" rx="40" ry="40" fill="#8b008b" opacity="0.15" filter="url(#tSoft)"/>
+    <!-- Body -->
+    <path d="M-20 -15 C-25 -5, -27 10, -24 25 Q-22 32, -12 35 L0 38 L12 35 Q22 32, 24 25 C27 10, 25 -5, 20 -15 Q14 -25, 0 -27 Q-14 -25, -20 -15 Z" fill="url(#tEnemy)"/>
+    <!-- Core -->
+    <ellipse cx="0" cy="8" rx="6" ry="8" fill="url(#tECore)" filter="url(#tSoft)" opacity="0.8"/>
+    <!-- Horns -->
+    <path d="M-10 -22 C-14 -32, -20 -40, -24 -48" stroke="url(#tHorn)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10 -22 C14 -32, 20 -40, 24 -48" stroke="url(#tHorn)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="-24" cy="-48" r="2.5" fill="#ff2222" opacity="0.5" filter="url(#tGlow)"/>
+    <circle cx="24" cy="-48" r="2.5" fill="#ff2222" opacity="0.5" filter="url(#tGlow)"/>
+    <!-- Eyes -->
+    <path d="M-8 -14 L-3 -16 L2 -14 L-3 -12 Z" fill="url(#tEEye)" filter="url(#tGlow)"/>
+    <path d="M-2 -14 L3 -16 L8 -14 L3 -12 Z" fill="url(#tEEye)" filter="url(#tGlow)"/>
+    <!-- Fangs -->
+    <path d="M-4 -6 L-5 -2 L-3 -4" fill="#ddd"/>
+    <path d="M4 -6 L5 -2 L3 -4" fill="#ddd"/>
+  </g>
+
+  <!-- === SPELL EFFECTS (between player and grid) === -->
+  <g id="spell-effects">
+    <!-- Fire spell beam -->
+    <path d="M90 90 C120 80, 160 75, 210 80" stroke="#ff4500" stroke-width="3" fill="none" opacity="0.5" filter="url(#tSoft)"/>
+    <path d="M90 90 C120 82, 160 78, 210 80" stroke="#ff8c00" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <path d="M90 90 C120 84, 160 80, 210 80" stroke="#ffd700" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <!-- Spell particles -->
+    <circle cx="120" cy="82" r="2" fill="#ff4500" opacity="0.6" filter="url(#tSoft)"/>
+    <circle cx="150" cy="78" r="1.5" fill="#ffd700" opacity="0.5"/>
+    <circle cx="175" cy="77" r="2" fill="#ff8c00" opacity="0.5" filter="url(#tSoft)"/>
+    <circle cx="195" cy="78" r="1.5" fill="#ff4500" opacity="0.4"/>
+  </g>
+
+  <!-- === HUD OVERLAY (transparent) === -->
+  <g id="hud" opacity="0.5">
+    <!-- HP Bar -->
+    <rect x="10" y="8" width="80" height="8" rx="3" fill="#0d0b1e" stroke="#2d2755" stroke-width="0.5"/>
+    <rect x="11" y="9" width="55" height="6" rx="2" fill="url(#tHPBar)"/>
+    <text x="14" y="14" font-size="5" fill="#fff" font-family="sans-serif" font-weight="bold">HP</text>
+
+    <!-- Mana Bar -->
+    <rect x="10" y="19" width="80" height="8" rx="3" fill="#0d0b1e" stroke="#2d2755" stroke-width="0.5"/>
+    <rect x="11" y="20" width="40" height="6" rx="2" fill="url(#tManaBar)"/>
+    <text x="14" y="25" font-size="5" fill="#fff" font-family="sans-serif" font-weight="bold">MP</text>
+
+    <!-- Wave counter -->
+    <text x="105" y="14" font-size="6" fill="#e8e0f0" font-family="sans-serif">Wave 3/15</text>
+
+    <!-- Combo counter -->
+    <text x="105" y="24" font-size="7" fill="#ffd700" font-family="sans-serif" font-weight="bold">×3 COMBO!</text>
+  </g>
+
+  <!-- Spell bar (bottom of grid area) -->
+  <g id="spell-bar" transform="translate(215, 245)" opacity="0.5">
+    <rect x="-2" y="-2" width="164" height="20" rx="3" fill="#0d0b1e" stroke="#2d2755" stroke-width="0.5"/>
+    <circle cx="10" cy="8" r="6" fill="url(#tFire)" opacity="0.8"/>
+    <circle cx="38" cy="8" r="6" fill="url(#tWater)" opacity="0.8"/>
+    <circle cx="66" cy="8" r="6" fill="url(#tEarth)" opacity="0.8"/>
+    <circle cx="94" cy="8" r="6" fill="url(#tWind)" opacity="0.8"/>
+    <circle cx="122" cy="8" r="6" fill="url(#tLight)" opacity="0.8"/>
+    <circle cx="150" cy="8" r="6" fill="url(#tDark)" opacity="0.8"/>
+  </g>
+
+  <!-- === TITLE TEXT === -->
+  <g id="title-area">
+    <!-- Dark overlay bar for title -->
+    <rect x="0" y="268" width="400" height="32" fill="#0d0b1e" opacity="0.75"/>
+    <rect x="0" y="268" width="400" height="1" fill="#ffd700" opacity="0.3"/>
+
+    <!-- Main title -->
+    <text x="200" y="289" font-size="18" fill="url(#tTitle)" text-anchor="middle" font-family="'Segoe UI', sans-serif" font-weight="bold" filter="url(#tTextGlow)">ELEMENTAL CASCADE</text>
+
+    <!-- Subtitle -->
+    <text x="200" y="298" font-size="7" fill="url(#tSubTitle)" text-anchor="middle" font-family="'Segoe UI', sans-serif" letter-spacing="3" opacity="0.7">MATCH · CAST · CONQUER</text>
+
+    <!-- Decorative lines -->
+    <line x1="60" y1="291" x2="115" y2="291" stroke="#ffd700" stroke-width="0.5" opacity="0.3"/>
+    <line x1="285" y1="291" x2="340" y2="291" stroke="#ffd700" stroke-width="0.5" opacity="0.3"/>
+    <!-- Decorative diamonds -->
+    <path d="M55 291 L57 289 L59 291 L57 293 Z" fill="#ffd700" opacity="0.4"/>
+    <path d="M341 291 L343 289 L345 291 L343 293 Z" fill="#ffd700" opacity="0.4"/>
+  </g>
+
+  <!-- Atmospheric particles over everything -->
+  <g id="atmo-particles" opacity="0.3">
+    <circle cx="30" cy="150" r="1" fill="#00cfff" filter="url(#tSoft)"/>
+    <circle cx="80" cy="200" r="0.8" fill="#2ecc71"/>
+    <circle cx="170" cy="120" r="1" fill="#ffd700" filter="url(#tSoft)"/>
+    <circle cx="140" cy="180" r="0.7" fill="#8b008b"/>
+    <circle cx="195" cy="250" r="0.8" fill="#ff4500"/>
+    <circle cx="390" cy="200" r="1" fill="#1e90ff" filter="url(#tSoft)"/>
+    <circle cx="350" cy="150" r="0.7" fill="#ecf0f1"/>
+    <circle cx="25" cy="250" r="0.9" fill="#ffd700"/>
+  </g>
+
+  <!-- Vignette effect (subtle darkening at edges) -->
+  <rect width="400" height="300" fill="url(#tSky)" opacity="0.15"/>
+</svg>

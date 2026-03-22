@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T18:47:12.841Z",
-  "totalGames": 25,
+  "lastUpdated": "2026-03-22T22:19:38.305Z",
+  "totalGames": 26,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -4605,6 +4605,136 @@
       "difficulty": "hard",
       "version": "1.0.0",
       "author": "InfiniTriX AI"
+    },
+    {
+      "id": "elemental-cascade",
+      "title": "엘리멘탈 캐스케이드",
+      "description": "6원소 보석을 매칭하고 스펠을 시전하여 던전을 공략하는 매치-3 RPG",
+      "genre": ["puzzle", "strategy"],
+      "thumbnail": "/games/elemental-cascade/assets/thumbnail.svg",
+      "path": "/games/elemental-cascade/index.html",
+      "addedAt": "2026-03-22T22:19:38.305Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["매치3", "RPG", "로그라이크", "퍼즐전략", "원소마법", "보스전", "턴제전투"],
+      "controls": [
+        "마우스 드래그: 보석 스왑",
+        "1~6: 스펠 슬롯 선택",
+        "Space: 스펠 시전",
+        "H: 힌트",
+        "ESC: 일시정지",
+        "터치: 스와이프로 보석 스왑"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Elemental Cascade",
+          "description": "Match 6-element gems and cast spells to conquer sealed dungeons in this match-3 roguelike RPG",
+          "tags": ["match-3", "RPG", "roguelike", "puzzle-strategy", "elemental magic", "boss battle", "turn-based"],
+          "controls": [
+            "Mouse drag: Swap gems",
+            "1~6: Select spell slot",
+            "Space: Cast spell",
+            "H: Hint",
+            "ESC: Pause",
+            "Touch: Swipe to swap gems"
+          ]
+        },
+        "ja": {
+          "title": "エレメンタルカスケード",
+          "description": "6属性の宝石をマッチさせ、魔法を唱えて封印されたダンジョンを攻略するマッチ3ローグライクRPG",
+          "tags": ["マッチ3", "RPG", "ローグライク", "パズル戦略", "属性魔法", "ボス戦", "ターン制"],
+          "controls": [
+            "マウスドラッグ: 宝石をスワップ",
+            "1~6: スペルスロット選択",
+            "Space: スペル発動",
+            "H: ヒント",
+            "ESC: 一時停止",
+            "タッチ: スワイプで宝石をスワップ"
+          ]
+        },
+        "zh-CN": {
+          "title": "元素连锁",
+          "description": "匹配6种元素宝石并施放法术，攻略封印地牢的三消Roguelike RPG",
+          "tags": ["三消", "RPG", "肉鸽", "益智策略", "元素魔法", "Boss战", "回合制"],
+          "controls": [
+            "鼠标拖拽: 交换宝石",
+            "1~6: 选择法术槽",
+            "空格: 施放法术",
+            "H: 提示",
+            "ESC: 暂停",
+            "触屏: 滑动交换宝石"
+          ]
+        },
+        "zh-TW": {
+          "title": "元素連鎖",
+          "description": "匹配6種元素寶石並施放法術，攻略封印地城的三消Roguelike RPG",
+          "tags": ["三消", "RPG", "肉鴿", "益智策略", "元素魔法", "Boss戰", "回合制"],
+          "controls": [
+            "滑鼠拖曳: 交換寶石",
+            "1~6: 選擇法術欄",
+            "空白鍵: 施放法術",
+            "H: 提示",
+            "ESC: 暫停",
+            "觸控: 滑動交換寶石"
+          ]
+        },
+        "es": {
+          "title": "Cascada Elemental",
+          "description": "Combina gemas de 6 elementos y lanza hechizos para conquistar mazmorras selladas en este RPG roguelike de match-3",
+          "tags": ["match-3", "RPG", "roguelike", "puzle-estrategia", "magia elemental", "jefe", "por turnos"],
+          "controls": [
+            "Arrastrar ratón: Intercambiar gemas",
+            "1~6: Seleccionar ranura de hechizo",
+            "Espacio: Lanzar hechizo",
+            "H: Pista",
+            "ESC: Pausa",
+            "Táctil: Deslizar para intercambiar gemas"
+          ]
+        },
+        "fr": {
+          "title": "Cascade Élémentaire",
+          "description": "Associez des gemmes de 6 éléments et lancez des sorts pour conquérir des donjons scellés dans ce RPG roguelike match-3",
+          "tags": ["match-3", "RPG", "roguelike", "puzzle-stratégie", "magie élémentaire", "boss", "tour par tour"],
+          "controls": [
+            "Glisser souris : Échanger les gemmes",
+            "1~6 : Sélectionner un sort",
+            "Espace : Lancer le sort",
+            "H : Indice",
+            "ESC : Pause",
+            "Tactile : Balayer pour échanger les gemmes"
+          ]
+        },
+        "de": {
+          "title": "Elementarkaskade",
+          "description": "Kombiniere Edelsteine aus 6 Elementen und wirke Zauber, um versiegelte Dungeons in diesem Match-3-Roguelike-RPG zu bezwingen",
+          "tags": ["Match-3", "RPG", "Roguelike", "Puzzle-Strategie", "Elementarmagie", "Bosskampf", "Rundenbasiert"],
+          "controls": [
+            "Maus ziehen: Edelsteine tauschen",
+            "1~6: Zauberplatz wählen",
+            "Leertaste: Zauber wirken",
+            "H: Hinweis",
+            "ESC: Pause",
+            "Touch: Wischen zum Tauschen"
+          ]
+        },
+        "pt": {
+          "title": "Cascata Elemental",
+          "description": "Combine gemas de 6 elementos e lance feitiços para conquistar masmorras seladas neste RPG roguelike de match-3",
+          "tags": ["match-3", "RPG", "roguelike", "puzzle-estratégia", "magia elemental", "chefe", "por turnos"],
+          "controls": [
+            "Arrastar mouse: Trocar gemas",
+            "1~6: Selecionar slot de feitiço",
+            "Espaço: Lançar feitiço",
+            "H: Dica",
+            "ESC: Pausa",
+            "Toque: Deslizar para trocar gemas"
+          ]
+        }
+      }
     }
   ]
 }
