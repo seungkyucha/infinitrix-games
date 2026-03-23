@@ -364,6 +364,16 @@ function drawPlayer(ctx, x, y) {
 3. preloadAssets() 완료 후 게임 시작 (로딩 화면 표시)
 4. requestAnimationFrame 게임 루프 (60fps 목표)
 5. 키보드 이벤트 (keydown/keyup) + 모바일 터치 이벤트 (touchstart/touchmove/touchend)
+   ⚠️ keydown에서 게임에 사용하는 모든 키(Space, Arrow, WASD, P, R 등)에 e.preventDefault() 필수!
+   iframe 안에서 Space/Arrow가 페이지 스크롤을 일으키므로 반드시 차단해야 함.
+   예시:
+   window.addEventListener('keydown', e => {
+     if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR'].includes(e.code)) {
+       e.preventDefault();
+     }
+     keys[e.code] = true;
+     // ... 게임 로직
+   });
 6. canvas를 화면 크기에 맞게 자동 조정 (window.innerWidth/Height 기준)
 7. 3개 화면: 시작 화면(SPACE/탭으로 시작) → 게임 화면 → 게임오버 화면(R키/탭으로 재시작)
 8. 실시간 점수 표시 + 최고점수 (localStorage 저장)
