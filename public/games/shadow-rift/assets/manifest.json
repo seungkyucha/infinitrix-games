@@ -1,0 +1,21 @@
+{
+  "gameId": "shadow-rift",
+  "artDirection": {
+    "palette": ["#00E5FF", "#B388FF", "#E040FB", "#7C4DFF", "#1A0033", "#0A1628", "#FFFFFF"],
+    "accentColors": ["#FF1744", "#FF6D00"],
+    "style": "Dark fantasy metroidvania, ethereal glowing silhouettes",
+    "mood": "Mysterious, dimensional, dark atmospheric",
+    "signature": "Dimensional rift glow — cyan/purple energy cracks that permeate all entities and environments"
+  },
+  "assets": {
+    "player": { "file": "player.svg", "width": 128, "height": 128, "desc": "Echo the Rift Walker — cyan hooded cloak, white porcelain mask with glowing cyan eye slits, purple energy rift blade, dimensional particle aura" },
+    "enemy": { "file": "enemy.svg", "width": 128, "height": 128, "desc": "Shadow Rift entity — dark purple armored form with red menacing eyes, crown spikes, magenta rift cracks, shadow tendrils, floating debris fragments" },
+    "bgLayer1": { "file": "bg-layer1.svg", "width": 1200, "height": 800, "desc": "Deep space sky with 85+ stars, purple/cyan nebulae, constellation lines, dimensional rift tear, distant mountains with ruins, floating islands, fog layers, shooting stars" },
+    "bgLayer2": { "file": "bg-layer2.svg", "width": 1200, "height": 800, "desc": "Mid-ground ruined landscape — two stone arches with rune engravings, crystal clusters, dimensional portal, dead trees, fallen pillars/debris, firefly particles, ground fog" },
+    "uiHeart": { "file": "ui-heart.svg", "width": 48, "height": 48, "desc": "Dimensional heart — 3D gradient heart with crystal facets, rift crack lines, purple energy glow, dimensional sparkle accents" },
+    "uiStar": { "file": "ui-star.svg", "width": 48, "height": 48, "desc": "Rift star gem — cyan-to-teal gradient star with purple rift gem center, energy lines radiating from center, sparkle accents, rune symbols" },
+    "powerup": { "file": "powerup.svg", "width": 64, "height": 64, "desc": "Rift power crystal — hexagonal frame with orbiting gems, central magenta crystal with facets, up-arrow power symbol, energy wave arcs, rune decorations" },
+    "effectHit": { "file": "effect-hit.svg", "width": 128, "height": 128, "desc": "Dimensional shockwave — 5-layer radial burst (white core → magenta → purple → cyan ring → outer fade), 8 directional burst lines, dimensional crack lines, flying debris shards, sparkle points" },
+    "thumbnail": { "file": "thumbnail.svg", "width": 400, "height": 300, "desc": "Cinematic poster — Echo facing a massive dimensional rift with shadow enemies emerging, ruined pillars, crystal clusters, stars and nebulae, SHADOW RIFT title in gradient cyan-to-magenta" }
+  }
+}

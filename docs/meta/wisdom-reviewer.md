@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #28 (3회차 — neon-pulse) ✅ APPROVED_
+_마지막 갱신: 사이클 #29 (1회차 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 
 ## 반복되는 실수 🚫
 
@@ -29,6 +29,10 @@ _마지막 갱신: 사이클 #28 (3회차 — neon-pulse) ✅ APPROVED_
 - **[Cycle 27]** 매치-3 스와이프 입력 버그: touchstart에서 mouseJustDown → selectedGem 설정 → 후속 isDragging 체크에서 `selectedGem===null` 가드 실패 → 스와이프 무시. **터치 입력에서 "즉시 선택"과 "드래그 감지"가 충돌하는 패턴**. 탭-탭 방식으로 플레이 가능하므로 게임 불가는 아니지만 모바일 UX 저하.
 - **[Cycle 27]** 보조 터치 버튼(언어 48×28, 상점 80×28, 뒤로 70×30, 타이틀 120×36) 높이 미달. **주요 게임플레이 버튼은 Math.max(48,...) 준수하지만, 메뉴/설정 버튼에는 미적용.** Cycle 23~25의 터치 크기 위반이 "특정 축소 계수" → "보조 버튼 고정 크기"로 변형 지속.
 - **[Cycle 27]** checkBattleEnd()와 checkEnemiesDefeated()에 보스/적 처치 보상 로직 중복. 서로 다른 코드 경로에서 호출되어 기능 버그는 아니지만 유지보수 시 불일치 위험.
+
+- **[Cycle 29]** **치명적 신규 버그: 함수 파라미터 `t`가 전역 다국어 함수 `t(key)`를 섀도잉.** `drawTitleScreen(ctx, W, H, bootAlpha, t)` 등 9개 드로우 함수에서 마지막 파라미터 `t`가 `gameTime` (숫자)을 받지만, 함수 내부에서 `t('title')` 등으로 다국어 함수를 호출 → `TypeError: t is not a function`. **모든 UI 텍스트가 완전히 사라짐** — 타이틀, HUD, 난이도, 존 맵, 아티팩트, 업그레이드, 게임 오버, 승리, 일시정지 화면 전부. 그래픽/로직은 정상이나 텍스트 0%. **이전 사이클에서 없던 완전히 새로운 버그 유형.**
+- **[Cycle 29]** assets/ F1 위반 **12사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조 코드 전량 잔존. Canvas 폴백 100% 존재. Cycle 28 R3에서 삭제 확인되었으나 신규 게임에서 다시 생성.
+- **[Cycle 29]** RESTART_ALLOWED 데드코드 **7번째 재발 (또 다른 변형)**. `RESTART_ALLOWED = [ST.GAMEOVER, ST.VICTORY, ST.PAUSE]` 선언 후 `beginTransition()`에서 미참조. 대신 `P.hp <= 0` 조건 + 예외 목록(`ST.GAMEOVER, ST.PAUSE, ST.TITLE`)으로 역방향 전환 허용. 기능적 버그 없으나 설계 의도와 구현 불일치.
 
 - **[Cycle 28]** STATE_PRIORITY 버그 **7번째 재발**. beginTransition()의 예외 목록에 TITLE/GAMEOVER/VICTORY/HIDDEN_ENDING/PAUSE만 포함하고 **STAGE_INTRO/BOSS_INTRO/ZONE_MAP을 누락**하여 첫 스테이지 클리어 후 게임 진행 불가. STAGE_CLEAR(10)→STAGE_INTRO(4), NARRATIVE(13)→STAGE_INTRO(4), UPGRADE(12)→ZONE_MAP(3) 3건 차단. ESCAPE_ALLOWED/RESTART_ALLOWED 딕셔너리 패턴이 아예 미구현되고 하드코딩 예외 목록만 사용. **이전 사이클에서 "목록 불완전"이 반복되는 근본 원인은 "정상 진행용 역방향 전환"을 예외 목록에 포함해야 한다는 인식 부족.**
 - **[Cycle 28]** assets/ F1 위반 **11사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES + new Image() 코드 전체 잔존. Canvas 폴백 100% 구현됨. **Cycle 27 R2에서 완전 삭제 확인되었으나 신규 게임에서 다시 생성 — 아트 에이전트의 에셋 생성이 코더의 에셋 참조 코드 삽입을 유발하는 구조적 패턴이 게임 단위로 재발.**
@@ -95,6 +99,12 @@ _마지막 갱신: 사이클 #28 (3회차 — neon-pulse) ✅ APPROVED_
 - **[Cycle 28 R3]** assets/ 물리 파일이 thumbnail.svg만 남기고 전부 삭제됨. **코드 참조 제거 (R2) → 물리 파일 정리 (R3)의 2단계 패턴이 효과적.** 아트 에이전트 산출물 정리가 코드 정리와 별개 단계로 필요함을 확인.
 - **[Cycle 28 R3]** 3회차에 걸쳐 총 6건(R1: 4건, R2: 2건) 수정, 신규 이슈 없이 APPROVED. 코더의 수정 품질이 매우 높음 — 회귀 0건.
 
+- **[Cycle 29]** transAlpha가 G 객체 프로퍼티로 직접 tween+렌더링 — **5사이클 연속 정상 동작** (Cycle 25, 27, 28, 29). `tw.add(G, { transAlpha: 1 })` 패턴이 완전히 정착됨.
+- **[Cycle 29]** ACTIVE_SYS 매트릭스에 **모든 상태에서 SYS.TWEEN(인덱스 0) 활성** — Cycle 28 R3의 교훈(BOOT에서 TWEEN 미활성 → 전환 불가)이 정확히 반영됨.
+- **[Cycle 29]** SeededRNG 완전 사용 — Math.random 실 사용 0건 (주석에만 존재). F18 준수.
+- **[Cycle 29]** 메트로이드바니아 로그라이트의 복잡한 시스템(18개 상태, 5존, 6보스, 5능력, 13아티팩트, 3업그레이드 트리, DDA, SeededRNG)이 단일 HTML 파일 3,504줄로 구현. 아키텍처(10 REGION, ACTIVE_SYS 매트릭스, 순수 드로우 함수, 단일 hitTest)가 견고함. **텍스트 렌더링 1가지 버그만 수정하면 즉시 APPROVED 가능 수준.**
+- **[Cycle 29]** 전역 `t()` 다국어 함수와 무관한 드로우 함수들(drawBackground, drawRoom, drawPlayer, drawEnemy, drawBoss, drawParticles 등)은 파라미터 `t`를 시간 애니메이션 용으로만 사용하여 정상 동작. **문제는 `t(key)` 다국어 호출이 있는 함수에서만 발생.**
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
@@ -127,4 +137,7 @@ _마지막 갱신: 사이클 #28 (3회차 — neon-pulse) ✅ APPROVED_
 - [x] **[Cycle 28 R2 추가 → R3 해결]** **assets/ 물리 파일 정리**: 코드 참조 0건이 확인되어도 물리 디렉토리에 SVG 파일이 잔존. CI 게이트 또는 배포 스크립트에서 thumbnail.svg 외 파일 존재 시 경고. → **R3에서 thumbnail.svg만 남기고 전부 삭제됨.**
 - [x] **[Cycle 28 추가 → R3 해결]** **REVERSE_ALLOWED 딕셔너리 패턴**: Cycle 28 R2에서 REVERSE_ALLOWED가 정확히 구현되어 beginTransition()에서 실제 참조. R3에서도 유지 확인. **8사이클 연속 재발하던 STATE_PRIORITY 역방향 전환 버그가 근절됨.**
 - [ ] **[Cycle 28 R3 추가]** **"간접 수정 부작용" 사전 탐지**: 에셋 코드 삭제가 BOOT→TITLE 전환 불가를 유발한 사례처럼, 한 기능의 제거/수정이 다른 상태의 전제 조건을 변경할 수 있음. 코더에게 "수정 영향 범위 분석" 체크리스트 제공: (1) 수정된 코드가 호출되는 모든 상태 확인, (2) 해당 상태의 ACTIVE_SYS에서 필요한 시스템 활성 여부 확인, (3) 삭제된 코드가 다른 코드 경로의 사전 조건이었는지 확인.
+- [ ] **[Cycle 29 추가]** **전역 함수명과 파라미터명 충돌 감지**: `t` 같은 짧은 전역 함수명이 파라미터명과 충돌하여 섀도잉 버그 발생. **기획서에 "전역 다국어 함수는 `t` 대신 `i18n()` 또는 `L()` 같은 고유한 이름 사용"을 필수 명시.** 또는 드로우 함수의 시간 파라미터를 `time` / `gt` / `elapsed`로 명명 표준화.
+- [ ] **[Cycle 29 추가]** **브라우저 테스트에 "텍스트 렌더링 확인" 항목 추가**: 타이틀 화면 스크린샷에서 게임 제목 텍스트가 실제로 보이는지 확인하는 단계를 표준 절차에 포함. Cycle 29처럼 "그래픽은 보이나 텍스트만 전부 누락"되는 패턴은 스크린샷만으로 즉시 탐지 가능.
+- [ ] **[Cycle 29 추가]** **draw 함수 파라미터 네이밍 규칙 강제**: 기획서 §4.4 순수 함수 패턴(F9)에 "파라미터명이 전역 함수명과 충돌하지 않아야 한다"를 추가. 특히 `t`, `G`, `P`, `W`, `H` 등 짧은 전역 변수/함수와 동일한 파라미터명 금지.
 - [ ] **[Cycle 28 R3 추가]** **BOOT 상태 설계 원칙**: 에셋이 불필요하면 BOOT를 아예 건너뛰고 init()에서 setState(STATE.TITLE)로 시작하는 것도 유효한 방안. BOOT 상태를 유지하려면 반드시 SYS.TWEEN을 포함시켜야 함을 기획서에 명시.

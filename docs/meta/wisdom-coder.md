@@ -1,7 +1,11 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #28 neon-pulse_
+_마지막 갱신: 사이클 #29 shadow-rift_
 
 ## 반복되는 실수 🚫
+- **[Cycle 29]** 메트로이드바니아에서 18상태 머신의 EXPLORE→COMBAT 전환을 적 근접 감지(300px)로 자동 트리거할 때, 전투 종료 후 방 내에 적이 남아있으면 무한 EXPLORE↔COMBAT 전환이 발생할 수 있다. room.cleared 체크를 EXPLORE 상태 진입 시 반드시 수행하여 이미 클리어된 방에서는 COMBAT 전환을 차단할 것.
+- **[Cycle 29]** 보스 페이즈 전환 중(phaseTransitioning=true) 보스에게 대미지가 계속 들어가면 HP가 다음 threshold까지 내려가도 phase가 건너뛴다. phaseTransitioning 동안 checkBossPhase()가 무시되므로, 전환 완료 후 즉시 재체크하거나 전환 중 대미지를 큐잉할 것.
+- **[Cycle 29]** 디자이너 에셋(manifest.json)이 존재하면서 기획서가 "assets/ 디렉토리 미생성"을 명시하는 경우, 유저 지시(preloadAssets 요구)가 기획서를 오버라이드한다. 이 경우 스모크 테스트 "assets/ 미존재" 항목을 "에셋 프리로더 사용 시 제외"로 조건부 적용해야 한다.
+- **[Cycle 29]** resolveEntityTiles()에서 중복 충돌 해소(overlap 최소값 선택)가 코너 케이스에서 엔티티를 벽 안으로 밀어넣을 수 있다. 특히 고속 이동(대시) 시 CCD(continuous collision detection) 또는 이전 위치 복원 패턴이 필요하다.
 - **[Cycle 28]** 리듬 게임에서 비트 판정 윈도우(±50/100/150ms)와 Miss 자동 체크가 동시에 발생할 수 있다. judgeInput()과 checkMissedBeats()가 같은 비트를 이중 처리하지 않도록, judged/missed 플래그를 반드시 서로 배타적으로 관리할 것. 한 비트가 judged=true이면 missed 체크에서 스킵해야 한다.
 - **[Cycle 28]** BPM 동기화 전투에서 G.bpm을 tween으로만 갱신하는 원칙(F14, F70) 준수 시, 보스 페이즈 전환에서 새 비트 패턴 생성(generateBossBeats)이 tween 완료 전에 호출되면 이전 BPM 기준으로 비트가 생성된다. 비트 재생성은 반드시 tween onComplete 내부에서 수행할 것.
 - **[Cycle 28]** 18상태 머신에서 PAUSE → 복귀 시 beginTransition()을 사용하면 페이드 애니메이션 동안 게임 입력이 먹히지 않는 데드타임이 발생. PAUSE 복귀는 setState() 즉시 전환이 더 자연스러운 UX를 제공한다.
@@ -36,6 +40,15 @@ _마지막 갱신: 사이클 #28 neon-pulse_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 29]** 메트로이드바니아 로그라이트(섀도우 리프트)에서 18상태 × 11시스템 ACTIVE_SYS 매트릭스를 배열 기반(0/1)으로 구현 — SYS.TWEEN이 모든 상태에서 1로 설정되어 Cycle 28의 BOOT→TITLE 전환 회귀를 원천 차단. 13사이클 연속 매트릭스 패턴 성공.
+- **[Cycle 29]** 5존 × 4방(3+보스) + 히든 2방 = 22방 구조를 ROOM_DEFS 배열로 관리하고, 존별 reqAbility 게이팅으로 비선형 진행 경로 구현. SeededRNG 기반 방 변형(적 배치/플랫폼/파괴물)으로 리플레이 가치 확보.
+- **[Cycle 29]** 6체 보스(5존 + 히든)의 페이즈 전환을 HP 비율 threshold 배열 + phaseTransitioning 가드 + atkTimer/weakTimer 리셋 3중 안전장치로 구현 — Cycle 24~28 보스 교훈의 종합 적용.
+- **[Cycle 29]** 13종 아티팩트의 DPS 캡(2.0) + 시너지 캡(1.5)을 selectArtifact()/getArtifactBonus()에서 Math.min으로 강제 — prepareArtifactChoices()에서 중복 제거 + 등급 가중치(common:6/rare:3/epic:1)로 밸런스 유지.
+- **[Cycle 29]** PAUSE 복귀를 enterState() 즉시 전환으로 구현 — Cycle 28 교훈(beginTransition 페이드 데드타임) 적용. 게임 플레이 중단감 0.
+- **[Cycle 29]** 디자이너 SVG 에셋 8종(player, enemy, bgLayer1/2, uiHeart, uiStar, powerup, effectHit)을 preloadAssets()로 프리로드 + 모든 드로잉 함수에 Canvas 폴백 포함. 에셋 없이도 완전 동작하는 이중 구조 유지.
+- **[Cycle 29]** Web Audio API로 13종 프로시저럴 사운드(존별 BGM 5종 + SFX 8종)를 구현 — OscillatorNode/BufferSource 조합으로 외부 오디오 파일 0건. audioCtx.currentTime 기반 스케줄링.
+- **[Cycle 29]** 터치 컨트롤을 가상 조이스틱(좌측) + 4버튼(우하단 ATK/JMP/DSH/SKL) + 더블탭(원거리) + 스와이프(점프) + 일시정지(우상단)로 구현. 터치만으로 TITLE→DIFFICULTY→ZONE_MAP→EXPLORE→COMBAT→BOSS→GAMEOVER 전체 플로우 조작 가능.
+- **[Cycle 29]** 영구 업그레이드 3트리(Shadow/Rift/Echo) × 5레벨을 UPGRADE_TREES 데이터 객체로 선언 — purchaseUpgrade() 단일 함수 + 에코 포인트 통화로 런 간 진행감 제공.
 - **[Cycle 28]** 리듬 아케이드 로그라이트(네온 펄스)에서 BPM 동기화 비트 전투 + 타이밍 판정(Perfect/Great/Good/Miss) 4단계를 순수 함수(judgeInput, calcDamage, updateCombo)로 구현. 전역 상태 직접 참조 0건의 전투 로직이 가능함을 확인.
 - **[Cycle 28]** 보스 페이즈 전환 + BPM tween 변경 + 비트 패턴 재생성을 연쇄 처리하는 패턴: applyDamageToBoss() → HP 체크 → phase 증가 → tw.add(bpm 변경) → onComplete에서 generateBossBeats(). 페이즈 전환 시 atkTimer 리셋 포함 (Cycle 24~27 교훈 누적 적용).
 - **[Cycle 28]** 사운드 칩 13종의 DPS 캡(2.0)과 시너지 캡(1.5)을 generateChipChoices()에서 사전 필터링 — 캡 초과 칩을 선택지에서 제거하여 플레이어가 오버파워 빌드를 구성할 수 없도록 데이터 레벨에서 방지.
@@ -103,6 +116,10 @@ _마지막 갱신: 사이클 #28 neon-pulse_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **메트로이드바니아 능력 게이팅 BFS 검증 자동화**: 현재 getAccessibleRooms()는 단순 reqAbility 체크만 수행. BFS로 실제 이동 경로를 검증하는 로직을 추가하여, 능력 해금 순서에 의한 데드락을 원천 방지할 것.
+- **보스 공격 패턴 데이터 기반 완전 전환**: 현재 boss AI가 switch(zone) 분기로 하드코딩되어 있어 보스 추가/수정이 번거롭다. [{type:'charge',dir,speed,dmg,cd}, {type:'projectile',count,spread,speed}] 형태의 보스별 패턴 배열로 완전 데이터화할 것.
+- **CCD(연속 충돌 검출) 구현**: 대시 등 고속 이동 시 resolveEntityTiles()가 오버슈트를 놓칠 수 있다. rayCast 또는 이전 위치 복원(P.prevX/prevY) 패턴으로 고속 충돌을 정확히 처리할 것.
+- **오프스크린 룸 캐싱**: 방 타일/플랫폼이 고정 배치인데 매 프레임 개별 fillRect하는 비효율. 방 진입 시 오프스크린 캔버스에 한 번 렌더링하고 drawImage로 복사하면 성능 2~3배 향상.
 - **비트 패턴 재생성 타이밍 주의**: BPM tween이 진행 중일 때 generateBossBeats()를 호출하면 중간 BPM으로 비트가 생성된다. 반드시 tween onComplete 내부에서 호출할 것.
 - **PAUSE 복귀 즉시 전환**: PAUSE → 게임 복귀는 beginTransition() 대신 setState()로 즉시 전환하여 페이드 데드타임 없는 UX 제공.
 - **비트마스크 ACTIVE_SYS**: 기존 배열 기반 매트릭스를 비트마스크로 전환하면 성능과 가독성 모두 향상. `sys(SYS.RHYTHM)` 패턴을 표준으로 채택.

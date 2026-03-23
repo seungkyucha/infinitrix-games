@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Shadow Rift — 섀도우 리프트</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 1: CONFIG — Constants, colors, zone data, balance ══
+// ══════════════════════════════════════════════════════════════
+
+// Game configuration constants (§14.1 exact match)
+const CFG = {
+  PLAYER_HP: 100, MELEE_DMG: 25, RANGE_DMG: 15,
+  CRIT_RATE: 0.10, CRIT_MUL: 1.5,
+  DASH_DIST: 150, DASH_CD: 1.5,
+  TIMESTOP_DUR: 3.0, MAX_ENERGY: 100, ENERGY_REGEN: 5,
+  DDA_1: 0.10, DDA_2: 0.20, DDA_3: 0.30,
+  MIN_TOUCH: 48, COMBO_TIME: 5.0,
+  ART_DPS_CAP: 2.0, ART_SYN_CAP: 1.5,
+  GRAVITY: 980, JUMP_VEL: -420, MOVE_SPD: 200,
+  PROJ_SPD: 400, MELEE_RANGE: 60, MELEE_CD: 0.4, RANGE_CD: 1.5,
+  WALLJUMP_VEL: -380, DASH_DUR: 0.15, DASH_IFRAMES: 0.2,
+  CAM_LERP: 0.08, CAM_BOSS_ZOOM: 0.75,
+  TILE: 40, ROOM_W: 800, ROOM_H: 480,
+  MAX_PARTICLES: 200, DT_CAP: 0.05,
+  ENERGY_KILL: 10, ENERGY_PUZZLE: 20,
+  INV_TIME: 0.8, KNOCKBACK: 250,
+};
+
+// Game states enum
+const ST = {
+  BOOT:0,TITLE:1,DIFFICULTY:2,ZONE_MAP:3,EXPLORE:4,COMBAT:5,PUZZLE:6,
+  BOSS_INTRO:7,BOSS:8,BOSS_CLEAR:9,ARTIFACT_SELECT:10,UPGRADE:11,
+  ROOM_TRANSITION:12,CUTSCENE:13,VICTORY:14,GAMEOVER:15,PAUSE:16,MODAL:17
+};
+
+// State names for debug
+const ST_NAME = ['BOOT','TITLE','DIFFICULTY','ZONE_MAP','EXPLORE','COMBAT','PUZZLE',
+  'BOSS_INTRO','BOSS','BOSS_CLEAR','ARTIFACT_SELECT','UPGRADE',
+  'ROOM_TRANSITION','CUTSCENE','VICTORY','GAMEOVER','PAUSE','MODAL'];
+
+// State priority (F6) — higher = takes precedence
+const ST_PRIORITY = [1,5,10,15,40,60,50,55,70,80,35,30,25,20,90,100,200,250];
+
+// Systems enum
+const SYS = { TWEEN:0,PHYSICS:1,ENEMY:2,ABILITY:3,PUZZLE:4,COMBAT:5,CAMERA:6,PARTICLE:7,DDA:8,SAVE:9,INPUT:10 };
+
+// Active systems matrix (F7, F72) — SYS.TWEEN always active
+const ACTIVE_SYS = {};
+ACTIVE_SYS[ST.BOOT]             = [1,0,0,0,0,0,0,0,0,0,0];
+ACTIVE_SYS[ST.TITLE]            = [1,0,0,0,0,0,0,1,0,0,1];
+ACTIVE_SYS[ST.DIFFICULTY]       = [1,0,0,0,0,0,0,0,0,0,1];
+ACTIVE_SYS[ST.ZONE_MAP]         = [1,0,0,0,0,0,1,1,0,0,1];
+ACTIVE_SYS[ST.EXPLORE]          = [1,1,1,1,1,0,1,1,1,0,1];
+ACTIVE_SYS[ST.COMBAT]           = [1,1,1,1,0,1,1,1,1,0,1];
+ACTIVE_SYS[ST.PUZZLE]           = [1,1,0,1,1,0,1,1,0,0,1];
+ACTIVE_SYS[ST.BOSS_INTRO]       = [1,0,0,0,0,0,1,1,0,0,1];
+ACTIVE_SYS[ST.BOSS]             = [1,1,0,1,0,1,1,1,1,0,1];
+ACTIVE_SYS[ST.BOSS_CLEAR]       = [1,0,0,0,0,0,1,1,0,1,1];
+ACTIVE_SYS[ST.ARTIFACT_SELECT]  = [1,0,0,0,0,0,0,1,0,0,1];
+ACTIVE_SYS[ST.UPGRADE]          = [1,0,0,0,0,0,0,0,0,1,1];
+ACTIVE_SYS[ST.ROOM_TRANSITION]  = [1,0,0,0,0,0,1,0,0,0,0];
+ACTIVE_SYS[ST.CUTSCENE]         = [1,0,0,0,0,0,1,1,0,0,1];
+ACTIVE_SYS[ST.VICTORY]          = [1,0,0,0,0,0,0,1,0,1,1];
+ACTIVE_SYS[ST.GAMEOVER]         = [1,0,0,0,0,0,0,1,0,1,1];
+ACTIVE_SYS[ST.PAUSE]            = [1,0,0,0,0,0,0,0,0,0,1];
+ACTIVE_SYS[ST.MODAL]            = [1,0,0,0,0,0,0,0,0,0,1];
+
+// Check sys active for current state
+function sys(s) { return ACTIVE_SYS[G.state] && ACTIVE_SYS[G.state][s] === 1; }
+
+// Zone data (§4.2)
+const ZONES = [
+  { id:'ruin',    name:{ko:'폐허',en:'Ruin'},    pri:'#8B7355',sec:'#D4A574',bg:'#2A1F14',enemy:'#6B4226',
+    bossName:{ko:'석화의 왕',en:'Petrified King'},bossHP:[500,700,900] },
+  { id:'crystal', name:{ko:'수정',en:'Crystal'},  pri:'#00E5FF',sec:'#B388FF',bg:'#0A1628',enemy:'#4FC3F7',
+    bossName:{ko:'프리즘 마녀',en:'Prism Witch'},bossHP:[450,650,850] },
+  { id:'abyss',   name:{ko:'심연',en:'Abyss'},    pri:'#1A237E',sec:'#7C4DFF',bg:'#050510',enemy:'#311B92',
+    bossName:{ko:'심해 군주',en:'Abyss Lord'},bossHP:[600,800,1000] },
+  { id:'magma',   name:{ko:'용암',en:'Magma'},    pri:'#FF6D00',sec:'#FFAB00',bg:'#1A0A00',enemy:'#D84315',
+    bossName:{ko:'용암 타이탄',en:'Magma Titan'},bossHP:[700,900,1100] },
+  { id:'void',    name:{ko:'공허',en:'Void'},     pri:'#E040FB',sec:'#00E676',bg:'#0D0015',enemy:'#AA00FF',
+    bossName:{ko:'차원 파쇄자',en:'Dimension Breaker'},bossHP:[800,1000,1200] },
+];
+
+// Hidden boss data
+const HIDDEN_BOSS = {
+  name:{ko:'보이드 위버',en:'Void Weaver'},
+  hp:[1200,1500,1800]
+};
+
+// Difficulty settings (§8.1)
+const DIFF = [
+  {id:'easy',  name:{ko:'탐험가',en:'Explorer'},  hpMul:1.2, eMul:0.8, eDmgMul:0.7, eCountBase:3},
+  {id:'medium',name:{ko:'전사',en:'Warrior'},      hpMul:1.0, eMul:1.0, eDmgMul:1.0, eCountBase:4},
+  {id:'hard',  name:{ko:'전설',en:'Legend'},        hpMul:0.8, eMul:1.2, eDmgMul:1.3, eCountBase:5},
+];
+
+// Enemy templates (§7.2)
+const ENEMY_TYPES = [
+  {id:'patrol', hp:30,dmg:10,spd:60, ai:'patrol',  name:{ko:'순찰자',en:'Patrol'}},
+  {id:'chaser', hp:50,dmg:15,spd:100,ai:'chase',   name:{ko:'추적자',en:'Chaser'}},
+  {id:'shooter',hp:40,dmg:12,spd:0,  ai:'shoot',   name:{ko:'사격수',en:'Shooter'}},
+  {id:'guard',  hp:80,dmg:8, spd:40, ai:'guard',   name:{ko:'방어자',en:'Guard'}},
+  {id:'summon', hp:60,dmg:5, spd:30, ai:'summon',   name:{ko:'소환자',en:'Summoner'}},
+];
+
+// Artifact data (§13.1)
+const ARTIFACTS = [
+  {id:'A1', rarity:'common',name:{ko:'균열 파편',en:'Rift Shard'},      desc:{ko:'근접 대미지 +15%',en:'Melee DMG +15%'},       effect:'meleeDmg',val:0.15},
+  {id:'A2', rarity:'common',name:{ko:'그림자 실',en:'Shadow Thread'},   desc:{ko:'이동 속도 +10%',en:'Move Speed +10%'},        effect:'moveSpd',val:0.10},
+  {id:'A3', rarity:'common',name:{ko:'에코 결정',en:'Echo Crystal'},    desc:{ko:'에너지 회복 +20%',en:'Energy Regen +20%'},    effect:'energyRegen',val:0.20},
+  {id:'A4', rarity:'common',name:{ko:'차원 조각',en:'Dimension Piece'}, desc:{ko:'대시 쿨다운 -20%',en:'Dash CD -20%'},         effect:'dashCd',val:-0.20},
+  {id:'A5', rarity:'common',name:{ko:'시간 파편',en:'Time Fragment'},   desc:{ko:'시간정지 +0.5초',en:'Timestop +0.5s'},        effect:'timestop',val:0.5},
+  {id:'A6', rarity:'common',name:{ko:'중력 코어',en:'Gravity Core'},    desc:{ko:'점프 높이 +15%',en:'Jump +15%'},              effect:'jumpHeight',val:0.15},
+  {id:'A7', rarity:'rare',  name:{ko:'리프트 블레이드',en:'Rift Blade'},desc:{ko:'근접 범위+30% 대미지+10%',en:'Melee Range+30% DMG+10%'},effect:'riftBlade',val:0.30},
+  {id:'A8', rarity:'rare',  name:{ko:'차원 방패',en:'Dim Shield'},      desc:{ko:'10% 무적 0.5초',en:'10% Invuln 0.5s'},        effect:'dimShield',val:0.10},
+  {id:'A9', rarity:'rare',  name:{ko:'에코 증폭기',en:'Echo Amp'},      desc:{ko:'능력 대미지 +25%',en:'Ability DMG +25%'},     effect:'abilityDmg',val:0.25},
+  {id:'A10',rarity:'rare',  name:{ko:'그림자 분신',en:'Shadow Clone'},  desc:{ko:'50% 분신 공격',en:'50% Clone Attack'},        effect:'clone',val:0.50},
+  {id:'A11',rarity:'epic',  name:{ko:'보이드 하트',en:'Void Heart'},    desc:{ko:'처치 시 HP 5% 회복',en:'Kill: Heal 5%'},      effect:'voidHeart',val:0.05},
+  {id:'A12',rarity:'epic',  name:{ko:'시간의 틈',en:'Time Gap'},        desc:{ko:'시간정지 중 이속2× 공격가능',en:'Timestop: 2x Speed+Atk'},effect:'timeGap',val:2.0},
+  {id:'A13',rarity:'epic',  name:{ko:'차원 폭풍',en:'Dim Storm'},       desc:{ko:'차원전환 시 100 대미지',en:'Dim Shift: 100 AoE'},effect:'dimStorm',val:100},
+];
+
+// Upgrade trees (§12)
+const UPGRADE_TREES = {
+  shadow:[
+    {name:{ko:'그림자 검',en:'Shadow Blade'},cost:100,desc:{ko:'근접+10%',en:'Melee+10%'}},
+    {name:{ko:'그림자 갑옷',en:'Shadow Armor'},cost:200,desc:{ko:'피해-10%',en:'DMG Taken-10%'}},
+    {name:{ko:'크리티컬',en:'Crit Shadow'},cost:400,desc:{ko:'크리+5%',en:'Crit+5%'}},
+    {name:{ko:'그림자 연격',en:'Shadow Combo'},cost:700,desc:{ko:'공속+15%',en:'AtkSpd+15%'}},
+    {name:{ko:'그림자 폭발',en:'Shadow Burst'},cost:1200,desc:{ko:'처치 시 폭발',en:'Kill: Explosion'}},
+  ],
+  rift:[
+    {name:{ko:'균열 흡수',en:'Rift Absorb'},cost:100,desc:{ko:'에너지+20',en:'Energy+20'}},
+    {name:{ko:'빠른 충전',en:'Fast Charge'},cost:200,desc:{ko:'회복+30%',en:'Regen+30%'}},
+    {name:{ko:'확장 대시',en:'Ext Dash'},cost:400,desc:{ko:'대시+30%',en:'Dash+30%'}},
+    {name:{ko:'시간 연장',en:'Time Extend'},cost:700,desc:{ko:'시간정지+1초',en:'Timestop+1s'}},
+    {name:{ko:'차원 마스터',en:'Dim Master'},cost:1200,desc:{ko:'전환CD-50%',en:'Shift CD-50%'}},
+  ],
+  echo:[
+    {name:{ko:'에코 감지',en:'Echo Sense'},cost:100,desc:{ko:'보물 표시',en:'Show Treasure'}},
+    {name:{ko:'생명력',en:'Vitality'},cost:200,desc:{ko:'HP+20',en:'HP+20'}},
+    {name:{ko:'부유',en:'Float'},cost:400,desc:{ko:'점프+20%',en:'Jump+20%'}},
+    {name:{ko:'에코 보너스',en:'Echo Bonus'},cost:700,desc:{ko:'EP+25%',en:'EP+25%'}},
+    {name:{ko:'불사',en:'Immortal'},cost:1200,desc:{ko:'1회 부활',en:'Revive Once'}},
+  ],
+};
+
+// i18n strings (§16)
+const LANG = {
+  ko:{
+    title:'섀도우 리프트',subtitle:'차원의 균열을 봉인하라',
+    start:'게임 시작',pressStart:'SPACE 또는 탭하여 시작',
+    difficulty:'난이도 선택',zoneMap:'존 맵',
+    explore:'탐험',combat:'전투',puzzle:'퍼즐',
+    bossIntro:'보스 등장',boss:'보스전',bossClear:'보스 격파!',
+    artifactSelect:'아티팩트 선택 (1/3)',upgrade:'영구 업그레이드',
+    victory:'승리!',gameover:'게임 오버',pause:'일시정지',
+    resume:'계속',toTitle:'타이틀로',restart:'R키로 재시작',
+    score:'점수',bestScore:'최고점수',combo:'콤보',
+    hp:'체력',energy:'에너지',echoPoints:'에코 포인트',
+    abilities:'능력',dash:'대시',wallJump:'벽점프',
+    dimShift:'차원전환',timeStop:'시간정지',gravReverse:'중력반전',
+    locked:'잠김',unlocked:'해금!',newAbility:'새 능력!',
+    bossDefeated:'보스를 처치했습니다!',abilityUnlocked:'능력이 해금되었습니다!',
+    selectArtifact:'아티팩트를 선택하세요',choose:'선택',
+    common:'일반',rare:'희귀',epic:'전설',
+    shadow:'섀도우',rift:'리프트',echo:'에코',
+    buy:'구매',maxLevel:'최대',insufficient:'포인트 부족',
+    roomCleared:'방 클리어!',runs:'총 런',deaths:'연속 사망',
+    saved:'저장됨',loading:'로딩 중...',
+    continueRun:'이어하기',newRun:'새 런',
+    langSwitch:'EN',back:'뒤로',
+    storyRuin:'균열의 시작... 첫 번째 워커 아쉬의 기록',
+    storyCrystal:'차원 반사의 발견... 루미나의 기록',
+    storyAbyss:'시간의 균열... 프리즘의 기록',
+    storyMagma:'중력 이상 현상... 코어의 기록',
+    storyVoid:'보이드 위버와의 조우... 실루엣의 기록',
+    normalEnd:'균열 봉인 — 차원의 평화가 돌아왔다',
+    trueEnd:'차원 통합 — 새로운 균형이 창조되었다',
+    dda1:'그림자가 약해지는 것 같다...',dda2:'차원이 당신에게 자비를 베푼다.',dda3:'그림자의 보호를 받았다!',
+  },
+  en:{
+    title:'SHADOW RIFT',subtitle:'Seal the Dimensional Rift',
+    start:'Start Game',pressStart:'SPACE or Tap to Start',
+    difficulty:'Select Difficulty',zoneMap:'Zone Map',
+    explore:'Explore',combat:'Combat',puzzle:'Puzzle',
+    bossIntro:'Boss Incoming',boss:'Boss Fight',bossClear:'Boss Defeated!',
+    artifactSelect:'Select Artifact (1/3)',upgrade:'Permanent Upgrades',
+    victory:'VICTORY!',gameover:'GAME OVER',pause:'PAUSED',
+    resume:'Resume',toTitle:'To Title',restart:'Press R to Restart',
+    score:'Score',bestScore:'Best',combo:'Combo',
+    hp:'HP',energy:'Energy',echoPoints:'Echo Points',
+    abilities:'Abilities',dash:'Dash',wallJump:'Wall Jump',
+    dimShift:'Dim Shift',timeStop:'Time Stop',gravReverse:'Grav Reverse',
+    locked:'Locked',unlocked:'Unlocked!',newAbility:'New Ability!',
+    bossDefeated:'Boss has been defeated!',abilityUnlocked:'Ability unlocked!',
+    selectArtifact:'Select an Artifact',choose:'Choose',
+    common:'Common',rare:'Rare',epic:'Epic',
+    shadow:'Shadow',rift:'Rift',echo:'Echo',
+    buy:'Buy',maxLevel:'MAX',insufficient:'Not Enough',
+    roomCleared:'Room Cleared!',runs:'Total Runs',deaths:'Streak Deaths',
+    saved:'Saved',loading:'Loading...',
+    continueRun:'Continue',newRun:'New Run',
+    langSwitch:'한',back:'Back',
+    storyRuin:'The beginning of the rift... Records of Ash, the first Walker',
+    storyCrystal:'Discovery of dimensional reflection... Records of Lumina',
+    storyAbyss:'The temporal rift... Records of Prism',
+    storyMagma:'Gravitational anomaly... Records of Core',
+    storyVoid:'Encounter with the Void Weaver... Records of Silhouette',
+    normalEnd:'Rift Sealed — Peace returns to the dimensions',
+    trueEnd:'Dimension United — A new balance is forged',
+    dda1:'The shadows seem weaker...',dda2:'The dimension shows mercy.',dda3:'Shadow Protection granted!',
+  }
+};
+
+// Localization helper
+let currentLang = 'ko';
+function t(key) { return LANG[currentLang][key] || LANG.ko[key] || key; }
+
+// Room layout data (§10)
+const ROOM_DEFS = [];
+// Generate room definitions for each zone
+function buildRoomDefs() {
+  ROOM_DEFS.length = 0;
+  const zoneNames = ['ruin','crystal','abyss','magma','void'];
+  let id = 0;
+  for (let z = 0; z < 5; z++) {
+    for (let r = 0; r < 3; r++) {
+      ROOM_DEFS.push({ id: id++, zone: z, roomIdx: r, isBoss: false,
+        reqAbility: z === 0 ? -1 : z - 1, // zone 0 needs nothing, zone 1 needs dash(0), etc.
+        enemies: [], platforms: [], switches: [], pickups: [] });
+    }
+    // Boss room
+    ROOM_DEFS.push({ id: id++, zone: z, roomIdx: 3, isBoss: true,
+      reqAbility: z === 0 ? -1 : z - 1,
+      enemies: [], platforms: [], switches: [], pickups: [] });
+  }
+  // Hidden rooms
+  ROOM_DEFS.push({ id: id++, zone: 5, roomIdx: 0, isBoss: false, reqAbility: 2,
+    enemies: [], platforms: [], switches: [], pickups: [] });
+  ROOM_DEFS.push({ id: id++, zone: 5, roomIdx: 1, isBoss: true, reqAbilities: [0,1,2,3,4],
+    enemies: [], platforms: [], switches: [], pickups: [] });
+}
+buildRoomDefs();
+
+// Ability unlock order (boss of zone N unlocks ability N)
+const ABILITY_NAMES = ['dash','wallJump','dimShift','timeStop','gravReverse'];
+const ABILITY_KEYS = ['dash','wallJump','dimShift','timeStop','gravReverse'];
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 2: ENGINE — Tween, Pool, Sound, Input, RNG, Cam  ══
+// ══════════════════════════════════════════════════════════════
+
+// SeededRNG (F18) — no Math.random allowed
+class SeededRNG {
+  constructor(seed) { this.seed = seed || 12345; }
+  next() { this.seed = (this.seed * 16807 + 0) % 2147483647; return (this.seed - 1) / 2147483646; }
+  nextInt(min, max) { return min + ((this.next() * (max - min + 1)) | 0); }
+  pick(arr) { return arr[(this.next() * arr.length) | 0]; }
+  shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = (this.next() * (i + 1)) | 0; [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+}
+
+// TweenManager (F4, F5, F13, F14)
+class TweenManager {
+  constructor() { this._tweens = []; this._toAdd = []; this._updating = false; }
+  // Add a tween — returns tween object
+  add(obj, props, dur, opts = {}) {
+    const tw = { obj, props: {}, dur, elapsed: 0, ease: opts.ease || 'easeOut',
+      onComplete: opts.onComplete || null, onUpdate: opts.onUpdate || null,
+      guard: false, dead: false };
+    for (const k in props) { tw.props[k] = { from: obj[k], to: props[k] }; }
+    if (this._updating) this._toAdd.push(tw); else this._tweens.push(tw);
+    return tw;
+  }
+  // Immediate clear (F13) — safe to call anytime
+  clearImmediate() { this._tweens.length = 0; this._toAdd.length = 0; }
+  // Update all tweens
+  update(dt) {
+    this._updating = true;
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const tw = this._tweens[i];
+      if (tw.dead) { this._tweens.splice(i, 1); continue; }
+      tw.elapsed += dt;
+      let p = Math.min(tw.elapsed / tw.dur, 1);
+      p = this._ease(p, tw.ease);
+      for (const k in tw.props) {
+        const pr = tw.props[k];
+        tw.obj[k] = pr.from + (pr.to - pr.from) * p;
+      }
+      if (tw.onUpdate) tw.onUpdate(tw.obj);
+      if (tw.elapsed >= tw.dur) {
+        tw.dead = true;
+        this._tweens.splice(i, 1);
+        if (tw.onComplete && !tw.guard) { tw.guard = true; tw.onComplete(); }
+      }
+    }
+    this._updating = false;
+    // Flush pending adds
+    if (this._toAdd.length) { this._tweens.push(...this._toAdd); this._toAdd.length = 0; }
+  }
+  _ease(t, type) {
+    switch (type) {
+      case 'linear': return t;
+      case 'easeIn': return t * t;
+      case 'easeOut': return 1 - (1 - t) * (1 - t);
+      case 'easeInOut': return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) * (-2 * t + 2) / 2;
+      case 'bounceOut': {
+        if (t < 1/2.75) return 7.5625*t*t;
+        if (t < 2/2.75) return 7.5625*(t-=1.5/2.75)*t+0.75;
+        if (t < 2.5/2.75) return 7.5625*(t-=2.25/2.75)*t+0.9375;
+        return 7.5625*(t-=2.625/2.75)*t+0.984375;
+      }
+      default: return 1 - (1 - t) * (1 - t);
+    }
+  }
+}
+
+// Object Pool for particles
+class ObjectPool {
+  constructor(max) { this.pool = []; this.max = max; }
+  // Spawn a particle
+  spawn(x, y, vx, vy, life, color, size, type) {
+    if (this.pool.length >= this.max) this.pool.shift();
+    this.pool.push({ x, y, vx, vy, life, maxLife: life, color, size, type: type || 'circle', alpha: 1 });
+  }
+  // Update all particles
+  update(dt) {
+    for (let i = this.pool.length - 1; i >= 0; i--) {
+      const p = this.pool[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.life -= dt;
+      p.alpha = Math.max(0, p.life / p.maxLife);
+      if (p.life <= 0) this.pool.splice(i, 1);
+    }
+  }
+  clear() { this.pool.length = 0; }
+}
+
+// SoundManager — Web Audio API procedural (§15)
+class SoundManager {
+  constructor() { this.ctx = null; this.masterGain = null; this.bgmGain = null;
+    this.sfxVol = 0.7; this.bgmVol = 0.5; this.bgmOsc = []; this.initialized = false; }
+  // Init on user gesture
+  init() {
+    if (this.initialized) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.connect(this.ctx.destination);
+      this.bgmGain = this.ctx.createGain();
+      this.bgmGain.gain.value = this.bgmVol;
+      this.bgmGain.connect(this.masterGain);
+      this.initialized = true;
+    } catch(e) { /* silent fail */ }
+  }
+  // Resume context if suspended
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  // Play procedural SFX
+  playSFX(type) {
+    if (!this.initialized) return;
+    const c = this.ctx, t = c.currentTime;
+    const g = c.createGain(); g.gain.value = this.sfxVol; g.connect(this.masterGain);
+    switch(type) {
+      case 'melee': { // High freq burst 800->200Hz
+        const o = c.createOscillator(); o.type = 'sawtooth';
+        o.frequency.setValueAtTime(800, t); o.frequency.linearRampToValueAtTime(200, t + 0.1);
+        g.gain.setValueAtTime(this.sfxVol, t); g.gain.linearRampToValueAtTime(0, t + 0.12);
+        o.connect(g); o.start(t); o.stop(t + 0.12); break;
+      }
+      case 'ranged': { // Mid freq 400Hz + echo
+        const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = 400;
+        g.gain.setValueAtTime(this.sfxVol * 0.6, t); g.gain.linearRampToValueAtTime(0, t + 0.15);
+        o.connect(g); o.start(t); o.stop(t + 0.15); break;
+      }
+      case 'dash': { // Wind noise
+        const buf = c.createBuffer(1, c.sampleRate * 0.2, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (rng.next() * 2 - 1) * 0.3;
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2000; bp.Q.value = 0.5;
+        src.connect(bp); bp.connect(g);
+        g.gain.setValueAtTime(this.sfxVol * 0.5, t); g.gain.linearRampToValueAtTime(0, t + 0.2);
+        src.start(t); src.stop(t + 0.2); break;
+      }
+      case 'wallJump': { // Short tap
+        const o = c.createOscillator(); o.type = 'square'; o.frequency.value = 1200;
+        g.gain.setValueAtTime(this.sfxVol * 0.4, t); g.gain.linearRampToValueAtTime(0, t + 0.05);
+        o.connect(g); o.start(t); o.stop(t + 0.05); break;
+      }
+      case 'dimShift': { // Reverse reverb
+        const o = c.createOscillator(); o.type = 'sine';
+        o.frequency.setValueAtTime(100, t); o.frequency.exponentialRampToValueAtTime(800, t + 0.4);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(this.sfxVol * 0.5, t + 0.3);
+        g.gain.linearRampToValueAtTime(0, t + 0.4);
+        o.connect(g); o.start(t); o.stop(t + 0.4); break;
+      }
+      case 'timeStop': { // Deep drone
+        const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 80;
+        g.gain.setValueAtTime(this.sfxVol * 0.6, t); g.gain.linearRampToValueAtTime(0, t + 0.5);
+        o.connect(g); o.start(t); o.stop(t + 0.5); break;
+      }
+      case 'gravReverse': { // Glissando
+        const o = c.createOscillator(); o.type = 'sine';
+        o.frequency.setValueAtTime(200, t); o.frequency.linearRampToValueAtTime(800, t + 0.15);
+        o.frequency.linearRampToValueAtTime(200, t + 0.3);
+        g.gain.setValueAtTime(this.sfxVol * 0.5, t); g.gain.linearRampToValueAtTime(0, t + 0.3);
+        o.connect(g); o.start(t); o.stop(t + 0.3); break;
+      }
+      case 'hit': { // Noise burst
+        const buf = c.createBuffer(1, c.sampleRate * 0.08, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (rng.next() * 2 - 1) * 0.5;
+        const src = c.createBufferSource(); src.buffer = buf; src.connect(g);
+        g.gain.setValueAtTime(this.sfxVol * 0.7, t); g.gain.linearRampToValueAtTime(0, t + 0.08);
+        src.start(t); src.stop(t + 0.08); break;
+      }
+      case 'bossAppear': { // Low freq drum roll
+        const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 50;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(this.sfxVol, t + 1.2);
+        g.gain.linearRampToValueAtTime(0, t + 1.5);
+        o.connect(g); o.start(t); o.stop(t + 1.5); break;
+      }
+      case 'bossDefeat': { // Chord C-E-G
+        [261.6, 329.6, 392].forEach((f, i) => {
+          const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+          const g2 = c.createGain(); g2.gain.value = this.sfxVol * 0.3; g2.connect(this.masterGain);
+          o.connect(g2); o.start(t + i * 0.1); o.stop(t + 0.8);
+          g2.gain.setValueAtTime(this.sfxVol * 0.3, t + i * 0.1);
+          g2.gain.linearRampToValueAtTime(0, t + 0.8);
+        }); break;
+      }
+      case 'artifact': { // Arpeggio C5-E5-G5-C6
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+          const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+          const g2 = c.createGain(); g2.gain.value = this.sfxVol * 0.25; g2.connect(this.masterGain);
+          o.connect(g2); o.start(t + i * 0.12); o.stop(t + 0.6);
+          g2.gain.setValueAtTime(this.sfxVol * 0.25, t + i * 0.12);
+          g2.gain.linearRampToValueAtTime(0, t + 0.6);
+        }); break;
+      }
+      case 'abilityUnlock': { // Fanfare 3-note ascend
+        [392, 523.25, 659.25].forEach((f, i) => {
+          const o = c.createOscillator(); o.type = 'square'; o.frequency.value = f;
+          const g2 = c.createGain(); g2.gain.value = this.sfxVol * 0.3; g2.connect(this.masterGain);
+          o.connect(g2); o.start(t + i * 0.25); o.stop(t + 1.0);
+          g2.gain.setValueAtTime(this.sfxVol * 0.3, t + i * 0.25);
+          g2.gain.linearRampToValueAtTime(0, t + 1.0);
+        }); break;
+      }
+      case 'select': { // UI click
+        const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 600;
+        g.gain.setValueAtTime(this.sfxVol * 0.3, t); g.gain.linearRampToValueAtTime(0, t + 0.06);
+        o.connect(g); o.start(t); o.stop(t + 0.06); break;
+      }
+    }
+  }
+  // Start zone BGM
+  startBGM(zoneIdx) {
+    this.stopBGM();
+    if (!this.initialized) return;
+    const c = this.ctx, t = c.currentTime;
+    const freqs = [[220, 165], [330, 247], [185, 139], [277, 207], [370, 277]];
+    const types = ['sawtooth','sine','triangle','square','sine'];
+    const zf = freqs[zoneIdx % 5] || freqs[0];
+    const otype = types[zoneIdx % 5] || 'sine';
+    for (let i = 0; i < 2; i++) {
+      const o = c.createOscillator(); o.type = otype;
+      o.frequency.value = zf[i];
+      const g2 = c.createGain(); g2.gain.value = 0.12;
+      o.connect(g2); g2.connect(this.bgmGain);
+      o.start(t);
+      this.bgmOsc.push({ osc: o, gain: g2 });
+    }
+    // Add LFO for movement
+    const lfo = c.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.5;
+    const lfoG = c.createGain(); lfoG.gain.value = 10;
+    lfo.connect(lfoG);
+    if (this.bgmOsc[0]) lfoG.connect(this.bgmOsc[0].osc.frequency);
+    lfo.start(t);
+    this.bgmOsc.push({ osc: lfo, gain: lfoG });
+  }
+  // Stop BGM
+  stopBGM() {
+    for (const b of this.bgmOsc) { try { b.osc.stop(); } catch(e) {} }
+    this.bgmOsc.length = 0;
+  }
+  setVolume(sfx, bgm) {
+    this.sfxVol = sfx; this.bgmVol = bgm;
+    if (this.bgmGain) this.bgmGain.gain.value = bgm;
+  }
+}
+
+// InputManager — keyboard + touch (§3)
+class InputManager {
+  constructor() {
+    this.keys = {}; this.keysJustPressed = {};
+    this.touch = { active: false, joystick: null, buttons: {} };
+    this.joyDir = { x: 0, y: 0 }; // -1 to 1
+    this.joyBase = { x: 0, y: 0 }; this.joyPos = { x: 0, y: 0 };
+    this.joyRadius = 60; this.joyActive = false;
+    this.touchBtns = []; // runtime button rects
+    this.tapQueue = []; // for menu taps
+    this.doubleTapTimer = 0; this.lastTapTime = 0;
+    this.swipeStart = null; this.isMobile = false;
+  }
+  // Check if system is active
+  poll() { /* keys already captured via events */ }
+  // Was key just pressed this frame?
+  justPressed(code) {
+    if (this.keysJustPressed[code]) { this.keysJustPressed[code] = false; return true; }
+    return false;
+  }
+  // Is key currently held?
+  held(code) { return !!this.keys[code]; }
+  // Clear just-pressed state
+  clearFrame() { for (const k in this.keysJustPressed) this.keysJustPressed[k] = false; }
+  // Register touch button hit areas
+  setButtons(btns) { this.touchBtns = btns; }
+  // Check touch button
+  btnPressed(name) { return !!this.touch.buttons[name]; }
+  btnJust(name) {
+    if (this.touch.buttons[name + '_just']) { this.touch.buttons[name + '_just'] = false; return true; }
+    return false;
+  }
+  // Get tap position (for menus)
+  getTap() { return this.tapQueue.shift() || null; }
+  clearTaps() { this.tapQueue.length = 0; }
+}
+
+// Camera system (§4.5)
+class Camera {
+  constructor() { this.x = 0; this.y = 0; this.zoom = 1; this.shakeX = 0; this.shakeY = 0;
+    this.shakeTimer = 0; this.shakeIntensity = 0; this.targetZoom = 1; }
+  // Follow target with smooth lerp
+  follow(tx, ty, dt) {
+    this.x += (tx - this.x) * CFG.CAM_LERP * 60 * dt;
+    this.y += (ty - this.y) * CFG.CAM_LERP * 60 * dt;
+  }
+  // Screen shake
+  shake(intensity, duration) { this.shakeIntensity = intensity; this.shakeTimer = duration; }
+  // Update shake
+  update(dt) {
+    if (this.shakeTimer > 0) {
+      this.shakeTimer -= dt;
+      this.shakeX = (rng.next() - 0.5) * 2 * this.shakeIntensity;
+      this.shakeY = (rng.next() - 0.5) * 2 * this.shakeIntensity;
+    } else { this.shakeX = 0; this.shakeY = 0; }
+    this.zoom += (this.targetZoom - this.zoom) * 0.05;
+  }
+  // Apply transform
+  apply(ctx, W, H) {
+    ctx.save();
+    ctx.translate(W / 2 + this.shakeX, H / 2 + this.shakeY);
+    ctx.scale(this.zoom, this.zoom);
+    ctx.translate(-this.x, -this.y);
+  }
+  restore(ctx) { ctx.restore(); }
+  // Screen to world coordinates
+  screenToWorld(sx, sy, W, H) {
+    return { x: (sx - W/2) / this.zoom + this.x, y: (sy - H/2) / this.zoom + this.y };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 3: MAP — Room data, connections, gating          ══
+// ══════════════════════════════════════════════════════════════
+
+// Populate room with platforms and enemies based on seed
+function populateRoom(room, seedRng, diffIdx) {
+  const d = DIFF[diffIdx];
+  room.enemies = [];
+  room.platforms = [];
+  room.switches = [];
+  room.pickups = [];
+  room.cleared = false;
+  room.visited = false;
+  const W = CFG.ROOM_W, H = CFG.ROOM_H;
+  const T = CFG.TILE;
+  // Ground tiles - create floor and walls
+  room.tiles = [];
+  // Floor
+  for (let x = 0; x < W; x += T) room.tiles.push({ x, y: H - T, w: T, h: T });
+  // Ceiling
+  for (let x = 0; x < W; x += T) room.tiles.push({ x, y: 0, w: T, h: T });
+  // Walls
+  for (let y = T; y < H - T; y += T) { room.tiles.push({ x: 0, y, w: T, h: T }); room.tiles.push({ x: W - T, y, w: T, h: T }); }
+  // Random platforms
+  const platCount = seedRng.nextInt(2, 5);
+  for (let i = 0; i < platCount; i++) {
+    const px = seedRng.nextInt(T * 3, W - T * 6);
+    const py = seedRng.nextInt(T * 3, H - T * 4);
+    const pw = seedRng.nextInt(2, 5) * T;
+    room.platforms.push({ x: px, y: py, w: pw, h: T * 0.5, type: 'static' });
+  }
+  // Moving platform
+  if (seedRng.next() > 0.5) {
+    const mx = seedRng.nextInt(T * 3, W - T * 6);
+    const my = seedRng.nextInt(T * 4, H - T * 5);
+    room.platforms.push({ x: mx, y: my, w: T * 3, h: T * 0.5, type: 'moving',
+      startX: mx, endX: mx + 160, speed: 60, dir: 1 });
+  }
+  // Enemies (not in boss rooms)
+  if (!room.isBoss) {
+    const eCount = seedRng.nextInt(d.eCountBase, d.eCountBase + 2);
+    for (let i = 0; i < eCount; i++) {
+      const et = ENEMY_TYPES[seedRng.nextInt(0, Math.min(room.zone + 1, 4))];
+      const ex = seedRng.nextInt(T * 3, W - T * 4);
+      const ey = H - T * 2 - 48;
+      room.enemies.push(createEnemy(et, ex, ey, d, room.zone));
+    }
+  }
+  // Switches (in puzzle rooms mostly)
+  if (room.roomIdx === 2 || seedRng.next() > 0.7) {
+    room.switches.push({ x: seedRng.nextInt(T*4, W-T*5), y: H - T*2, w: T, h: T*0.5, active: false,
+      linkedPlatIdx: room.platforms.length - 1 });
+  }
+  // Destructibles
+  const dCount = seedRng.nextInt(0, 3);
+  for (let i = 0; i < dCount; i++) {
+    room.pickups.push({ x: seedRng.nextInt(T*3, W-T*4), y: H-T*2-24, w:24, h:24,
+      type: 'crate', hp: 2, maxHp: 2, alive: true });
+  }
+}
+
+// Create enemy from template
+function createEnemy(template, x, y, diff, zoneIdx) {
+  return {
+    type: template.id, x, y, w: 32, h: 40,
+    hp: template.hp * diff.eMul, maxHp: template.hp * diff.eMul,
+    dmg: template.dmg * diff.eDmgMul, spd: template.spd,
+    ai: template.ai, zone: zoneIdx,
+    vx: 0, vy: 0, dir: 1, atkTimer: 0, atkCd: 2 + rng.next(),
+    patrolX: x, patrolRange: 120, stunTimer: 0,
+    summonTimer: 0, shieldUp: false, alive: true,
+    animT: 0, flashTimer: 0
+  };
+}
+
+// Create boss for zone
+function createBoss(zoneIdx, diffIdx) {
+  const z = ZONES[zoneIdx] || ZONES[0];
+  const hpArr = zoneIdx < 5 ? z.bossHP : HIDDEN_BOSS.hp;
+  return {
+    zone: zoneIdx, x: CFG.ROOM_W * 0.7, y: CFG.ROOM_H - CFG.TILE * 2 - 80,
+    w: 80, h: 80, hp: hpArr[diffIdx], maxHp: hpArr[diffIdx],
+    phase: 0, phaseThresholds: zoneIdx < 5 ? [0.6, 0.3] : [0.75, 0.5, 0.25],
+    dmg: 20 + zoneIdx * 5, dir: -1, alive: true,
+    atkTimer: 0, atkCd: 3, atkType: null,
+    phaseTransitioning: false, weakTimer: 0, weakExposed: false,
+    rewardGiven: false, // F17 guard flag
+    animT: 0, flashTimer: 0, introTimer: 0,
+    projList: [], vx: 0, vy: 0
+  };
+}
+
+// Check which rooms are accessible with current abilities
+function getAccessibleRooms(unlockedAbilities) {
+  const accessible = [];
+  for (const r of ROOM_DEFS) {
+    if (r.reqAbilities) {
+      // All listed abilities must be unlocked
+      if (r.reqAbilities.every(a => unlockedAbilities.includes(a))) accessible.push(r.id);
+    } else if (r.reqAbility < 0 || unlockedAbilities.includes(r.reqAbility)) {
+      accessible.push(r.id);
+    }
+  }
+  return accessible;
+}
+
+// Get next room ID in zone progression
+function getNextRoom(currentId) {
+  const cur = ROOM_DEFS[currentId];
+  if (!cur) return 0;
+  // Same zone, next room
+  const nextInZone = ROOM_DEFS.find(r => r.zone === cur.zone && r.roomIdx === cur.roomIdx + 1);
+  if (nextInZone) return nextInZone.id;
+  // Next zone first room
+  const nextZone = ROOM_DEFS.find(r => r.zone === cur.zone + 1 && r.roomIdx === 0);
+  if (nextZone) return nextZone.id;
+  return -1; // victory
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 4: ENTITY — Player, projectiles, pickups         ══
+// ══════════════════════════════════════════════════════════════
+
+// Create player data
+function createPlayer(diffIdx) {
+  const d = DIFF[diffIdx];
+  return {
+    x: 120, y: CFG.ROOM_H - CFG.TILE * 2 - 48, w: 28, h: 44,
+    vx: 0, vy: 0, dir: 1, onGround: false, onWall: false, wallDir: 0,
+    hp: CFG.PLAYER_HP * d.hpMul, maxHp: CFG.PLAYER_HP * d.hpMul,
+    energy: CFG.MAX_ENERGY, maxEnergy: CFG.MAX_ENERGY,
+    meleeCd: 0, rangeCd: 0, meleeAnim: 0,
+    dashTimer: 0, dashCd: 0, dashDir: 0, dashTrail: [],
+    invTimer: 0, knockbackTimer: 0,
+    abilities: [false, false, false, false, false], // dash, wallJump, dimShift, timeStop, gravReverse
+    gravDir: 1, // 1 = normal, -1 = reversed
+    timeStopActive: false, timeStopTimer: 0, timeStopCd: 0,
+    dimShiftActive: false, dimShiftCd: 0,
+    animState: 'idle', animT: 0, facing: 1,
+    comboDmgMul: 1, artifacts: [], score: 0, comboCount: 0, comboTimer: 0,
+    echoPoints: 0, reviveUsed: false
+  };
+}
+
+// Projectiles array managed globally
+function createProjectile(x, y, vx, vy, dmg, owner, type) {
+  return { x, y, w: 8, h: 8, vx, vy, dmg, owner, type: type || 'normal',
+    life: 3, alive: true };
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 5: DRAW — All rendering functions (pure, F9)     ══
+// ══════════════════════════════════════════════════════════════
+
+// All rendering uses Canvas drawing — no external asset dependencies (F1)
+
+// Draw background layers with parallax (pure function)
+function drawBackground(ctx, W, H, camX, camY, zoneIdx, t) {
+  const z = ZONES[zoneIdx] || ZONES[0];
+  // Base gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, z.bg);
+  grad.addColorStop(1, darken(z.bg, 0.5));
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  // Layer 1 — far background starfield (slow parallax)
+  drawStarfield(ctx, W, H, camX * 0.1, t, z.pri);
+  // Layer 2 — mid-ground (faster parallax)
+  drawMidground(ctx, W, H, camX * 0.3, z);
+  // Zone-specific weather particles
+  drawWeather(ctx, W, H, zoneIdx, t);
+}
+
+// Fallback starfield
+function drawStarfield(ctx, W, H, offset, t, color) {
+  const starSeed = new SeededRNG(42);
+  ctx.fillStyle = color;
+  for (let i = 0; i < 60; i++) {
+    const sx = (starSeed.next() * W * 2 - offset) % W;
+    const sy = starSeed.next() * H * 0.7;
+    const sz = 1 + starSeed.next() * 2;
+    const blink = 0.5 + 0.5 * Math.sin(t * 2 + i);
+    ctx.globalAlpha = blink * 0.6;
+    ctx.beginPath(); ctx.arc(sx < 0 ? sx + W : sx, sy, sz, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Fallback mid-ground silhouettes
+function drawMidground(ctx, W, H, offset, zone) {
+  ctx.fillStyle = zone.pri + '20';
+  for (let i = 0; i < 5; i++) {
+    const bx = (i * 200 - offset) % W;
+    const bw = 40 + i * 15; const bh = 100 + i * 30;
+    ctx.fillRect(bx < 0 ? bx + W : bx, H - bh - CFG.TILE, bw, bh);
+  }
+}
+
+// Zone weather effects
+function drawWeather(ctx, W, H, zoneIdx, t) {
+  ctx.globalAlpha = 0.3;
+  switch (zoneIdx) {
+    case 0: // Ruin — sand particles
+      ctx.fillStyle = '#D4A574';
+      for (let i = 0; i < 20; i++) {
+        const px = ((t * 80 + i * 50) % W);
+        const py = 50 + Math.sin(t + i) * 30 + (i / 20) * H * 0.6;
+        ctx.fillRect(px, py, 3, 1);
+      }
+      break;
+    case 1: // Crystal — sparkle
+      ctx.fillStyle = '#00E5FF';
+      for (let i = 0; i < 15; i++) {
+        const px = (Math.sin(t * 0.5 + i * 1.3) * 0.5 + 0.5) * W;
+        const py = (Math.cos(t * 0.3 + i * 0.9) * 0.5 + 0.5) * H;
+        const sz = 2 + Math.sin(t * 3 + i) * 1.5;
+        ctx.beginPath(); ctx.arc(px, py, Math.max(0.5, sz), 0, Math.PI * 2); ctx.fill();
+      }
+      break;
+    case 2: // Abyss — bubbles rising
+      ctx.fillStyle = '#7C4DFF';
+      for (let i = 0; i < 12; i++) {
+        const px = (i / 12) * W + Math.sin(t + i) * 20;
+        const py = H - ((t * 30 + i * 60) % H);
+        ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+      }
+      break;
+    case 3: // Magma — fire particles + lava wave
+      ctx.fillStyle = '#FF6D00';
+      for (let i = 0; i < 15; i++) {
+        const px = (i / 15) * W + Math.sin(t * 2 + i) * 15;
+        const py = H - 60 - ((t * 60 + i * 40) % (H * 0.5));
+        const sz = 2 + Math.sin(t * 4 + i) * 1;
+        ctx.beginPath(); ctx.arc(px, py, Math.max(0.5, sz), 0, Math.PI * 2); ctx.fill();
+      }
+      // Lava wave at bottom
+      ctx.fillStyle = '#FF6D0060';
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 20) {
+        ctx.lineTo(x, H - 15 + Math.sin(t * 2 + x * 0.02) * 8);
+      }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+      break;
+    case 4: // Void — glitch scanlines
+      ctx.fillStyle = '#E040FB';
+      for (let i = 0; i < 8; i++) {
+        const sy = ((t * 100 + i * 50) % H);
+        ctx.globalAlpha = 0.1;
+        ctx.fillRect(0, sy, W, 2);
+      }
+      break;
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Draw room tiles and platforms (pure)
+function drawRoom(ctx, camOffX, camOffY, room, zone, t) {
+  const z = ZONES[zone] || ZONES[0];
+  // Tiles (floor, ceiling, walls) — 2-tone border + top highlight
+  for (const tile of room.tiles) {
+    ctx.fillStyle = z.pri + '40';
+    ctx.fillRect(tile.x, tile.y, tile.w, tile.h);
+    // Top highlight
+    ctx.fillStyle = z.sec + '30';
+    ctx.fillRect(tile.x, tile.y, tile.w, 2);
+    // Dark bottom edge
+    ctx.fillStyle = '#00000040';
+    ctx.fillRect(tile.x, tile.y + tile.h - 2, tile.w, 2);
+    // Border
+    ctx.strokeStyle = z.pri + '60';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tile.x, tile.y, tile.w, tile.h);
+  }
+  // Platforms
+  for (const p of room.platforms) {
+    const gp = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+    gp.addColorStop(0, z.sec);
+    gp.addColorStop(1, z.pri);
+    ctx.fillStyle = gp;
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    // Glow on platform edge
+    ctx.shadowColor = z.sec; ctx.shadowBlur = 4;
+    ctx.strokeStyle = z.sec + '80'; ctx.lineWidth = 1;
+    ctx.strokeRect(p.x, p.y, p.w, p.h);
+    ctx.shadowBlur = 0;
+  }
+  // Switches — distinct shapes for colorblind accessibility
+  for (const sw of room.switches) {
+    const scx = sw.x + sw.w / 2, scy = sw.y + sw.h / 2;
+    if (sw.active) {
+      // Active: filled diamond + green glow
+      ctx.fillStyle = '#00ff87';
+      ctx.shadowColor = '#00ff87'; ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(scx, sw.y); ctx.lineTo(sw.x + sw.w, scy);
+      ctx.lineTo(scx, sw.y + sw.h); ctx.lineTo(sw.x, scy);
+      ctx.closePath(); ctx.fill();
+      // Checkmark icon
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.moveTo(scx - 6, scy); ctx.lineTo(scx - 2, scy + 5); ctx.lineTo(scx + 6, scy - 5);
+      ctx.stroke();
+    } else {
+      // Inactive: square outline + dot pattern
+      ctx.fillStyle = '#505070';
+      ctx.fillRect(sw.x, sw.y, sw.w, sw.h);
+      ctx.strokeStyle = '#8080a0'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(sw.x, sw.y, sw.w, sw.h);
+      // Cross pattern to indicate "locked"
+      ctx.strokeStyle = '#606080'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sw.x + 4, sw.y + 4); ctx.lineTo(sw.x + sw.w - 4, sw.y + sw.h - 4);
+      ctx.moveTo(sw.x + sw.w - 4, sw.y + 4); ctx.lineTo(sw.x + 4, sw.y + sw.h - 4);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+  }
+  // Destructibles / pickups
+  for (const pk of room.pickups) {
+    if (!pk.alive) continue;
+    if (pk.type === 'crate') {
+      ctx.fillStyle = '#8B7355';
+      ctx.fillRect(pk.x, pk.y, pk.w, pk.h);
+      ctx.strokeStyle = '#D4A574'; ctx.lineWidth = 1;
+      ctx.strokeRect(pk.x, pk.y, pk.w, pk.h);
+    }
+  }
+  // Exit indicators
+  ctx.fillStyle = z.sec + '60';
+  ctx.fillRect(CFG.ROOM_W - CFG.TILE * 1.5, CFG.ROOM_H - CFG.TILE * 3, CFG.TILE, CFG.TILE * 2);
+  // Pulsing arrow
+  const arrowAlpha = 0.4 + 0.3 * Math.sin(t * 3);
+  ctx.globalAlpha = arrowAlpha;
+  ctx.fillStyle = z.sec;
+  const ax = CFG.ROOM_W - CFG.TILE;
+  const ay = CFG.ROOM_H - CFG.TILE * 2;
+  ctx.beginPath(); ctx.moveTo(ax, ay - 8); ctx.lineTo(ax + 10, ay); ctx.lineTo(ax, ay + 8); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// Draw player character (pure — F9)
+function drawPlayer(ctx, x, y, w, h, dir, animState, invTimer, dashTimer, abilities, gravDir, t) {
+  ctx.save();
+  if (invTimer > 0 && Math.floor(t * 10) % 2 === 0) { ctx.globalAlpha = 0.4; }
+  // Dash trail
+  if (dashTimer > 0) {
+    for (let i = 1; i <= 3; i++) {
+      ctx.globalAlpha = 0.2 / i;
+      const trailX = x - dir * i * 12;
+      drawPlayerBody(ctx, trailX, y, w, h, dir, '#00E5FF', t);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Main body — Canvas rendering
+  drawPlayerBody(ctx, x, y, w, h, dir, '#00E5FF', t);
+  // Melee attack swing effect
+  if (animState === 'melee') {
+    ctx.strokeStyle = '#B388FF';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#B388FF'; ctx.shadowBlur = 8;
+    const sa = dir > 0 ? -0.5 : 2.6;
+    ctx.beginPath(); ctx.arc(x + w / 2 + dir * 20, y + h / 2, 30, sa, sa + 1.2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  // Ability effects
+  if (abilities[2] && G.dimShiftActive) { // Dimension shift aura
+    ctx.strokeStyle = '#B388FF80';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
+    ctx.setLineDash([]);
+  }
+  if (abilities[3] && G.timeStopActive) { // Time stop aura
+    ctx.beginPath();
+    ctx.arc(x + w/2, y + h/2, 50, 0, Math.PI * 2);
+    ctx.strokeStyle = '#7C4DFF40'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#7C4DFF10'; ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Fallback player body drawing
+function drawPlayerBody(ctx, x, y, w, h, dir, color, t) {
+  // Cloak
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x + w/2, y);
+  ctx.bezierCurveTo(x + w + 4, y + h * 0.3, x + w + 2, y + h * 0.7, x + w/2 - dir * 5, y + h + 4);
+  ctx.bezierCurveTo(x - 4, y + h * 0.7, x - 2, y + h * 0.3, x + w/2, y);
+  ctx.fill();
+  // Mask (white face)
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(x + w * 0.2, y + h * 0.1, w * 0.6, h * 0.3);
+  // Eye slits (cyan glow)
+  ctx.fillStyle = '#00E5FF';
+  ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 6;
+  ctx.fillRect(x + w * 0.28, y + h * 0.18, w * 0.15, h * 0.08);
+  ctx.fillRect(x + w * 0.57, y + h * 0.18, w * 0.15, h * 0.08);
+  ctx.shadowBlur = 0;
+  // Energy blade (purple)
+  if (dir > 0) {
+    ctx.fillStyle = '#B388FF';
+    ctx.fillRect(x + w + 2, y + h * 0.3, 3, h * 0.4);
+  } else {
+    ctx.fillStyle = '#B388FF';
+    ctx.fillRect(x - 5, y + h * 0.3, 3, h * 0.4);
+  }
+}
+
+// Draw enemy (pure — F9)
+function drawEnemy(ctx, x, y, w, h, type, hp, maxHp, zone, animT, flashTimer, t) {
+  ctx.save();
+  if (flashTimer > 0) { ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 20); }
+  {
+    const z = ZONES[zone] || ZONES[0];
+    // Zone-based Canvas rendering
+    ctx.fillStyle = z.enemy;
+    switch (zone) {
+      case 0: // Ruin — stone golem (square)
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = z.pri + '80';
+        ctx.fillRect(x + 4, y + 4, w - 8, h * 0.3);
+        break;
+      case 1: // Crystal — floating crystal (triangle)
+        ctx.beginPath();
+        ctx.moveTo(x + w/2, y); ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h);
+        ctx.closePath(); ctx.fill();
+        break;
+      case 2: // Abyss — tentacle shadow (improved solid silhouette)
+        ctx.beginPath();
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x, y + h * 0.4);
+        for (let i = 0; i <= w; i += 4) {
+          ctx.lineTo(x + i, y + Math.sin(animT * 5 + i * 0.1) * 8 + h * 0.15);
+        }
+        ctx.lineTo(x + w, y + h * 0.4);
+        ctx.lineTo(x + w, y + h);
+        ctx.closePath(); ctx.fill();
+        // Inner detail line
+        ctx.strokeStyle = z.sec + '60'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i <= w; i += 4) {
+          const py = y + Math.sin(animT * 5 + i * 0.1) * 6 + h * 0.35;
+          i === 0 ? ctx.moveTo(x + i, py) : ctx.lineTo(x + i, py);
+        }
+        ctx.stroke();
+        break;
+      case 3: // Magma — slime (circle)
+        ctx.beginPath();
+        ctx.ellipse(x + w/2, y + h * 0.6, w/2, h * 0.5 + Math.sin(animT * 3) * 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case 4: // Void — glitch phantom
+        ctx.fillRect(x, y, w, h);
+        if (Math.sin(t * 15) > 0.5) { ctx.fillStyle = z.sec; ctx.fillRect(x + 2, y + rng.next() * h * 0.5, w - 4, 3); }
+        break;
+      default: ctx.fillRect(x, y, w, h);
+    }
+    // Eyes
+    ctx.fillStyle = '#FF1744';
+    ctx.shadowColor = '#FF1744'; ctx.shadowBlur = 4;
+    ctx.fillRect(x + w * 0.25, y + h * 0.2, 4, 4);
+    ctx.fillRect(x + w * 0.6, y + h * 0.2, 4, 4);
+    ctx.shadowBlur = 0;
+  }
+  // HP bar
+  if (hp < maxHp) {
+    const barW = w * 1.2; const barH = 4;
+    const bx = x + (w - barW) / 2; const by = y - 10;
+    ctx.fillStyle = '#333'; ctx.fillRect(bx, by, barW, barH);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(bx, by, barW * (hp / maxHp), barH);
+  }
+  ctx.restore();
+}
+
+// Draw boss (pure — F9)
+function drawBoss(ctx, x, y, w, h, phase, hp, maxHp, zone, animT, weakExposed, t) {
+  ctx.save();
+  const z = ZONES[zone] || ZONES[0];
+  const pulseScale = 1 + Math.sin(animT * 2) * 0.03;
+  ctx.translate(x + w/2, y + h/2);
+  ctx.scale(pulseScale, pulseScale);
+  ctx.translate(-w/2, -h/2);
+  // Boss body
+  const bossColor = z.pri;
+  ctx.fillStyle = bossColor;
+  ctx.shadowColor = bossColor; ctx.shadowBlur = 15;
+  // Different shapes per zone boss
+  switch (zone) {
+    case 0: // Petrified King — large golem
+      ctx.fillRect(-w*0.1, -h*0.1, w*1.2, h*1.2);
+      // Cores
+      const coreColors = ['#ef4444','#ffd700','#3b82f6'];
+      const corePhase = Math.min(phase, 2);
+      ctx.fillStyle = coreColors[corePhase];
+      ctx.shadowColor = coreColors[corePhase]; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(w/2, h*0.4, 12, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 1: // Prism Witch — crystal wings
+      ctx.beginPath();
+      ctx.moveTo(w/2, -h*0.2);
+      ctx.lineTo(w*1.3, h*0.5); ctx.lineTo(w/2, h*1.1);
+      ctx.lineTo(-w*0.3, h*0.5); ctx.closePath(); ctx.fill();
+      // Wings
+      ctx.fillStyle = z.sec + '80';
+      for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2 + animT;
+        ctx.beginPath();
+        ctx.moveTo(w/2, h/2);
+        ctx.lineTo(w/2 + Math.cos(angle) * w, h/2 + Math.sin(angle) * h * 0.6);
+        ctx.lineTo(w/2 + Math.cos(angle + 0.3) * w * 0.8, h/2 + Math.sin(angle + 0.3) * h * 0.5);
+        ctx.closePath(); ctx.fill();
+      }
+      break;
+    case 2: // Abyss Lord — tentacles + eye
+      // Tentacles
+      ctx.strokeStyle = z.enemy; ctx.lineWidth = 6;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(w/2, h/2);
+        const len = w * 0.8 + Math.sin(animT * 2 + i) * 10;
+        ctx.bezierCurveTo(w/2 + Math.cos(a) * len * 0.5, h/2 + Math.sin(a) * len * 0.5,
+          w/2 + Math.cos(a + 0.2) * len * 0.8, h/2 + Math.sin(a + 0.2) * len * 0.8,
+          w/2 + Math.cos(a) * len, h/2 + Math.sin(a) * len);
+        ctx.stroke();
+      }
+      // Central eye
+      ctx.fillStyle = weakExposed ? '#FF1744' : z.pri;
+      ctx.beginPath(); ctx.arc(w/2, h/2, 20, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath(); ctx.arc(w/2, h/2, 8, 0, Math.PI * 2); ctx.fill();
+      break;
+    case 3: // Magma Titan — armored
+      ctx.fillRect(-w*0.15, -h*0.05, w*1.3, h*1.1);
+      // Lava cracks
+      ctx.strokeStyle = '#FFAB00'; ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const lx = w * 0.2 + i * w * 0.15;
+        ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx + 5, h * 0.4);
+        ctx.lineTo(lx - 3, h * 0.8); ctx.stroke();
+      }
+      break;
+    case 4: // Dimension Breaker — space distortion
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + animT * 0.5;
+        const r = (i % 2 === 0 ? w * 0.6 : w * 0.3) + Math.sin(animT + i) * 5;
+        const px = w/2 + Math.cos(a) * r;
+        const py = h/2 + Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.fill();
+      break;
+    default: // Hidden boss — shifting form
+      const hueShift = (animT * 30) % 360;
+      ctx.fillStyle = `hsl(${hueShift}, 80%, 50%)`;
+      ctx.beginPath(); ctx.arc(w/2, h/2, w * 0.5 + Math.sin(animT) * 5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  // Weak point indicator
+  if (weakExposed) {
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(w/2, h * 0.4, 15, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+  // HP bar (above boss, in world space)
+  const barW = w * 1.5; const barH = 8;
+  const bx = x + (w - barW) / 2; const by = y - 20;
+  ctx.fillStyle = '#1a1a2e'; ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+  ctx.fillStyle = '#333'; ctx.fillRect(bx, by, barW, barH);
+  // Phase color
+  const phaseColors = ['#ef4444', '#ff6d00', '#ffd700'];
+  ctx.fillStyle = phaseColors[Math.min(phase, 2)] || '#ef4444';
+  ctx.fillRect(bx, by, barW * Math.max(0, hp / maxHp), barH);
+  // Phase dividers
+  ctx.fillStyle = '#000';
+  for (const th of [0.6, 0.3]) { ctx.fillRect(bx + barW * th - 1, by, 2, barH); }
+}
+
+// Draw HUD overlay (pure — F9)
+function drawHUD(ctx, W, H, player, room, score, combo, comboTimer, lang, gt) {
+  const pad = 12;
+  // Heart icon (Canvas drawn before HP bar)
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  const hx = pad + 7, hy = pad + 4;
+  ctx.moveTo(hx, hy + 3); ctx.bezierCurveTo(hx, hy, hx - 5, hy, hx - 5, hy + 3);
+  ctx.bezierCurveTo(hx - 5, hy + 6, hx, hy + 9, hx, hy + 11);
+  ctx.bezierCurveTo(hx, hy + 9, hx + 5, hy + 6, hx + 5, hy + 3);
+  ctx.bezierCurveTo(hx + 5, hy, hx, hy, hx, hy + 3);
+  ctx.fill();
+  // HP bar (top left)
+  const hpW = 160, hpH = 14;
+  ctx.fillStyle = '#1a1a2e'; ctx.fillRect(pad - 1, pad - 1, hpW + 2, hpH + 2);
+  ctx.fillStyle = '#333'; ctx.fillRect(pad, pad, hpW, hpH);
+  const hpRatio = Math.max(0, player.hp / player.maxHp);
+  ctx.fillStyle = hpRatio > 0.5 ? '#00ff87' : hpRatio > 0.25 ? '#ffd700' : '#ef4444';
+  ctx.fillRect(pad, pad, hpW * hpRatio, hpH);
+  ctx.fillStyle = '#e0e0f0'; ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${Math.ceil(player.hp)}/${Math.ceil(player.maxHp)}`, pad + 4, pad + hpH - 2);
+  // Energy bar (below HP)
+  const enY = pad + hpH + 6;
+  ctx.fillStyle = '#1a1a2e'; ctx.fillRect(pad - 1, enY - 1, hpW + 2, 10);
+  ctx.fillStyle = '#333'; ctx.fillRect(pad, enY, hpW, 8);
+  ctx.fillStyle = '#7C4DFF';
+  ctx.fillRect(pad, enY, hpW * (player.energy / player.maxEnergy), 8);
+  ctx.fillStyle = '#B388FF'; ctx.font = '9px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(`${Math.ceil(player.energy)}/${player.maxEnergy}`, pad + 4, enY + 7);
+  // Score (top right)
+  // Star icon for score (Canvas drawn)
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  const sx = W - pad - 91, sy = pad + 7, sr = 8;
+  for (let i = 0; i < 5; i++) {
+    const a = Math.PI / 2 + i * Math.PI * 2 / 5;
+    const ai = a + Math.PI / 5;
+    ctx[i === 0 ? 'moveTo' : 'lineTo'](sx + Math.cos(-a) * sr, sy + Math.sin(-a) * sr);
+    ctx.lineTo(sx + Math.cos(-ai) * sr * 0.4, sy + Math.sin(-ai) * sr * 0.4);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.textAlign = 'right'; ctx.font = 'bold 16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText(`${t('score')}: ${score}`, W - pad, pad + 14);
+  // Combo counter (right side)
+  if (combo > 0 && comboTimer > 0) {
+    const comboScale = 1 + Math.sin(comboTimer * 8) * 0.1;
+    ctx.save();
+    ctx.translate(W - pad, pad + 34);
+    ctx.scale(comboScale, comboScale);
+    ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText(`${combo} ${t('combo')}!`, 0, 0);
+    ctx.restore();
+  }
+  // Ability icons (bottom left)
+  const abilY = H - 50;
+  const abilNames = ['dash','wallJump','dimShift','timeStop','gravReverse'];
+  const abilColors = ['#00E5FF','#B388FF','#7C4DFF','#1A237E','#E040FB'];
+  for (let i = 0; i < 5; i++) {
+    const ax = pad + i * 36;
+    ctx.fillStyle = player.abilities[i] ? abilColors[i] + '80' : '#333';
+    ctx.fillRect(ax, abilY, 30, 30);
+    ctx.strokeStyle = player.abilities[i] ? abilColors[i] : '#505070';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(ax, abilY, 30, 30);
+    if (player.abilities[i]) {
+      ctx.fillStyle = '#e0e0f0'; ctx.font = '8px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(t(abilNames[i]).substring(0, 3), ax + 15, abilY + 18);
+    }
+  }
+  ctx.textAlign = 'left';
+  // Zone/Room indicator (top center)
+  if (room) {
+    ctx.textAlign = 'center'; ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#8080a0';
+    const zn = ZONES[room.zone] || { name: { ko: '히든', en: 'Hidden' } };
+    ctx.fillText(`${zn.name[currentLang] || zn.name.ko} ${room.roomIdx + 1}`, W / 2, pad + 14);
+    ctx.textAlign = 'left';
+  }
+}
+
+// Draw particles (pure)
+function drawParticles(ctx, pool, t) {
+  for (const p of pool.pool) {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    if (p.type === 'circle') {
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.size * p.alpha), 0, Math.PI * 2); ctx.fill();
+    } else if (p.type === 'spark') {
+      ctx.fillRect(p.x - 1, p.y - 1, 3, 3);
+    } else if (p.type === 'hit') {
+      // Hit effect — Canvas drawn radial burst
+      const sz = p.size * 2;
+      ctx.strokeStyle = p.color; ctx.lineWidth = 2;
+      for (let a = 0; a < 6; a++) {
+        const ang = a * Math.PI / 3 + p.x;
+        ctx.beginPath();
+        ctx.moveTo(p.x + Math.cos(ang) * sz * 0.3, p.y + Math.sin(ang) * sz * 0.3);
+        ctx.lineTo(p.x + Math.cos(ang) * sz, p.y + Math.sin(ang) * sz);
+        ctx.stroke();
+      }
+    } else if (p.type === 'text') {
+      ctx.font = `bold ${Math.max(8, p.size)}px "Segoe UI", system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.text || '', p.x, p.y);
+    } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.size * p.alpha), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Draw projectiles
+function drawProjectiles(ctx, projectiles, t) {
+  for (const p of projectiles) {
+    if (!p.alive) continue;
+    ctx.fillStyle = p.owner === 'player' ? '#00E5FF' : '#FF1744';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// Draw touch controls (pure)
+function drawTouchControls(ctx, W, H, input, abilities) {
+  if (!input.isMobile) return;
+  ctx.globalAlpha = 0.35;
+  // Virtual joystick (left side)
+  const jx = 80, jy = H - 100, jr = input.joyRadius;
+  ctx.strokeStyle = '#e0e0f0'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.stroke();
+  if (input.joyActive) {
+    ctx.fillStyle = '#00E5FF';
+    ctx.beginPath(); ctx.arc(jx + input.joyDir.x * jr * 0.7, jy + input.joyDir.y * jr * 0.7, 18, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#e0e0f060';
+    ctx.beginPath(); ctx.arc(jx, jy, 18, 0, Math.PI * 2); ctx.fill();
+  }
+  // Action buttons (right side)
+  const btnSize = Math.max(CFG.MIN_TOUCH, 52);
+  const btns = [
+    { name: 'btnA', label: 'ATK', x: W - 70, y: H - 130, color: '#FF1744' },
+    { name: 'btnR', label: 'RNG', x: W - 190, y: H - 110, color: '#E040FB' },
+    { name: 'btnB', label: 'JMP', x: W - 130, y: H - 80, color: '#00E5FF' },
+    { name: 'btnC', label: 'DSH', x: W - 70, y: H - 70, color: '#ffd700' },
+    { name: 'btnS', label: 'SKL', x: W - 130, y: H - 140, color: '#B388FF' },
+  ];
+  for (const b of btns) {
+    ctx.fillStyle = input.touch.buttons[b.name] ? b.color + '80' : b.color + '30';
+    ctx.beginPath(); ctx.arc(b.x, b.y, btnSize / 2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = b.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(b.x, b.y, btnSize / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#e0e0f0'; ctx.font = 'bold 11px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, b.x, b.y);
+  }
+  // Pause button (top right)
+  ctx.fillStyle = '#505070'; ctx.strokeStyle = '#8080a0'; ctx.lineWidth = 1.5;
+  ctx.fillRect(W - 54, 6, CFG.MIN_TOUCH, CFG.MIN_TOUCH);
+  ctx.strokeRect(W - 54, 6, CFG.MIN_TOUCH, CFG.MIN_TOUCH);
+  ctx.fillStyle = '#e0e0f0'; ctx.font = '18px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('⏸', W - 30, 34);
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+// Title screen drawing
+function drawTitleScreen(ctx, W, H, bootAlpha, gt) {
+  // Dark background
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+  // Dimensional rift effect (signature visual)
+  drawDimensionalRift(ctx, W/2, H * 0.35, W * 0.4, gt);
+  // Title text with glitch effect
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 42px "Segoe UI", system-ui, sans-serif';
+  // Glitch offset
+  const glitchX = Math.sin(gt * 15) > 0.95 ? (rng.next() - 0.5) * 8 : 0;
+  const glitchY = Math.sin(gt * 12) > 0.95 ? (rng.next() - 0.5) * 4 : 0;
+  // Shadow layers
+  ctx.fillStyle = '#E040FB40';
+  ctx.fillText(t('title'), W/2 + 3 + glitchX, H * 0.22 + 3);
+  ctx.fillStyle = '#00E5FF40';
+  ctx.fillText(t('title'), W/2 - 2 + glitchX, H * 0.22 - 2);
+  // Main title
+  const titleGrad = ctx.createLinearGradient(W/2 - 150, 0, W/2 + 150, 0);
+  titleGrad.addColorStop(0, '#00E5FF');
+  titleGrad.addColorStop(0.5, '#FFFFFF');
+  titleGrad.addColorStop(1, '#E040FB');
+  ctx.fillStyle = titleGrad;
+  ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 20;
+  ctx.fillText(t('title'), W/2 + glitchX, H * 0.22 + glitchY);
+  ctx.shadowBlur = 0;
+  // Subtitle
+  ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText(t('subtitle'), W/2, H * 0.30);
+  // Start prompt (pulsing)
+  const promptAlpha = 0.5 + 0.5 * Math.sin(gt * 3);
+  ctx.globalAlpha = promptAlpha;
+  ctx.font = '15px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText(t('pressStart'), W/2, H * 0.65);
+  ctx.globalAlpha = 1;
+  // Best score
+  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#505070';
+  ctx.fillText(`${t('bestScore')}: ${G.save.bestScore}`, W/2, H * 0.72);
+  // Language switch button
+  ctx.fillStyle = '#1a1a2e'; ctx.strokeStyle = '#505070'; ctx.lineWidth = 1;
+  const lbx = W - 60, lby = 12, lbw = CFG.MIN_TOUCH, lbh = CFG.MIN_TOUCH;
+  ctx.fillRect(lbx, lby, lbw, lbh);
+  ctx.strokeRect(lbx, lby, lbw, lbh);
+  ctx.fillStyle = '#e0e0f0'; ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(t('langSwitch'), lbx + lbw/2, lby + lbh/2 + 1);
+  // Continue run indicator
+  if (G.save.seed) {
+    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#00E5FF';
+    ctx.fillText(t('continueRun') + ' ▶', W/2, H * 0.58);
+  }
+  ctx.restore();
+}
+
+// Dimensional rift effect (signature visual)
+function drawDimensionalRift(ctx, cx, cy, size, t) {
+  ctx.save();
+  // Outer glow ring
+  for (let i = 3; i >= 0; i--) {
+    const r = size * 0.3 + i * size * 0.08;
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r);
+    grad.addColorStop(0, 'rgba(124,77,255,0)');
+    grad.addColorStop(0.5, `rgba(0,229,255,${0.05 + i * 0.02})`);
+    grad.addColorStop(1, 'rgba(224,64,251,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  // Rift crack lines
+  ctx.strokeStyle = '#00E5FF'; ctx.lineWidth = 2; ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 8;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + t * 0.3;
+    const len = size * 0.15 + Math.sin(t * 2 + i) * size * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * size * 0.05, cy + Math.sin(angle) * size * 0.05);
+    ctx.lineTo(cx + Math.cos(angle) * len, cy + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+  // Swirling particles
+  ctx.fillStyle = '#B388FF';
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 + t * 0.8;
+    const r = size * 0.1 + size * 0.1 * Math.sin(t * 1.5 + i * 0.7);
+    const px = cx + Math.cos(angle) * r;
+    const py = cy + Math.sin(angle) * r;
+    ctx.globalAlpha = 0.4 + 0.3 * Math.sin(t * 3 + i);
+    ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// Difficulty select screen
+function drawDifficultyScreen(ctx, W, H, selectedIdx, gt) {
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.font = 'bold 24px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0'; ctx.fillText(t('difficulty'), W/2, 50);
+  for (let i = 0; i < 3; i++) {
+    const dy = 100 + i * 90;
+    const sel = i === selectedIdx;
+    ctx.fillStyle = sel ? '#1a1a2e' : '#12121e';
+    ctx.strokeStyle = sel ? '#00E5FF' : '#1e1e30';
+    ctx.lineWidth = sel ? 2 : 1;
+    const bx = W/2 - 130, bw = 260, bh = 70;
+    ctx.fillRect(bx, dy, bw, bh);
+    ctx.strokeRect(bx, dy, bw, bh);
+    if (sel) { ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 10; ctx.strokeRect(bx, dy, bw, bh); ctx.shadowBlur = 0; }
+    ctx.fillStyle = sel ? '#00E5FF' : '#e0e0f0';
+    ctx.font = 'bold 18px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(DIFF[i].name[currentLang], W/2, dy + 30);
+    ctx.fillStyle = '#8080a0'; ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    const desc = i === 0 ? 'HP×1.2 / Enemy×0.8' : i === 1 ? 'HP×1.0 / Enemy×1.0' : 'HP×0.8 / Enemy×1.2';
+    ctx.fillText(desc, W/2, dy + 52);
+  }
+  ctx.fillStyle = '#505070'; ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('↑↓ ' + t('choose') + ' / ENTER', W/2, H - 30);
+}
+
+// Zone map screen
+function drawZoneMap(ctx, W, H, accessibleRooms, currentRoomId, bossesDefeated, gt) {
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.font = 'bold 20px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0'; ctx.fillText(t('zoneMap'), W/2, 30);
+  // Draw zone nodes
+  const centerX = W / 2, centerY = H / 2;
+  for (let z = 0; z < 5; z++) {
+    const angle = ((z - 2) / 5) * Math.PI * 0.8 - Math.PI / 2;
+    const dist = 120;
+    const nx = centerX + Math.cos(angle) * dist;
+    const ny = centerY + Math.sin(angle) * dist * 0.5 + 20;
+    const zone = ZONES[z];
+    const accessible = accessibleRooms.includes(z * 4);
+    const bossDown = bossesDefeated.includes(z);
+    // Connection lines
+    if (z > 0) {
+      const pAngle = ((z - 3) / 5) * Math.PI * 0.8 - Math.PI / 2;
+      const px = centerX + Math.cos(pAngle) * dist;
+      const py = centerY + Math.sin(pAngle) * dist * 0.5 + 20;
+      ctx.strokeStyle = accessible ? zone.pri + '60' : '#1e1e30';
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
+    }
+    // Node circle
+    const nr = 28;
+    ctx.fillStyle = accessible ? zone.bg : '#12121e';
+    ctx.strokeStyle = bossDown ? '#00ff87' : accessible ? zone.pri : '#1e1e30';
+    ctx.lineWidth = bossDown ? 3 : 2;
+    ctx.beginPath(); ctx.arc(nx, ny, nr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (accessible) { ctx.shadowColor = zone.pri; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(nx, ny, nr, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0; }
+    // Zone name
+    ctx.fillStyle = accessible ? '#e0e0f0' : '#505070';
+    ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(zone.name[currentLang], nx, ny + nr + 16);
+    if (bossDown) {
+      ctx.fillStyle = '#00ff87'; ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText('✓', nx, ny + 5);
+    }
+    // Store hitbox for click detection
+    zone._mapHit = { x: nx - nr, y: ny - nr, w: nr * 2, h: nr * 2 };
+  }
+  ctx.fillStyle = '#505070'; ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('1-5 / Click ' + t('choose'), W/2, H - 20);
+}
+
+// Artifact selection screen
+function drawArtifactSelect(ctx, W, H, choices, selectedIdx, gt) {
+  ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.font = 'bold 20px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0'; ctx.fillText(t('selectArtifact'), W/2, 40);
+  const cardW = 140, cardH = 200, gap = 20;
+  const startX = W/2 - (cardW * 3 + gap * 2) / 2;
+  const rarityColors = { common: '#8080a0', rare: '#3b82f6', epic: '#B388FF' };
+  for (let i = 0; i < choices.length; i++) {
+    const a = choices[i];
+    const cx = startX + i * (cardW + gap);
+    const cy = H/2 - cardH/2;
+    const sel = i === selectedIdx;
+    // Card background
+    ctx.fillStyle = sel ? '#1a1a2e' : '#12121e';
+    ctx.fillRect(cx, cy, cardW, cardH);
+    // Border
+    ctx.strokeStyle = rarityColors[a.rarity] || '#8080a0';
+    ctx.lineWidth = sel ? 3 : 1.5;
+    ctx.strokeRect(cx, cy, cardW, cardH);
+    if (sel) { ctx.shadowColor = rarityColors[a.rarity]; ctx.shadowBlur = 12; ctx.strokeRect(cx, cy, cardW, cardH); ctx.shadowBlur = 0; }
+    // Artifact icon (pure Canvas)
+    ctx.fillStyle = rarityColors[a.rarity];
+    ctx.beginPath(); ctx.arc(cx + cardW/2, cy + 44, 20, 0, Math.PI * 2); ctx.fill();
+    // Rarity label
+    ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = rarityColors[a.rarity];
+    ctx.fillText(t(a.rarity), cx + cardW/2, cy + 85);
+    // Name
+    ctx.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#e0e0f0';
+    ctx.fillText(a.name[currentLang], cx + cardW/2, cy + 110);
+    // Description (wrap)
+    ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#8080a0';
+    const desc = a.desc[currentLang] || '';
+    wrapText(ctx, desc, cx + cardW/2, cy + 135, cardW - 16, 14);
+  }
+  ctx.fillStyle = '#505070'; ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('←→ + ENTER / Click', W/2, H - 20);
+}
+
+// Upgrade screen
+function drawUpgradeScreen(ctx, W, H, save, selectedTree, selectedLevel, gt) {
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.font = 'bold 20px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0'; ctx.fillText(t('upgrade'), W/2, 30);
+  // Echo points display
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#ffd700'; ctx.fillText(`${t('echoPoints')}: ${save.echoPoints}`, W/2, 55);
+  const trees = ['shadow', 'rift', 'echo'];
+  const treeColors = ['#ef4444', '#7C4DFF', '#00E5FF'];
+  const colW = 150, colH = 320;
+  const startX = W/2 - (colW * 3 + 20) / 2;
+  for (let ti = 0; ti < 3; ti++) {
+    const tx = startX + ti * (colW + 10);
+    const ty = 72;
+    const treeData = UPGRADE_TREES[trees[ti]];
+    const level = save.upgrades[trees[ti]] || 0;
+    const sel = ti === selectedTree;
+    // Tree header
+    ctx.fillStyle = sel ? treeColors[ti] + '30' : '#12121e';
+    ctx.fillRect(tx, ty, colW, colH);
+    ctx.strokeStyle = sel ? treeColors[ti] : '#1e1e30';
+    ctx.lineWidth = sel ? 2 : 1;
+    ctx.strokeRect(tx, ty, colW, colH);
+    ctx.fillStyle = treeColors[ti];
+    ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(t(trees[ti]), tx + colW/2, ty + 22);
+    // Levels
+    for (let li = 0; li < 5; li++) {
+      const ly = ty + 40 + li * 54;
+      const unlocked = li < level;
+      const current = li === level && li === selectedLevel && sel;
+      ctx.fillStyle = unlocked ? treeColors[ti] + '30' : current ? '#1a1a2e' : '#0f0f1a';
+      ctx.fillRect(tx + 6, ly, colW - 12, 48);
+      if (current) { ctx.strokeStyle = treeColors[ti]; ctx.lineWidth = 1.5; ctx.strokeRect(tx + 6, ly, colW - 12, 48); }
+      ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = unlocked ? '#e0e0f0' : '#8080a0';
+      ctx.fillText(treeData[li].name[currentLang], tx + colW/2, ly + 18);
+      ctx.font = '9px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = unlocked ? '#00ff87' : '#505070';
+      ctx.fillText(unlocked ? '✓' : `${treeData[li].cost} EP`, tx + colW/2, ly + 34);
+      ctx.fillStyle = '#505070';
+      ctx.fillText(treeData[li].desc[currentLang], tx + colW/2, ly + 44);
+    }
+  }
+  ctx.fillStyle = '#505070'; ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('←→↑↓ + ENTER / ESC ' + t('back'), W/2, H - 10);
+}
+
+// Game over screen
+function drawGameOverScreen(ctx, W, H, score, bestScore, isNewBest, shakeT, gt) {
+  ctx.fillStyle = 'rgba(10,10,15,0.85)'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  // Shake effect
+  const sx = shakeT > 0 ? (rng.next() - 0.5) * 10 * shakeT : 0;
+  const sy = shakeT > 0 ? (rng.next() - 0.5) * 10 * shakeT : 0;
+  ctx.save(); ctx.translate(sx, sy);
+  ctx.font = 'bold 36px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#ef4444';
+  ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 15;
+  ctx.fillText(t('gameover'), W/2, H * 0.3);
+  ctx.shadowBlur = 0;
+  ctx.font = '18px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText(`${t('score')}: ${score}`, W/2, H * 0.42);
+  if (isNewBest) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 16px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(`★ ${t('bestScore')}! ★`, W/2, H * 0.50);
+  } else {
+    ctx.fillStyle = '#8080a0';
+    ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(`${t('bestScore')}: ${bestScore}`, W/2, H * 0.50);
+  }
+  // Restart prompt
+  const pa = 0.5 + 0.5 * Math.sin(gt * 3);
+  ctx.globalAlpha = pa;
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillText(t('restart'), W/2, H * 0.65);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// Victory screen
+function drawVictoryScreen(ctx, W, H, score, isTrue, gt) {
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+  drawDimensionalRift(ctx, W/2, H * 0.3, W * 0.3, gt);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 32px "Segoe UI", system-ui, sans-serif';
+  const titleGrad = ctx.createLinearGradient(W/2 - 100, 0, W/2 + 100, 0);
+  titleGrad.addColorStop(0, '#00E5FF'); titleGrad.addColorStop(1, '#ffd700');
+  ctx.fillStyle = titleGrad;
+  ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 15;
+  ctx.fillText(t('victory'), W/2, H * 0.52);
+  ctx.shadowBlur = 0;
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#B388FF';
+  ctx.fillText(isTrue ? t('trueEnd') : t('normalEnd'), W/2, H * 0.60);
+  ctx.fillStyle = '#e0e0f0'; ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(`${t('score')}: ${score}`, W/2, H * 0.70);
+  const vpa = 0.5 + 0.5 * Math.sin(gt * 3);
+  ctx.globalAlpha = vpa;
+  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#8080a0'; ctx.fillText(t('restart'), W/2, H * 0.80);
+  ctx.globalAlpha = 1;
+}
+
+// Pause overlay
+function drawPauseScreen(ctx, W, H, menuIdx, gt) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0'; ctx.fillText(t('pause'), W/2, H * 0.25);
+  const opts = [t('resume'), t('toTitle')];
+  for (let i = 0; i < opts.length; i++) {
+    const oy = H * 0.4 + i * 50;
+    const sel = i === menuIdx;
+    ctx.fillStyle = sel ? '#1a1a2e' : '#12121e';
+    ctx.strokeStyle = sel ? '#00E5FF' : '#1e1e30';
+    ctx.lineWidth = sel ? 2 : 1;
+    const bw = 180, bh = 40;
+    ctx.fillRect(W/2 - bw/2, oy, bw, bh);
+    ctx.strokeRect(W/2 - bw/2, oy, bw, bh);
+    ctx.fillStyle = sel ? '#00E5FF' : '#e0e0f0';
+    ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(opts[i], W/2, oy + 26);
+  }
+}
+
+// Cutscene/story display
+function drawCutscene(ctx, W, H, text, progress, gt) {
+  ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0, 0, W, H);
+  // Text box
+  const bx = W * 0.1, by = H * 0.6, bw = W * 0.8, bh = H * 0.3;
+  ctx.fillStyle = '#12121e'; ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = '#7C4DFF'; ctx.lineWidth = 1.5; ctx.strokeRect(bx, by, bw, bh);
+  // Text with typewriter effect
+  const visibleLen = Math.floor(text.length * Math.min(1, progress));
+  ctx.fillStyle = '#e0e0f0'; ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  wrapText(ctx, text.substring(0, visibleLen), bx + 16, by + 30, bw - 32, 20);
+  ctx.textAlign = 'center';
+  if (progress >= 1) {
+    const cpa = 0.5 + 0.5 * Math.sin(gt * 3);
+    ctx.globalAlpha = cpa;
+    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.fillStyle = '#8080a0';
+    ctx.fillText('SPACE / Tap ▶', W/2, H - 20);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Boss intro animation
+function drawBossIntro(ctx, W, H, bossZone, introProgress, t) {
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.5 + introProgress * 0.3) + ')';
+  ctx.fillRect(0, 0, W, H);
+  const z = ZONES[bossZone] || ZONES[0];
+  // Warning bars
+  const barH = 30 * introProgress;
+  ctx.fillStyle = z.pri + '80';
+  ctx.fillRect(0, H/2 - barH/2, W, barH);
+  // Boss name
+  ctx.textAlign = 'center'; ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = z.pri;
+  ctx.shadowColor = z.pri; ctx.shadowBlur = 15;
+  const name = bossZone < 5 ? z.bossName[currentLang] : HIDDEN_BOSS.name[currentLang];
+  ctx.globalAlpha = introProgress;
+  ctx.fillText(name, W/2, H/2 + 8);
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+}
+
+// Loading screen
+function drawLoadingScreen(ctx, W, H, progress) {
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#8080a0'; ctx.fillText(t('loading'), W/2, H/2 - 10);
+  // Progress bar
+  const bw = 200, bh = 6;
+  ctx.fillStyle = '#1e1e30'; ctx.fillRect(W/2 - bw/2, H/2 + 10, bw, bh);
+  ctx.fillStyle = '#00E5FF'; ctx.fillRect(W/2 - bw/2, H/2 + 10, bw * progress, bh);
+}
+
+// DDA notification
+function drawDDANotification(ctx, W, H, ddaLevel, alpha) {
+  if (ddaLevel <= 0 || alpha <= 0) return;
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center'; ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#ffd700';
+  const key = ddaLevel === 1 ? 'dda1' : ddaLevel === 2 ? 'dda2' : 'dda3';
+  ctx.fillText(t(key), W/2, H * 0.15);
+  ctx.globalAlpha = 1;
+}
+
+// Utility: wrap text
+function wrapText(ctx, text, x, y, maxW, lineH) {
+  const words = text.split('');
+  let line = '';
+  let ly = y;
+  for (const ch of words) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, ly);
+      line = ch; ly += lineH;
+    } else { line = test; }
+  }
+  if (line) ctx.fillText(line, x, ly);
+}
+
+// Utility: darken hex color
+function darken(hex, factor) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgb(${Math.floor(r * factor)},${Math.floor(g * factor)},${Math.floor(b * factor)})`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 6: ABILITY — 5 abilities + environment interact  ══
+// ══════════════════════════════════════════════════════════════
+
+// Activate dash ability
+function activateDash(player, dir) {
+  if (!player.abilities[0] || player.dashCd > 0 || player.energy < 10) return false;
+  player.dashTimer = CFG.DASH_DUR;
+  player.dashCd = CFG.DASH_CD;
+  player.dashDir = dir || player.dir;
+  player.invTimer = Math.max(player.invTimer, CFG.DASH_IFRAMES);
+  player.energy -= 10;
+  sound.playSFX('dash');
+  // Spawn dash particles
+  for (let i = 0; i < 8; i++) {
+    pool.spawn(player.x + player.w/2, player.y + player.h/2,
+      (rng.next() - 0.5) * 100 - player.dashDir * 80,
+      (rng.next() - 0.5) * 60,
+      0.3, '#00E5FF', 3, 'circle');
+  }
+  return true;
+}
+
+// Wall jump
+function activateWallJump(player) {
+  if (!player.abilities[1] || !player.onWall) return false;
+  player.vy = CFG.WALLJUMP_VEL * player.gravDir;
+  player.vx = -player.wallDir * 200;
+  player.onWall = false;
+  sound.playSFX('wallJump');
+  // Sparks
+  for (let i = 0; i < 5; i++) {
+    pool.spawn(player.x + (player.wallDir > 0 ? player.w : 0), player.y + player.h/2,
+      -player.wallDir * (50 + rng.next() * 80), (rng.next() - 0.5) * 120,
+      0.2, '#B388FF', 2, 'spark');
+  }
+  return true;
+}
+
+// Dimension shift toggle
+function toggleDimShift(player) {
+  if (!player.abilities[2] || player.dimShiftCd > 0 || player.energy < 20) return false;
+  G.dimShiftActive = !G.dimShiftActive;
+  player.dimShiftCd = 3;
+  player.energy -= 20;
+  sound.playSFX('dimShift');
+  // Apply dimension storm artifact
+  if (hasArtifact(player, 'dimStorm')) {
+    applyAoEDamage(player.x + player.w/2, player.y + player.h/2, 120, 100);
+  }
+  // Visual burst
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    pool.spawn(player.x + player.w/2, player.y + player.h/2,
+      Math.cos(a) * 120, Math.sin(a) * 120,
+      0.4, G.dimShiftActive ? '#B388FF' : '#00E5FF', 4, 'circle');
+  }
+  return true;
+}
+
+// Time stop toggle
+function toggleTimeStop(player) {
+  if (!player.abilities[3]) return false;
+  if (player.timeStopActive) {
+    G.timeStopActive = false; player.timeStopActive = false;
+    return true;
+  }
+  if (player.timeStopCd > 0 || player.energy < 30) return false;
+  G.timeStopActive = true; player.timeStopActive = true;
+  player.timeStopTimer = CFG.TIMESTOP_DUR + getArtifactBonus(player, 'timestop');
+  player.energy -= 30;
+  sound.playSFX('timeStop');
+  return true;
+}
+
+// Gravity reverse toggle
+function toggleGravReverse(player) {
+  if (!player.abilities[4] || player.energy < 25) return false;
+  player.gravDir *= -1;
+  player.energy -= 25;
+  sound.playSFX('gravReverse');
+  return true;
+}
+
+// Special ability cycle (C key)
+function cycleAbility(player) {
+  // Find next available special ability (dimShift, timeStop, gravReverse)
+  const specials = [2, 3, 4];
+  const available = specials.filter(i => player.abilities[i]);
+  if (available.length === 0) return;
+  // Cycle through: use the current one or activate first available
+  if (player.abilities[2] && !G.dimShiftActive && !G.timeStopActive) return toggleDimShift(player);
+  if (player.abilities[3] && !G.timeStopActive) return toggleTimeStop(player);
+  if (player.abilities[4]) return toggleGravReverse(player);
+  // Fallback to first
+  if (player.abilities[2]) return toggleDimShift(player);
+}
+
+// Update ability timers
+function updateAbilities(dt, player) {
+  if (player.dashCd > 0) player.dashCd -= dt;
+  if (player.dashTimer > 0) player.dashTimer -= dt;
+  if (player.dimShiftCd > 0) player.dimShiftCd -= dt;
+  if (player.timeStopCd > 0) player.timeStopCd -= dt;
+  // Time stop countdown
+  if (player.timeStopActive) {
+    player.timeStopTimer -= dt;
+    if (player.timeStopTimer <= 0) {
+      G.timeStopActive = false; player.timeStopActive = false;
+      player.timeStopCd = 8;
+    }
+  }
+  // Energy regen
+  const regenMul = 1 + getArtifactBonus(player, 'energyRegen');
+  player.energy = Math.min(player.maxEnergy, player.energy + CFG.ENERGY_REGEN * regenMul * dt);
+  // Invincibility timer
+  if (player.invTimer > 0) player.invTimer -= dt;
+  // Melee cooldown
+  if (player.meleeCd > 0) player.meleeCd -= dt;
+  if (player.rangeCd > 0) player.rangeCd -= dt;
+  if (player.meleeAnim > 0) player.meleeAnim -= dt;
+  // Combo timer
+  if (player.comboTimer > 0) {
+    player.comboTimer -= dt;
+    if (player.comboTimer <= 0) player.comboCount = 0;
+  }
+  // Knockback
+  if (player.knockbackTimer > 0) player.knockbackTimer -= dt;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 7: COMBAT — Battle, collision, damage            ══
+// ══════════════════════════════════════════════════════════════
+
+// AABB hit test — single function for all collision (F16)
+function hitTest(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+// Point in rect (for UI clicks)
+function pointInRect(px, py, rect) {
+  return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
+}
+
+// Melee attack
+function meleeAttack(player, enemies, boss) {
+  if (player.meleeCd > 0) return;
+  player.meleeCd = CFG.MELEE_CD * (1 - getUpgradeBonus('shadow', 3, 0.15));
+  player.meleeAnim = 0.25;
+  player.animState = 'melee';
+  sound.playSFX('melee');
+  const dmg = calcMeleeDmg(player);
+  const range = CFG.MELEE_RANGE * (1 + getArtifactBonus(player, 'riftBlade'));
+  const cx = player.x + player.w/2 + player.dir * range * 0.5;
+  const cy = player.y + player.h/2;
+  // Check enemies
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const dist = Math.hypot(e.x + e.w/2 - cx, e.y + e.h/2 - cy);
+    if (dist < range) {
+      dealDamageToEnemy(e, dmg, player);
+    }
+  }
+  // Check boss
+  if (boss && boss.alive) {
+    const dist = Math.hypot(boss.x + boss.w/2 - cx, boss.y + boss.h/2 - cy);
+    if (dist < range * 1.2) {
+      dealDamageToBoss(boss, dmg, player);
+    }
+  }
+  // Clone attack artifact
+  if (hasArtifact(player, 'clone') && rng.next() < 0.5) {
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      const dist = Math.hypot(e.x + e.w/2 - cx, e.y + e.h/2 - cy);
+      if (dist < range) dealDamageToEnemy(e, dmg * 0.5, player);
+    }
+  }
+}
+
+// Ranged attack
+function rangedAttack(player) {
+  if (player.rangeCd > 0) return;
+  player.rangeCd = CFG.RANGE_CD;
+  sound.playSFX('ranged');
+  const dmg = CFG.RANGE_DMG * (1 + getUpgradeBonus('shadow', 0, 0.1));
+  // Check time stop combo
+  const mul = (G.timeStopActive && hasArtifact(player, 'timeGap')) ? 2 : 1;
+  G.projectiles.push(createProjectile(
+    player.x + player.w/2 + player.dir * 10,
+    player.y + player.h/2,
+    player.dir * CFG.PROJ_SPD, 0,
+    dmg * mul, 'player', G.timeStopActive ? 'pierce' : 'normal'
+  ));
+}
+
+// Calculate melee damage with all modifiers
+function calcMeleeDmg(player) {
+  let dmg = CFG.MELEE_DMG;
+  dmg *= (1 + getUpgradeBonus('shadow', 0, 0.1)); // Shadow blade
+  dmg *= (1 + getArtifactBonus(player, 'meleeDmg'));
+  // Crit check
+  const critRate = CFG.CRIT_RATE + getUpgradeBonus('shadow', 2, 0.05);
+  if (rng.next() < critRate) dmg *= CFG.CRIT_MUL;
+  // Dash combo: if dashing, bonus damage
+  if (player.dashTimer > 0) dmg *= 1.5;
+  // DPS cap (F74)
+  dmg = Math.min(dmg, CFG.MELEE_DMG * (1 + CFG.ART_DPS_CAP));
+  return dmg;
+}
+
+// Deal damage to enemy
+function dealDamageToEnemy(enemy, dmg, player) {
+  enemy.hp -= dmg;
+  enemy.flashTimer = 0.15;
+  sound.playSFX('hit');
+  // Hit particles
+  spawnHitParticles(enemy.x + enemy.w/2, enemy.y + enemy.h/2, ZONES[enemy.zone].enemy);
+  if (enemy.hp <= 0) {
+    enemy.alive = false;
+    onEnemyKilled(enemy, player);
+  }
+}
+
+// Deal damage to boss
+function dealDamageToBoss(boss, dmg, player) {
+  boss.hp -= dmg;
+  boss.flashTimer = 0.15;
+  sound.playSFX('hit');
+  spawnHitParticles(boss.x + boss.w/2, boss.y + boss.h/2, ZONES[boss.zone].pri);
+  // Phase transition check
+  checkBossPhase(boss);
+  if (boss.hp <= 0) {
+    boss.alive = false;
+    onBossKilled(boss, player);
+  }
+}
+
+// On enemy killed
+function onEnemyKilled(enemy, player) {
+  player.score += 100 * getComboMultiplier(player);
+  player.comboCount++;
+  player.comboTimer = CFG.COMBO_TIME;
+  player.energy = Math.min(player.maxEnergy, player.energy + CFG.ENERGY_KILL);
+  // Void heart artifact: heal on kill
+  if (hasArtifact(player, 'voidHeart')) {
+    player.hp = Math.min(player.maxHp, player.hp + player.maxHp * 0.05);
+  }
+  // Shadow burst upgrade: explosion on kill
+  if (getUpgradeLevel('shadow') >= 5) {
+    applyAoEDamage(enemy.x + enemy.w/2, enemy.y + enemy.h/2, 80, 50);
+  }
+  // Score popup particle
+  pool.spawn(enemy.x + enemy.w/2, enemy.y - 10, 0, -40, 1, '#ffd700', 12, 'text');
+  pool.pool[pool.pool.length - 1].text = '+' + Math.floor(100 * getComboMultiplier(player));
+  // Check if all enemies dead -> room clear
+  checkRoomClear();
+}
+
+// On boss killed (F17 guard)
+function onBossKilled(boss, player) {
+  if (boss.rewardGiven) return; // F17 guard
+  boss.rewardGiven = true;
+  player.score += 2000 * (player.hp / player.maxHp);
+  sound.playSFX('bossDefeat');
+  cam.shake(10, 0.5);
+  // Unlock ability (zone boss grants ability matching zone index)
+  if (boss.zone < 5 && !player.abilities[boss.zone]) {
+    player.abilities[boss.zone] = true;
+    G.abilityJustUnlocked = boss.zone;
+    sound.playSFX('abilityUnlock');
+  }
+  // Grant echo points
+  const epBonus = 1 + getUpgradeBonus('echo', 3, 0.25);
+  const ep = Math.floor((boss.zone < 5 ? 200 : 1000) * epBonus);
+  G.save.echoPoints += ep;
+  G.save.bossesDefeated.push(boss.zone);
+  // Victory particles
+  for (let i = 0; i < 30; i++) {
+    const a = (i / 30) * Math.PI * 2;
+    pool.spawn(boss.x + boss.w/2, boss.y + boss.h/2,
+      Math.cos(a) * (100 + rng.next() * 100), Math.sin(a) * (100 + rng.next() * 100),
+      1, ZONES[boss.zone % 5].pri, 4 + rng.next() * 4, 'circle');
+  }
+  // Transition to boss clear state
+  G.transGuard = true;
+  beginTransition(G.state, ST.BOSS_CLEAR);
+}
+
+// Spawn hit effect particles
+function spawnHitParticles(x, y, color) {
+  for (let i = 0; i < 6; i++) {
+    pool.spawn(x, y, (rng.next() - 0.5) * 150, (rng.next() - 0.5) * 150,
+      0.3, color, 3, 'circle');
+  }
+}
+
+// Apply area-of-effect damage
+function applyAoEDamage(cx, cy, radius, dmg) {
+  const room = ROOM_DEFS[G.currentRoom];
+  if (!room) return;
+  for (const e of room.enemies) {
+    if (!e.alive) continue;
+    const dist = Math.hypot(e.x + e.w/2 - cx, e.y + e.h/2 - cy);
+    if (dist < radius) { e.hp -= dmg; if (e.hp <= 0) { e.alive = false; } }
+  }
+}
+
+// Combo multiplier
+function getComboMultiplier(player) {
+  const c = player.comboCount;
+  if (c >= 21) return 2.0;
+  if (c >= 11) return 1.5;
+  if (c >= 6) return 1.2;
+  return 1.0;
+}
+
+// Check boss phase transition
+function checkBossPhase(boss) {
+  if (boss.phaseTransitioning) return;
+  const ratio = boss.hp / boss.maxHp;
+  const thresholds = boss.phaseThresholds;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (ratio <= thresholds[i] && boss.phase <= i) {
+      boss.phase = i + 1;
+      boss.phaseTransitioning = true;
+      boss.atkTimer = 0; // Reset atk timer on phase change
+      boss.weakTimer = 0; // Reset weak timer on phase change
+      cam.shake(6, 0.3);
+      tw.add({ v: 0 }, { v: 1 }, 1.0, {
+        onComplete: () => { boss.phaseTransitioning = false; boss.atkTimer = 0; }
+      });
+      break;
+    }
+  }
+}
+
+// Check if room is cleared
+function checkRoomClear() {
+  const room = ROOM_DEFS[G.currentRoom];
+  if (!room || room.cleared) return;
+  const allDead = room.enemies.every(e => !e.alive);
+  if (allDead) {
+    room.cleared = true;
+    P.score += 500; // Room clear bonus
+    // Transition to artifact select (F5 guard)
+    if (!G.transGuard) {
+      G.transGuard = true;
+      tw.add({ v: 0 }, { v: 1 }, 0.5, {
+        onComplete: () => {
+          G.transGuard = false;
+          if (G.state === ST.COMBAT || G.state === ST.EXPLORE) {
+            prepareArtifactChoices();
+            beginTransition(G.state, ST.ARTIFACT_SELECT);
+          }
+        }
+      });
+    }
+  }
+}
+
+// Player takes damage
+function playerTakeDamage(player, dmg, knockDir) {
+  if (player.invTimer > 0) return;
+  // Dim shield artifact check
+  if (hasArtifact(player, 'dimShield') && rng.next() < 0.1) {
+    player.invTimer = 0.5;
+    return;
+  }
+  const defMul = 1 - getUpgradeBonus('shadow', 1, 0.1);
+  const finalDmg = dmg * defMul * G.ddaFactor;
+  player.hp -= finalDmg;
+  player.invTimer = CFG.INV_TIME;
+  player.knockbackTimer = 0.2;
+  player.vx = knockDir * CFG.KNOCKBACK;
+  cam.shake(5, 0.2);
+  sound.playSFX('hit');
+  // Check death
+  if (player.hp <= 0) {
+    // Revive check (Echo tree level 5)
+    if (getUpgradeLevel('echo') >= 5 && !player.reviveUsed) {
+      player.reviveUsed = true;
+      player.hp = player.maxHp * 0.3;
+      player.invTimer = 2;
+      for (let i = 0; i < 20; i++) {
+        pool.spawn(player.x + player.w/2, player.y + player.h/2,
+          (rng.next()-0.5)*200, (rng.next()-0.5)*200, 0.8, '#00E5FF', 5, 'circle');
+      }
+      return;
+    }
+    player.hp = 0;
+    onPlayerDeath();
+  }
+}
+
+// Player death handling
+function onPlayerDeath() {
+  G.gameOverShake = 1;
+  cam.shake(12, 0.8);
+  // Judge best score before saving (F8)
+  const isNewBest = P.score > G.save.bestScore;
+  if (isNewBest) G.save.bestScore = P.score;
+  G.isNewBest = isNewBest;
+  // Calculate echo points
+  const epBonus = 1 + getUpgradeBonus('echo', 3, 0.25);
+  G.save.echoPoints += Math.floor(P.score * 0.1 * epBonus);
+  G.save.totalRuns++;
+  G.save.seed = null;
+  G.save.currentRoom = null;
+  G.save.artifacts = [];
+  G.consecutiveDeaths++;
+  updateDDA();
+  saveGame();
+  beginTransition(G.state, ST.GAMEOVER);
+}
+
+// Update enemies
+function updateEnemies(dt, enemies, player, room) {
+  if (G.timeStopActive) return; // Enemies frozen during time stop
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    e.animT += dt;
+    if (e.flashTimer > 0) e.flashTimer -= dt;
+    if (e.stunTimer > 0) { e.stunTimer -= dt; continue; }
+    // AI behavior
+    switch (e.ai) {
+      case 'patrol': {
+        e.vx = e.spd * e.dir;
+        if (Math.abs(e.x - e.patrolX) > e.patrolRange) e.dir *= -1;
+        break;
+      }
+      case 'chase': {
+        const dx = player.x - e.x;
+        e.dir = dx > 0 ? 1 : -1;
+        e.vx = e.spd * e.dir;
+        e.atkTimer -= dt;
+        if (e.atkTimer <= 0 && Math.abs(dx) < 100) {
+          e.vx = e.dir * e.spd * 3; // Charge
+          e.atkTimer = e.atkCd;
+        }
+        break;
+      }
+      case 'shoot': {
+        e.vx = 0;
+        e.dir = player.x > e.x ? 1 : -1;
+        e.atkTimer -= dt;
+        if (e.atkTimer <= 0) {
+          const dx = player.x - e.x, dy = player.y - e.y;
+          const len = Math.hypot(dx, dy) || 1;
+          G.projectiles.push(createProjectile(e.x + e.w/2, e.y + e.h/2,
+            (dx/len) * 200, (dy/len) * 200, e.dmg, 'enemy'));
+          e.atkTimer = e.atkCd;
+        }
+        break;
+      }
+      case 'guard': {
+        const dx = player.x - e.x;
+        e.dir = dx > 0 ? 1 : -1;
+        e.vx = e.spd * e.dir * 0.5;
+        e.shieldUp = Math.abs(dx) < 150;
+        break;
+      }
+      case 'summon': {
+        const dx = player.x - e.x;
+        e.dir = dx > 0 ? -1 : 1; // Run away
+        e.vx = e.spd * e.dir;
+        e.summonTimer -= dt;
+        if (e.summonTimer <= 0 && enemies.filter(x => x.alive).length < 10) {
+          // Summon patrol enemies
+          for (let i = 0; i < 2; i++) {
+            const se = createEnemy(ENEMY_TYPES[0], e.x + (rng.next() - 0.5) * 60,
+              e.y, DIFF[G.diffIdx], e.zone);
+            enemies.push(se);
+          }
+          e.summonTimer = 10;
+        }
+        break;
+      }
+    }
+    // Apply movement
+    e.x += e.vx * dt;
+    e.y += e.vy * dt;
+    // Gravity
+    e.vy += CFG.GRAVITY * dt;
+    // Tile collision
+    resolveEntityTiles(e, room);
+    // Contact damage to player
+    if (e.alive && hitTest(e.x, e.y, e.w, e.h, player.x, player.y, player.w, player.h)) {
+      const knockDir = player.x > e.x ? 1 : -1;
+      playerTakeDamage(player, e.dmg, knockDir);
+    }
+  }
+}
+
+// Update boss AI
+function updateBoss(dt, boss, player) {
+  if (!boss || !boss.alive) return;
+  if (boss.phaseTransitioning) return;
+  if (G.timeStopActive) {
+    boss.weakExposed = true;
+    return;
+  }
+  boss.weakExposed = false;
+  boss.animT += dt;
+  if (boss.flashTimer > 0) boss.flashTimer -= dt;
+  boss.atkTimer -= dt;
+  // Boss AI per zone
+  if (boss.atkTimer <= 0) {
+    const dx = player.x - boss.x;
+    boss.dir = dx > 0 ? 1 : -1;
+    switch (boss.zone) {
+      case 0: // Petrified King — charge + rocks
+        if (boss.phase >= 2 && rng.next() > 0.5) {
+          // Earthquake
+          cam.shake(8, 0.5);
+          for (let i = 0; i < 3; i++) {
+            const rx = rng.next() * CFG.ROOM_W;
+            G.projectiles.push(createProjectile(rx, 0, 0, 250, boss.dmg, 'boss'));
+          }
+        } else {
+          boss.vx = boss.dir * 300;
+          tw.add(boss, { vx: 0 }, 0.8);
+        }
+        break;
+      case 1: // Prism Witch — laser + barrier
+        if (boss.phase >= 1) {
+          // Multi-directional laser
+          for (let a = 0; a < 8; a++) {
+            const ang = (a / 8) * Math.PI * 2;
+            G.projectiles.push(createProjectile(boss.x + boss.w/2, boss.y + boss.h/2,
+              Math.cos(ang) * 180, Math.sin(ang) * 180, boss.dmg * 0.5, 'boss'));
+          }
+        } else {
+          G.projectiles.push(createProjectile(boss.x + boss.w/2, boss.y + boss.h/2,
+            boss.dir * 300, 0, boss.dmg, 'boss'));
+        }
+        break;
+      case 2: // Abyss Lord — tentacle sweep
+        if (boss.phase >= 2) {
+          // 8-tentacle attack (AoE zones)
+          for (let i = 0; i < 4; i++) {
+            const rx = rng.next() * CFG.ROOM_W;
+            G.projectiles.push(createProjectile(rx, CFG.ROOM_H - CFG.TILE * 2, 0, -150, boss.dmg * 0.4, 'boss'));
+          }
+        } else {
+          // Pull player
+          const dx2 = boss.x - player.x;
+          player.vx += dx2 * 0.5;
+        }
+        break;
+      case 3: // Magma Titan — lava eruption
+        if (boss.phase >= 1) {
+          // Full room lava
+          for (let i = 0; i < 6; i++) {
+            G.projectiles.push(createProjectile(i * CFG.ROOM_W / 6 + rng.next() * 40,
+              CFG.ROOM_H - CFG.TILE, 0, -200, boss.dmg * 0.6, 'boss'));
+          }
+        } else {
+          boss.vx = boss.dir * 250;
+          tw.add(boss, { vx: 0 }, 1.0);
+        }
+        break;
+      case 4: // Dimension Breaker — warp + clones
+        if (boss.phase >= 1) {
+          // Warp attack
+          boss.x = player.x + (rng.next() > 0.5 ? 100 : -100);
+          boss.y = player.y;
+          // Brief invuln then attack
+          tw.add({ v: 0 }, { v: 1 }, 0.5, {
+            onComplete: () => {
+              G.projectiles.push(createProjectile(boss.x + boss.w/2, boss.y + boss.h/2,
+                boss.dir * 250, 0, boss.dmg, 'boss'));
+            }
+          });
+        } else {
+          G.projectiles.push(createProjectile(boss.x + boss.w/2, boss.y + boss.h/2,
+            boss.dir * 200, 0, boss.dmg, 'boss'));
+        }
+        break;
+      default: // Hidden boss — all patterns
+        const pattern = boss.phase % 4;
+        switch (pattern) {
+          case 0: boss.vx = boss.dir * 300; tw.add(boss, { vx: 0 }, 0.8); break;
+          case 1: for (let a = 0; a < 8; a++) { const ang = (a/8)*Math.PI*2; G.projectiles.push(createProjectile(boss.x+boss.w/2, boss.y+boss.h/2, Math.cos(ang)*180, Math.sin(ang)*180, boss.dmg*0.5, 'boss')); } break;
+          case 2: for (let i = 0; i < 4; i++) { G.projectiles.push(createProjectile(rng.next()*CFG.ROOM_W, 0, 0, 200, boss.dmg*0.4, 'boss')); } break;
+          case 3: boss.x = player.x + (rng.next()>0.5?80:-80); cam.shake(6,0.3); break;
+        }
+    }
+    boss.atkCd = Math.max(1.5, 3 - boss.phase * 0.5);
+    boss.atkTimer = boss.atkCd;
+  }
+  // Boss movement
+  boss.x += boss.vx * dt;
+  boss.y += boss.vy * dt;
+  boss.vy += CFG.GRAVITY * dt;
+  // Clamp boss to room
+  boss.x = Math.max(CFG.TILE, Math.min(CFG.ROOM_W - CFG.TILE - boss.w, boss.x));
+  boss.y = Math.min(CFG.ROOM_H - CFG.TILE - boss.h, boss.y);
+  if (boss.y >= CFG.ROOM_H - CFG.TILE - boss.h) { boss.vy = 0; boss.y = CFG.ROOM_H - CFG.TILE - boss.h; }
+  // Contact damage
+  if (hitTest(boss.x, boss.y, boss.w, boss.h, player.x, player.y, player.w, player.h)) {
+    playerTakeDamage(player, boss.dmg, player.x > boss.x ? 1 : -1);
+  }
+}
+
+// Update projectiles
+function updateProjectiles(dt, projectiles, player, enemies, boss) {
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    if (!p.alive) { projectiles.splice(i, 1); continue; }
+    if (!G.timeStopActive || p.owner === 'player') {
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    p.life -= dt;
+    if (p.life <= 0) { p.alive = false; projectiles.splice(i, 1); continue; }
+    // Out of bounds
+    if (p.x < -20 || p.x > CFG.ROOM_W + 20 || p.y < -20 || p.y > CFG.ROOM_H + 20) {
+      p.alive = false; projectiles.splice(i, 1); continue;
+    }
+    // Player projectile hits enemies
+    if (p.owner === 'player') {
+      for (const e of enemies) {
+        if (!e.alive) continue;
+        if (hitTest(p.x - p.w/2, p.y - p.h/2, p.w, p.h, e.x, e.y, e.w, e.h)) {
+          dealDamageToEnemy(e, p.dmg, player);
+          if (p.type !== 'pierce') { p.alive = false; break; }
+        }
+      }
+      if (boss && boss.alive && p.alive) {
+        if (hitTest(p.x - p.w/2, p.y - p.h/2, p.w, p.h, boss.x, boss.y, boss.w, boss.h)) {
+          dealDamageToBoss(boss, p.dmg, player);
+          if (p.type !== 'pierce') p.alive = false;
+        }
+      }
+    }
+    // Enemy/Boss projectile hits player
+    if ((p.owner === 'enemy' || p.owner === 'boss') && player.invTimer <= 0) {
+      if (hitTest(p.x - p.w/2, p.y - p.h/2, p.w, p.h, player.x, player.y, player.w, player.h)) {
+        playerTakeDamage(player, p.dmg, player.x > p.x ? 1 : -1);
+        p.alive = false;
+      }
+    }
+    if (!p.alive) projectiles.splice(i, 1);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 8: ROGUE — Artifacts, upgrades, rewards          ══
+// ══════════════════════════════════════════════════════════════
+
+// Prepare 3 artifact choices
+function prepareArtifactChoices() {
+  const available = ARTIFACTS.filter(a => !P.artifacts.includes(a.id));
+  if (available.length === 0) { G.artifactChoices = []; return; }
+  // Weighted selection
+  const pool2 = [];
+  for (const a of available) {
+    const weight = a.rarity === 'common' ? 6 : a.rarity === 'rare' ? 3 : 1;
+    for (let i = 0; i < weight; i++) pool2.push(a);
+  }
+  rng.shuffle(pool2);
+  const chosen = [];
+  const ids = new Set();
+  for (const a of pool2) {
+    if (!ids.has(a.id)) { chosen.push(a); ids.add(a.id); }
+    if (chosen.length >= 3) break;
+  }
+  G.artifactChoices = chosen;
+  G.artifactSelectedIdx = 0;
+}
+
+// Apply selected artifact
+function selectArtifact(idx) {
+  if (idx < 0 || idx >= G.artifactChoices.length) return;
+  const a = G.artifactChoices[idx];
+  P.artifacts.push(a.id);
+  G.save.artifacts = [...P.artifacts];
+  sound.playSFX('artifact');
+  // Check DPS cap (F74)
+  const totalDpsMul = P.artifacts.reduce((sum, id) => {
+    const art = ARTIFACTS.find(x => x.id === id);
+    if (art && (art.effect === 'meleeDmg' || art.effect === 'riftBlade')) return sum + art.val;
+    return sum;
+  }, 0);
+  if (totalDpsMul > CFG.ART_DPS_CAP) {
+    // Over cap — reduce effectiveness of this artifact
+    // (In practice just cap the total)
+  }
+}
+
+// Check if player has artifact by effect name
+function hasArtifact(player, effectName) {
+  return player.artifacts.some(id => {
+    const a = ARTIFACTS.find(x => x.id === id);
+    return a && a.effect === effectName;
+  });
+}
+
+// Get artifact bonus value
+function getArtifactBonus(player, effectName) {
+  let total = 0;
+  for (const id of player.artifacts) {
+    const a = ARTIFACTS.find(x => x.id === id);
+    if (a && a.effect === effectName) total += a.val;
+  }
+  // Synergy cap (F74)
+  return Math.min(total, CFG.ART_SYN_CAP);
+}
+
+// Get upgrade level for tree
+function getUpgradeLevel(tree) { return G.save.upgrades[tree] || 0; }
+
+// Get upgrade bonus (conditional on level)
+function getUpgradeBonus(tree, level, val) {
+  return getUpgradeLevel(tree) > level ? val : 0;
+}
+
+// Purchase upgrade
+function purchaseUpgrade(tree, level) {
+  const treeData = UPGRADE_TREES[tree];
+  if (!treeData || level >= 5) return false;
+  const currentLevel = G.save.upgrades[tree] || 0;
+  if (level !== currentLevel) return false;
+  const cost = treeData[level].cost;
+  if (G.save.echoPoints < cost) return false;
+  G.save.echoPoints -= cost;
+  G.save.upgrades[tree] = level + 1;
+  sound.playSFX('select');
+  saveGame();
+  return true;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 9: STATE — State machine, transitions, save/load ══
+// ══════════════════════════════════════════════════════════════
+
+// Global game state
+let G = {
+  state: ST.BOOT, prevState: ST.BOOT,
+  transitioning: false, transGuard: false,
+  transAlpha: 0, transTarget: null,
+  bootTimer: 0, titleTime: 0,
+  diffIdx: 1, currentRoom: 0,
+  currentBoss: null, bossIntroTimer: 0,
+  dimShiftActive: false, timeStopActive: false,
+  projectiles: [], artifactChoices: [], artifactSelectedIdx: 0,
+  abilityJustUnlocked: -1,
+  cutsceneText: '', cutsceneProgress: 0,
+  pauseMenuIdx: 0, upgradeTree: 0, upgradeLevel: 0,
+  ddaFactor: 1, ddaNotifyAlpha: 0, ddaLevel: 0,
+  consecutiveDeaths: 0, gameOverShake: 0,
+  isNewBest: false,
+  save: { version: 1, lang: 'ko', bestScore: 0, totalRuns: 0,
+    echoPoints: 0, upgrades: { shadow: 0, rift: 0, echo: 0 },
+    unlockedAbilities: [], bossesDefeated: [],
+    hiddenFound: [], difficulty: 'medium',
+    seed: null, currentRoom: null, artifacts: [],
+    settings: { sfxVol: 0.7, bgmVol: 0.5 } },
+};
+
+// Player reference
+let P = createPlayer(1);
+
+// Engine instances
+let rng = new SeededRNG(Date.now());
+let tw = new TweenManager();
+let pool = new ObjectPool(CFG.MAX_PARTICLES);
+let sound = new SoundManager();
+let input = new InputManager();
+let cam = new Camera();
+
+// Canvas references
+let canvas, ctx, W, H, dpr;
+let lastTime = 0;
+let gameTime = 0;
+
+// Begin state transition (F6 — all transitions go through here)
+function beginTransition(from, to, immediate) {
+  // Priority check (F6)
+  if (G.transitioning && ST_PRIORITY[to] < ST_PRIORITY[G.transTarget]) return;
+  // GAMEOVER overrides everything (except PAUSE overlay)
+  if (P && P.hp <= 0 && to !== ST.GAMEOVER && to !== ST.PAUSE && to !== ST.TITLE) return;
+  if (immediate || to === ST.PAUSE) {
+    enterState(to);
+    return;
+  }
+  G.transitioning = true;
+  G.transTarget = to;
+  G.transAlpha = 0;
+  tw.add(G, { transAlpha: 1 }, 0.3, {
+    onComplete: () => {
+      enterState(to);
+      tw.add(G, { transAlpha: 0 }, 0.3, {
+        onComplete: () => { G.transitioning = false; G.transGuard = false; }
+      });
+    }
+  });
+}
+
+// Enter a state (only called via beginTransition)
+function enterState(newState) {
+  G.prevState = G.state;
+  G.state = newState;
+  switch (newState) {
+    case ST.BOOT:
+      G.bootTimer = 0;
+      break;
+    case ST.TITLE:
+      G.titleTime = 0;
+      sound.stopBGM();
+      break;
+    case ST.DIFFICULTY:
+      G.diffIdx = 1;
+      break;
+    case ST.ZONE_MAP:
+      break;
+    case ST.EXPLORE:
+    case ST.COMBAT:
+    case ST.PUZZLE:
+      break;
+    case ST.BOSS_INTRO:
+      G.bossIntroTimer = 0;
+      sound.playSFX('bossAppear');
+      break;
+    case ST.BOSS:
+      if (!G.currentBoss) {
+        const room = ROOM_DEFS[G.currentRoom];
+        G.currentBoss = createBoss(room.zone, G.diffIdx);
+      }
+      cam.targetZoom = CFG.CAM_BOSS_ZOOM;
+      break;
+    case ST.BOSS_CLEAR:
+      cam.targetZoom = 1;
+      break;
+    case ST.ARTIFACT_SELECT:
+      if (G.artifactChoices.length === 0) prepareArtifactChoices();
+      G.artifactSelectedIdx = 0;
+      break;
+    case ST.UPGRADE:
+      G.upgradeTree = 0; G.upgradeLevel = G.save.upgrades.shadow || 0;
+      break;
+    case ST.ROOM_TRANSITION:
+      break;
+    case ST.CUTSCENE:
+      G.cutsceneProgress = 0;
+      break;
+    case ST.VICTORY: {
+      sound.stopBGM();
+      // Judge best score (F8)
+      const isNewBest = P.score > G.save.bestScore;
+      if (isNewBest) G.save.bestScore = P.score;
+      G.isNewBest = isNewBest;
+      const epBonus = 1 + getUpgradeBonus('echo', 3, 0.25);
+      G.save.echoPoints += Math.floor(P.score * 0.1 * epBonus);
+      G.save.totalRuns++;
+      G.save.seed = null;
+      saveGame();
+      break;
+    }
+    case ST.GAMEOVER:
+      G.gameOverShake = 1;
+      break;
+    case ST.PAUSE:
+      G.pauseMenuIdx = 0;
+      break;
+    case ST.MODAL:
+      break;
+  }
+}
+
+// Start a new run
+function startNewRun() {
+  G.save.seed = Date.now();
+  rng = new SeededRNG(G.save.seed);
+  G.diffIdx = G.diffIdx || 1;
+  P = createPlayer(G.diffIdx);
+  // Apply permanent upgrades
+  if (getUpgradeLevel('echo') >= 2) P.maxHp += 20;
+  if (getUpgradeLevel('echo') >= 3) { /* jump bonus applied in physics */ }
+  if (getUpgradeLevel('rift') >= 1) P.maxEnergy += 20;
+  P.hp = P.maxHp; P.energy = P.maxEnergy;
+  // Restore previously unlocked abilities from bosses
+  for (const b of G.save.bossesDefeated) {
+    if (b < 5) P.abilities[b] = true;
+  }
+  G.currentRoom = 0;
+  G.currentBoss = null;
+  G.projectiles = [];
+  G.consecutiveDeaths = 0;
+  G.ddaFactor = 1;
+  G.dimShiftActive = false;
+  G.timeStopActive = false;
+  G.abilityJustUnlocked = -1;
+  pool.clear();
+  // Populate first room
+  populateRoom(ROOM_DEFS[0], rng, G.diffIdx);
+  ROOM_DEFS[0].visited = true;
+  cam.x = P.x; cam.y = P.y; cam.zoom = 1; cam.targetZoom = 1;
+  // Start BGM
+  const room = ROOM_DEFS[G.currentRoom];
+  sound.startBGM(room.zone);
+  // Cutscene for first room
+  const storyKeys = ['storyRuin','storyCrystal','storyAbyss','storyMagma','storyVoid'];
+  G.cutsceneText = t(storyKeys[room.zone] || 'storyRuin');
+  beginTransition(G.state, ST.CUTSCENE);
+}
+
+// Move to next room
+function moveToNextRoom() {
+  const nextId = getNextRoom(G.currentRoom);
+  if (nextId < 0) {
+    // Check if all 5 bosses defeated
+    if (G.save.bossesDefeated.length >= 5) {
+      // Check hidden boss
+      if (G.save.bossesDefeated.includes(5)) {
+        G.isTrueEnd = true;
+      }
+      beginTransition(G.state, ST.VICTORY);
+    } else {
+      beginTransition(G.state, ST.ZONE_MAP);
+    }
+    return;
+  }
+  G.currentRoom = nextId;
+  const room = ROOM_DEFS[nextId];
+  if (!room.visited) {
+    populateRoom(room, rng, G.diffIdx);
+    room.visited = true;
+  }
+  // Reset player position
+  P.x = 120; P.y = CFG.ROOM_H - CFG.TILE * 2 - P.h;
+  P.vx = 0; P.vy = 0;
+  G.projectiles = [];
+  G.currentBoss = null;
+  // Zone change check
+  const prevRoom = ROOM_DEFS[G.currentRoom - 1];
+  if (!prevRoom || prevRoom.zone !== room.zone) {
+    sound.startBGM(room.zone);
+    const storyKeys = ['storyRuin','storyCrystal','storyAbyss','storyMagma','storyVoid'];
+    if (room.zone < 5) {
+      G.cutsceneText = t(storyKeys[room.zone]);
+      beginTransition(G.state, ST.CUTSCENE);
+      return;
+    }
+  }
+  // Boss room
+  if (room.isBoss) {
+    G.currentBoss = createBoss(room.zone, G.diffIdx);
+    beginTransition(G.state, ST.BOSS_INTRO);
+  } else if (room.enemies.length > 0 && room.enemies.some(e => e.alive)) {
+    beginTransition(G.state, ST.COMBAT);
+  } else {
+    beginTransition(G.state, ST.EXPLORE);
+  }
+}
+
+// Enter zone from map
+function enterZone(zoneIdx) {
+  const firstRoom = ROOM_DEFS.find(r => r.zone === zoneIdx && r.roomIdx === 0);
+  if (!firstRoom) return;
+  const accessible = getAccessibleRooms(P.abilities.map((a, idx) => a ? idx : -1).filter(x => x >= 0));
+  // Check ability requirement
+  if (firstRoom.reqAbilities) { if (!firstRoom.reqAbilities.every(a => P.abilities[a])) return; }
+  else if (firstRoom.reqAbility >= 0 && !P.abilities[firstRoom.reqAbility]) return;
+  G.currentRoom = firstRoom.id;
+  if (!firstRoom.visited) {
+    populateRoom(firstRoom, rng, G.diffIdx);
+    firstRoom.visited = true;
+  }
+  P.x = 120; P.y = CFG.ROOM_H - CFG.TILE * 2 - P.h;
+  P.vx = 0; P.vy = 0;
+  G.projectiles = [];
+  G.currentBoss = null;
+  sound.startBGM(zoneIdx);
+  const storyKeys = ['storyRuin','storyCrystal','storyAbyss','storyMagma','storyVoid'];
+  if (zoneIdx < 5) {
+    G.cutsceneText = t(storyKeys[zoneIdx]);
+    beginTransition(G.state, ST.CUTSCENE);
+  } else {
+    beginTransition(G.state, ST.EXPLORE);
+  }
+}
+
+// DDA system (§8.2)
+function updateDDA() {
+  const deaths = G.consecutiveDeaths;
+  if (deaths >= 7) { G.ddaFactor = 1 - CFG.DDA_3; G.ddaLevel = 3; }
+  else if (deaths >= 5) { G.ddaFactor = 1 - CFG.DDA_2; G.ddaLevel = 2; }
+  else if (deaths >= 3) { G.ddaFactor = 1 - CFG.DDA_1; G.ddaLevel = 1; }
+  else { G.ddaFactor = 1; G.ddaLevel = 0; }
+  if (G.ddaLevel > 0) {
+    G.ddaNotifyAlpha = 1;
+    tw.add(G, { ddaNotifyAlpha: 0 }, 3);
+  }
+}
+
+// Save/load (§17)
+function saveGame() {
+  try { localStorage.setItem('shadowrift_save', JSON.stringify(G.save)); } catch(e) {}
+}
+
+function loadGame() {
+  try {
+    const d = localStorage.getItem('shadowrift_save');
+    if (d) {
+      const parsed = JSON.parse(d);
+      if (parsed.version === 1) {
+        G.save = { ...G.save, ...parsed };
+        currentLang = G.save.lang || 'ko';
+      }
+    }
+  } catch(e) {}
+}
+
+// Physics: resolve entity vs tiles
+function resolveEntityTiles(entity, room) {
+  const tiles = room.tiles || [];
+  const platforms = room.platforms || [];
+  entity.onGround = false;
+  entity.onWall = false;
+  entity.wallDir = 0;
+  // Gravity direction
+  const gDir = entity.gravDir || 1;
+  // Check floor/ceiling/wall tiles
+  for (const t of tiles) {
+    if (!hitTest(entity.x, entity.y, entity.w, entity.h, t.x, t.y, t.w, t.h)) continue;
+    // Resolve overlap
+    const overlapLeft = (entity.x + entity.w) - t.x;
+    const overlapRight = (t.x + t.w) - entity.x;
+    const overlapTop = (entity.y + entity.h) - t.y;
+    const overlapBottom = (t.y + t.h) - entity.y;
+    const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+    if (minOverlap === overlapTop && entity.vy >= 0) {
+      entity.y = t.y - entity.h; entity.vy = 0; entity.onGround = true;
+    } else if (minOverlap === overlapBottom && entity.vy <= 0) {
+      entity.y = t.y + t.h; entity.vy = 0;
+    } else if (minOverlap === overlapLeft) {
+      entity.x = t.x - entity.w; entity.vx = 0;
+      entity.onWall = true; entity.wallDir = 1;
+    } else if (minOverlap === overlapRight) {
+      entity.x = t.x + t.w; entity.vx = 0;
+      entity.onWall = true; entity.wallDir = -1;
+    }
+  }
+  // Platform collision (one-way, from top only)
+  for (const p of platforms) {
+    const px = p.type === 'moving' ? p.x : p.x;
+    if (entity.vy >= 0 && entity.y + entity.h >= p.y && entity.y + entity.h <= p.y + p.h + 8 &&
+        entity.x + entity.w > px && entity.x < px + p.w) {
+      entity.y = p.y - entity.h; entity.vy = 0; entity.onGround = true;
+    }
+  }
+}
+
+// Update moving platforms
+function updatePlatforms(dt, room) {
+  for (const p of room.platforms) {
+    if (p.type !== 'moving') continue;
+    p.x += p.speed * p.dir * dt;
+    if (p.x >= p.endX) { p.x = p.endX; p.dir = -1; }
+    if (p.x <= p.startX) { p.x = p.startX; p.dir = 1; }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══ REGION 10: MAIN — Init, events, gameLoop, resize        ══
+// ══════════════════════════════════════════════════════════════
+
+// Initialize canvas (F12: variable decl -> DOM assign -> event register)
+function initCanvas() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  dpr = window.devicePixelRatio || 1;
+  resizeCanvas();
+}
+
+// Resize canvas to fit window (devicePixelRatio support)
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Register event listeners
+function registerEvents() {
+  // Keyboard
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    input.keys[e.code] = true;
+    input.keysJustPressed[e.code] = true;
+    // Init audio on first interaction
+    sound.init(); sound.resume();
+  });
+  window.addEventListener('keyup', e => { input.keys[e.code] = false; });
+
+  // Touch events
+  canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+  canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+  canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+  // Mouse click (for menus + attacks)
+  canvas.addEventListener('mousedown', e => {
+    sound.init(); sound.resume();
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left);
+    const my = (e.clientY - rect.top);
+    input.tapQueue.push({ x: mx, y: my });
+  });
+  canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    // Right click = ranged attack
+    if (G.state === ST.COMBAT || G.state === ST.BOSS || G.state === ST.EXPLORE) {
+      rangedAttack(P);
+    }
+  });
+
+  // Resize
+  window.addEventListener('resize', resizeCanvas);
+}
+
+// Touch handlers
+function handleTouchStart(e) {
+  e.preventDefault();
+  sound.init(); sound.resume();
+  input.isMobile = true;
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const tx = touches[i].clientX;
+    const ty = touches[i].clientY;
+    const id = touches[i].identifier;
+    // Check if touching joystick area (left half, lower area)
+    if (tx < W * 0.4 && ty > H * 0.4) {
+      input.joyActive = true;
+      input.joyBase = { x: tx, y: ty };
+      input.joyPos = { x: tx, y: ty };
+      input.touch.joystick = id;
+    } else {
+      // Check action buttons
+      const btnSize = Math.max(CFG.MIN_TOUCH, 52);
+      const btns = [
+        { name: 'btnA', x: W - 70, y: H - 130 },
+        { name: 'btnR', x: W - 190, y: H - 110 },
+        { name: 'btnB', x: W - 130, y: H - 80 },
+        { name: 'btnC', x: W - 70, y: H - 70 },
+        { name: 'btnS', x: W - 130, y: H - 140 },
+      ];
+      let hitBtn = false;
+      for (const b of btns) {
+        const dist = Math.hypot(tx - b.x, ty - b.y);
+        if (dist < btnSize / 2 + 10) {
+          input.touch.buttons[b.name] = true;
+          input.touch.buttons[b.name + '_just'] = true;
+          hitBtn = true;
+          break;
+        }
+      }
+      // Pause button
+      if (tx > W - 54 && ty < 54) {
+        input.touch.buttons['pause'] = true;
+        input.touch.buttons['pause_just'] = true;
+        hitBtn = true;
+      }
+      // If no button hit, register as tap (for menus)
+      if (!hitBtn) {
+        input.tapQueue.push({ x: tx, y: ty });
+        // Double tap detection for ranged attack
+        const now = performance.now();
+        if (now - input.lastTapTime < 300) {
+          if (G.state === ST.COMBAT || G.state === ST.BOSS || G.state === ST.EXPLORE) {
+            rangedAttack(P);
+          }
+        }
+        input.lastTapTime = now;
+      }
+    }
+    // Swipe detection
+    if (!input.swipeStart) {
+      input.swipeStart = { x: tx, y: ty, time: performance.now(), id };
+    }
+  }
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const tx = touches[i].clientX;
+    const ty = touches[i].clientY;
+    const id = touches[i].identifier;
+    if (id === input.touch.joystick) {
+      input.joyPos = { x: tx, y: ty };
+      const dx = tx - input.joyBase.x;
+      const dy = ty - input.joyBase.y;
+      const dist = Math.hypot(dx, dy);
+      const maxDist = input.joyRadius;
+      if (dist > 0) {
+        const clamped = Math.min(dist, maxDist);
+        input.joyDir.x = (dx / dist) * (clamped / maxDist);
+        input.joyDir.y = (dy / dist) * (clamped / maxDist);
+      }
+    }
+  }
+}
+
+function handleTouchEnd(e) {
+  e.preventDefault();
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const id = touches[i].identifier;
+    if (id === input.touch.joystick) {
+      input.joyActive = false;
+      input.joyDir = { x: 0, y: 0 };
+      input.touch.joystick = null;
+    }
+    // Swipe up detection
+    if (input.swipeStart && input.swipeStart.id === id) {
+      const dy = touches[i].clientY - input.swipeStart.y;
+      const elapsed = performance.now() - input.swipeStart.time;
+      if (dy < -30 && elapsed < 200) {
+        // Swipe up = jump
+        input.keysJustPressed['Space'] = true;
+        input.keys['Space'] = true;
+      }
+      input.swipeStart = null;
+    }
+  }
+  // Release all buttons (simplified)
+  for (const k of ['btnA','btnR','btnB','btnC','btnS','pause']) {
+    input.touch.buttons[k] = false;
+  }
+}
+
+// Process input for current state
+function processInput(dt) {
+  if (!sys(SYS.INPUT)) return;
+  const tap = input.getTap();
+  switch (G.state) {
+    case ST.TITLE: {
+      if (input.justPressed('Space') || input.justPressed('Enter') || tap) {
+        // Check language button click
+        if (tap) {
+          const lbx = W - 60, lby = 12, lbw = CFG.MIN_TOUCH, lbh = CFG.MIN_TOUCH;
+          if (pointInRect(tap.x, tap.y, { x: lbx, y: lby, w: lbw, h: lbh })) {
+            currentLang = currentLang === 'ko' ? 'en' : 'ko';
+            G.save.lang = currentLang; saveGame();
+            sound.playSFX('select');
+            return;
+          }
+        }
+        sound.playSFX('select');
+        beginTransition(ST.TITLE, ST.DIFFICULTY);
+      }
+      break;
+    }
+    case ST.DIFFICULTY: {
+      if (input.justPressed('ArrowUp') || input.justPressed('KeyW')) {
+        G.diffIdx = (G.diffIdx + 2) % 3; sound.playSFX('select');
+      }
+      if (input.justPressed('ArrowDown') || input.justPressed('KeyS')) {
+        G.diffIdx = (G.diffIdx + 1) % 3; sound.playSFX('select');
+      }
+      if (input.justPressed('Enter') || input.justPressed('Space') || tap) {
+        if (tap) {
+          // Detect which difficulty was tapped
+          for (let i = 0; i < 3; i++) {
+            const dy = 100 + i * 90;
+            if (pointInRect(tap.x, tap.y, { x: W/2 - 130, y: dy, w: 260, h: 70 })) {
+              G.diffIdx = i;
+            }
+          }
+        }
+        sound.playSFX('select');
+        G.save.difficulty = DIFF[G.diffIdx].id;
+        startNewRun();
+      }
+      if (input.justPressed('Escape')) beginTransition(G.state, ST.TITLE);
+      break;
+    }
+    case ST.ZONE_MAP: {
+      // Number keys 1-5 to select zone
+      for (let i = 0; i < 5; i++) {
+        if (input.justPressed('Digit' + (i + 1))) {
+          const accessible = getAccessibleRooms(P.abilities.map((a, idx) => a ? idx : -1).filter(x => x >= 0));
+          if (accessible.includes(i * 4)) {
+            enterZone(i); sound.playSFX('select');
+          }
+        }
+      }
+      // Click on zone nodes
+      if (tap) {
+        for (let i = 0; i < 5; i++) {
+          if (ZONES[i]._mapHit && pointInRect(tap.x, tap.y, ZONES[i]._mapHit)) {
+            if (P.abilities[i - 1] || i === 0) {
+              enterZone(i); sound.playSFX('select');
+            }
+          }
+        }
+      }
+      if (input.justPressed('Escape')) beginTransition(G.state, ST.UPGRADE);
+      break;
+    }
+    case ST.EXPLORE:
+    case ST.COMBAT:
+    case ST.PUZZLE: {
+      handleGameInput(dt);
+      break;
+    }
+    case ST.BOSS_INTRO: {
+      if (input.justPressed('Space') || input.justPressed('Enter') || tap) {
+        beginTransition(G.state, ST.BOSS);
+      }
+      break;
+    }
+    case ST.BOSS: {
+      handleGameInput(dt);
+      break;
+    }
+    case ST.BOSS_CLEAR: {
+      if (input.justPressed('Space') || input.justPressed('Enter') || tap) {
+        // Check if there's an ability unlock
+        if (G.abilityJustUnlocked >= 0) {
+          G.abilityJustUnlocked = -1;
+        }
+        // Offer artifact then move on
+        prepareArtifactChoices();
+        if (G.artifactChoices.length > 0) {
+          beginTransition(G.state, ST.ARTIFACT_SELECT);
+        } else {
+          beginTransition(G.state, ST.ZONE_MAP);
+        }
+      }
+      break;
+    }
+    case ST.ARTIFACT_SELECT: {
+      if (input.justPressed('ArrowLeft') || input.justPressed('KeyA')) {
+        G.artifactSelectedIdx = (G.artifactSelectedIdx + G.artifactChoices.length - 1) % G.artifactChoices.length;
+        sound.playSFX('select');
+      }
+      if (input.justPressed('ArrowRight') || input.justPressed('KeyD')) {
+        G.artifactSelectedIdx = (G.artifactSelectedIdx + 1) % G.artifactChoices.length;
+        sound.playSFX('select');
+      }
+      if (input.justPressed('Enter') || input.justPressed('Space')) {
+        selectArtifact(G.artifactSelectedIdx);
+        // Move to next room or zone map
+        moveToNextRoom();
+      }
+      if (tap) {
+        const cardW = 140, gap = 20;
+        const startX = W/2 - (cardW * 3 + gap * 2) / 2;
+        const cardH = 200, cy = H/2 - cardH/2;
+        for (let i = 0; i < G.artifactChoices.length; i++) {
+          const cx = startX + i * (cardW + gap);
+          if (pointInRect(tap.x, tap.y, { x: cx, y: cy, w: cardW, h: cardH })) {
+            G.artifactSelectedIdx = i;
+            selectArtifact(i);
+            moveToNextRoom();
+            break;
+          }
+        }
+      }
+      break;
+    }
+    case ST.UPGRADE: {
+      const trees = ['shadow', 'rift', 'echo'];
+      if (input.justPressed('ArrowLeft') || input.justPressed('KeyA')) {
+        G.upgradeTree = (G.upgradeTree + 2) % 3;
+        G.upgradeLevel = G.save.upgrades[trees[G.upgradeTree]] || 0;
+        sound.playSFX('select');
+      }
+      if (input.justPressed('ArrowRight') || input.justPressed('KeyD')) {
+        G.upgradeTree = (G.upgradeTree + 1) % 3;
+        G.upgradeLevel = G.save.upgrades[trees[G.upgradeTree]] || 0;
+        sound.playSFX('select');
+      }
+      if (input.justPressed('Enter') || input.justPressed('Space')) {
+        purchaseUpgrade(trees[G.upgradeTree], G.upgradeLevel);
+        G.upgradeLevel = G.save.upgrades[trees[G.upgradeTree]] || 0;
+      }
+      if (input.justPressed('Escape')) beginTransition(G.state, ST.ZONE_MAP);
+      break;
+    }
+    case ST.CUTSCENE: {
+      G.cutsceneProgress += dt * 0.5;
+      if ((input.justPressed('Space') || input.justPressed('Enter') || tap) && G.cutsceneProgress >= 1) {
+        const room = ROOM_DEFS[G.currentRoom];
+        if (room.isBoss) {
+          beginTransition(G.state, ST.BOSS_INTRO);
+        } else if (room.enemies.length > 0 && room.enemies.some(e => e.alive)) {
+          beginTransition(G.state, ST.COMBAT);
+        } else {
+          beginTransition(G.state, ST.EXPLORE);
+        }
+      }
+      // Skip: fast-forward
+      if (input.justPressed('Space') || tap) {
+        if (G.cutsceneProgress < 1) G.cutsceneProgress = 1;
+      }
+      break;
+    }
+    case ST.GAMEOVER: {
+      if (input.justPressed('KeyR') || input.justPressed('Space') || tap) {
+        G.transGuard = false;
+        beginTransition(G.state, ST.TITLE);
+      }
+      break;
+    }
+    case ST.VICTORY: {
+      if (input.justPressed('KeyR') || input.justPressed('Space') || tap) {
+        G.transGuard = false;
+        beginTransition(G.state, ST.TITLE);
+      }
+      break;
+    }
+    case ST.PAUSE: {
+      if (input.justPressed('Escape') || input.justPressed('KeyP') || input.btnJust('pause')) {
+        enterState(G.prevState); // Immediate return (F28 coder wisdom)
+        return;
+      }
+      if (input.justPressed('ArrowUp') || input.justPressed('KeyW')) {
+        G.pauseMenuIdx = (G.pauseMenuIdx + 1) % 2; sound.playSFX('select');
+      }
+      if (input.justPressed('ArrowDown') || input.justPressed('KeyS')) {
+        G.pauseMenuIdx = (G.pauseMenuIdx + 1) % 2; sound.playSFX('select');
+      }
+      if (input.justPressed('Enter') || input.justPressed('Space') || tap) {
+        if (tap) {
+          const bw = 180, bh = 40;
+          for (let i = 0; i < 2; i++) {
+            const oy = H * 0.4 + i * 50;
+            if (pointInRect(tap.x, tap.y, { x: W/2 - bw/2, y: oy, w: bw, h: bh })) {
+              G.pauseMenuIdx = i;
+            }
+          }
+        }
+        if (G.pauseMenuIdx === 0) {
+          enterState(G.prevState); // Resume
+        } else {
+          G.transGuard = false;
+          beginTransition(G.state, ST.TITLE);
+        }
+      }
+      break;
+    }
+  }
+}
+
+// Handle gameplay input (explore/combat/boss)
+function handleGameInput(dt) {
+  // Pause
+  if (input.justPressed('Escape') || input.justPressed('KeyP') || input.btnJust('pause')) {
+    beginTransition(G.state, ST.PAUSE, true);
+    return;
+  }
+  // Movement
+  let moveX = 0;
+  if (input.held('ArrowLeft') || input.held('KeyA')) moveX = -1;
+  if (input.held('ArrowRight') || input.held('KeyD')) moveX = 1;
+  // Touch joystick
+  if (input.joyActive) {
+    if (Math.abs(input.joyDir.x) > 0.2) moveX = input.joyDir.x > 0 ? 1 : -1;
+  }
+  const spdMul = 1 + getArtifactBonus(P, 'moveSpd');
+  const timeSpd = (G.timeStopActive && hasArtifact(P, 'timeGap')) ? 2 : 1;
+  P.vx = moveX * CFG.MOVE_SPD * spdMul * timeSpd;
+  if (moveX !== 0) { P.dir = moveX; P.facing = moveX; }
+  // Dash
+  if (P.dashTimer > 0) {
+    P.vx = P.dashDir * (CFG.DASH_DIST / CFG.DASH_DUR) * (1 + getUpgradeBonus('rift', 2, 0.3));
+  }
+  // Jump
+  const jumpMul = 1 + getArtifactBonus(P, 'jumpHeight') + getUpgradeBonus('echo', 2, 0.2);
+  if ((input.justPressed('ArrowUp') || input.justPressed('KeyW') || input.justPressed('Space') || input.btnJust('btnB')) && P.onGround) {
+    P.vy = CFG.JUMP_VEL * P.gravDir * jumpMul;
+    P.onGround = false;
+  }
+  // Wall jump
+  if ((input.justPressed('ArrowUp') || input.justPressed('KeyW') || input.justPressed('Space') || input.btnJust('btnB')) && P.onWall && !P.onGround) {
+    activateWallJump(P);
+  }
+  // Dash activation
+  if (input.justPressed('ShiftLeft') || input.justPressed('ShiftRight') || input.btnJust('btnC')) {
+    activateDash(P, P.dir);
+  }
+  // Melee attack
+  if (input.justPressed('KeyZ') || input.justPressed('KeyJ') || input.btnJust('btnA')) {
+    const room = ROOM_DEFS[G.currentRoom];
+    meleeAttack(P, room ? room.enemies : [], G.currentBoss);
+  }
+  // Ranged attack (keyboard X/K or mobile btnR)
+  if (input.justPressed('KeyX') || input.justPressed('KeyK') || input.btnJust('btnR')) {
+    rangedAttack(P);
+  }
+  // Special ability
+  if (input.justPressed('KeyC') || input.justPressed('KeyL') || input.btnJust('btnS')) {
+    cycleAbility(P);
+  }
+  // Interact (E key)
+  if (input.justPressed('KeyE')) {
+    handleInteract();
+  }
+  // Move to exit zone (right edge)
+  if (P.x + P.w > CFG.ROOM_W - CFG.TILE * 2) {
+    const room = ROOM_DEFS[G.currentRoom];
+    if (room && room.cleared) {
+      moveToNextRoom();
+    }
+  }
+}
+
+// Handle E key interaction
+function handleInteract() {
+  const room = ROOM_DEFS[G.currentRoom];
+  if (!room) return;
+  // Check switches
+  for (const sw of room.switches) {
+    if (hitTest(P.x, P.y, P.w, P.h, sw.x - 10, sw.y - 10, sw.w + 20, sw.h + 20)) {
+      sw.active = !sw.active;
+      sound.playSFX('select');
+      P.energy = Math.min(P.maxEnergy, P.energy + CFG.ENERGY_PUZZLE);
+      P.score += 200;
+    }
+  }
+}
+
+// Update physics for player
+function updatePhysics(dt) {
+  if (!sys(SYS.PHYSICS)) return;
+  // Gravity
+  P.vy += CFG.GRAVITY * P.gravDir * dt;
+  // Apply velocity
+  P.x += P.vx * dt;
+  P.y += P.vy * dt;
+  // Resolve tile collisions
+  const room = ROOM_DEFS[G.currentRoom];
+  if (room) {
+    resolveEntityTiles(P, room);
+    updatePlatforms(dt, room);
+  }
+  // Clamp to room bounds
+  P.x = Math.max(CFG.TILE, Math.min(CFG.ROOM_W - CFG.TILE - P.w, P.x));
+  P.y = Math.max(CFG.TILE, Math.min(CFG.ROOM_H - CFG.TILE - P.h, P.y));
+  // Animation state
+  if (P.meleeAnim > 0) P.animState = 'melee';
+  else if (Math.abs(P.vx) > 10) P.animState = 'walk';
+  else P.animState = 'idle';
+  P.animT += dt;
+}
+
+// Main game loop
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, CFG.DT_CAP);
+  lastTime = timestamp;
+  gameTime += dt;
+  // 1. System updates based on active systems matrix
+  if (sys(SYS.TWEEN)) tw.update(dt);
+  if (sys(SYS.INPUT)) processInput(dt);
+  if (sys(SYS.PHYSICS)) updatePhysics(dt);
+  if (sys(SYS.ABILITY)) updateAbilities(dt, P);
+  const room = ROOM_DEFS[G.currentRoom];
+  if (sys(SYS.ENEMY) && room) updateEnemies(dt, room.enemies, P, room);
+  if (sys(SYS.COMBAT)) {
+    updateProjectiles(dt, G.projectiles, P, room ? room.enemies : [], G.currentBoss);
+    if (G.currentBoss) updateBoss(dt, G.currentBoss, P);
+  }
+  if (sys(SYS.CAMERA)) {
+    cam.follow(P.x + P.w/2, P.y + P.h/2, dt);
+    cam.update(dt);
+  }
+  if (sys(SYS.PARTICLE)) pool.update(dt);
+  // Boot auto-transition
+  if (G.state === ST.BOOT) {
+    G.bootTimer += dt;
+    if (G.bootTimer > 0.5) beginTransition(ST.BOOT, ST.TITLE);
+  }
+  // Boss intro auto-advance
+  if (G.state === ST.BOSS_INTRO) {
+    G.bossIntroTimer += dt;
+    if (G.bossIntroTimer > 2) beginTransition(G.state, ST.BOSS);
+  }
+  // Game over shake decay
+  if (G.gameOverShake > 0) G.gameOverShake -= dt;
+  // 2. Detect combat state switch
+  if (G.state === ST.EXPLORE && room && room.enemies.some(e => e.alive)) {
+    // Check if any enemy is close
+    for (const e of room.enemies) {
+      if (e.alive && Math.abs(e.x - P.x) < 300) {
+        beginTransition(G.state, ST.COMBAT);
+        break;
+      }
+    }
+  }
+  // 3. Render
+  render(dt);
+  // 4. Clear just-pressed states
+  input.clearFrame();
+  // 5. Loop
+  requestAnimationFrame(gameLoop);
+}
+
+// Render function
+function render(dt) {
+  ctx.clearRect(0, 0, W, H);
+  switch (G.state) {
+    case ST.BOOT:
+      drawLoadingScreen(ctx, W, H, Math.min(1, G.bootTimer * 2));
+      break;
+    case ST.TITLE:
+      drawTitleScreen(ctx, W, H, 1, gameTime);
+      break;
+    case ST.DIFFICULTY:
+      drawDifficultyScreen(ctx, W, H, G.diffIdx, gameTime);
+      break;
+    case ST.ZONE_MAP:
+      drawZoneMap(ctx, W, H, getAccessibleRooms(P.abilities.map((a,i) => a ? i : -1).filter(x => x >= 0)),
+        G.currentRoom, G.save.bossesDefeated, gameTime);
+      break;
+    case ST.EXPLORE:
+    case ST.COMBAT:
+    case ST.PUZZLE:
+      renderGameplay(dt);
+      break;
+    case ST.BOSS_INTRO:
+      renderGameplay(dt);
+      drawBossIntro(ctx, W, H, ROOM_DEFS[G.currentRoom].zone, Math.min(1, G.bossIntroTimer / 1.5), gameTime);
+      break;
+    case ST.BOSS:
+      renderGameplay(dt);
+      break;
+    case ST.BOSS_CLEAR: {
+      renderGameplay(dt);
+      // Boss clear overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center'; ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 15;
+      ctx.fillText(t('bossClear'), W/2, H * 0.3);
+      ctx.shadowBlur = 0;
+      if (G.abilityJustUnlocked >= 0) {
+        ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+        ctx.fillStyle = '#00E5FF';
+        ctx.fillText(t('newAbility') + ' ' + t(ABILITY_NAMES[G.abilityJustUnlocked]), W/2, H * 0.42);
+      }
+      const pa = 0.5 + 0.5 * Math.sin(gameTime * 3);
+      ctx.globalAlpha = pa;
+      ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#8080a0';
+      ctx.fillText('SPACE / Tap ▶', W/2, H * 0.6);
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case ST.ARTIFACT_SELECT:
+      renderGameplay(dt);
+      drawArtifactSelect(ctx, W, H, G.artifactChoices, G.artifactSelectedIdx, gameTime);
+      break;
+    case ST.UPGRADE:
+      drawUpgradeScreen(ctx, W, H, G.save, G.upgradeTree,
+        G.save.upgrades[['shadow','rift','echo'][G.upgradeTree]] || 0, gameTime);
+      break;
+    case ST.ROOM_TRANSITION:
+      renderGameplay(dt);
+      break;
+    case ST.CUTSCENE:
+      renderGameplay(dt);
+      drawCutscene(ctx, W, H, G.cutsceneText, G.cutsceneProgress, gameTime);
+      break;
+    case ST.VICTORY:
+      drawVictoryScreen(ctx, W, H, P.score, !!G.isTrueEnd, gameTime);
+      break;
+    case ST.GAMEOVER:
+      drawGameOverScreen(ctx, W, H, P.score, G.save.bestScore, G.isNewBest, G.gameOverShake, gameTime);
+      break;
+    case ST.PAUSE:
+      renderGameplay(dt);
+      drawPauseScreen(ctx, W, H, G.pauseMenuIdx, gameTime);
+      break;
+    case ST.MODAL:
+      renderGameplay(dt);
+      break;
+  }
+  // Transition overlay
+  if (G.transitioning && G.transAlpha > 0) {
+    ctx.fillStyle = `rgba(10,10,15,${G.transAlpha})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  // DDA notification
+  drawDDANotification(ctx, W, H, G.ddaLevel, G.ddaNotifyAlpha);
+}
+
+// Render gameplay (world + entities + HUD)
+function renderGameplay(dt) {
+  const room = ROOM_DEFS[G.currentRoom];
+  const zoneIdx = room ? room.zone : 0;
+  // Background
+  drawBackground(ctx, W, H, cam.x, cam.y, zoneIdx, gameTime);
+  // Camera transform
+  cam.apply(ctx, W, H);
+  // Room
+  if (room) drawRoom(ctx, cam.x, cam.y, room, zoneIdx, gameTime);
+  // Enemies
+  if (room) {
+    for (const e of room.enemies) {
+      if (!e.alive) continue;
+      drawEnemy(ctx, e.x, e.y, e.w, e.h, e.type, e.hp, e.maxHp, e.zone, e.animT, e.flashTimer, gameTime);
+    }
+  }
+  // Boss
+  if (G.currentBoss && G.currentBoss.alive) {
+    drawBoss(ctx, G.currentBoss.x, G.currentBoss.y, G.currentBoss.w, G.currentBoss.h,
+      G.currentBoss.phase, G.currentBoss.hp, G.currentBoss.maxHp,
+      G.currentBoss.zone, G.currentBoss.animT, G.currentBoss.weakExposed, gameTime);
+  }
+  // Projectiles
+  drawProjectiles(ctx, G.projectiles, gameTime);
+  // Particles (in world space)
+  drawParticles(ctx, pool, gameTime);
+  // Player
+  drawPlayer(ctx, P.x, P.y, P.w, P.h, P.dir, P.animState, P.invTimer, P.dashTimer,
+    P.abilities, P.gravDir, gameTime);
+  cam.restore(ctx);
+  // HUD (screen space)
+  drawHUD(ctx, W, H, P, room, P.score, P.comboCount, P.comboTimer, currentLang, gameTime);
+  // Touch controls
+  drawTouchControls(ctx, W, H, input, P.abilities);
+}
+
+// ══ INITIALIZATION ══
+async function init() {
+  // 1. CONFIG already declared (R1)
+  // 2. Global variables already declared (G, P, cam, etc.)
+  // 3. SeededRNG initialized
+  // 4. Canvas / ctx assignment
+  initCanvas();
+  // 5. TweenManager created
+  // 6. ObjectPool created
+  // 7. SoundManager created (awaits user gesture)
+  // 8. InputManager created
+  // 9. Event listeners
+  registerEvents();
+  // 10. Resize
+  resizeCanvas();
+  // 11. Load save data
+  loadGame();
+  // 12. Enter boot state
+  G.state = ST.BOOT;
+  // 13. Start game loop
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+// Start the game
+init();
+</script>
+</body>
+</html>

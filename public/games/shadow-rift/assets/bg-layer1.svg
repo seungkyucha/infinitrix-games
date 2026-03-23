@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <!-- Sky gradient - deep space -->
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#050510"/>
+      <stop offset="30%" stop-color="#0A1628"/>
+      <stop offset="60%" stop-color="#0D0D2A"/>
+      <stop offset="100%" stop-color="#1A0033"/>
+    </linearGradient>
+    <!-- Nebula glow 1 -->
+    <radialGradient id="nebula1" cx="0.3" cy="0.3" r="0.4">
+      <stop offset="0%" stop-color="#7C4DFF" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#4A148C" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Nebula glow 2 -->
+    <radialGradient id="nebula2" cx="0.7" cy="0.4" r="0.35">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#006064" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Nebula glow 3 -->
+    <radialGradient id="nebula3" cx="0.5" cy="0.7" r="0.3">
+      <stop offset="0%" stop-color="#E040FB" stop-opacity="0.1"/>
+      <stop offset="60%" stop-color="#4A148C" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Distant mountain gradient -->
+    <linearGradient id="mtGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A1A3E"/>
+      <stop offset="100%" stop-color="#0D0D20"/>
+    </linearGradient>
+    <!-- Rift glow -->
+    <linearGradient id="riftGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E040FB" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#B388FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#7C4DFF" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Fog gradient -->
+    <linearGradient id="fogGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1A1A3E" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#1A1A3E" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#1A1A3E" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="bgGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="starGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
+    <filter id="fogBlur" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="15"/>
+    </filter>
+  </defs>
+
+  <!-- Background sky -->
+  <rect width="1200" height="800" fill="url(#skyGrad)"/>
+
+  <!-- Nebula clouds -->
+  <rect width="1200" height="800" fill="url(#nebula1)"/>
+  <rect width="1200" height="800" fill="url(#nebula2)"/>
+  <rect width="1200" height="800" fill="url(#nebula3)"/>
+
+  <!-- Stars - 85 scattered points -->
+  <g id="stars">
+    <circle cx="50" cy="30" r="1.2" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="120" cy="80" r="0.8" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="200" cy="45" r="1" fill="#E0E0FF" opacity="0.7"/>
+    <circle cx="280" cy="120" r="0.6" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="340" cy="60" r="1.4" fill="#B0C0FF" opacity="0.8"/>
+    <circle cx="410" cy="90" r="0.7" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="480" cy="35" r="1" fill="#FFE0FF" opacity="0.7"/>
+    <circle cx="550" cy="110" r="0.9" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="620" cy="55" r="1.3" fill="#E0F0FF" opacity="0.8"/>
+    <circle cx="700" cy="75" r="0.6" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="760" cy="40" r="1.1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="830" cy="100" r="0.8" fill="#E0E0FF" opacity="0.5"/>
+    <circle cx="900" cy="25" r="1.2" fill="#B0C0FF" opacity="0.8"/>
+    <circle cx="970" cy="85" r="0.7" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="1040" cy="50" r="1" fill="#FFE0FF" opacity="0.7"/>
+    <circle cx="1100" cy="70" r="0.9" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="1160" cy="30" r="1.1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="80" cy="180" r="0.8" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="160" cy="200" r="1.3" fill="#E0F0FF" opacity="0.7"/>
+    <circle cx="230" cy="160" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="310" cy="220" r="1" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="390" cy="180" r="0.6" fill="#B0C0FF" opacity="0.6"/>
+    <circle cx="460" cy="240" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="530" cy="170" r="0.8" fill="#FFE0FF" opacity="0.5"/>
+    <circle cx="610" cy="210" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="680" cy="150" r="1.4" fill="#E0E0FF" opacity="0.8"/>
+    <circle cx="750" cy="230" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="820" cy="190" r="0.9" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="890" cy="250" r="1.1" fill="#B0C0FF" opacity="0.6"/>
+    <circle cx="960" cy="175" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="1030" cy="210" r="1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="1100" cy="160" r="1.3" fill="#E0F0FF" opacity="0.8"/>
+    <circle cx="1170" cy="200" r="0.6" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="45" cy="300" r="0.9" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="135" cy="280" r="1.1" fill="#FFE0FF" opacity="0.7"/>
+    <circle cx="220" cy="320" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="295" cy="290" r="1.2" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="375" cy="310" r="0.6" fill="#B0C0FF" opacity="0.6"/>
+    <circle cx="445" cy="350" r="1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="520" cy="275" r="0.8" fill="#E0E0FF" opacity="0.5"/>
+    <circle cx="595" cy="340" r="1.3" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="670" cy="295" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="740" cy="330" r="1.1" fill="#FFE0FF" opacity="0.7"/>
+    <circle cx="815" cy="280" r="0.9" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="885" cy="345" r="0.6" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="955" cy="305" r="1.2" fill="#B0C0FF" opacity="0.8"/>
+    <circle cx="1025" cy="335" r="0.8" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="1095" cy="290" r="1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="1165" cy="320" r="0.7" fill="#E0F0FF" opacity="0.5"/>
+    <circle cx="90" cy="140" r="0.5" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="170" cy="260" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="250" cy="350" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="350" cy="140" r="0.9" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="430" cy="280" r="1.1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="510" cy="320" r="0.6" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="590" cy="135" r="1.3" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="660" cy="360" r="0.8" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="730" cy="130" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="805" cy="350" r="1" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="875" cy="140" r="0.9" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="945" cy="260" r="0.6" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="1015" cy="140" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="1085" cy="350" r="0.8" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="1155" cy="140" r="1" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="65" cy="380" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="155" cy="360" r="1.1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="240" cy="390" r="0.6" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="320" cy="370" r="0.9" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="400" cy="400" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="490" cy="380" r="1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="570" cy="395" r="0.5" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="650" cy="410" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="720" cy="385" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="800" cy="400" r="0.6" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="870" cy="390" r="0.9" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="940" cy="410" r="0.7" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="1010" cy="380" r="1.1" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="1080" cy="400" r="0.8" fill="#FFFFFF" opacity="0.5"/>
+    <circle cx="1150" cy="385" r="0.6" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="110" cy="420" r="0.9" fill="#B0C0FF" opacity="0.5"/>
+    <circle cx="350" cy="430" r="0.7" fill="#FFE0FF" opacity="0.4"/>
+    <circle cx="580" cy="420" r="1" fill="#E0F0FF" opacity="0.5"/>
+    <circle cx="800" cy="435" r="0.8" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="1020" cy="420" r="0.6" fill="#B0C0FF" opacity="0.4"/>
+    <circle cx="30" cy="60" r="0.5" fill="#FFFFFF" opacity="0.3"/>
+  </g>
+
+  <!-- Constellation lines -->
+  <g opacity="0.15" stroke="#B388FF" stroke-width="0.5">
+    <line x1="340" y1="60" x2="390" y2="180"/>
+    <line x1="390" y1="180" x2="460" y2="240"/>
+    <line x1="620" y1="55" x2="680" y2="150"/>
+    <line x1="680" y1="150" x2="750" y2="230"/>
+    <line x1="900" y1="25" x2="960" y2="175"/>
+    <line x1="960" y1="175" x2="1030" y2="210"/>
+  </g>
+
+  <!-- Dimensional rift in sky -->
+  <g filter="url(#bgGlow)">
+    <path d="M500 100 Q550 80, 600 120 Q650 90, 700 110 Q720 130, 680 150 Q640 160, 600 140 Q560 170, 520 140 Q490 130, 500 100 Z" fill="url(#riftGlow)" opacity="0.4"/>
+    <path d="M540 105 Q580 95, 620 115 Q650 100, 670 115 Q680 130, 660 140 Q630 145, 600 130 Q570 150, 550 135 Q530 125, 540 105 Z" fill="#E040FB" opacity="0.1"/>
+  </g>
+
+  <!-- Far mountains / ruins silhouette -->
+  <g id="far-mountains">
+    <path d="M0 550 L50 480 L100 520 L180 440 L260 490 L320 430 L400 470 L460 410 L520 450 L580 400 L650 460 L720 390 L790 440 L860 420 L930 480 L1000 430 L1060 470 L1120 440 L1200 500 L1200 800 L0 800 Z" fill="url(#mtGrad)" opacity="0.5"/>
+    <!-- Ruins on mountain peaks -->
+    <rect x="175" y="425" width="10" height="20" fill="#1A1A3E" opacity="0.6"/>
+    <rect x="165" y="430" width="5" height="12" fill="#1A1A3E" opacity="0.5"/>
+    <rect x="316" y="415" width="8" height="18" fill="#1A1A3E" opacity="0.6"/>
+    <polygon points="316,415 320,405 324,415" fill="#1A1A3E" opacity="0.5"/>
+    <rect x="577" y="385" width="6" height="18" fill="#1A1A3E" opacity="0.6"/>
+    <rect x="715" y="375" width="10" height="20" fill="#1A1A3E" opacity="0.6"/>
+    <polygon points="715,375 720,362 725,375" fill="#1A1A3E" opacity="0.5"/>
+    <rect x="997" y="416" width="6" height="16" fill="#1A1A3E" opacity="0.6"/>
+    <rect x="1117" y="426" width="8" height="18" fill="#1A1A3E" opacity="0.6"/>
+  </g>
+
+  <!-- Distant floating islands -->
+  <g opacity="0.3">
+    <ellipse cx="200" cy="350" rx="40" ry="8" fill="#1A1A3E"/>
+    <path d="M170 350 Q175 330, 200 325 Q225 330, 230 350" fill="#1A1A3E" opacity="0.8"/>
+    <rect x="195" y="310" width="6" height="18" fill="#1A1A3E" opacity="0.5"/>
+    <polygon points="195,310 198,298 201,310" fill="#1A1A3E" opacity="0.4"/>
+
+    <ellipse cx="950" cy="320" rx="35" ry="7" fill="#1A1A3E"/>
+    <path d="M925 320 Q930 305, 950 300 Q970 305, 975 320" fill="#1A1A3E" opacity="0.8"/>
+    <rect x="946" y="288" width="5" height="14" fill="#1A1A3E" opacity="0.5"/>
+  </g>
+
+  <!-- Fog layers -->
+  <g filter="url(#fogBlur)">
+    <rect x="-50" y="440" width="1300" height="60" fill="url(#fogGrad)" opacity="0.4"/>
+    <rect x="-50" y="520" width="1300" height="50" fill="url(#fogGrad)" opacity="0.3"/>
+    <rect x="-50" y="600" width="1300" height="70" fill="url(#fogGrad)" opacity="0.25"/>
+    <ellipse cx="300" cy="470" rx="200" ry="30" fill="#1A1A3E" opacity="0.15"/>
+    <ellipse cx="800" cy="500" rx="250" ry="35" fill="#1A1A3E" opacity="0.12"/>
+  </g>
+
+  <!-- Shooting star / meteor -->
+  <g filter="url(#bgGlow)" opacity="0.6">
+    <line x1="180" y1="80" x2="140" y2="120" stroke="#00E5FF" stroke-width="1.5"/>
+    <circle cx="180" cy="80" r="2" fill="#FFFFFF"/>
+    <line x1="850" y1="50" x2="820" y2="80" stroke="#E040FB" stroke-width="1"/>
+    <circle cx="850" cy="50" r="1.5" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Distant rift portals glowing -->
+  <g filter="url(#bgGlow)" opacity="0.3">
+    <ellipse cx="400" cy="460" rx="8" ry="15" fill="#E040FB"/>
+    <ellipse cx="400" cy="460" rx="4" ry="10" fill="#B388FF"/>
+    <ellipse cx="900" cy="440" rx="6" ry="12" fill="#00E5FF"/>
+    <ellipse cx="900" cy="440" rx="3" ry="8" fill="#80DEEA"/>
+  </g>
+
+  <!-- Additional nebula wisps -->
+  <g filter="url(#fogBlur)" opacity="0.08">
+    <path d="M100 200 Q300 150, 500 200 Q700 250, 900 180 Q1000 160, 1100 200" fill="none" stroke="#7C4DFF" stroke-width="40"/>
+    <path d="M0 350 Q200 320, 400 370 Q600 400, 800 350 Q1000 310, 1200 360" fill="none" stroke="#00838F" stroke-width="30"/>
+  </g>
+</svg>

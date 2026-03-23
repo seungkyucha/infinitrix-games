@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #28 neon-pulse_
+_Last updated: Cycle #29 shadow-rift_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 29]** In metroidvania, auto-transitioning EXPLORE→COMBAT on enemy proximity (300px) can cause infinite state toggling if enemies remain alive after combat. Always check room.cleared before triggering COMBAT in EXPLORE state.
+- **[Cycle 29]** During boss phase transition (phaseTransitioning=true), continued damage can skip phase thresholds since checkBossPhase() is ignored. Either re-check phase after transition completes or queue damage during transitions.
+- **[Cycle 29]** When designer assets exist in manifest.json but spec says "no assets/ directory", user instructions (preloadAssets requirement) override the spec. Smoke test "no assets/ dir" must be conditionally excluded when asset preloader is in use.
+- **[Cycle 29]** resolveEntityTiles() with minimum overlap resolution can push entities into walls during high-speed movement (dash). CCD or previous-position restoration is needed for high-velocity entities.
 - **[Cycle 28]** In rhythm games, beat judge windows (±50/100/150ms) and automatic Miss checks can process the same beat simultaneously. judgeInput() and checkMissedBeats() must use mutually exclusive judged/missed flags — once judged=true, the beat must be skipped in missed checks.
 - **[Cycle 28]** When G.bpm is tween-only (F14, F70), boss phase transitions that regenerate beat patterns (generateBossBeats) before the BPM tween completes will use the old BPM. Beat regeneration must happen inside the tween's onComplete callback.
 - **[Cycle 28]** PAUSE→resume via beginTransition() creates a fade dead-time where game inputs are blocked. PAUSE resume should use setState() for instant transition, providing better UX.
@@ -36,6 +40,15 @@ _Last updated: Cycle #28 neon-pulse_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 29]** Metroidvania roguelite (Shadow Rift) uses 18-state × 11-system ACTIVE_SYS matrix with array-based (0/1) flags — SYS.TWEEN set to 1 in ALL states, preventing Cycle 28's BOOT→TITLE regression. 13 consecutive cycles of successful matrix pattern.
+- **[Cycle 29]** 5 zones × 4 rooms (3+boss) + 2 hidden = 22 rooms managed via ROOM_DEFS array with per-zone reqAbility gating for non-linear progression. SeededRNG-based room variation (enemy placement/platforms/destructibles) for replay value.
+- **[Cycle 29]** 6 bosses (5 zone + hidden) with HP ratio threshold array + phaseTransitioning guard + atkTimer/weakTimer reset triple safety — comprehensive application of boss lessons from Cycles 24-28.
+- **[Cycle 29]** 13 artifacts with DPS cap (2.0) + synergy cap (1.5) enforced via Math.min in getArtifactBonus() — prepareArtifactChoices() with dedup + rarity weights (common:6/rare:3/epic:1) for balance.
+- **[Cycle 29]** PAUSE resume uses enterState() instant transition — applying Cycle 28 lesson (beginTransition fade dead-time). Zero gameplay interruption feel.
+- **[Cycle 29]** 8 designer SVG assets preloaded via preloadAssets() with Canvas fallback in every draw function. Game fully functional without assets.
+- **[Cycle 29]** Web Audio API: 13 procedural sounds (5 zone BGMs + 8 SFX) via OscillatorNode/BufferSource — zero external audio files, audioCtx.currentTime scheduling.
+- **[Cycle 29]** Touch controls: virtual joystick (left) + 4 buttons (ATK/JMP/DSH/SKL) + double-tap (ranged) + swipe-up (jump) + pause (top-right). Full flow from TITLE to GAMEOVER achievable via touch only.
+- **[Cycle 29]** Permanent upgrade 3 trees (Shadow/Rift/Echo) × 5 levels as UPGRADE_TREES data object — purchaseUpgrade() single function + echo points currency for cross-run progression.
 - **[Cycle 28]** Rhythm arcade roguelite (Neon Pulse) implements BPM-synced beat combat + 4-tier timing judgement (Perfect/Great/Good/Miss) as pure functions (judgeInput, calcDamage, updateCombo). Zero global state direct references in combat logic confirmed feasible.
 - **[Cycle 28]** Boss phase transition + BPM tween + beat pattern regeneration chained: applyDamageToBoss() → HP check → phase++ → tw.add(bpm change) → onComplete: generateBossBeats(). Includes atkTimer reset (accumulated lessons from Cycles 24-27).
 - **[Cycle 28]** 13 sound chips with DPS cap (2.0) and synergy cap (1.5) pre-filtered in generateChipChoices() — removes over-cap chips from selection to prevent overpower builds at data level.
@@ -101,6 +114,10 @@ _Last updated: Cycle #28 neon-pulse_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Metroidvania ability gating BFS validation**: Current getAccessibleRooms() only checks reqAbility. Add BFS-based actual path verification to prevent deadlocks from ability unlock order.
+- **Boss attack pattern full data-driven**: Current boss AI is hardcoded in switch(zone) branches. Convert to per-boss pattern arrays [{type:'charge',dir,speed,dmg,cd}, {type:'projectile',count,spread}] for easy boss addition/modification.
+- **CCD for high-speed movement**: Dash etc. can overshoot resolveEntityTiles(). Implement rayCast or previous-position restoration (P.prevX/prevY) for accurate high-velocity collision.
+- **Offscreen room tile caching**: Static room tiles rendered per-frame via individual fillRect is inefficient. Pre-render to offscreen canvas on room entry, then drawImage for 2-3x performance gain.
 - **Beat pattern regeneration timing**: When BPM tween is in progress, calling generateBossBeats() uses intermediate BPM. Must call inside tween onComplete only.
 - **PAUSE resume instant transition**: Use setState() instead of beginTransition() for PAUSE→game resume to eliminate fade dead-time.
 - **Bitmask ACTIVE_SYS standard**: Migrate all future games from array-based matrix to bitmask pattern. `sys(SYS.RHYTHM)` is now the standard.

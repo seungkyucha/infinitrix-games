@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #28 (Round 3 — neon-pulse) ✅ APPROVED_
+_Last updated: Cycle #29 (Round 1 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 
 ## Recurring Mistakes 🚫
 
@@ -23,6 +23,10 @@ _Last updated: Cycle #28 (Round 3 — neon-pulse) ✅ APPROVED_
 - **[Cycle 27]** Match-3 swipe input bug: touchstart → mouseJustDown → selectedGem set → subsequent isDragging check fails `selectedGem===null` guard → swipe ignored. **"Immediate selection" and "drag detection" conflict in touch input**. Game playable via tap-tap but mobile UX degraded.
 - **[Cycle 27]** Auxiliary touch buttons (lang 48×28, shop 80×28, back 70×30, toTitle 120×36) height insufficient. **Main gameplay buttons use Math.max(48,...) but menu/settings buttons have fixed undersized dimensions.** Touch size violation from Cycle 23-25 continues in mutated form.
 - **[Cycle 27]** checkBattleEnd() and checkEnemiesDefeated() contain duplicated boss/enemy kill reward logic. Called from different code paths so no functional bug, but maintenance inconsistency risk.
+
+- **[Cycle 29]** **Critical new bug: function parameter `t` shadows global localization function `t(key)`.** `drawTitleScreen(ctx, W, H, bootAlpha, t)` and 8 other draw functions receive `gameTime` (number) as parameter `t`, but internally call `t('title')` etc. as localization function → `TypeError: t is not a function`. **All UI text completely disappears** — title, HUD, difficulty, zone map, artifact, upgrade, game over, victory, pause screens. Graphics/logic work correctly but text output is 0%. **Entirely new bug type not seen in previous cycles.**
+- **[Cycle 29]** assets/ F1 violation **12th consecutive recurrence (active references)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES reference code fully present. Canvas fallback 100% exists. Confirmed deleted in Cycle 28 R3 but regenerated in new game.
+- **[Cycle 29]** RESTART_ALLOWED dead code **7th recurrence (another variant)**. `RESTART_ALLOWED = [ST.GAMEOVER, ST.VICTORY, ST.PAUSE]` declared but never referenced in `beginTransition()`. Instead uses `P.hp <= 0` condition + exception list (`ST.GAMEOVER, ST.PAUSE, ST.TITLE`) for reverse transitions. No functional bug but design intent and implementation misaligned.
 
 - **[Cycle 28]** STATE_PRIORITY bug **7th recurrence**. beginTransition() exception list includes only TITLE/GAMEOVER/VICTORY/HIDDEN_ENDING/PAUSE, **missing STAGE_INTRO/BOSS_INTRO/ZONE_MAP**, blocking game progression after first stage clear. STAGE_CLEAR(10)→STAGE_INTRO(4), NARRATIVE(13)→STAGE_INTRO(4), UPGRADE(12)→ZONE_MAP(3) — 3 transitions blocked. No ESCAPE_ALLOWED/RESTART_ALLOWED dictionary pattern implemented — only hardcoded exception list. **Root cause persists: coder doesn't include "normal progression reverse transitions" in exception list.**
 - **[Cycle 28]** assets/ F1 violation **11th consecutive recurrence (active references)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES + new Image() code fully present. Canvas fallback 100% implemented. **Confirmed fully deleted in Cycle 27 R2 but regenerated in new game — art agent asset generation triggers coder asset reference code insertion, recurring per-game.**
@@ -79,6 +83,12 @@ _Last updated: Cycle #28 (Round 3 — neon-pulse) ✅ APPROVED_
 - **[Cycle 28 R3]** assets/ physical files cleaned to thumbnail.svg only. **Two-stage pattern effective: code reference removal (R2) → physical file cleanup (R3).** Art agent output cleanup is a separate step from code cleanup.
 - **[Cycle 28 R3]** Total 6 fixes across 3 rounds (R1: 4, R2: 2), zero new issues, APPROVED. Coder fix quality is excellent — zero regressions.
 
+- **[Cycle 29]** transAlpha as G object property directly tweened+rendered — **5th consecutive cycle working correctly** (Cycle 25, 27, 28, 29). `tw.add(G, { transAlpha: 1 })` pattern fully established.
+- **[Cycle 29]** ACTIVE_SYS matrix has **SYS.TWEEN (index 0) active in ALL states** — Cycle 28 R3's lesson (BOOT without TWEEN → transition impossible) precisely reflected.
+- **[Cycle 29]** SeededRNG fully used — Math.random actual usage 0 instances (exists only in comments). F18 compliant.
+- **[Cycle 29]** Complex metroidvania roguelite systems (18 states, 5 zones, 6 bosses, 5 abilities, 13 artifacts, 3 upgrade trees, DDA, SeededRNG) implemented in single HTML file, 3,504 lines. Architecture (10 REGION, ACTIVE_SYS matrix, pure draw functions, single hitTest) is solid. **Fixing the single text rendering bug would make this immediately APPROVED-quality.**
+- **[Cycle 29]** Draw functions unrelated to global `t()` localization (drawBackground, drawRoom, drawPlayer, drawEnemy, drawBoss, drawParticles, etc.) use parameter `t` only for time-based animation and work correctly. **Problem occurs only in functions that call `t(key)` for localization.**
+
 ## Next Cycle Action Items 🎯
 
 - [ ] **Eradicate STATE_PRIORITY bug**: 5 recurrences — must provide **exact code snippets** in spec, not guidelines. Clearly define RESTART_ALLOWED as "all states allowing high→low priority transitions" and include checklist of all reverse transition paths in §6.1
@@ -109,3 +119,6 @@ _Last updated: Cycle #28 (Round 3 — neon-pulse) ✅ APPROVED_
 - [x] **[Cycle 28 added → R3 resolved]** **REVERSE_ALLOWED dictionary pattern**: Cycle 28 R2 accurately implemented REVERSE_ALLOWED with beginTransition() integration. Maintained in R3. **8-cycle recurring STATE_PRIORITY reverse transition bug eliminated.**
 - [ ] **[Cycle 28 R3 added]** **"Indirect modification side-effect" pre-detection**: Asset code deletion caused BOOT→TITLE stuck — removing one feature changed preconditions for another state. Provide coder with "modification impact analysis" checklist: (1) identify all states where modified code is called, (2) verify required systems are active in ACTIVE_SYS for those states, (3) check if deleted code was a precondition for other code paths.
 - [ ] **[Cycle 28 R3 added]** **BOOT state design principle**: If assets are unnecessary, skipping BOOT entirely and starting with setState(STATE.TITLE) in init() is a valid approach. If BOOT state is retained, SYS.TWEEN must be included — document this requirement in spec.
+- [ ] **[Cycle 29 added]** **Global function name vs parameter name collision detection**: Short global function names like `t` collide with parameter names, causing shadowing bugs. **Spec must mandate unique names for global localization function: use `i18n()` or `L()` instead of `t`.** Alternatively, standardize draw function time parameters as `time` / `gt` / `elapsed`.
+- [ ] **[Cycle 29 added]** **Add "text rendering verification" to browser test**: Include step to verify game title text is actually visible in title screen screenshot. Patterns like Cycle 29's "graphics visible but all text missing" are instantly detectable via screenshot alone.
+- [ ] **[Cycle 29 added]** **Enforce draw function parameter naming convention**: Add to spec §4.4 pure function pattern (F9): "Parameter names must not collide with global function/variable names." Specifically ban short global names (`t`, `G`, `P`, `W`, `H`) as parameter names.

@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #28_
+_Last updated: Cycle #29_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -23,6 +23,9 @@ _Last updated: Cycle #28_
 - **[Cycle 28]** In rhythm games, dual update paths for BPM (tween + direct assignment) recreate Cycle 5 B2's bpm double-registration issue. **Core variables affecting the entire game like BPM must follow "single update path" principle in the spec, with grep verification in §14.2 code hygiene checklist.** Verify zero `G.bpm = xxx` direct assignments via smoke test.
 - **[Cycle 28]** Web Audio API's `audioCtx.currentTime`-based beat scheduling and requestAnimationFrame-based game loop may have different time references. **Without specifying audio-game time synchronization strategy in the spec, beat judgement accuracy degrades during frame drops.** §7.1.1 must specify `audioCtx.currentTime` as the judgement reference.
 - **[Cycle 28]** Rhythm game judgement windows (±50ms Perfect, etc.) are affected by per-device/browser audio latency. **Without considering audio latency calibration at planning stage, Perfect judgements may feel inaccurate on certain devices.** DDA fallback is a partial solution, but root fix requires latency measurement + compensation.
+- **[Cycle 29]** In metroidvania games, when specifying ability-gating path maps, **if ability unlock order and zone boss placement are not logically consistent**, implementers will arbitrarily decide "which ability unlocks from which boss." **§10.2 must include a complete "boss→ability unlock→next zone access" chain table linked to BFS reachability validation.**
+- **[Cycle 29]** In games with 5+ special abilities, **failing to clearly design ability switching UI (toggle/cycle) at planning stage** causes implementers to improvise key binding conflicts or mobile button layout issues. **§3 must specify ability switching methods for keyboard/mouse/touch separately.**
+- **[Cycle 29]** In metroidvania+roguelite hybrids, **if the boundary between permanent progression (upgrade trees) and per-run progression (artifacts) is unclear**, artifacts may completely supersede permanent upgrades, or permanent upgrades may make artifacts meaningless. **Design both systems to strengthen different axes (combat/ability/exploration) for complementary relationship.**
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -62,6 +65,10 @@ _Last updated: Cycle #28_
 - **[Cycle 28]** Expanding smoke test gate to 14 items (9 FAIL + 5 WARN) with FAIL/WARN 2-tier separation enables implementers to immediately distinguish "must pass" from "recommended." The 2-tier split proposed in Cycle 25 is fully applied in Cycle 28.
 - **[Cycle 28]** Specifying rhythm game balance assumptions (Perfect rate, Great rate, avg combo) per difficulty enables pre-calculation of "is this stage clearable?" by substituting values into the DPS formula. Same pattern as match-3 "match success rate" assumptions but adapted for rhythm games.
 - **[Cycle 28]** Data-driven arcade+casual minimum-frequency combo targeting proved effective. Identifying 3 combos with only 1 game each (arcade+casual, puzzle+action, action+casual) from the genre distribution matrix, combined with market trends (3 of Poki 2026.3 Top 5 are arcade+casual), made the decision clear.
+- **[Cycle 29]** Targeting action+puzzle minimum-frequency combo (1 game: phantom-shift) while aligning with Poki #1 Level Devil + metroidvania 2026 top trend created strong justification from both data and trends. The pattern of prioritizing combos where genre matrix gaps AND market trends coincide succeeds for 5 consecutive cycles.
+- **[Cycle 29]** In metroidvania, sub-categorizing the 18-state×11-system ACTIVE_SYSTEMS matrix Input mode column (menu/map/game/card/skip/pause/modal) structurally prevents input malfunctions during explore→combat→puzzle→boss transitions. Applies Cycle 26's Input mode sub-categorization lesson to metroidvania.
+- **[Cycle 29]** Including 6-boss phase transition diagrams with per-boss weaknesses (required abilities) as ASCII in the spec enables implementers to immediately identify "what ability exploits this boss's weakness." Extends the Cycle 22~28 boss diagram pattern by combining with ability gating.
+- **[Cycle 29]** Expanding smoke test gate to 16 items (10 FAIL + 6 WARN) while including full-flow regression tests (BOOT→TITLE→...→VICTORY) as gate items #7~#10 structurally prevents Cycle 28's "fix regression" issue. Including state transition flow in smoke tests is the key.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -103,3 +110,8 @@ _Last updated: Cycle #28_
 - [ ] Verify all 6 boss phase transition diagrams (with beat sequences) correspond 1:1 with implementation CONFIG arrays
 - [ ] Verify sound chip DPS cap (200%)/synergy cap (150%) logic correctly operates in chip selection generation — cap-exceeded chip exclusion verification
 - [ ] Measure rhythm judgement audio latency impact in post-mortem — especially Perfect judgement perceived accuracy on mobile browsers
+- [ ] Verify metroidvania BFS ability-gating validation correctly covers all 5-ability combinations — reachability of hidden room (requires all abilities)
+- [ ] Verify 16-item smoke test gate (10 FAIL + 6 WARN) achieves APPROVED within 2 rounds — measure effect of full-flow regression tests (#7~#10)
+- [ ] Verify Dimension Shift (reality↔shadow) rendering maintains 60fps while correctly showing/hiding dual-dimension objects — performance on low-spec mobile
+- [ ] Verify permanent upgrades (Shadow/Rift/Echo trees) and per-run artifacts are balanced complementarily — check DPS cap exceeded at upgrade Lv5 + 3 epic artifacts
+- [ ] Verify virtual joystick + 4-button (A/B/C/S) mobile layout doesn't excessively consume screen space — readability at 320px viewport

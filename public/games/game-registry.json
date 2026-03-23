@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-23T02:09:45.911Z",
-  "totalGames": 27,
+  "lastUpdated": "2026-03-23T04:49:10.214Z",
+  "totalGames": 28,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -4853,6 +4853,144 @@
             "←→/Deslizar: Mover e desviar",
             "Toque: Atacar (mobile)",
             "ESC: Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "shadow-rift",
+      "title": "섀도우 리프트",
+      "description": "차원 균열을 탐험하며 능력을 해금하는 메트로이드바니아!",
+      "genre": ["action", "puzzle"],
+      "thumbnail": "/games/shadow-rift/assets/thumbnail.svg",
+      "path": "/games/shadow-rift/index.html",
+      "addedAt": "2026-03-23T04:49:10.214Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["액션", "퍼즐", "메트로이드바니아", "로그라이트", "플랫포머", "보스전"],
+      "controls": [
+        "←→/A,D: 이동",
+        "↑/W/Space: 점프",
+        "Shift: 대시",
+        "Z/J: 근접 공격",
+        "X/K: 원거리 공격",
+        "C/L: 특수 능력",
+        "터치: 가상 조이스틱 + 버튼"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Shadow Rift",
+          "description": "Explore dimensional rifts, unlock abilities in this metroidvania!",
+          "tags": ["action", "puzzle", "metroidvania", "roguelite", "platformer", "boss fight"],
+          "controls": [
+            "←→/A,D: Move",
+            "↑/W/Space: Jump",
+            "Shift: Dash",
+            "Z/J: Melee attack",
+            "X/K: Ranged attack",
+            "C/L: Special ability",
+            "Touch: Virtual joystick + buttons"
+          ]
+        },
+        "ja": {
+          "title": "シャドウリフト",
+          "description": "次元の裂け目を探索し、能力を解放するメトロイドヴァニア！",
+          "tags": ["アクション", "パズル", "メトロイドヴァニア", "ローグライト", "プラットフォーマー", "ボス戦"],
+          "controls": [
+            "←→/A,D: 移動",
+            "↑/W/Space: ジャンプ",
+            "Shift: ダッシュ",
+            "Z/J: 近接攻撃",
+            "X/K: 遠距離攻撃",
+            "C/L: 特殊能力",
+            "タッチ: 仮想ジョイスティック＋ボタン"
+          ]
+        },
+        "zh-CN": {
+          "title": "暗影裂隙",
+          "description": "探索次元裂隙，解锁能力的银河恶魔城！",
+          "tags": ["动作", "解谜", "银河恶魔城", "肉鸽", "平台跳跃", "Boss战"],
+          "controls": [
+            "←→/A,D: 移动",
+            "↑/W/Space: 跳跃",
+            "Shift: 冲刺",
+            "Z/J: 近战攻击",
+            "X/K: 远程攻击",
+            "C/L: 特殊能力",
+            "触屏: 虚拟摇杆+按钮"
+          ]
+        },
+        "zh-TW": {
+          "title": "暗影裂隙",
+          "description": "探索次元裂隙，解鎖能力的銀河惡魔城！",
+          "tags": ["動作", "解謎", "銀河惡魔城", "肉鴿", "平台跳躍", "Boss戰"],
+          "controls": [
+            "←→/A,D: 移動",
+            "↑/W/Space: 跳躍",
+            "Shift: 衝刺",
+            "Z/J: 近戰攻擊",
+            "X/K: 遠程攻擊",
+            "C/L: 特殊能力",
+            "觸控: 虛擬搖桿+按鈕"
+          ]
+        },
+        "es": {
+          "title": "Grieta de Sombras",
+          "description": "¡Explora grietas dimensionales y desbloquea habilidades en este metroidvania!",
+          "tags": ["acción", "puzzle", "metroidvania", "roguelite", "plataformas", "jefe"],
+          "controls": [
+            "←→/A,D: Mover",
+            "↑/W/Space: Saltar",
+            "Shift: Dash",
+            "Z/J: Ataque cuerpo a cuerpo",
+            "X/K: Ataque a distancia",
+            "C/L: Habilidad especial",
+            "Táctil: Joystick virtual + botones"
+          ]
+        },
+        "fr": {
+          "title": "Faille de l'Ombre",
+          "description": "Explorez les failles dimensionnelles et débloquez des pouvoirs dans ce metroidvania !",
+          "tags": ["action", "puzzle", "metroidvania", "roguelite", "plateforme", "boss"],
+          "controls": [
+            "←→/A,D : Se déplacer",
+            "↑/W/Space : Sauter",
+            "Shift : Dash",
+            "Z/J : Attaque de mêlée",
+            "X/K : Attaque à distance",
+            "C/L : Pouvoir spécial",
+            "Tactile : Joystick virtuel + boutons"
+          ]
+        },
+        "de": {
+          "title": "Schattenriss",
+          "description": "Erkunde dimensionale Risse und schalte Fähigkeiten frei in diesem Metroidvania!",
+          "tags": ["Action", "Puzzle", "Metroidvania", "Roguelite", "Plattformer", "Bosskampf"],
+          "controls": [
+            "←→/A,D: Bewegen",
+            "↑/W/Space: Springen",
+            "Shift: Dash",
+            "Z/J: Nahkampf",
+            "X/K: Fernkampf",
+            "C/L: Spezialfähigkeit",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
+        },
+        "pt": {
+          "title": "Fenda Sombria",
+          "description": "Explore fendas dimensionais e desbloqueie habilidades neste metroidvania!",
+          "tags": ["ação", "puzzle", "metroidvania", "roguelite", "plataforma", "chefe"],
+          "controls": [
+            "←→/A,D: Mover",
+            "↑/W/Space: Pular",
+            "Shift: Dash",
+            "Z/J: Ataque corpo a corpo",
+            "X/K: Ataque à distância",
+            "C/L: Habilidade especial",
+            "Toque: Joystick virtual + botões"
           ]
         }
       }
