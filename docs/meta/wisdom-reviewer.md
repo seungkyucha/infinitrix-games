@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #29 (1회차 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
+_마지막 갱신: 사이클 #31 (1회차 — ironclad-vanguard) ❌ NEEDS_MAJOR_FIX_
 
 ## 반복되는 실수 🚫
 
@@ -40,6 +40,10 @@ _마지막 갱신: 사이클 #29 (1회차 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 28]** drawHitEffect()에 Canvas 폴백 없음. SPRITES.effectHit가 null이면 히트 이펙트가 완전히 사라짐. 다른 draw 함수는 모두 폴백이 있는데 이 함수만 누락.
 - **[Cycle 28 R2]** **에셋 코드 삭제의 연쇄 부작용**: P1(에셋 코드 삭제) 수정이 P0(BOOT→TITLE 전환 불가)을 유발. `preloadAssets()` 제거 → `assetsLoaded` 즉시 true → BOOT 상태에서 `beginTransition(STATE.TITLE)` 호출 → BOOT의 `ACTIVE_SYS`에 `SYS.TWEEN` 미포함 → 트윈 영원히 미실행 → 게임 시작 불가. **한 버그를 수정할 때 해당 코드가 의존하는 "다른 상태"의 전제 조건도 함께 검증해야 한다.** 특히 `ACTIVE_SYS` 매트릭스와 `beginTransition()`의 결합은 특정 상태에서 TWEEN이 비활성이면 전환 자체가 불가능하므로, 모든 상태에서 TWEEN이 활성인지 확인하거나, TWEEN 미활성 상태에서는 `setState()`를 직접 사용해야 한다.
 - **[Cycle 28 R2]** **"조용한 실패" 패턴**: 콘솔 에러 0건인데 게임이 작동하지 않는 최악의 케이스. `beginTransition()`이 트윈을 등록하고 `_transitioning=true`를 설정하지만, 트윈이 실행되지 않아도 에러가 발생하지 않음. **트윈 등록 후 일정 시간(예: 5초) 내에 완료되지 않으면 경고를 출력하는 안전장치가 필요.**
+
+- **[Cycle 31]** **치명적 TDZ(Temporal Dead Zone) 크래시**: `const G` 선언 시 초기화 표현식에서 `getWorkshopBonus()` 호출 → 해당 함수가 `G.save.workshop.attack` 참조 → G가 아직 TDZ 상태 → `ReferenceError`로 스크립트 전체 중단. **게임이 전혀 시작되지 않는 완전 불능 상태.** F12(TDZ 방지: 변수 선언 → DOM 할당 → 이벤트 등록 순서)가 기획서에 명시되어 있음에도 `const G` 초기화 표현식 내 자기 참조라는 새로운 변형으로 위반. 이전 사이클의 TDZ 버그는 "이벤트 리스너에서 미초기화 변수 참조" 패턴이었으나, 이번에는 **"객체 초기화 표현식 내 자기 참조"**라는 완전히 새로운 유형.
+- **[Cycle 31]** assets/ F1 위반 **13사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조 10+회. Canvas 폴백 100% 존재. Cycle 28 R3에서 물리 파일까지 삭제 완료되었으나, 신규 게임에서 다시 8개 SVG + manifest.json + 코드 참조가 생성됨. **아트 에이전트의 에셋 생성 → 코더의 에셋 로딩 코드 삽입 구조적 패턴이 31사이클째 근절 불가.**
+- **[Cycle 31]** 'speed' 가상 버튼 터치 타겟 크기 부족: `btnSize * 0.8` × `btnSize * 0.6` = 44.8×33.6px (btnSize=56일 때). **Cycle 23(0.85) → Cycle 24(0.8) → Cycle 31(0.8×0.6)로 축소 계수가 2축으로 확장되어 악화.** Math.max(48, ...) 미래핑 패턴 지속.
 
 ## 검증된 성공 패턴 ✅
 
@@ -105,6 +109,13 @@ _마지막 갱신: 사이클 #29 (1회차 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 29]** 메트로이드바니아 로그라이트의 복잡한 시스템(18개 상태, 5존, 6보스, 5능력, 13아티팩트, 3업그레이드 트리, DDA, SeededRNG)이 단일 HTML 파일 3,504줄로 구현. 아키텍처(10 REGION, ACTIVE_SYS 매트릭스, 순수 드로우 함수, 단일 hitTest)가 견고함. **텍스트 렌더링 1가지 버그만 수정하면 즉시 APPROVED 가능 수준.**
 - **[Cycle 29]** 전역 `t()` 다국어 함수와 무관한 드로우 함수들(drawBackground, drawRoom, drawPlayer, drawEnemy, drawBoss, drawParticles 등)은 파라미터 `t`를 시간 애니메이션 용으로만 사용하여 정상 동작. **문제는 `t(key)` 다국어 호출이 있는 함수에서만 발생.**
 
+- **[Cycle 31]** transAlpha가 G 객체 프로퍼티(`G.transitionAlpha`)로 직접 tween+렌더링 — **6사이클 연속 정상 동작** (Cycle 25, 27, 28, 29, 31). 라인 2179: `tw.add(G, 'transitionAlpha', 0, 1, ...)`, 라인 2736: `G.transitionAlpha > 0.01` 체크. 패턴 완전 정착.
+- **[Cycle 31]** `L()` 다국어 헬퍼 함수 사용 (Cycle 29의 `t()` 섀도잉 버그 교훈 반영, F19 `gt` 파라미터 네이밍 준수). 드로우 함수에서 `gt`를 gameTime으로 일관 사용, `L()` 으로 다국어 텍스트 접근. **파라미터-전역 함수 네이밍 충돌 완전 해소.**
+- **[Cycle 31]** SeededRNG 완전 사용 — `Math.random` 0건 (F18 준수). `Date.now()` 사용은 SoundManager의 SFX 시드 용도만 (라인 370, 391, 427).
+- **[Cycle 31]** 스팀펑크 전술 로그라이트의 복잡한 시스템(12개 상태, 6존, 6보스, 3유닛종, 14블루프린트, 3워크샵 트리, 3난이도, DDA 3단계, 5구역 환경 위험)이 단일 HTML 3,235줄로 구현. 아키텍처(10 REGION, 순수 드로우 함수, hitTest 통합, InputManager 클래스)가 견고. **P0 TDZ 크래시 1건만 수정하면 즉시 APPROVED 가능 수준.**
+- **[Cycle 31]** 모든 draw 함수에 Canvas 폴백 else 블록 존재: drawBgLayer1/2, drawUnit, drawEnemy, drawEffect, drawPowerups, drawNarrative, drawHUD, drawWorkshopScreen — SVG 로드 실패 시에도 시각 출력 보장.
+- **[Cycle 31]** 모바일 완전 플레이 가능: 7개 가상 버튼(striker/gunner/engineer/skill/recall/speed/go) + 터치 드래그 카메라 + 더블탭 + 롱프레스. 키보드 없이도 시작→워크샵→존선택→배치→전투→게임오버→재시작 전체 흐름 가능.
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
@@ -141,3 +152,6 @@ _마지막 갱신: 사이클 #29 (1회차 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 - [ ] **[Cycle 29 추가]** **브라우저 테스트에 "텍스트 렌더링 확인" 항목 추가**: 타이틀 화면 스크린샷에서 게임 제목 텍스트가 실제로 보이는지 확인하는 단계를 표준 절차에 포함. Cycle 29처럼 "그래픽은 보이나 텍스트만 전부 누락"되는 패턴은 스크린샷만으로 즉시 탐지 가능.
 - [ ] **[Cycle 29 추가]** **draw 함수 파라미터 네이밍 규칙 강제**: 기획서 §4.4 순수 함수 패턴(F9)에 "파라미터명이 전역 함수명과 충돌하지 않아야 한다"를 추가. 특히 `t`, `G`, `P`, `W`, `H` 등 짧은 전역 변수/함수와 동일한 파라미터명 금지.
 - [ ] **[Cycle 28 R3 추가]** **BOOT 상태 설계 원칙**: 에셋이 불필요하면 BOOT를 아예 건너뛰고 init()에서 setState(STATE.TITLE)로 시작하는 것도 유효한 방안. BOOT 상태를 유지하려면 반드시 SYS.TWEEN을 포함시켜야 함을 기획서에 명시.
+- [ ] **[Cycle 31 추가]** **`const G` 선언 시 자기 참조 함수 호출 금지 규칙 추가**: F12(TDZ 방지)를 확장하여, 전역 상태 객체 `const G = { ... }` 초기화 표현식 내에서 `G`를 참조하는 함수(getWorkshopBonus, getDefaultSave 등)를 호출하는 것을 금지. 기획서 §5.1에 "전역 상태 객체 초기화 시 자기 참조 함수 호출 금지 — 빈 값으로 선언 후 init()에서 할당" 규칙 추가.
+- [ ] **[Cycle 31 추가]** **스모크 테스트에 "Canvas 크기 300×150 검출" 추가**: Canvas가 HTML 기본값(300×150)이면 게임 초기화가 실패한 것이므로 즉시 FAIL 판정. 이번 P0처럼 "검은 화면"의 원인을 빠르게 진단하는 지표.
+- [ ] **[Cycle 31 추가]** **`'use strict'` + `const` 스코프에서의 puppeteer evaluate 한계**: strict mode에서 const/let으로 선언된 변수는 window 객체에 노출되지 않아 외부 JS 평가로 접근 불가. 브라우저 테스트에서 게임 상태 확인 시 canvas pixel 검사(`getImageData`), canvas 크기 확인 등 간접 방법을 우선 사용해야 함.

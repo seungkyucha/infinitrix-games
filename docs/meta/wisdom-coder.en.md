@@ -1,7 +1,10 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #30 celestial-drift_
+_Last updated: Cycle #31 ironclad-vanguard_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 31]** In a real-time tactical action roguelite (3,200+ lines), environment hazard systems (5 zone-specific mechanics) were separated into dedicated functions (updateEnvironmentHazards/drawEnvironmentHazards), but environment state variables (envTimer, envTraps, envLavaSpots) must be explicitly initialized in initRun() — otherwise previous run's traps persist on restart. **All per-run state variables must be reset in initRun().** Especially procedural generation caches: null-initialize + lazy init pattern.
+- **[Cycle 31]** User instruction > spec principle applied for the 5th time (Cycle 24/27/29/30/31). When spec F1/F77 (no assets/) conflicts with user instruction (preload assets required), follow user instruction and conditionally exclude "assets/ not found" smoke test item. **This pattern is now fully established — no further re-confirmation needed.**
+- **[Cycle 31]** Smoke test grep false positives from forbidden patterns in comments ("setTimeout replacement", "Math.random 0 calls") occurred for 4 consecutive cycles (Cycle 28-31). **Most practical solution: confirm "found in comments only" → PASS.**
 - **[Cycle 30]** When spec says "no assets/ directory" (F77) but user instructions require preloadAssets(), the user instruction vs spec priority must be re-confirmed every time. 4th occurrence (Cycle 24/27/29/30). **Fix user instruction > spec as first item in pre-coding checklist.**
 - **[Cycle 30]** In 3,000+ line single files, complex render functions like drawGameWorld() switching between world/screen coordinates via ctx.translate can confuse post-effects (zone environment effects). **Annotate coordinate system per ctx.save/restore block** (// SCREEN COORDS / // WORLD COORDS).
 - **[Cycle 30]** Template literal color values (e.g., `'#FF44FF'`) missing quotes inside function call arguments cause syntax errors. Always wrap inline color strings in quotes — 1 case found and fixed in first validation.
@@ -44,6 +47,9 @@ _Last updated: Cycle #30 celestial-drift_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 31]** Steampunk real-time tactical action roguelite (Ironclad Vanguard) implements 8 designer SVG assets + 5 zone-specific environment hazard systems + powerup system + DDA dynamic balance in 3,235-line single file. 10 REGION structure maintained with EXTRA region for environment mechanics, weather effects, and camera choreography.
+- **[Cycle 31]** Boss phase transition fireTimer reset pattern (Cycle 30 lesson) placed inside tw.delay onComplete, preventing post-transition burst fire. Combined with phaseTransitioning guard — 3 consecutive cycles of stable boss AI.
+- **[Cycle 31]** Environment hazards separated into zone-independent functions with lazy init pattern (envTraps=null → created on first update). Coordinate system annotations (`// screen coords` / `// world coords`) applied at every ctx.save/restore block.
 - **[Cycle 30]** Space survival action roguelite (Celestial Drift) preloads 8 designer SVG assets via preloadAssets() with Canvas fallback in every drawXxx() function. Game works fully without assets — dual rendering stability achieved.
 - **[Cycle 30]** 17-state machine (BOOT~SETTINGS) with STATE_PRIORITY + ACTIVE_SYSTEMS matrix (17×9). Tween active in all states, PAUSE resume via setState() instant transition (Cycle 28 lesson). 14 consecutive cycles of matrix success.
 - **[Cycle 30]** 5 zones + hidden = 16 sectors, 6 bosses, 14 artifacts, 3 upgrade trees, DDA 3-level + 3 difficulty presets in 3,043-line single file. 10 REGION code structure maintained.
@@ -124,6 +130,10 @@ _Last updated: Cycle #30 celestial-drift_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **[Cycle 31→32] Environment hazard automated testing**: Verify 5 zone-specific hazard values (DPS, duration, cycle) match spec via headless test with manipulated dt.
+- **[Cycle 31→32] Powerup balance pre-verification**: Simulate powerup drop rate (15%) and effects (steam+30, HP 50%, ATK×1.3) in extreme builds. Watch for uncapped damage powerup stacking.
+- **[Cycle 31→32] User instruction > spec conflict pattern fully automated**: 5 consecutive cycles, same pattern. Automate "manifest.json exists → preloadAssets used → conditional smoke test" flow in pre-coding checklist.
+- **[Cycle 31→32] Boss AI full data-driven conversion**: executeBossPattern() still uses switch+random hardcoding. Convert to per-boss [{type,count,speed,spread,cd}] pattern arrays.
 - **Metroidvania ability gating BFS validation**: Current getAccessibleRooms() only checks reqAbility. Add BFS-based actual path verification to prevent deadlocks from ability unlock order.
 - **Boss attack pattern full data-driven**: Current boss AI is hardcoded in switch(zone) branches. Convert to per-boss pattern arrays [{type:'charge',dir,speed,dmg,cd}, {type:'projectile',count,spread}] for easy boss addition/modification.
 - **CCD for high-speed movement**: Dash etc. can overshoot resolveEntityTiles(). Implement rayCast or previous-position restoration (P.prevX/prevY) for accurate high-velocity collision.

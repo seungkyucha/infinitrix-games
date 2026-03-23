@@ -1,5 +1,5 @@
 # InfiniTriX Platform Wisdom (Accumulated Learnings)
-_Last updated: Cycle #29 shadow-rift APPROVED — Metroidvania roguelite in pure Canvas 3,510 lines. 5-zone × 17-room ability-gated nonlinear exploration, 13 artifact build diversity, 6 bosses (incl. hidden), SeededRNG procedural room variation, DDA 3-tier + 3 difficulty levels, `t`→`gt` parameter shadowing P0 fix, assets/ references fully removed (13 consecutive cycles F1 compliance Cycle 18–29), setTimeout 0 for 18 consecutive cycles, 10 REGION code structure maintained, action+puzzle genre combination strengthened_
+_Last updated: Cycle #31 ironclad-vanguard APPROVED — Steampunk real-time tactical action roguelite in pure Canvas. 3-type clockwork units (Striker/Gunner/Engineer) real-time command, 5 zones × 3 stages + hidden = 16 stages, 6 bosses, 14 blueprints, workshop 3-tree permanent upgrades, zone-specific environmental hazards (with explicit values), ESCAPE_ALLOWED 12-state full coverage, TDZ prevention via empty object initialization, assets/ F1 compliance (15 consecutive cycles Cycle 18–31), setTimeout 0 for 20 consecutive cycles, 10 REGION code structure maintained, action+strategy genre combination strengthened_
 
 ## Patterns to Avoid
 - **[Cycle 1]** When copying assets from a generic template, leaving unused assets behind causes unnecessary network requests (3 leftover: player.svg, enemy.svg, etc.)
@@ -70,6 +70,9 @@ _Last updated: Cycle #29 shadow-rift APPROVED — Metroidvania roguelite in pure
 - **[Cycle 29]** **assets/ reference code inertial remnants (P1)** — assets/ directory was not created, but ASSET_MAP/preloadAssets()/SPRITES reference code remained. Despite 13 consecutive cycles of no assets/ directory, **code-level inertial remnants** appeared as a new form. Add **ASSET_MAP/SPRITES/preloadAssets string grep 0 hits** to smoke test beyond just directory checks.
 - **[Cycle 29]** **5 zones × 6 bosses × 13 artifacts × 3 upgrade trees balance unverified** — Metroidvania roguelite's combination space is among the largest ever, but only numerical design without DPS/EHP simulation. **No way to verify extreme build (dash-specialized + all attack artifacts) clearability.** Balance simulator development still not started at cycle 30.
 - **[Cycle 29]** **No dedicated mobile ranged attack button (P3)** — Ranged attacks via double-tap lack intuitive mobile UX. **Finalize action game mobile button sets during early planning with keyboard/mouse/touch 3-channel coverage matrix in specs.**
+- **[Cycle 31]** **P0 TDZ crash persisted until 3rd review round** — Simple fix of `workshopBonuses: {}` empty object initialization took 3 rounds. Root cause: failure to structurally identify G object declaration-time TDZ issue. **Include G object initialization order verification in pre-review auto gate.**
+- **[Cycle 31]** **3 unit types × 14 blueprints × 3-tree upgrades × 5 zone hazards balance unverified** — Tactical action roguelite's combination space is very wide but code review alone cannot detect dominant strategies. **31 cycles of data reconfirm that strategy genre balance verification is structurally impossible without DPS/EHP simulator.**
+- **[Cycle 31]** **Shared engine not extracted — 31 cycles running** — TweenManager, ObjectPool, SoundManager, InputManager still copy-pasted per game. REGION export function lists specified but actual extraction not started. **31-cycle delay is absolutely unjustifiable.**
 
 ## Verified Success Patterns
 - **[Cycle 1]** Single HTML file + Canvas API + Vanilla JS combination is excellent for both loading speed and iframe compatibility. Verified as first game architecture
@@ -223,6 +226,12 @@ _Last updated: Cycle #29 shadow-rift APPROVED — Metroidvania roguelite in pure
 - **[Cycle 27]** **5-type match detection priority (5→T→L→4→3) + recursive cascade + isProcessing dual guard verified as match-3 algorithm standard.** 0 callback collisions.
 - **[Cycle 27]** **6-element affinity matrix + 18 spells + DDA triple strategy axis secures match-3 RPG depth.** Affinity systems validated across 4 genres (Cycle 18/19/26/27).
 - **[Cycle 27]** **Visual quality — 5 enemy types + boss decorations + region effects + parallax + boss zoom via 0-asset Canvas procedural drawing.** RPG-level visual diversity confirmed achievable procedurally.
+- **[Cycle 31]** **ESCAPE_ALLOWED 12-state + RESTART_ALLOWED dual dictionary fully applied.** Allowed-transition lists for all 12 game states + terminal state escape whitelist cleanly separated. Combined with beginTransition() guard logic for 0 race conditions. Most complete application of the ESCAPE_ALLOWED pattern.
+- **[Cycle 31]** **P0–P3 all fixes with 0 regression bugs + 0 new bugs.** TDZ crash, assets/ violation, touch target, state transition safety — 4 issues fixed in round 3 with no regression on existing functionality. Full regression test (Title→Workshop→Zone→Deploy→Combat) all PASS.
+- **[Cycle 31]** **assets/ F1 compliance 15 consecutive cycles (Cycle 18–31).** ASSET_MAP/SPRITES/preloadAssets code fully removed, only thumbnail.svg remains. 0 external CDN, 0 Math.random (full SeededRNG). setTimeout 0 for 20 consecutive cycles.
+- **[Cycle 31]** **Steampunk visuals achieved with 0-asset pure Canvas drawing.** Rotating gear animations, city silhouettes, CRT vignette effects, zone-specific environmental effects — Canvas API code drawing expressiveness confirmed sufficient for steampunk genre.
+- **[Cycle 31]** **Code quality checklist 17 items full PASS** — ObjectPool, SeededRNG, hitTest integration, bilingual (LANG ko/en), 10 REGION structure, TDZ prevention — all items passed. First cycle reflecting F81–F85 new feedback items.
+- **[Cycle 31]** **MVP Phase strategy continued success.** Phase 1 (core loop: deploy→combat→resource→upgrade→boss, zones 1–2 + 2 bosses) → Phase 2 (zones 3–5 + 3 bosses + hidden boss + full narrative) progressive expansion. "Phase 1 alone is complete game" principle applied successfully to tactical action roguelite genre.
 
 ## Accumulated Technical Improvements
 - **[Cycle 1]** Block movement tween animation not implemented — need lerp + easing based reusable tween system, not setTimeout locking → **[Resolved in Cycle 2]**
@@ -306,6 +315,14 @@ _Last updated: Cycle #29 shadow-rift APPROVED — Metroidvania roguelite in pure
 - **[Cycle 27]** assets/ directory with 8 illegal SVGs in round 1 (P0) → deleted in round 2. **27-cycle data conclusively confirms "assets/ round-1 recurrence is permanent without CI enforcement."**
 - **[Cycle 27]** Shared engine module extraction **delayed 27 cycles.** 4,238-line single file (near all-time record). **Must begin before cycle 28 — further delay exceeds technical debt threshold.**
 - **[Cycle 27]** hitTest() single function unification (F60) — structurally resolved the pattern of scattered per-function touch/click detection causing coordinate sync issues. **Register hitTest(x, y, rect) as shared/engine.js extraction target for Canvas UI hit detection standard.**
+
+### Cycle 31 Technical Improvements
+
+- **[Cycle 31]** **workshopBonuses TDZ prevention via empty object initialization** — G declaration uses `workshopBonuses: {}` for safe initialization, then populated via `getWorkshopBonus()` in init()/onStateEnter. Structurally prevents TDZ when function calls precede variable declarations. **Standardize 2-stage initialization (empty value first → populate at init time) for complex game state objects with function-reference fields.**
+- **[Cycle 31]** **ESCAPE_ALLOWED + RESTART_ALLOWED dual dictionary + beginTransition() guard** — 12-state allowed transition lists + terminal state escape whitelist separated to maximize state transition safety. Most complete application of RESTART_ALLOWED pattern introduced in Cycle 23.
+- **[Cycle 31]** **ASSET_MAP/SPRITES/preloadAssets code fully removed + assets/ directory cleaned** — P1 fix simultaneously cleaned code references and file system, preventing "code deleted but files remain" pattern. Achieved minimal state with only thumbnail.svg.
+- **[Cycle 31]** **speed button touch target `Math.max(btnSize, 48)` enforcement** — Consistent F11 rule application. Confirmed pattern for structurally guaranteeing 48px minimum target on all virtual buttons.
+- **[Cycle 31]** Shared engine module extraction **delayed 31 cycles.** 10 REGION export function lists documented but extraction not started. **31-cycle delay absolutely unjustifiable.**
 
 ## Genre-Specific Know-how
 - **Puzzle [Cycle 1]**: 5×5 grid + slide merge mechanics have high fun-to-implementation-difficulty ratio. Key is the visual reward of "merge to evolve." `merged[][]` array preventing duplicate merges per turn is an essential technique for 2048-style games. Dynamic difficulty (score-based block distribution change) creates natural tension escalation without explicit difficulty selection.

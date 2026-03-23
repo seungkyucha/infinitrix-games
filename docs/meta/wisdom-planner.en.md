@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #30_
+_Last updated: Cycle #31_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -29,6 +29,9 @@ _Last updated: Cycle #30_
 - **[Cycle 30]** In space survival games where environmental hazards differ per zone, **failing to specify concrete hazard values (damage, duration, cooldown) and countermeasures in the spec** may lead to implementation as mere decoration or excessive penalty. **§7.3 must include a per-zone environmental hazard table (hazard/effect/counter).**
 - **[Cycle 30]** When confirming mobile button sets in the spec, **failing to visualize button placement for small displays (≤400px) as ASCII layout** causes implementers to improvise solutions for button overlap or joystick interference. **§3.3 must specify layouts for both small and large displays.**
 - **[Cycle 30]** In 3-weapon switching systems, **failing to specify energy consumption balance in the spec** may create a dominant strategy of infinite best-weapon usage. **Specify per-weapon energy cost/damage/fire rate numerically in §2.3 and include in extreme build verification (Appendix A).**
+- **[Cycle 31]** In real-time tactical games, **if DEPLOY and COMBAT phase Input modes are identical**, unit placement inputs may misfire during combat. **Sub-categorize the ACTIVE_SYSTEMS matrix Input column into deploy/combat, specifying allowed inputs per mode.** Applies Cycle 26's deploy/combat input separation lesson to RTS-like games.
+- **[Cycle 31]** In roguelites, if blueprints (per-run progression) and Workshop (permanent progression) **both strengthen the same axis (e.g., attack power), cap exceedance becomes frequent and balance collapses.** At planning stage, either separate the axes each system strengthens, or specify DPS cap (200%) and synergy cap (150%) with `applyBlueprint()` cap verification as a FAIL item in the code hygiene checklist.
+- **[Cycle 31]** With 3 unit types × 3 evolutions × 14 blueprints, theoretical build count explodes. **Without pre-verifying at least 3 extreme builds' boss clear times via formulas in Appendix A**, certain builds may kill bosses in 10 seconds or take over 120 seconds, creating imbalance.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -76,6 +79,9 @@ _Last updated: Cycle #30_
 - **[Cycle 30]** Confirming mobile button set in §3.3 as **virtual joystick + attack/skill/shield 4-button** layout with small display (≤400px) ASCII layout structurally resolves Cycle 29 P3 (no mobile ranged attack button).
 - **[Cycle 30]** Separating extreme build balance verification into **Appendix A** with 3 builds (firepower all-in/tank/exploration) pre-calculated via formulas provides concrete solution to Cycle 29's "no balance verification" issue. Pattern of proving each build's clearability via formulas.
 - **[Cycle 30]** Expanding smoke test gate to 18 items while adding gate #16 to detect ASSET_MAP/preloadAssets/SPRITES code "inertial inclusion." Final defense line for auto-detecting the assets/ reference issue repeated over 29 cycles at code level.
+- **[Cycle 31]** After Cycle 30 achieved "all 10 genre combinations have at least 2 games," transitioning to a **3-axis evaluation framework (theme diversity + market trend + premium suitability)** opened the "steampunk real-time tactics" theme+genre space. Data-driven decision-making evolved from quantitative (genre count) to qualitative (theme/mechanic) stage.
+- **[Cycle 31]** Separating "previous cycle's next-cycle suggestions" reflection into a dedicated table in §0, with "reflection status (✅/⚠️)" and "applied section" columns, enables clear tracking of how postmortem suggestions and regrets are each addressed in the spec.
+- **[Cycle 31]** Including a **per-zone environmental mechanics table (hazard/effect/values/counter)** in §7.3 structurally resolves Cycle 30's "environment hazard values unspecified" issue. For environments to be gameplay-modifying elements rather than decoration, concrete values + countermeasures are essential.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -117,6 +123,12 @@ _Last updated: Cycle #30_
 - [ ] Verify 10 REGION dependency directions are maintained in code — R2+R3 depend only on R1, zero circular references
 - [ ] Track match-3 DDA 3-stage fallback (auto-hint/boss ATK reduction/enemy HP erosion) trigger frequency and play experience improvement
 - [ ] Verify 14-item smoke test gate (Cycle 28) FAIL/WARN 2-tier separation improves first-review pass rate — target: APPROVED within 2 rounds
+- [ ] Verify 3-axis evaluation framework (theme diversity + market trend + premium suitability) leads to better game selection than genre-gap-based approach
+- [ ] Verify DEPLOY/COMBAT phase Input mode separation actually prevents input misfires in RTS-like unit placement game
+- [ ] Verify blueprint DPS cap (200%) + synergy cap (150%) adequately limits extreme builds while maintaining build diversity
+- [ ] Verify environmental mechanics table (§7.3) values are "neither decoration nor excessive" appropriate threats in actual gameplay
+- [ ] Verify 10 REGION export function lists are actually useful units for future shared engine extraction
+- [ ] Verify small display (320px) ASCII layout works without button overlap on actual devices
 - [ ] Verify BPM single update path principle (zero G.bpm direct assignments) is maintained in implementation — grep "G.bpm =" verification
 - [ ] Verify Web Audio API `audioCtx.currentTime`-based beat judgement remains accurate during frame drops — test judgement accuracy on low-spec devices
 - [ ] Verify all 6 boss phase transition diagrams (with beat sequences) correspond 1:1 with implementation CONFIG arrays

@@ -1,7 +1,10 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #30 celestial-drift_
+_마지막 갱신: 사이클 #31 ironclad-vanguard_
 
 ## 반복되는 실수 🚫
+- **[Cycle 31]** 실시간 전술 액션 로그라이트(3,200줄+)에서 환경 위험 시스템(5구역별 고유 역학)을 별도 함수(updateEnvironmentHazards/drawEnvironmentHazards)로 분리했으나, 환경 상태 변수(envTimer, envTraps, envLavaSpots 등)를 initRun()에서 초기화하지 않으면 재시작 시 이전 런의 트랩이 잔존한다. **모든 런별 상태 변수는 initRun() 내에서 명시적으로 초기화해야 한다.** 특히 프로시저럴 생성 캐시(envTraps=null)는 null 초기화 후 lazy init 패턴으로.
+- **[Cycle 31]** 유저 지시 > 기획서 원칙이 5번째 적용(Cycle 24/27/29/30/31). 기획서 F1/F77(assets/ 금지, preloadAssets 금지)와 유저 지시(에셋 프리로드 필수)가 충돌 시, 유저 지시를 따르되 스모크 테스트의 "assets/ 미존재" 항목은 조건부 제외. **이 패턴은 이제 완전히 정착됨 — 더 이상 재확인 불필요.**
+- **[Cycle 31]** 스모크 테스트에서 주석 내 금지 패턴("setTimeout 대체", "Math.random 0건" 등)이 grep false positive를 유발하는 문제가 4사이클 연속 발생(Cycle 28-31). `grep -v '^\s*//'` 파이프라인을 표준화해도 인라인 주석(코드 뒤 //)은 걸러지지 않는다. **정규식에서 문자열 리터럴과 주석을 모두 제외하는 파서가 필요하지만, 현실적으로 "주석에서만 발견" 확인 후 PASS 처리가 가장 효율적.**
 - **[Cycle 30]** 우주 서바이벌 액션 로그라이트에서 기획서가 "assets/ 디렉토리 절대 생성 금지"(F77)를 명시하면서 유저 지시가 preloadAssets 사용을 요구하는 경우, 기획서와 유저 지시의 우선순위를 매번 재확인해야 한다. Cycle 24/27/29에 이어 4번째 발생. **유저 지시 > 기획서** 원칙을 코딩 시작 전 체크리스트 첫 항목으로 고정할 것.
 - **[Cycle 30]** 3,000줄 이상 단일 파일에서 drawGameWorld()처럼 복합 렌더링 함수가 월드 좌표/화면 좌표를 ctx.translate로 전환할 때, 포스트 이펙트(존별 환경 이펙트)가 월드 좌표에서 렌더링되는지 화면 좌표에서 렌더링되는지 혼동하기 쉽다. **ctx.save/restore 블록별로 좌표계를 주석으로 명시**할 것 (// 화면 좌표 / // 월드 좌표).
 - **[Cycle 30]** 템플릿 리터럴 내에서 따옴표와 `#`이 혼합된 색상값(예: `'#FF44FF'`)을 전달할 때, 따옴표 누락으로 syntax error가 발생하기 쉽다. 특히 함수 호출 인자 내 inline 색상은 반드시 따옴표로 감쌀 것 — 첫 검증에서 1건 발견 즉시 수정.
@@ -44,6 +47,10 @@ _마지막 갱신: 사이클 #30 celestial-drift_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 31]** 스팀펑크 실시간 전술 액션 로그라이트(철갑 선봉대)에서 디자이너 SVG 에셋 8종 + 5구역별 환경 위험 시스템 + 파워업 시스템 + DDA 동적 밸런스를 3,235줄 단일 파일로 구현. 10 REGION 구조를 유지하면서 EXTRA 영역(환경 역학, 날씨 효과, 카메라 연출)을 추가하여 코드 확장성 확보.
+- **[Cycle 31]** 보스 페이즈 전환 시 fireTimer 리셋 패턴(Cycle 30 교훈)을 tw.delay onComplete 내부에 배치하여 전환 완료 직후 즉시 연사 문제를 사전 차단. phaseTransitioning 가드와 함께 적용하여 3사이클 연속 보스 AI 안정성 확보.
+- **[Cycle 31]** 환경 위험을 구역별 독립 함수(updateEnvironmentHazards/drawEnvironmentHazards)로 분리하고, 각 구역의 환경 상태를 G 객체의 별도 프로퍼티로 관리. lazy init 패턴(envTraps=null → 첫 업데이트에서 생성)으로 불필요한 초기 비용 회피.
+- **[Cycle 31]** 좌표계 주석 표준화 적용: ctx.save/restore 블록마다 `// 화면 좌표` / `// 월드 좌표` 주석을 배치하여 3,000줄+ 코드에서의 좌표 혼동 방지(Cycle 30 교훈 직접 적용).
 - **[Cycle 30]** 우주 서바이벌 액션 로그라이트(천체 표류)에서 디자이너 SVG 에셋 8종(player/enemy/bgLayer1/bgLayer2/uiHeart/uiStar/powerup/effectHit)을 preloadAssets()로 프리로드하고, 모든 drawXxx() 함수에서 SPRITES[key] ? drawImage : Canvas 폴백 이중 구조를 구현. 에셋 없이도 게임이 완전히 작동하는 안정성 확보.
 - **[Cycle 30]** 17상태 머신(BOOT~SETTINGS)에 STATE_PRIORITY 체계 + ACTIVE_SYSTEMS 매트릭스(17×9)를 적용하여, Tween은 모든 상태에서 활성, PAUSE 복귀는 setState() 즉시 전환(Cycle 28 교훈 적용). 14사이클 연속 매트릭스 패턴 성공.
 - **[Cycle 30]** 5존+히든 = 16섹터, 6체 보스, 14종 아티팩트, 3트리 영구 업그레이드, DDA 3단계 + 3단 난이도를 3,043줄 단일 파일로 구현. 10 REGION 코드 구조(CONFIG→ENGINE→ENTITY→DRAW→COMBAT→SECTOR→ROGUE→STATE→SAVE→MAIN) 유지.
@@ -126,6 +133,10 @@ _마지막 갱신: 사이클 #30 celestial-drift_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **[Cycle 31→32] 환경 위험 시스템 테스트 자동화**: 5구역별 환경 위험(증기/톱니/용암/시간왜곡/에테르부패)의 수치가 기획서와 정확히 일치하는지, headless 테스트로 dt를 조작하여 DPS·지속시간·주기를 자동 검증할 것.
+- **[Cycle 31→32] 파워업 밸런스 사전 검증**: 파워업 드롭률(15%)과 효과(스팀+30, HP 50%, 공격×1.3)가 극단 빌드에서 게임 밸런스를 깨뜨리는지 시뮬레이션. 특히 damage 파워업 스택이 캡 없이 누적되는 문제 주의.
+- **[Cycle 31→32] 유저 지시 > 기획서 충돌 패턴 완전 정착 확인**: 5사이클 연속 동일 패턴. 이제 코딩 시작 전 체크리스트에서 "에셋 manifest.json 존재 → preloadAssets 사용 → 스모크 테스트 조건부 적용" 흐름을 자동화할 것.
+- **[Cycle 31→32] 보스 AI 완전 데이터화**: Cycle 31에서 executeBossPattern()이 여전히 switch+random 조합으로 하드코딩. [{type,count,speed,spread,cd}] 보스별 패턴 배열로 전환하여 보스 추가/수정 시 코드 변경 최소화.
 - **[Cycle 30→31] 좌표계 명시 규칙 도입**: drawGameWorld() 내 ctx.save/restore 블록마다 `// [SCREEN COORDS]` / `// [WORLD COORDS]` 주석을 강제하여 포스트 이펙트 좌표 혼동 방지.
 - **[Cycle 30→31] 보스 AI 패턴 데이터화 완성**: Cycle 30에서 보스별 분기(switch zone)로 하드코딩한 공격 패턴을 [{type, count, speed, spread, cd}] 데이터 배열로 전환. 보스 6체가 동일 AI 엔진 + 데이터만 다른 구조 목표.
 - **[Cycle 30→31] 밸런스 시뮬레이터 CLI**: Cycle 30의 5존×6보스×14아티팩트×3업그레이드 트리 조합 공간을 headless Node.js 스크립트로 1,000런 시뮬레이션하여 DPS/EHP 분포와 극단 빌드를 자동 탐지.

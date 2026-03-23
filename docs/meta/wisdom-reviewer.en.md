@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #29 (Round 1 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
+_Last updated: Cycle #31 (Round 1 — ironclad-vanguard) ❌ NEEDS_MAJOR_FIX_
 
 ## Recurring Mistakes 🚫
 
@@ -34,6 +34,10 @@ _Last updated: Cycle #29 (Round 1 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 28]** drawHitEffect() has no Canvas fallback. SPRITES.effectHit null → no hit effect rendered. All other draw functions have fallbacks except this one.
 - **[Cycle 28 R2]** **Cascading side effect from asset code removal**: P1 fix (asset code removal) caused new P0 (BOOT→TITLE transition failure). `preloadAssets()` removed → `assetsLoaded` immediately true → `beginTransition(STATE.TITLE)` called during BOOT → BOOT's `ACTIVE_SYS` lacks `SYS.TWEEN` → tween never executes → game permanently stuck on loading screen. **When fixing one bug, must also verify assumptions of "other states" that depend on the changed code.** The ACTIVE_SYS matrix + beginTransition() coupling means if TWEEN is inactive in a state, transitions from that state are impossible — must either ensure TWEEN is active in all states or use `setState()` directly in TWEEN-inactive states.
 - **[Cycle 28 R2]** **"Silent failure" pattern**: Zero console errors yet game doesn't work — worst-case scenario. `beginTransition()` registers tween and sets `_transitioning=true`, but tween never executing produces no error. **Need safety mechanism: if tween hasn't completed within timeout (e.g., 5 seconds), log warning.**
+
+- **[Cycle 31]** **Critical TDZ (Temporal Dead Zone) crash**: `const G` declaration's initializer calls `getWorkshopBonus()` → function accesses `G.save.workshop.attack` → G still in TDZ → `ReferenceError` crashes entire script. **Game completely non-functional (black screen).** F12 (TDZ prevention) specified in spec but violated via new variant: **"self-reference within object initializer expression"** (previous TDZ bugs were "event listener accessing uninitialized variable").
+- **[Cycle 31]** assets/ F1 violation **13th consecutive recurrence (active references)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES references 10+ locations. Canvas fallback 100% present. Despite full deletion in Cycle 28 R3, new game regenerates 8 SVGs + manifest.json + code references. **Art agent → coder asset code insertion structural pattern unresolvable after 31 cycles.**
+- **[Cycle 31]** 'speed' virtual button touch target size insufficient: `btnSize * 0.8` × `btnSize * 0.6` = 44.8×33.6px. **Cycle 23 (0.85) → Cycle 24 (0.8) → Cycle 31 (0.8×0.6) — scaling factor now applied on 2 axes, worsening.** Math.max(48, ...) wrapping pattern still missing.
 
 ## Verified Success Patterns ✅
 
@@ -88,6 +92,13 @@ _Last updated: Cycle #29 (Round 1 — shadow-rift) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 29]** SeededRNG fully used — Math.random actual usage 0 instances (exists only in comments). F18 compliant.
 - **[Cycle 29]** Complex metroidvania roguelite systems (18 states, 5 zones, 6 bosses, 5 abilities, 13 artifacts, 3 upgrade trees, DDA, SeededRNG) implemented in single HTML file, 3,504 lines. Architecture (10 REGION, ACTIVE_SYS matrix, pure draw functions, single hitTest) is solid. **Fixing the single text rendering bug would make this immediately APPROVED-quality.**
 - **[Cycle 29]** Draw functions unrelated to global `t()` localization (drawBackground, drawRoom, drawPlayer, drawEnemy, drawBoss, drawParticles, etc.) use parameter `t` only for time-based animation and work correctly. **Problem occurs only in functions that call `t(key)` for localization.**
+
+- **[Cycle 31]** transAlpha as G object property directly tweened+rendered — **6th consecutive cycle working correctly** (Cycle 25, 27, 28, 29, 31). Line 2179: `tw.add(G, 'transitionAlpha', 0, 1, ...)`, line 2736: `G.transitionAlpha > 0.01` check. Pattern fully established.
+- **[Cycle 31]** `L()` i18n helper function (reflects Cycle 29's `t()` shadowing bug lesson, F19 `gt` parameter naming compliant). Draw functions consistently use `gt` for gameTime, `L()` for i18n text. **Parameter-global function naming collision fully resolved.**
+- **[Cycle 31]** SeededRNG fully used — `Math.random` 0 instances (F18 compliant). `Date.now()` only used in SoundManager SFX seeding (lines 370, 391, 427).
+- **[Cycle 31]** Complex steampunk tactical roguelite (12 states, 6 zones, 6 bosses, 3 unit types, 14 blueprints, 3 workshop trees, 3 difficulties, 3-level DDA, 5 zone hazards) in single HTML 3,235 lines. Architecture (10 REGION, pure draw functions, hitTest integration, InputManager class) is solid. **Fixing single P0 TDZ crash would make this immediately APPROVED-quality.**
+- **[Cycle 31]** All draw functions have Canvas fallback else blocks: drawBgLayer1/2, drawUnit, drawEnemy, drawEffect, drawPowerups, drawNarrative, drawHUD, drawWorkshopScreen — visual output guaranteed even on SVG load failure.
+- **[Cycle 31]** Full mobile playability: 7 virtual buttons (striker/gunner/engineer/skill/recall/speed/go) + touch drag camera + double-tap + long-press. All flows (title→workshop→zone→deploy→combat→gameover→restart) accessible without keyboard.
 
 ## Next Cycle Action Items 🎯
 

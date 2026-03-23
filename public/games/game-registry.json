@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-23T06:56:15.316Z",
-  "totalGames": 29,
+  "lastUpdated": "2026-03-23T09:34:08.908Z",
+  "totalGames": 30,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -5129,6 +5129,135 @@
             "Shift/X: Dash",
             "E: Escudo de energia",
             "Toque: Joystick virtual + botões"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ironclad-vanguard",
+      "title": "철갑 선봉대",
+      "description": "스팀펑크 도시를 탈환하는 실시간 전술 액션 로그라이트",
+      "genre": ["action", "strategy"],
+      "thumbnail": "/games/ironclad-vanguard/assets/thumbnail.svg",
+      "path": "/games/ironclad-vanguard/index.html",
+      "addedAt": "2026-03-23T09:34:08.908Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["스팀펑크", "전술", "로그라이트", "액션", "전략", "실시간"],
+      "controls": [
+        "WASD/방향키: 카메라 이동",
+        "1/2/3: 유닛 선택",
+        "좌클릭: 배치/선택",
+        "우클릭: 이동 명령",
+        "Q: 스킬, E: 집합/분산",
+        "터치: 드래그 스크롤 + 하단 버튼"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Ironclad Vanguard",
+          "description": "Reclaim a steampunk city in this real-time tactical action roguelite!",
+          "tags": ["steampunk", "tactics", "roguelite", "action", "strategy", "real-time"],
+          "controls": [
+            "WASD/Arrow Keys: Move camera",
+            "1/2/3: Select unit",
+            "Left Click: Deploy/Select",
+            "Right Click: Move command",
+            "Q: Skill, E: Rally/Scatter",
+            "Touch: Drag scroll + bottom buttons"
+          ]
+        },
+        "ja": {
+          "title": "鉄壁の先鋒隊",
+          "description": "スチームパンク都市を奪還するリアルタイム戦術アクションローグライト！",
+          "tags": ["スチームパンク", "戦術", "ローグライト", "アクション", "ストラテジー", "リアルタイム"],
+          "controls": [
+            "WASD/矢印キー: カメラ移動",
+            "1/2/3: ユニット選択",
+            "左クリック: 配置/選択",
+            "右クリック: 移動命令",
+            "Q: スキル, E: 集合/分散",
+            "タッチ: ドラッグスクロール + 下部ボタン"
+          ]
+        },
+        "zh-CN": {
+          "title": "铁甲先锋",
+          "description": "夺回蒸汽朋克城市的即时战术动作肉鸽游戏！",
+          "tags": ["蒸汽朋克", "战术", "肉鸽", "动作", "策略", "即时"],
+          "controls": [
+            "WASD/方向键: 移动视角",
+            "1/2/3: 选择单位",
+            "左键点击: 部署/选择",
+            "右键点击: 移动指令",
+            "Q: 技能, E: 集合/分散",
+            "触屏: 拖拽滚动 + 底部按钮"
+          ]
+        },
+        "zh-TW": {
+          "title": "鐵甲先鋒",
+          "description": "奪回蒸氣龐克城市的即時戰術動作肉鴿遊戲！",
+          "tags": ["蒸氣龐克", "戰術", "肉鴿", "動作", "策略", "即時"],
+          "controls": [
+            "WASD/方向鍵: 移動視角",
+            "1/2/3: 選擇單位",
+            "左鍵點擊: 部署/選擇",
+            "右鍵點擊: 移動指令",
+            "Q: 技能, E: 集合/分散",
+            "觸控: 拖曳滾動 + 底部按鈕"
+          ]
+        },
+        "es": {
+          "title": "Vanguardia Acorazada",
+          "description": "¡Reconquista una ciudad steampunk en este roguelite de acción táctica en tiempo real!",
+          "tags": ["steampunk", "táctica", "roguelite", "acción", "estrategia", "tiempo real"],
+          "controls": [
+            "WASD/Flechas: Mover cámara",
+            "1/2/3: Seleccionar unidad",
+            "Clic izq.: Desplegar/Seleccionar",
+            "Clic der.: Orden de movimiento",
+            "Q: Habilidad, E: Reagrupar/Dispersar",
+            "Táctil: Arrastrar + botones inferiores"
+          ]
+        },
+        "fr": {
+          "title": "Avant-garde Blindée",
+          "description": "Reconquérez une cité steampunk dans ce roguelite d'action tactique en temps réel !",
+          "tags": ["steampunk", "tactique", "roguelite", "action", "stratégie", "temps réel"],
+          "controls": [
+            "ZQSD/Flèches : Déplacer la caméra",
+            "1/2/3 : Sélectionner une unité",
+            "Clic gauche : Déployer/Sélectionner",
+            "Clic droit : Ordre de déplacement",
+            "Q : Compétence, E : Regrouper/Disperser",
+            "Tactile : Glisser + boutons en bas"
+          ]
+        },
+        "de": {
+          "title": "Eiserne Vorhut",
+          "description": "Erobere eine Steampunk-Stadt in diesem Echtzeit-Taktik-Action-Roguelite zurück!",
+          "tags": ["Steampunk", "Taktik", "Roguelite", "Action", "Strategie", "Echtzeit"],
+          "controls": [
+            "WASD/Pfeiltasten: Kamera bewegen",
+            "1/2/3: Einheit auswählen",
+            "Linksklick: Platzieren/Auswählen",
+            "Rechtsklick: Bewegungsbefehl",
+            "Q: Fähigkeit, E: Sammeln/Zerstreuen",
+            "Touch: Ziehen + untere Schaltflächen"
+          ]
+        },
+        "pt": {
+          "title": "Vanguarda Blindada",
+          "description": "Reconquiste uma cidade steampunk neste roguelite de ação tática em tempo real!",
+          "tags": ["steampunk", "tática", "roguelite", "ação", "estratégia", "tempo real"],
+          "controls": [
+            "WASD/Setas: Mover câmera",
+            "1/2/3: Selecionar unidade",
+            "Clique esq.: Posicionar/Selecionar",
+            "Clique dir.: Comando de movimento",
+            "Q: Habilidade, E: Reunir/Dispersar",
+            "Toque: Arrastar + botões inferiores"
           ]
         }
       }
