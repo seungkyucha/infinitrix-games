@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Game } from '@/lib/types'
 import { useTranslations } from '@/lib/i18n-client'
 
 export default function GameFrame({ game }: { game: Game }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isLoading,    setIsLoading]    = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslations()
 
   useEffect(() => {
@@ -18,8 +19,24 @@ export default function GameFrame({ game }: { game: Game }) {
     }
   }, [game.id])
 
+  // iframe 포커스 시 부모 페이지의 Space/Arrow 스크롤 차단
+  useEffect(() => {
+    const BLOCK_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'])
+    function blockScroll(e: KeyboardEvent) {
+      if (BLOCK_KEYS.has(e.code)) {
+        e.preventDefault()
+      }
+    }
+    // iframe에 포커스가 있을 때 부모도 키 이벤트를 받으므로 차단
+    window.addEventListener('keydown', blockScroll, { passive: false })
+    return () => window.removeEventListener('keydown', blockScroll)
+  }, [])
+
   return (
-    <div className={`bg-bg-card border border-border-dim rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
+    <div
+      ref={containerRef}
+      className={`bg-bg-card border border-border-dim rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}
+    >
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-dim bg-bg-secondary">
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
@@ -65,7 +82,12 @@ export default function GameFrame({ game }: { game: Game }) {
           src={game.path}
           title={game.title}
           className={`w-full border-0 ${isFullscreen ? 'h-[calc(100vh-44px)]' : 'h-[480px] sm:h-[560px]'}`}
-          onLoad={() => setIsLoading(false)}
+          onLoad={() => {
+            setIsLoading(false)
+            // iframe 로드 후 자동 포커스
+            const iframe = document.getElementById('game-iframe') as HTMLIFrameElement
+            iframe?.focus()
+          }}
           sandbox="allow-scripts allow-same-origin"
           allow="fullscreen"
         />
