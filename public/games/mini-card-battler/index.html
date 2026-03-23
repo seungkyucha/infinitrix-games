@@ -345,6 +345,10 @@ cv.addEventListener('touchstart',e=>{e.preventDefault();inM='touch';const t=e.to
 cv.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0],r=cv.getBoundingClientRect();mX=t.clientX-r.left;mY=t.clientY-r.top;},{passive:false});
 cv.addEventListener('touchend',e=>{e.preventDefault();},{passive:false});
 window.addEventListener('keydown',e=>{inM='kb';onK(e.key);});
+  // Prevent browser default for game keys (Space scroll, Arrow scroll, etc.)
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
 
 function onK(k){
   if(st==='TITLE'&&(k===' '||k==='Enter')){stG();return;}

@@ -2647,6 +2647,10 @@ function init() {
 
   // 키보드
   window.addEventListener('keydown', (e) => {
+  // Prevent browser default for game keys (Space scroll, Arrow scroll, etc.)
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
     keys[e.key] = true;
     if (currentState === S.TITLE && (e.key === ' ' || e.key === 'Enter')) {
       handlePointerDown(titleButtons.start ? titleButtons.start.x + 10 : W/2, titleButtons.start ? titleButtons.start.y + 10 : H*0.6);

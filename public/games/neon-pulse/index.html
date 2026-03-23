@@ -1,0 +1,3287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Neon Pulse</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 1: CONFIG — 상수, 수치 테이블, 다국어 문자열 ══
+// ══════════════════════════════════════════════════════════════════
+'use strict';
+
+const CONFIG = {
+  // 판정 윈도우 (ms) — 난이도별
+  JUDGE: {
+    beginner: { perfect: 60, great: 120, good: 180 },
+    dj:       { perfect: 50, great: 100, good: 150 },
+    maestro:  { perfect: 40, great: 80,  good: 120 }
+  },
+  // 판정 대미지 배율
+  JUDGE_MUL: { perfect: 1.5, great: 1.2, good: 1.0, miss: 0 },
+  // 플레이어 기본 스탯
+  PLAYER_BASE_HP: { beginner: 150, dj: 100, maestro: 75 },
+  PLAYER_BASE_DMG: 20,
+  // 콤보 시스템
+  COMBO_PER: 0.1,
+  COMBO_MAX_MUL: 3.0,
+  // COMBO_KEEPS_ON_GOOD 제거됨 — 콤보 유지 로직은 updateCombo()에서 difficulty+upgrades로 처리
+  // 칩 캡
+  CHIP_DPS_CAP: 2.0,
+  CHIP_SYNERGY_CAP: 1.5,
+  // 존 BPM [min, max]
+  ZONE_BPM: [[100,120],[120,140],[80,100],[150,174],[100,160],[100,174],[0,200]],
+  // 존 색상 [main, sub, glow, bg]
+  ZONE_COLORS: [
+    ['#FF6EC7','#7B68EE','#FF69B4','#1A0033'],
+    ['#00FFFF','#0066FF','#00BFFF','#000D1A'],
+    ['#90EE90','#FFD700','#98FB98','#0D1A0D'],
+    ['#FF4500','#FFD700','#FF6347','#1A0D00'],
+    ['#FF0000','#00FF00','#FFFFFF','#0A0A0A'],
+    ['#FF6EC7','#00FFFF','#FFD700','#0f0f1a'],
+    ['#FFFFFF','#888888','#FFFFFF','#000000']
+  ],
+  // 존 이름 (한/영)
+  ZONE_NAMES: {
+    ko: ['Synthwave','Dubstep','Lo-fi','Drum & Bass','Glitch','Remix Zone','True Silence'],
+    en: ['Synthwave','Dubstep','Lo-fi','Drum & Bass','Glitch','Remix Zone','True Silence']
+  },
+  // 스테이지 밸런스 [enemyHP, enemyATK, beatDensity, crystalReward]
+  STAGES: [
+    // Zone 1
+    [50,8,0.8,5],[65,10,1.0,7],[80,12,1.0,9],[400,15,1.2,30],
+    // Zone 2
+    [90,14,1.2,10],[110,16,1.3,12],[130,18,1.4,15],[650,22,1.5,45],
+    // Zone 3
+    [100,15,0.9,12],[120,17,1.0,14],[140,20,1.1,17],[500,18,1.0,40],
+    // Zone 4
+    [150,22,1.6,18],[180,25,1.8,22],[210,28,2.0,25],[900,32,2.2,60],
+    // Zone 5
+    [200,26,1.4,22],[240,30,1.6,28],[280,34,1.8,32],[1200,38,2.0,80],
+    // Hidden 1 — Remix
+    [250,30,2.0,50],
+    // Hidden 2 — Void DJ
+    [2000,45,2.5,150]
+  ],
+  // 보스 인덱스 (0-based stage index)
+  BOSS_STAGES: [3,7,11,15,19,21],
+  // 보스 이름
+  BOSS_NAMES: {
+    ko: ['DJ 레트로','DJ 워블','DJ 칠','DJ 브레이크','DJ 에러','Void DJ'],
+    en: ['DJ Retro','DJ Wobble','DJ Chill','DJ Break','DJ Error','Void DJ']
+  },
+  // 보스 페이즈 HP 임계 (비율)
+  BOSS_PHASES: [
+    [0.75],           // 레트로: 2 phases
+    [0.75,0.25],      // 워블: 3 phases
+    [0.5],            // 칠: 2 phases
+    [0.75,0.5,0.25],  // 브레이크: 4 phases
+    [0.75,0.5,0.25],  // 에러: 4 phases
+    [0.75,0.5,0.25]   // Void DJ: 4 phases
+  ],
+  // 비트 유형 비율 [기본, 더블, 홀드, 회피]
+  BEAT_RATIOS: [0.6, 0.15, 0.15, 0.1],
+  // 점수
+  BASE_SCORE: 100,
+  CLEAR_BONUS_PER_STAGE: 500,
+  BOSS_BONUS_PER_ZONE: 2000,
+  // UI
+  MIN_TOUCH: 48,
+  SWIPE_MIN_DIST: 30,
+  SWIPE_MAX_TIME: 200,
+  // DDA
+  DDA_EASY_THRESHOLD: 3,
+  DDA_HP_LV1: 0.5,
+  DDA_HP_LV2: 0.3,
+  DDA_MISS_STREAK: 5,
+  // 난이도별 적 배율
+  DIFF_ATK_MUL: { beginner: 0.7, dj: 1.0, maestro: 1.3 },
+  DIFF_HP_MUL: { beginner: 0.8, dj: 1.0, maestro: 1.2 },
+  DIFF_DENSITY_MUL: { beginner: 0.8, dj: 1.0, maestro: 1.2 },
+  // 업그레이드 트리 비용
+  UPGRADE_COSTS: [20, 50, 100, 200, 400],
+  // 사운드 칩 13종
+  CHIPS: [
+    // Common 6
+    { id:'ampBoost',    rarity:'common', ko:'앰프 부스트', en:'Amp Boost', desc_ko:'기본 대미지 +20%', desc_en:'Base DMG +20%', effect:'dmgMul', val:0.2 },
+    { id:'reverbShield',rarity:'common', ko:'리버브 실드', en:'Reverb Shield', desc_ko:'피격 대미지 -15%', desc_en:'Hit DMG -15%', effect:'defMul', val:0.15 },
+    { id:'metronome',   rarity:'common', ko:'메트로놈', en:'Metronome', desc_ko:'Perfect 판정 +10ms', desc_en:'Perfect window +10ms', effect:'perfectWindow', val:10 },
+    { id:'loopStation', rarity:'common', ko:'루프 스테이션', en:'Loop Station', desc_ko:'홀드 대미지 +30%', desc_en:'Hold DMG +30%', effect:'holdMul', val:0.3 },
+    { id:'equalizer',   rarity:'common', ko:'이퀄라이저', en:'Equalizer', desc_ko:'콤보 배율 +0.05', desc_en:'Combo mul +0.05', effect:'comboBonus', val:0.05 },
+    { id:'volumeUp',    rarity:'common', ko:'볼륨 업', en:'Volume Up', desc_ko:'크리스탈 +15%', desc_en:'Crystal +15%', effect:'crystalMul', val:0.15 },
+    // Rare 4
+    { id:'harmonics',   rarity:'rare', ko:'하모닉스', en:'Harmonics', desc_ko:'Perfect시 2히트', desc_en:'2-hit on Perfect', effect:'perfectDouble', val:1.0 },
+    { id:'subwoofer',   rarity:'rare', ko:'서브우퍼', en:'Subwoofer', desc_ko:'회피 성공시 30 고정 대미지', desc_en:'Dodge: 30 fixed DMG', effect:'dodgeDmg', val:30 },
+    { id:'crossfader',  rarity:'rare', ko:'크로스페이더', en:'Crossfader', desc_ko:'콤보10+ HP+3/비트', desc_en:'Combo10+: HP+3/beat', effect:'comboHeal', val:3 },
+    { id:'beatdrop',    rarity:'rare', ko:'비트드롭', en:'Beatdrop', desc_ko:'콤보20 전체 5%대미지', desc_en:'Combo20: 5% AoE', effect:'comboAoe', val:0.05 },
+    // Epic 3
+    { id:'mastering',   rarity:'epic', ko:'마스터링', en:'Mastering', desc_ko:'모든 대미지+50%, 시너지캡+30%', desc_en:'All DMG+50%, synergy cap+30%', effect:'masterDmg', val:0.5 },
+    { id:'remixer',     rarity:'epic', ko:'리믹서', en:'Remixer', desc_ko:'선택 비트+80%, 나머지-20%', desc_en:'Pick beat +80%, rest -20%', effect:'beatSpec', val:0.8 },
+    { id:'dropTheBass', rarity:'epic', ko:'드롭 더 베이스', en:'Drop The Bass', desc_ko:'Miss시 반격(2x, 1회/스테이지)', desc_en:'Miss counter: 2x, 1/stage', effect:'missCounter', val:2.0 }
+  ],
+  // 업그레이드 트리 정의
+  UPGRADES: {
+    rhythm: [
+      { ko:'비트 감각', en:'Beat Sense', desc_ko:'Perfect +5ms', desc_en:'Perfect +5ms' },
+      { ko:'리듬 마스터', en:'Rhythm Master', desc_ko:'Great 130%', desc_en:'Great 130%' },
+      { ko:'콤보 프로', en:'Combo Pro', desc_ko:'콤보 상한 3.5x', desc_en:'Combo cap 3.5x' },
+      { ko:'타이밍 왕', en:'Timing King', desc_ko:'Good도 콤보 유지', desc_en:'Good keeps combo' },
+      { ko:'퍼펙트 오라', en:'Perfect Aura', desc_ko:'Perfect시 HP+1', desc_en:'Perfect: HP+1' }
+    ],
+    power: [
+      { ko:'파워 앰프', en:'Power Amp', desc_ko:'대미지 +10%', desc_en:'DMG +10%' },
+      { ko:'크리티컬 비트', en:'Critical Beat', desc_ko:'Perfect 20% 2x', desc_en:'Perfect 20% crit' },
+      { ko:'더블 스트라이크', en:'Double Strike', desc_ko:'더블비트 +40%', desc_en:'Double +40%' },
+      { ko:'홀드 마스터', en:'Hold Master', desc_ko:'홀드 +50%', desc_en:'Hold +50%' },
+      { ko:'오버드라이브', en:'Overdrive', desc_ko:'콤보15+ 대미지+25%', desc_en:'Combo15+: DMG+25%' }
+    ],
+    flow: [
+      { ko:'세이프가드', en:'Safeguard', desc_ko:'최대HP +15', desc_en:'Max HP +15' },
+      { ko:'페이드 아웃', en:'Fade Out', desc_ko:'Miss 대미지 -20%', desc_en:'Miss DMG -20%' },
+      { ko:'리커버리', en:'Recovery', desc_ko:'클리어시 HP+20', desc_en:'Clear: HP+20' },
+      { ko:'세컨드 찬스', en:'Second Chance', desc_ko:'1회 치명타 생존', desc_en:'Survive fatal 1x' },
+      { ko:'엔듀어', en:'Endure', desc_ko:'3연속Miss방지', desc_en:'Block 3rd Miss' }
+    ]
+  },
+  // 수호 DJ 대화
+  NARRATIVES: {
+    ko: [
+      ['레트로의 기록: "이 곳은 한때 80년대의\n영광이 울려 퍼지던 곳이었지..."\n"비트를 되찾아줘, 네온."','비트가 돌아왔다...\n신스웨이브 존이 정화되었다!'],
+      ['워블의 기록: "베이스가 이렇게\n왜곡될 줄은 몰랐어..."\n"드롭을 다시 떨어뜨려줘."','워블의 베이스가 복원되었다!\n더브스텝 존 정화 완료.'],
+      ['칠의 기록: "느린 비트도 힘이 있어.\n서두르지 마, 네온."\n"마음의 리듬을 따라가."','잔잔한 비트가 흐른다...\n로파이 존이 평화를 되찾았다.'],
+      ['브레이크의 기록: "속도가 전부는 아니야.\n하지만 빠른 건 멋지지!"\n"한계를 넘어서 봐!"','폭풍같은 드럼이 가라앉았다.\n드럼앤베이스 존 정화!'],
+      ['에러의 기록: "글리치는 버그가 아니야.\n새로운 가능성이지."\n"혼돈 속에서 리듬을 찾아."','글리치가 안정되었다...\n마지막 존이 정화되었다!']
+    ],
+    en: [
+      ['"This place once echoed with\nthe glory of the 80s..."\n"Bring back the beat, Neon."','The beat returns...\nSynthwave Zone purified!'],
+      ['"I never thought the bass\ncould be so distorted..."\n"Drop it again for me."','Wobble\'s bass restored!\nDubstep Zone purified.'],
+      ['"Slow beats have power too.\nDon\'t rush, Neon."\n"Follow your heart\'s rhythm."','Gentle beats flow again...\nLo-fi Zone at peace.'],
+      ['"Speed isn\'t everything.\nBut fast IS cool!"\n"Push beyond your limits!"','The storm of drums subsides.\nDrum & Bass Zone purified!'],
+      ['"Glitches aren\'t bugs.\nThey\'re possibilities."\n"Find rhythm in chaos."','The glitch stabilizes...\nFinal Zone purified!']
+    ]
+  },
+  // 다국어 문자열
+  STRINGS: {
+    ko: {
+      title:'네온 펄스', subtitle:'비트에 맞춰 전투하라',
+      start:'게임 시작', tapToStart:'SPACE 또는 탭으로 시작',
+      difficulty:['비기너','DJ','마에스트로'],
+      diffDesc:['넉넉한 판정, DDA 지원','기본 난이도','좁은 판정, DDA 없음'],
+      perfect:'PERFECT!', great:'GREAT!', good:'GOOD', miss:'MISS',
+      combo:'콤보', score:'점수', highScore:'최고점수', crystal:'크리스탈',
+      gameover:'게임 오버', victory:'축하합니다!',
+      restart:'R키 또는 탭으로 재시작', toTitle:'타이틀로',
+      zone:'존', stage:'스테이지', boss:'보스',
+      pause:'일시정지', resume:'계속하기', quit:'나가기',
+      chipSelect:'사운드 칩 선택', upgrade:'업그레이드',
+      hp:'HP', atk:'ATK', selectDiff:'난이도 선택',
+      stageCleared:'스테이지 클리어!', zoneCleared:'존 클리어!',
+      bossIncoming:'보스 출현!', bossDefeated:'보스 격파!',
+      nextStage:'다음 스테이지', narrative:'스토리',
+      hiddenEnding:'영원한 비트', normalEnding:'비트 부활',
+      lang:'EN', totalCrystals:'보유 크리스탈',
+      upgReady:'업그레이드 가능', lv:'Lv', cost:'비용',
+      equipped:'장착 칩', noChips:'칩 없음',
+      beatCrystal:'비트 크리스탈', acquired:'획득!',
+      remix:'서바이벌! 모든 존의 비트가 혼합된다.',
+      silence:'무음... 비트 없이 전투하라.',
+      loading:'로딩 중...'
+    },
+    en: {
+      title:'NEON PULSE', subtitle:'Fight to the Beat',
+      start:'START GAME', tapToStart:'SPACE or TAP to start',
+      difficulty:['Beginner','DJ','Maestro'],
+      diffDesc:['Generous timing, DDA on','Standard difficulty','Tight timing, no DDA'],
+      perfect:'PERFECT!', great:'GREAT!', good:'GOOD', miss:'MISS',
+      combo:'COMBO', score:'Score', highScore:'High Score', crystal:'Crystal',
+      gameover:'GAME OVER', victory:'CONGRATULATIONS!',
+      restart:'R or TAP to restart', toTitle:'Title',
+      zone:'Zone', stage:'Stage', boss:'BOSS',
+      pause:'PAUSED', resume:'Resume', quit:'Quit',
+      chipSelect:'Select Sound Chip', upgrade:'Upgrade',
+      hp:'HP', atk:'ATK', selectDiff:'Select Difficulty',
+      stageCleared:'STAGE CLEARED!', zoneCleared:'ZONE CLEARED!',
+      bossIncoming:'BOSS INCOMING!', bossDefeated:'BOSS DEFEATED!',
+      nextStage:'Next Stage', narrative:'Story',
+      hiddenEnding:'Eternal Beat', normalEnding:'Beat Revival',
+      lang:'한', totalCrystals:'Crystals',
+      upgReady:'Upgrade Available', lv:'Lv', cost:'Cost',
+      equipped:'Equipped Chips', noChips:'No Chips',
+      beatCrystal:'Beat Crystal', acquired:'Acquired!',
+      remix:'Survival! All zone beats mixed.',
+      silence:'Silence... Fight without beats.',
+      loading:'Loading...'
+    }
+  }
+};
+
+// localStorage 키
+const SAVE_KEY = 'neonPulse_v1';
+
+// 상태 우선순위
+const STATE = {
+  BOOT:0, TITLE:1, DIFFICULTY_SELECT:2, ZONE_MAP:3, STAGE_INTRO:4,
+  PLAYING:5, BOSS_INTRO:6, BOSS_FIGHT:7, BOSS_DEFEAT:8,
+  CHIP_SELECT:9, STAGE_CLEAR:10, ZONE_CLEAR:11, UPGRADE:12,
+  NARRATIVE:13, PAUSE:50, GAMEOVER:90, VICTORY:91, HIDDEN_ENDING:92
+};
+
+// 상태명 → 활성 시스템 비트마스크
+const SYS = { TWEEN:1, INPUT:2, SOUND:4, RHYTHM:8, COMBAT:16, ROGUE:32, DDA:64, DRAW:128, PARTICLE:256 };
+
+// 상태×시스템 매트릭스 (§6.2)
+const ACTIVE_SYS = {};
+ACTIVE_SYS[STATE.BOOT]             = SYS.TWEEN|SYS.DRAW;
+ACTIVE_SYS[STATE.TITLE]            = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.DIFFICULTY_SELECT]= SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.ZONE_MAP]         = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.STAGE_INTRO]      = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.PLAYING]          = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.RHYTHM|SYS.COMBAT|SYS.DDA|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.BOSS_INTRO]       = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.BOSS_FIGHT]       = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.RHYTHM|SYS.COMBAT|SYS.DDA|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.BOSS_DEFEAT]      = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.CHIP_SELECT]      = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.ROGUE|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.STAGE_CLEAR]      = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.ROGUE|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.ZONE_CLEAR]       = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.ROGUE|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.UPGRADE]          = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.ROGUE|SYS.DRAW;
+ACTIVE_SYS[STATE.NARRATIVE]        = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW;
+ACTIVE_SYS[STATE.PAUSE]            = SYS.TWEEN|SYS.INPUT|SYS.DRAW;
+ACTIVE_SYS[STATE.GAMEOVER]         = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.VICTORY]          = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+ACTIVE_SYS[STATE.HIDDEN_ENDING]    = SYS.TWEEN|SYS.INPUT|SYS.SOUND|SYS.DRAW|SYS.PARTICLE;
+
+// 시스템 활성 여부 체크 헬퍼
+function sys(flag) { return (ACTIVE_SYS[G.state] & flag) !== 0; }
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 2: ENGINE — SeededRNG, TweenManager, ObjectPool, SoundManager, InputManager ══
+// ══════════════════════════════════════════════════════════════════
+
+// SeededRNG — mulberry32 기반 결정적 난수
+class SeededRNG {
+  constructor(seed) { this.s = seed | 0 || 1; }
+  next() {
+    let t = this.s += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  // 범위 내 정수
+  int(min, max) { return min + ((this.next() * (max - min + 1)) | 0); }
+  // 배열에서 랜덤 선택
+  pick(arr) { return arr[(this.next() * arr.length) | 0]; }
+  // 가중치 선택
+  weighted(arr, weights) {
+    let sum = 0;
+    for (let i = 0; i < weights.length; i++) sum += weights[i];
+    let r = this.next() * sum;
+    for (let i = 0; i < arr.length; i++) { r -= weights[i]; if (r <= 0) return arr[i]; }
+    return arr[arr.length - 1];
+  }
+}
+
+// TweenManager — setTimeout 0건 보장
+class TweenManager {
+  constructor() { this._tweens = []; this._pendingAdd = []; this._updating = false; }
+  // 트윈 추가 (경쟁 조건 방지)
+  add(opts) {
+    const t = { target: opts.target, prop: opts.prop, from: opts.from, to: opts.to,
+      dur: opts.dur || 500, elapsed: 0, ease: opts.ease || 'easeOut',
+      onComplete: opts.onComplete || null, onUpdate: opts.onUpdate || null, dead: false };
+    if (opts.from !== undefined && opts.target && opts.prop) opts.target[opts.prop] = opts.from;
+    if (this._updating) this._pendingAdd.push(t); else this._tweens.push(t);
+    return t;
+  }
+  // 즉시 정리 (F13: clearImmediate)
+  clearImmediate() { this._tweens.length = 0; this._pendingAdd.length = 0; }
+  // 특정 타겟의 트윈 취소
+  cancelFor(target) {
+    for (let i = 0; i < this._tweens.length; i++) if (this._tweens[i].target === target) this._tweens[i].dead = true;
+  }
+  // 프레임 업데이트
+  update(dt) {
+    this._updating = true;
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const t = this._tweens[i];
+      if (t.dead) { this._tweens.splice(i, 1); continue; }
+      t.elapsed += dt;
+      let p = t.dur > 0 ? Math.min(t.elapsed / t.dur, 1) : 1;
+      let ep = p;
+      if (t.ease === 'easeOut') ep = 1 - (1 - p) * (1 - p);
+      else if (t.ease === 'easeIn') ep = p * p;
+      else if (t.ease === 'easeInOut') ep = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) * (-2 * p + 2) / 2;
+      else if (t.ease === 'linear') ep = p;
+      if (t.target && t.prop) t.target[t.prop] = t.from + (t.to - t.from) * ep;
+      if (t.onUpdate) t.onUpdate(ep);
+      if (p >= 1) { t.dead = true; if (t.onComplete) t.onComplete(); }
+    }
+    this._updating = false;
+    // 펜딩 추가 반영
+    if (this._pendingAdd.length) {
+      for (let i = 0; i < this._pendingAdd.length; i++) this._tweens.push(this._pendingAdd[i]);
+      this._pendingAdd.length = 0;
+    }
+  }
+}
+
+// ObjectPool — 파티클/이펙트 재활용
+class ObjectPool {
+  constructor(factory, reset, max) { this._pool = []; this._active = []; this._factory = factory; this._reset = reset; this._max = max || 200; }
+  acquire() {
+    let obj = this._pool.length > 0 ? this._pool.pop() : (this._active.length < this._max ? this._factory() : null);
+    if (!obj) return null;
+    this._reset(obj);
+    this._active.push(obj);
+    return obj;
+  }
+  release(obj) {
+    const idx = this._active.indexOf(obj);
+    if (idx >= 0) { this._active.splice(idx, 1); this._pool.push(obj); }
+  }
+  update(dt) {
+    for (let i = this._active.length - 1; i >= 0; i--) {
+      const p = this._active[i];
+      p.life -= dt;
+      if (p.life <= 0) { this.release(p); continue; }
+      p.x += p.vx * dt * 0.001;
+      p.y += p.vy * dt * 0.001;
+      p.alpha = Math.max(0, p.life / p.maxLife);
+      if (p.rotSpeed) p.rot += p.rotSpeed * dt * 0.001;
+      if (p.gravity) p.vy += p.gravity * dt * 0.001;
+      if (p.scale !== undefined && p.scaleDecay) p.scale *= (1 - p.scaleDecay * dt * 0.001);
+    }
+  }
+  forEach(fn) { for (let i = 0; i < this._active.length; i++) fn(this._active[i]); }
+  clear() { while (this._active.length) this._pool.push(this._active.pop()); }
+  get count() { return this._active.length; }
+}
+
+// SoundManager — Web Audio API 프로시저럴 사운드
+class SoundManager {
+  constructor() { this._ctx = null; this._gain = null; this._muted = false; }
+  // 초기화 (유저 제스처 후 호출)
+  init() {
+    if (this._ctx) return;
+    try {
+      this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this._gain = this._ctx.createGain();
+      this._gain.gain.value = 0.3;
+      this._gain.connect(this._ctx.destination);
+    } catch(e) { /* 오디오 미지원 환경 */ }
+  }
+  resume() { if (this._ctx && this._ctx.state === 'suspended') this._ctx.resume(); }
+  // 프로시저럴 효과음
+  playTone(freq, dur, type, vol) {
+    if (!this._ctx || this._muted) return;
+    try {
+      const osc = this._ctx.createOscillator();
+      const g = this._ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      g.gain.value = vol || 0.15;
+      g.gain.exponentialRampToValueAtTime(0.001, this._ctx.currentTime + dur);
+      osc.connect(g);
+      g.connect(this._gain);
+      osc.start(this._ctx.currentTime);
+      osc.stop(this._ctx.currentTime + dur);
+    } catch(e) {}
+  }
+  // 비트 히트 사운드 (판정별)
+  playJudge(type) {
+    if (type === 'perfect') { this.playTone(880, 0.15, 'sine', 0.2); this.playTone(1320, 0.1, 'sine', 0.1); }
+    else if (type === 'great') { this.playTone(660, 0.12, 'sine', 0.18); }
+    else if (type === 'good') { this.playTone(440, 0.1, 'triangle', 0.12); }
+    else if (type === 'miss') { this.playTone(180, 0.2, 'sawtooth', 0.1); }
+  }
+  // 콤보 달성 사운드
+  playCombo(level) { this.playTone(440 + level * 110, 0.2, 'sine', 0.15); }
+  // 보스 등장 사운드
+  playBossIntro() {
+    this.playTone(110, 0.5, 'sawtooth', 0.2);
+    if (this._ctx) { const t = this._ctx.currentTime; try { const o = this._ctx.createOscillator(); const g = this._ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(55, t+0.5); g.gain.value = 0.15; g.gain.exponentialRampToValueAtTime(0.001, t+0.6); o.connect(g); g.connect(this._gain); o.start(t); o.stop(t+0.6); } catch(e){} }
+  }
+  // 비트 틱 사운드 (매 비트마다)
+  playBeatTick() { this.playTone(1200, 0.03, 'sine', 0.05); }
+  // 피격
+  playHit() { this.playTone(200, 0.15, 'sawtooth', 0.12); }
+  // 게임오버
+  playGameOver() { this.playTone(220, 0.4, 'sawtooth', 0.2); this.playTone(165, 0.6, 'sawtooth', 0.15); }
+  // 클리어
+  playClear() { this.playTone(523, 0.15, 'sine', 0.2); this.playTone(659, 0.15, 'sine', 0.2); this.playTone(784, 0.2, 'sine', 0.2); }
+  // 칩 획득
+  playChipGet() { this.playTone(880, 0.1, 'sine', 0.15); this.playTone(1100, 0.15, 'sine', 0.12); }
+  // 업그레이드
+  playUpgrade() { this.playTone(440, 0.1, 'sine', 0.15); this.playTone(880, 0.2, 'sine', 0.18); }
+  // 회피 성공
+  playDodge() { this.playTone(600, 0.08, 'triangle', 0.1); this.playTone(900, 0.06, 'triangle', 0.08); }
+  // 프로시저럴 BGM (§5.2) — 존별 BPM + 음계 패턴
+  startBGM(zone, bpm) {
+    this.stopBGM();
+    if (!this._ctx || this._muted) return;
+    // 존별 음계 패턴 (Hz)
+    const scales = [
+      [261.6, 293.7, 329.6, 392.0, 440.0],           // Synthwave: 펜타토닉 C
+      [220.0, 261.6, 293.7, 329.6, 349.2],           // Dubstep: 마이너
+      [261.6, 329.6, 392.0, 440.0, 493.9],           // Lo-fi: 메이저7th
+      [329.6, 392.0, 440.0, 523.3, 587.3],           // D&B: 고음 펜타
+      [220.0, 246.9, 293.7, 329.6, 370.0],           // Glitch: 크로매틱 변형
+      [261.6, 293.7, 349.2, 392.0, 440.0],           // Remix: 믹스
+      [130.8, 174.6, 220.0, 261.6, 329.6]            // Void: 저음
+    ];
+    const scale = scales[Math.min(zone, 6)];
+    const waveTypes = ['sine', 'square', 'triangle', 'sawtooth', 'triangle', 'square', 'sine'];
+    const waveType = waveTypes[Math.min(zone, 6)];
+    this._bgmActive = true;
+    this._bgmZone = zone;
+    this._bgmBpm = bpm;
+    this._bgmBeatIdx = 0;
+    this._bgmNextTime = this._ctx.currentTime + 0.1;
+    this._bgmScale = scale;
+    this._bgmWave = waveType;
+    // 프리스케줄: 8비트 앞서 예약
+    this._scheduleBGMBeats();
+  }
+  // BGM 비트 스케줄링 (setTimeout 없이 audioCtx.currentTime 기반)
+  _scheduleBGMBeats() {
+    if (!this._ctx || !this._bgmActive) return;
+    const interval = 60 / this._bgmBpm;
+    const lookAhead = 0.2;
+    while (this._bgmNextTime < this._ctx.currentTime + lookAhead) {
+      try {
+        const freq = this._bgmScale[this._bgmBeatIdx % this._bgmScale.length];
+        const osc = this._ctx.createOscillator();
+        const g = this._ctx.createGain();
+        osc.type = this._bgmWave;
+        osc.frequency.value = freq;
+        g.gain.value = 0.06;
+        g.gain.exponentialRampToValueAtTime(0.001, this._bgmNextTime + interval * 0.8);
+        osc.connect(g);
+        g.connect(this._gain);
+        osc.start(this._bgmNextTime);
+        osc.stop(this._bgmNextTime + interval * 0.9);
+        // 서브 베이스 (매 4비트마다)
+        if (this._bgmBeatIdx % 4 === 0) {
+          const sub = this._ctx.createOscillator();
+          const sg = this._ctx.createGain();
+          sub.type = 'sine';
+          sub.frequency.value = freq * 0.5;
+          sg.gain.value = 0.04;
+          sg.gain.exponentialRampToValueAtTime(0.001, this._bgmNextTime + interval * 1.5);
+          sub.connect(sg);
+          sg.connect(this._gain);
+          sub.start(this._bgmNextTime);
+          sub.stop(this._bgmNextTime + interval * 1.6);
+        }
+      } catch(e) {}
+      this._bgmNextTime += interval;
+      this._bgmBeatIdx++;
+    }
+  }
+  // BGM 업데이트 (매 프레임 호출)
+  updateBGM(bpm) {
+    if (!this._bgmActive) return;
+    this._bgmBpm = bpm;
+    this._scheduleBGMBeats();
+  }
+  // BGM 정지
+  stopBGM() { this._bgmActive = false; }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 3: ENTITY — 플레이어, 적, 보스, 비트 마커, 파티클 ══
+// ══════════════════════════════════════════════════════════════════
+
+// 에셋 없음 — 100% Canvas 프로시저럴 렌더링 (F1, F68 준수)
+
+// 비트 마커 정의
+function createBeat(type, time, lane) {
+  return { type: type, time: time, lane: lane || 0, judged: false, missed: false, alpha: 1, holdStart: 0, holdDur: 0, holdActive: false };
+}
+
+// 적 엔티티 생성
+function createEnemy(hp, atk, type, zone) {
+  return { hp: hp, maxHp: hp, atk: atk, type: type, zone: zone, x: 0, y: 0, animFrame: 0, animTimer: 0,
+    hitFlash: 0, shakeX: 0, shakeY: 0, alive: true };
+}
+
+// 보스 엔티티 생성
+function createBoss(bossIdx, hp, atk) {
+  return { idx: bossIdx, hp: hp, maxHp: hp, atk: atk, phase: 0,
+    x: 0, y: 0, animFrame: 0, animTimer: 0, hitFlash: 0,
+    shakeX: 0, shakeY: 0, alive: true, introTimer: 0, defeatTimer: 0,
+    phaseTransitioning: false, atkTimer: 0 };
+}
+
+// 글로벌 게임 상태
+let G = {};
+
+// 게임 상태 초기화
+function initGameState() {
+  const save = loadSave();
+  G = {
+    state: STATE.BOOT,
+    prevState: STATE.BOOT,
+    _transitioning: false,
+    _transAlpha: 0,
+    _transTarget: null,
+    lang: save.lang || 'ko',
+    difficulty: save.difficulty || 'dj',
+    // 플레이어
+    player: { hp: 100, maxHp: 100, x: 0, y: 0, pose: 'idle', poseTimer: 0,
+      comboGlow: 0, invincible: 0, secondChanceUsed: false },
+    // 비트 & 전투
+    bpm: 120,
+    beatInterval: 500,
+    beats: [],
+    currentBeatIdx: 0,
+    nextBeatTime: 0,
+    stageStartTime: 0,
+    combo: 0,
+    maxCombo: 0,
+    score: 0,
+    totalPerfects: 0,
+    totalBeats: 0,
+    // 적 & 보스
+    enemies: [],
+    boss: null,
+    bossRewardGiven: false,
+    // 존 & 스테이지
+    currentZone: 0,
+    currentStage: 0,
+    stageIdx: 0,
+    // 로그라이트
+    chips: [],
+    crystalsThisRun: 0,
+    missCounterUsed: false,
+    _missCounterActive: false, // 드롭 더 베이스 다음 비트 2x 활성
+    // 더블 비트 2연타 상태 추적
+    doublePending: null,       // 첫 번째 탭 대기 중인 더블 비트
+    doubleTimer: 0,            // 두 번째 탭 대기 타이머(ms)
+    doubleFirstJudge: null,    // 첫 번째 탭의 판정 결과
+    // DDA
+    ddaLevel: 0,
+    ddaMissStreak: 0,
+    ddaPerfectStreak: 0,
+    // 카메라
+    camScale: 1, camShakeX: 0, camShakeY: 0, camShakeTime: 0,
+    // UI
+    judgeDisplay: { type: '', alpha: 0, y: 0 },
+    comboDisplay: { scale: 1 },
+    scrollOffset: 0,
+    bgScroll1: 0, bgScroll2: 0,
+    // 일시정지 복귀 상태
+    pauseReturnState: STATE.PLAYING,
+    // 메뉴 선택
+    menuIdx: 0,
+    // 내러티브
+    narrativeIdx: 0,
+    narrativeLines: [],
+    // 칩 선택지
+    chipChoices: [],
+    // 업그레이드 선택
+    upgTreeIdx: 0,
+    // 시간
+    time: 0,
+    // RNG
+    rng: new SeededRNG(Date.now()),
+    // 영구 데이터 (save에서 복원)
+    save: save
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 4: DRAW — 모든 드로잉 함수 (순수 함수 패턴) ══
+// ══════════════════════════════════════════════════════════════════
+
+// 문자열 가져오기 헬퍼
+function str(key) { return CONFIG.STRINGS[G.lang][key] || key; }
+
+// 존 색상 가져오기 헬퍼
+function zoneColor(idx) { return CONFIG.ZONE_COLORS[Math.min(idx, CONFIG.ZONE_COLORS.length - 1)]; }
+
+// 배경 그리기 (패럴랙스 3레이어)
+function drawBackground(ctx, w, h, zone, scroll1, scroll2, time) {
+  const c = zoneColor(zone);
+  // Layer 0: 기본 배경색 + 그라디언트
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, c[3]);
+  grad.addColorStop(1, '#000000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // 비트 동기화 펄스
+  const pulse = 0.5 + 0.5 * Math.sin(time * 0.003);
+  // 배경 레이어 1 — 원경 별 패럴랙스
+  ctx.fillStyle = c[2];
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 137 + scroll1 * 0.2) % w + w) % w;
+    const sy = (i * 89) % h;
+    const sr = 1 + (i % 3);
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 6.28); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // 배경 레이어 2 — 근경 레트로 그리드
+  ctx.strokeStyle = c[0];
+  ctx.globalAlpha = 0.15;
+  ctx.lineWidth = 1;
+  const gridSpacing = 50;
+  const offsetY = (scroll2 * 2) % gridSpacing;
+  for (let gy = h * 0.6 + offsetY; gy < h; gy += gridSpacing) {
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
+  }
+  for (let gx = -gridSpacing + ((scroll2) % gridSpacing); gx < w + gridSpacing; gx += gridSpacing) {
+    ctx.beginPath(); ctx.moveTo(gx, h * 0.6); ctx.lineTo(gx + (w/2 - gx) * 0.3, h); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // 스캔라인 오버레이 (아케이드 장르)
+  ctx.fillStyle = 'rgba(0,0,0,0.03)';
+  for (let sl = 0; sl < h; sl += 3) ctx.fillRect(0, sl, w, 1);
+}
+
+// 플레이어 그리기 (DJ 네온)
+function drawPlayer(ctx, x, y, size, pose, glowColor, comboLevel) {
+  const s = size || 64;
+  ctx.save();
+  // 콤보 글로우
+  if (comboLevel >= 5) {
+    ctx.shadowColor = glowColor || '#FF6EC7';
+    ctx.shadowBlur = 10 + comboLevel * 2;
+  }
+  {
+    // DJ 실루엣 — 포즈별 변형 적용
+    let ox = 0, oy = 0, armAngle = 0;
+    if (pose === 'attack') { oy = -4; armAngle = -0.5; }
+    else if (pose === 'dodgeL') { ox = -8; armAngle = 0.3; }
+    else if (pose === 'dodgeR') { ox = 8; armAngle = -0.3; }
+    else if (pose === 'hit') { ox = (G.rng.next() - 0.5) * 6; }
+    else if (pose === 'hold') { oy = -2; armAngle = -0.8; }
+    else { oy = Math.sin(G.time * 0.003) * 2; armAngle = Math.sin(G.time * 0.004) * 0.1; }
+    ctx.translate(x + ox, y + oy);
+    // 다리 (2개 스틱)
+    ctx.strokeStyle = '#5a2fd0';
+    ctx.lineWidth = 3;
+    const legSpread = pose === 'dodgeL' ? -0.1 : pose === 'dodgeR' ? 0.1 : 0;
+    ctx.beginPath(); ctx.moveTo(-s*0.08, s*0.3); ctx.lineTo(-s*0.12 + legSpread * s, s*0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(s*0.08, s*0.3); ctx.lineTo(s*0.12 + legSpread * s, s*0.5); ctx.stroke();
+    // 몸체 (슬림 사다리꼴)
+    ctx.fillStyle = '#6c3cf7';
+    ctx.beginPath();
+    ctx.moveTo(-s*0.15, -s*0.1);
+    ctx.lineTo(s*0.15, -s*0.1);
+    ctx.lineTo(s*0.12, s*0.32);
+    ctx.lineTo(-s*0.12, s*0.32);
+    ctx.closePath();
+    ctx.fill();
+    // 가슴 코어 (발광 원)
+    ctx.fillStyle = glowColor || '#FF6EC7';
+    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(G.time * 0.006);
+    ctx.beginPath(); ctx.arc(0, s*0.05, s*0.06, 0, 6.28); ctx.fill();
+    ctx.globalAlpha = 1;
+    // 팔 (좌우 스틱) — 포즈별 각도 변화
+    ctx.strokeStyle = '#8060e0';
+    ctx.lineWidth = 3;
+    // 왼팔
+    ctx.beginPath();
+    ctx.moveTo(-s*0.15, -s*0.05);
+    ctx.lineTo(-s*0.3 + Math.sin(armAngle) * s*0.05, s*0.12 + Math.cos(armAngle) * s*0.05);
+    ctx.stroke();
+    // 오른팔
+    ctx.beginPath();
+    ctx.moveTo(s*0.15, -s*0.05);
+    ctx.lineTo(s*0.3 - Math.sin(armAngle) * s*0.05, s*0.12 - Math.cos(armAngle) * s*0.05);
+    ctx.stroke();
+    // 머리
+    ctx.beginPath();
+    ctx.arc(0, -s*0.25, s*0.18, 0, 6.28);
+    ctx.fillStyle = '#e0e0f0';
+    ctx.fill();
+    // 헤드폰 밴드
+    ctx.strokeStyle = glowColor || '#FF6EC7';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, -s*0.28, s*0.22, -2.8, -0.34);
+    ctx.stroke();
+    // 헤드폰 이어컵 (양쪽 사각형)
+    ctx.fillStyle = glowColor || '#FF6EC7';
+    const earW = s * 0.08, earH = s * 0.1;
+    ctx.fillRect(-s*0.24 - earW/2, -s*0.3 - earH/2, earW, earH);
+    ctx.fillRect(s*0.24 - earW/2, -s*0.3 - earH/2, earW, earH);
+    // 바이저 (시안 발광)
+    ctx.shadowColor = '#00FFFF';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#00FFFF';
+    ctx.fillRect(-s*0.12, -s*0.28, s*0.24, s*0.06);
+    ctx.shadowBlur = 0;
+    // 홀드 비트 차지 이펙트 — 보라색 오라 링 확대 애니메이션
+    if (pose === 'hold') {
+      const chargeAlpha = 0.3 + 0.3 * Math.sin(G.time * 0.01);
+      ctx.globalAlpha = chargeAlpha;
+      ctx.strokeStyle = glowColor || '#6c3cf7';
+      ctx.lineWidth = 2;
+      const chargeR = s * 0.4 + Math.sin(G.time * 0.008) * s * 0.05;
+      ctx.beginPath(); ctx.arc(0, 0, chargeR, 0, 6.28); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, chargeR * 1.3, 0, 6.28); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+}
+
+// 적 그리기 (존별 형태 + 네온 글로우)
+function drawEnemy(ctx, x, y, size, type, hp, maxHp, animFrame, zone) {
+  const s = size || 48;
+  ctx.save();
+  ctx.translate(x, y);
+  const c = zoneColor(zone);
+  {
+    // 네온 글로우
+    ctx.shadowColor = c[2];
+    ctx.shadowBlur = 8 + Math.sin(animFrame * 0.08) * 3;
+    const rot = animFrame * 0.05;
+    ctx.rotate(rot);
+    ctx.fillStyle = c[0];
+    ctx.globalAlpha = hp <= 0 ? 0.3 : 1;
+    if (zone === 0) { // 음표 — 글로우 코어 추가
+      ctx.beginPath(); ctx.arc(0, 0, s*0.3, 0, 6.28); ctx.fill();
+      // 밝은 중심
+      ctx.fillStyle = c[2]; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.arc(0, 0, s*0.15, 0, 6.28); ctx.fill();
+      ctx.globalAlpha = hp <= 0 ? 0.3 : 1; ctx.fillStyle = c[0];
+      ctx.fillRect(-2, -s*0.3, 4, -s*0.3);
+      // 음표 깃발
+      ctx.fillRect(2, -s*0.6, s*0.12, s*0.08);
+    } else if (zone === 1) { // 스피커 — 동심원 진동
+      ctx.fillRect(-s*0.3, -s*0.3, s*0.6, s*0.6);
+      ctx.strokeStyle = c[2]; ctx.lineWidth = 1.5;
+      const pulseR = s*0.18 + Math.sin(animFrame * 0.1) * s*0.04;
+      ctx.beginPath(); ctx.arc(0, 0, pulseR, 0, 6.28); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, s*0.1, 0, 6.28);
+      ctx.fillStyle = c[3]; ctx.fill();
+      // 스피커 콘 패턴
+      ctx.strokeStyle = c[0]; ctx.globalAlpha = 0.3;
+      ctx.beginPath(); ctx.arc(0, 0, s*0.25, 0, 6.28); ctx.stroke();
+      ctx.globalAlpha = hp <= 0 ? 0.3 : 1;
+    } else if (zone === 2) { // 카세트 — 테이프 릴 회전
+      ctx.fillRect(-s*0.35, -s*0.2, s*0.7, s*0.4);
+      // 외곽 하이라이트
+      ctx.strokeStyle = c[2]; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
+      ctx.strokeRect(-s*0.35, -s*0.2, s*0.7, s*0.4);
+      ctx.globalAlpha = hp <= 0 ? 0.3 : 1;
+      ctx.fillStyle = '#222';
+      ctx.beginPath(); ctx.arc(-s*0.12, 0, s*0.09, 0, 6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(s*0.12, 0, s*0.09, 0, 6.28); ctx.fill();
+      // 회전 마커
+      ctx.strokeStyle = c[1]; ctx.lineWidth = 1;
+      const tapAngle = animFrame * 0.08;
+      ctx.beginPath(); ctx.moveTo(-s*0.12, 0); ctx.lineTo(-s*0.12 + Math.cos(tapAngle)*s*0.06, Math.sin(tapAngle)*s*0.06); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s*0.12, 0); ctx.lineTo(s*0.12 + Math.cos(-tapAngle)*s*0.06, Math.sin(-tapAngle)*s*0.06); ctx.stroke();
+    } else if (zone === 3) { // 드럼스틱 십자 — 끝 둥근 볼 추가
+      ctx.fillRect(-s*0.05, -s*0.35, s*0.1, s*0.7);
+      ctx.fillRect(-s*0.35, -s*0.05, s*0.7, s*0.1);
+      // 스틱 끝 둥근 볼
+      ctx.fillStyle = c[2];
+      ctx.beginPath(); ctx.arc(0, -s*0.35, s*0.06, 0, 6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, s*0.35, s*0.06, 0, 6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(-s*0.35, 0, s*0.06, 0, 6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(s*0.35, 0, s*0.06, 0, 6.28); ctx.fill();
+    } else { // 글리치 픽셀 — 더 선명하게 + 글로우 링
+      for (let px = -2; px <= 2; px++) for (let py = -2; py <= 2; py++) {
+        if (G.rng.next() < 0.6) { ctx.fillStyle = G.rng.next() < 0.5 ? c[0] : c[1]; ctx.fillRect(px*s*0.12, py*s*0.12, s*0.1, s*0.1); }
+      }
+      // 글리치 외곽 글로우 링
+      ctx.strokeStyle = c[2]; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.4;
+      ctx.beginPath(); ctx.arc(0, 0, s*0.35, 0, 6.28); ctx.stroke();
+      ctx.globalAlpha = hp <= 0 ? 0.3 : 1;
+    }
+    // HP 바
+    ctx.rotate(-rot);
+    ctx.shadowBlur = 0;
+    if (hp > 0 && hp < maxHp) {
+      const bw = s * 0.8, bh = 4;
+      ctx.fillStyle = '#333'; ctx.globalAlpha = 1;
+      ctx.fillRect(-bw/2, -s/2 - 8, bw, bh);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(-bw/2, -s/2 - 8, bw * (hp / maxHp), bh);
+    }
+  }
+  ctx.restore();
+}
+
+// 보스 그리기 (확대 + 존 특화 + 바이닐 홈 + 이퀄라이저)
+function drawBoss(ctx, x, y, size, bossId, phase, hp, maxHp, animFrame) {
+  const s = size || 150;
+  const c = zoneColor(bossId < 5 ? bossId : 5);
+  ctx.save();
+  ctx.translate(x, y);
+  // 페이즈별 글로우 강도
+  const glowStr = 8 + phase * 8;
+  ctx.shadowColor = c[2];
+  ctx.shadowBlur = glowStr;
+  // Void DJ는 모든 색 번갈아
+  let bossColor = c[0];
+  if (bossId === 5) {
+    const ci = ((animFrame * 0.03) | 0) % 5;
+    ctx.shadowColor = CONFIG.ZONE_COLORS[ci][2];
+    bossColor = CONFIG.ZONE_COLORS[ci][0];
+  }
+  {
+    // 외곽 이퀄라이저 바 (보스 위에 5개 막대)
+    ctx.shadowBlur = 0;
+    const eqBars = 7;
+    const eqW = s * 0.08;
+    const eqGap = s * 0.1;
+    const eqBaseX = -(eqBars * eqGap) / 2;
+    for (let bi = 0; bi < eqBars; bi++) {
+      const barH = s * 0.08 + Math.abs(Math.sin((animFrame * 0.06 + bi * 0.8))) * s * 0.15;
+      ctx.fillStyle = bi % 2 === 0 ? c[0] : c[1];
+      ctx.globalAlpha = 0.5 + phase * 0.1;
+      ctx.fillRect(eqBaseX + bi * eqGap, -s * 0.55 - barH, eqW, barH);
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = c[2];
+    ctx.shadowBlur = glowStr;
+    // 턴테이블 외곽 링
+    ctx.strokeStyle = c[1];
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.42, 0, 6.28); ctx.stroke();
+    // 턴테이블 메인 디스크
+    ctx.fillStyle = bossColor;
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.4, 0, 6.28); ctx.fill();
+    // 바이닐 레코드 홈 패턴 (동심원)
+    ctx.strokeStyle = c[3]; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.4;
+    for (let gi = 1; gi <= 5; gi++) {
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.08 * gi, 0, 6.28); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // 레이블 중심 디스크
+    ctx.fillStyle = c[3];
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.18, 0, 6.28); ctx.fill();
+    // 레이블 글로우 코어
+    ctx.fillStyle = c[2];
+    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(animFrame * 0.04);
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.08, 0, 6.28); ctx.fill();
+    ctx.globalAlpha = 1;
+    // 회전 암 (톤암)
+    const armAngle = animFrame * 0.02;
+    ctx.strokeStyle = c[1]; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(armAngle) * s * 0.35, Math.sin(armAngle) * s * 0.35);
+    ctx.stroke();
+    // 톤암 끝 카트리지
+    ctx.fillStyle = c[2];
+    const tipX = Math.cos(armAngle) * s * 0.35, tipY = Math.sin(armAngle) * s * 0.35;
+    ctx.fillRect(tipX - 3, tipY - 3, 6, 6);
+    // 보스별 고유 장식
+    if (bossId === 0) { // DJ 레트로: 8비트 크라운
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(-s*0.12, -s*0.48, s*0.06, s*0.06);
+      ctx.fillRect(s*0.06, -s*0.48, s*0.06, s*0.06);
+      ctx.fillRect(-s*0.03, -s*0.52, s*0.06, s*0.06);
+    } else if (bossId === 1) { // DJ 워블: 양쪽 스피커 콘
+      ctx.strokeStyle = c[2]; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(-s*0.5, 0, s*0.1, 0, 6.28); ctx.stroke();
+      ctx.beginPath(); ctx.arc(s*0.5, 0, s*0.1, 0, 6.28); ctx.stroke();
+    } else if (bossId === 2) { // DJ 칠: 노이즈 그레인
+      ctx.globalAlpha = 0.15;
+      for (let ni = 0; ni < 20; ni++) {
+        ctx.fillStyle = '#fff';
+        const nx = (G.rng.next() - 0.5) * s * 0.8;
+        const ny = (G.rng.next() - 0.5) * s * 0.8;
+        ctx.fillRect(nx, ny, 2, 2);
+      }
+      ctx.globalAlpha = 1;
+    } else if (bossId === 3) { // DJ 브레이크: 에너지 링
+      ctx.strokeStyle = c[2]; ctx.lineWidth = 2; ctx.globalAlpha = 0.4 + phase * 0.15;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.48 + Math.sin(animFrame * 0.05) * 3, 0, 6.28); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    } else if (bossId >= 4) { // DJ 에러 + Void DJ: 글리치 효과
+      ctx.globalAlpha = 0.3;
+      const glitchOffset = (G.rng.next() - 0.5) * 4;
+      ctx.fillStyle = c[0];
+      ctx.fillRect(-s*0.4 + glitchOffset, (G.rng.next()-0.5)*s*0.6, s*0.8, 3);
+      ctx.fillStyle = c[1];
+      ctx.fillRect(-s*0.3 - glitchOffset, (G.rng.next()-0.5)*s*0.5, s*0.6, 2);
+      ctx.globalAlpha = 1;
+    }
+    // 보스 이름 위 표시
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = c[2];
+    ctx.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(CONFIG.BOSS_NAMES[G.lang][bossId], 0, -s * 0.52);
+  }
+  ctx.shadowBlur = 0;
+  // HP 바 (대형)
+  const bw = s * 0.9, bh = 8;
+  ctx.fillStyle = '#222';
+  ctx.fillRect(-bw/2, s*0.42, bw, bh);
+  // 페이즈별 색상
+  const hpRatio = hp / maxHp;
+  ctx.fillStyle = hpRatio > 0.5 ? c[0] : hpRatio > 0.25 ? '#FFD700' : '#ef4444';
+  ctx.fillRect(-bw/2, s*0.42, bw * hpRatio, bh);
+  // 페이즈 마커
+  const phases = CONFIG.BOSS_PHASES[bossId] || [];
+  ctx.fillStyle = '#fff';
+  for (let pi = 0; pi < phases.length; pi++) {
+    const px = -bw/2 + bw * phases[pi];
+    ctx.fillRect(px - 1, s*0.42, 2, bh);
+  }
+  ctx.restore();
+}
+
+// 비트 레인 그리기
+function drawBeatLane(ctx, x, y, w, h, beats, currentTime, bpm, zone) {
+  const c = zoneColor(zone);
+  // 레인 배경
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(x, y, w, h);
+  // 판정선
+  const judgeX = x + w * 0.2;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(judgeX, y); ctx.lineTo(judgeX, y + h); ctx.stroke();
+  // 판정선 글로우
+  ctx.strokeStyle = c[2];
+  ctx.globalAlpha = 0.5 + 0.3 * Math.sin(G.time * 0.01);
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(judgeX, y); ctx.lineTo(judgeX, y + h); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 1;
+  // 비트 마커
+  const beatInterval = 60000 / bpm;
+  const visibleRange = beatInterval * 4;
+  for (let i = 0; i < beats.length; i++) {
+    const b = beats[i];
+    if (b.judged && !b.holdActive) continue;
+    const timeDiff = b.time - currentTime;
+    if (timeDiff < -500 || timeDiff > visibleRange) continue;
+    const progress = 1 - timeDiff / visibleRange;
+    const bx = x + w * 0.2 + (w * 0.75) * (1 - progress);
+    const by = y + h * 0.5;
+    const bSize = h * 0.3;
+    // 비트 유형별 형태
+    ctx.save();
+    ctx.translate(bx, by);
+    if (b.type === 'basic') {
+      ctx.fillStyle = c[0];
+      ctx.beginPath(); ctx.arc(0, 0, bSize, 0, 6.28); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, bSize * 0.4, 0, 6.28); ctx.fill();
+    } else if (b.type === 'double') {
+      ctx.fillStyle = c[1];
+      ctx.beginPath(); ctx.arc(-bSize*0.5, 0, bSize*0.7, 0, 6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(bSize*0.5, 0, bSize*0.7, 0, 6.28); ctx.fill();
+    } else if (b.type === 'hold') {
+      ctx.fillStyle = c[2];
+      const holdW = Math.max(bSize * 2, (b.holdDur / visibleRange) * w * 0.75);
+      ctx.fillRect(-bSize, -bSize*0.5, holdW, bSize);
+      ctx.beginPath(); ctx.arc(0, 0, bSize * 0.6, 0, 6.28);
+      ctx.fillStyle = '#fff'; ctx.fill();
+    } else if (b.type === 'dodge') {
+      ctx.fillStyle = '#FFD700';
+      ctx.save(); ctx.rotate(0.785);
+      ctx.fillRect(-bSize*0.5, -bSize*0.5, bSize, bSize);
+      ctx.restore();
+    } else if (b.type === 'boss') {
+      ctx.fillStyle = c[0];
+      drawStar(ctx, 0, 0, 5, bSize, bSize * 0.5);
+    }
+    ctx.restore();
+  }
+}
+
+// 별 그리기 유틸
+function drawStar(ctx, cx, cy, spikes, outerR, innerR) {
+  let rot = -1.5708;
+  const step = 3.14159 / spikes;
+  ctx.beginPath();
+  ctx.moveTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+    rot += step;
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+// 판정 표시 그리기
+function drawJudgement(ctx, x, y, type, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const colors = { perfect: '#FFD700', great: '#00FFFF', good: '#90EE90', miss: '#ef4444' };
+  ctx.fillStyle = colors[type] || '#fff';
+  ctx.shadowColor = colors[type] || '#fff';
+  ctx.shadowBlur = 10;
+  ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str(type), x, y);
+  ctx.restore();
+}
+
+// 콤보 카운터 그리기
+function drawComboCounter(ctx, x, y, combo, multiplier, scale) {
+  if (combo <= 0) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale || 1, scale || 1);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // 콤보 수
+  ctx.fillStyle = combo >= 20 ? '#FFD700' : combo >= 10 ? '#00FFFF' : '#FF6EC7';
+  ctx.shadowColor = ctx.fillStyle;
+  ctx.shadowBlur = combo >= 10 ? 15 : 8;
+  ctx.font = 'bold 36px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(combo + '', 0, 0);
+  // COMBO 라벨
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.shadowBlur = 0;
+  ctx.fillText(str('combo'), 0, 22);
+  // 배율
+  ctx.font = 'bold 16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText('x' + multiplier.toFixed(1), 0, -24);
+  ctx.restore();
+}
+
+// HUD 그리기
+function drawUI(ctx, w, h, hp, maxHp, score, combo, zone, stage, crystals) {
+  ctx.save();
+  // HP 바 (좌상단)
+  const hpBarX = 10, hpBarY = 10, hpBarW = 180, hpBarH = 20;
+  // 하트 아이콘 (Canvas)
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  const hx = hpBarX + 10, hy = hpBarY + 10;
+  ctx.moveTo(hx, hy - 4);
+  ctx.bezierCurveTo(hx - 8, hy - 12, hx - 16, hy, hx, hy + 10);
+  ctx.moveTo(hx, hy - 4);
+  ctx.bezierCurveTo(hx + 8, hy - 12, hx + 16, hy, hx, hy + 10);
+  ctx.fill();
+  const hbx = hpBarX + 30;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(hbx, hpBarY, hpBarW - 30, hpBarH);
+  const hpRatio = Math.max(0, hp / maxHp);
+  ctx.fillStyle = hpRatio > 0.5 ? '#00ff87' : hpRatio > 0.25 ? '#FFD700' : '#ef4444';
+  ctx.fillRect(hbx, hpBarY, (hpBarW - 30) * hpRatio, hpBarH);
+  ctx.strokeStyle = '#505070';
+  ctx.strokeRect(hbx, hpBarY, hpBarW - 30, hpBarH);
+  // HP 텍스트
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(Math.ceil(hp) + '/' + maxHp, hbx + (hpBarW - 30) / 2, hpBarY + 14);
+  // 점수 (우상단)
+  ctx.textAlign = 'right';
+  // 별 아이콘 (Canvas)
+  ctx.fillStyle = '#FFD700';
+  const sx = w - 142, sy = 20;
+  ctx.beginPath();
+  for (let si = 0; si < 5; si++) {
+    const a = si * 1.2566 - 1.5708;
+    const ra = a + 0.6283;
+    ctx.lineTo(sx + Math.cos(a) * 10, sy + Math.sin(a) * 10);
+    ctx.lineTo(sx + Math.cos(ra) * 5, sy + Math.sin(ra) * 5);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 18px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(score.toLocaleString(), w - 12, 26);
+  // 존/스테이지 표시
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+  const zName = CONFIG.ZONE_NAMES[G.lang][zone] || '';
+  ctx.fillText(zName + ' ' + (stage + 1), 10, hpBarY + hpBarH + 18);
+  // 크리스탈 (좌하단)
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('♦ ' + crystals, 10, h - 10);
+  // 일시정지 버튼 (우상단)
+  const pbtn = getPauseRect(w);
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(pbtn.x, pbtn.y, pbtn.w, pbtn.h);
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '18px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⏸', pbtn.x + pbtn.w/2, pbtn.y + pbtn.h/2 + 5);
+  ctx.restore();
+}
+
+// 일시정지 버튼 rect 가져오기
+function getPauseRect(w) {
+  const s = Math.max(CONFIG.MIN_TOUCH, 40);
+  return { x: w - s - 6, y: 38, w: s, h: s };
+}
+
+// hitTest 단일 함수 (F16, F69)
+function hitTest(px, py, rect) {
+  return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
+}
+
+// 사운드 칩 카드 그리기
+function drawChipCard(ctx, x, y, w, h, chip, selected, alpha, lang) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // 카드 배경
+  const rarityColors = { common: '#3a3a5e', rare: '#1a3a5e', epic: '#3a1a4e' };
+  const rarityGlow = { common: '#6c3cf7', rare: '#00d4ff', epic: '#FFD700' };
+  ctx.fillStyle = selected ? '#2a2a4e' : rarityColors[chip.rarity];
+  ctx.strokeStyle = rarityGlow[chip.rarity];
+  ctx.lineWidth = selected ? 3 : 1;
+  roundRect(ctx, x, y, w, h, 8);
+  ctx.fill(); ctx.stroke();
+  // 칩 아이콘
+  {
+    ctx.fillStyle = rarityGlow[chip.rarity];
+    ctx.beginPath(); ctx.arc(x + w/2, y + 30, 16, 0, 6.28); ctx.fill();
+  }
+  // 칩 이름
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(chip[lang] || chip.ko, x + w/2, y + 62);
+  // 설명
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+  const descKey = 'desc_' + lang;
+  ctx.fillText(chip[descKey] || chip.desc_ko, x + w/2, y + 80);
+  // 희귀도
+  ctx.fillStyle = rarityGlow[chip.rarity];
+  ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(chip.rarity.toUpperCase(), x + w/2, y + h - 10);
+  ctx.restore();
+}
+
+// 둥근 사각형
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// 타이틀 화면 그리기
+function drawTitle(ctx, w, h, time) {
+  drawBackground(ctx, w, h, 0, time * 0.02, time * 0.05, time);
+  // 타이틀 글리치 이펙트
+  ctx.save();
+  const ty = h * 0.3;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // 글리치 오프셋
+  const glitchX = Math.sin(time * 0.013) * 3;
+  const glitchY = Math.cos(time * 0.017) * 2;
+  // 그림자 (시안)
+  ctx.fillStyle = '#00FFFF';
+  ctx.globalAlpha = 0.5;
+  ctx.font = 'bold 48px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('title'), w/2 + glitchX + 2, ty + glitchY + 2);
+  // 그림자 (핑크)
+  ctx.fillStyle = '#FF6EC7';
+  ctx.globalAlpha = 0.5;
+  ctx.fillText(str('title'), w/2 - glitchX - 2, ty - glitchY - 1);
+  // 메인
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#FF6EC7';
+  ctx.shadowBlur = 20;
+  ctx.fillText(str('title'), w/2, ty);
+  ctx.shadowBlur = 0;
+  // 서브타이틀
+  ctx.font = '18px "Segoe UI", system-ui, sans-serif';
+  ctx.fillStyle = '#8080a0';
+  ctx.fillText(str('subtitle'), w/2, ty + 40);
+  // 플레이어 캐릭터 표시
+  drawPlayer(ctx, w/2, h * 0.52, 80, 'idle', '#FF6EC7', 5);
+  // 시작 안내
+  const flashAlpha = 0.5 + 0.5 * Math.sin(time * 0.005);
+  ctx.globalAlpha = flashAlpha;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('tapToStart'), w/2, h * 0.75);
+  ctx.globalAlpha = 1;
+  // 하이스코어
+  const hs = G.save.highScores[G.difficulty] || 0;
+  if (hs > 0) {
+    ctx.fillStyle = '#FFD700';
+    ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(str('highScore') + ': ' + hs.toLocaleString(), w/2, h * 0.82);
+  }
+  // 언어 토글 (우하단)
+  const langBtn = getLangRect(w, h);
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(langBtn.x, langBtn.y, langBtn.w, langBtn.h);
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(str('lang'), langBtn.x + langBtn.w/2, langBtn.y + langBtn.h/2 + 4);
+  // 크리스탈 표시 (좌하단)
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('♦ ' + (G.save.crystals || 0) + ' ' + str('totalCrystals'), 12, h - 14);
+  ctx.restore();
+}
+
+// 언어 토글 rect
+function getLangRect(w, h) {
+  const s = Math.max(CONFIG.MIN_TOUCH, 44);
+  return { x: w - s - 8, y: h - s - 8, w: s, h: s };
+}
+
+// 난이도 선택 화면
+function drawDifficultySelect(ctx, w, h, menuIdx, time) {
+  drawBackground(ctx, w, h, 0, time * 0.02, time * 0.05, time);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('selectDiff'), w/2, h * 0.15);
+  const diffColors = ['#00ff87', '#00d4ff', '#ef4444'];
+  for (let i = 0; i < 3; i++) {
+    const dy = h * 0.28 + i * 90;
+    const rect = getDiffRect(w, h, i);
+    const selected = i === menuIdx;
+    ctx.fillStyle = selected ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = selected ? diffColors[i] : '#505070';
+    ctx.lineWidth = selected ? 2 : 1;
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 8);
+    ctx.fill(); ctx.stroke();
+    // 이름
+    ctx.fillStyle = diffColors[i];
+    ctx.font = 'bold 20px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(str('difficulty')[i], w/2, dy + 22);
+    // 설명
+    ctx.fillStyle = '#8080a0';
+    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(str('diffDesc')[i], w/2, dy + 42);
+    // 하이스코어
+    const diff = ['beginner','dj','maestro'][i];
+    const hs = G.save.highScores[diff] || 0;
+    if (hs > 0) {
+      ctx.fillStyle = '#FFD700';
+      ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText(str('highScore') + ': ' + hs.toLocaleString(), w/2, dy + 58);
+    }
+  }
+  ctx.restore();
+}
+
+// 난이도 선택 rect
+function getDiffRect(w, h, idx) {
+  const bw = Math.min(300, w * 0.8), bh = 72;
+  return { x: w/2 - bw/2, y: h * 0.28 + idx * 90 - 4, w: bw, h: bh };
+}
+
+// 존 맵 화면
+function drawZoneMap(ctx, w, h, currentZone, unlockedZones, menuIdx, time) {
+  drawBackground(ctx, w, h, 0, time * 0.02, time * 0.05, time);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 24px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('zone') + ' ' + str('selectDiff'), w/2, h * 0.08 + 12);
+  // 존 목록 (7존)
+  const visibleZones = [];
+  for (let i = 0; i < 7; i++) if (unlockedZones[i]) visibleZones.push(i);
+  for (let vi = 0; vi < visibleZones.length; vi++) {
+    const zi = visibleZones[vi];
+    const rect = getZoneRect(w, h, vi, visibleZones.length);
+    const selected = vi === menuIdx;
+    const c = zoneColor(zi);
+    ctx.fillStyle = selected ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = selected ? c[0] : '#505070';
+    ctx.lineWidth = selected ? 2 : 1;
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 6);
+    ctx.fill(); ctx.stroke();
+    // 색 인디케이터
+    ctx.fillStyle = c[0];
+    ctx.fillRect(rect.x + 8, rect.y + 8, 6, rect.h - 16);
+    // 존 이름
+    ctx.fillStyle = '#e0e0f0';
+    ctx.font = 'bold 15px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(CONFIG.ZONE_NAMES[G.lang][zi], rect.x + 22, rect.y + rect.h/2 + 5);
+    ctx.textAlign = 'center';
+  }
+  // 업그레이드 버튼
+  const upgRect = getUpgradeButtonRect(w, h);
+  ctx.fillStyle = 'rgba(0,255,135,0.1)';
+  ctx.strokeStyle = '#00ff87';
+  ctx.lineWidth = 1;
+  roundRect(ctx, upgRect.x, upgRect.y, upgRect.w, upgRect.h, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#00ff87';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(str('upgrade') + ' (♦' + (G.save.crystals||0) + ')', upgRect.x + upgRect.w/2, upgRect.y + upgRect.h/2 + 5);
+  ctx.restore();
+}
+
+// 존 선택 rect
+function getZoneRect(w, h, vi, total) {
+  const bw = Math.min(280, w * 0.75), bh = 48;
+  return { x: w/2 - bw/2, y: h * 0.15 + vi * (bh + 8), w: bw, h: bh };
+}
+
+// 업그레이드 버튼 rect
+function getUpgradeButtonRect(w, h) {
+  const bw = Math.min(200, w * 0.5), bh = Math.max(CONFIG.MIN_TOUCH, 40);
+  return { x: w/2 - bw/2, y: h - bh - 16, w: bw, h: bh };
+}
+
+// 게임오버 화면 그리기
+function drawGameOver(ctx, w, h, score, bestScore, combo, crystals, time) {
+  // 어두운 오버레이
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.textAlign = 'center';
+  // 게임오버 텍스트 (글리치)
+  const gx = Math.sin(time * 0.02) * 2;
+  ctx.fillStyle = '#ef4444';
+  ctx.shadowColor = '#ef4444';
+  ctx.shadowBlur = 15;
+  ctx.font = 'bold 40px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('gameover'), w/2 + gx, h * 0.25);
+  ctx.shadowBlur = 0;
+  // 점수
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 24px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('score') + ': ' + score.toLocaleString(), w/2, h * 0.4);
+  // 최고점수
+  const isNew = score >= bestScore && score > 0;
+  ctx.fillStyle = isNew ? '#FFD700' : '#8080a0';
+  ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('highScore') + ': ' + bestScore.toLocaleString() + (isNew ? ' NEW!' : ''), w/2, h * 0.48);
+  // 콤보
+  ctx.fillText(str('combo') + ': ' + combo, w/2, h * 0.55);
+  // 크리스탈
+  ctx.fillStyle = '#00d4ff';
+  ctx.fillText('♦ +' + crystals + ' ' + str('crystal'), w/2, h * 0.62);
+  // 재시작 안내
+  const flash = 0.5 + 0.5 * Math.sin(time * 0.005);
+  ctx.globalAlpha = flash;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '15px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('restart'), w/2, h * 0.78);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// 스테이지 인트로 그리기
+function drawStageIntro(ctx, w, h, zone, stage, bossStage, time, alpha) {
+  drawBackground(ctx, w, h, zone, time * 0.02, time * 0.05, time);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center';
+  const c = zoneColor(zone);
+  if (bossStage) {
+    // 보스 등장
+    ctx.fillStyle = c[0];
+    ctx.shadowColor = c[2];
+    ctx.shadowBlur = 20;
+    ctx.font = 'bold 36px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(str('bossIncoming'), w/2, h * 0.35);
+    ctx.shadowBlur = 0;
+    const bossIdx = CONFIG.BOSS_STAGES.indexOf(G.stageIdx);
+    if (bossIdx >= 0) {
+      ctx.font = 'bold 24px "Segoe UI", system-ui, sans-serif';
+      ctx.fillStyle = '#FFD700';
+      ctx.fillText(CONFIG.BOSS_NAMES[G.lang][bossIdx], w/2, h * 0.48);
+    }
+  } else {
+    ctx.fillStyle = c[0];
+    ctx.shadowColor = c[2];
+    ctx.shadowBlur = 15;
+    ctx.font = 'bold 30px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(CONFIG.ZONE_NAMES[G.lang][zone] + ' ' + (stage + 1), w/2, h * 0.4);
+    ctx.shadowBlur = 0;
+  }
+  // BPM 표시
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('BPM: ' + Math.round(G.bpm), w/2, h * 0.6);
+  ctx.restore();
+}
+
+// 칩 선택 화면
+function drawChipSelect(ctx, w, h, choices, menuIdx, time) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 22px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('chipSelect'), w/2, h * 0.12);
+  const cardW = Math.min(140, (w - 60) / 3);
+  const cardH = 110;
+  const startX = w/2 - (cardW * choices.length + 16 * (choices.length - 1)) / 2;
+  for (let i = 0; i < choices.length; i++) {
+    const cx = startX + i * (cardW + 16);
+    const cy = h * 0.25;
+    drawChipCard(ctx, cx, cy, cardW, cardH, choices[i], i === menuIdx, 1, G.lang);
+    // 번호 라벨
+    ctx.fillStyle = '#8080a0';
+    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText((i + 1) + '', cx + cardW/2, cy + cardH + 16);
+  }
+  ctx.restore();
+}
+
+// 업그레이드 화면
+function drawUpgradeScreen(ctx, w, h, save, treeIdx, time) {
+  drawBackground(ctx, w, h, 0, time * 0.01, time * 0.03, time);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 22px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('upgrade'), w/2, 30);
+  // 크리스탈 잔고
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('♦ ' + (save.crystals || 0), w/2, 52);
+  // 3 트리
+  const trees = ['rhythm', 'power', 'flow'];
+  const treeColors = ['#00d4ff', '#ef4444', '#00ff87'];
+  const treeW = Math.min(160, (w - 40) / 3);
+  const startX = w/2 - (treeW * 3 + 12 * 2) / 2;
+  for (let t = 0; t < 3; t++) {
+    const tx = startX + t * (treeW + 12);
+    const ty = 70;
+    const selected = t === treeIdx;
+    const lvl = save.upgrades[trees[t]] || 0;
+    const rect = getUpgTreeRect(w, h, t);
+    ctx.fillStyle = selected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)';
+    ctx.strokeStyle = selected ? treeColors[t] : '#505070';
+    ctx.lineWidth = selected ? 2 : 1;
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 6);
+    ctx.fill(); ctx.stroke();
+    // 트리 이름
+    ctx.fillStyle = treeColors[t];
+    ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(trees[t].toUpperCase(), rect.x + rect.w/2, rect.y + 20);
+    // 레벨 표시
+    for (let l = 0; l < 5; l++) {
+      const ly = rect.y + 35 + l * 30;
+      const unlocked = l < lvl;
+      const next = l === lvl;
+      ctx.fillStyle = unlocked ? treeColors[t] : next ? '#505070' : '#1e1e30';
+      ctx.fillRect(rect.x + 8, ly, rect.w - 16, 24);
+      if (unlocked || next) {
+        const upgDef = CONFIG.UPGRADES[trees[t]][l];
+        ctx.fillStyle = unlocked ? '#000' : '#8080a0';
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(upgDef[G.lang] || upgDef.ko, rect.x + rect.w/2, ly + 10);
+        if (next && lvl < 5) {
+          ctx.fillStyle = '#FFD700';
+          ctx.fillText('♦' + CONFIG.UPGRADE_COSTS[l], rect.x + rect.w/2, ly + 21);
+        }
+      }
+    }
+  }
+  // 뒤로가기
+  const backRect = getBackButtonRect(w, h);
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  roundRect(ctx, backRect.x, backRect.y, backRect.w, backRect.h, 6);
+  ctx.fill();
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('← ' + str('toTitle'), backRect.x + backRect.w/2, backRect.y + backRect.h/2 + 5);
+  ctx.restore();
+}
+
+// 업그레이드 트리 rect
+function getUpgTreeRect(w, h, idx) {
+  const treeW = Math.min(160, (w - 40) / 3);
+  const startX = w/2 - (treeW * 3 + 12 * 2) / 2;
+  return { x: startX + idx * (treeW + 12), y: 70, w: treeW, h: 210 };
+}
+
+// 뒤로가기 버튼 rect
+function getBackButtonRect(w, h) {
+  const bw = Math.min(150, w * 0.4), bh = Math.max(CONFIG.MIN_TOUCH, 40);
+  return { x: w/2 - bw/2, y: h - bh - 12, w: bw, h: bh };
+}
+
+// 일시정지 화면
+function drawPauseScreen(ctx, w, h, time) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 28px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('pause'), w/2, h * 0.3);
+  // Resume 버튼
+  const resumeRect = getPauseMenuRect(w, h, 0);
+  ctx.fillStyle = 'rgba(0,255,135,0.15)';
+  ctx.strokeStyle = '#00ff87';
+  ctx.lineWidth = 1;
+  roundRect(ctx, resumeRect.x, resumeRect.y, resumeRect.w, resumeRect.h, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#00ff87';
+  ctx.font = 'bold 16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('resume'), resumeRect.x + resumeRect.w/2, resumeRect.y + resumeRect.h/2 + 5);
+  // Quit 버튼
+  const quitRect = getPauseMenuRect(w, h, 1);
+  ctx.fillStyle = 'rgba(239,68,68,0.15)';
+  ctx.strokeStyle = '#ef4444';
+  roundRect(ctx, quitRect.x, quitRect.y, quitRect.w, quitRect.h, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ef4444';
+  ctx.fillText(str('quit'), quitRect.x + quitRect.w/2, quitRect.y + quitRect.h/2 + 5);
+  // 장착 칩
+  if (G.chips.length > 0) {
+    ctx.fillStyle = '#8080a0';
+    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(str('equipped') + ':', w/2, h * 0.65);
+    for (let ci = 0; ci < G.chips.length; ci++) {
+      ctx.fillStyle = '#e0e0f0';
+      ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText(G.chips[ci][G.lang], w/2, h * 0.68 + ci * 16);
+    }
+  }
+  ctx.restore();
+}
+
+// 일시정지 메뉴 rect
+function getPauseMenuRect(w, h, idx) {
+  const bw = Math.min(200, w * 0.5), bh = Math.max(CONFIG.MIN_TOUCH, 44);
+  return { x: w/2 - bw/2, y: h * 0.42 + idx * (bh + 12), w: bw, h: bh };
+}
+
+// 내러티브 화면
+function drawNarrative(ctx, w, h, lines, alpha, time) {
+  drawBackground(ctx, w, h, G.currentZone, time * 0.02, time * 0.05, time);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, h * 0.3, w, h * 0.4);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '15px "Segoe UI", system-ui, sans-serif';
+  const textLines = (lines || '').split('\n');
+  for (let i = 0; i < textLines.length; i++) {
+    ctx.fillText(textLines[i], w/2, h * 0.42 + i * 22);
+  }
+  // 진행 안내
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+  const f = 0.5 + 0.5 * Math.sin(time * 0.005);
+  ctx.globalAlpha = alpha * f;
+  ctx.fillText('TAP / SPACE', w/2, h * 0.65);
+  ctx.restore();
+}
+
+// 승리/히든엔딩 화면
+function drawVictory(ctx, w, h, ending, score, time) {
+  drawBackground(ctx, w, h, 5, time * 0.02, time * 0.05, time);
+  ctx.save();
+  ctx.textAlign = 'center';
+  const isHidden = ending === 'hidden';
+  ctx.fillStyle = isHidden ? '#FFD700' : '#00ff87';
+  ctx.shadowColor = ctx.fillStyle;
+  ctx.shadowBlur = 20;
+  ctx.font = 'bold 36px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('victory'), w/2, h * 0.25);
+  ctx.shadowBlur = 0;
+  // 엔딩 타입
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '18px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(isHidden ? str('hiddenEnding') : str('normalEnding'), w/2, h * 0.36);
+  // 점수
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 22px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('score') + ': ' + score.toLocaleString(), w/2, h * 0.5);
+  // 재시작 안내
+  const flash = 0.5 + 0.5 * Math.sin(time * 0.005);
+  ctx.globalAlpha = flash;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '15px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('restart'), w/2, h * 0.75);
+  ctx.restore();
+}
+
+// 스테이지 클리어 화면
+function drawStageClear(ctx, w, h, score, crystals, time) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#00ff87';
+  ctx.shadowColor = '#00ff87';
+  ctx.shadowBlur = 15;
+  ctx.font = 'bold 30px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('stageCleared'), w/2, h * 0.3);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 20px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('score') + ': ' + score.toLocaleString(), w/2, h * 0.45);
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('♦ +' + crystals, w/2, h * 0.55);
+  const flash = 0.5 + 0.5 * Math.sin(time * 0.005);
+  ctx.globalAlpha = flash;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('TAP / SPACE', w/2, h * 0.72);
+  ctx.restore();
+}
+
+// 히트 이펙트 파티클 그리기
+function drawHitEffect(ctx, x, y, size, alpha) {
+  // Canvas 방사형 파티클 히트 이펙트
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const c = zoneColor(G.currentZone);
+  const rays = 8;
+  for (let i = 0; i < rays; i++) {
+    const angle = (i / rays) * 6.28;
+    const r = size * 0.4;
+    ctx.strokeStyle = c[2];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(angle) * r * 0.2, y + Math.sin(angle) * r * 0.2);
+    ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+    ctx.stroke();
+  }
+  // 중심 글로우
+  ctx.fillStyle = c[0];
+  ctx.beginPath(); ctx.arc(x, y, size * 0.15, 0, 6.28); ctx.fill();
+  ctx.restore();
+}
+
+// 로딩 화면
+function drawLoadingScreen(ctx, w, h, progress, time) {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FF6EC7';
+  ctx.font = 'bold 32px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('NEON PULSE', w/2, h * 0.4);
+  ctx.fillStyle = '#8080a0';
+  ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText(str('loading'), w/2, h * 0.52);
+  // 로딩 바
+  const bw = 200, bh = 6;
+  ctx.fillStyle = '#1e1e30';
+  ctx.fillRect(w/2 - bw/2, h * 0.58, bw, bh);
+  ctx.fillStyle = '#FF6EC7';
+  ctx.fillRect(w/2 - bw/2, h * 0.58, bw * progress, bh);
+  // 맥동 효과
+  const p = 0.5 + 0.5 * Math.sin(time * 0.008);
+  ctx.globalAlpha = p * 0.3;
+  ctx.fillStyle = '#FF6EC7';
+  ctx.beginPath(); ctx.arc(w/2, h * 0.4, 80, 0, 6.28); ctx.fill();
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 5: RHYTHM — 비트 생성, BPM 동기화, 타이밍 판정 ══
+// ══════════════════════════════════════════════════════════════════
+
+// 비트 패턴 생성 (SeededRNG 기반)
+function generateBeats(rng, bpm, density, stageTime, beatTypes) {
+  const beats = [];
+  const interval = 60000 / bpm;
+  const totalBeats = Math.ceil(stageTime / interval);
+  const ratios = beatTypes || CONFIG.BEAT_RATIOS;
+  for (let i = 0; i < totalBeats; i++) {
+    const time = i * interval;
+    // 밀도에 따라 일부 비트 스킵
+    if (rng.next() > density) continue;
+    // 비트 유형 결정
+    const r = rng.next();
+    let type = 'basic';
+    let cumulative = 0;
+    if (r < (cumulative += ratios[0])) type = 'basic';
+    else if (r < (cumulative += ratios[1])) type = 'double';
+    else if (r < (cumulative += ratios[2])) type = 'hold';
+    else type = 'dodge';
+    const beat = createBeat(type, time, 0);
+    if (type === 'hold') {
+      beat.holdDur = interval * (1 + rng.next());
+    }
+    beats.push(beat);
+  }
+  return beats;
+}
+
+// 보스 비트 패턴 생성
+function generateBossBeats(rng, bpm, bossIdx, phase) {
+  const beats = [];
+  const interval = 60000 / bpm;
+  // 보스별 패턴 정의
+  const patterns = {
+    0: [[['basic','basic','hold'],['basic','double','hold','hold']]],
+    1: [[['basic','basic','double'],['double','double','hold','dodge'],['double','double','hold','dodge','boss']]],
+    2: [[['hold','hold','basic','hold'],['basic','basic','hold','dodge']]],
+    3: [[['basic','basic','basic','basic'],['basic','double','double','basic','double'],['basic','basic','basic','double','double'],['double','double','double','dodge','hold','basic','basic']]],
+    4: [[['basic','dodge','basic','hold'],['dodge','basic','hold','basic'],['basic','basic','basic','dodge','hold'],['double','double','dodge','hold','basic','basic']]],
+    5: [[['basic','dodge','hold'],['basic','double','hold','dodge','basic'],['double','double','hold','dodge'],['double','double','dodge','hold','basic','boss']]]
+  };
+  const bossPatterns = patterns[bossIdx] || patterns[0];
+  const phasePattern = bossPatterns[0][Math.min(phase, bossPatterns[0].length - 1)];
+  // 패턴 반복으로 비트 생성 (30초분)
+  const totalBeats = Math.ceil(30000 / interval);
+  for (let i = 0; i < totalBeats; i++) {
+    const type = phasePattern[i % phasePattern.length];
+    const beat = createBeat(type, i * interval, 0);
+    if (type === 'hold') beat.holdDur = interval * 1.5;
+    beats.push(beat);
+  }
+  return beats;
+}
+
+// 타이밍 판정
+function judgeInput(inputTime, beats, judgeWindows) {
+  let bestDelta = Infinity;
+  let bestBeat = null;
+  for (let i = 0; i < beats.length; i++) {
+    const b = beats[i];
+    if (b.judged || b.missed) continue;
+    const delta = Math.abs(inputTime - b.time);
+    if (delta < bestDelta && delta <= judgeWindows.good + 50) {
+      bestDelta = delta;
+      bestBeat = b;
+    }
+  }
+  if (!bestBeat) return { type: 'miss', beat: null, delta: Infinity };
+  bestBeat.judged = true;
+  if (bestDelta <= judgeWindows.perfect) return { type: 'perfect', beat: bestBeat, delta: bestDelta };
+  if (bestDelta <= judgeWindows.great) return { type: 'great', beat: bestBeat, delta: bestDelta };
+  if (bestDelta <= judgeWindows.good) return { type: 'good', beat: bestBeat, delta: bestDelta };
+  bestBeat.judged = false;
+  return { type: 'miss', beat: null, delta: bestDelta };
+}
+
+// Miss 체크 (비트가 지나갔는데 입력 없음)
+function checkMissedBeats(beats, currentTime, goodWindow) {
+  const missed = [];
+  for (let i = 0; i < beats.length; i++) {
+    const b = beats[i];
+    if (b.judged || b.missed) continue;
+    if (currentTime - b.time > goodWindow + 50) {
+      b.missed = true;
+      missed.push(b);
+    }
+  }
+  return missed;
+}
+
+// 현재 비트 시간 계산
+function getCurrentBeatTime() {
+  return G.time - G.stageStartTime;
+}
+
+// BPM에 따른 비트 간격
+function getBeatInterval(bpm) {
+  return 60000 / bpm;
+}
+
+// 홀드 비트 지속 대미지 업데이트 (§2.2: 유지 시간 비례 배율)
+function updateHoldBeats(dt) {
+  if (G.state !== STATE.PLAYING && G.state !== STATE.BOSS_FIGHT) return;
+  for (let i = 0; i < G.beats.length; i++) {
+    const b = G.beats[i];
+    if (!b.holdActive) continue;
+    const elapsed = G.time - b.holdStart;
+    // 홀드 비트 종료 조건: 플레이어가 키를 뗐거나 holdDur 초과
+    if (!isHolding || elapsed >= b.holdDur) {
+      b.holdActive = false;
+      // 홀드 완료 보너스 — 유지 비율에 따라 대미지 추가 지급
+      const holdRatio = Math.min(1, elapsed / b.holdDur);
+      if (holdRatio >= 0.8) {
+        // 80% 이상 유지 시 보너스 대미지
+        const bonusDmg = calcDamage(CONFIG.PLAYER_BASE_DMG, 'perfect', G.combo, G.chips, G.save.upgrades, 'hold', G.difficulty) * holdRatio;
+        if (G.boss && G.boss.alive) {
+          applyDamageToBoss(G.boss, bonusDmg);
+        } else {
+          const target = G.enemies.find(function(e) { return e.alive; });
+          if (target) applyDamageToEnemy(target, bonusDmg);
+        }
+        // 점수 보너스
+        G.score += Math.round(CONFIG.BASE_SCORE * holdRatio * 0.5);
+        G.judgeDisplay = { type: 'perfect', alpha: 1, y: logH * 0.5 };
+        tw.add({ target: G.judgeDisplay, prop: 'alpha', from: 1, to: 0, dur: 600 });
+      }
+      if (G.player.pose === 'hold') { G.player.pose = 'idle'; G.player.poseTimer = 0; }
+      continue;
+    }
+    // 지속 대미지: holdDur 동안 tick당 소량 대미지
+    const tickDmg = (CONFIG.PLAYER_BASE_DMG * 0.3 * dt / 1000);
+    // 칩 보너스: 루프 스테이션 (holdMul)
+    let holdMul = 1;
+    for (let ci = 0; ci < G.chips.length; ci++) {
+      if (G.chips[ci].effect === 'holdMul') holdMul += G.chips[ci].val;
+    }
+    // 업그레이드: 홀드 마스터 (Power Lv4)
+    if (G.save.upgrades.power >= 4) holdMul *= 1.5;
+    const holdTickDmg = tickDmg * holdMul;
+    if (G.boss && G.boss.alive) {
+      applyDamageToBoss(G.boss, holdTickDmg);
+    } else {
+      const target = G.enemies.find(function(e) { return e.alive; });
+      if (target) applyDamageToEnemy(target, holdTickDmg);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 6: COMBAT — 전투 로직, 대미지 계산, 콤보 ══
+// ══════════════════════════════════════════════════════════════════
+
+// 대미지 계산 (순수 함수)
+function calcDamage(baseDmg, judgeType, combo, chips, upgrades, beatType, difficulty) {
+  let dmg = baseDmg;
+  // 판정 배율
+  const jMul = CONFIG.JUDGE_MUL[judgeType] || 0;
+  dmg *= jMul;
+  // 콤보 배율
+  let comboBonus = CONFIG.COMBO_PER;
+  // 칩: 이퀄라이저
+  for (let i = 0; i < chips.length; i++) {
+    if (chips[i].effect === 'comboBonus') comboBonus += chips[i].val;
+  }
+  let maxMul = CONFIG.COMBO_MAX_MUL;
+  // 업그레이드: 콤보 프로 (Lv3)
+  if (upgrades.rhythm >= 3) maxMul = 3.5;
+  const comboMul = Math.min(maxMul, 1 + combo * comboBonus);
+  dmg *= comboMul;
+  // 칩 효과: 대미지 보너스 (DPS 캡 적용)
+  let chipDmgBonus = 0;
+  for (let i = 0; i < chips.length; i++) {
+    if (chips[i].effect === 'dmgMul') chipDmgBonus += chips[i].val;
+    if (chips[i].effect === 'masterDmg') chipDmgBonus += chips[i].val;
+    if (chips[i].effect === 'holdMul' && beatType === 'hold') chipDmgBonus += chips[i].val;
+    if (chips[i].effect === 'beatSpec') {
+      // 리믹서: 지정 비트 +80%, 나머지 -20%
+      chipDmgBonus += (beatType === 'basic' ? chips[i].val : -0.2);
+    }
+  }
+  chipDmgBonus = Math.min(chipDmgBonus, CONFIG.CHIP_DPS_CAP);
+  dmg *= (1 + chipDmgBonus);
+  // 업그레이드: 파워 앰프
+  if (upgrades.power >= 1) dmg *= 1.1;
+  // 업그레이드: 더블 스트라이크
+  if (upgrades.power >= 3 && beatType === 'double') dmg *= 1.4;
+  // 업그레이드: 홀드 마스터
+  if (upgrades.power >= 4 && beatType === 'hold') dmg *= 1.5;
+  // 업그레이드: 오버드라이브 (콤보15+)
+  if (upgrades.power >= 5 && combo >= 15) dmg *= 1.25;
+  // 업그레이드: 크리티컬 비트 (Perfect 20% 크리티컬)
+  if (upgrades.power >= 2 && judgeType === 'perfect') {
+    if (G.rng.next() < 0.2) dmg *= 2;
+  }
+  // 칩: 하모닉스 (Perfect시 2히트)
+  if (judgeType === 'perfect') {
+    for (let i = 0; i < chips.length; i++) {
+      if (chips[i].effect === 'perfectDouble') dmg *= 2;
+    }
+  }
+  return Math.round(dmg);
+}
+
+// 콤보 업데이트
+function updateCombo(judgeType, combo, difficulty, upgrades) {
+  if (judgeType === 'perfect' || judgeType === 'great') {
+    // 마에스트로에서 Perfect만 콤보 유지 (Great 리셋)
+    if (difficulty === 'maestro' && judgeType === 'great') return 0;
+    return combo + 1;
+  }
+  if (judgeType === 'good') {
+    // 업그레이드: 타이밍 왕 (Lv4)
+    if (upgrades.rhythm >= 4) return combo + 1;
+    return 0;
+  }
+  return 0;
+}
+
+// 점수 계산
+function calcScore(judgeType, combo, comboBonus) {
+  const jMul = CONFIG.JUDGE_MUL[judgeType] || 0;
+  let maxMul = CONFIG.COMBO_MAX_MUL;
+  const per = CONFIG.COMBO_PER + (comboBonus || 0);
+  const comboMul = Math.min(maxMul, 1 + combo * per);
+  return Math.round(CONFIG.BASE_SCORE * jMul * comboMul);
+}
+
+// 적에게 대미지 적용
+function applyDamageToEnemy(enemy, dmg) {
+  enemy.hp -= dmg;
+  enemy.hitFlash = 200;
+  if (enemy.hp <= 0) { enemy.hp = 0; enemy.alive = false; }
+}
+
+// 보스에게 대미지 적용 + 페이즈 체크
+function applyDamageToBoss(boss, dmg) {
+  if (!boss || !boss.alive) return;
+  boss.hp -= dmg;
+  boss.hitFlash = 200;
+  if (boss.hp <= 0) { boss.hp = 0; boss.alive = false; return; }
+  // 페이즈 전환 체크
+  const phases = CONFIG.BOSS_PHASES[boss.idx] || [];
+  const hpRatio = boss.hp / boss.maxHp;
+  let newPhase = 0;
+  for (let i = 0; i < phases.length; i++) {
+    if (hpRatio <= phases[i]) newPhase = i + 1;
+  }
+  if (newPhase > boss.phase && !boss.phaseTransitioning) {
+    boss.phaseTransitioning = true;
+    boss.phase = newPhase;
+    boss.atkTimer = 0;
+    // BPM 변경 (tween 경유)
+    const bpmRanges = CONFIG.ZONE_BPM[boss.idx < 5 ? boss.idx : 5];
+    const targetBpm = bpmRanges[0] + (bpmRanges[1] - bpmRanges[0]) * (newPhase / phases.length);
+    tw.add({ target: G, prop: 'bpm', from: G.bpm, to: targetBpm, dur: 1000, onComplete: function() {
+      G.beatInterval = getBeatInterval(G.bpm);
+      if (G.boss) G.boss.phaseTransitioning = false;
+    }});
+    // 새 비트 패턴 생성
+    G.beats = generateBossBeats(G.rng, targetBpm, boss.idx, newPhase);
+    G.stageStartTime = G.time;
+  }
+}
+
+// 보스 보상 (F17: 단일 경로 + 가드 플래그)
+function checkBossDefeat(boss) {
+  if (!boss || boss.alive || G.bossRewardGiven) return false;
+  G.bossRewardGiven = true;
+  const bossIdx = CONFIG.BOSS_STAGES.indexOf(G.stageIdx);
+  const reward = CONFIG.STAGES[G.stageIdx][3];
+  G.crystalsThisRun += reward;
+  G.score += CONFIG.BOSS_BONUS_PER_ZONE * (G.currentZone + 1);
+  return true;
+}
+
+// 적 공격 (Miss시)
+function enemyAttack(player, enemy, chips, upgrades, difficulty) {
+  let dmg = enemy.atk * CONFIG.DIFF_ATK_MUL[difficulty];
+  // 칩: 리버브 실드
+  for (let i = 0; i < chips.length; i++) {
+    if (chips[i].effect === 'defMul') dmg *= (1 - chips[i].val);
+  }
+  // 업그레이드: 페이드 아웃 (Lv2)
+  if (upgrades.flow >= 2) dmg *= 0.8;
+  // 세컨드 찬스 (Lv4)
+  if (player.hp - dmg <= 0 && upgrades.flow >= 4 && !player.secondChanceUsed) {
+    player.secondChanceUsed = true;
+    player.hp = 1;
+    return;
+  }
+  player.hp = Math.max(0, player.hp - Math.round(dmg));
+}
+
+// 회피 처리
+function processDodge(direction, chips) {
+  let aoe = 0;
+  for (let i = 0; i < chips.length; i++) {
+    if (chips[i].effect === 'dodgeDmg') aoe += chips[i].val;
+  }
+  return aoe;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 7: ROGUELITE — 사운드 칩, 업그레이드 트리, 진행 관리 ══
+// ══════════════════════════════════════════════════════════════════
+
+// 칩 3택 선택지 생성 (캡 고려)
+function generateChipChoices(rng, currentChips) {
+  const available = [];
+  const currentDmgBonus = sumChipEffect(currentChips, 'dmgMul') + sumChipEffect(currentChips, 'masterDmg');
+  for (let i = 0; i < CONFIG.CHIPS.length; i++) {
+    const chip = CONFIG.CHIPS[i];
+    // 이미 보유한 칩 제외
+    if (currentChips.some(c => c.id === chip.id)) continue;
+    // DPS 캡 체크
+    if ((chip.effect === 'dmgMul' || chip.effect === 'masterDmg') && currentDmgBonus + chip.val > CONFIG.CHIP_DPS_CAP) continue;
+    available.push(chip);
+  }
+  // 희귀도 가중치
+  const choices = [];
+  const weights = available.map(c => c.rarity === 'common' ? 3 : c.rarity === 'rare' ? 2 : 1);
+  while (choices.length < 3 && available.length > 0) {
+    const idx = weightedPickIndex(rng, weights);
+    choices.push(available[idx]);
+    available.splice(idx, 1);
+    weights.splice(idx, 1);
+  }
+  return choices;
+}
+
+// 가중치 선택 인덱스
+function weightedPickIndex(rng, weights) {
+  let sum = 0;
+  for (let i = 0; i < weights.length; i++) sum += weights[i];
+  let r = rng.next() * sum;
+  for (let i = 0; i < weights.length; i++) { r -= weights[i]; if (r <= 0) return i; }
+  return weights.length - 1;
+}
+
+// 칩 효과 합산
+function sumChipEffect(chips, effect) {
+  let sum = 0;
+  for (let i = 0; i < chips.length; i++) if (chips[i].effect === effect) sum += chips[i].val;
+  return sum;
+}
+
+// 업그레이드 구매
+function purchaseUpgrade(save, tree) {
+  const lvl = save.upgrades[tree] || 0;
+  if (lvl >= 5) return false;
+  const cost = CONFIG.UPGRADE_COSTS[lvl];
+  if (save.crystals < cost) return false;
+  save.crystals -= cost;
+  save.upgrades[tree] = lvl + 1;
+  saveSave(save);
+  return true;
+}
+
+// 스테이지 인덱스 계산
+function getStageIndex(zone, stage) {
+  if (zone >= 5) return 20 + (zone - 5);
+  return zone * 4 + stage;
+}
+
+// 존/스테이지 → 보스 여부
+function isBossStage(stageIdx) {
+  return CONFIG.BOSS_STAGES.indexOf(stageIdx) >= 0;
+}
+
+// 보스 인덱스
+function getBossIndex(stageIdx) {
+  return CONFIG.BOSS_STAGES.indexOf(stageIdx);
+}
+
+// DDA 업데이트
+function updateDDA(player, difficulty, perfectStreak, missStreak) {
+  if (difficulty === 'maestro') return 0;
+  let level = 0;
+  const hpRatio = player.hp / player.maxHp;
+  if (hpRatio < CONFIG.DDA_HP_LV2) level = 2;
+  else if (hpRatio < CONFIG.DDA_HP_LV1) level = 1;
+  if (missStreak >= CONFIG.DDA_MISS_STREAK) level = Math.max(level, 3);
+  return Math.min(level, 3);
+}
+
+// DDA 적용: 판정 윈도우 확장
+function getDDAJudgeWindows(base, ddaLevel) {
+  const bonus = ddaLevel >= 2 ? 20 : 0;
+  return {
+    perfect: base.perfect + bonus,
+    great: base.great + bonus,
+    good: base.good + bonus
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 8: STATE — 게임 상태 머신, 전환, 입력 처리 ══
+// ══════════════════════════════════════════════════════════════════
+
+// 상태 전환 (F6: 우선순위 체계)
+// 역방향 전환 허용 딕셔너리 (P0 수정: STATE_PRIORITY 역방향 차단 버그 해결)
+const REVERSE_ALLOWED = {
+  [STATE.STAGE_CLEAR]: [STATE.STAGE_INTRO, STATE.BOSS_INTRO, STATE.TITLE, STATE.ZONE_MAP],
+  [STATE.BOSS_DEFEAT]: [STATE.CHIP_SELECT, STATE.TITLE],
+  [STATE.NARRATIVE]: [STATE.STAGE_INTRO, STATE.BOSS_INTRO, STATE.TITLE, STATE.ZONE_MAP],
+  [STATE.UPGRADE]: [STATE.ZONE_MAP, STATE.TITLE],
+  [STATE.CHIP_SELECT]: [STATE.NARRATIVE, STATE.STAGE_INTRO, STATE.TITLE],
+  [STATE.ZONE_CLEAR]: [STATE.STAGE_INTRO, STATE.ZONE_MAP, STATE.TITLE, STATE.UPGRADE],
+  [STATE.GAMEOVER]: [STATE.TITLE],
+  [STATE.VICTORY]: [STATE.TITLE],
+  [STATE.HIDDEN_ENDING]: [STATE.TITLE],
+  [STATE.PAUSE]: [STATE.PLAYING, STATE.BOSS_FIGHT, STATE.TITLE],
+  [STATE.DIFFICULTY_SELECT]: [STATE.TITLE]
+};
+
+function beginTransition(targetState, onComplete) {
+  if (G._transitioning) return;
+  // 역방향 전환 우선순위 체크 — REVERSE_ALLOWED 딕셔너리로 허용 여부 판단
+  if (targetState < G.state) {
+    const allowed = REVERSE_ALLOWED[G.state];
+    if (!allowed || !allowed.includes(targetState)) return;
+  }
+  // PAUSE는 PLAYING/BOSS_FIGHT에서만
+  if (targetState === STATE.PAUSE && G.state !== STATE.PLAYING && G.state !== STATE.BOSS_FIGHT) return;
+  G._transitioning = true;
+  G._transTarget = targetState;
+  tw.add({
+    target: G, prop: '_transAlpha', from: 0, to: 1, dur: 300,
+    onComplete: function() {
+      G.prevState = G.state;
+      G.state = targetState;
+      if (onComplete) onComplete();
+      tw.add({
+        target: G, prop: '_transAlpha', from: 1, to: 0, dur: 300,
+        onComplete: function() { G._transitioning = false; }
+      });
+    }
+  });
+}
+
+// 즉시 상태 전환 (인트로/부트용)
+function setState(s) {
+  G.prevState = G.state;
+  G.state = s;
+}
+
+// 새 런 시작
+function startNewRun() {
+  const diff = G.difficulty;
+  const save = G.save;
+  const maxHp = CONFIG.PLAYER_BASE_HP[diff] + (save.upgrades.flow >= 1 ? 15 : 0);
+  G.player = { hp: maxHp, maxHp: maxHp, x: 0, y: 0, pose: 'idle', poseTimer: 0,
+    comboGlow: 0, invincible: 0, secondChanceUsed: false };
+  G.combo = 0;
+  G.maxCombo = 0;
+  G.score = 0;
+  G.totalPerfects = 0;
+  G.totalBeats = 0;
+  G.chips = [];
+  G.crystalsThisRun = 0;
+  G.missCounterUsed = false;
+  G._missCounterActive = false;
+  G.doublePending = null;
+  G.doubleTimer = 0;
+  G.doubleFirstJudge = null;
+  G.ddaLevel = 0;
+  G.ddaMissStreak = 0;
+  G.ddaPerfectStreak = 0;
+  G.bossRewardGiven = false;
+  G.enemies = [];
+  G.boss = null;
+  G.beats = [];
+  G.rng = new SeededRNG(Date.now());
+  G.save.totalPlayCount = (G.save.totalPlayCount || 0) + 1;
+  saveSave(G.save);
+}
+
+// 스테이지 시작
+function startStage(zone, stage) {
+  G.currentZone = zone;
+  G.currentStage = stage;
+  G.stageIdx = getStageIndex(zone, stage);
+  G.bossRewardGiven = false;
+  const stageData = CONFIG.STAGES[G.stageIdx];
+  if (!stageData) { beginTransition(STATE.VICTORY); return; }
+  // BPM 설정 (tween 경유)
+  const bpmRange = CONFIG.ZONE_BPM[zone] || [120, 140];
+  const targetBpm = bpmRange[0] + (bpmRange[1] - bpmRange[0]) * (stage / 3);
+  tw.add({ target: G, prop: 'bpm', from: G.bpm || bpmRange[0], to: targetBpm, dur: 500, onComplete: function() {
+    G.beatInterval = getBeatInterval(G.bpm);
+  }});
+  // 보스 여부
+  if (isBossStage(G.stageIdx)) {
+    const bossIdx = getBossIndex(G.stageIdx);
+    const hpMul = CONFIG.DIFF_HP_MUL[G.difficulty];
+    G.boss = createBoss(bossIdx, Math.round(stageData[0] * hpMul), stageData[1]);
+    G.enemies = [];
+    G.beats = generateBossBeats(G.rng, targetBpm, bossIdx, 0);
+  } else {
+    G.boss = null;
+    // 일반 적 생성 (3~5마리)
+    const numEnemies = G.rng.int(3, 5);
+    const hpMul = CONFIG.DIFF_HP_MUL[G.difficulty];
+    G.enemies = [];
+    for (let i = 0; i < numEnemies; i++) {
+      G.enemies.push(createEnemy(
+        Math.round(stageData[0] * hpMul),
+        stageData[1],
+        i % 5,
+        zone
+      ));
+    }
+    const density = stageData[2] * CONFIG.DIFF_DENSITY_MUL[G.difficulty];
+    G.beats = generateBeats(G.rng, targetBpm, density, 60000, null);
+  }
+  G.stageStartTime = G.time;
+  G.currentBeatIdx = 0;
+  // 스테이지 인트로
+  G._introAlpha = 0;
+  G._introTimer = 0;
+  if (isBossStage(G.stageIdx)) {
+    beginTransition(STATE.BOSS_INTRO, function() {
+      sound.playBossIntro();
+      tw.add({ target: G, prop: '_introAlpha', from: 0, to: 1, dur: 500 });
+      tw.add({ target: G, prop: '_introTimer', from: 0, to: 3000, dur: 3000, onComplete: function() {
+        sound.startBGM(G.currentZone, G.bpm);
+        beginTransition(STATE.BOSS_FIGHT);
+      }});
+    });
+  } else {
+    beginTransition(STATE.STAGE_INTRO, function() {
+      tw.add({ target: G, prop: '_introAlpha', from: 0, to: 1, dur: 500 });
+      tw.add({ target: G, prop: '_introTimer', from: 0, to: 2000, dur: 2000, onComplete: function() {
+        G.stageStartTime = G.time;
+        sound.startBGM(G.currentZone, G.bpm);
+        beginTransition(STATE.PLAYING);
+      }});
+    });
+  }
+}
+
+// 스테이지 클리어 처리
+function onStageClear() {
+  if (G._transitioning) return;
+  const stageData = CONFIG.STAGES[G.stageIdx];
+  const crystals = stageData ? stageData[3] : 0;
+  // 크리스탈 배율 칩
+  let cMul = 1;
+  for (let i = 0; i < G.chips.length; i++) {
+    if (G.chips[i].effect === 'crystalMul') cMul += G.chips[i].val;
+  }
+  const earnedCrystals = Math.round(crystals * cMul);
+  G.crystalsThisRun += earnedCrystals;
+  G.score += CONFIG.CLEAR_BONUS_PER_STAGE * (G.stageIdx + 1);
+  // 업그레이드: 리커버리 (Lv3)
+  if (G.save.upgrades.flow >= 3) {
+    G.player.hp = Math.min(G.player.maxHp, G.player.hp + 20);
+  }
+  sound.stopBGM();
+  sound.playClear();
+  // 보스 스테이지 후 → 칩 선택 + 존 클리어
+  if (isBossStage(G.stageIdx)) {
+    beginTransition(STATE.BOSS_DEFEAT, function() {
+      tw.add({ target: G, prop: '_introTimer', from: 0, to: 2000, dur: 2000, onComplete: function() {
+        // 존 클리어 체크
+        const zone = G.currentZone;
+        if (zone < 5) {
+          // 칩 선택
+          G.chipChoices = generateChipChoices(G.rng, G.chips);
+          if (G.chipChoices.length > 0) {
+            G.menuIdx = 0;
+            beginTransition(STATE.CHIP_SELECT);
+          } else {
+            advanceToNextZone();
+          }
+        } else if (zone === 5) {
+          // 히든 1 클리어 → 히든 2
+          G.save.unlockedZones[6] = true;
+          saveSave(G.save);
+          advanceToNextZone();
+        } else {
+          // Void DJ 격파 → 진엔딩
+          G.save.hiddenBossDefeated = true;
+          finishRun(true);
+          beginTransition(STATE.HIDDEN_ENDING);
+        }
+      }});
+    });
+  } else {
+    beginTransition(STATE.STAGE_CLEAR, function() {
+      tw.add({ target: G, prop: '_introTimer', from: 0, to: 1500, dur: 1500, onComplete: function() {
+        advanceStage();
+      }});
+    });
+  }
+}
+
+// 다음 스테이지로 진행
+function advanceStage() {
+  const nextStage = G.currentStage + 1;
+  if (nextStage <= 3) {
+    startStage(G.currentZone, nextStage);
+  } else {
+    // 존 클리어 (보스 후 처리이므로 여기는 보통 안 옴)
+    advanceToNextZone();
+  }
+}
+
+// 다음 존으로 진행
+function advanceToNextZone() {
+  const nextZone = G.currentZone + 1;
+  if (nextZone <= 4) {
+    // 내러티브 표시
+    G.save.unlockedZones[nextZone] = true;
+    saveSave(G.save);
+    G.narrativeLines = CONFIG.NARRATIVES[G.lang][G.currentZone];
+    G.narrativeIdx = 0;
+    G._introAlpha = 0;
+    beginTransition(STATE.NARRATIVE, function() {
+      tw.add({ target: G, prop: '_introAlpha', from: 0, to: 1, dur: 500 });
+    });
+  } else if (nextZone === 5) {
+    // 5존 클리어 → 일반 엔딩 + 히든 해금
+    G.save.unlockedZones[5] = true;
+    saveSave(G.save);
+    finishRun(false);
+    beginTransition(STATE.VICTORY);
+  } else if (nextZone === 6) {
+    // 히든 1 → 히든 2 (Void DJ)
+    startStage(6, 0);
+  } else {
+    finishRun(true);
+    beginTransition(STATE.HIDDEN_ENDING);
+  }
+}
+
+// 칩 선택 완료 후
+function onChipSelected(chipIdx) {
+  if (chipIdx < 0 || chipIdx >= G.chipChoices.length) return;
+  G.chips.push(G.chipChoices[chipIdx]);
+  sound.playChipGet();
+  G.chipChoices = [];
+  // 내러티브 → 다음 존
+  advanceToNextZone();
+}
+
+// 내러티브 진행
+function advanceNarrative() {
+  G.narrativeIdx++;
+  const narr = CONFIG.NARRATIVES[G.lang][G.currentZone];
+  if (!narr || G.narrativeIdx >= narr.length) {
+    // 다음 존 시작
+    startStage(G.currentZone + 1, 0);
+  } else {
+    G.narrativeLines = narr;
+    G._introAlpha = 0;
+    tw.add({ target: G, prop: '_introAlpha', from: 0, to: 1, dur: 500 });
+  }
+}
+
+// 게임 오버
+function onGameOver() {
+  if (G._transitioning) return;
+  if (G.player.hp > 0) return;
+  finishRun(false);
+  sound.stopBGM();
+  sound.playGameOver();
+  camShake(15, 500);
+  beginTransition(STATE.GAMEOVER);
+}
+
+// 런 종료 + 저장
+function finishRun(victory) {
+  // 판정 먼저 (F8)
+  const diff = G.difficulty;
+  const isNew = G.score > (G.save.highScores[diff] || 0);
+  // 저장 나중에
+  if (isNew) G.save.highScores[diff] = G.score;
+  if (G.combo > (G.save.bestCombo || 0)) G.save.bestCombo = G.combo;
+  if (G.maxCombo > (G.save.bestCombo || 0)) G.save.bestCombo = G.maxCombo;
+  const zoneReached = G.currentZone;
+  if (zoneReached > (G.save.bestZone || 0)) G.save.bestZone = zoneReached;
+  G.save.crystals = (G.save.crystals || 0) + G.crystalsThisRun;
+  G.save.totalBeats = (G.save.totalBeats || 0) + G.totalBeats;
+  G.save.totalPerfects = (G.save.totalPerfects || 0) + G.totalPerfects;
+  saveSave(G.save);
+}
+
+// 카메라 쉐이크
+function camShake(intensity, dur) {
+  G.camShakeTime = dur;
+  tw.add({ target: G, prop: 'camShakeTime', from: dur, to: 0, dur: dur, ease: 'linear' });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 9: SAVE — localStorage, 다국어 전환 ══
+// ══════════════════════════════════════════════════════════════════
+
+// 저장 데이터 로드
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      // 기본값 병합
+      return Object.assign(getDefaultSave(), data);
+    }
+  } catch(e) {}
+  return getDefaultSave();
+}
+
+// 기본 저장 데이터
+function getDefaultSave() {
+  return {
+    version: 1,
+    lang: 'ko',
+    difficulty: 'dj',
+    highScores: { beginner: 0, dj: 0, maestro: 0 },
+    bestCombo: 0,
+    bestZone: 0,
+    bestStage: 0,
+    crystals: 0,
+    upgrades: { rhythm: 0, power: 0, flow: 0 },
+    unlockedZones: [true, false, false, false, false, false, false],
+    hiddenBossDefeated: false,
+    totalPlayCount: 0,
+    totalBeats: 0,
+    totalPerfects: 0,
+    seed: null
+  };
+}
+
+// 저장
+function saveSave(data) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+// 언어 토글
+function toggleLang() {
+  G.lang = G.lang === 'ko' ? 'en' : 'ko';
+  G.save.lang = G.lang;
+  saveSave(G.save);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ══ REGION 10: MAIN — 게임 루프, 초기화, 이벤트 바인딩 ══
+// ══════════════════════════════════════════════════════════════════
+
+// DOM 요소
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// 논리 해상도
+let logW = 800, logH = 600;
+let scaleX = 1, scaleY = 1;
+let dpr = 1;
+
+// 엔진 인스턴스
+const tw = new TweenManager();
+const sound = new SoundManager();
+const particles = new ObjectPool(
+  () => ({ x:0,y:0,vx:0,vy:0,life:0,maxLife:1,alpha:1,color:'#fff',size:4,rot:0,rotSpeed:0,gravity:0,scale:1,scaleDecay:0 }),
+  (p) => { p.life = p.maxLife; p.alpha = 1; p.rot = 0; p.scale = 1; },
+  300
+);
+
+// Canvas 리사이즈
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  logW = w;
+  logH = h;
+  scaleX = 1;
+  scaleY = 1;
+}
+
+// 입력 좌표 변환
+function inputToCanvas(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+// 키 상태
+const keys = {};
+let lastTapTime = 0;
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+let isTouching = false;
+let holdStartTime = 0;
+let isHolding = false;
+
+// 비트 공격 처리 — 판정 결과를 적용하는 공통 함수
+function applyBeatResult(result, beatType, isDoubleSecondHit) {
+  G.totalBeats++;
+  // 판정 표시
+  G.judgeDisplay = { type: result.type, alpha: 1, y: logH * 0.55 };
+  tw.add({ target: G.judgeDisplay, prop: 'alpha', from: 1, to: 0, dur: 800 });
+  tw.add({ target: G.judgeDisplay, prop: 'y', from: logH * 0.55, to: logH * 0.45, dur: 800 });
+  sound.playJudge(result.type);
+  if (result.type === 'perfect' || result.type === 'great' || result.type === 'good') {
+    // 콤보 업데이트
+    G.combo = updateCombo(result.type, G.combo, G.difficulty, G.save.upgrades);
+    if (G.combo > G.maxCombo) G.maxCombo = G.combo;
+    // 콤보 마일스톤
+    if (G.combo === 5 || G.combo === 10 || G.combo === 20) sound.playCombo(G.combo);
+    // 홀드 비트 시작 — 판정 성공 시 holdActive 활성화
+    if (result.beat && result.beat.type === 'hold' && (result.type === 'perfect' || result.type === 'great')) {
+      result.beat.holdActive = true;
+      result.beat.holdStart = G.time;
+      G.player.pose = 'hold';
+      G.player.poseTimer = result.beat.holdDur + 200;
+    }
+    // 드롭 더 베이스 반격 보너스: 이전 Miss에서 missCounter 발동 시 대미지 2x
+    let missCounterMul = 1;
+    if (G._missCounterActive) {
+      missCounterMul = 2;
+      G._missCounterActive = false;
+    }
+    // 대미지 계산
+    let dmg = calcDamage(CONFIG.PLAYER_BASE_DMG, result.type, G.combo, G.chips, G.save.upgrades, beatType, G.difficulty);
+    dmg = Math.round(dmg * missCounterMul);
+    // 더블 비트 두 번째 히트 + 두 번 다 Perfect 보너스
+    if (isDoubleSecondHit && result.type === 'perfect' && G.doubleFirstJudge === 'perfect') {
+      dmg = Math.round(dmg * 1.5);
+      G.score += Math.round(CONFIG.BASE_SCORE * 0.5);
+      spawnPulseEffect();
+    }
+    // 점수
+    const scoreGain = calcScore(result.type, G.combo, sumChipEffect(G.chips, 'comboBonus'));
+    G.score += scoreGain;
+    if (result.type === 'perfect') {
+      G.totalPerfects++;
+      G.ddaPerfectStreak++;
+      G.ddaMissStreak = 0;
+      // Perfect 오라 (Rhythm Lv5)
+      if (G.save.upgrades.rhythm >= 5) G.player.hp = Math.min(G.player.maxHp, G.player.hp + 1);
+      // 풀스크린 네온 펄스 이펙트
+      if (!isDoubleSecondHit) spawnPulseEffect();
+    }
+    // 대미지 적용
+    if (G.boss && G.boss.alive) {
+      applyDamageToBoss(G.boss, dmg);
+      if (!G.boss.alive) { checkBossDefeat(G.boss); onStageClear(); }
+    } else if (G.enemies.length > 0) {
+      const target = G.enemies.find(e => e.alive);
+      if (target) {
+        applyDamageToEnemy(target, dmg);
+        spawnHitParticles(target.x || logW * 0.65, target.y || logH * 0.35);
+        if (!target.alive) {
+          if (!G.enemies.some(e => e.alive)) onStageClear();
+        }
+      }
+    }
+    // 콤보 칩: 크로스페이더 (콤보10+ HP+3)
+    if (G.combo >= 10) {
+      for (let i = 0; i < G.chips.length; i++) {
+        if (G.chips[i].effect === 'comboHeal') G.player.hp = Math.min(G.player.maxHp, G.player.hp + G.chips[i].val);
+      }
+    }
+    // 콤보 칩: 비트드롭 (콤보20 AoE)
+    if (G.combo >= 20) {
+      for (let i = 0; i < G.chips.length; i++) {
+        if (G.chips[i].effect === 'comboAoe') {
+          G.enemies.forEach(e => { if (e.alive) applyDamageToEnemy(e, Math.round(e.maxHp * G.chips[i].val)); });
+          if (G.boss && G.boss.alive) applyDamageToBoss(G.boss, Math.round(G.boss.maxHp * G.chips[i].val));
+        }
+      }
+    }
+    // 플레이어 포즈
+    G.player.pose = 'attack';
+    G.player.poseTimer = 200;
+  } else {
+    // Miss
+    applyMissPenalty();
+  }
+  // DDA 업데이트
+  G.ddaLevel = updateDDA(G.player, G.difficulty, G.ddaPerfectStreak, G.ddaMissStreak);
+}
+
+// Miss 공통 처리 (handleBeatAttack + updateMissedBeats에서 재사용)
+function applyMissPenalty() {
+  G.combo = 0;
+  G.ddaPerfectStreak = 0;
+  // 엔듀어 (Flow Lv5): 3연속 Miss 방지 — 3번째 Miss를 Good으로 변환
+  if (G.save.upgrades.flow >= 5 && G.ddaMissStreak >= 2) {
+    G.ddaMissStreak = 0;
+    // Good으로 변환: 대미지 적용 + 콤보는 리셋 상태 유지
+    const dmg = calcDamage(CONFIG.PLAYER_BASE_DMG, 'good', 0, G.chips, G.save.upgrades, 'basic', G.difficulty);
+    G.judgeDisplay = { type: 'good', alpha: 1, y: logH * 0.55 };
+    tw.add({ target: G.judgeDisplay, prop: 'alpha', from: 1, to: 0, dur: 600 });
+    sound.playJudge('good');
+    // 대미지를 적에게 적용
+    if (G.boss && G.boss.alive) {
+      applyDamageToBoss(G.boss, dmg);
+      if (!G.boss.alive) { checkBossDefeat(G.boss); onStageClear(); }
+    } else {
+      const target = G.enemies.find(e => e.alive);
+      if (target) {
+        applyDamageToEnemy(target, dmg);
+        if (!target.alive && !G.enemies.some(e => e.alive)) onStageClear();
+      }
+    }
+    return;
+  }
+  G.ddaMissStreak++;
+  // Miss 반격 칩: 드롭 더 베이스 — 다음 비트에 2x 대미지 부여
+  if (!G.missCounterUsed) {
+    for (let i = 0; i < G.chips.length; i++) {
+      if (G.chips[i].effect === 'missCounter') {
+        G.missCounterUsed = true;
+        G._missCounterActive = true;
+        spawnHitParticles(G.player.x || logW * 0.2, G.player.y || logH * 0.45);
+        break;
+      }
+    }
+  }
+  // 적 공격
+  const attacker = G.boss && G.boss.alive ? G.boss : G.enemies.find(e => e.alive);
+  if (attacker) {
+    enemyAttack(G.player, attacker, G.chips, G.save.upgrades, G.difficulty);
+    sound.playHit();
+    camShake(5, 200);
+    G.player.pose = 'hit';
+    G.player.poseTimer = 300;
+    if (G.player.hp <= 0) onGameOver();
+  }
+}
+
+// 비트 공격 처리 (§2.2: 더블 비트 2연타 지원)
+function handleBeatAttack() {
+  if (G.state !== STATE.PLAYING && G.state !== STATE.BOSS_FIGHT) return;
+  sound.resume();
+  // 더블 비트 두 번째 탭 처리
+  if (G.doublePending) {
+    const secondResult = { type: G.doublePending.firstResult.type, beat: G.doublePending.firstResult.beat, delta: G.doublePending.firstResult.delta };
+    // 두 번째 탭도 판정 (기존 비트 시간 기준)
+    const beatTime2 = getCurrentBeatTime();
+    const delta2 = Math.abs(beatTime2 - G.doublePending.beatTime);
+    const judgeW2 = G.doublePending.judgeW;
+    if (delta2 <= judgeW2.perfect) secondResult.type = 'perfect';
+    else if (delta2 <= judgeW2.great) secondResult.type = 'great';
+    else if (delta2 <= judgeW2.good) secondResult.type = 'good';
+    else secondResult.type = 'miss';
+    G.doubleFirstJudge = G.doublePending.firstJudge;
+    G.doublePending = null;
+    G.doubleTimer = 0;
+    applyBeatResult(secondResult, 'double', true);
+    return;
+  }
+  const beatTime = getCurrentBeatTime();
+  const baseJudge = CONFIG.JUDGE[G.difficulty];
+  // 업그레이드: 비트 감각 (Rhythm Lv1)
+  let extraPerfect = 0;
+  if (G.save.upgrades.rhythm >= 1) extraPerfect = 5;
+  // 칩: 메트로놈
+  for (let i = 0; i < G.chips.length; i++) {
+    if (G.chips[i].effect === 'perfectWindow') extraPerfect += G.chips[i].val;
+  }
+  const judgeW = getDDAJudgeWindows({
+    perfect: baseJudge.perfect + extraPerfect,
+    great: baseJudge.great,
+    good: baseJudge.good
+  }, G.ddaLevel);
+  const result = judgeInput(beatTime, G.beats, judgeW);
+  // 더블 비트 첫 번째 탭: 두 번째 입력 대기 상태 진입
+  if (result.beat && result.beat.type === 'double' && (result.type === 'perfect' || result.type === 'great' || result.type === 'good')) {
+    G.doublePending = {
+      firstResult: result,
+      firstJudge: result.type,
+      beatTime: result.beat.time,
+      judgeW: judgeW,
+      timer: 0
+    };
+    G.doubleTimer = 400;
+    // 첫 번째 탭 즉시 대미지 적용
+    applyBeatResult(result, 'double', false);
+    return;
+  }
+  applyBeatResult(result, result.beat ? result.beat.type : 'basic', false);
+}
+
+// 회피 처리
+function handleDodge(direction) {
+  if (G.state !== STATE.PLAYING && G.state !== STATE.BOSS_FIGHT) return;
+  // 현재 회피 비트 확인
+  const beatTime = getCurrentBeatTime();
+  for (let i = 0; i < G.beats.length; i++) {
+    const b = G.beats[i];
+    if (b.judged || b.missed || b.type !== 'dodge') continue;
+    if (Math.abs(beatTime - b.time) <= CONFIG.JUDGE[G.difficulty].good + 50) {
+      b.judged = true;
+      G.combo++;
+      if (G.combo > G.maxCombo) G.maxCombo = G.combo;
+      G.score += calcScore('great', G.combo, 0);
+      sound.playDodge();
+      G.player.pose = direction < 0 ? 'dodgeL' : 'dodgeR';
+      G.player.poseTimer = 300;
+      // 서브우퍼 칩
+      const aoeDmg = processDodge(direction, G.chips);
+      if (aoeDmg > 0) {
+        G.enemies.forEach(e => { if (e.alive) applyDamageToEnemy(e, aoeDmg); });
+        if (G.boss && G.boss.alive) applyDamageToBoss(G.boss, aoeDmg);
+      }
+      return;
+    }
+  }
+}
+
+// 네온 펄스 이펙트 (시그니처)
+function spawnPulseEffect() {
+  const c = zoneColor(G.currentZone);
+  for (let i = 0; i < 12; i++) {
+    const p = particles.acquire();
+    if (!p) break;
+    const angle = (i / 12) * 6.28;
+    p.x = logW * 0.5;
+    p.y = logH * 0.5;
+    p.vx = Math.cos(angle) * 300;
+    p.vy = Math.sin(angle) * 300;
+    p.life = 600;
+    p.maxLife = 600;
+    p.color = c[2];
+    p.size = 6;
+    p.gravity = 0;
+    p.scaleDecay = 0.5;
+  }
+}
+
+// 히트 파티클 생성
+function spawnHitParticles(x, y) {
+  const c = zoneColor(G.currentZone);
+  for (let i = 0; i < 6; i++) {
+    const p = particles.acquire();
+    if (!p) break;
+    p.x = x;
+    p.y = y;
+    p.vx = (G.rng.next() - 0.5) * 200;
+    p.vy = (G.rng.next() - 0.5) * 200;
+    p.life = 400;
+    p.maxLife = 400;
+    p.color = G.rng.next() < 0.5 ? c[0] : c[2];
+    p.size = 3 + G.rng.next() * 4;
+    p.gravity = 100;
+  }
+}
+
+// 키보드 이벤트
+window.addEventListener('keydown', function(e) {
+  // Prevent browser default for game keys (Space scroll, Arrow scroll, etc.)
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
+  if (keys[e.code]) return;
+  keys[e.code] = true;
+  sound.init();
+  sound.resume();
+  handleKeyAction(e.code);
+});
+
+window.addEventListener('keyup', function(e) {
+  keys[e.code] = false;
+  // 홀드 비트 종료
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    isHolding = false;
+  }
+});
+
+// 키 액션 처리
+function handleKeyAction(code) {
+  switch (G.state) {
+    case STATE.TITLE:
+      if (code === 'Space' || code === 'Enter') beginTransition(STATE.DIFFICULTY_SELECT);
+      break;
+    case STATE.DIFFICULTY_SELECT:
+      if (code === 'ArrowUp' || code === 'KeyW') G.menuIdx = (G.menuIdx + 2) % 3;
+      else if (code === 'ArrowDown' || code === 'KeyS') G.menuIdx = (G.menuIdx + 1) % 3;
+      else if (code === 'Space' || code === 'Enter') {
+        G.difficulty = ['beginner','dj','maestro'][G.menuIdx];
+        G.save.difficulty = G.difficulty;
+        saveSave(G.save);
+        startNewRun();
+        G.menuIdx = 0;
+        beginTransition(STATE.ZONE_MAP);
+      }
+      break;
+    case STATE.ZONE_MAP: {
+      const unlocked = G.save.unlockedZones.filter(u => u).length;
+      if (code === 'ArrowUp' || code === 'KeyW') G.menuIdx = (G.menuIdx + unlocked - 1) % unlocked;
+      else if (code === 'ArrowDown' || code === 'KeyS') G.menuIdx = (G.menuIdx + 1) % unlocked;
+      else if (code === 'Space' || code === 'Enter') {
+        // 선택된 존 시작
+        const zones = [];
+        for (let i = 0; i < 7; i++) if (G.save.unlockedZones[i]) zones.push(i);
+        if (G.menuIdx < zones.length) startStage(zones[G.menuIdx], 0);
+      }
+      else if (code === 'KeyU') {
+        G.upgTreeIdx = 0;
+        beginTransition(STATE.UPGRADE);
+      }
+      break;
+    }
+    case STATE.PLAYING:
+    case STATE.BOSS_FIGHT:
+      if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+        holdStartTime = G.time;
+        isHolding = true;
+        handleBeatAttack();
+      }
+      else if (code === 'ArrowLeft' || code === 'KeyA') handleDodge(-1);
+      else if (code === 'ArrowRight' || code === 'KeyD') handleDodge(1);
+      else if (code === 'KeyP' || code === 'Escape') {
+        G.pauseReturnState = G.state;
+        G.menuIdx = 0;
+        sound.stopBGM();
+        beginTransition(STATE.PAUSE);
+      }
+      break;
+    case STATE.PAUSE:
+      if (code === 'ArrowUp' || code === 'KeyW') G.menuIdx = 0;
+      else if (code === 'ArrowDown' || code === 'KeyS') G.menuIdx = 1;
+      else if (code === 'Space' || code === 'Enter') {
+        if (G.menuIdx === 0) { G._transitioning = false; setState(G.pauseReturnState); sound.startBGM(G.currentZone, G.bpm); }
+        else { tw.clearImmediate(); particles.clear(); sound.stopBGM(); setState(STATE.TITLE); G._transitioning = false; }
+      }
+      else if (code === 'Escape') { G._transitioning = false; setState(G.pauseReturnState); sound.startBGM(G.currentZone, G.bpm); }
+      break;
+    case STATE.CHIP_SELECT:
+      if (code === 'Digit1' || code === 'Numpad1') onChipSelected(0);
+      else if (code === 'Digit2' || code === 'Numpad2') onChipSelected(1);
+      else if (code === 'Digit3' || code === 'Numpad3') onChipSelected(2);
+      else if (code === 'ArrowLeft' || code === 'KeyA') G.menuIdx = Math.max(0, G.menuIdx - 1);
+      else if (code === 'ArrowRight' || code === 'KeyD') G.menuIdx = Math.min(G.chipChoices.length - 1, G.menuIdx + 1);
+      else if (code === 'Space' || code === 'Enter') onChipSelected(G.menuIdx);
+      break;
+    case STATE.STAGE_CLEAR:
+    case STATE.BOSS_DEFEAT:
+    case STATE.STAGE_INTRO:
+    case STATE.BOSS_INTRO:
+      // 스킵/진행 — 전환 중이면 무시
+      break;
+    case STATE.NARRATIVE:
+      if (code === 'Space' || code === 'Enter') advanceNarrative();
+      break;
+    case STATE.UPGRADE:
+      if (code === 'ArrowLeft' || code === 'KeyA') G.upgTreeIdx = Math.max(0, G.upgTreeIdx - 1);
+      else if (code === 'ArrowRight' || code === 'KeyD') G.upgTreeIdx = Math.min(2, G.upgTreeIdx + 1);
+      else if (code === 'Space' || code === 'Enter') {
+        const trees = ['rhythm','power','flow'];
+        if (purchaseUpgrade(G.save, trees[G.upgTreeIdx])) sound.playUpgrade();
+      }
+      else if (code === 'Escape') beginTransition(STATE.ZONE_MAP);
+      break;
+    case STATE.GAMEOVER:
+    case STATE.VICTORY:
+    case STATE.HIDDEN_ENDING:
+      if (code === 'KeyR' || code === 'Space' || code === 'Enter') {
+        tw.clearImmediate();
+        particles.clear();
+        G._transitioning = false;
+        setState(STATE.TITLE);
+      }
+      break;
+  }
+}
+
+// 터치 이벤트
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  sound.init();
+  sound.resume();
+  const touch = e.touches[0];
+  const pos = inputToCanvas(touch.clientX, touch.clientY);
+  touchStartX = pos.x;
+  touchStartY = pos.y;
+  touchStartTime = Date.now();
+  isTouching = true;
+  handleTouchStart(pos.x, pos.y);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  if (!isTouching) return;
+  isTouching = false;
+  isHolding = false;
+  const now = Date.now();
+  // 스와이프 감지
+  if (e.changedTouches.length > 0) {
+    const touch = e.changedTouches[0];
+    const pos = inputToCanvas(touch.clientX, touch.clientY);
+    const dx = pos.x - touchStartX;
+    const elapsed = now - touchStartTime;
+    if (Math.abs(dx) >= CONFIG.SWIPE_MIN_DIST && elapsed <= CONFIG.SWIPE_MAX_TIME) {
+      handleDodge(dx > 0 ? 1 : -1);
+    }
+  }
+}, { passive: false });
+
+// 터치 시작 처리
+function handleTouchStart(x, y) {
+  switch (G.state) {
+    case STATE.TITLE: {
+      // 언어 토글 체크
+      const langR = getLangRect(logW, logH);
+      if (hitTest(x, y, langR)) { toggleLang(); return; }
+      beginTransition(STATE.DIFFICULTY_SELECT);
+      break;
+    }
+    case STATE.DIFFICULTY_SELECT:
+      for (let i = 0; i < 3; i++) {
+        const r = getDiffRect(logW, logH, i);
+        if (hitTest(x, y, r)) {
+          G.menuIdx = i;
+          G.difficulty = ['beginner','dj','maestro'][i];
+          G.save.difficulty = G.difficulty;
+          saveSave(G.save);
+          startNewRun();
+          G.menuIdx = 0;
+          beginTransition(STATE.ZONE_MAP);
+          return;
+        }
+      }
+      break;
+    case STATE.ZONE_MAP: {
+      // 업그레이드 버튼
+      const upgR = getUpgradeButtonRect(logW, logH);
+      if (hitTest(x, y, upgR)) { G.upgTreeIdx = 0; beginTransition(STATE.UPGRADE); return; }
+      // 존 선택
+      const unlocked = [];
+      for (let i = 0; i < 7; i++) if (G.save.unlockedZones[i]) unlocked.push(i);
+      for (let vi = 0; vi < unlocked.length; vi++) {
+        const r = getZoneRect(logW, logH, vi, unlocked.length);
+        if (hitTest(x, y, r)) { startStage(unlocked[vi], 0); return; }
+      }
+      break;
+    }
+    case STATE.PLAYING:
+    case STATE.BOSS_FIGHT: {
+      // 일시정지 버튼
+      const pauseR = getPauseRect(logW);
+      if (hitTest(x, y, pauseR)) {
+        G.pauseReturnState = G.state;
+        G.menuIdx = 0;
+        sound.stopBGM();
+        beginTransition(STATE.PAUSE);
+        return;
+      }
+      // 비트 공격 (화면 하단 60% 탭)
+      holdStartTime = G.time;
+      isHolding = true;
+      handleBeatAttack();
+      break;
+    }
+    case STATE.PAUSE: {
+      const resumeR = getPauseMenuRect(logW, logH, 0);
+      const quitR = getPauseMenuRect(logW, logH, 1);
+      if (hitTest(x, y, resumeR)) { G._transitioning = false; setState(G.pauseReturnState); sound.startBGM(G.currentZone, G.bpm); }
+      else if (hitTest(x, y, quitR)) { tw.clearImmediate(); particles.clear(); sound.stopBGM(); setState(STATE.TITLE); G._transitioning = false; }
+      break;
+    }
+    case STATE.CHIP_SELECT: {
+      const cardW = Math.min(140, (logW - 60) / 3);
+      const cardH = 110;
+      const startX = logW/2 - (cardW * G.chipChoices.length + 16 * (G.chipChoices.length - 1)) / 2;
+      for (let i = 0; i < G.chipChoices.length; i++) {
+        const cx = startX + i * (cardW + 16);
+        const cy = logH * 0.25;
+        if (hitTest(x, y, { x: cx, y: cy, w: cardW, h: cardH })) { onChipSelected(i); return; }
+      }
+      break;
+    }
+    case STATE.NARRATIVE:
+      advanceNarrative();
+      break;
+    case STATE.STAGE_CLEAR:
+    case STATE.BOSS_DEFEAT:
+    case STATE.STAGE_INTRO:
+    case STATE.BOSS_INTRO:
+      break;
+    case STATE.UPGRADE: {
+      // 트리 선택
+      for (let t = 0; t < 3; t++) {
+        const r = getUpgTreeRect(logW, logH, t);
+        if (hitTest(x, y, r)) {
+          G.upgTreeIdx = t;
+          const trees = ['rhythm','power','flow'];
+          if (purchaseUpgrade(G.save, trees[t])) sound.playUpgrade();
+          return;
+        }
+      }
+      // 뒤로가기
+      const backR = getBackButtonRect(logW, logH);
+      if (hitTest(x, y, backR)) { beginTransition(STATE.ZONE_MAP); }
+      break;
+    }
+    case STATE.GAMEOVER:
+    case STATE.VICTORY:
+    case STATE.HIDDEN_ENDING:
+      tw.clearImmediate();
+      particles.clear();
+      G._transitioning = false;
+      setState(STATE.TITLE);
+      break;
+  }
+}
+
+// 마우스 이벤트 (데스크톱)
+canvas.addEventListener('mousedown', function(e) {
+  sound.init();
+  sound.resume();
+  const pos = inputToCanvas(e.clientX, e.clientY);
+  handleTouchStart(pos.x, pos.y);
+});
+
+// 리사이즈 이벤트
+window.addEventListener('resize', resizeCanvas);
+
+// Miss된 비트 자동 체크 (프레임당) — 엔듀어 통합
+function updateMissedBeats() {
+  if (G.state !== STATE.PLAYING && G.state !== STATE.BOSS_FIGHT) return;
+  const beatTime = getCurrentBeatTime();
+  const goodW = CONFIG.JUDGE[G.difficulty].good;
+  const missed = checkMissedBeats(G.beats, beatTime, goodW);
+  for (let i = 0; i < missed.length; i++) {
+    // applyMissPenalty에 엔듀어/드롭더베이스 로직 통합됨
+    G.judgeDisplay = { type: 'miss', alpha: 1, y: logH * 0.55 };
+    tw.add({ target: G.judgeDisplay, prop: 'alpha', from: 1, to: 0, dur: 600 });
+    applyMissPenalty();
+    if (G.player.hp <= 0) { onGameOver(); return; }
+  }
+  // 더블 비트 두 번째 탭 대기 타이머 소진 → 자동 Miss 처리
+  if (G.doublePending) {
+    G.doubleTimer -= 16.67;
+    if (G.doubleTimer <= 0) {
+      G.doublePending = null;
+      G.doubleTimer = 0;
+      // 두 번째 탭 시간 초과: miss 판정
+      G.judgeDisplay = { type: 'miss', alpha: 1, y: logH * 0.55 };
+      tw.add({ target: G.judgeDisplay, prop: 'alpha', from: 1, to: 0, dur: 600 });
+      sound.playJudge('miss');
+      applyMissPenalty();
+    }
+  }
+  G.ddaLevel = updateDDA(G.player, G.difficulty, G.ddaPerfectStreak, G.ddaMissStreak);
+}
+
+// 적 위치 업데이트 (표시용)
+function updateEnemyPositions() {
+  const aliveEnemies = G.enemies.filter(e => e.alive);
+  for (let i = 0; i < aliveEnemies.length; i++) {
+    const e = aliveEnemies[i];
+    e.x = logW * 0.55 + i * 60;
+    e.y = logH * 0.3;
+    e.animFrame++;
+    if (e.hitFlash > 0) e.hitFlash -= 16;
+  }
+  if (G.boss) {
+    G.boss.x = logW * 0.65;
+    G.boss.y = logH * 0.3;
+    G.boss.animFrame++;
+    if (G.boss.hitFlash > 0) G.boss.hitFlash -= 16;
+  }
+}
+
+// 메인 게임 루프
+let lastTime = 0;
+let loadingProgress = 0;
+let assetsLoaded = false;
+
+function gameLoop(timestamp) {
+  try {
+    const rawDt = timestamp - lastTime;
+    const dt = Math.min(rawDt, 33.33);
+    lastTime = timestamp;
+    G.time += dt;
+    // Canvas 스케일
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, logW, logH);
+    // 카메라 쉐이크
+    if (G.camShakeTime > 0) {
+      const intensity = G.camShakeTime * 0.015;
+      G.camShakeX = (G.rng.next() - 0.5) * intensity;
+      G.camShakeY = (G.rng.next() - 0.5) * intensity;
+      ctx.translate(G.camShakeX, G.camShakeY);
+    }
+    // 부트/로딩
+    if (G.state === STATE.BOOT) {
+      drawLoadingScreen(ctx, logW, logH, loadingProgress, G.time);
+      if (assetsLoaded) {
+        loadingProgress = 1;
+        beginTransition(STATE.TITLE);
+      }
+    }
+    // 시스템 업데이트
+    if (sys(SYS.TWEEN)) tw.update(dt);
+    if (sys(SYS.PARTICLE)) particles.update(dt);
+    if (sys(SYS.RHYTHM) || sys(SYS.COMBAT)) {
+      updateMissedBeats();
+      updateEnemyPositions();
+      updateHoldBeats(dt);
+      // 프로시저럴 BGM 스케줄링 (§5.2)
+      sound.updateBGM(G.bpm);
+      // 플레이어 포즈 타이머
+      if (G.player.poseTimer > 0) {
+        G.player.poseTimer -= dt;
+        if (G.player.poseTimer <= 0) G.player.pose = 'idle';
+      }
+    }
+    // 배경 스크롤
+    G.bgScroll1 += dt * 0.02;
+    G.bgScroll2 += dt * 0.05;
+    // 렌더링
+    if (sys(SYS.DRAW)) {
+      switch (G.state) {
+        case STATE.TITLE:
+          drawTitle(ctx, logW, logH, G.time);
+          break;
+        case STATE.DIFFICULTY_SELECT:
+          drawDifficultySelect(ctx, logW, logH, G.menuIdx, G.time);
+          break;
+        case STATE.ZONE_MAP:
+          drawZoneMap(ctx, logW, logH, G.currentZone, G.save.unlockedZones, G.menuIdx, G.time);
+          break;
+        case STATE.STAGE_INTRO:
+          drawStageIntro(ctx, logW, logH, G.currentZone, G.currentStage, false, G.time, G._introAlpha || 1);
+          break;
+        case STATE.BOSS_INTRO:
+          drawStageIntro(ctx, logW, logH, G.currentZone, G.currentStage, true, G.time, G._introAlpha || 1);
+          break;
+        case STATE.PLAYING:
+        case STATE.BOSS_FIGHT:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          break;
+        case STATE.STAGE_CLEAR:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          drawStageClear(ctx, logW, logH, G.score, G.crystalsThisRun, G.time);
+          break;
+        case STATE.BOSS_DEFEAT:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          drawStageClear(ctx, logW, logH, G.score, G.crystalsThisRun, G.time);
+          break;
+        case STATE.CHIP_SELECT:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          drawChipSelect(ctx, logW, logH, G.chipChoices, G.menuIdx, G.time);
+          break;
+        case STATE.ZONE_CLEAR:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          drawStageClear(ctx, logW, logH, G.score, G.crystalsThisRun, G.time);
+          break;
+        case STATE.NARRATIVE:
+          drawNarrative(ctx, logW, logH, G.narrativeLines[G.narrativeIdx] || '', G._introAlpha || 1, G.time);
+          break;
+        case STATE.UPGRADE:
+          drawUpgradeScreen(ctx, logW, logH, G.save, G.upgTreeIdx, G.time);
+          break;
+        case STATE.PAUSE:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          drawPauseScreen(ctx, logW, logH, G.time);
+          break;
+        case STATE.GAMEOVER:
+          drawPlayingScreen(ctx, logW, logH, dt);
+          drawGameOver(ctx, logW, logH, G.score, G.save.highScores[G.difficulty] || 0, G.maxCombo, G.crystalsThisRun, G.time);
+          break;
+        case STATE.VICTORY:
+          drawVictory(ctx, logW, logH, 'normal', G.score, G.time);
+          break;
+        case STATE.HIDDEN_ENDING:
+          drawVictory(ctx, logW, logH, 'hidden', G.score, G.time);
+          break;
+      }
+      // 파티클 렌더링
+      if (sys(SYS.PARTICLE)) {
+        particles.forEach(function(p) {
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.translate(p.x, p.y);
+          if (p.rot) ctx.rotate(p.rot);
+          const s = p.size * (p.scale || 1);
+          ctx.fillRect(-s/2, -s/2, s, s);
+          ctx.restore();
+        });
+      }
+      // 전환 페이드
+      if (G._transAlpha > 0) {
+        ctx.fillStyle = 'rgba(0,0,0,' + G._transAlpha + ')';
+        ctx.fillRect(0, 0, logW, logH);
+      }
+    }
+    // 카메라 리셋
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  } catch(e) {
+    // 에러 로깅 (게임 중단 방지)
+    console.error('GameLoop error:', e);
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// 게임 화면 (PLAYING/BOSS_FIGHT) 통합 렌더링
+function drawPlayingScreen(ctx, w, h, dt) {
+  // 배경
+  drawBackground(ctx, w, h, G.currentZone, G.bgScroll1, G.bgScroll2, G.time);
+  // 비트 레인 (하단)
+  const laneH = Math.max(60, h * 0.12);
+  const laneY = h - laneH - 10;
+  drawBeatLane(ctx, 10, laneY, w - 20, laneH, G.beats, getCurrentBeatTime(), G.bpm, G.currentZone);
+  // 플레이어 (좌측)
+  const px = w * 0.2;
+  const py = h * 0.45;
+  G.player.x = px;
+  G.player.y = py;
+  const c = zoneColor(G.currentZone);
+  drawPlayer(ctx, px, py, 64, G.player.pose, c[0], G.combo);
+  // 적 / 보스
+  if (G.boss && G.boss.alive) {
+    const bossSize = G.boss.idx === 5 ? 200 : 150;
+    drawBoss(ctx, G.boss.x, G.boss.y, bossSize, G.boss.idx, G.boss.phase, G.boss.hp, G.boss.maxHp, G.boss.animFrame);
+    // 히트 이펙트
+    if (G.boss.hitFlash > 0) drawHitEffect(ctx, G.boss.x, G.boss.y, 80, G.boss.hitFlash / 200);
+  } else {
+    for (let i = 0; i < G.enemies.length; i++) {
+      const e = G.enemies[i];
+      if (!e.alive) continue;
+      drawEnemy(ctx, e.x, e.y, 48, e.type, e.hp, e.maxHp, e.animFrame, e.zone);
+      if (e.hitFlash > 0) drawHitEffect(ctx, e.x, e.y, 40, e.hitFlash / 200);
+    }
+  }
+  // 판정 표시
+  drawJudgement(ctx, w * 0.4, G.judgeDisplay.y, G.judgeDisplay.type, G.judgeDisplay.alpha);
+  // 콤보 카운터
+  drawComboCounter(ctx, w * 0.4, h * 0.35, G.combo, Math.min(CONFIG.COMBO_MAX_MUL, 1 + G.combo * CONFIG.COMBO_PER), G.comboDisplay.scale);
+  // HUD
+  drawUI(ctx, w, h, G.player.hp, G.player.maxHp, G.score, G.combo, G.currentZone, G.currentStage, G.crystalsThisRun);
+  // 비트 펄스 오버레이
+  const beatTime = getCurrentBeatTime();
+  const interval = getBeatInterval(G.bpm);
+  const beatPhase = (beatTime % interval) / interval;
+  if (beatPhase < 0.1) {
+    ctx.fillStyle = c[2];
+    ctx.globalAlpha = 0.05 * (1 - beatPhase / 0.1);
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalAlpha = 1;
+  }
+  // DDA 표시
+  if (G.ddaLevel > 0 && G.difficulty !== 'maestro') {
+    ctx.fillStyle = '#00ff87';
+    ctx.globalAlpha = 0.6;
+    ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('DDA Lv' + G.ddaLevel, w - 10, h - 24);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// 초기화 및 시작
+function init() {
+  resizeCanvas();
+  initGameState();
+  // 에셋 불요 — 즉시 로드 완료 (F1, F68 준수)
+  loadingProgress = 1;
+  assetsLoaded = true;
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+// 게임 시작
+init();
+</script>
+</body>
+</html>

@@ -956,6 +956,10 @@ function isInButton(x, y, bx, by, bw, bh) {
 
 // 키보드 입력
 function onKeyDown(e) {
+  // Prevent browser default for game keys
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
   inputMode = 'mouse';
   initAudio();
   if (state === STATES.TITLE) {

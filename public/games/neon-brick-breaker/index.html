@@ -381,6 +381,10 @@ function buildBgCache(w, h) {
 
 // 키보드 입력
 window.addEventListener('keydown', (e) => {
+  // Prevent browser default for game keys (Space scroll, Arrow scroll, etc.)
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
   if (e.code === 'Space' || e.code === 'Enter') {

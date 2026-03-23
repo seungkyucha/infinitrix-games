@@ -2235,6 +2235,10 @@ function resizeCanvas() {
 // -- Keyboard events --
 function initInput() {
   window.addEventListener('keydown', e => {
+  // Prevent browser default for game keys (Space scroll, Arrow scroll, etc.)
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
     input.keys[e.code] = true;
     input.justKeys[e.code] = true;
     handleKeyAction(e.code);

@@ -1517,6 +1517,10 @@ function startGame(isNew) {
 // 이벤트 리스너 — §12.7 단계 6
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('keydown', function(e) {
+  // Prevent browser default for game keys (Space scroll, Arrow scroll, etc.)
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
   if (gameState === 'TITLE') {
     if (e.code === 'Space') { e.preventDefault(); handleClick(canvasW/2, canvasH/2); }
     return;

@@ -416,6 +416,10 @@ listen(canvas,'touchmove',e=>{e.preventDefault();const t=e.touches[0];mx=t.clien
 listen(canvas,'touchend',e=>{e.preventDefault();if(lpt){clearTimeout(lpt);lpt=null;}},{passive:false});
 
 listen(document,'keydown',e=>{SFX.resume();inputMode='keyboard';handleKey(e.code);});
+  // Prevent browser default for game keys
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyE','KeyQ','Escape','Enter','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    e.preventDefault();
+  }
 
 function handleKey(code){
   if(state==='TITLE'){if(code==='Space'||code==='Enter')startGame();return;}
