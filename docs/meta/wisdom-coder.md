@@ -1,7 +1,14 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #32 spectral-sleuth_
+_마지막 갱신: 사이클 #35 abyss-diver_
 
 ## 반복되는 실수 🚫
+- **[Cycle 35]** 심해 아케이드 퍼즐 플랫포머(3,457줄)에서 13개 상태 머신의 ACTIVE_SYSTEMS를 IIFE로 프로그래매틱 생성하여 diving/puzzle/boss 각각의 physics·traps·o2press 시스템 활성화를 명시적으로 관리. **상태가 10개 이상일 때 매트릭스를 수동 작성하면 누락 위험이 커지므로 프로그래매틱 생성 후 개별 오버라이드 패턴이 안전.**
+- **[Cycle 35]** 보스 5종이 모두 동일한 createBoss() 구조를 공유하되, lures(앵글러피시 전용), tentacles(문어 전용), minions(해파리 전용) 등 보스별 속성을 빈 배열로 통일 초기화. Cycle 34와 동일 패턴이나 빈 배열에서 filter/map 즉시 반환으로 성능 영향 미미. **보스 10종 이상이면 팩토리 패턴 분리 필요.**
+- **[Cycle 35]** beginTransition() 내부에서 프록시 객체를 단계별로 새로 생성(proxy1→proxy2)하여 Cycle 34 교훈 즉시 반영 — 트윈 무효화 방지. **전환 알파 프록시는 각 단계마다 새 객체 생성이 표준 패턴으로 정착.**
+- **[Cycle 35]** 프로시저럴 SFX의 pseudo-noise를 Math.sin 기반으로 생성(SeededRNG 미사용). Math.random은 아니지만 결정론적 재현 가능한 오디오를 원하면 SeededRNG 통합이 필요. **현재는 audio-only 이므로 허용, 향후 리플레이 기능 추가 시 전환 필요.**
+- **[Cycle 34]** 이중 페이즈(PORT/BATTLE) 항구 경영+해전 전략 게임(3,611줄)에서 ACTIVE_SYSTEMS 매트릭스의 port 계열과 battle 계열 시스템을 상호 배타적으로 관리해야 하는데, economy/idle 시스템이 PORT 계열에서만 활성화되고 ai 시스템이 BATTLE 계열에서만 활성화되도록 빌드타임 매트릭스로 보장. **이중 페이즈 게임에서는 ACTIVE_SYSTEMS를 프로그래매틱하게 생성(IIFE)하여 누락 방지.**
+- **[Cycle 34]** 보스 5종의 tentacles 배열(크라켄 전용)이 다른 보스에서도 빈 배열로 초기화되어 불필요한 반복문이 실행. **보스별 특수 속성은 보스 타입 체크 후에만 초기화/접근할 것.**
+- **[Cycle 34]** beginTransition() 내부에서 두 단계 알파 트윈(fadeOut → enterState → fadeIn)을 프록시 객체로 연결할 때, 첫 tween의 onComplete에서 새 proxy를 만들어야 한다. 같은 proxy 재사용 시 from/to가 이미 도달한 상태라 두 번째 tween이 무효화된다. **전환 알파 프록시는 각 단계마다 새 객체 생성이 안전.**
 - **[Cycle 32]** 미스터리 퍼즐 어드벤처(4,186줄)에서 18상태 머신의 beginTransition() 내 transitionAlpha 동기화 문제: tw.add()로 프록시 객체의 a 속성을 트윈하면서 전역 transitionAlpha와 동기화하려면, tw.update() 이후 매 프레임 수동으로 동기화하거나 프록시 객체를 직접 렌더에 사용해야 한다. **전환 알파를 트윈으로 제어할 때, 중간 값을 렌더에 반영하는 경로가 정확히 1개인지 확인할 것.**
 - **[Cycle 32]** 퍼즐 보드에서 증거 배치(placeEvidenceInSlot) 시 slotIdx를 단순 puzzleSelected로 저장하면, checkChain의 validChains과 비교할 때 증거 배열 인덱스와 사건별 단서 인덱스가 불일치한다. **퍼즐 검증 시 "배열 내 인덱스"와 "논리적 단서 ID" 매핑을 명시적으로 정의해야 한다.**
 - **[Cycle 32]** 유저 지시 > 기획서 원칙 6번째 적용(Cycle 24/27/29/30/31/32). 기획서 F1(assets/ 금지)과 유저 지시(에셋 프리로드 필수) 충돌 시 유저 지시 우선 — **완전 정착됨, 더 이상 기록 불필요.**
@@ -51,6 +58,17 @@ _마지막 갱신: 사이클 #32 spectral-sleuth_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 34]** 해적 항구 경영+해전 전략 로그라이트(해적의 조류)를 3,611줄 단일 파일로 구현. 20상태 머신(INIT~SETTINGS) + 항구 경영(6시설 ×5레벨) + 해전(4포격유형 ×3진형) + 보스 5종(페이즈 전환) + 선박 해금 트리 + 선원 8분야 스킬 + 항로 이벤트 8종 + 날씨 5종 + 교역 6품목 + 보물 지도 7조각. casual+strategy 장르 조합.
+- **[Cycle 34]** ACTIVE_SYSTEMS 매트릭스를 IIFE 빌드패턴으로 프로그래매틱 생성 — portStates/battleStates 배열로 경제/AI 시스템의 상호 배타성을 데이터 레벨에서 보장. 매트릭스 패턴 18사이클 연속 성공.
+- **[Cycle 34]** SVG 에셋 8종 preload + Canvas 폴백 이중 구조를 항해 테마에 적용: bgLayer1/2 패럴랙스 해양 배경, player/enemy 함선, uiHeart/uiStar HUD, effectHit 폭발 파티클, powerup 보급품. 에셋 없이도 Canvas 도형으로 선박/건물/보스를 완전히 렌더링.
+- **[Cycle 34]** Web Audio API로 10종 프로시저럴 SFX(cannon_fire/hit/explosion/wave/coin/build/boarding/boss_roar/level_up/horn) + 4종 BGM(port/voyage/battle/boss)을 구현. OscillatorNode/BufferSource 조합, 외부 오디오 파일 0건.
+- **[Cycle 34]** SeededRNG 완전 사용, setTimeout 0건, Math.random 0건, confirm/alert 0건, 외부 CDN 0건 — 플랫폼 코드 위생 원칙 완벽 준수. 18사이클 연속.
+- **[Cycle 34]** beginTransition() 2단계 알파 트윈(fadeOut→enterState→fadeIn)을 개별 proxy 객체로 구현하여 _transAlpha 동기화 정확도 확보. Cycle 32 교훈(프록시 패턴 표준화) 직접 적용.
+- **[Cycle 34]** 보스 페이즈 전환 시 fireTimer 리셋 + phaseTransitioning 가드 + 전환 완료 후 즉시 재체크(checkBossPhase 재호출) 3중 안전장치. Cycle 24-32 교훈 누적 적용 완성.
+- **[Cycle 34]** 다국어(ko/en) I18N 딕셔너리 + t(key) 헬퍼 함수로 모든 UI 텍스트 현지화. 타이틀/설정 화면에서 언어 전환 가능.
+- **[Cycle 34]** DDA(동적 난이도) consecutiveLosses 카운터로 3/5연패 시 적 HP 보정(-15%/-25%). CONFIG.DDA_3LOSS/DDA_5LOSS 상수로 수치 정합성 보장.
+- **[Cycle 34]** 모바일 터치를 가상 조이스틱(좌측) + 공격 버튼(우측) + 탭 기반 UI 인터랙션으로 구현. TITLE→CUTSCENE→PORT→VOYAGE→BATTLE→GAMEOVER 전체 플로우 터치만으로 완주 가능.
+- **[Cycle 34]** PAUSE 복귀를 enterState() 즉시 전환으로 구현(beginTransition 미사용). Cycle 28 교훈 6사이클 연속 적용.
 - **[Cycle 32]** 미스터리 퍼즐 어드벤처(유령 탐정)를 4,186줄 단일 파일로 구현. 18상태 머신 + 증거 조합 퍼즐 + 턴제 대질 보스전 + 3계열 유령 능력 업그레이드 + 5구역 날씨/환경 시스템 + 한/영 이중 언어. 비전투 보스전(추리 기반)은 플랫폼 최초.
 - **[Cycle 32]** ESCAPE_ALLOWED + RESTART_ALLOWED + STATE_PRIORITY + ACTIVE_SYSTEMS 4종 딕셔너리를 18상태 모두에 완전 적용. beginTransition() 가드 로직과 결합하여 상태 전환 안전성 확보. Cycle 31 패턴을 퍼즐 장르에도 그대로 적용 성공.
 - **[Cycle 32]** SVG 에셋 8종(player/enemy/bgLayer1/bgLayer2/uiHeart/uiStar/powerup/effectHit) preload + Canvas 폴백 이중 구조를 모든 드로잉 함수에 적용. 에셋 없이도 게임이 완전히 동작하는 것을 확인(폴백 도형 드로잉).
@@ -143,6 +161,11 @@ _마지막 갱신: 사이클 #32 spectral-sleuth_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **[Cycle 34→35] 보스 AI 패턴 완전 데이터화**: 현재 보스별 공격은 switch(bossType) 하드코딩. [{type:'tentacle',count:3,hp:80}, {type:'cannon',cd:2,dmg:50}] 형태의 보스별 패턴 배열로 전환하면 보스 추가/수정이 데이터 변경만으로 가능.
+- **[Cycle 34→35] 항로 맵 BFS 도달 검증 강화**: generateVoyageRoute()가 선형 경로를 생성하므로 항상 도달 가능하지만, 분기 경로 도입 시 BFS 검증이 필수. 현재 코드에 validateRoute() 패턴은 기획서에 명시되어 있으므로 분기 경로 구현 시 즉시 적용.
+- **[Cycle 34→35] 오프스크린 캔버스 캐싱**: 항구 건물과 해전 배경이 매 프레임 개별 fillRect으로 그려짐. 정적 배경을 오프스크린 캔버스에 한 번 렌더링 후 drawImage 복사하면 렌더링 비용 50%+ 절감 가능.
+- **[Cycle 34→35] 교역 시스템 프로시저럴 가격 동향**: 현재 해역별 고정 가격 변형만 존재. 시간 경과/교역 횟수에 따른 수요·공급 시뮬레이션으로 가격 동향이 변화하면 교역 전략 깊이 증가.
+- **[Cycle 34→35] ACTIVE_SYSTEMS IIFE 빌드 패턴 표준화**: Cycle 34에서 검증된 프로그래매틱 매트릭스 생성을 다음 사이클의 이중 페이즈 게임에도 그대로 적용.
 - **[Cycle 32→33] 퍼즐 검증 로직 단위 테스트화**: checkChain()과 evaluateDeduction()은 순수 함수이므로 headless 테스트로 모든 유효/무효 체인 조합을 검증 가능. 다음 퍼즐 게임에서 사전 테스트 구현.
 - **[Cycle 32→33] 대질 보스전 정답 인덱스 관리 개선**: essential 단서 배열과 전체 evidence 배열의 인덱스 불일치 문제를 ID 기반 매칭으로 근본 해결.
 - **[Cycle 32→33] 전환 알파 프록시 패턴 표준화**: transProxy 객체를 통한 트윈 제어 + 렌더 동기화를 공용 TransitionManager 클래스로 추출.

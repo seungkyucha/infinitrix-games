@@ -1,0 +1,3666 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Abyss Diver</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#040D21;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+// REGION 1: CONSTANTS & CONFIG (L1~L200)
+// ═══════════════════════════════════════════════════════════════
+
+const CONFIG = {
+  // Physics
+  SWIM_ACCEL: 0.35,
+  WATER_DRAG: 0.92,
+  GRAVITY: 0.12,
+  BUOYANCY: 0.08,
+  SWIM_UP_FORCE: 0.28,
+  MAX_UP_FORCE: 0.6,
+  DIVE_FORCE: 0.35,
+  DEPTH_DRAG_COEFF: 0.00015,
+  MIN_DEPTH_FACTOR: 0.4,
+  MAX_VX: 4.5,
+  MAX_VY: 5.0,
+  // Tile
+  TILE: 40,
+  LEVEL_W: 30,
+  LEVEL_H: 20,
+  // Oxygen per biome (seconds)
+  O2_TIME: [90, 60, 50, 40, 35],
+  // Pressure damage per biome (HP/s)
+  PRESS_DMG: [0, 0.5, 2, 4, 4],
+  PRESS_HP: 100,
+  // Current strength per biome
+  CURRENT_STR: [0.2, 0.3, 0.5, 0.8, 0.6],
+  // Traps
+  COLLAPSE_WARN: 0.5,
+  COLLAPSE_DELAY: 0.3,
+  TRAP_DENSITY: [4, 5, 6, 8, 9],
+  TRAP_SPEED_MULT: [1.0, 1.0, 1.3, 1.6, 1.6],
+  // DDA
+  DDA_TRIGGER: 3,
+  DDA_TRAP_DISABLE: 0.3,
+  DDA_O2_BONUS: 0.2,
+  DDA_PRESS_REDUCE: 0.5,
+  // Upgrades
+  UPGRADE_PRESS: [0.2, 0.4, 0.7, 1.0, 1.5],
+  UPGRADE_SPEED: [0.1, 0.2, 0.3, 0.35, 0.5],
+  UPGRADE_DETECT: [1, 2, 3, 4, 5],
+  UPGRADE_COST: [3, 5, 8, 12, 18],
+  // Tools
+  TOOL_CD: [8, 10, 12, 15, 10, 20],
+  TOOL_DUR: [2, 3, 5, 4, 3, 3],
+  // Boss HP
+  BOSS_HP: [300, 400, 500, 600, 800],
+  // Score
+  SCORE_CLEAR: 1000,
+  SCORE_O2_BONUS: 50,
+  SCORE_NO_DEATH: 2000,
+  SCORE_CLUE: 500,
+  SCORE_BOSS: 5000,
+  SCORE_BOSS_NOHIT: 10000,
+  SCORE_HIDDEN: 15000,
+  // Touch
+  MIN_TOUCH: 48,
+  // Hidden stage params (§8.1)
+  HIDDEN_O2: 30,
+  HIDDEN_PRESS_DMG: 6,
+  HIDDEN_TRAP_DENSITY: 10,
+  HIDDEN_TRAP_SPEED: 2.0,
+  HIDDEN_CURRENT: 1.0,
+  // Camera
+  CAM_LERP: 0.08,
+  CAM_DEADZONE: 0.4,
+  // Colors
+  COL_BG: ['#0A2E4D','#071D36','#1A0A0A','#040D21','#0D0A2E'],
+  COL_BIOLUM: '#00FFE5',
+  COL_DANGER: '#FF6B35',
+  COL_BOSS: '#9B59FF',
+  COL_CORAL: '#FF7EB3',
+  COL_GOLD: '#FFD700',
+  COL_O2: '#87CEEB',
+  COL_PRESS: '#6A0DAD',
+  COL_TEXT: '#e0e0f0',
+  COL_TEXT2: '#8080a0',
+  COL_DIM: '#505070',
+};
+
+// State priority map (F6)
+const STATE_PRIORITY = {
+  BOOT:0, TITLE:10, MAP:30, UPGRADE:20, STAGE_INTRO:35,
+  DIVING:50, PUZZLE:50, BOSS:80, CUTSCENE:70,
+  GAMEOVER:100, VICTORY:40, PAUSE:90, MODAL:95
+};
+
+// Active systems matrix (F7/F23)
+const ACTIVE_SYSTEMS = (()=>{
+  const S = {};
+  const ALL_STATES = ['BOOT','TITLE','MAP','UPGRADE','STAGE_INTRO','DIVING','PUZZLE','BOSS','CUTSCENE','GAMEOVER','VICTORY','PAUSE','MODAL'];
+  ALL_STATES.forEach(s => S[s] = { tween:true, physics:false, traps:false, boss:false, puzzle:false, o2press:false, particles:true, render:true, sound:true });
+  S.BOOT.tween=false; S.BOOT.particles=false; S.BOOT.sound=false;
+  S.DIVING.physics=true; S.DIVING.traps=true; S.DIVING.o2press=true;
+  S.PUZZLE.physics=true; S.PUZZLE.puzzle=true; S.PUZZLE.o2press=true;
+  S.BOSS.physics=true; S.BOSS.traps=true; S.BOSS.boss=true; S.BOSS.o2press=true;
+  S.PAUSE.particles=false; S.PAUSE.sound=false;
+  S.MODAL.particles=false; S.MODAL.sound=false;
+  return S;
+})();
+
+// Bilingual strings (F20)
+const LANG = {
+  ko: {
+    title:'어비스 다이버', subtitle:'심해의 비밀을 밝혀라',
+    start:'잠수 시작 [SPACE]', continue_:'이어하기',
+    biome:['산호 정원','심해 동굴','열수 분출구','해구 심연','아비소스 유적'],
+    oxygen:'산소', pressure:'수압', depth:'깊이', score:'점수',
+    tool:['음파탐지기','전기충격기','조명탄','수압 실드','중력 앵커','시간 감속'],
+    boss_defeat:'보스 격파!', stage_clear:'스테이지 클리어!',
+    game_over:'심해에 잠기다...', retry:'재도전 [R]',
+    new_record:'신기록!', upgrade:'잠수복 강화',
+    pause:'일시정지', resume:'계속 [P]', quit:'타이틀로',
+    clue_found:'문명 단서 발견!', hidden_unlock:'히든 스테이지 해금!',
+    press_tree:'내압 강화', speed_tree:'추진력 강화', detect_tree:'감지 강화',
+    map_title:'바이옴 선택', stage_select:'스테이지',
+    best:'최고', total:'총점', tools_label:'도구', clues:'단서',
+    touch_start:'터치하여 시작', mobile_tip:'가상 패드로 조작',
+    back:'뒤로 [ESC]', confirm_quit:'타이틀로 돌아갑니까?', yes:'예', no:'아니오',
+    locked:'잠김', cost:'비용', level:'Lv',
+    upg_press:['수압 내구 +20%','수압 내구 +40%','수압 내구 +70%','수압 면역 3초쿨','수압 존 감속 면역'],
+    upg_speed:['이동속도 +10%','이동속도 +20%','부스트 시간 +1초','급강하 무적 0.5초','벽타기+천장 이동'],
+    upg_detect:['함정 경고 +1','함정 경고 +2','숨겨진 아이템 표시','보스 약점 표시','미니맵 상시'],
+    dda_help:'보호 모드 활성',
+  },
+  en: {
+    title:'Abyss Diver', subtitle:'Uncover the Secrets of the Deep',
+    start:'Start Dive [SPACE]', continue_:'Continue',
+    biome:['Coral Garden','Deep Cave','Hydrothermal Vents','Abyssal Trench','Abyssos Ruins'],
+    oxygen:'O\u2082', pressure:'Pressure', depth:'Depth', score:'Score',
+    tool:['Sonar','Shock','Flare','P-Shield','G-Anchor','Time Slow'],
+    boss_defeat:'Boss Defeated!', stage_clear:'Stage Clear!',
+    game_over:'Lost in the Abyss...', retry:'Retry [R]',
+    new_record:'New Record!', upgrade:'Suit Upgrade',
+    pause:'Paused', resume:'Resume [P]', quit:'Title',
+    clue_found:'Clue Found!', hidden_unlock:'Hidden Stage Unlocked!',
+    press_tree:'Pressure', speed_tree:'Propulsion', detect_tree:'Detection',
+    map_title:'Select Biome', stage_select:'Stage',
+    best:'Best', total:'Total', tools_label:'Tools', clues:'Clues',
+    touch_start:'Tap to Start', mobile_tip:'Use virtual pad',
+    back:'Back [ESC]', confirm_quit:'Return to title?', yes:'Yes', no:'No',
+    locked:'Locked', cost:'Cost', level:'Lv',
+    upg_press:['Pressure +20%','Pressure +40%','Pressure +70%','Immunity 3s CD','Zone Slow Immune'],
+    upg_speed:['Speed +10%','Speed +20%','Boost +1s','Dive Invuln 0.5s','Wall Climb+Ceiling'],
+    upg_detect:['Trap Warn +1','Trap Warn +2','Hidden Items','Boss Weakness','Minimap Always'],
+    dda_help:'Assist Mode Active',
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 2: UTILITIES — RNG, TWEEN, SOUND (L201~L500)
+// ═══════════════════════════════════════════════════════════════
+
+// Seeded random number generator (F18) — xorshift128
+class SeededRNG {
+  constructor(seed) { this.s = [seed|0||1, (seed*2654435761)>>>0||1, (seed*2246822519)>>>0||1, (seed*3266489917)>>>0||1]; }
+  next() {
+    let t = this.s[3]; t ^= t<<11; t ^= t>>>8;
+    this.s[3]=this.s[2]; this.s[2]=this.s[1]; this.s[1]=this.s[0];
+    let s0 = this.s[0]; t ^= s0; t ^= s0>>>19;
+    this.s[0] = t; return (t>>>0)/4294967296;
+  }
+  range(a,b) { return a + this.next()*(b-a); }
+  int(a,b) { return (a + this.next()*(b-a+1))|0; }
+  pick(arr) { return arr[(this.next()*arr.length)|0]; }
+  chance(p) { return this.next() < p; }
+  shuffle(arr) { for(let i=arr.length-1;i>0;i--){ const j=(this.next()*(i+1))|0;[arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+}
+
+// TweenManager with clearImmediate (F13)
+class TweenManager {
+  constructor() { this._tweens = []; this._toAdd = []; this._updating = false; }
+  add(obj, props, dur, ease, onComplete) {
+    const tw = { obj, from:{}, to:{}, dur, elapsed:0, ease: ease||'easeInOut', onComplete, done:false };
+    for(const k in props){ tw.from[k] = obj[k]; tw.to[k] = props[k]; }
+    if(this._updating) this._toAdd.push(tw); else this._tweens.push(tw);
+    return tw;
+  }
+  clearImmediate() { this._tweens.length = 0; this._toAdd.length = 0; }
+  update(dt) {
+    this._updating = true;
+    for(let i=this._tweens.length-1;i>=0;i--){
+      const tw = this._tweens[i];
+      if(tw.done){ this._tweens.splice(i,1); continue; }
+      tw.elapsed += dt;
+      let t = Math.min(tw.elapsed / tw.dur, 1);
+      t = this._ease(t, tw.ease);
+      for(const k in tw.to) tw.obj[k] = tw.from[k] + (tw.to[k]-tw.from[k])*t;
+      if(tw.elapsed >= tw.dur){ tw.done=true; if(tw.onComplete) tw.onComplete(); this._tweens.splice(i,1); }
+    }
+    this._updating = false;
+    if(this._toAdd.length){ this._tweens.push(...this._toAdd); this._toAdd.length=0; }
+  }
+  _ease(t, type) {
+    if(type==='linear') return t;
+    if(type==='easeIn') return t*t;
+    if(type==='easeOut') return t*(2-t);
+    return t<0.5?2*t*t:(4-2*t)*t-1; // easeInOut
+  }
+}
+
+// Sound manager — Web Audio API procedural (F19)
+class SoundManager {
+  constructor() { this.ctx = null; this.bgmGain = null; this.sfxGain = null; this.bgmVol = 0.35; this.sfxVol = 0.6; this._bgmNodes = []; }
+  init() {
+    try {
+      this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+      this.bgmGain = this.ctx.createGain(); this.bgmGain.gain.value = this.bgmVol; this.bgmGain.connect(this.ctx.destination);
+      this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = this.sfxVol; this.sfxGain.connect(this.ctx.destination);
+    } catch(e) { /* no audio */ }
+  }
+  resume() { if(this.ctx && this.ctx.state==='suspended') this.ctx.resume(); }
+  // Create oscillator note
+  _osc(type, freq, start, dur, gain, dest) {
+    if(!this.ctx) return;
+    const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, start); g.gain.exponentialRampToValueAtTime(0.001, start+dur);
+    o.connect(g); g.connect(dest||this.sfxGain);
+    o.start(start); o.stop(start+dur+0.05);
+    return o;
+  }
+  // SFX methods
+  sfxSwim() { const t=this.ctx?.currentTime||0; this._noise(t,0.08,800,this.sfxGain,0.1); }
+  sfxBubble() { if(!this.ctx)return; const t=this.ctx.currentTime; const o=this._osc('sine',800,t,0.2,0.15); if(o)o.frequency.exponentialRampToValueAtTime(200,t+0.2); }
+  sfxTrap() { this._osc('sawtooth',200,this.ctx?.currentTime||0,0.15,0.2); }
+  sfxDeath() {
+    if(!this.ctx)return; const t=this.ctx.currentTime;
+    this._noise(t,0.3,2000,this.sfxGain,0.3);
+    this._osc('sine',80,t,0.5,0.25);
+  }
+  sfxTool() { if(!this.ctx)return; const t=this.ctx.currentTime; const o=this._osc('triangle',400,t,0.3,0.2); if(o)o.frequency.exponentialRampToValueAtTime(1200,t+0.3); }
+  sfxCollect() { if(!this.ctx)return; const t=this.ctx.currentTime; this._osc('sine',523,t,0.12,0.15); this._osc('sine',659,t+0.1,0.12,0.15); }
+  sfxBossAppear() { if(!this.ctx)return; const t=this.ctx.currentTime; const o=this._osc('sine',40,t,2,0.2); if(o)o.frequency.exponentialRampToValueAtTime(120,t+2); }
+  sfxGate() { if(!this.ctx)return; const t=this.ctx.currentTime; this._osc('triangle',261,t,0.15,0.15); this._osc('triangle',329,t+0.12,0.15,0.15); this._osc('triangle',392,t+0.24,0.2,0.15); }
+  sfxPressure() { const t=this.ctx?.currentTime||0; this._osc('square',100,t,0.08,0.1); this._osc('square',100,t+0.12,0.08,0.1); }
+  sfxSonar() { if(!this.ctx)return; const t=this.ctx.currentTime; const o=this._osc('sine',1200,t,0.5,0.15); if(o)o.frequency.exponentialRampToValueAtTime(400,t+0.5); }
+  sfxHit() { if(!this.ctx)return; const t=this.ctx.currentTime; this._noise(t,0.15,3000,this.sfxGain,0.2); this._osc('sine',150,t,0.2,0.2); }
+  // Noise helper
+  _noise(start, dur, freq, dest, vol) {
+    if(!this.ctx)return;
+    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate*dur|0, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.sin(i*0.01)*2-1)*0.5; // pseudo-noise without Math.random
+    const src=this.ctx.createBufferSource(); src.buffer=buf;
+    const g=this.ctx.createGain(); g.gain.setValueAtTime(vol,start); g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+    const f=this.ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=freq;
+    src.connect(f); f.connect(g); g.connect(dest);
+    src.start(start); src.stop(start+dur+0.05);
+  }
+  // BGM
+  startBGM(type) {
+    this.stopBGM();
+    if(!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._bgmPlaying = type;
+    this._bgmInterval = null;
+    this._playBGMLoop(type);
+  }
+  _playBGMLoop(type) {
+    if(!this.ctx || this._bgmPlaying !== type) return;
+    const t = this.ctx.currentTime;
+    const dur = 4;
+    if(type==='title') {
+      // Ambient drone + arpeggios
+      this._osc('sine',55,t,dur,0.08,this.bgmGain);
+      this._osc('sine',82,t,dur,0.05,this.bgmGain);
+      [261,329,392,523].forEach((f,i)=>this._osc('sine',f,t+i*0.8,0.6,0.04,this.bgmGain));
+    } else if(type==='dive') {
+      this._osc('sine',65,t,dur,0.06,this.bgmGain);
+      this._osc('triangle',130,t+0.5,2,0.03,this.bgmGain);
+      [196,247,294].forEach((f,i)=>this._osc('sine',f,t+i*1.2,0.8,0.03,this.bgmGain));
+    } else if(type==='deep') {
+      this._osc('sine',40,t,dur,0.08,this.bgmGain);
+      this._osc('square',80,t+1,0.5,0.02,this.bgmGain);
+      this._osc('sine',110,t+2,1,0.04,this.bgmGain);
+    } else if(type==='boss') {
+      [130,164,196,247,196,164].forEach((f,i)=>this._osc('sawtooth',f,t+i*0.3,0.25,0.04,this.bgmGain));
+      this._osc('square',65,t,0.2,0.05,this.bgmGain);
+      this._osc('square',65,t+0.5,0.2,0.05,this.bgmGain);
+      this._osc('square',65,t+1.0,0.2,0.05,this.bgmGain);
+      this._osc('square',65,t+1.5,0.2,0.05,this.bgmGain);
+    }
+    // Schedule next loop using AudioContext timing (no setTimeout!)
+    const nextNode = this.ctx.createOscillator();
+    nextNode.frequency.value = 0;
+    const silentGain = this.ctx.createGain();
+    silentGain.gain.value = 0;
+    nextNode.connect(silentGain);
+    silentGain.connect(this.ctx.destination);
+    nextNode.onended = () => this._playBGMLoop(type);
+    nextNode.start(t + dur);
+    nextNode.stop(t + dur + 0.01);
+    this._bgmNodes.push(nextNode);
+  }
+  stopBGM() { this._bgmPlaying = null; this._bgmNodes.forEach(n=>{try{n.onended=null;n.stop();}catch(e){}}); this._bgmNodes=[]; }
+  setVolume(bgm, sfx) { this.bgmVol=bgm; this.sfxVol=sfx; if(this.bgmGain)this.bgmGain.gain.value=bgm; if(this.sfxGain)this.sfxGain.gain.value=sfx; }
+}
+
+// Clamp utility
+function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
+// Lerp utility
+function lerp(a, b, t) { return a + (b - a) * t; }
+// Distance utility
+function dist(x1, y1, x2, y2) { return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)); }
+// hitTest for touch/click (F16)
+function hitTest(px, py, rx, ry, rw, rh) { return px>=rx && px<=rx+rw && py>=ry && py<=ry+rh; }
+// AABB collision
+function aabb(ax,ay,aw,ah,bx,by,bw,bh) { return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by; }
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 3: ASSET PRELOADING & SVG SPRITES (L501~L800)
+// ═══════════════════════════════════════════════════════════════
+
+// All visuals are Canvas procedural drawing — no external assets (F1)
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 4: INPUT SYSTEM (L801~L1000)
+// ═══════════════════════════════════════════════════════════════
+
+class InputManager {
+  constructor() {
+    this.keys = {};
+    this.justPressed = {};
+    this._prev = {};
+    this.touches = [];
+    this.touchBtns = { left:false, right:false, up:false, down:false, toolUse:false, toolSwitch:false };
+    this.mouseX = 0; this.mouseY = 0; this.mouseDown = false; this.mouseClicked = false;
+    this._setupKeyboard();
+    this._setupTouch();
+    this._setupMouse();
+  }
+  _setupKeyboard() {
+    const prevent = ['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyZ','KeyX','Escape','Enter'];
+    window.addEventListener('keydown', e => {
+      if(prevent.includes(e.code)) e.preventDefault();
+      this.keys[e.code] = true;
+    });
+    window.addEventListener('keyup', e => {
+      if(prevent.includes(e.code)) e.preventDefault();
+      this.keys[e.code] = false;
+    });
+  }
+  _setupTouch() {
+    const c = document.getElementById('gameCanvas');
+    const handler = (e) => {
+      e.preventDefault();
+      this.touches = [];
+      for(let i=0;i<e.touches.length;i++){
+        const t = e.touches[i];
+        const rect = c.getBoundingClientRect();
+        this.touches.push({ x: (t.clientX-rect.left)*(c.width/rect.width)/dpr, y: (t.clientY-rect.top)*(c.height/rect.height)/dpr });
+      }
+    };
+    c.addEventListener('touchstart', handler, {passive:false});
+    c.addEventListener('touchmove', handler, {passive:false});
+    c.addEventListener('touchend', e => {
+      e.preventDefault();
+      if(e.touches.length===0) { this.touches=[]; this.touchBtns={left:false,right:false,up:false,down:false,toolUse:false,toolSwitch:false}; }
+      else handler(e);
+    }, {passive:false});
+  }
+  _setupMouse() {
+    const c = document.getElementById('gameCanvas');
+    this._rightClicked = false;
+    this._wheelDelta = 0;
+    c.addEventListener('mousedown', e => {
+      if(e.button === 0) { this.mouseDown=true; this.mouseClicked=true; }
+      else if(e.button === 2) { this._rightClicked = true; } // §3.2 right-click → tool use
+    });
+    c.addEventListener('mouseup', e => { if(e.button===0) this.mouseDown=false; });
+    c.addEventListener('mousemove', e => {
+      const rect = c.getBoundingClientRect();
+      this.mouseX = (e.clientX-rect.left)*(c.width/rect.width)/dpr;
+      this.mouseY = (e.clientY-rect.top)*(c.height/rect.height)/dpr;
+    });
+    c.addEventListener('contextmenu', e => e.preventDefault());
+    // §3.2 wheel → tool switch
+    c.addEventListener('wheel', e => {
+      e.preventDefault();
+      this._wheelDelta += e.deltaY > 0 ? 1 : -1;
+    }, {passive:false});
+  }
+  // Update virtual buttons from touch positions
+  updateTouchButtons(btnLayout) {
+    this.touchBtns = {left:false,right:false,up:false,down:false,toolUse:false,toolSwitch:false};
+    for(const t of this.touches) {
+      for(const b of btnLayout) {
+        if(hitTest(t.x, t.y, b.x, b.y, b.w, b.h)) this.touchBtns[b.id] = true;
+      }
+    }
+  }
+  // Compute just-pressed (rising edge) + reset per-frame mouse state
+  update() {
+    for(const k in this.keys) {
+      this.justPressed[k] = this.keys[k] && !this._prev[k];
+    }
+    Object.assign(this._prev, this.keys);
+  }
+  // Reset per-frame mouse inputs (called at end of frame)
+  resetFrameInputs() {
+    this._rightClicked = false;
+    this._wheelDelta = 0;
+  }
+  // Combined input queries
+  left() { return this.keys['ArrowLeft']||this.keys['KeyA']||this.touchBtns.left; }
+  right() { return this.keys['ArrowRight']||this.keys['KeyD']||this.touchBtns.right; }
+  up() { return this.keys['ArrowUp']||this.keys['KeyW']||this.keys['Space']||this.touchBtns.up; }
+  down() { return this.keys['ArrowDown']||this.keys['KeyS']||this.touchBtns.down; }
+  toolUse() { return this.justPressed['KeyZ']||this.touchBtns.toolUse||this._rightClicked; }
+  toolSwitch() { return this.justPressed['KeyX']||this.touchBtns.toolSwitch||this._wheelDelta!==0; }
+  pause() { return this.justPressed['KeyP']||this.justPressed['Escape']; }
+  retry() { return this.justPressed['KeyR']; }
+  confirm() { return this.justPressed['Enter']||this.justPressed['Space']||this.mouseClicked; }
+  consumeClick() { this.mouseClicked = false; }
+  anyKey() { return Object.values(this.keys).some(v=>v) || this.touches.length>0 || this.mouseClicked; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 5: PHYSICS & COLLISION (L1001~L1400)
+// ═══════════════════════════════════════════════════════════════
+
+// Calculate depth factor based on biome depth (pure function F9)
+function getDepthFactor(biome, upgradeSpeed) {
+  const base = 1.0 - biome * 0.15;
+  const bonus = upgradeSpeed >= 0 ? CONFIG.UPGRADE_SPEED[Math.min(upgradeSpeed, 4)] || 0 : 0;
+  return Math.max(CONFIG.MIN_DEPTH_FACTOR, base + bonus);
+}
+
+// Apply water physics (pure function)
+function applyPhysics(px, py, pvx, pvy, inputDir, upHold, downHold, depthFactor, dt) {
+  let vx = pvx, vy = pvy;
+  // Horizontal movement
+  vx += inputDir * CONFIG.SWIM_ACCEL * depthFactor;
+  vx *= CONFIG.WATER_DRAG;
+  // Vertical — gravity and buoyancy
+  vy += CONFIG.GRAVITY - CONFIG.BUOYANCY;
+  // Swim up
+  if(upHold) vy -= CONFIG.SWIM_UP_FORCE * depthFactor;
+  // Dive down
+  if(downHold) vy += CONFIG.DIVE_FORCE;
+  // Clamp
+  vx = clamp(vx, -CONFIG.MAX_VX * depthFactor, CONFIG.MAX_VX * depthFactor);
+  vy = clamp(vy, -CONFIG.MAX_VY, CONFIG.MAX_VY);
+  // Apply
+  const nx = px + vx * (dt/16.67);
+  const ny = py + vy * (dt/16.67);
+  return { x:nx, y:ny, vx, vy };
+}
+
+// Apply current forces (pure function)
+function applyCurrents(vx, vy, currents, px, py, biome, dt) {
+  for(const c of currents) {
+    if(px>=c.x && px<=c.x+c.w && py>=c.y && py<=c.y+c.h) {
+      vx += c.dx * c.strength * CONFIG.CURRENT_STR[biome] * (dt/16.67);
+      vy += c.dy * c.strength * CONFIG.CURRENT_STR[biome] * (dt/16.67);
+    }
+  }
+  return { vx, vy };
+}
+
+// Tile collision resolution (pure function F9)
+function resolveTileCollision(px, py, pw, ph, tiles, tileW, tileH, levelW, levelH) {
+  let rx = px, ry = py;
+  let onGround = false;
+  // Horizontal bounds
+  rx = clamp(rx, 0, levelW * tileW - pw);
+  ry = clamp(ry, 0, levelH * tileH - ph);
+  // Check tile overlaps
+  const startCol = Math.max(0, (rx/tileW)|0);
+  const endCol = Math.min(levelW-1, ((rx+pw)/tileW)|0);
+  const startRow = Math.max(0, (ry/tileH)|0);
+  const endRow = Math.min(levelH-1, ((ry+ph)/tileH)|0);
+  for(let r=startRow;r<=endRow;r++){
+    for(let c=startCol;c<=endCol;c++){
+      if(!tiles[r] || tiles[r][c]!==1) continue;
+      const tx = c*tileW, ty = r*tileH;
+      if(!aabb(rx,ry,pw,ph,tx,ty,tileW,tileH)) continue;
+      // Resolve overlap — find smallest penetration
+      const overlapL = rx+pw - tx;
+      const overlapR = tx+tileW - rx;
+      const overlapT = ry+ph - ty;
+      const overlapB = ty+tileH - ry;
+      const minO = Math.min(overlapL,overlapR,overlapT,overlapB);
+      if(minO===overlapT) { ry = ty-ph; onGround=true; }
+      else if(minO===overlapB) { ry = ty+tileH; }
+      else if(minO===overlapL) { rx = tx-pw; }
+      else { rx = tx+tileW; }
+    }
+  }
+  return { x:rx, y:ry, onGround };
+}
+
+// Circle collision (pure function)
+function circleCollide(ax, ay, ar, bx, by, br) {
+  const d = dist(ax,ay,bx,by);
+  if(d < ar+br) return { hit:true, depth:ar+br-d, nx:(ax-bx)/(d||1), ny:(ay-by)/(d||1) };
+  return { hit:false };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 6: TRAPS & ENVIRONMENT (L1401~L1800)
+// ═══════════════════════════════════════════════════════════════
+
+// Trap types enum
+const TRAP = { SPIKE:0, COLLAPSE:1, JELLYFISH:2, CLAM:3, GEYSER:4, LURE:5, STALACTITE:6, WARP:7, SMOKER:8, RUNE:9 };
+
+// Create trap instance (pure function)
+function createTrap(type, x, y, rng) {
+  return {
+    type, x, y, w: CONFIG.TILE, h: CONFIG.TILE,
+    active: true, timer: 0, phase: 0, triggered: false,
+    warnTimer: 0, collapsing: false, disabled: false,
+    patternOffset: rng.range(0, 6.28),
+    moveSpeed: rng.range(0.3, 0.8),
+  };
+}
+
+// Update single trap (pure function)
+function updateTrap(trap, px, py, biome, dt, time) {
+  if(trap.disabled || !trap.active) return trap;
+  const t = { ...trap };
+  t.timer += dt/1000;
+  const d = dist(px, py, t.x+t.w/2, t.y+t.h/2);
+
+  switch(t.type) {
+    case TRAP.COLLAPSE:
+      if(!t.triggered && d < CONFIG.TILE*2) { t.triggered=true; t.warnTimer=CONFIG.COLLAPSE_WARN; }
+      if(t.triggered) {
+        t.warnTimer -= dt/1000;
+        if(t.warnTimer <= 0 && !t.collapsing) { t.collapsing=true; t.timer=CONFIG.COLLAPSE_DELAY; }
+        if(t.collapsing) { t.timer-=dt/1000; if(t.timer<=0) t.active=false; }
+      }
+      break;
+    case TRAP.JELLYFISH:
+      t.y += Math.sin(time*0.001 + t.patternOffset) * t.moveSpeed * (dt/16.67);
+      t.x += Math.cos(time*0.0007 + t.patternOffset) * t.moveSpeed * 0.5 * (dt/16.67);
+      break;
+    case TRAP.CLAM:
+      t.phase = (Math.sin(time*0.001 + t.patternOffset)+1)/2; // 0=open, 1=closed
+      break;
+    case TRAP.GEYSER:
+      t.phase = ((time*0.001 + t.patternOffset) % 4) < 1 ? 1 : 0; // erupting 1s per 4s cycle
+      break;
+    case TRAP.LURE:
+      if(d < CONFIG.TILE*3 && !t.triggered) t.triggered = true;
+      break;
+    case TRAP.STALACTITE:
+      if(!t.triggered && px > t.x-CONFIG.TILE && px < t.x+CONFIG.TILE*2 && py > t.y) {
+        t.triggered = true;
+      }
+      if(t.triggered) t.y += 3 * (dt/16.67);
+      break;
+    case TRAP.WARP:
+      // Always active in area
+      break;
+    case TRAP.SMOKER:
+      t.phase = Math.sin(time*0.002 + t.patternOffset)*0.5+0.5;
+      break;
+    case TRAP.RUNE:
+      t.phase = ((time*0.001 + t.patternOffset) % 3) < 0.8 ? 1 : 0;
+      break;
+  }
+  return t;
+}
+
+// Check trap collision with player (pure function)
+function checkTrapHit(trap, px, py, pw, ph) {
+  if(!trap.active || trap.disabled) return false;
+  const cx = trap.x, cy = trap.y, cw = trap.w, ch = trap.h;
+  switch(trap.type) {
+    case TRAP.SPIKE: return aabb(px,py,pw,ph,cx,cy,cw,ch);
+    case TRAP.COLLAPSE: return trap.collapsing && trap.timer>0 && aabb(px,py,pw,ph,cx,cy,cw,ch);
+    case TRAP.JELLYFISH: return dist(px+pw/2,py+ph/2,cx+cw/2,cy+ch/2) < (pw+cw)/2*0.7;
+    case TRAP.CLAM: return trap.phase > 0.7 && aabb(px,py,pw,ph,cx,cy,cw,ch);
+    case TRAP.GEYSER: return trap.phase > 0.5 && aabb(px,py,pw,ph,cx,cy-CONFIG.TILE*2,cw,ch+CONFIG.TILE*2);
+    case TRAP.LURE: return false; // Lure itself doesn't kill, activates nearby traps
+    case TRAP.STALACTITE: return trap.triggered && aabb(px,py,pw,ph,cx,cy,cw,ch);
+    case TRAP.WARP: return aabb(px,py,pw,ph,cx,cy,cw,ch);
+    case TRAP.SMOKER: return aabb(px,py,pw,ph,cx,cy,cw,ch) && trap.phase > 0.5;
+    case TRAP.RUNE: return trap.phase > 0.5 && aabb(px,py,pw,ph,cx,cy,cw,ch);
+    default: return false;
+  }
+}
+
+// Check warp trap (doesn't kill, reverses controls)
+function isInWarpZone(traps, px, py, pw, ph) {
+  for(const t of traps) {
+    if(t.type===TRAP.WARP && t.active && !t.disabled && aabb(px,py,pw,ph,t.x,t.y,t.w,t.h)) return true;
+  }
+  return false;
+}
+
+// Environment effect per biome (pure function)
+function getEnvironmentMod(biome, time) {
+  switch(biome) {
+    case 0: return { tideOffset: Math.sin(time*0.0004)*CONFIG.TILE*2, lightMod:1.0 };
+    case 1: return { tideOffset:0, lightMod: (Math.sin(time*0.001)+1)/2 > 0.6 ? 1.0 : 0.3 };
+    case 2: return { tideOffset:0, lightMod:0.7, o2Mult:1.5 };
+    case 3: return { tideOffset:0, lightMod:0.4, speedMult:0.6 };
+    case 4: return { tideOffset:0, lightMod:0.5, gravityReverse: Math.sin(time*0.0005) > 0.5 };
+    default: return { tideOffset:0, lightMod:1.0 };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 7: BOSS AI (L1801~L2100)
+// ═══════════════════════════════════════════════════════════════
+
+// Create boss instance (pure function)
+function createBoss(bossId) {
+  const hp = CONFIG.BOSS_HP[bossId];
+  return {
+    id: bossId, hp, maxHp: hp, x: 0, y: 0, w: 80, h: 60,
+    phase: 1, phaseTimer: 0, attackTimer: 0, stunTimer: 0,
+    defeated: false, rewardGiven: false,
+    // Animation
+    animFrame: 0, animTimer: 0, flashTimer: 0,
+    // Phase-specific
+    lures: [], tentacles: [], projectiles: [], minions: [],
+    charging: false, chargeDir: 0, vulnerable: false,
+    pattern: 0, patternTimer: 0,
+  };
+}
+
+// Update boss logic (mostly pure — takes state as params)
+function updateBoss(boss, px, py, dt, time, rng, biome) {
+  if(boss.defeated) return boss;
+  const b = { ...boss };
+  b.animTimer += dt;
+  if(b.animTimer > 200) { b.animTimer=0; b.animFrame=(b.animFrame+1)%4; }
+  if(b.flashTimer > 0) b.flashTimer -= dt;
+  if(b.stunTimer > 0) { b.stunTimer -= dt; return b; }
+
+  b.phaseTimer += dt/1000;
+  b.attackTimer += dt/1000;
+  b.patternTimer += dt/1000;
+
+  // Determine phase from HP
+  const hpPct = b.hp / b.maxHp;
+  if(b.id === 4) { // Final boss: 4 phases
+    if(hpPct > 0.7) b.phase=1;
+    else if(hpPct > 0.4) b.phase=2;
+    else if(hpPct > 0.15) b.phase=3;
+    else b.phase=4;
+  } else {
+    if(hpPct > 0.6) b.phase=1;
+    else if(hpPct > 0.2) b.phase=2;
+    else b.phase=3;
+  }
+
+  // Common movement — orbit/approach player
+  const dx = px - b.x, dy = py - b.y;
+  const d = Math.sqrt(dx*dx+dy*dy)||1;
+  const moveSpeed = 0.8 + b.phase * 0.3;
+
+  // Boss-specific AI
+  switch(b.id) {
+    case 0: // Anglerfish Lord — lures + charge
+      if(b.phase>=2 && b.attackTimer > 2/b.phase) {
+        b.charging = true; b.chargeDir = Math.atan2(dy,dx); b.attackTimer=0;
+      }
+      if(b.charging) {
+        b.x += Math.cos(b.chargeDir)*6*(dt/16.67);
+        b.y += Math.sin(b.chargeDir)*4*(dt/16.67);
+        if(b.phaseTimer - (b.attackTimer||0) > 0.8) { b.charging=false; b.stunTimer=1500; b.vulnerable=true; }
+      } else {
+        b.x += (dx/d)*moveSpeed*0.3*(dt/16.67);
+        b.y += Math.sin(time*0.002)*1.5*(dt/16.67);
+        b.vulnerable = false;
+      }
+      // Generate lures
+      if(b.patternTimer > 3) {
+        b.lures = [];
+        for(let i=0;i<2+b.phase;i++) b.lures.push({x:b.x+rng.range(-200,200),y:b.y+rng.range(-150,150),fake:i>0,timer:4});
+        b.patternTimer=0;
+      }
+      break;
+    case 1: // Giant Octopus — tentacles
+      b.x += Math.sin(time*0.001)*0.5*(dt/16.67);
+      b.y += Math.cos(time*0.0008)*0.3*(dt/16.67);
+      // Tentacles attack
+      if(b.attackTimer > 1.5/b.phase) {
+        const numT = 3+b.phase;
+        b.tentacles = [];
+        for(let i=0;i<numT;i++) {
+          const a = (i/numT)*Math.PI*2 + time*0.001;
+          b.tentacles.push({x:b.x+Math.cos(a)*100,y:b.y+Math.sin(a)*80,angle:a,len:60+b.phase*20,timer:2});
+        }
+        b.attackTimer=0;
+      }
+      b.vulnerable = b.stunTimer>0 || b.phaseTimer%5 > 4;
+      break;
+    case 2: // Volcanic Guardian — geysers
+      b.x = lerp(b.x, px, 0.005*(dt/16.67));
+      b.y -= 0.2*(dt/16.67);
+      if(b.y < py-200) b.y = py-200;
+      if(b.attackTimer > 2/b.phase) {
+        for(let i=0;i<3+b.phase;i++) {
+          b.projectiles.push({x:b.x+rng.range(-150,150),y:b.y+b.h,vy:2+rng.range(0,2),timer:3,type:'lava'});
+        }
+        b.attackTimer=0;
+      }
+      b.vulnerable = b.phase===3 || b.phaseTimer%4>3;
+      break;
+    case 3: // Jellyfish Queen — electric nets + minions
+      b.x += Math.sin(time*0.0015)*2*(dt/16.67);
+      b.y += Math.cos(time*0.001)*1*(dt/16.67);
+      if(b.attackTimer > 2.5/b.phase) {
+        if(b.phase>=2) {
+          for(let i=0;i<4+b.phase*2;i++) b.minions.push({x:b.x+rng.range(-100,100),y:b.y+rng.range(-80,80),vx:rng.range(-1,1),vy:rng.range(-1,1),hp:1,timer:6});
+        }
+        b.attackTimer=0;
+      }
+      b.vulnerable = b.phase===3 && b.phaseTimer%3>2;
+      break;
+    case 4: // Abyssos Core — all mechanics
+      b.x = px + Math.sin(time*0.001)*120;
+      b.y = py - 150 + Math.cos(time*0.0008)*50;
+      if(b.attackTimer > 3/b.phase) {
+        // Spawn mixed projectiles
+        for(let i=0;i<b.phase*2;i++) {
+          const a = (i/(b.phase*2))*Math.PI*2;
+          b.projectiles.push({x:b.x+Math.cos(a)*60,y:b.y+Math.sin(a)*60,vx:Math.cos(a)*2,vy:Math.sin(a)*2,timer:4,type:'rune'});
+        }
+        b.attackTimer=0;
+      }
+      b.vulnerable = b.phase>=3 && b.phaseTimer%5>4;
+      break;
+  }
+  // Update projectiles
+  b.projectiles = b.projectiles.filter(p=>{
+    p.x += (p.vx||0)*(dt/16.67); p.y += (p.vy||0)*(dt/16.67); p.timer -= dt/1000;
+    return p.timer>0;
+  });
+  // Update minions
+  b.minions = b.minions.filter(m=>{
+    m.x += m.vx*(dt/16.67); m.y += m.vy*(dt/16.67); m.timer -= dt/1000;
+    return m.timer>0 && m.hp>0;
+  });
+  // Update tentacles
+  b.tentacles = b.tentacles.filter(t=>{ t.timer-=dt/1000; return t.timer>0; });
+  // Update lures
+  b.lures = b.lures.filter(l=>{ l.timer-=dt/1000; return l.timer>0; });
+  return b;
+}
+
+// Check boss damage area against player (pure function)
+function checkBossHit(boss, px, py, pw, ph) {
+  if(boss.defeated) return false;
+  // Main body
+  if(aabb(px,py,pw,ph,boss.x-boss.w/2,boss.y-boss.h/2,boss.w,boss.h)) return true;
+  // Projectiles
+  for(const p of boss.projectiles) { if(dist(px+pw/2,py+ph/2,p.x,p.y)<25) return true; }
+  // Tentacles
+  for(const t of boss.tentacles) { if(dist(px+pw/2,py+ph/2,t.x,t.y)<30) return true; }
+  // Minions
+  for(const m of boss.minions) { if(dist(px+pw/2,py+ph/2,m.x,m.y)<20) return true; }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 8: LEVEL GENERATION & PROCEDURAL (L2101~L2500)
+// ═══════════════════════════════════════════════════════════════
+
+// Pre-defined level templates per biome
+const LEVEL_TEMPLATES = [];
+// Generate template for biome/stage
+function getLevelTemplate(biome, stage) {
+  const w = CONFIG.LEVEL_W, h = CONFIG.LEVEL_H;
+  const tiles = [];
+  for(let r=0;r<h;r++) {
+    tiles[r] = [];
+    for(let c=0;c<w;c++) {
+      // Borders
+      if(r===0||r===h-1||c===0||c===w-1) tiles[r][c]=1;
+      else tiles[r][c]=0;
+    }
+  }
+  return tiles;
+}
+
+// Generate full stage (with procedural trap placement F26)
+function generateStage(biome, stage, rng, ddaLevel, upgrades) {
+  const w = CONFIG.LEVEL_W, h = CONFIG.LEVEL_H;
+  const T = CONFIG.TILE;
+
+  // Create base tiles
+  const tiles = getLevelTemplate(biome, stage);
+
+  // Add platforms based on biome (procedural)
+  const numPlatforms = 6 + biome * 2 + stage;
+  for(let i=0;i<numPlatforms;i++) {
+    const px = rng.int(2, w-4);
+    const py = rng.int(3, h-3);
+    const pw = rng.int(2, 5);
+    for(let c=px;c<Math.min(px+pw,w-1);c++) tiles[py][c] = 1;
+  }
+
+  // Add vertical walls / cave structures
+  const numWalls = 2 + biome;
+  for(let i=0;i<numWalls;i++){
+    const wx = rng.int(3, w-4);
+    const wy = rng.int(2, h-5);
+    const wh = rng.int(2, 4);
+    for(let r=wy;r<Math.min(wy+wh,h-1);r++) tiles[r][wx] = 1;
+  }
+
+  // Start and exit positions
+  const startX = 2 * T + T/2;
+  const startY = (h-3) * T;
+  // Ensure start area clear
+  for(let r=h-4;r<h-1;r++) for(let c=1;c<4;c++) tiles[r][c]=0;
+
+  const exitX = (w-3) * T;
+  const exitY = rng.int(2,5) * T;
+  // Ensure exit area clear
+  for(let r=(exitY/T|0)-1;r<=(exitY/T|0)+1;r++) for(let c=w-4;c<w-1;c++) if(r>0&&r<h-1) tiles[r][c]=0;
+
+  // Generate traps
+  const traps = [];
+  const trapDensity = CONFIG.TRAP_DENSITY[biome];
+  const ddaReduction = ddaLevel >= 1 ? CONFIG.DDA_TRAP_DISABLE : 0;
+  const biomeTraps = getBiomeTraps(biome);
+
+  for(let i=0;i<trapDensity + stage*2;i++) {
+    // DDA: chance to disable
+    if(rng.chance(ddaReduction)) continue;
+    const tx = rng.int(3, w-4) * T;
+    const ty = rng.int(2, h-3) * T;
+    // Don't place on start/exit
+    if(dist(tx,ty,startX,startY)<T*3) continue;
+    if(dist(tx,ty,exitX,exitY)<T*3) continue;
+    const type = rng.pick(biomeTraps);
+    traps.push(createTrap(type, tx, ty, rng));
+  }
+
+  // Generate currents
+  const currents = [];
+  const numCurrents = rng.int(1, 3);
+  for(let i=0;i<numCurrents;i++) {
+    currents.push({
+      x: rng.int(4,w-8)*T, y: rng.int(2,h-6)*T,
+      w: rng.int(3,6)*T, h: rng.int(2,4)*T,
+      dx: rng.range(-1,1), dy: rng.range(-0.5,0.5),
+      strength: rng.range(0.3,1.0),
+      phase: rng.range(0,6.28),
+    });
+  }
+
+  // Generate collectibles (oxygen bubbles, clues)
+  const bubbles = [];
+  const numBubbles = 3 + (biome>=2?2:0);
+  for(let i=0;i<numBubbles;i++) {
+    bubbles.push({ x:rng.int(3,w-4)*T, y:rng.int(2,h-3)*T, collected:false, type:'o2' });
+  }
+
+  // One clue per stage
+  const clue = { x:rng.int(5,w-6)*T, y:rng.int(3,h-4)*T, collected:false, id:biome*3+stage };
+
+  // Boost pad
+  const boosts = [];
+  if(rng.chance(0.5)) {
+    boosts.push({ x:rng.int(4,w-5)*T, y:rng.int(3,h-3)*T });
+  }
+
+  // BFS path validation
+  const pathValid = validatePath(tiles, startX, startY, exitX, exitY, T, w, h);
+
+  return {
+    tiles, traps, currents, bubbles, boosts, clue,
+    startX, startY, exitX, exitY,
+    biome, stage, pathValid,
+    bgColor: CONFIG.COL_BG[biome],
+  };
+}
+
+// Get trap types available for biome
+function getBiomeTraps(biome) {
+  const base = [TRAP.SPIKE];
+  if(biome>=0) base.push(TRAP.COLLAPSE);
+  if(biome>=1) base.push(TRAP.JELLYFISH, TRAP.CLAM);
+  if(biome>=2) base.push(TRAP.GEYSER, TRAP.STALACTITE);
+  if(biome>=3) base.push(TRAP.WARP, TRAP.SMOKER);
+  if(biome>=4) base.push(TRAP.RUNE);
+  return base;
+}
+
+// Simple BFS path validation
+function validatePath(tiles, sx, sy, ex, ey, T, w, h) {
+  const sc = (sx/T)|0, sr = (sy/T)|0;
+  const ec = (ex/T)|0, er = (ey/T)|0;
+  const visited = new Set();
+  const queue = [[sc,sr]];
+  visited.add(sr*w+sc);
+  while(queue.length) {
+    const [c,r] = queue.shift();
+    if(c===ec && r===er) return true;
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+    for(const [dc,dr] of dirs) {
+      const nc=c+dc, nr=r+dr;
+      if(nc<0||nc>=w||nr<0||nr>=h) continue;
+      const key = nr*w+nc;
+      if(visited.has(key)) continue;
+      if(tiles[nr] && tiles[nr][nc]===1) continue;
+      visited.add(key);
+      queue.push([nc,nr]);
+    }
+  }
+  return false;
+}
+
+// Generate boss arena
+function generateBossArena(bossId, rng) {
+  const w = 25, h = 18, T = CONFIG.TILE;
+  const tiles = [];
+  for(let r=0;r<h;r++) {
+    tiles[r] = [];
+    for(let c=0;c<w;c++) {
+      tiles[r][c] = (r===0||r===h-1||c===0||c===w-1) ? 1 : 0;
+    }
+  }
+  // Add some platforms for boss fight
+  if(bossId>=2) {
+    for(let i=0;i<3;i++){
+      const px=rng.int(3,w-6), py=rng.int(5,h-5);
+      for(let c=px;c<px+3;c++) tiles[py][c]=1;
+    }
+  }
+  return { tiles, w, h, startX:3*T, startY:(h-3)*T, bossX:(w-5)*T, bossY:5*T };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 9: UI, RENDERING, HUD (L2501~L3000)
+// ═══════════════════════════════════════════════════════════════
+
+// Draw diver sprite (pure function F9)
+function drawDiver(ctx, x, y, size, pose, depth, flashTimer, time) {
+  ctx.save();
+  ctx.translate(x, y);
+  if(flashTimer > 0 && ((flashTimer/100)|0)%2===0) { ctx.globalAlpha=0.5; }
+  {
+    // Procedural diver (F1 — no external assets)
+    const s = size;
+    // Body
+    ctx.fillStyle = '#1a6b8a';
+    ctx.beginPath(); ctx.ellipse(0, 0, s*0.4, s*0.5, 0, 0, Math.PI*2); ctx.fill();
+    // Helmet
+    ctx.fillStyle = '#0e3d5c';
+    ctx.beginPath(); ctx.arc(0, -s*0.3, s*0.25, 0, Math.PI*2); ctx.fill();
+    // Visor glow
+    ctx.fillStyle = CONFIG.COL_BIOLUM;
+    ctx.globalAlpha = 0.8 + Math.sin(time*0.005)*0.2;
+    ctx.beginPath(); ctx.ellipse(0, -s*0.3, s*0.15, s*0.1, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Tank
+    ctx.fillStyle = '#2a4a5a';
+    ctx.fillRect(s*0.2, -s*0.2, s*0.15, s*0.4);
+    // Fins
+    ctx.fillStyle = '#00b8d4';
+    if(pose==='left') { ctx.fillRect(s*0.15, s*0.3, s*0.3, s*0.1); }
+    else if(pose==='right') { ctx.fillRect(-s*0.45, s*0.3, s*0.3, s*0.1); }
+    else { ctx.fillRect(-s*0.15, s*0.35, s*0.3, s*0.08); }
+    // Bubbles
+    ctx.fillStyle = 'rgba(0,255,229,0.4)';
+    ctx.beginPath(); ctx.arc(s*0.1, -s*0.55+Math.sin(time*0.01)*3, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-s*0.05, -s*0.6+Math.sin(time*0.012)*4, 2, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Draw trap (pure function F9)
+function drawTrap(ctx, trap, camX, camY, time) {
+  if(!trap.active || trap.disabled) return;
+  const x = trap.x - camX, y = trap.y - camY;
+  const T = CONFIG.TILE;
+  ctx.save();
+  switch(trap.type) {
+    case TRAP.SPIKE:
+      ctx.fillStyle = '#cc2244';
+      ctx.beginPath();
+      ctx.moveTo(x, y+T); ctx.lineTo(x+T/2, y); ctx.lineTo(x+T, y+T);
+      ctx.fill();
+      // Glow
+      ctx.shadowColor = CONFIG.COL_DANGER; ctx.shadowBlur = 8;
+      ctx.strokeStyle = CONFIG.COL_DANGER; ctx.lineWidth = 1;
+      ctx.stroke();
+      break;
+    case TRAP.COLLAPSE:
+      ctx.globalAlpha = trap.collapsing ? Math.max(0, trap.timer/CONFIG.COLLAPSE_DELAY) : 1;
+      ctx.fillStyle = trap.triggered ? '#8B4513' : '#A0522D';
+      ctx.fillRect(x, y, T, T);
+      if(trap.triggered && !trap.collapsing) {
+        // Warning shake
+        ctx.fillStyle = CONFIG.COL_DANGER;
+        ctx.globalAlpha = 0.5+Math.sin(time*0.02)*0.5;
+        ctx.fillRect(x-2+Math.sin(time*0.05)*3, y, T, T);
+      }
+      break;
+    case TRAP.JELLYFISH:
+      ctx.fillStyle = 'rgba(155,89,255,0.6)';
+      ctx.beginPath(); ctx.ellipse(x+T/2, y+T/3, T/2.5, T/3, 0, Math.PI, 0); ctx.fill();
+      // Tentacles
+      ctx.strokeStyle = 'rgba(155,89,255,0.4)'; ctx.lineWidth = 2;
+      for(let i=0;i<4;i++) {
+        ctx.beginPath();
+        ctx.moveTo(x+T*0.2+i*T*0.2, y+T/2);
+        ctx.quadraticCurveTo(x+T*0.2+i*T*0.2+Math.sin(time*0.003+i)*5, y+T*0.8, x+T*0.2+i*T*0.2, y+T);
+        ctx.stroke();
+      }
+      // Glow
+      ctx.shadowColor = CONFIG.COL_BOSS; ctx.shadowBlur = 12;
+      ctx.fillStyle = 'rgba(155,89,255,0.3)';
+      ctx.beginPath(); ctx.arc(x+T/2, y+T/3, T/2, 0, Math.PI*2); ctx.fill();
+      break;
+    case TRAP.GEYSER:
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x, y, T, T);
+      if(trap.phase > 0.5) {
+        // Eruption
+        const grad = ctx.createLinearGradient(x+T/2, y, x+T/2, y-T*3);
+        grad.addColorStop(0, 'rgba(255,107,53,0.8)');
+        grad.addColorStop(1, 'rgba(255,107,53,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x+T*0.2, y-T*3, T*0.6, T*3);
+      } else {
+        // Bubbles
+        ctx.fillStyle = 'rgba(255,107,53,0.3)';
+        ctx.beginPath(); ctx.arc(x+T/2, y-5-Math.sin(time*0.005)*10, 3, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+    case TRAP.LURE:
+      // Beautiful cyan light
+      ctx.shadowColor = CONFIG.COL_BIOLUM; ctx.shadowBlur = 20;
+      ctx.fillStyle = CONFIG.COL_BIOLUM;
+      ctx.globalAlpha = 0.5+Math.sin(time*0.003)*0.3;
+      ctx.beginPath(); ctx.arc(x+T/2, y+T/2, T/3, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath(); ctx.arc(x+T/2, y+T/2, T, 0, Math.PI*2); ctx.fill();
+      if(trap.triggered) {
+        ctx.strokeStyle = '#ff0000'; ctx.globalAlpha=0.6; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(x+T/2,y+T/2,T*1.5,0,Math.PI*2); ctx.stroke();
+      }
+      break;
+    case TRAP.STALACTITE:
+      ctx.fillStyle = '#555';
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+T/2,y+T); ctx.lineTo(x+T,y); ctx.fill();
+      break;
+    case TRAP.WARP:
+      ctx.fillStyle = 'rgba(106,13,173,0.3)';
+      ctx.fillRect(x, y, T, T);
+      // Distortion effect
+      ctx.strokeStyle = 'rgba(106,13,173,0.5)'; ctx.lineWidth = 2;
+      for(let i=0;i<3;i++){
+        const off = Math.sin(time*0.003+i)*5;
+        ctx.beginPath(); ctx.ellipse(x+T/2+off, y+T/2, T/2-i*3, T/2-i*3, 0, 0, Math.PI*2); ctx.stroke();
+      }
+      break;
+    case TRAP.SMOKER:
+      ctx.fillStyle = 'rgba(20,20,20,'+(0.3+trap.phase*0.5)+')';
+      ctx.beginPath(); ctx.arc(x+T/2, y+T/2-trap.phase*20, T/2+trap.phase*10, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.fillRect(x+T*0.3, y+T*0.5, T*0.4, T*0.5);
+      break;
+    case TRAP.RUNE:
+      if(trap.phase>0.5) {
+        ctx.strokeStyle = '#ff4444'; ctx.lineWidth=2; ctx.shadowColor='#ff0000'; ctx.shadowBlur=10;
+        // Laser grid
+        ctx.beginPath(); ctx.moveTo(x,y+T/2); ctx.lineTo(x+T,y+T/2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x+T/2,y); ctx.lineTo(x+T/2,y+T); ctx.stroke();
+      }
+      // Rune glow
+      ctx.fillStyle = trap.phase>0.5 ? 'rgba(255,0,0,0.3)' : 'rgba(155,89,255,0.2)';
+      ctx.fillRect(x, y, T, T);
+      break;
+  }
+  ctx.restore();
+}
+
+// Draw boss (pure function F9)
+function drawBoss(ctx, boss, camX, camY, time) {
+  if(boss.defeated) return;
+  const x = boss.x - camX, y = boss.y - camY;
+  ctx.save();
+  // Flash on damage
+  if(boss.flashTimer > 0) ctx.globalAlpha = 0.5 + Math.sin(boss.flashTimer*0.1)*0.5;
+  // Vulnerability indicator
+  if(boss.vulnerable) {
+    ctx.shadowColor = CONFIG.COL_GOLD; ctx.shadowBlur = 20;
+  }
+
+  {
+    // Procedural boss with distinct shapes per biome (F1)
+    const colors = ['#FF6B35','#9B59FF','#FF4444','#00FFE5','#6A0DAD'];
+    const col = colors[boss.id] || '#FF6B35';
+    ctx.fillStyle = col;
+    switch(boss.id) {
+      case 0: // Anglerfish Lord — bulbous body + dangling lure + jaw
+        ctx.beginPath(); ctx.ellipse(x, y, boss.w*0.5, boss.h*0.45, 0, 0, Math.PI*2); ctx.fill();
+        // Jaw
+        ctx.beginPath(); ctx.moveTo(x+boss.w*0.3, y+boss.h*0.1);
+        ctx.lineTo(x+boss.w*0.6, y+boss.h*0.3); ctx.lineTo(x+boss.w*0.3, y+boss.h*0.35);
+        ctx.fillStyle = '#cc4400'; ctx.fill();
+        // Teeth
+        ctx.fillStyle = '#fff';
+        for(let i=0;i<4;i++) { ctx.fillRect(x+boss.w*0.32+i*8, y+boss.h*0.12, 3, 6); }
+        // Lure stalk + glow
+        ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, y-boss.h*0.4);
+        ctx.quadraticCurveTo(x+20, y-boss.h*0.7, x+10, y-boss.h*0.8); ctx.stroke();
+        ctx.fillStyle = CONFIG.COL_BIOLUM; ctx.shadowColor = CONFIG.COL_BIOLUM; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(x+10, y-boss.h*0.8, 6, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        break;
+      case 1: // Giant Octopus Sage — dome head + 8 tentacles
+        ctx.beginPath(); ctx.ellipse(x, y-boss.h*0.15, boss.w*0.35, boss.h*0.4, 0, 0, Math.PI*2); ctx.fill();
+        // Tentacles (8 curved)
+        ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        for(let i=0;i<8;i++) {
+          const a = (i/8)*Math.PI*2+time*0.001;
+          const tx = x+Math.cos(a)*boss.w*0.3, ty = y+boss.h*0.2;
+          const ex = x+Math.cos(a)*boss.w*0.7, ey = y+Math.sin(a)*boss.h*0.5+boss.h*0.3;
+          ctx.beginPath(); ctx.moveTo(tx, ty);
+          ctx.quadraticCurveTo(tx+Math.sin(time*0.003+i)*15, (ty+ey)/2, ex, ey);
+          ctx.stroke();
+        }
+        // Wise eyes (2)
+        ctx.fillStyle = '#ff0';
+        ctx.beginPath(); ctx.arc(x-10, y-boss.h*0.2, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+10, y-boss.h*0.2, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(x-10, y-boss.h*0.2, 3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+10, y-boss.h*0.2, 3, 0, Math.PI*2); ctx.fill();
+        break;
+      case 2: // Volcanic Guardian — jagged rock body + molten core
+        ctx.beginPath();
+        ctx.moveTo(x-boss.w*0.5, y+boss.h*0.4);
+        ctx.lineTo(x-boss.w*0.3, y-boss.h*0.1);
+        ctx.lineTo(x-boss.w*0.1, y-boss.h*0.45);
+        ctx.lineTo(x+boss.w*0.15, y-boss.h*0.3);
+        ctx.lineTo(x+boss.w*0.4, y-boss.h*0.4);
+        ctx.lineTo(x+boss.w*0.5, y+boss.h*0.1);
+        ctx.lineTo(x+boss.w*0.3, y+boss.h*0.4);
+        ctx.closePath(); ctx.fillStyle = '#3a1a0a'; ctx.fill();
+        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+        // Molten core glow
+        ctx.fillStyle = CONFIG.COL_DANGER; ctx.shadowColor = CONFIG.COL_DANGER; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(x, y, boss.w*0.2, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Cracks with lava
+        ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x-20, y-25); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+15, y+20); ctx.stroke();
+        break;
+      case 3: // Jellyfish Queen — translucent bell + trailing tentacles + crown
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath(); ctx.ellipse(x, y-boss.h*0.1, boss.w*0.45, boss.h*0.35, 0, Math.PI, 0); ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath(); ctx.ellipse(x, y-boss.h*0.1, boss.w*0.35, boss.h*0.25, 0, Math.PI, 0); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Crown spikes
+        ctx.fillStyle = CONFIG.COL_GOLD;
+        for(let i=0;i<5;i++) { const cx2 = x-16+i*8; ctx.fillRect(cx2, y-boss.h*0.45-i%2*6, 4, 8+i%2*6); }
+        // Trailing tentacles
+        ctx.strokeStyle = 'rgba(0,255,229,0.5)'; ctx.lineWidth = 2;
+        for(let i=0;i<6;i++) {
+          ctx.beginPath();
+          ctx.moveTo(x-20+i*8, y+boss.h*0.1);
+          ctx.quadraticCurveTo(x-20+i*8+Math.sin(time*0.003+i)*10, y+boss.h*0.4, x-20+i*8, y+boss.h*0.6);
+          ctx.stroke();
+        }
+        // Electric glow
+        ctx.shadowColor = col; ctx.shadowBlur = 20;
+        ctx.strokeStyle = col; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(x, y-boss.h*0.1, boss.w*0.5, 0, Math.PI*2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        break;
+      case 4: // Abyssos Core — geometric ancient mechanism + rune rings
+        // Outer ring
+        ctx.strokeStyle = col; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x, y, boss.w*0.55, 0, Math.PI*2); ctx.stroke();
+        // Inner rotating hexagon
+        ctx.save(); ctx.translate(x, y); ctx.rotate(time*0.001);
+        ctx.beginPath();
+        for(let i=0;i<6;i++) { const a=i*Math.PI/3; ctx[i?'lineTo':'moveTo'](Math.cos(a)*boss.w*0.35, Math.sin(a)*boss.h*0.35); }
+        ctx.closePath(); ctx.strokeStyle = CONFIG.COL_BIOLUM; ctx.lineWidth = 2; ctx.stroke();
+        ctx.restore();
+        // Core eye
+        ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 25;
+        ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Rune marks
+        ctx.fillStyle = CONFIG.COL_BIOLUM; ctx.globalAlpha = 0.4+Math.sin(time*0.004)*0.3;
+        for(let i=0;i<4;i++) {
+          const a = i*Math.PI/2+time*0.0015;
+          ctx.fillRect(x+Math.cos(a)*boss.w*0.45-3, y+Math.sin(a)*boss.h*0.45-3, 6, 6);
+        }
+        break;
+      default:
+        ctx.beginPath(); ctx.ellipse(x, y, boss.w/2, boss.h/2, 0, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Boss aura
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.3+Math.sin(time*0.003)*0.2;
+    ctx.beginPath(); ctx.ellipse(x, y, boss.w*0.8, boss.h*0.8, 0, 0, Math.PI*2); ctx.stroke();
+  }
+
+  // Draw projectiles
+  ctx.globalAlpha = 1;
+  for(const p of boss.projectiles) {
+    const px = p.x - camX, py = p.y - camY;
+    ctx.fillStyle = p.type==='lava' ? CONFIG.COL_DANGER : CONFIG.COL_BOSS;
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+  }
+  // Draw tentacles
+  for(const t of boss.tentacles) {
+    ctx.strokeStyle = CONFIG.COL_BOSS; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(t.x-camX, t.y-camY); ctx.stroke();
+    ctx.fillStyle = CONFIG.COL_BOSS;
+    ctx.beginPath(); ctx.arc(t.x-camX, t.y-camY, 8, 0, Math.PI*2); ctx.fill();
+  }
+  // Draw minions
+  for(const m of boss.minions) {
+    ctx.fillStyle = 'rgba(0,255,229,0.6)';
+    ctx.beginPath(); ctx.arc(m.x-camX, m.y-camY, 10, 0, Math.PI*2); ctx.fill();
+  }
+  // Draw lures
+  for(const l of boss.lures) {
+    ctx.shadowColor = l.fake ? CONFIG.COL_DANGER : CONFIG.COL_BIOLUM;
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = CONFIG.COL_BIOLUM;
+    ctx.globalAlpha = 0.6+Math.sin(time*0.005)*0.3;
+    ctx.beginPath(); ctx.arc(l.x-camX, l.y-camY, 12, 0, Math.PI*2); ctx.fill();
+  }
+
+  // HP bar
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  const hpW = 80, hpH = 6;
+  const hpX = x - hpW/2, hpY = y - boss.h/2 - 20;
+  ctx.fillStyle = '#333'; ctx.fillRect(hpX, hpY, hpW, hpH);
+  const hpPct = boss.hp/boss.maxHp;
+  ctx.fillStyle = hpPct > 0.5 ? '#00ff87' : hpPct > 0.2 ? CONFIG.COL_GOLD : '#ff4444';
+  ctx.fillRect(hpX, hpY, hpW*hpPct, hpH);
+  ctx.restore();
+}
+
+// Draw background with parallax (pure function F9)
+function drawBackground(ctx, w, h, camX, camY, biome, time, envMod) {
+  // Base gradient
+  const bgCol = CONFIG.COL_BG[biome] || '#040D21';
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, bgCol);
+  grad.addColorStop(1, '#020810');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Parallax layer 1 — procedural mountain silhouettes (F1, no external assets)
+  ctx.fillStyle = 'rgba(10,20,40,0.5)';
+  ctx.beginPath(); ctx.moveTo(0, h);
+  for(let lx=0;lx<=w;lx+=40) {
+    ctx.lineTo(lx, h*0.6 + Math.sin((lx+camX*0.1)*0.01)*50 + Math.sin((lx+camX*0.1)*0.02)*30);
+  }
+  ctx.lineTo(w, h); ctx.fill();
+
+  // Parallax layer 2 — procedural coral shapes (F1)
+  ctx.fillStyle = 'rgba(255,126,179,0.08)';
+  for(let i=0;i<5;i++) {
+    const cx = ((i*250 - camX*0.3) % (w+200) + (w+200)) % (w+200) - 100;
+    ctx.beginPath();
+    ctx.moveTo(cx, h);
+    ctx.quadraticCurveTo(cx+30, h-80-i*20, cx+60, h);
+    ctx.fill();
+  }
+
+  // Foreground particles — bubbles
+  ctx.fillStyle = 'rgba(0,255,229,0.15)';
+  for(let i=0;i<15;i++) {
+    const bx = ((i*137 + time*0.02*(1+i*0.1)) % w);
+    const by = ((i*89 + time*0.03*(0.5+i*0.05)) % h);
+    const bs = 2 + (i%3)*2;
+    ctx.beginPath(); ctx.arc(bx, by, bs, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Light rays (biome 0-1)
+  if(biome <= 1 && envMod.lightMod > 0.5) {
+    ctx.save();
+    ctx.globalAlpha = 0.04 * envMod.lightMod;
+    ctx.fillStyle = '#88ccff';
+    for(let i=0;i<3;i++) {
+      const rx = (i*300+100 - camX*0.05) % (w+100);
+      ctx.beginPath();
+      ctx.moveTo(rx, 0); ctx.lineTo(rx+40, 0); ctx.lineTo(rx+80, h); ctx.lineTo(rx-40, h);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Depth fog (deeper biomes)
+  if(biome >= 3) {
+    ctx.fillStyle = 'rgba(0,0,0,'+(0.2+biome*0.05)+')';
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+// Draw HUD (pure function F9)
+function drawHUD(ctx, w, h, state, lang) {
+  const L = LANG[lang] || LANG.ko;
+  const fontSize = Math.max(12, w * 0.022)|0;
+
+  // Oxygen bar
+  if(state.oxygen !== undefined) {
+    const barW = Math.min(200, w*0.25), barH = 16;
+    const bx = 10, by = 10;
+    // O2 icon — procedural pressure gauge (F1)
+    ctx.fillStyle = CONFIG.COL_O2; ctx.strokeStyle = CONFIG.COL_O2; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(bx+10, by+8, 8, 0, Math.PI*2); ctx.stroke();
+    ctx.font = '8px "Segoe UI",system-ui,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('O\u2082', bx+10, by+11);
+    const ox = bx + 24;
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(ox, by, barW, barH);
+    const o2Pct = clamp(state.oxygen / state.maxOxygen, 0, 1);
+    const o2Col = o2Pct > 0.5 ? CONFIG.COL_O2 : o2Pct > 0.2 ? CONFIG.COL_GOLD : '#FF4444';
+    ctx.fillStyle = o2Col;
+    ctx.fillRect(ox+1, by+1, (barW-2)*o2Pct, barH-2);
+    ctx.fillStyle = CONFIG.COL_TEXT; ctx.font = (fontSize-2)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(L.oxygen+' '+(state.oxygen|0)+'s', ox+barW+8, by+barH-3);
+  }
+
+  // Pressure bar
+  if(state.pressure !== undefined) {
+    const barW = Math.min(200, w*0.25), barH = 12;
+    const bx = 34, by = 32;
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(bx, by, barW, barH);
+    const pPct = clamp(state.pressure / CONFIG.PRESS_HP, 0, 1);
+    ctx.fillStyle = pPct > 0.5 ? CONFIG.COL_PRESS : '#FF4444';
+    ctx.fillRect(bx+1, by+1, (barW-2)*pPct, barH-2);
+    ctx.fillStyle = CONFIG.COL_TEXT2; ctx.font = (fontSize-3)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(L.pressure, bx+barW+8, by+barH-2);
+  }
+
+  // Score
+  ctx.fillStyle = CONFIG.COL_TEXT; ctx.font = 'bold '+fontSize+'px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(L.score+': '+((state.score||0)|0), w-10, 24);
+
+  // Best score
+  ctx.fillStyle = CONFIG.COL_TEXT2; ctx.font = (fontSize-2)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.best+': '+((state.bestScore||0)|0), w-10, 44);
+
+  // Tools
+  if(state.tools && state.currentTool >= 0) {
+    const ty = h - 60;
+    ctx.fillStyle = CONFIG.COL_TEXT; ctx.textAlign = 'left';
+    ctx.font = (fontSize-2)+'px "Segoe UI",system-ui,sans-serif';
+    const toolName = L.tool[state.currentTool] || '';
+    ctx.fillText('[Z] '+toolName, 10, ty);
+    // Cooldown indicator
+    if(state.toolCooldown > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('CD: '+(state.toolCooldown/1000).toFixed(1)+'s', 10, ty+18);
+    }
+  }
+
+  // Clues collected — procedural star icon (F1)
+  ctx.fillStyle = CONFIG.COL_GOLD;
+  ctx.beginPath();
+  const sx=w-80, sy=61;
+  for(let i=0;i<5;i++){const a=i*Math.PI*2/5-Math.PI/2;const b=a+Math.PI/5;ctx.lineTo(sx+Math.cos(a)*8,sy+Math.sin(a)*8);ctx.lineTo(sx+Math.cos(b)*4,sy+Math.sin(b)*4);}
+  ctx.closePath(); ctx.fill();
+  ctx.textAlign = 'right';
+  ctx.font = (fontSize-2)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText((state.cluesCollected||0)+'/15', w-10, 66);
+
+  // Biome/Stage info
+  ctx.fillStyle = CONFIG.COL_TEXT2; ctx.textAlign = 'center';
+  ctx.font = (fontSize-2)+'px "Segoe UI",system-ui,sans-serif';
+  if(state.currentBiome !== undefined) {
+    ctx.fillText(L.biome[state.currentBiome]+' '+(state.currentStage+1)+'-'+(state.stageInBiome+1), w/2, 20);
+  }
+
+  // DDA indicator
+  if(state.ddaLevel > 0) {
+    ctx.fillStyle = 'rgba(0,255,135,0.5)';
+    ctx.font = (fontSize-3)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(L.dda_help, w/2, 38);
+  }
+}
+
+// Draw particles effect (pure function)
+function drawParticles(ctx, particles, camX, camY) {
+  for(const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    if(p.type === 'bubble') {
+      ctx.fillStyle = 'rgba(0,255,229,0.6)';
+      ctx.beginPath(); ctx.arc(p.x-camX, p.y-camY, p.size, 0, Math.PI*2); ctx.fill();
+    } else if(p.type === 'hit') {
+      // Procedural hit burst (F1)
+      ctx.strokeStyle = CONFIG.COL_DANGER; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x-camX, p.y-camY, p.size*3, 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = '#ff8844'; ctx.lineWidth = 1;
+      for(let j=0;j<4;j++){const a=j*Math.PI/2;ctx.beginPath();ctx.moveTo(p.x-camX,p.y-camY);ctx.lineTo(p.x-camX+Math.cos(a)*p.size*4,p.y-camY+Math.sin(a)*p.size*4);ctx.stroke();}
+    } else if(p.type === 'collect') {
+      ctx.fillStyle = CONFIG.COL_GOLD;
+      ctx.beginPath(); ctx.arc(p.x-camX, p.y-camY, p.size, 0, Math.PI*2); ctx.fill();
+    } else if(p.type === 'death') {
+      ctx.fillStyle = '#FF4444';
+      ctx.beginPath(); ctx.arc(p.x-camX, p.y-camY, p.size, 0, Math.PI*2); ctx.fill();
+    } else if(p.type === 'biolum') {
+      ctx.fillStyle = CONFIG.COL_BIOLUM;
+      ctx.shadowColor = CONFIG.COL_BIOLUM; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(p.x-camX, p.y-camY, p.size, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// Update particles
+function updateParticles(particles, dt) {
+  for(let i=particles.length-1;i>=0;i--) {
+    const p = particles[i];
+    p.x += (p.vx||0)*(dt/16.67);
+    p.y += (p.vy||0)*(dt/16.67);
+    p.alpha -= (p.decay||0.02)*(dt/16.67);
+    p.size += (p.grow||0)*(dt/16.67);
+    if(p.alpha <= 0) particles.splice(i, 1);
+  }
+}
+
+// Spawn particles helper
+function spawnParticles(particles, x, y, type, count, rng) {
+  for(let i=0;i<count;i++) {
+    particles.push({
+      x, y, type,
+      vx: rng.range(-2,2), vy: rng.range(-3,0),
+      alpha: 1, size: rng.range(2,6),
+      decay: rng.range(0.01,0.03), grow: type==='hit'?0.1:0,
+    });
+  }
+}
+
+// Draw tiles (pure function)
+function drawTiles(ctx, tiles, camX, camY, biome, T, screenW, screenH) {
+  const startCol = Math.max(0, (camX/T)|0);
+  const endCol = Math.min((tiles[0]||[]).length-1, ((camX+screenW)/T|0)+1);
+  const startRow = Math.max(0, (camY/T)|0);
+  const endRow = Math.min(tiles.length-1, ((camY+screenH)/T|0)+1);
+
+  const wallColors = ['#1a3a2a','#0e2530','#3a1a0a','#0a0a20','#1a0a30'];
+  const surfColors = ['#2a5a3a','#1a3540','#5a2a1a','#1a1a35','#2a1a40'];
+
+  for(let r=startRow;r<=endRow;r++) {
+    for(let c=startCol;c<=endCol;c++) {
+      if(!tiles[r] || tiles[r][c]!==1) continue;
+      const x = c*T - camX, y = r*T - camY;
+      ctx.fillStyle = wallColors[biome]||'#1a3a2a';
+      ctx.fillRect(x, y, T, T);
+      // Top surface highlight
+      if(r>0 && tiles[r-1] && tiles[r-1][c]!==1) {
+        ctx.fillStyle = surfColors[biome]||'#2a5a3a';
+        ctx.fillRect(x, y, T, 3);
+      }
+      // Subtle border
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.strokeRect(x, y, T, T);
+    }
+  }
+}
+
+// Draw collectibles (pure function)
+function drawCollectibles(ctx, bubbles, clue, boosts, camX, camY, time) {
+  const T = CONFIG.TILE;
+  // Oxygen bubbles
+  for(const b of bubbles) {
+    if(b.collected) continue;
+    const x = b.x - camX + T/2, y = b.y - camY + T/2;
+    ctx.save();
+    ctx.fillStyle = 'rgba(135,206,235,0.5)';
+    ctx.shadowColor = CONFIG.COL_O2; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(x, y + Math.sin(time*0.003)*5, T/3, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(135,206,235,0.8)'; ctx.lineWidth = 1;
+    ctx.stroke();
+    // Inner shine
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.arc(x-3, y-3+Math.sin(time*0.003)*5, T/6, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  // Clue
+  if(clue && !clue.collected) {
+    const x = clue.x - camX + T/2, y = clue.y - camY + T/2;
+    ctx.save();
+    ctx.fillStyle = CONFIG.COL_GOLD;
+    ctx.shadowColor = CONFIG.COL_GOLD; ctx.shadowBlur = 15;
+    // Diamond shape — procedural clue collectible (F1)
+    const bob = Math.sin(time*0.004)*4;
+    ctx.beginPath();
+    ctx.moveTo(x, y-12+bob); ctx.lineTo(x+10, y+bob);
+    ctx.lineTo(x, y+12+bob); ctx.lineTo(x-10, y+bob);
+    ctx.fill();
+    // Inner shine
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(x, y-6+bob); ctx.lineTo(x+4, y+bob);
+    ctx.lineTo(x, y+6+bob); ctx.lineTo(x-4, y+bob);
+    ctx.fill();
+    ctx.restore();
+  }
+  // Boosts
+  for(const b of boosts) {
+    const x = b.x - camX + T/2, y = b.y - camY + T/2;
+    ctx.save();
+    // Procedural boost arrow (F1)
+    ctx.fillStyle = '#00ff87';
+    ctx.shadowColor = '#00ff87'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y-12); ctx.lineTo(x+8, y+4); ctx.lineTo(x, y); ctx.lineTo(x-8, y+4);
+    ctx.fill();
+    // Second smaller arrow
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y-6); ctx.lineTo(x+5, y+6); ctx.lineTo(x, y+2); ctx.lineTo(x-5, y+6);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  // Exit gate
+}
+
+// Draw exit gate
+function drawExitGate(ctx, ex, ey, camX, camY, time) {
+  const x = ex - camX, y = ey - camY;
+  const T = CONFIG.TILE;
+  ctx.save();
+  ctx.shadowColor = CONFIG.COL_BIOLUM; ctx.shadowBlur = 20;
+  ctx.strokeStyle = CONFIG.COL_BIOLUM;
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.6 + Math.sin(time*0.004)*0.3;
+  ctx.strokeRect(x, y, T*2, T*2);
+  // Inner portal effect
+  ctx.fillStyle = 'rgba(0,255,229,0.15)';
+  ctx.fillRect(x+4, y+4, T*2-8, T*2-8);
+  // Rotating symbols
+  for(let i=0;i<4;i++) {
+    const a = time*0.002 + i*Math.PI/2;
+    const rx = x+T + Math.cos(a)*T*0.6;
+    const ry = y+T + Math.sin(a)*T*0.6;
+    ctx.fillStyle = CONFIG.COL_BIOLUM;
+    ctx.beginPath(); ctx.arc(rx, ry, 3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 10: STATE MACHINE, MAIN LOOP, INIT (L3001~L3500)
+// ═══════════════════════════════════════════════════════════════
+
+// INIT_EMPTY pattern (F12) — all state variables declared null
+let G = null;       // Game global state
+let TW = null;      // TweenManager
+let SND = null;     // SoundManager
+let RNG = null;     // SeededRNG
+let INPUT = null;   // InputManager
+let canvas = null;
+let ctx = null;
+let dpr = 1;
+let screenW = 0, screenH = 0;
+let lastTime = 0;
+let transitionAlpha = 0;
+let transitionProxy = { a: 0 };
+let transitioning = false;
+let pendingState = null;
+
+// Initialize canvas with devicePixelRatio
+function initCanvas() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  dpr = window.devicePixelRatio || 1;
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+
+// Resize canvas to fill window
+function resizeCanvas() {
+  screenW = window.innerWidth;
+  screenH = window.innerHeight;
+  canvas.width = screenW * dpr;
+  canvas.height = screenH * dpr;
+  canvas.style.width = screenW + 'px';
+  canvas.style.height = screenH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Touch button layout (computed dynamically)
+function getTouchLayout(w, h) {
+  const s = Math.max(CONFIG.MIN_TOUCH, Math.min(60, w*0.08)|0);
+  const pad = 10;
+  const by = h - s*2 - pad*2;
+  const isSmall = w <= 480;
+  return [
+    { id:'left',  x:pad,       y:by+s,     w:s, h:s },
+    { id:'right', x:pad+s*2,   y:by+s,     w:s, h:s },
+    { id:'up',    x:pad+s,     y:by,       w:s, h:s },
+    { id:'down',  x:pad+s,     y:by+s,     w:s, h:s },
+    { id:'toolUse',   x:w-pad-s*2-pad, y:by+s,   w:s, h:s },
+    { id:'toolSwitch', x:w-pad-s,       y:by+s,   w:s, h:s },
+  ];
+}
+
+// Draw touch controls overlay
+function drawTouchControls(ctx, w, h) {
+  if(!('ontouchstart' in window)) return;
+  const btns = getTouchLayout(w, h);
+  const labels = { left:'\u25C0', right:'\u25B6', up:'\u25B2', down:'\u25BC', toolUse:'Z', toolSwitch:'X' };
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.font = 'bold 18px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for(const b of btns) {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    const r = 8;
+    ctx.roundRect(b.x, b.y, b.w, b.h, r);
+    ctx.fill();
+    ctx.strokeStyle = CONFIG.COL_BIOLUM; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = CONFIG.COL_TEXT;
+    ctx.fillText(labels[b.id]||'', b.x+b.w/2, b.y+b.h/2);
+  }
+  ctx.restore();
+}
+
+// Create initial game state
+function createGameState() {
+  return {
+    state: 'BOOT',
+    prevState: null,
+    // Player
+    px: 0, py: 0, pvx: 0, pvy: 0,
+    playerSize: 16,
+    pose: 'idle',
+    facing: 1,
+    invincible: 0,
+    // Level
+    level: null,
+    currentBiome: 0,
+    currentStage: 0,
+    stageInBiome: 0,
+    // Gauges
+    oxygen: 90,
+    maxOxygen: 90,
+    pressure: CONFIG.PRESS_HP,
+    // Score
+    score: 0,
+    bestScore: 0,
+    stageScore: 0,
+    totalScore: 0,
+    // Tools
+    tools: [false,false,false,false,false,false],
+    currentTool: -1,
+    toolCooldown: 0,
+    toolActive: 0,
+    toolActiveType: -1,
+    // Upgrades
+    upgrades: { pressure:0, speed:0, detect:0 },
+    upgradePoints: 0,
+    // Boss
+    boss: null,
+    bossDefeated: [false,false,false,false,false],
+    bossRewardGiven: [false,false,false,false,false],
+    bossHitCount: 0,
+    // Clues
+    clues: new Array(15).fill(false),
+    cluesCollected: 0,
+    // Hidden stages
+    hiddenUnlocked: [false,false,false],
+    // Hidden unlock tracking: H-1 needs biome 1-3 cleared with O2>50%, H-2 needs biome 4 no death
+    stageO2Percent: {}, // key "b-s" → o2 remaining pct at clear
+    biome4NoDeath: [false,false,false], // per stage in biome 4
+    biome4StageDied: [false,false,false],
+    // DDA
+    consecutiveDeaths: 0,
+    ddaLevel: 0,
+    // Stage tracking
+    stageDied: false,
+    stageClearing: false,
+    // Particles
+    particles: [],
+    // Camera
+    camX: 0, camY: 0, camTargetX: 0, camTargetY: 0,
+    camZoom: 1.0, camShake: 0,
+    // Transition
+    // Timers
+    bootTimer: 0,
+    titleTimer: 0,
+    introTimer: 0,
+    victoryTimer: 0,
+    gameoverTimer: 0,
+    cutsceneTimer: 0,
+    // UI
+    lang: 'ko',
+    menuSel: 0,
+    mapSel: [0,0],
+    upgradeSel: [0,0],
+    modalAction: null,
+    // Warp effect
+    controlsReversed: false,
+    warpTimer: 0,
+    // Seed
+    baseSeed: (Date.now() * 2654435761) >>> 0,
+    attemptCount: 0,
+  };
+}
+
+// Load save data from localStorage
+function loadSave(g) {
+  try {
+    const data = JSON.parse(localStorage.getItem('abyss-diver-v1'));
+    if(data) {
+      g.upgrades = data.upgrades || g.upgrades;
+      g.tools = data.tools || g.tools;
+      g.clues = data.clues || g.clues;
+      g.bossDefeated = data.bossDefeated || g.bossDefeated;
+      g.bossRewardGiven = data.bossRewardGiven || g.bossRewardGiven;
+      g.hiddenUnlocked = data.hiddenUnlocked || g.hiddenUnlocked;
+      g.stageO2Percent = data.stageO2Percent || {};
+      g.biome4NoDeath = data.biome4NoDeath || [false,false,false];
+      g.biome4StageDied = data.biome4StageDied || [false,false,false];
+      g.totalScore = data.totalPoints || 0;
+      g.bestScore = data.bestScore || 0;
+      g.upgradePoints = data.upgradePoints || 0;
+      g.cluesCollected = g.clues.filter(c=>c).length;
+      if(data.settings) {
+        g.lang = data.settings.lang || 'ko';
+      }
+      // Set current tool to first available
+      g.currentTool = g.tools.findIndex(t=>t);
+    }
+  } catch(e) {}
+}
+
+// Save game data (F8: judge first, save after)
+function saveGame(g) {
+  try {
+    localStorage.setItem('abyss-diver-v1', JSON.stringify({
+      upgrades: g.upgrades,
+      tools: g.tools,
+      clues: g.clues,
+      bossDefeated: g.bossDefeated,
+      bossRewardGiven: g.bossRewardGiven,
+      hiddenUnlocked: g.hiddenUnlocked,
+      stageO2Percent: g.stageO2Percent,
+      biome4NoDeath: g.biome4NoDeath,
+      biome4StageDied: g.biome4StageDied,
+      totalPoints: g.totalScore,
+      bestScore: g.bestScore,
+      upgradePoints: g.upgradePoints,
+      settings: { lang: g.lang },
+    }));
+  } catch(e) {}
+}
+
+// State transition with tween (F21 — single definition of beginTransition)
+function beginTransition(fromState, toState, duration) {
+  if(transitioning && STATE_PRIORITY[toState] <= STATE_PRIORITY[pendingState]) return; // Priority guard (F6)
+  transitioning = true;
+  pendingState = toState;
+  const proxy1 = { a: 0 };
+  transitionProxy = proxy1;
+  TW.add(proxy1, { a: 1 }, duration/2 || 200, 'easeIn', () => {
+    // Guard: only execute if this is still the active transition (F5)
+    if(pendingState !== toState) return;
+    transitionAlpha = 1;
+    enterState(toState);
+    const proxy2 = { a: 1 };
+    transitionProxy = proxy2;
+    TW.add(proxy2, { a: 0 }, duration/2 || 200, 'easeOut', () => {
+      if(pendingState !== toState) return;
+      transitionAlpha = 0;
+      transitioning = false;
+    });
+  });
+}
+
+// Enter state — setup for new state
+function enterState(newState) {
+  G.prevState = G.state;
+  G.state = newState;
+
+  switch(newState) {
+    case 'TITLE':
+      G.titleTimer = 0;
+      G.menuSel = 0;
+      SND.startBGM('title');
+      break;
+    case 'MAP':
+      G.mapSel = [G.currentBiome, 0];
+      break;
+    case 'UPGRADE':
+      G.upgradeSel = [0, 0];
+      break;
+    case 'STAGE_INTRO':
+      G.introTimer = 0;
+      break;
+    case 'DIVING':
+      initStage();
+      const biome = G.currentBiome;
+      SND.startBGM(biome >= 3 ? 'deep' : 'dive');
+      break;
+    case 'BOSS':
+      initBossStage();
+      SND.startBGM('boss');
+      break;
+    case 'CUTSCENE':
+      G.cutsceneTimer = 0;
+      break;
+    case 'GAMEOVER':
+      G.gameoverTimer = 0;
+      G.camShake = 15;
+      G.consecutiveDeaths++;
+      G.ddaLevel = G.consecutiveDeaths >= 10 ? 3 : G.consecutiveDeaths >= 5 ? 2 : G.consecutiveDeaths >= CONFIG.DDA_TRIGGER ? 1 : 0;
+      SND.sfxDeath();
+      spawnParticles(G.particles, G.px, G.py, 'death', 20, RNG);
+      break;
+    case 'VICTORY':
+      G.victoryTimer = 0;
+      G.consecutiveDeaths = 0;
+      G.ddaLevel = 0;
+      G.stageClearing = false;
+      awardStageScore();
+      SND.sfxGate();
+      break;
+    case 'PAUSE':
+      G.menuSel = 0;
+      break;
+    case 'MODAL':
+      G.menuSel = 0;
+      break;
+  }
+}
+
+// Initialize a regular stage (or hidden stage when biome >= 5)
+function initStage() {
+  const biome = G.currentBiome;
+  const stage = G.stageInBiome;
+  const isHidden = biome >= 5;
+  const seed = G.baseSeed ^ (biome * 1000 + stage * 100 + G.attemptCount);
+  RNG = new SeededRNG(seed);
+
+  // Hidden stages use mixed biome mechanics
+  const genBiome = isHidden ? Math.min(4, stage + 2) : biome; // H-1→biome2, H-2→biome3, H-3→biome4
+  const level = generateStage(genBiome, stage, RNG, G.ddaLevel, G.upgrades);
+  G.level = level;
+  G.level.biome = isHidden ? genBiome : biome;
+  G.px = level.startX;
+  G.py = level.startY;
+  G.pvx = 0; G.pvy = 0;
+
+  if(isHidden) {
+    G.oxygen = CONFIG.HIDDEN_O2 * (1 + (G.ddaLevel>=1 ? CONFIG.DDA_O2_BONUS : 0));
+  } else {
+    G.oxygen = CONFIG.O2_TIME[biome] * (1 + (G.ddaLevel>=1 ? CONFIG.DDA_O2_BONUS : 0));
+  }
+  G.maxOxygen = G.oxygen;
+  G.pressure = CONFIG.PRESS_HP * (1 + CONFIG.UPGRADE_PRESS[Math.min(G.upgrades.pressure, 4)] || 0);
+  G.invincible = 1000; // Brief invincibility on start
+  G.stageScore = 0;
+  G.stageDied = false;
+  G.stageClearing = false;
+  G.controlsReversed = false;
+  G.warpTimer = 0;
+  G.toolCooldown = 0;
+  G.toolActive = 0;
+  G.particles = [];
+  G.boss = null;
+  // Camera to start position
+  G.camX = G.px - screenW/2;
+  G.camY = G.py - screenH/2;
+  G.camTargetX = G.camX;
+  G.camTargetY = G.camY;
+  G.camZoom = 1.0;
+}
+
+// Initialize boss stage
+function initBossStage() {
+  const bossId = G.currentBiome;
+  const seed = G.baseSeed ^ (bossId * 9999 + G.attemptCount);
+  RNG = new SeededRNG(seed);
+  const arena = generateBossArena(bossId, RNG);
+  G.level = {
+    tiles: arena.tiles, traps: [], currents: [], bubbles: [],
+    boosts: [], clue: null,
+    startX: arena.startX, startY: arena.startY,
+    exitX: arena.startX, exitY: arena.startY,
+    biome: G.currentBiome, stage: -1,
+    bgColor: CONFIG.COL_BG[G.currentBiome],
+  };
+  G.px = arena.startX; G.py = arena.startY;
+  G.pvx = 0; G.pvy = 0;
+  G.oxygen = CONFIG.O2_TIME[G.currentBiome] * 1.5;
+  G.maxOxygen = G.oxygen;
+  G.pressure = CONFIG.PRESS_HP * (1 + (CONFIG.UPGRADE_PRESS[Math.min(G.upgrades.pressure,4)]||0));
+  G.invincible = 2000;
+  G.bossHitCount = 0;
+  G.stageClearing = false;
+  G.particles = [];
+  G.boss = createBoss(bossId);
+  G.boss.x = arena.bossX;
+  G.boss.y = arena.bossY;
+  G.camX = G.px - screenW/2;
+  G.camY = G.py - screenH/2;
+}
+
+// Award score for stage clear
+function awardStageScore() {
+  const biome = G.currentBiome;
+  const stage = G.stageInBiome;
+  let score = CONFIG.SCORE_CLEAR * (biome + 1);
+  score += (G.oxygen|0) * CONFIG.SCORE_O2_BONUS;
+  if(!G.stageDied) score += CONFIG.SCORE_NO_DEATH;
+  G.stageScore = score;
+  G.score += score;
+  G.totalScore += score;
+
+  // Track O2 percentage at clear for H-1 unlock
+  const o2Pct = G.oxygen / G.maxOxygen;
+  G.stageO2Percent[biome+'-'+stage] = o2Pct;
+
+  // Track biome 4 no-death for H-2 unlock
+  if(biome === 3) {
+    if(G.stageDied) G.biome4StageDied[stage] = true;
+    else G.biome4NoDeath[stage] = true;
+  }
+
+  // Judge first, save after (F8)
+  const isNewBest = G.score > G.bestScore;
+  if(isNewBest) G.bestScore = G.score;
+  G.upgradePoints += 1;
+
+  // Check hidden unlocks after score award
+  checkHiddenUnlocks(G);
+
+  saveGame(G);
+}
+
+// Award boss defeat
+function awardBossDefeat(bossId) {
+  if(G.bossRewardGiven[bossId]) return; // F17 guard
+  G.bossRewardGiven[bossId] = true;
+  G.bossDefeated[bossId] = true;
+  G.score += CONFIG.SCORE_BOSS * (bossId + 1);
+  if(G.bossHitCount === 0) G.score += CONFIG.SCORE_BOSS_NOHIT;
+  G.upgradePoints += 5;
+  // Unlock tool
+  if(bossId < 5) G.tools[bossId] = true;
+  if(G.currentTool < 0) G.currentTool = bossId;
+  // Judge first, save after (F8)
+  const isNewBest = G.score > G.bestScore;
+  if(isNewBest) G.bestScore = G.score;
+  G.totalScore += CONFIG.SCORE_BOSS * (bossId + 1);
+  saveGame(G);
+}
+
+// ── Update Logic per State ──
+
+function updateBoot(dt) {
+  G.bootTimer += dt;
+  if(G.bootTimer > 1500) beginTransition('BOOT', 'TITLE', 600);
+}
+
+function updateTitle(dt, time) {
+  G.titleTimer += dt;
+  // Menu navigation
+  if(INPUT.justPressed['ArrowDown'] || INPUT.justPressed['KeyS']) G.menuSel = (G.menuSel+1)%3;
+  if(INPUT.justPressed['ArrowUp'] || INPUT.justPressed['KeyW']) G.menuSel = (G.menuSel+2)%3;
+  // Language toggle
+  if(INPUT.justPressed['KeyL']) G.lang = G.lang==='ko'?'en':'ko';
+  if(INPUT.confirm() || INPUT.touches.length > 0) {
+    INPUT.consumeClick();
+    if(G.menuSel === 0) { // Start / Continue
+      beginTransition('TITLE', 'MAP', 400);
+    } else if(G.menuSel === 1) { // Language
+      G.lang = G.lang==='ko'?'en':'ko';
+      saveGame(G);
+    } else if(G.menuSel === 2) { // Credits (no-op for now)
+    }
+  }
+}
+
+function updateMap(dt) {
+  const L = LANG[G.lang];
+  // Max accessible biome (0=always, 1-4 need previous boss defeated, 5=hidden)
+  const maxBiome = G.bossDefeated.filter(b=>b).length;
+  const hasHidden = G.hiddenUnlocked.some(h=>h);
+  const maxBiomeIdx = hasHidden ? 5 : Math.min(4, maxBiome);
+
+  // Navigate biomes (0-4 normal, 5=hidden)
+  if(INPUT.justPressed['ArrowRight']||INPUT.justPressed['KeyD']) {
+    G.mapSel[0] = Math.min(G.mapSel[0]+1, maxBiomeIdx);
+    G.mapSel[1] = 0;
+  }
+  if(INPUT.justPressed['ArrowLeft']||INPUT.justPressed['KeyA']) { G.mapSel[0] = Math.max(0, G.mapSel[0]-1); G.mapSel[1]=0; }
+
+  // Navigate stages within biome
+  const maxStage = G.mapSel[0] === 5 ? (G.hiddenUnlocked.filter(h=>h).length - 1) : 3; // 0-2 stages + boss or hidden stages
+  if(INPUT.justPressed['ArrowDown']||INPUT.justPressed['KeyS']) G.mapSel[1] = Math.min(G.mapSel[1]+1, Math.max(0, maxStage));
+  if(INPUT.justPressed['ArrowUp']||INPUT.justPressed['KeyW']) G.mapSel[1] = Math.max(0, G.mapSel[1]-1);
+
+  // Select stage
+  if(INPUT.confirm()) {
+    INPUT.consumeClick();
+    if(G.mapSel[0] === 5) {
+      // Hidden stage selection
+      const hiddenIdx = getUnlockedHiddenIndex(G.mapSel[1]);
+      if(hiddenIdx >= 0) {
+        G.currentBiome = 5; // Use special biome 5 for hidden
+        G.stageInBiome = hiddenIdx;
+        G.currentStage = 15 + hiddenIdx; // Stages 15-17 = hidden
+        G.attemptCount = 0;
+        beginTransition('MAP', 'STAGE_INTRO', 400);
+      }
+    } else {
+      G.currentBiome = G.mapSel[0];
+      if(G.mapSel[1] < 3) {
+        G.stageInBiome = G.mapSel[1];
+        G.currentStage = G.currentBiome*3 + G.stageInBiome;
+        G.attemptCount = 0;
+        beginTransition('MAP', 'STAGE_INTRO', 400);
+      } else {
+        // Boss stage
+        if(G.mapSel[0] <= maxBiome) {
+          beginTransition('MAP', 'BOSS', 400);
+        }
+      }
+    }
+  }
+  // Upgrade screen
+  if(INPUT.justPressed['KeyU'] || INPUT.justPressed['KeyX']) {
+    beginTransition('MAP', 'UPGRADE', 300);
+  }
+  // Back to title
+  if(INPUT.pause()) {
+    beginTransition('MAP', 'TITLE', 400);
+  }
+}
+
+// Helper: get the actual hidden stage index for the Nth unlocked hidden
+function getUnlockedHiddenIndex(selIdx) {
+  let count = 0;
+  for(let i=0;i<3;i++) {
+    if(G.hiddenUnlocked[i]) {
+      if(count === selIdx) return i;
+      count++;
+    }
+  }
+  return -1;
+}
+
+function updateUpgrade(dt) {
+  // Navigate
+  if(INPUT.justPressed['ArrowRight']||INPUT.justPressed['KeyD']) G.upgradeSel[0] = Math.min(2, G.upgradeSel[0]+1);
+  if(INPUT.justPressed['ArrowLeft']||INPUT.justPressed['KeyA']) G.upgradeSel[0] = Math.max(0, G.upgradeSel[0]-1);
+  if(INPUT.justPressed['ArrowDown']||INPUT.justPressed['KeyS']) G.upgradeSel[1] = Math.min(4, G.upgradeSel[1]+1);
+  if(INPUT.justPressed['ArrowUp']||INPUT.justPressed['KeyW']) G.upgradeSel[1] = Math.max(0, G.upgradeSel[1]-1);
+
+  // Purchase
+  if(INPUT.confirm()) {
+    INPUT.consumeClick();
+    const tree = G.upgradeSel[0];
+    const level = G.upgradeSel[1];
+    const key = ['pressure','speed','detect'][tree];
+    if(G.upgrades[key] === level) {
+      const cost = CONFIG.UPGRADE_COST[level];
+      if(G.upgradePoints >= cost) {
+        G.upgradePoints -= cost;
+        G.upgrades[key]++;
+        saveGame(G);
+        SND.sfxCollect();
+      }
+    }
+  }
+  if(INPUT.pause()) beginTransition('UPGRADE', 'MAP', 300);
+}
+
+function updateStageIntro(dt) {
+  G.introTimer += dt;
+  if(G.introTimer > 2000 || INPUT.confirm()) {
+    INPUT.consumeClick();
+    beginTransition('STAGE_INTRO', 'DIVING', 400);
+  }
+}
+
+function updateDiving(dt, time) {
+  if(G.stageClearing) return; // Guard flag (F5)
+  const level = G.level;
+  if(!level) return;
+
+  const biome = G.currentBiome;
+  const envMod = getEnvironmentMod(biome, time);
+  const depthFactor = getDepthFactor(biome, G.upgrades.speed);
+
+  // Input direction (with warp reversal)
+  let inputDir = 0;
+  if(INPUT.left()) inputDir -= 1;
+  if(INPUT.right()) inputDir += 1;
+
+  let upHold = INPUT.up();
+  let downHold = INPUT.down();
+
+  // §3.2 Mouse click → move toward click direction
+  if(INPUT.mouseDown) {
+    const mdx = INPUT.mouseX - (G.px - G.camX);
+    const mdy = INPUT.mouseY - (G.py - G.camY);
+    if(Math.abs(mdx) > 10) inputDir += mdx > 0 ? 1 : -1;
+    if(mdy < -10) upHold = true;
+    else if(mdy > 10) downHold = true;
+  }
+
+  if(G.controlsReversed) { inputDir *= -1; const tmp=upHold; upHold=downHold; downHold=tmp; }
+
+  // Gravity reverse for biome 4
+  let gravMod = 1;
+  if(envMod.gravityReverse) gravMod = -1;
+
+  // Physics
+  const phys = applyPhysics(G.px, G.py, G.pvx, G.pvy, inputDir, upHold, downHold, depthFactor * (envMod.speedMult||1), dt);
+  // Apply currents
+  const currMod = applyCurrents(phys.vx, phys.vy, level.currents, phys.x, phys.y, biome, dt);
+  phys.vx = currMod.vx; phys.vy = currMod.vy;
+
+  // Tile collision
+  const pw = G.playerSize*2, ph = G.playerSize*2;
+  const resolved = resolveTileCollision(phys.x-pw/2, phys.y-ph/2, pw, ph,
+    level.tiles, CONFIG.TILE, CONFIG.TILE, CONFIG.LEVEL_W, CONFIG.LEVEL_H);
+  G.px = resolved.x + pw/2;
+  G.py = resolved.y + ph/2;
+  G.pvx = phys.vx;
+  G.pvy = phys.vy;
+
+  // Pose
+  if(Math.abs(inputDir)>0) { G.pose = inputDir<0?'left':'right'; G.facing=inputDir; }
+  else if(upHold) G.pose = 'up';
+  else if(downHold) G.pose = 'down';
+  else G.pose = 'idle';
+
+  // Oxygen drain
+  const o2Mult = envMod.o2Mult || 1;
+  const ddaPressReduce = G.ddaLevel >= 2 ? CONFIG.DDA_PRESS_REDUCE : 1;
+  G.oxygen -= (dt/1000) * o2Mult;
+  if(G.oxygen <= 0) { G.oxygen = 0; handleDeath(); return; }
+
+  // Pressure damage (hidden stages use HIDDEN_PRESS_DMG)
+  const pressDmg = (biome >= 5 ? CONFIG.HIDDEN_PRESS_DMG : (CONFIG.PRESS_DMG[biome]||0)) * ddaPressReduce;
+  if(pressDmg > 0) {
+    G.pressure -= pressDmg * (dt/1000);
+    if(G.pressure <= 0) { G.pressure = 0; handleDeath(); return; }
+  }
+
+  // Invincibility timer
+  if(G.invincible > 0) G.invincible -= dt;
+
+  // Tool cooldown
+  if(G.toolCooldown > 0) G.toolCooldown -= dt;
+  if(G.toolActive > 0) G.toolActive -= dt;
+
+  // Tool use
+  if(INPUT.toolUse() && G.currentTool >= 0 && G.tools[G.currentTool] && G.toolCooldown <= 0) {
+    G.toolCooldown = CONFIG.TOOL_CD[G.currentTool] * 1000;
+    G.toolActive = CONFIG.TOOL_DUR[G.currentTool] * 1000;
+    G.toolActiveType = G.currentTool;
+    SND.sfxTool();
+  }
+  // Tool switch
+  if(INPUT.toolSwitch()) {
+    let next = G.currentTool + 1;
+    for(let i=0;i<6;i++) { const idx = (next+i)%6; if(G.tools[idx]) { G.currentTool=idx; break; } }
+  }
+
+  // Warp zone check
+  if(isInWarpZone(level.traps, G.px-pw/2, G.py-ph/2, pw, ph)) {
+    if(!G.controlsReversed) { G.controlsReversed=true; G.warpTimer=3000; }
+  }
+  if(G.warpTimer > 0) { G.warpTimer -= dt; if(G.warpTimer<=0) G.controlsReversed=false; }
+
+  // Update traps
+  for(let i=0;i<level.traps.length;i++) {
+    level.traps[i] = updateTrap(level.traps[i], G.px, G.py, biome, dt, time);
+  }
+
+  // Trap collision
+  if(G.invincible <= 0) {
+    for(const trap of level.traps) {
+      if(trap.type === TRAP.WARP) continue; // Warp doesn't kill
+      if(checkTrapHit(trap, G.px-pw/2, G.py-ph/2, pw, ph)) {
+        handleDeath();
+        return;
+      }
+    }
+  }
+
+  // Collectibles
+  for(const b of level.bubbles) {
+    if(!b.collected && dist(G.px, G.py, b.x+CONFIG.TILE/2, b.y+CONFIG.TILE/2) < CONFIG.TILE) {
+      b.collected = true;
+      if(b.type === 'o2') { G.oxygen = Math.min(G.maxOxygen, G.oxygen + 10); }
+      SND.sfxCollect();
+      spawnParticles(G.particles, b.x, b.y, 'collect', 5, RNG);
+      addScorePopup(b.x, b.y, 100);
+      G.score += 100;
+    }
+  }
+  // Clue
+  if(level.clue && !level.clue.collected && dist(G.px, G.py, level.clue.x+CONFIG.TILE/2, level.clue.y+CONFIG.TILE/2) < CONFIG.TILE) {
+    level.clue.collected = true;
+    if(!G.clues[level.clue.id]) {
+      G.clues[level.clue.id] = true;
+      G.cluesCollected++;
+      G.score += CONFIG.SCORE_CLUE;
+      SND.sfxCollect();
+      spawnParticles(G.particles, level.clue.x, level.clue.y, 'collect', 10, RNG);
+      addScorePopup(level.clue.x, level.clue.y, CONFIG.SCORE_CLUE);
+      // Show narrative text
+      const narrativeSet = NARRATIVE_DATA[G.lang] || NARRATIVE_DATA.ko;
+      showNarrative(narrativeSet[level.clue.id] || LANG[G.lang].clue_found);
+      // Check hidden unlocks
+      const hidden = checkHiddenUnlocks(G);
+      if(hidden >= 0) showNarrative(LANG[G.lang].hidden_unlock);
+    }
+  }
+  // Boost pads
+  for(const b of level.boosts) {
+    if(dist(G.px, G.py, b.x+CONFIG.TILE/2, b.y+CONFIG.TILE/2) < CONFIG.TILE) {
+      G.pvy = -CONFIG.MAX_VY * 0.8;
+      spawnParticles(G.particles, b.x, b.y, 'bubble', 5, RNG);
+    }
+  }
+
+  // Exit gate check
+  if(dist(G.px, G.py, level.exitX+CONFIG.TILE, level.exitY+CONFIG.TILE) < CONFIG.TILE*1.5) {
+    G.stageClearing = true; // Guard flag (F5)
+    if(G.currentBiome >= 5) {
+      // Hidden stage — always go to victory then back to map
+      G.score += CONFIG.SCORE_HIDDEN;
+      beginTransition('DIVING', 'VICTORY', 500);
+    } else if(G.stageInBiome >= 2) {
+      // All 3 stages done, go to boss
+      if(!G.bossDefeated[G.currentBiome]) {
+        beginTransition('DIVING', 'BOSS', 500);
+      } else {
+        beginTransition('DIVING', 'VICTORY', 500);
+      }
+    } else {
+      beginTransition('DIVING', 'VICTORY', 500);
+    }
+  }
+
+  // Camera follow
+  updateCamera(dt);
+
+  // Swim sound
+  if(Math.abs(inputDir) > 0 && ((time/300)|0)%2===0) {
+    // Occasional swim sound (throttled)
+  }
+
+  // Pause
+  if(INPUT.pause()) beginTransition('DIVING', 'PAUSE', 0);
+
+  // Instant retry
+  if(INPUT.retry()) {
+    G.attemptCount++;
+    G.stageClearing = false;
+    beginTransition('DIVING', 'DIVING', 300);
+  }
+
+  // Ambient particles
+  if(RNG.chance(0.05)) {
+    spawnParticles(G.particles, G.px + RNG.range(-screenW/2,screenW/2), G.py + RNG.range(-screenH/2, screenH/2), 'biolum', 1, RNG);
+  }
+}
+
+function updateBossState(dt, time) {
+  if(!G.boss || G.boss.defeated) return;
+  if(G.stageClearing) return; // Guard (F5)
+
+  const biome = G.currentBiome;
+  const depthFactor = getDepthFactor(biome, G.upgrades.speed);
+  const envMod = getEnvironmentMod(biome, time);
+
+  // Player movement (same as diving)
+  let inputDir = 0;
+  if(INPUT.left()) inputDir -= 1;
+  if(INPUT.right()) inputDir += 1;
+  let upHold = INPUT.up(), downHold = INPUT.down();
+
+  const phys = applyPhysics(G.px, G.py, G.pvx, G.pvy, inputDir, upHold, downHold, depthFactor, dt);
+  const pw = G.playerSize*2, ph = G.playerSize*2;
+  const resolved = resolveTileCollision(phys.x-pw/2, phys.y-ph/2, pw, ph,
+    G.level.tiles, CONFIG.TILE, CONFIG.TILE, G.level.tiles[0].length, G.level.tiles.length);
+  G.px = resolved.x + pw/2;
+  G.py = resolved.y + ph/2;
+  G.pvx = phys.vx; G.pvy = phys.vy;
+
+  // Pose
+  if(inputDir!==0) { G.pose=inputDir<0?'left':'right'; G.facing=inputDir; }
+  else if(upHold) G.pose='up';
+  else G.pose='idle';
+
+  // Invincibility
+  if(G.invincible > 0) G.invincible -= dt;
+  // Tool cooldown
+  if(G.toolCooldown > 0) G.toolCooldown -= dt;
+  if(G.toolActive > 0) G.toolActive -= dt;
+
+  // Tool use
+  if(INPUT.toolUse() && G.currentTool>=0 && G.tools[G.currentTool] && G.toolCooldown<=0) {
+    G.toolCooldown = CONFIG.TOOL_CD[G.currentTool]*1000;
+    G.toolActive = CONFIG.TOOL_DUR[G.currentTool]*1000;
+    G.toolActiveType = G.currentTool;
+    SND.sfxTool();
+  }
+  if(INPUT.toolSwitch()) {
+    let next=G.currentTool+1;
+    for(let i=0;i<6;i++){const idx=(next+i)%6;if(G.tools[idx]){G.currentTool=idx;break;}}
+  }
+
+  // Update boss
+  G.boss = updateBoss(G.boss, G.px, G.py, dt, time, RNG, biome);
+
+  // Boss collision with player
+  if(G.invincible <= 0 && checkBossHit(G.boss, G.px-pw/2, G.py-ph/2, pw, ph)) {
+    G.bossHitCount++;
+    handleDeath();
+    return;
+  }
+
+  // Player attacks boss (when vulnerable and close)
+  if(G.boss.vulnerable) {
+    const bDist = dist(G.px, G.py, G.boss.x, G.boss.y);
+    if(bDist < 60) {
+      // Auto-attack when close to vulnerable boss
+      G.boss.hp -= 2 * (dt/16.67);
+      G.boss.flashTimer = 100;
+      if(((time/200)|0)%3===0) SND.sfxHit();
+      spawnParticles(G.particles, G.boss.x, G.boss.y, 'hit', 1, RNG);
+    }
+    // Tool enhancement
+    if(G.toolActive > 0) {
+      if(G.toolActiveType === 1) G.boss.hp -= 1*(dt/16.67); // Shock bonus
+    }
+  }
+
+  // Boss defeated
+  if(G.boss.hp <= 0 && !G.boss.defeated) {
+    G.boss.defeated = true;
+    G.stageClearing = true; // Guard (F5)
+    awardBossDefeat(G.boss.id);
+    spawnParticles(G.particles, G.boss.x, G.boss.y, 'hit', 30, RNG);
+    SND.sfxBossAppear(); // Victory sound
+    beginTransition('BOSS', 'CUTSCENE', 600);
+  }
+
+  // Oxygen
+  G.oxygen -= dt/1000;
+  if(G.oxygen <= 0) { handleDeath(); return; }
+
+  updateCamera(dt);
+  if(INPUT.pause()) beginTransition('BOSS', 'PAUSE', 0);
+  if(INPUT.retry()) { G.attemptCount++; G.stageClearing=false; beginTransition('BOSS', 'BOSS', 300); }
+}
+
+function handleDeath() {
+  G.stageDied = true;
+  spawnParticles(G.particles, G.px, G.py, 'death', 15, RNG);
+  beginTransition(G.state, 'GAMEOVER', 400);
+}
+
+function updateGameOver(dt) {
+  G.gameoverTimer += dt;
+  // Screen shake decay
+  if(G.camShake > 0) G.camShake *= 0.95;
+  // Retry
+  if(INPUT.retry() || (G.gameoverTimer > 500 && INPUT.confirm())) {
+    INPUT.consumeClick();
+    G.attemptCount++;
+    G.stageClearing = false;
+    const target = G.boss ? 'BOSS' : 'DIVING';
+    beginTransition('GAMEOVER', target, 300);
+  }
+  // Back to title
+  if(INPUT.pause()) {
+    beginTransition('GAMEOVER', 'TITLE', 400);
+  }
+}
+
+function updateVictory(dt) {
+  G.victoryTimer += dt;
+  if(G.victoryTimer > 2500 || (G.victoryTimer > 800 && INPUT.confirm())) {
+    INPUT.consumeClick();
+    if(G.currentBiome >= 5) {
+      // Hidden stage — return to map
+      beginTransition('VICTORY', 'MAP', 400);
+    } else if(G.stageInBiome < 2) {
+      // Advance to next stage
+      G.stageInBiome++;
+      G.currentStage++;
+      beginTransition('VICTORY', 'MAP', 400);
+    } else {
+      // Biome complete
+      beginTransition('VICTORY', 'MAP', 400);
+    }
+  }
+}
+
+function updateCutscene(dt) {
+  G.cutsceneTimer += dt;
+  if(G.cutsceneTimer > 3000 || INPUT.confirm()) {
+    INPUT.consumeClick();
+    beginTransition('CUTSCENE', 'VICTORY', 400);
+  }
+}
+
+function updatePause(dt) {
+  if(INPUT.justPressed['ArrowDown']||INPUT.justPressed['KeyS']) G.menuSel=(G.menuSel+1)%3;
+  if(INPUT.justPressed['ArrowUp']||INPUT.justPressed['KeyW']) G.menuSel=(G.menuSel+2)%3;
+  if(INPUT.pause()) { // Resume
+    G.state = G.prevState; transitioning=false; transitionAlpha=0;
+    return;
+  }
+  if(INPUT.confirm()) {
+    INPUT.consumeClick();
+    if(G.menuSel===0) { // Resume
+      G.state = G.prevState; transitioning=false; transitionAlpha=0;
+    } else if(G.menuSel===1) { // Quit
+      beginTransition('PAUSE', 'TITLE', 400);
+    } else if(G.menuSel===2) { // Language
+      G.lang = G.lang==='ko'?'en':'ko'; saveGame(G);
+    }
+  }
+}
+
+function updateCamera(dt) {
+  // Target follows player with deadzone
+  G.camTargetX = G.px - screenW/2;
+  G.camTargetY = G.py - screenH/2;
+  // Smooth follow
+  G.camX = lerp(G.camX, G.camTargetX, CONFIG.CAM_LERP * (dt/16.67));
+  G.camY = lerp(G.camY, G.camTargetY, CONFIG.CAM_LERP * (dt/16.67));
+  // Clamp to level bounds
+  if(G.level) {
+    const lw = (G.level.tiles[0]||[]).length * CONFIG.TILE;
+    const lh = G.level.tiles.length * CONFIG.TILE;
+    G.camX = clamp(G.camX, 0, Math.max(0, lw - screenW));
+    G.camY = clamp(G.camY, 0, Math.max(0, lh - screenH));
+  }
+}
+
+// ── Render per State ──
+
+function renderBoot(ctx, w, h) {
+  ctx.fillStyle = '#040D21';
+  ctx.fillRect(0, 0, w, h);
+  // Loading animation
+  const pct = clamp(G.bootTimer / 1500, 0, 1);
+  ctx.fillStyle = CONFIG.COL_BIOLUM;
+  ctx.fillRect(w*0.3, h/2-2, w*0.4*pct, 4);
+  ctx.fillStyle = CONFIG.COL_TEXT2;
+  ctx.font = '14px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Loading...', w/2, h/2+25);
+}
+
+function renderTitle(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  // Animated background
+  drawBackground(ctx, w, h, time*0.02, time*0.01, 0, time, {lightMod:1});
+
+  // Darkened overlay
+  ctx.fillStyle = 'rgba(4,13,33,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Title with bioluminescent glow effect
+  const titleY = h * 0.3;
+  ctx.save();
+  ctx.textAlign = 'center';
+  // Glow layers
+  ctx.shadowColor = CONFIG.COL_BIOLUM;
+  ctx.shadowBlur = 30 + Math.sin(time*0.003)*10;
+  ctx.fillStyle = CONFIG.COL_BIOLUM;
+  ctx.font = 'bold '+(Math.max(28, w*0.06)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.title, w/2, titleY);
+  // Subtitle
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = CONFIG.COL_TEXT2;
+  ctx.font = (Math.max(14, w*0.025)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.subtitle, w/2, titleY + 40);
+  ctx.restore();
+
+  // Scan line effect
+  ctx.fillStyle = 'rgba(0,255,229,0.02)';
+  for(let y=0;y<h;y+=3) {
+    if(((y+time*0.1)|0)%6 < 3) ctx.fillRect(0,y,w,1);
+  }
+
+  // Menu items
+  const menuY = h * 0.55;
+  const items = [L.start, 'Lang: '+(G.lang==='ko'?'한국어':'EN'), 'Credits'];
+  ctx.textAlign = 'center';
+  for(let i=0;i<items.length;i++) {
+    const sel = G.menuSel === i;
+    ctx.fillStyle = sel ? CONFIG.COL_BIOLUM : CONFIG.COL_TEXT2;
+    ctx.font = (sel?'bold ':'') + (Math.max(16, w*0.03)|0) + 'px "Segoe UI",system-ui,sans-serif';
+    if(sel) { ctx.shadowColor = CONFIG.COL_BIOLUM; ctx.shadowBlur = 15; }
+    else { ctx.shadowBlur = 0; }
+    ctx.fillText(items[i], w/2, menuY + i*45);
+  }
+  ctx.shadowBlur = 0;
+
+  // Floating diver silhouette
+  const diverY = h*0.75 + Math.sin(time*0.002)*15;
+  drawDiver(ctx, w*0.2, diverY, 24, 'right', 0, 0, time);
+
+  // Bottom hint
+  ctx.fillStyle = CONFIG.COL_DIM;
+  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('[L] Language  |  \u2191\u2193 Select  |  SPACE/Enter Confirm', w/2, h-20);
+}
+
+function renderMap(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  drawBackground(ctx, w, h, time*0.01, 0, G.mapSel[0], time, {lightMod:0.7});
+  ctx.fillStyle = 'rgba(4,13,33,0.5)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Title
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_TEXT;
+  ctx.font = 'bold '+(Math.max(20, w*0.035)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.map_title, w/2, 40);
+
+  // Biome cards (5 normal + optional hidden tab)
+  const hasHidden = G.hiddenUnlocked.some(h=>h);
+  const numCards = hasHidden ? 6 : 5;
+  const cardW = Math.min(120, (w-60)/numCards);
+  const startX = (w - cardW*numCards - (numCards-1)*10)/2;
+  for(let i=0;i<numCards;i++) {
+    const cx = startX + i*(cardW+10);
+    const cy = 70;
+    const sel = G.mapSel[0]===i;
+    const isHidden = i===5;
+    const unlocked = isHidden ? hasHidden : (i===0 || G.bossDefeated[i-1]);
+    ctx.fillStyle = sel ? (isHidden ? 'rgba(155,89,255,0.2)' : 'rgba(0,255,229,0.15)') : 'rgba(18,18,30,0.8)';
+    ctx.fillRect(cx, cy, cardW, 100);
+    ctx.strokeStyle = sel ? (isHidden ? CONFIG.COL_BOSS : CONFIG.COL_BIOLUM) : '#1e1e30';
+    ctx.lineWidth = sel ? 2 : 1;
+    ctx.strokeRect(cx, cy, cardW, 100);
+    // Biome name
+    const label = isHidden ? (G.lang==='ko'?'심연의 균열':'Abyss Rift') : (unlocked ? L.biome[i] : L.locked);
+    ctx.fillStyle = unlocked ? (sel ? (isHidden ? CONFIG.COL_BOSS : CONFIG.COL_BIOLUM) : CONFIG.COL_TEXT) : CONFIG.COL_DIM;
+    ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, cx+cardW/2, cy+55);
+    // Color indicator
+    ctx.fillStyle = isHidden ? '#1a0030' : CONFIG.COL_BG[i];
+    ctx.fillRect(cx+5, cy+5, cardW-10, 30);
+    if(isHidden) {
+      // Decorative rune glow
+      ctx.fillStyle = CONFIG.COL_BOSS; ctx.globalAlpha = 0.3+Math.sin(time*0.003)*0.2;
+      ctx.font = '16px "Segoe UI",system-ui,sans-serif';
+      ctx.fillText('?', cx+cardW/2, cy+25);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Stage selection for selected biome
+  if(G.mapSel[0] === 5) {
+    // Hidden stage selection
+    const sy = 200;
+    const unlockedHidden = G.hiddenUnlocked.map((h,i) => h ? i : -1).filter(i=>i>=0);
+    const hiddenNames = {ko:['심연 H-1','심연 H-2','심연 H-3'],en:['Abyss H-1','Abyss H-2','Abyss H-3']};
+    for(let i=0;i<unlockedHidden.length;i++) {
+      const sx = w/2 - (unlockedHidden.length*90)/2 + i*100;
+      const sel = G.mapSel[1]===i;
+      ctx.fillStyle = sel ? 'rgba(155,89,255,0.2)' : 'rgba(18,18,30,0.6)';
+      ctx.fillRect(sx, sy, 80, 50);
+      ctx.strokeStyle = sel ? CONFIG.COL_BOSS : '#1e1e30';
+      ctx.lineWidth = sel?2:1;
+      ctx.strokeRect(sx, sy, 80, 50);
+      ctx.fillStyle = sel ? CONFIG.COL_BOSS : CONFIG.COL_TEXT2;
+      ctx.font = '13px "Segoe UI",system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(hiddenNames[G.lang][unlockedHidden[i]], sx+40, sy+30);
+    }
+  } else if(G.mapSel[0] <= G.bossDefeated.filter(b=>b).length || G.mapSel[0]===0) {
+    const sy = 200;
+    for(let i=0;i<4;i++) {
+      const sx = w/2 - 200 + i*100;
+      const sel = G.mapSel[1]===i;
+      const label = i<3 ? L.stage_select+' '+(i+1) : 'BOSS';
+      ctx.fillStyle = sel ? 'rgba(0,255,229,0.2)' : 'rgba(18,18,30,0.6)';
+      ctx.fillRect(sx, sy, 80, 50);
+      ctx.strokeStyle = sel ? CONFIG.COL_BIOLUM : '#1e1e30';
+      ctx.lineWidth = sel?2:1;
+      ctx.strokeRect(sx, sy, 80, 50);
+      ctx.fillStyle = sel ? CONFIG.COL_BIOLUM : CONFIG.COL_TEXT2;
+      ctx.font = '13px "Segoe UI",system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, sx+40, sy+30);
+    }
+  }
+
+  // Stats
+  ctx.textAlign = 'left';
+  ctx.fillStyle = CONFIG.COL_TEXT2;
+  ctx.font = '13px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.total+': '+G.totalScore, 20, h-60);
+  ctx.fillText(L.clues+': '+G.cluesCollected+'/15', 20, h-40);
+  ctx.fillText('Points: '+G.upgradePoints, 20, h-20);
+
+  // Hints
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_DIM;
+  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('[X/U] '+L.upgrade+'  |  [ESC] '+L.back, w/2, h-10);
+}
+
+function renderUpgrade(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  ctx.fillStyle = '#0a0a15';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_TEXT;
+  ctx.font = 'bold '+(Math.max(18,w*0.03)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.upgrade, w/2, 35);
+
+  // Points display
+  ctx.fillStyle = CONFIG.COL_GOLD;
+  ctx.font = '14px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('Points: '+G.upgradePoints, w/2, 58);
+
+  // 3 columns
+  const trees = ['pressure','speed','detect'];
+  const treeNames = [L.press_tree, L.speed_tree, L.detect_tree];
+  const treeDescs = [L.upg_press, L.upg_speed, L.upg_detect];
+  const colW = Math.min(200, (w-40)/3);
+  const startX = (w - colW*3 - 20)/2;
+
+  for(let t=0;t<3;t++) {
+    const cx = startX + t*(colW+10);
+    const cy = 80;
+    // Column header
+    const selCol = G.upgradeSel[0]===t;
+    ctx.fillStyle = selCol ? CONFIG.COL_BIOLUM : CONFIG.COL_TEXT2;
+    ctx.font = 'bold 14px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(treeNames[t], cx+colW/2, cy);
+
+    // Levels
+    for(let lv=0;lv<5;lv++) {
+      const ly = cy + 25 + lv*55;
+      const sel = G.upgradeSel[0]===t && G.upgradeSel[1]===lv;
+      const owned = G.upgrades[trees[t]] > lv;
+      const available = G.upgrades[trees[t]] === lv;
+      ctx.fillStyle = sel ? 'rgba(0,255,229,0.15)' : 'rgba(18,18,30,0.6)';
+      ctx.fillRect(cx, ly, colW, 45);
+      ctx.strokeStyle = sel ? CONFIG.COL_BIOLUM : owned ? '#00ff87' : '#1e1e30';
+      ctx.lineWidth = sel ? 2 : 1;
+      ctx.strokeRect(cx, ly, colW, 45);
+      // Level text
+      ctx.fillStyle = owned ? '#00ff87' : available ? CONFIG.COL_TEXT : CONFIG.COL_DIM;
+      ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(L.level+(lv+1)+': '+treeDescs[t][lv], cx+5, ly+18);
+      if(!owned) {
+        ctx.fillStyle = available && G.upgradePoints >= CONFIG.UPGRADE_COST[lv] ? CONFIG.COL_GOLD : CONFIG.COL_DIM;
+        ctx.fillText(L.cost+': '+CONFIG.UPGRADE_COST[lv]+'pt', cx+5, ly+35);
+      } else {
+        ctx.fillStyle = '#00ff87';
+        ctx.fillText('\u2713', cx+colW-20, ly+25);
+      }
+    }
+  }
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_DIM;
+  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('[ESC] '+L.back+'  |  ENTER '+L.upgrade, w/2, h-10);
+}
+
+function renderStageIntro(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  const biome = G.currentBiome;
+  const drawBiome = Math.min(biome, 4); // Clamp for bg/env lookup
+  drawBackground(ctx, w, h, 0, 0, drawBiome, time, getEnvironmentMod(drawBiome, time));
+  ctx.fillStyle = 'rgba(4,13,33,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Stage name with dramatic entrance
+  const progress = clamp(G.introTimer / 1000, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = progress;
+  ctx.textAlign = 'center';
+  const isHidden = biome >= 5;
+  ctx.shadowColor = isHidden ? CONFIG.COL_BOSS : CONFIG.COL_BIOLUM;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = isHidden ? CONFIG.COL_BOSS : CONFIG.COL_BIOLUM;
+  ctx.font = 'bold '+(Math.max(24, w*0.05)|0)+'px "Segoe UI",system-ui,sans-serif';
+  const biomeName = isHidden ? (G.lang==='ko'?'심연의 균열':'Abyss Rift') : L.biome[biome];
+  ctx.fillText(biomeName, w/2, h*0.4);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = CONFIG.COL_TEXT2;
+  ctx.font = (Math.max(16, w*0.03)|0)+'px "Segoe UI",system-ui,sans-serif';
+  const stageLabel = isHidden ? 'H-'+(G.stageInBiome+1) : L.stage_select+' '+(G.stageInBiome+1);
+  ctx.fillText(stageLabel, w/2, h*0.4+40);
+  ctx.restore();
+
+  // Depth indicator animation
+  const depthBar = progress * h * 0.3;
+  ctx.fillStyle = 'rgba(0,255,229,0.1)';
+  ctx.fillRect(w/2-1, h*0.55, 2, depthBar);
+}
+
+function renderDiving(ctx, w, h, time) {
+  const level = G.level;
+  if(!level) return;
+  const biome = level.biome;
+  const envMod = getEnvironmentMod(biome, time);
+
+  ctx.save();
+  // Camera shake
+  if(G.camShake > 0.5) {
+    const sx = (RNG.next()-0.5)*G.camShake;
+    const sy = (RNG.next()-0.5)*G.camShake;
+    ctx.translate(sx, sy);
+    G.camShake *= 0.95;
+  }
+
+  // Background
+  drawBackground(ctx, w, h, G.camX, G.camY, biome, time, envMod);
+
+  // Tiles
+  drawTiles(ctx, level.tiles, G.camX, G.camY, biome, CONFIG.TILE, w, h);
+
+  // Exit gate
+  drawExitGate(ctx, level.exitX, level.exitY, G.camX, G.camY, time);
+
+  // Collectibles
+  drawCollectibles(ctx, level.bubbles, level.clue, level.boosts, G.camX, G.camY, time);
+
+  // Traps
+  for(const trap of level.traps) drawTrap(ctx, trap, G.camX, G.camY, time);
+
+  // Tool active effect
+  if(G.toolActive > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    const toolColors = [CONFIG.COL_BIOLUM, '#FFD700', '#FFFFFF', CONFIG.COL_PRESS, '#00ff87', '#9B59FF'];
+    ctx.fillStyle = toolColors[G.toolActiveType]||CONFIG.COL_BIOLUM;
+    ctx.beginPath();
+    ctx.arc(G.px - G.camX, G.py - G.camY, CONFIG.TILE * (3+G.toolActiveType), 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Player
+  drawDiver(ctx, G.px - G.camX, G.py - G.camY, G.playerSize, G.pose, biome, G.invincible, time);
+
+  // Particles
+  drawParticles(ctx, G.particles, G.camX, G.camY);
+
+  ctx.restore();
+
+  // Depth vision restriction (biomes 3+)
+  if(envMod.lightMod < 1.0 && G.toolActiveType !== 2) { // Not using flare
+    const vision = envMod.lightMod * (G.toolActive > 0 && G.toolActiveType===2 ? 2 : 1);
+    const vr = Math.max(80, Math.min(screenW, screenH) * 0.4 * vision);
+    const grad = ctx.createRadialGradient(G.px-G.camX, G.py-G.camY, vr*0.5, G.px-G.camX, G.py-G.camY, vr);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Biome-specific visual effects
+  drawBiomeEffects(ctx, w, h, biome, time, G.camX, G.camY);
+
+  // Weather effects
+  drawWeatherEffects(ctx, w, h, biome, time);
+
+  // Tool visual effects
+  if(G.toolActive > 0) {
+    if(G.toolActiveType === 0) drawSonarPulse(ctx, G.px, G.py, G.camX, G.camY, time, G.toolActive);
+    if(G.toolActiveType === 2) drawFlareEffect(ctx, G.px, G.py, G.camX, G.camY, time, G.toolActive);
+    if(G.toolActiveType === 3) drawShieldEffect(ctx, G.px, G.py, G.camX, G.camY, time);
+  }
+
+  // Trap warnings (detect upgrade)
+  drawTrapWarnings(ctx, level.traps, G.camX, G.camY, G.px, G.py, CONFIG.UPGRADE_DETECT[Math.min(G.upgrades.detect,4)]||0);
+
+  // Score popups
+  drawScorePopups(ctx, scorePopups, G.camX, G.camY);
+
+  // Narrative popup
+  if(narrativeTimer > 0) {
+    drawNarrativePopup(ctx, w, h, narrativeText, narrativeTimer/1000);
+  }
+
+  // Warp indicator
+  if(G.controlsReversed) {
+    ctx.fillStyle = 'rgba(106,13,173,0.15)';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = CONFIG.COL_BOSS;
+    ctx.font = '14px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CONTROLS REVERSED! '+(G.warpTimer/1000).toFixed(1)+'s', w/2, h-80);
+  }
+
+  // HUD
+  drawHUD(ctx, w, h, G, G.lang);
+
+  // Minimap
+  if(G.level) drawMinimap(ctx, w, h, G.level.tiles, G.camX, G.camY, G.px, G.py, G.level.traps, G.level.exitX, G.level.exitY, biome, CONFIG.UPGRADE_DETECT[Math.min(G.upgrades.detect,4)]||0);
+
+  // Depth meter
+  drawDepthMeter(ctx, w, h, G.currentBiome, G.stageInBiome);
+
+  // Touch controls
+  drawTouchControls(ctx, w, h);
+}
+
+function renderBossState(ctx, w, h, time) {
+  if(!G.level) return;
+  const biome = G.currentBiome;
+  const envMod = getEnvironmentMod(biome, time);
+
+  ctx.save();
+  if(G.camShake>0.5) {
+    ctx.translate((RNG.next()-0.5)*G.camShake, (RNG.next()-0.5)*G.camShake);
+    G.camShake *= 0.95;
+  }
+
+  drawBackground(ctx, w, h, G.camX, G.camY, biome, time, envMod);
+  drawTiles(ctx, G.level.tiles, G.camX, G.camY, biome, CONFIG.TILE, w, h);
+
+  // Boss
+  if(G.boss) drawBoss(ctx, G.boss, G.camX, G.camY, time);
+
+  // Player
+  drawDiver(ctx, G.px-G.camX, G.py-G.camY, G.playerSize, G.pose, biome, G.invincible, time);
+
+  // Particles
+  drawParticles(ctx, G.particles, G.camX, G.camY);
+  ctx.restore();
+
+  // HUD
+  drawHUD(ctx, w, h, G, G.lang);
+
+  // Boss weakness indicator
+  if(G.boss) drawBossWeakness(ctx, G.boss, G.camX, G.camY, time, CONFIG.UPGRADE_DETECT[Math.min(G.upgrades.detect,4)]||0);
+
+  // Score popups
+  drawScorePopups(ctx, scorePopups, G.camX, G.camY);
+
+  // Boss name
+  if(G.boss && !G.boss.defeated) {
+    const L = LANG[G.lang];
+    const bossNames = {
+      ko:['앵글러피시 군주','거대 문어 현자','화산 가디언','해파리 여왕','아비소스 핵심'],
+      en:['Anglerfish Lord','Giant Octopus Sage','Volcanic Guardian','Jellyfish Queen','Abyssos Core']
+    };
+    ctx.textAlign = 'center';
+    ctx.fillStyle = CONFIG.COL_BOSS;
+    ctx.shadowColor = CONFIG.COL_BOSS; ctx.shadowBlur = 10;
+    ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(bossNames[G.lang][G.boss.id], w/2, h-30);
+    ctx.shadowBlur = 0;
+  }
+
+  drawTouchControls(ctx, w, h);
+}
+
+function renderGameOver(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  // Dim previous scene
+  ctx.fillStyle = 'rgba(4,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Death text
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#FF4444';
+  ctx.shadowBlur = 20 + Math.sin(time*0.005)*5;
+  ctx.fillStyle = '#FF4444';
+  ctx.font = 'bold '+(Math.max(24,w*0.05)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.game_over, w/2, h*0.35);
+  ctx.restore();
+
+  // Score
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_TEXT;
+  ctx.font = (Math.max(16,w*0.03)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.score+': '+G.score, w/2, h*0.45);
+
+  // Best
+  ctx.fillStyle = CONFIG.COL_GOLD;
+  ctx.font = (Math.max(14,w*0.025)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.best+': '+G.bestScore, w/2, h*0.52);
+
+  // Retry hint
+  ctx.fillStyle = CONFIG.COL_BIOLUM;
+  ctx.globalAlpha = 0.5+Math.sin(time*0.004)*0.3;
+  ctx.font = (Math.max(14,w*0.025)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.retry, w/2, h*0.65);
+  ctx.globalAlpha = 1;
+
+  // DDA notice
+  if(G.ddaLevel > 0) {
+    ctx.fillStyle = 'rgba(0,255,135,0.5)';
+    ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(L.dda_help + ' (Lv'+G.ddaLevel+')', w/2, h*0.72);
+  }
+}
+
+function renderVictory(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  ctx.fillStyle = 'rgba(0,20,40,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Victory particles
+  for(let i=0;i<10;i++) {
+    const px = (w/2 + Math.sin(time*0.003+i*0.7)*w*0.3);
+    const py = (h*0.3 + Math.cos(time*0.004+i)*50);
+    ctx.fillStyle = CONFIG.COL_BIOLUM;
+    ctx.globalAlpha = 0.3+Math.sin(time*0.005+i)*0.2;
+    ctx.beginPath(); ctx.arc(px, py, 3+i%3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'center';
+  ctx.shadowColor = CONFIG.COL_BIOLUM;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = CONFIG.COL_BIOLUM;
+  ctx.font = 'bold '+(Math.max(24,w*0.05)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(G.boss ? L.boss_defeat : L.stage_clear, w/2, h*0.35);
+  ctx.shadowBlur = 0;
+
+  // Score breakdown
+  ctx.fillStyle = CONFIG.COL_TEXT;
+  ctx.font = (Math.max(14,w*0.025)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.score+': +'+(G.stageScore||0), w/2, h*0.45);
+  ctx.fillText(L.total+': '+G.totalScore, w/2, h*0.52);
+
+  // New record?
+  if(G.score >= G.bestScore && G.score > 0) {
+    ctx.fillStyle = CONFIG.COL_GOLD;
+    ctx.shadowColor = CONFIG.COL_GOLD; ctx.shadowBlur = 15;
+    ctx.font = 'bold '+(Math.max(16,w*0.03)|0)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText('\u2605 '+L.new_record+' \u2605', w/2, h*0.6);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function renderCutscene(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  const biome = G.currentBiome;
+  drawBackground(ctx, w, h, 0, 0, biome, time, getEnvironmentMod(biome, time));
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Boss defeated cutscene
+  const bossNames = {
+    ko:['앵글러피시 군주','거대 문어 현자','화산 가디언','해파리 여왕','아비소스 핵심'],
+    en:['Anglerfish Lord','Giant Octopus Sage','Volcanic Guardian','Jellyfish Queen','Abyssos Core']
+  };
+  const toolNames = G.lang==='ko' ? L.tool : L.tool;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_GOLD;
+  ctx.shadowColor = CONFIG.COL_GOLD; ctx.shadowBlur = 15;
+  ctx.font = 'bold '+(Math.max(20,w*0.04)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(bossNames[G.lang][biome]+' '+L.boss_defeat, w/2, h*0.3);
+  ctx.shadowBlur = 0;
+
+  // Tool unlocked
+  if(biome < 5) {
+    const progress = clamp((G.cutsceneTimer - 1000)/500, 0, 1);
+    ctx.globalAlpha = progress;
+    ctx.fillStyle = CONFIG.COL_BIOLUM;
+    ctx.font = (Math.max(16,w*0.03)|0)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText((G.lang==='ko'?'\uD83D\uDD27 ':'')+'New Tool: '+toolNames[biome], w/2, h*0.5);
+    ctx.globalAlpha = 1;
+  }
+
+  // Skip hint
+  ctx.fillStyle = CONFIG.COL_DIM;
+  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText('Press any key to continue...', w/2, h*0.75);
+}
+
+function renderPause(ctx, w, h, time) {
+  const L = LANG[G.lang];
+  ctx.fillStyle = 'rgba(4,13,33,0.8)';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_TEXT;
+  ctx.font = 'bold '+(Math.max(22,w*0.04)|0)+'px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(L.pause, w/2, h*0.3);
+
+  const items = [L.resume, L.quit, 'Lang: '+(G.lang==='ko'?'한국어':'EN')];
+  for(let i=0;i<items.length;i++) {
+    const sel = G.menuSel===i;
+    ctx.fillStyle = sel ? CONFIG.COL_BIOLUM : CONFIG.COL_TEXT2;
+    ctx.font = (sel?'bold ':'')+(Math.max(16,w*0.028)|0)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(items[i], w/2, h*0.45+i*40);
+  }
+}
+
+// ── MAIN GAME LOOP ──
+
+function gameLoop(timestamp) {
+  try {
+    if(!lastTime) lastTime = timestamp;
+    const rawDt = timestamp - lastTime;
+    const dt = clamp(rawDt, 0, 33.33); // Max 2-frame correction
+    lastTime = timestamp;
+
+    // Input update
+    INPUT.update();
+    if('ontouchstart' in window) {
+      INPUT.updateTouchButtons(getTouchLayout(screenW, screenH));
+    }
+
+    // Audio resume on interaction
+    if(INPUT.anyKey()) SND.resume();
+
+    // Tween update (always active in most states)
+    if(ACTIVE_SYSTEMS[G.state]?.tween) TW.update(dt);
+
+    // Sync transition alpha from proxy
+    transitionAlpha = transitionProxy.a;
+
+    // State-specific update
+    switch(G.state) {
+      case 'BOOT': updateBoot(dt); break;
+      case 'TITLE': updateTitle(dt, timestamp); break;
+      case 'MAP': updateMap(dt); break;
+      case 'UPGRADE': updateUpgrade(dt); break;
+      case 'STAGE_INTRO': updateStageIntro(dt); break;
+      case 'DIVING': updateDiving(dt, timestamp); break;
+      case 'BOSS': updateBossState(dt, timestamp); break;
+      case 'GAMEOVER': updateGameOver(dt); break;
+      case 'VICTORY': updateVictory(dt); break;
+      case 'CUTSCENE': updateCutscene(dt); break;
+      case 'PAUSE': updatePause(dt); break;
+    }
+
+    // Update particles
+    if(ACTIVE_SYSTEMS[G.state]?.particles) updateParticles(G.particles, dt);
+
+    // Update score popups
+    updateScorePopups(dt);
+
+    // Update narrative timer
+    if(narrativeTimer > 0) narrativeTimer -= dt;
+
+    // ── RENDER ──
+    ctx.clearRect(0, 0, screenW, screenH);
+
+    switch(G.state) {
+      case 'BOOT': renderBoot(ctx, screenW, screenH); break;
+      case 'TITLE': renderTitle(ctx, screenW, screenH, timestamp); break;
+      case 'MAP': renderMap(ctx, screenW, screenH, timestamp); break;
+      case 'UPGRADE': renderUpgrade(ctx, screenW, screenH, timestamp); break;
+      case 'STAGE_INTRO': renderStageIntro(ctx, screenW, screenH, timestamp); break;
+      case 'DIVING': renderDiving(ctx, screenW, screenH, timestamp); break;
+      case 'BOSS': renderBossState(ctx, screenW, screenH, timestamp); break;
+      case 'GAMEOVER': renderGameOver(ctx, screenW, screenH, timestamp); break;
+      case 'VICTORY': renderVictory(ctx, screenW, screenH, timestamp); break;
+      case 'CUTSCENE': renderCutscene(ctx, screenW, screenH, timestamp); break;
+      case 'PAUSE': renderPause(ctx, screenW, screenH, timestamp); break;
+    }
+
+    // Transition overlay
+    if(transitionAlpha > 0.01) {
+      ctx.fillStyle = 'rgba(4,13,33,'+transitionAlpha+')';
+      ctx.fillRect(0, 0, screenW, screenH);
+    }
+
+    // Consume click + reset per-frame mouse inputs at end of frame
+    INPUT.consumeClick();
+    INPUT.resetFrameInputs();
+
+  } catch(e) {
+    // Error recovery — log but don't crash the loop
+    console.error('Game loop error:', e);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ── INITIALIZATION ──
+
+function init() {
+  initCanvas();
+  TW = new TweenManager();
+  SND = new SoundManager();
+  SND.init();
+  INPUT = new InputManager();
+  RNG = new SeededRNG(Date.now());
+  G = createGameState();
+  loadSave(G);
+
+  // Start game loop — no external assets to preload (F1)
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 10B: ENHANCED SYSTEMS — MINIMAP, MODAL, NARRATIVE
+// ═══════════════════════════════════════════════════════════════
+
+// Draw minimap when detect upgrade is Lv5 (pure function F9)
+function drawMinimap(ctx, w, h, tiles, camX, camY, px, py, traps, exitX, exitY, biome, detectLv) {
+  if(detectLv < 5) return;
+  const mapW = 120, mapH = 80;
+  const mx = w - mapW - 10, my = h - mapH - 70;
+  const tileW = tiles[0] ? mapW / tiles[0].length : 1;
+  const tileH = mapH / tiles.length;
+
+  ctx.save();
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = 'rgba(4,13,33,0.8)';
+  ctx.fillRect(mx, my, mapW, mapH);
+  ctx.strokeStyle = CONFIG.COL_BIOLUM;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mx, my, mapW, mapH);
+
+  // Tiles
+  for(let r=0;r<tiles.length;r++) {
+    for(let c=0;c<(tiles[r]||[]).length;c++) {
+      if(tiles[r][c]===1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(mx+c*tileW, my+r*tileH, tileW, tileH);
+      }
+    }
+  }
+
+  // Traps (detect Lv3+)
+  if(detectLv >= 3) {
+    ctx.fillStyle = 'rgba(255,107,53,0.6)';
+    for(const t of traps) {
+      if(!t.active || t.disabled) continue;
+      const tx = mx + (t.x / CONFIG.TILE) * tileW;
+      const ty = my + (t.y / CONFIG.TILE) * tileH;
+      ctx.fillRect(tx, ty, tileW, tileH);
+    }
+  }
+
+  // Exit
+  ctx.fillStyle = CONFIG.COL_BIOLUM;
+  const ex2 = mx + (exitX / CONFIG.TILE) * tileW;
+  const ey2 = my + (exitY / CONFIG.TILE) * tileH;
+  ctx.fillRect(ex2, ey2, tileW*2, tileH*2);
+
+  // Player
+  ctx.fillStyle = '#00ff87';
+  const ppx = mx + (px / CONFIG.TILE) * tileW;
+  const ppy = my + (py / CONFIG.TILE) * tileH;
+  ctx.fillRect(ppx-1, ppy-1, 3, 3);
+
+  ctx.restore();
+}
+
+// Draw trap warning indicators (detect upgrade Lv1+)
+function drawTrapWarnings(ctx, traps, camX, camY, px, py, detectRange) {
+  if(detectRange <= 0) return;
+  const range = detectRange * CONFIG.TILE;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,107,53,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  for(const t of traps) {
+    if(!t.active || t.disabled) continue;
+    const d = dist(px, py, t.x + CONFIG.TILE/2, t.y + CONFIG.TILE/2);
+    if(d < range && d > CONFIG.TILE) {
+      const tx = t.x - camX + CONFIG.TILE/2;
+      const ty = t.y - camY + CONFIG.TILE/2;
+      ctx.globalAlpha = 1 - d/range;
+      ctx.beginPath();
+      ctx.arc(tx, ty, CONFIG.TILE*0.7, 0, Math.PI*2);
+      ctx.stroke();
+      // Warning icon
+      ctx.fillStyle = CONFIG.COL_DANGER;
+      ctx.font = '10px "Segoe UI",system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('!', tx, ty-CONFIG.TILE*0.5);
+    }
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// Draw boss weakness highlight (detect upgrade Lv4)
+function drawBossWeakness(ctx, boss, camX, camY, time, detectLv) {
+  if(detectLv < 4 || !boss || boss.defeated) return;
+  if(!boss.vulnerable) return;
+  ctx.save();
+  ctx.strokeStyle = CONFIG.COL_GOLD;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.5 + Math.sin(time*0.008)*0.3;
+  ctx.setLineDash([6, 3]);
+  ctx.beginPath();
+  ctx.arc(boss.x - camX, boss.y - camY, boss.w*0.7, 0, Math.PI*2);
+  ctx.stroke();
+  // "VULNERABLE!" text
+  ctx.fillStyle = CONFIG.COL_GOLD;
+  ctx.font = 'bold 12px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('WEAK!', boss.x - camX, boss.y - camY - boss.h/2 - 30);
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// Canvas modal dialog (F3 — no confirm/alert/prompt)
+function renderModal(ctx, w, h, title, options, selectedIdx) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(4,13,33,0.85)';
+  ctx.fillRect(0, 0, w, h);
+
+  const modalW = Math.min(350, w*0.8);
+  const modalH = 40 + options.length * 45 + 40;
+  const mx = (w-modalW)/2, my = (h-modalH)/2;
+
+  // Modal background
+  ctx.fillStyle = '#12121e';
+  ctx.fillRect(mx, my, modalW, modalH);
+  ctx.strokeStyle = CONFIG.COL_BIOLUM;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(mx, my, modalW, modalH);
+
+  // Title
+  ctx.textAlign = 'center';
+  ctx.fillStyle = CONFIG.COL_TEXT;
+  ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
+  ctx.fillText(title, w/2, my+30);
+
+  // Options
+  for(let i=0;i<options.length;i++) {
+    const oy = my + 50 + i*45;
+    const sel = selectedIdx === i;
+    ctx.fillStyle = sel ? 'rgba(0,255,229,0.15)' : 'transparent';
+    ctx.fillRect(mx+10, oy, modalW-20, 35);
+    ctx.strokeStyle = sel ? CONFIG.COL_BIOLUM : '#1e1e30';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mx+10, oy, modalW-20, 35);
+    ctx.fillStyle = sel ? CONFIG.COL_BIOLUM : CONFIG.COL_TEXT2;
+    ctx.font = '14px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(options[i], w/2, oy+22);
+  }
+  ctx.restore();
+}
+
+// Narrative text display for clue discoveries (pure function)
+function drawNarrativePopup(ctx, w, h, text, progress) {
+  if(progress <= 0) return;
+  ctx.save();
+  const popH = 80;
+  const py = h - popH - 80;
+  ctx.globalAlpha = Math.min(1, progress);
+  ctx.fillStyle = 'rgba(4,13,33,0.9)';
+  ctx.fillRect(20, py, w-40, popH);
+  ctx.strokeStyle = CONFIG.COL_GOLD;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(20, py, w-40, popH);
+  // Procedural star icon (F1)
+  ctx.fillStyle = CONFIG.COL_GOLD;
+  ctx.beginPath();
+  const nsx=42, nsy=py+28;
+  for(let i=0;i<5;i++){const a=i*Math.PI*2/5-Math.PI/2;const b=a+Math.PI/5;ctx.lineTo(nsx+Math.cos(a)*10,nsy+Math.sin(a)*10);ctx.lineTo(nsx+Math.cos(b)*5,nsy+Math.sin(b)*5);}
+  ctx.closePath(); ctx.fill();
+  ctx.font = 'bold 13px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(text, 64, py+32);
+  ctx.restore();
+}
+
+// Score popup effect (floating +score text)
+function drawScorePopups(ctx, popups, camX, camY) {
+  for(const p of popups) {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = CONFIG.COL_GOLD;
+    ctx.shadowColor = CONFIG.COL_GOLD;
+    ctx.shadowBlur = 8;
+    ctx.font = 'bold '+(14+p.size)+'px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('+'+p.value, p.x - camX, p.y - camY);
+    ctx.restore();
+  }
+}
+
+// Score popup system
+let scorePopups = [];
+function addScorePopup(x, y, value) {
+  scorePopups.push({ x, y, value, alpha:1, size:0, vy:-1.5 });
+}
+function updateScorePopups(dt) {
+  for(let i=scorePopups.length-1;i>=0;i--) {
+    const p = scorePopups[i];
+    p.y += p.vy*(dt/16.67);
+    p.alpha -= 0.015*(dt/16.67);
+    p.size = Math.min(6, p.size+0.05*(dt/16.67));
+    if(p.alpha<=0) scorePopups.splice(i,1);
+  }
+}
+
+// Narrative popup system
+let narrativeText = '';
+let narrativeTimer = 0;
+function showNarrative(text) {
+  narrativeText = text;
+  narrativeTimer = 3000;
+}
+
+// Biome-specific environment rendering enhancements (pure function)
+function drawBiomeEffects(ctx, w, h, biome, time, camX, camY) {
+  ctx.save();
+  switch(biome) {
+    case 0: // Coral Garden — light rays and coral particles
+      ctx.globalAlpha = 0.03;
+      ctx.fillStyle = '#ffccaa';
+      for(let i=0;i<5;i++) {
+        const rx = ((i*180+60-camX*0.02)%w+w)%w;
+        ctx.beginPath();
+        ctx.moveTo(rx, 0); ctx.lineTo(rx+20, 0);
+        ctx.lineTo(rx+60+Math.sin(time*0.001+i)*20, h);
+        ctx.lineTo(rx-20+Math.sin(time*0.001+i)*20, h);
+        ctx.fill();
+      }
+      // Floating pollen/plankton
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = CONFIG.COL_CORAL;
+      for(let i=0;i<8;i++) {
+        const px = ((i*197+time*0.015)%w+w)%w;
+        const py = ((i*131+time*0.01*((i%3)+1))%h+h)%h;
+        ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+
+    case 1: // Deep Cave — stalactite shadows and flickering bioluminescence
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#000';
+      for(let i=0;i<6;i++) {
+        const sx = ((i*220-camX*0.05)%w+w)%w;
+        ctx.beginPath();
+        ctx.moveTo(sx-15, 0);
+        ctx.lineTo(sx, 30+i*10);
+        ctx.lineTo(sx+15, 0);
+        ctx.fill();
+      }
+      // Bioluminescent dots
+      ctx.fillStyle = CONFIG.COL_BIOLUM;
+      for(let i=0;i<12;i++) {
+        const bx = ((i*163-camX*0.1+time*0.005)%w+w)%w;
+        const by = ((i*107)%h+h)%h;
+        const pulse = Math.sin(time*0.004+i*1.3);
+        ctx.globalAlpha = 0.1+pulse*0.15;
+        ctx.beginPath(); ctx.arc(bx, by, 2+pulse, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+
+    case 2: // Hydrothermal Vents — heat shimmer and volcanic particles
+      // Heat shimmer
+      ctx.globalAlpha = 0.03;
+      ctx.fillStyle = CONFIG.COL_DANGER;
+      for(let y=0;y<h;y+=4) {
+        const off = Math.sin(y*0.02+time*0.003)*3;
+        ctx.fillRect(off, y, w, 1);
+      }
+      // Ash/ember particles
+      ctx.globalAlpha = 0.3;
+      for(let i=0;i<10;i++) {
+        const ax = ((i*173+time*0.02)%w+w)%w;
+        const ay = ((i*89-time*0.015*(1+i*0.1))%h+h)%h;
+        ctx.fillStyle = i%3===0 ? CONFIG.COL_DANGER : '#888';
+        ctx.beginPath(); ctx.arc(ax, ay, 1+i%2, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+
+    case 3: // Abyssal Trench — pressure distortion and sparse deep lights
+      // Pressure vignette
+      const pressGrad = ctx.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, h*0.7);
+      pressGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      pressGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
+      ctx.fillStyle = pressGrad;
+      ctx.fillRect(0, 0, w, h);
+      // Rare deep-sea bioluminescence
+      ctx.fillStyle = CONFIG.COL_BOSS;
+      for(let i=0;i<3;i++) {
+        const dx = ((i*307+time*0.008)%w+w)%w;
+        const dy = ((i*209+time*0.005)%h+h)%h;
+        ctx.globalAlpha = 0.05+Math.sin(time*0.002+i*2)*0.05;
+        ctx.beginPath(); ctx.arc(dx, dy, 4, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+
+    case 4: // Abyssos Ruins — ancient rune glows and energy streams
+      // Rune circuit lines
+      ctx.strokeStyle = CONFIG.COL_BOSS;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.06+Math.sin(time*0.002)*0.03;
+      for(let i=0;i<4;i++) {
+        const ry = ((i*200-camY*0.1)%h+h)%h;
+        ctx.beginPath();
+        ctx.moveTo(0, ry);
+        for(let x=0;x<w;x+=30) {
+          ctx.lineTo(x, ry+Math.sin(x*0.03+time*0.002+i)*8);
+        }
+        ctx.stroke();
+      }
+      // Energy particles flowing upward
+      ctx.fillStyle = CONFIG.COL_BIOLUM;
+      ctx.globalAlpha = 0.15;
+      for(let i=0;i<8;i++) {
+        const ex = ((i*151-camX*0.08)%w+w)%w;
+        const ey = ((i*113-time*0.02*(1+i%3*0.5))%h+h)%h;
+        ctx.beginPath(); ctx.arc(ex, ey, 1.5+Math.sin(time*0.005+i)*0.5, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+  }
+  ctx.restore();
+}
+
+// Draw sonar pulse effect (tool 0 active)
+function drawSonarPulse(ctx, px, py, camX, camY, time, activeDur) {
+  const progress = 1 - (activeDur / (CONFIG.TOOL_DUR[0]*1000));
+  const radius = progress * CONFIG.TILE * 8;
+  ctx.save();
+  ctx.strokeStyle = CONFIG.COL_BIOLUM;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.4 * (1 - progress);
+  ctx.beginPath();
+  ctx.arc(px - camX, py - camY, radius, 0, Math.PI*2);
+  ctx.stroke();
+  // Inner pulse
+  ctx.globalAlpha = 0.2 * (1 - progress);
+  ctx.beginPath();
+  ctx.arc(px - camX, py - camY, radius*0.7, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Draw flare light effect (tool 2 active)
+function drawFlareEffect(ctx, px, py, camX, camY, time, activeDur) {
+  const intensity = activeDur / (CONFIG.TOOL_DUR[2]*1000);
+  const x = px - camX, y = py - camY;
+  const radius = CONFIG.TILE * 10 * intensity;
+  ctx.save();
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  grad.addColorStop(0, 'rgba(255,255,200,0.15)');
+  grad.addColorStop(0.5, 'rgba(255,200,100,0.05)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x-radius, y-radius, radius*2, radius*2);
+  // Spark particles
+  ctx.fillStyle = '#FFD700';
+  ctx.globalAlpha = 0.3;
+  for(let i=0;i<5;i++) {
+    const a = time*0.005+i*1.25;
+    const r = radius*0.3*Math.sin(time*0.008+i*2);
+    ctx.beginPath();
+    ctx.arc(x+Math.cos(a)*r, y+Math.sin(a)*r, 2, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Draw pressure shield effect (tool 3 active)
+function drawShieldEffect(ctx, px, py, camX, camY, time) {
+  const x = px - camX, y = py - camY;
+  ctx.save();
+  ctx.strokeStyle = CONFIG.COL_PRESS;
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.4 + Math.sin(time*0.008)*0.2;
+  ctx.beginPath();
+  ctx.arc(x, y, 30, 0, Math.PI*2);
+  ctx.stroke();
+  // Hex pattern
+  for(let i=0;i<6;i++) {
+    const a = i*Math.PI/3 + time*0.002;
+    const hx = x + Math.cos(a)*25;
+    const hy = y + Math.sin(a)*25;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 4, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Narrative data per biome clue
+const NARRATIVE_DATA = {
+  ko: [
+    '산호 정원에서 발견된 기록: "아비소스인은 생물발광을 에너지원으로 사용했다"',
+    '산호 조각에 새겨진 문양: 고대 문명의 일상이 기록되어 있다',
+    '발광 패턴 해독: "빛은 그들의 언어이자 생명이었다"',
+    '동굴 벽화 발견: "심해 수압을 동력으로 변환하는 기술을 개발했다"',
+    '기계 잔해 분석: 수압 에너지 변환기의 파편이다',
+    '암호 해독: "깊이가 곧 힘이다 — 아비소스 격언"',
+    '열수 지대 기록: "지열 에너지 과다 채취로 해저 지각이 불안정해졌다"',
+    '경고 표지판 해독: "이곳 너머는 금지된 채굴 구역"',
+    '연구 일지 파편: "균열이 확대되고 있다... 시간이 없다"',
+    '최후의 기록: "핵심 장치가 폭주... 전 문명에 대피 명령"',
+    '긴급 전문: "지진이 멈추지 않는다. 이것이 끝인가?"',
+    '봉인된 메시지: "우리의 실수를 되풀이하지 마라"',
+    '핵심부 데이터: "장치를 정지시키면 현재의 위험도 사라진다"',
+    '아비소스의 유언: "빛을 따라가라, 그것이 길이다"',
+    '최종 기록: "우리는 사라지지만, 해결책을 남긴다"',
+  ],
+  en: [
+    'Record from Coral Garden: "Abyssians used bioluminescence as their energy source"',
+    'Inscribed coral fragment: Records of ancient daily life',
+    'Decoded light pattern: "Light was their language and life"',
+    'Cave mural discovery: "They converted deep-sea pressure into power"',
+    'Machine fragment analysis: Parts of a pressure energy converter',
+    'Decoded cipher: "Depth is power — Abyssos proverb"',
+    'Hydrothermal record: "Excessive geothermal extraction destabilized the seafloor"',
+    'Decoded warning sign: "Beyond here lies forbidden mining zone"',
+    'Research journal fragment: "Cracks expanding... running out of time"',
+    'Final record: "Core device going critical... civilization-wide evacuation ordered"',
+    'Emergency transmission: "Quakes won\'t stop. Is this the end?"',
+    'Sealed message: "Do not repeat our mistakes"',
+    'Core data: "Shutting down the device will end the current danger"',
+    'Abyssos testament: "Follow the light, it is the path"',
+    'Final entry: "We vanish, but leave behind the solution"',
+  ]
+};
+
+// Hidden stage unlock checker (§2)
+function checkHiddenUnlocks(g) {
+  let unlocked = -1;
+
+  // H-1: Biome 1~3 all stages cleared with O2 > 50%
+  if(!g.hiddenUnlocked[0]) {
+    let allCleared = true;
+    for(let b=0;b<3;b++) {
+      for(let s=0;s<3;s++) {
+        const key = b+'-'+s;
+        if(!g.stageO2Percent[key] || g.stageO2Percent[key] < 0.5) { allCleared = false; break; }
+      }
+      if(!allCleared) break;
+    }
+    if(allCleared) { g.hiddenUnlocked[0] = true; unlocked = 0; }
+  }
+
+  // H-2: Biome 4 all 3 stages cleared with 0 deaths
+  if(!g.hiddenUnlocked[1]) {
+    if(g.biome4NoDeath[0] && g.biome4NoDeath[1] && g.biome4NoDeath[2] &&
+       !g.biome4StageDied[0] && !g.biome4StageDied[1] && !g.biome4StageDied[2]) {
+      g.hiddenUnlocked[1] = true;
+      unlocked = 1;
+    }
+  }
+
+  // H-3: All 15 clues collected
+  if(!g.hiddenUnlocked[2] && g.cluesCollected >= 15) {
+    g.hiddenUnlocked[2] = true;
+    unlocked = 2;
+  }
+
+  return unlocked;
+}
+
+// Weather/time-of-day system (visual only, per-biome)
+function drawWeatherEffects(ctx, w, h, biome, time) {
+  ctx.save();
+  switch(biome) {
+    case 0: // Sunlight caustics
+      ctx.globalAlpha = 0.02;
+      ctx.fillStyle = '#aaddff';
+      for(let i=0;i<20;i++) {
+        const cx = ((i*97+time*0.03)%w+w)%w;
+        const cy = ((i*61+time*0.02)%h+h)%h;
+        const s = 10+Math.sin(time*0.003+i)*5;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, s, s*0.6, time*0.001+i, 0, Math.PI*2);
+        ctx.fill();
+      }
+      break;
+    case 2: // Volcanic ash fall
+      ctx.fillStyle = 'rgba(100,50,20,0.3)';
+      for(let i=0;i<15;i++) {
+        const ax = ((i*143+time*0.01)%w+w)%w;
+        const ay = ((i*97+time*0.025*(1+i%3*0.3))%h+h)%h;
+        ctx.globalAlpha = 0.15;
+        ctx.fillRect(ax, ay, 2, 2);
+      }
+      break;
+    case 3: // Pressure ripples
+      ctx.strokeStyle = 'rgba(106,13,173,0.05)';
+      ctx.lineWidth = 1;
+      for(let i=0;i<3;i++) {
+        const r = ((time*0.02+i*100)%200);
+        ctx.globalAlpha = 0.1*(1-r/200);
+        ctx.beginPath();
+        ctx.arc(w/2, h/2, r, 0, Math.PI*2);
+        ctx.stroke();
+      }
+      break;
+  }
+  ctx.restore();
+}
+
+// Depth meter visualization (pure function)
+function drawDepthMeter(ctx, w, h, biome, stage) {
+  const meterH = Math.min(200, h*0.4);
+  const mx = w - 20, my = (h - meterH)/2;
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  // Track
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(mx-4, my, 8, meterH);
+  // Current depth indicator
+  const depthPct = (biome*3+stage)/(5*3);
+  ctx.fillStyle = CONFIG.COL_BIOLUM;
+  ctx.fillRect(mx-4, my, 8, meterH*depthPct);
+  // Biome markers
+  for(let i=0;i<5;i++) {
+    const by = my + (i/5)*meterH;
+    ctx.fillStyle = CONFIG.COL_BG[i];
+    ctx.fillRect(mx-8, by, 16, 2);
+  }
+  // Player marker
+  const ply = my + meterH*depthPct;
+  ctx.fillStyle = '#00ff87';
+  ctx.beginPath();
+  ctx.moveTo(mx-10, ply);
+  ctx.lineTo(mx-4, ply-4);
+  ctx.lineTo(mx-4, ply+4);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Launch
+init();
+</script>
+</body>
+</html>

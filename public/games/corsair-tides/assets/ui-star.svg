@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <radialGradient id="coinBody" cx="0.4" cy="0.35" r="0.6">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="40%" stop-color="#F0A030"/>
+      <stop offset="100%" stop-color="#B87820"/>
+    </radialGradient>
+    <radialGradient id="coinGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.5"/>
+      <stop offset="70%" stop-color="#FFD700" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coinEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4960A"/>
+      <stop offset="100%" stop-color="#8B6508"/>
+    </linearGradient>
+    <linearGradient id="coinShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="coinGlowF">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="coinShadow">
+      <feDropShadow dx="0.5" dy="1.5" stdDeviation="1.2" flood-color="#6B4500" flood-opacity="0.5"/>
+    </filter>
+    <filter id="emboss">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.5" result="blur"/>
+      <feSpecularLighting in="blur" surfaceScale="3" specularConstant="0.8" specularExponent="20" result="spec">
+        <fePointLight x="14" y="10" z="20"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specOut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specOut"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer glow -->
+  <circle cx="24" cy="24" r="22" fill="url(#coinGlow)" filter="url(#coinGlowF)"/>
+
+  <!-- Coin edge (3D thickness) -->
+  <ellipse cx="24" cy="25.5" rx="16" ry="16" fill="url(#coinEdge)"/>
+
+  <!-- Coin body -->
+  <g filter="url(#coinShadow)">
+    <circle cx="24" cy="24" r="16" fill="url(#coinBody)"/>
+  </g>
+
+  <!-- Inner ring -->
+  <circle cx="24" cy="24" r="13" fill="none" stroke="#D4960A" stroke-width="1"/>
+  <circle cx="24" cy="24" r="12" fill="none" stroke="#FFE070" stroke-width="0.5" opacity="0.5"/>
+
+  <!-- Compass rose (pirate signature) -->
+  <g transform="translate(24, 24)" filter="url(#emboss)">
+    <!-- 4 main points -->
+    <path d="M0,-9 L1.5,-3 L0,-1 L-1.5,-3Z" fill="#B87820"/>
+    <path d="M0,9 L-1.5,3 L0,1 L1.5,3Z" fill="#B87820"/>
+    <path d="M-9,0 L-3,-1.5 L-1,0 L-3,1.5Z" fill="#B87820"/>
+    <path d="M9,0 L3,1.5 L1,0 L3,-1.5Z" fill="#B87820"/>
+    <!-- 4 minor points -->
+    <path d="M-6,-6 L-2,-1.5 L-1.5,-2Z" fill="#C88820" opacity="0.7"/>
+    <path d="M6,-6 L2,-1.5 L1.5,-2Z" fill="#C88820" opacity="0.7"/>
+    <path d="M-6,6 L-2,1.5 L-1.5,2Z" fill="#C88820" opacity="0.7"/>
+    <path d="M6,6 L2,1.5 L1.5,2Z" fill="#C88820" opacity="0.7"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="1.5" fill="#FFD700"/>
+  </g>
+
+  <!-- 3D highlight -->
+  <ellipse cx="18" cy="18" rx="7" ry="5" fill="url(#coinShine)" transform="rotate(-30, 18, 18)" opacity="0.6"/>
+
+  <!-- Notch marks around edge -->
+  <g opacity="0.3">
+    <line x1="24" y1="8" x2="24" y2="10" stroke="#8B6508" stroke-width="0.8"/>
+    <line x1="24" y1="38" x2="24" y2="40" stroke="#8B6508" stroke-width="0.8"/>
+    <line x1="8" y1="24" x2="10" y2="24" stroke="#8B6508" stroke-width="0.8"/>
+    <line x1="38" y1="24" x2="40" y2="24" stroke="#8B6508" stroke-width="0.8"/>
+    <line x1="12.7" y1="12.7" x2="14" y2="14" stroke="#8B6508" stroke-width="0.6"/>
+    <line x1="35.3" y1="12.7" x2="34" y2="14" stroke="#8B6508" stroke-width="0.6"/>
+    <line x1="12.7" y1="35.3" x2="14" y2="34" stroke="#8B6508" stroke-width="0.6"/>
+    <line x1="35.3" y1="35.3" x2="34" y2="34" stroke="#8B6508" stroke-width="0.6"/>
+  </g>
+
+  <!-- Sparkle effects -->
+  <g filter="url(#coinGlowF)">
+    <path d="M10,10 L11,8 L12,10 L11,12Z" fill="#FFF" opacity="0.7"/>
+    <path d="M36,16 L37,14 L38,16 L37,18Z" fill="#FFF" opacity="0.5"/>
+    <circle cx="14" cy="36" r="0.7" fill="#FFF" opacity="0.4"/>
+    <circle cx="34" cy="32" r="0.5" fill="#FFE070" opacity="0.5"/>
+  </g>
+
+  <!-- Aged patina texture -->
+  <g opacity="0.05">
+    <circle cx="18" cy="28" r="3" fill="#000"/>
+    <circle cx="30" cy="20" r="2" fill="#000"/>
+    <circle cx="22" cy="32" r="1.5" fill="#000"/>
+  </g>
+
+  <!-- Unicode pirate symbol ☠ hint -->
+  <text x="24" y="27" text-anchor="middle" font-size="4" fill="#8B6508" opacity="0.15" font-family="serif">☠</text>
+</svg>

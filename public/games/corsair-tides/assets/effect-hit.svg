@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="hitCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="20%" stop-color="#FFE080" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#FF8030" stop-opacity="0.5"/>
+      <stop offset="80%" stop-color="#FF3344" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FF3344" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hitWave1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FF8030" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#FF8030" stop-opacity="0.2"/>
+      <stop offset="80%" stop-color="#FF6020" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#FF6020" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hitWave2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#F0A030" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#F0A030" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#F0A030" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="smokeGrad" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#555" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#333" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="hitGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hitBlur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <!-- Layer 1: Outermost shockwave ring -->
+  <circle cx="64" cy="64" r="58" fill="none" stroke="#FF6020" stroke-width="2" opacity="0.1"/>
+  <circle cx="64" cy="64" r="55" fill="url(#hitWave2)" opacity="0.3"/>
+
+  <!-- Layer 2: Mid shockwave -->
+  <circle cx="64" cy="64" r="44" fill="url(#hitWave1)" opacity="0.4"/>
+  <circle cx="64" cy="64" r="42" fill="none" stroke="#FF8030" stroke-width="1.5" opacity="0.2"/>
+
+  <!-- Layer 3: Inner shockwave -->
+  <circle cx="64" cy="64" r="32" fill="url(#hitWave1)" opacity="0.5"/>
+
+  <!-- Layer 4: Smoke puffs -->
+  <g filter="url(#hitBlur)">
+    <circle cx="44" cy="44" r="14" fill="url(#smokeGrad)" opacity="0.4"/>
+    <circle cx="84" cy="48" r="12" fill="url(#smokeGrad)" opacity="0.35"/>
+    <circle cx="52" cy="82" r="11" fill="url(#smokeGrad)" opacity="0.3"/>
+    <circle cx="78" cy="78" r="13" fill="url(#smokeGrad)" opacity="0.25"/>
+    <circle cx="38" cy="66" r="10" fill="url(#smokeGrad)" opacity="0.2"/>
+  </g>
+
+  <!-- Layer 5: Fire core -->
+  <g filter="url(#hitGlow)">
+    <circle cx="64" cy="64" r="20" fill="url(#hitCore)"/>
+  </g>
+
+  <!-- Layer 6: Hot white center -->
+  <circle cx="64" cy="64" r="8" fill="#FFF" opacity="0.8" filter="url(#hitGlow)"/>
+  <circle cx="64" cy="64" r="4" fill="#FFF" opacity="0.95"/>
+
+  <!-- Radial burst rays -->
+  <g opacity="0.4">
+    <line x1="64" y1="64" x2="64" y2="10" stroke="#FFE080" stroke-width="2" opacity="0.3"/>
+    <line x1="64" y1="64" x2="64" y2="118" stroke="#FFE080" stroke-width="2" opacity="0.25"/>
+    <line x1="64" y1="64" x2="10" y2="64" stroke="#FFE080" stroke-width="2" opacity="0.3"/>
+    <line x1="64" y1="64" x2="118" y2="64" stroke="#FFE080" stroke-width="2" opacity="0.25"/>
+    <line x1="64" y1="64" x2="22" y2="22" stroke="#FF8030" stroke-width="1.5" opacity="0.25"/>
+    <line x1="64" y1="64" x2="106" y2="22" stroke="#FF8030" stroke-width="1.5" opacity="0.2"/>
+    <line x1="64" y1="64" x2="22" y2="106" stroke="#FF8030" stroke-width="1.5" opacity="0.2"/>
+    <line x1="64" y1="64" x2="106" y2="106" stroke="#FF8030" stroke-width="1.5" opacity="0.25"/>
+  </g>
+
+  <!-- Flying debris / sparks -->
+  <g>
+    <circle cx="30" cy="30" r="2" fill="#F0A030" opacity="0.7"/>
+    <circle cx="98" cy="36" r="1.5" fill="#FFE080" opacity="0.6"/>
+    <circle cx="26" cy="80" r="1.8" fill="#FF8030" opacity="0.5"/>
+    <circle cx="96" cy="90" r="1.3" fill="#F0A030" opacity="0.55"/>
+    <circle cx="42" cy="20" r="1" fill="#FFF" opacity="0.6"/>
+    <circle cx="88" cy="18" r="1.2" fill="#FFE080" opacity="0.5"/>
+    <circle cx="18" cy="56" r="1.5" fill="#FF6020" opacity="0.4"/>
+    <circle cx="110" cy="68" r="1" fill="#FF6020" opacity="0.45"/>
+    <!-- Wood splinters -->
+    <path d="M34,38 L28,32" stroke="#8B5E3C" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <path d="M90,42 L96,36" stroke="#8B5E3C" stroke-width="1.2" stroke-linecap="round" opacity="0.45"/>
+    <path d="M36,88 L30,94" stroke="#6B3A1F" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+    <path d="M92,82 L98,88" stroke="#6B3A1F" stroke-width="1.3" stroke-linecap="round" opacity="0.35"/>
+  </g>
+
+  <!-- Water splash droplets -->
+  <g opacity="0.3">
+    <path d="M24,64 Q22,58 24,52" stroke="#2CB49C" stroke-width="1" fill="none"/>
+    <path d="M104,64 Q106,58 104,52" stroke="#2CB49C" stroke-width="1" fill="none"/>
+    <circle cx="22" cy="50" r="1.5" fill="#44DDFF" opacity="0.4"/>
+    <circle cx="106" cy="50" r="1" fill="#44DDFF" opacity="0.35"/>
+  </g>
+</svg>

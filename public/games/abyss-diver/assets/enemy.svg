@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <!-- Anglerfish body gradient -->
+    <radialGradient id="bodyGrad" cx="0.4" cy="0.4" r="0.6">
+      <stop offset="0%" stop-color="#2D1B4E"/>
+      <stop offset="50%" stop-color="#1A0B2E"/>
+      <stop offset="100%" stop-color="#0D0520"/>
+    </radialGradient>
+    <!-- Belly gradient -->
+    <radialGradient id="bellyGrad" cx="0.5" cy="0.6" r="0.5">
+      <stop offset="0%" stop-color="#4A2D6E"/>
+      <stop offset="100%" stop-color="#2D1B4E"/>
+    </radialGradient>
+    <!-- Lure glow -->
+    <radialGradient id="lureGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#00FFE5" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#00FFE5" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#9B59FF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#9B59FF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Eye glow -->
+    <radialGradient id="eyeGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FF6B35"/>
+      <stop offset="60%" stop-color="#FF4444"/>
+      <stop offset="100%" stop-color="#6A0DAD"/>
+    </radialGradient>
+    <!-- Fin gradient -->
+    <linearGradient id="finGradE" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9B59FF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#2D1B4E" stop-opacity="0.3"/>
+    </linearGradient>
+    <!-- Teeth gradient -->
+    <linearGradient id="teethGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8E8E8"/>
+      <stop offset="100%" stop-color="#A0A0A0"/>
+    </linearGradient>
+    <!-- Aura -->
+    <radialGradient id="enemyAura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#9B59FF" stop-opacity="0.2"/>
+      <stop offset="70%" stop-color="#9B59FF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#9B59FF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Glow filter -->
+    <filter id="glowE" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Shadow filter -->
+    <filter id="shadowE" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#0D0520" flood-opacity="0.8"/>
+    </filter>
+    <!-- Inner glow -->
+    <filter id="innerGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Lure light scatter -->
+    <filter id="lureScatter" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="bigblur"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="smallblur"/>
+      <feMerge><feMergeNode in="bigblur"/><feMergeNode in="smallblur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Purple aura -->
+  <g id="aura">
+    <ellipse cx="60" cy="68" rx="55" ry="50" fill="url(#enemyAura)"/>
+  </g>
+
+  <!-- Tail -->
+  <g id="tail">
+    <path d="M95,65 C105,60 115,55 120,48 C118,52 116,58 110,62 C116,66 118,72 120,78 C115,72 105,68 95,65" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5" opacity="0.7"/>
+    <path d="M100,64 C108,60 112,56 116,50" stroke="#9B59FF" stroke-width="0.4" fill="none" opacity="0.5"/>
+    <path d="M100,66 C108,70 112,74 116,78" stroke="#9B59FF" stroke-width="0.4" fill="none" opacity="0.5"/>
+  </g>
+
+  <!-- Dorsal fins -->
+  <g id="dorsalFins">
+    <path d="M50,42 C52,30 58,25 62,28 C60,34 58,40 56,44" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5"/>
+    <path d="M62,38 C64,28 68,22 72,26 C70,32 67,38 65,42" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5"/>
+    <path d="M74,40 C76,32 80,28 82,32 C80,36 78,40 76,44" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5"/>
+    <!-- Ventral fins -->
+    <path d="M55,90 C53,98 50,102 48,100 C50,96 52,92 54,88" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5"/>
+    <path d="M68,92 C66,100 63,104 60,102 C62,98 65,94 67,90" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5"/>
+  </g>
+
+  <!-- Body -->
+  <g id="body" filter="url(#shadowE)">
+    <!-- Main body -->
+    <ellipse cx="60" cy="65" rx="38" ry="28" fill="url(#bodyGrad)" stroke="#4A2D6E" stroke-width="0.8"/>
+    <!-- Belly -->
+    <ellipse cx="55" cy="72" rx="28" ry="16" fill="url(#bellyGrad)" opacity="0.6"/>
+    <!-- Body texture spots -->
+    <circle cx="70" cy="55" r="3" fill="#4A2D6E" opacity="0.5"/>
+    <circle cx="80" cy="62" r="2.5" fill="#4A2D6E" opacity="0.4"/>
+    <circle cx="75" cy="70" r="2" fill="#4A2D6E" opacity="0.4"/>
+    <circle cx="65" cy="78" r="2.8" fill="#4A2D6E" opacity="0.3"/>
+    <circle cx="50" cy="58" r="1.8" fill="#9B59FF" opacity="0.15"/>
+    <circle cx="42" cy="68" r="1.5" fill="#9B59FF" opacity="0.1"/>
+    <!-- Lateral line -->
+    <path d="M30,65 C40,63 55,62 80,64 C88,65 94,66 98,66" stroke="#9B59FF" stroke-width="0.5" fill="none" opacity="0.3" stroke-dasharray="3,2"/>
+    <!-- Gill slits -->
+    <path d="M35,58 C36,55 37,58" stroke="#4A2D6E" stroke-width="1" fill="none"/>
+    <path d="M33,62 C34,59 35,62" stroke="#4A2D6E" stroke-width="1" fill="none"/>
+    <path d="M32,66 C33,63 34,66" stroke="#4A2D6E" stroke-width="1" fill="none"/>
+  </g>
+
+  <!-- Jaw & teeth -->
+  <g id="jaw">
+    <!-- Upper jaw -->
+    <path d="M22,60 C18,58 15,60 14,64 C15,62 20,60 28,62" fill="#1A0B2E" stroke="#4A2D6E" stroke-width="0.5"/>
+    <!-- Lower jaw -->
+    <path d="M22,70 C18,72 15,72 14,68 C15,70 20,72 28,70" fill="#1A0B2E" stroke="#4A2D6E" stroke-width="0.5"/>
+    <!-- Mouth interior -->
+    <ellipse cx="22" cy="65" rx="10" ry="6" fill="#0D0520"/>
+    <!-- Upper teeth -->
+    <path d="M14,63 L16,66 L18,63 L20,67 L22,63 L24,67 L26,63 L28,66" stroke="url(#teethGrad)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <!-- Lower teeth -->
+    <path d="M14,67 L16,64 L18,67 L20,64 L22,67 L24,64 L26,67 L28,64" stroke="url(#teethGrad)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <!-- Fang highlights -->
+    <line x1="16" y1="63" x2="16" y2="65" stroke="#FFFFFF" stroke-width="0.3" opacity="0.4"/>
+    <line x1="22" y1="63" x2="22" y2="65" stroke="#FFFFFF" stroke-width="0.3" opacity="0.4"/>
+  </g>
+
+  <!-- Eye -->
+  <g id="eye">
+    <!-- Eye socket -->
+    <ellipse cx="38" cy="55" rx="9" ry="8" fill="#0D0520" stroke="#4A2D6E" stroke-width="0.8"/>
+    <!-- Iris -->
+    <ellipse cx="38" cy="55" rx="7" ry="6" fill="url(#eyeGlow)"/>
+    <!-- Pupil -->
+    <ellipse cx="36" cy="55" rx="3" ry="5" fill="#0D0520"/>
+    <!-- Eye highlight -->
+    <circle cx="40" cy="52" r="2" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="35" cy="53" r="1" fill="#FF6B35" opacity="0.5"/>
+    <!-- Eye glow effect -->
+    <ellipse cx="38" cy="55" rx="10" ry="9" fill="none" stroke="#FF6B35" stroke-width="0.5" opacity="0.4"/>
+  </g>
+
+  <!-- Lure (bioluminescent antenna) -->
+  <g id="lure">
+    <!-- Antenna stalk -->
+    <path d="M36,42 C30,30 22,18 18,10 C16,6 20,4 24,8 C26,12 28,20 30,28" stroke="#4A2D6E" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M36,42 C30,30 22,18 18,10 C16,6 20,4 24,8" stroke="#9B59FF" stroke-width="0.6" fill="none" opacity="0.5"/>
+    <!-- Lure bulb -->
+    <circle cx="18" cy="8" r="8" fill="url(#lureGlow)" filter="url(#lureScatter)"/>
+    <circle cx="18" cy="8" r="4" fill="#00FFE5" opacity="0.9"/>
+    <circle cx="18" cy="8" r="2" fill="#FFFFFF" opacity="0.95"/>
+    <!-- Lure tendrils -->
+    <path d="M14,12 C12,16 10,18 8,16" stroke="#00FFE5" stroke-width="0.5" fill="none" opacity="0.4"/>
+    <path d="M18,14 C18,18 16,20 14,18" stroke="#00FFE5" stroke-width="0.5" fill="none" opacity="0.4"/>
+    <path d="M22,12 C24,16 24,18 22,18" stroke="#00FFE5" stroke-width="0.5" fill="none" opacity="0.4"/>
+  </g>
+
+  <!-- Pectoral fins (side) -->
+  <g id="pectoralFins">
+    <path d="M45,80 C40,90 32,96 28,94 C30,90 35,85 42,78" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5" opacity="0.7"/>
+    <path d="M65,82 C62,92 56,98 52,96 C54,92 58,86 62,80" fill="url(#finGradE)" stroke="#9B59FF" stroke-width="0.5" opacity="0.7"/>
+    <!-- Fin ray details -->
+    <path d="M44,80 C40,88 34,93" stroke="#9B59FF" stroke-width="0.3" fill="none" opacity="0.4"/>
+    <path d="M42,79 C38,87 33,92" stroke="#9B59FF" stroke-width="0.3" fill="none" opacity="0.4"/>
+  </g>
+
+  <!-- Bioluminescent spots on body -->
+  <g id="bioSpots">
+    <circle cx="50" cy="62" r="1.5" fill="#9B59FF" opacity="0.6" filter="url(#glowE)"/>
+    <circle cx="60" cy="72" r="1.2" fill="#9B59FF" opacity="0.5" filter="url(#glowE)"/>
+    <circle cx="72" cy="58" r="1" fill="#00FFE5" opacity="0.4" filter="url(#glowE)"/>
+    <circle cx="78" cy="68" r="0.8" fill="#00FFE5" opacity="0.3" filter="url(#glowE)"/>
+    <circle cx="85" cy="62" r="1" fill="#9B59FF" opacity="0.3" filter="url(#glowE)"/>
+    <circle cx="45" cy="75" r="0.8" fill="#9B59FF" opacity="0.4" filter="url(#glowE)"/>
+  </g>
+</svg>

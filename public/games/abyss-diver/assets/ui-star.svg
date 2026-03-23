@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <!-- Crystal gradient -->
+    <linearGradient id="crystalGrad" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#00FFE5"/>
+      <stop offset="40%" stop-color="#00B8A9"/>
+      <stop offset="100%" stop-color="#005F56"/>
+    </linearGradient>
+    <!-- Crystal facet light -->
+    <linearGradient id="facetLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00FFE5" stop-opacity="0.1"/>
+    </linearGradient>
+    <!-- Crystal facet dark -->
+    <linearGradient id="facetDark" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#005F56"/>
+      <stop offset="100%" stop-color="#0A2E4D"/>
+    </linearGradient>
+    <!-- Gold rim -->
+    <linearGradient id="goldRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#B7950B"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+    <!-- Inner glow -->
+    <radialGradient id="innerCrystalGlow" cx="0.5" cy="0.4" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="#00FFE5" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#005F56" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Outer aura -->
+    <radialGradient id="crystalAura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="40%" stop-color="#00FFE5" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#00FFE5" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Glow filter -->
+    <filter id="starGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Shadow -->
+    <filter id="starShadow" x="-20%" y="-10%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#040D21" flood-opacity="0.6"/>
+    </filter>
+    <!-- Sparkle filter -->
+    <filter id="sparkle" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer aura -->
+  <circle cx="24" cy="24" r="22" fill="url(#crystalAura)"/>
+
+  <!-- Sparkle rays -->
+  <g opacity="0.3" filter="url(#sparkle)">
+    <line x1="24" y1="2" x2="24" y2="10" stroke="#00FFE5" stroke-width="1" stroke-linecap="round"/>
+    <line x1="24" y1="38" x2="24" y2="46" stroke="#00FFE5" stroke-width="1" stroke-linecap="round"/>
+    <line x1="2" y1="24" x2="10" y2="24" stroke="#00FFE5" stroke-width="1" stroke-linecap="round"/>
+    <line x1="38" y1="24" x2="46" y2="24" stroke="#00FFE5" stroke-width="1" stroke-linecap="round"/>
+    <line x1="8" y1="8" x2="13" y2="13" stroke="#00FFE5" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="35" y1="13" x2="40" y2="8" stroke="#00FFE5" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="8" y1="40" x2="13" y2="35" stroke="#00FFE5" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="35" y1="35" x2="40" y2="40" stroke="#00FFE5" stroke-width="0.7" stroke-linecap="round"/>
+  </g>
+
+  <!-- Main crystal shape (hexagonal gem) -->
+  <g filter="url(#starShadow)">
+    <!-- Crystal body: hexagonal cut -->
+    <!-- Top facet -->
+    <path d="M24,6 L34,14 L24,18 Z" fill="url(#facetLight)" stroke="#00B8A9" stroke-width="0.3"/>
+    <path d="M24,6 L14,14 L24,18 Z" fill="url(#crystalGrad)" stroke="#00B8A9" stroke-width="0.3"/>
+    <!-- Upper left facet -->
+    <path d="M14,14 L8,24 L18,28 L24,18 Z" fill="url(#facetDark)" stroke="#00B8A9" stroke-width="0.3"/>
+    <!-- Upper right facet -->
+    <path d="M34,14 L40,24 L30,28 L24,18 Z" fill="url(#crystalGrad)" stroke="#00B8A9" stroke-width="0.3"/>
+    <!-- Center facet -->
+    <path d="M18,28 L24,18 L30,28 L24,34 Z" fill="url(#innerCrystalGlow)" stroke="#00B8A9" stroke-width="0.3"/>
+    <!-- Lower left facet -->
+    <path d="M8,24 L14,34 L24,34 L18,28 Z" fill="#005F56" stroke="#00B8A9" stroke-width="0.3"/>
+    <!-- Lower right facet -->
+    <path d="M40,24 L34,34 L24,34 L30,28 Z" fill="url(#facetDark)" stroke="#00B8A9" stroke-width="0.3" opacity="0.8"/>
+    <!-- Bottom facet -->
+    <path d="M14,34 L24,42 L34,34 L24,34 Z" fill="#004D40" stroke="#00B8A9" stroke-width="0.3"/>
+    <!-- Inner glow overlay -->
+    <path d="M24,10 L36,18 L40,24 L36,32 L24,40 L12,32 L8,24 L12,18 Z" fill="url(#innerCrystalGlow)" opacity="0.3"/>
+  </g>
+
+  <!-- Central light point -->
+  <circle cx="24" cy="24" r="4" fill="#00FFE5" opacity="0.6" filter="url(#starGlow)"/>
+  <circle cx="24" cy="24" r="2" fill="#FFFFFF" opacity="0.7"/>
+
+  <!-- Facet highlight lines -->
+  <path d="M24,8 L24,16" stroke="#FFFFFF" stroke-width="0.5" opacity="0.4"/>
+  <path d="M16,16 L22,22" stroke="#FFFFFF" stroke-width="0.4" opacity="0.3"/>
+  <path d="M32,16 L26,22" stroke="#FFFFFF" stroke-width="0.4" opacity="0.3"/>
+
+  <!-- Gold setting/frame -->
+  <path d="M24,4 L36,13 L42,24 L36,35 L24,44 L12,35 L6,24 L12,13 Z" fill="none" stroke="url(#goldRim)" stroke-width="1.5"/>
+  <!-- Gold corner accents -->
+  <circle cx="24" cy="4" r="1.5" fill="#FFD700" stroke="#B7950B" stroke-width="0.3"/>
+  <circle cx="42" cy="24" r="1.5" fill="#FFD700" stroke="#B7950B" stroke-width="0.3"/>
+  <circle cx="24" cy="44" r="1.5" fill="#FFD700" stroke="#B7950B" stroke-width="0.3"/>
+  <circle cx="6" cy="24" r="1.5" fill="#FFD700" stroke="#B7950B" stroke-width="0.3"/>
+  <circle cx="36" cy="13" r="1" fill="#FFD700" stroke="#B7950B" stroke-width="0.2"/>
+  <circle cx="36" cy="35" r="1" fill="#FFD700" stroke="#B7950B" stroke-width="0.2"/>
+  <circle cx="12" cy="13" r="1" fill="#FFD700" stroke="#B7950B" stroke-width="0.2"/>
+  <circle cx="12" cy="35" r="1" fill="#FFD700" stroke="#B7950B" stroke-width="0.2"/>
+
+  <!-- Tiny sparkle stars -->
+  <g opacity="0.6">
+    <path d="M10,8 L10.5,6 L11,8 L12.5,8.5 L11,9 L10.5,11 L10,9 L8.5,8.5 Z" fill="#FFFFFF"/>
+    <path d="M38,38 L38.3,36.5 L38.6,38 L40,38.3 L38.6,38.6 L38.3,40 L38,38.6 L36.5,38.3 Z" fill="#FFFFFF"/>
+    <path d="M6,36 L6.3,35 L6.6,36 L7.5,36.3 L6.6,36.6 L6.3,37.5 L6,36.6 L5,36.3 Z" fill="#00FFE5"/>
+    <path d="M40,10 L40.3,9 L40.6,10 L41.5,10.3 L40.6,10.6 L40.3,11.5 L40,10.6 L39,10.3 Z" fill="#00FFE5"/>
+  </g>
+
+  <!-- ✦ unicode decorative symbol -->
+  <text x="24" y="26" text-anchor="middle" font-family="system-ui" font-size="5" fill="#FFFFFF" opacity="0.15">✦</text>
+</svg>

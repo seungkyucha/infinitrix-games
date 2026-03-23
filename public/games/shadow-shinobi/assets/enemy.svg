@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <!-- Yokai body gradient -->
+    <radialGradient id="yokaiBody" cx="0.5" cy="0.4" r="0.5">
+      <stop offset="0%" stop-color="#9B3FA0"/>
+      <stop offset="60%" stop-color="#7B2D8E"/>
+      <stop offset="100%" stop-color="#4A1A54"/>
+    </radialGradient>
+    <!-- Dark energy aura -->
+    <radialGradient id="darkAura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#7B2D8E" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#4A1A54" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#1A1A2E" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Evil eye glow -->
+    <radialGradient id="evilEye" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="#FF6B35"/>
+      <stop offset="70%" stop-color="#E74C3C"/>
+      <stop offset="100%" stop-color="#E74C3C" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Horn gradient -->
+    <linearGradient id="hornGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#4A1A54"/>
+      <stop offset="50%" stop-color="#8B4513"/>
+      <stop offset="100%" stop-color="#F0F0F0"/>
+    </linearGradient>
+    <!-- Yokai glow filter -->
+    <filter id="yokaiGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feFlood flood-color="#7B2D8E" flood-opacity="0.3" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Shadow filter -->
+    <filter id="yokaiShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="3" stdDeviation="2" flood-color="#1A1A2E" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Dark energy aura -->
+  <g id="aura">
+    <ellipse cx="64" cy="68" rx="50" ry="52" fill="url(#darkAura)"/>
+    <ellipse cx="64" cy="70" rx="36" ry="38" fill="#7B2D8E" opacity="0.06"/>
+  </g>
+
+  <!-- Yokai body -->
+  <g id="body" filter="url(#yokaiShadow)">
+    <!-- Main body - oni/ogre shape -->
+    <path d="M40 50 Q36 60 36 72 Q36 90 44 96 L52 100 Q58 102 64 102 Q70 102 76 100 L84 96 Q92 90 92 72 Q92 60 88 50 Q80 40 64 38 Q48 40 40 50Z" fill="url(#yokaiBody)"/>
+    <!-- Body texture lines -->
+    <path d="M48 60 Q56 58 64 60 Q72 58 80 60" stroke="#4A1A54" stroke-width="0.8" fill="none" opacity="0.5"/>
+    <path d="M46 72 Q56 70 64 72 Q72 70 82 72" stroke="#4A1A54" stroke-width="0.8" fill="none" opacity="0.4"/>
+    <path d="M48 84 Q56 82 64 84 Q72 82 80 84" stroke="#4A1A54" stroke-width="0.8" fill="none" opacity="0.3"/>
+    <!-- Belly mark -->
+    <ellipse cx="64" cy="76" rx="14" ry="12" fill="#9B3FA0" opacity="0.3"/>
+    <path d="M56 72 Q64 68 72 72 Q68 80 64 82 Q60 80 56 72Z" fill="#4A1A54" opacity="0.3"/>
+  </g>
+
+  <!-- Arms -->
+  <g id="arms">
+    <!-- Left arm - muscular -->
+    <path d="M36 58 Q28 64 24 74 Q22 82 26 88 L32 86 Q34 78 36 70Z" fill="url(#yokaiBody)" stroke="#4A1A54" stroke-width="0.5"/>
+    <!-- Left claw -->
+    <path d="M24 86 L18 82 L22 86 L16 88 L22 88 L18 94 L24 90 L26 88Z" fill="#F0F0F0" stroke="#4A1A54" stroke-width="0.3"/>
+    <!-- Right arm -->
+    <path d="M92 58 Q100 64 104 74 Q106 82 102 88 L96 86 Q94 78 92 70Z" fill="url(#yokaiBody)" stroke="#4A1A54" stroke-width="0.5"/>
+    <!-- Right claw -->
+    <path d="M104 86 L110 82 L106 86 L112 88 L106 88 L110 94 L104 90 L102 88Z" fill="#F0F0F0" stroke="#4A1A54" stroke-width="0.3"/>
+    <!-- Arm bands -->
+    <path d="M28 72 Q32 71 36 72" stroke="#F1C40F" stroke-width="1.5" fill="none"/>
+    <path d="M92 72 Q96 71 100 72" stroke="#F1C40F" stroke-width="1.5" fill="none"/>
+  </g>
+
+  <!-- Legs -->
+  <g id="legs">
+    <path d="M48 96 L44 112 Q42 118 48 120 L54 118 Q56 114 54 108 L52 96Z" fill="url(#yokaiBody)" stroke="#4A1A54" stroke-width="0.5"/>
+    <path d="M76 96 L80 112 Q82 118 78 120 L72 118 Q70 114 72 108 L74 96Z" fill="url(#yokaiBody)" stroke="#4A1A54" stroke-width="0.5"/>
+    <!-- Feet claws -->
+    <path d="M44 118 L40 122 L46 120 L48 124 L50 120 L54 118Z" fill="#F0F0F0" opacity="0.8"/>
+    <path d="M72 118 L68 122 L74 120 L78 124 L80 120 L82 118Z" fill="#F0F0F0" opacity="0.8"/>
+  </g>
+
+  <!-- Head -->
+  <g id="head" filter="url(#yokaiGlow)">
+    <!-- Head shape -->
+    <path d="M44 20 Q44 10 54 8 Q64 4 74 8 Q84 10 84 20 L84 40 Q84 46 74 48 L54 48 Q44 46 44 40Z" fill="url(#yokaiBody)"/>
+    <!-- Horns -->
+    <path d="M48 16 Q44 8 40 2 Q42 4 46 10 Q44 6 42 -2 Q46 8 50 16Z" fill="url(#hornGrad)"/>
+    <path d="M80 16 Q84 8 88 2 Q86 4 82 10 Q84 6 86 -2 Q82 8 78 16Z" fill="url(#hornGrad)"/>
+    <!-- Face -->
+    <path d="M48 24 Q48 20 54 18 Q64 16 74 18 Q80 20 80 24 L80 38 Q80 42 74 42 L54 42 Q48 40 48 38Z" fill="#4A1A54" opacity="0.3"/>
+    <!-- Eyes - menacing orange -->
+    <ellipse cx="54" cy="28" rx="6" ry="4" fill="#0D0D1A"/>
+    <ellipse cx="54" cy="28" rx="4" ry="2.5" fill="url(#evilEye)"/>
+    <ellipse cx="54" cy="27" rx="1.5" ry="1" fill="#FFFFFF"/>
+
+    <ellipse cx="74" cy="28" rx="6" ry="4" fill="#0D0D1A"/>
+    <ellipse cx="74" cy="28" rx="4" ry="2.5" fill="url(#evilEye)"/>
+    <ellipse cx="74" cy="27" rx="1.5" ry="1" fill="#FFFFFF"/>
+    <!-- Eye glow ambient -->
+    <ellipse cx="54" cy="28" rx="8" ry="5" fill="#FF6B35" opacity="0.12"/>
+    <ellipse cx="74" cy="28" rx="8" ry="5" fill="#FF6B35" opacity="0.12"/>
+    <!-- Mouth - fanged grin -->
+    <path d="M52 36 Q58 40 64 38 Q70 40 76 36" stroke="#E74C3C" stroke-width="1" fill="none"/>
+    <!-- Fangs -->
+    <path d="M56 37 L54 42 L58 38Z" fill="#F0F0F0"/>
+    <path d="M72 37 L74 42 L70 38Z" fill="#F0F0F0"/>
+    <!-- Forehead mark -->
+    <path d="M60 20 L64 16 L68 20 L64 24Z" fill="#E74C3C" opacity="0.6"/>
+  </g>
+
+  <!-- Dark energy particles -->
+  <g id="particles" opacity="0.5">
+    <circle cx="30" cy="50" r="2" fill="#7B2D8E" opacity="0.6"/>
+    <circle cx="98" cy="44" r="1.5" fill="#7B2D8E" opacity="0.5"/>
+    <circle cx="22" cy="70" r="1" fill="#E74C3C" opacity="0.4"/>
+    <circle cx="106" cy="66" r="1.8" fill="#E74C3C" opacity="0.3"/>
+    <circle cx="38" cy="36" r="1.2" fill="#FF6B35" opacity="0.4"/>
+    <circle cx="90" cy="32" r="1" fill="#FF6B35" opacity="0.5"/>
+    <path d="M26 56 Q30 52 34 56" stroke="#7B2D8E" stroke-width="0.5" fill="none" opacity="0.4"/>
+    <path d="M94 52 Q98 48 102 52" stroke="#7B2D8E" stroke-width="0.5" fill="none" opacity="0.4"/>
+  </g>
+
+  <!-- Loincloth / skirt -->
+  <g id="loincloth">
+    <path d="M46 92 Q50 94 54 100 L50 108 Q48 106 46 100Z" fill="#4A1A54" opacity="0.7"/>
+    <path d="M82 92 Q78 94 74 100 L78 108 Q80 106 82 100Z" fill="#4A1A54" opacity="0.7"/>
+    <path d="M54 92 Q64 96 74 92 L72 104 Q64 108 56 104Z" fill="#1A1A2E" opacity="0.5"/>
+    <path d="M58 94 L64 96 L70 94" stroke="#F1C40F" stroke-width="0.5" fill="none" opacity="0.6"/>
+  </g>
+</svg>

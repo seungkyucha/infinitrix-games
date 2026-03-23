@@ -1,0 +1,20 @@
+{
+  "gameId": "shadow-shinobi",
+  "artDirection": {
+    "palette": ["#1A1A2E", "#2D2D4A", "#E74C3C", "#2E4057", "#F1C40F", "#FFB7C5", "#00B4D8", "#7B2D8E", "#F0F0F0", "#2D5016", "#FF6B35"],
+    "style": "수묵화 닌자 아트 (Sumi-e Ninja Art)",
+    "mood": "어둡고 신비로운 전국시대 야경 (Dark Mysterious Feudal Night)",
+    "signature": "먹 번짐(Ink Splatter) + 그림자 에너지 시안 아우라"
+  },
+  "assets": {
+    "player":      { "file": "player.svg",      "width": 128, "height": 128, "desc": "카게(影) - 그림자 닌자 주인공. 남색 닌자복, 주홍 스카프, 시안 발광 눈, 影 한자 머리띠, 쿠나이 장비" },
+    "enemy":       { "file": "enemy.svg",        "width": 128, "height": 128, "desc": "오니 요괴 - 보라색 체구, 뿔 2개, 주황 불꽃 눈, 날카로운 발톱, 어둠 에너지 입자" },
+    "bgLayer1":    { "file": "bg-layer1.svg",    "width": 1200,"height": 800, "desc": "원경 - 밤하늘, 달, 별 80+개, 성운, 겹겹 산맥, 성 실루엣, 토리이 문, 대나무 실루엣, 안개" },
+    "bgLayer2":    { "file": "bg-layer2.svg",    "width": 1200,"height": 800, "desc": "근경 - 바위 절벽, 토리이 문, 석등, 대나무숲, 돌다리, 벚꽃잎, 반딧불이, 안개" },
+    "uiHeart":     { "file": "ui-heart.svg",     "width": 48,  "height": 48,  "desc": "HP 하트 아이콘 - 3D 입체감, 금색 테두리, 먹 번짐 악센트, 반짝임" },
+    "uiStar":      { "file": "ui-star.svg",      "width": 48,  "height": 48,  "desc": "점수 금화 - 일본 전통 화폐 모양, 사각 구멍, 金/宝/忍/道 한자, 금빛 광선" },
+    "powerup":     { "file": "powerup.svg",      "width": 64,  "height": 64,  "desc": "인술 두루마리 - 빨간 캡, 術 한자, 금인 봉인, 시안 에너지 아우라, 헥사곤 프레임" },
+    "effectHit":   { "file": "effect-hit.svg",   "width": 128, "height": 128, "desc": "충돌 이펙트 - 7겹 방사형 폭발, 먹 번짐 링, 에너지 스파이크, 斬 한자 임팩트" },
+    "thumbnail":   { "file": "thumbnail.svg",    "width": 400, "height": 300, "desc": "썸네일 포스터 - 달빛 아래 닌자 vs 오니 보스 대치, 성 배경, 벚꽃잎, 금색 제목" }
+  }
+}

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <!-- Core flash gradient -->
+    <radialGradient id="hitCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="20%" stop-color="#00FFE5" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#00B8A9" stop-opacity="0.5"/>
+      <stop offset="80%" stop-color="#9B59FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#040D21" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Shockwave gradient -->
+    <radialGradient id="shockwave" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="60%" stop-color="#00FFE5" stop-opacity="0"/>
+      <stop offset="75%" stop-color="#00FFE5" stop-opacity="0.4"/>
+      <stop offset="85%" stop-color="#9B59FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#9B59FF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Bubble burst gradient -->
+    <radialGradient id="bubbleBurst" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#87CEEB" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00FFE5" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Glow filter -->
+    <filter id="hitGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Big glow -->
+    <filter id="hitBigGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Spark filter -->
+    <filter id="sparkF" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Layer 1: Outer shockwave (most transparent) -->
+  <circle cx="64" cy="64" r="58" fill="url(#shockwave)" opacity="0.3"/>
+
+  <!-- Layer 2: Second shockwave ring -->
+  <circle cx="64" cy="64" r="48" fill="none" stroke="#00FFE5" stroke-width="2" opacity="0.2"/>
+  <circle cx="64" cy="64" r="45" fill="url(#shockwave)" opacity="0.25"/>
+
+  <!-- Layer 3: Third shockwave ring -->
+  <circle cx="64" cy="64" r="38" fill="none" stroke="#9B59FF" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="64" cy="64" r="35" fill="url(#shockwave)" opacity="0.3"/>
+
+  <!-- Layer 4: Inner energy burst -->
+  <circle cx="64" cy="64" r="25" fill="url(#hitCore)" opacity="0.6" filter="url(#hitGlow)"/>
+
+  <!-- Layer 5: Bright core flash -->
+  <circle cx="64" cy="64" r="14" fill="url(#hitCore)" opacity="0.8" filter="url(#hitBigGlow)"/>
+
+  <!-- Layer 6: White-hot center -->
+  <circle cx="64" cy="64" r="6" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="64" cy="64" r="3" fill="#FFFFFF" opacity="1"/>
+
+  <!-- Radial energy rays -->
+  <g opacity="0.5" filter="url(#sparkF)">
+    <!-- 12 directional rays -->
+    <line x1="64" y1="64" x2="64" y2="8" stroke="#00FFE5" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <line x1="64" y1="64" x2="64" y2="120" stroke="#00FFE5" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <line x1="64" y1="64" x2="8" y2="64" stroke="#00FFE5" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <line x1="64" y1="64" x2="120" y2="64" stroke="#00FFE5" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <line x1="64" y1="64" x2="24" y2="24" stroke="#9B59FF" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <line x1="64" y1="64" x2="104" y2="24" stroke="#9B59FF" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <line x1="64" y1="64" x2="24" y2="104" stroke="#9B59FF" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <line x1="64" y1="64" x2="104" y2="104" stroke="#9B59FF" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <!-- Sub-rays -->
+    <line x1="64" y1="64" x2="30" y2="44" stroke="#00FFE5" stroke-width="1" opacity="0.4"/>
+    <line x1="64" y1="64" x2="98" y2="44" stroke="#00FFE5" stroke-width="1" opacity="0.4"/>
+    <line x1="64" y1="64" x2="30" y2="84" stroke="#00FFE5" stroke-width="1" opacity="0.4"/>
+    <line x1="64" y1="64" x2="98" y2="84" stroke="#00FFE5" stroke-width="1" opacity="0.4"/>
+  </g>
+
+  <!-- Bubble debris (underwater explosion) -->
+  <g>
+    <circle cx="40" cy="30" r="5" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="90" cy="35" r="4" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="30" cy="80" r="6" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="95" cy="85" r="3.5" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="50" cy="100" r="4" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="80" cy="20" r="3" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="20" cy="55" r="3.5" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="108" cy="60" r="3" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.3"/>
+    <circle cx="75" cy="105" r="2.5" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.2"/>
+    <circle cx="45" cy="15" r="2" fill="url(#bubbleBurst)" stroke="#87CEEB" stroke-width="0.2"/>
+  </g>
+
+  <!-- Spark particles -->
+  <g filter="url(#sparkF)">
+    <circle cx="35" cy="40" r="2" fill="#00FFE5" opacity="0.8"/>
+    <circle cx="93" cy="50" r="1.8" fill="#9B59FF" opacity="0.7"/>
+    <circle cx="45" cy="95" r="1.5" fill="#00FFE5" opacity="0.6"/>
+    <circle cx="85" cy="90" r="2" fill="#FF6B35" opacity="0.6"/>
+    <circle cx="25" cy="65" r="1.5" fill="#FFD700" opacity="0.5"/>
+    <circle cx="100" cy="70" r="1.2" fill="#FFD700" opacity="0.5"/>
+    <circle cx="55" cy="25" r="1.8" fill="#FF6B35" opacity="0.5"/>
+    <circle cx="75" cy="30" r="1.5" fill="#00FFE5" opacity="0.6"/>
+  </g>
+
+  <!-- Electric arcs (underwater discharge) -->
+  <g opacity="0.4">
+    <path d="M64,50 L55,38 L60,42 L50,28" stroke="#00FFE5" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <path d="M64,50 L75,36 L70,40 L80,26" stroke="#00FFE5" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <path d="M54,64 L40,58 L45,62 L30,55" stroke="#9B59FF" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    <path d="M74,64 L88,58 L83,62 L98,55" stroke="#9B59FF" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    <path d="M64,78 L58,92 L62,88 L55,102" stroke="#00FFE5" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    <path d="M64,78 L72,94 L68,90 L75,104" stroke="#00FFE5" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Pressure distortion rings -->
+  <g opacity="0.15">
+    <circle cx="64" cy="64" r="52" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+    <circle cx="64" cy="64" r="42" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="64" cy="64" r="32" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+</svg>

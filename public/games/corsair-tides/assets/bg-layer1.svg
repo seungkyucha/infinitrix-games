@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="30%" stop-color="#1a2a4a"/>
+      <stop offset="55%" stop-color="#2a4a6a"/>
+      <stop offset="75%" stop-color="#E85530"/>
+      <stop offset="88%" stop-color="#F0A030"/>
+      <stop offset="100%" stop-color="#FFD080"/>
+    </linearGradient>
+    <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A6B5A"/>
+      <stop offset="40%" stop-color="#0E4A3A"/>
+      <stop offset="100%" stop-color="#0a1628"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="0.5" cy="1" r="0.8">
+      <stop offset="0%" stop-color="#FFD080" stop-opacity="0.8"/>
+      <stop offset="40%" stop-color="#F0A030" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#F0A030" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFF" stop-opacity="0.8"/>
+      <stop offset="30%" stop-color="#DDE8FF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#DDE8FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cloudGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF9060" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#E85530" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="islandGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2A5A3A"/>
+      <stop offset="100%" stop-color="#1A3A2A"/>
+    </linearGradient>
+    <radialGradient id="nebulaGrad1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#4466AA" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#4466AA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaGrad2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#AA4466" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#AA4466" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="bgGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <filter id="fogBlur">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="800" fill="url(#skyGrad)"/>
+
+  <!-- Nebula/atmospheric glow -->
+  <ellipse cx="300" cy="150" rx="200" ry="120" fill="url(#nebulaGrad1)" filter="url(#softBlur)"/>
+  <ellipse cx="900" cy="100" rx="180" ry="100" fill="url(#nebulaGrad2)" filter="url(#softBlur)"/>
+  <ellipse cx="600" cy="200" rx="250" ry="80" fill="url(#nebulaGrad1)" opacity="0.5" filter="url(#softBlur)"/>
+
+  <!-- Moon -->
+  <g filter="url(#bgGlow)">
+    <circle cx="200" cy="80" r="30" fill="url(#moonGlow)"/>
+    <circle cx="200" cy="80" r="22" fill="#DDE8FF" opacity="0.6"/>
+    <circle cx="208" cy="75" r="20" fill="#0a1628" opacity="0.3"/>
+    <!-- Moon craters -->
+    <circle cx="192" cy="74" r="3" fill="#BBC8DD" opacity="0.3"/>
+    <circle cx="198" cy="88" r="2" fill="#BBC8DD" opacity="0.2"/>
+  </g>
+
+  <!-- Stars (80+ for density) -->
+  <g id="stars">
+    <circle cx="50" cy="30" r="1.2" fill="#FFF" opacity="0.8"/><circle cx="120" cy="55" r="0.8" fill="#FFF" opacity="0.6"/>
+    <circle cx="180" cy="20" r="1" fill="#FFF" opacity="0.7"/><circle cx="250" cy="45" r="0.6" fill="#DDE8FF" opacity="0.5"/>
+    <circle cx="310" cy="15" r="1.1" fill="#FFF" opacity="0.8"/><circle cx="380" cy="60" r="0.7" fill="#FFF" opacity="0.55"/>
+    <circle cx="420" cy="25" r="0.9" fill="#DDE8FF" opacity="0.65"/><circle cx="500" cy="40" r="1.3" fill="#FFF" opacity="0.9"/>
+    <circle cx="560" cy="18" r="0.8" fill="#FFF" opacity="0.6"/><circle cx="640" cy="50" r="1" fill="#FFF" opacity="0.7"/>
+    <circle cx="700" cy="22" r="0.6" fill="#DDE8FF" opacity="0.5"/><circle cx="760" cy="35" r="1.2" fill="#FFF" opacity="0.8"/>
+    <circle cx="830" cy="12" r="0.9" fill="#FFF" opacity="0.7"/><circle cx="900" cy="42" r="0.7" fill="#FFF" opacity="0.55"/>
+    <circle cx="960" cy="28" r="1.1" fill="#DDE8FF" opacity="0.75"/><circle cx="1020" cy="55" r="0.8" fill="#FFF" opacity="0.6"/>
+    <circle cx="1080" cy="20" r="1" fill="#FFF" opacity="0.7"/><circle cx="1140" cy="38" r="0.6" fill="#FFF" opacity="0.5"/>
+    <circle cx="70" cy="90" r="0.7" fill="#FFF" opacity="0.5"/><circle cx="140" cy="110" r="1" fill="#FFF" opacity="0.6"/>
+    <circle cx="220" cy="95" r="0.5" fill="#DDE8FF" opacity="0.45"/><circle cx="290" cy="120" r="0.8" fill="#FFF" opacity="0.55"/>
+    <circle cx="360" cy="85" r="1.1" fill="#FFF" opacity="0.7"/><circle cx="440" cy="100" r="0.6" fill="#FFF" opacity="0.5"/>
+    <circle cx="510" cy="115" r="0.9" fill="#DDE8FF" opacity="0.6"/><circle cx="580" cy="80" r="0.7" fill="#FFF" opacity="0.5"/>
+    <circle cx="650" cy="105" r="1.2" fill="#FFF" opacity="0.75"/><circle cx="720" cy="90" r="0.5" fill="#FFF" opacity="0.45"/>
+    <circle cx="790" cy="110" r="0.8" fill="#DDE8FF" opacity="0.55"/><circle cx="860" cy="75" r="1" fill="#FFF" opacity="0.65"/>
+    <circle cx="930" cy="100" r="0.6" fill="#FFF" opacity="0.5"/><circle cx="1000" cy="85" r="0.9" fill="#FFF" opacity="0.6"/>
+    <circle cx="1060" cy="105" r="0.7" fill="#DDE8FF" opacity="0.5"/><circle cx="1130" cy="80" r="1.1" fill="#FFF" opacity="0.7"/>
+    <circle cx="30" cy="140" r="0.8" fill="#FFF" opacity="0.5"/><circle cx="100" cy="160" r="0.6" fill="#FFF" opacity="0.4"/>
+    <circle cx="170" cy="150" r="1" fill="#DDE8FF" opacity="0.55"/><circle cx="240" cy="170" r="0.7" fill="#FFF" opacity="0.45"/>
+    <circle cx="330" cy="145" r="0.9" fill="#FFF" opacity="0.55"/><circle cx="400" cy="165" r="0.5" fill="#FFF" opacity="0.4"/>
+    <circle cx="470" cy="140" r="0.8" fill="#DDE8FF" opacity="0.5"/><circle cx="550" cy="155" r="1.1" fill="#FFF" opacity="0.65"/>
+    <circle cx="620" cy="175" r="0.6" fill="#FFF" opacity="0.45"/><circle cx="690" cy="150" r="0.9" fill="#FFF" opacity="0.55"/>
+    <circle cx="770" cy="165" r="0.7" fill="#DDE8FF" opacity="0.5"/><circle cx="840" cy="145" r="1" fill="#FFF" opacity="0.6"/>
+    <circle cx="910" cy="160" r="0.5" fill="#FFF" opacity="0.4"/><circle cx="980" cy="175" r="0.8" fill="#FFF" opacity="0.5"/>
+    <circle cx="1050" cy="140" r="0.6" fill="#DDE8FF" opacity="0.45"/><circle cx="1120" cy="155" r="0.9" fill="#FFF" opacity="0.55"/>
+    <circle cx="60" cy="200" r="0.7" fill="#FFF" opacity="0.4"/><circle cx="150" cy="210" r="0.5" fill="#FFF" opacity="0.35"/>
+    <circle cx="280" cy="195" r="0.8" fill="#DDE8FF" opacity="0.45"/><circle cx="370" cy="215" r="0.6" fill="#FFF" opacity="0.4"/>
+    <circle cx="460" cy="205" r="0.9" fill="#FFF" opacity="0.5"/><circle cx="540" cy="190" r="0.7" fill="#DDE8FF" opacity="0.4"/>
+    <circle cx="680" cy="220" r="0.5" fill="#FFF" opacity="0.35"/><circle cx="750" cy="200" r="0.8" fill="#FFF" opacity="0.45"/>
+    <circle cx="850" cy="210" r="0.6" fill="#DDE8FF" opacity="0.4"/><circle cx="940" cy="195" r="0.9" fill="#FFF" opacity="0.5"/>
+    <circle cx="1030" cy="215" r="0.7" fill="#FFF" opacity="0.4"/><circle cx="1100" cy="205" r="0.5" fill="#FFF" opacity="0.35"/>
+    <circle cx="90" cy="240" r="0.6" fill="#FFF" opacity="0.3"/><circle cx="200" cy="250" r="0.8" fill="#DDE8FF" opacity="0.35"/>
+    <circle cx="340" cy="235" r="0.5" fill="#FFF" opacity="0.3"/><circle cx="500" cy="248" r="0.7" fill="#FFF" opacity="0.35"/>
+    <circle cx="610" cy="240" r="0.6" fill="#DDE8FF" opacity="0.3"/><circle cx="730" cy="255" r="0.5" fill="#FFF" opacity="0.25"/>
+    <circle cx="880" cy="245" r="0.8" fill="#FFF" opacity="0.35"/><circle cx="1000" cy="235" r="0.6" fill="#DDE8FF" opacity="0.3"/>
+    <circle cx="1150" cy="250" r="0.7" fill="#FFF" opacity="0.3"/>
+  </g>
+
+  <!-- Shooting star -->
+  <g opacity="0.6">
+    <line x1="850" y1="40" x2="810" y2="70" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="850" y1="40" x2="840" y2="48" stroke="#FFE080" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+  </g>
+
+  <!-- Constellation lines -->
+  <g opacity="0.15" stroke="#DDE8FF" stroke-width="0.5">
+    <line x1="500" y1="40" x2="560" y2="18"/><line x1="560" y1="18" x2="640" y2="50"/>
+    <line x1="640" y1="50" x2="700" y2="22"/>
+    <line x1="830" y1="12" x2="900" y2="42"/><line x1="900" y1="42" x2="960" y2="28"/>
+  </g>
+
+  <!-- Sunset glow on horizon -->
+  <rect x="0" y="380" width="1200" height="120" fill="url(#sunGlow)" opacity="0.6"/>
+
+  <!-- Distant clouds -->
+  <g filter="url(#softBlur)">
+    <ellipse cx="200" cy="280" rx="120" ry="25" fill="url(#cloudGrad)"/>
+    <ellipse cx="240" cy="275" rx="80" ry="20" fill="#FF9060" opacity="0.15"/>
+    <ellipse cx="600" cy="310" rx="150" ry="30" fill="url(#cloudGrad)"/>
+    <ellipse cx="650" cy="305" rx="100" ry="22" fill="#FF9060" opacity="0.12"/>
+    <ellipse cx="1000" cy="290" rx="110" ry="22" fill="url(#cloudGrad)"/>
+    <ellipse cx="1040" cy="285" rx="70" ry="18" fill="#FF9060" opacity="0.14"/>
+    <ellipse cx="100" cy="340" rx="90" ry="18" fill="url(#cloudGrad)" opacity="0.6"/>
+    <ellipse cx="800" cy="330" rx="130" ry="24" fill="url(#cloudGrad)" opacity="0.5"/>
+  </g>
+
+  <!-- Light beams from sunset -->
+  <g opacity="0.08">
+    <polygon points="500,400 520,100 540,400" fill="#FFD080"/>
+    <polygon points="620,400 650,120 680,400" fill="#FFD080"/>
+    <polygon points="350,400 370,150 390,400" fill="#FFD080"/>
+    <polygon points="780,400 810,130 840,400" fill="#FFD080"/>
+  </g>
+
+  <!-- Distant island silhouettes -->
+  <g id="distantIslands">
+    <!-- Far left island -->
+    <path d="M0,420 Q30,380 80,390 Q120,370 160,385 Q200,360 240,400 L240,440 L0,440Z" fill="url(#islandGrad)" opacity="0.4"/>
+    <!-- Palm tree silhouettes -->
+    <path d="M70,388 L72,365 Q66,358 58,360 Q64,356 62,350 Q68,356 74,352 Q72,358 78,356 Q74,360 80,362 Q72,362 72,365" fill="#1A3A2A" opacity="0.5"/>
+
+    <!-- Far right island -->
+    <path d="M960,430 Q1000,390 1040,400 Q1080,380 1120,395 Q1160,375 1200,420 L1200,450 L960,450Z" fill="url(#islandGrad)" opacity="0.35"/>
+    <path d="M1060,398 L1062,375 Q1056,368 1048,370 Q1054,366 1052,360 Q1058,366 1064,362 Q1062,368 1068,366 Q1064,370 1070,372 Q1062,372 1062,375" fill="#1A3A2A" opacity="0.45"/>
+
+    <!-- Center far island -->
+    <path d="M520,440 Q560,410 600,420 Q630,400 660,415 Q690,405 720,430 L720,450 L520,450Z" fill="url(#islandGrad)" opacity="0.25"/>
+  </g>
+
+  <!-- Distant ships silhouette -->
+  <g opacity="0.2">
+    <path d="M400,420 Q405,412 415,410 L430,410 Q435,412 440,420Z" fill="#1A2A3A"/>
+    <rect x="422" y="396" width="1.5" height="16" fill="#1A2A3A"/>
+    <path d="M423,396 Q428,394 432,398 L432,406 Q428,404 423,406Z" fill="#1A2A3A" opacity="0.8"/>
+  </g>
+
+  <!-- Sea -->
+  <rect x="0" y="440" width="1200" height="360" fill="url(#seaGrad)"/>
+
+  <!-- Sea surface waves -->
+  <g opacity="0.15">
+    <path d="M0,450 Q50,442 100,450 Q150,458 200,450 Q250,442 300,450 Q350,458 400,450 Q450,442 500,450 Q550,458 600,450 Q650,442 700,450 Q750,458 800,450 Q850,442 900,450 Q950,458 1000,450 Q1050,442 1100,450 Q1150,458 1200,450" stroke="#2CB49C" stroke-width="1" fill="none"/>
+    <path d="M0,465 Q60,458 120,465 Q180,472 240,465 Q300,458 360,465 Q420,472 480,465 Q540,458 600,465 Q660,472 720,465 Q780,458 840,465 Q900,472 960,465 Q1020,458 1080,465 Q1140,472 1200,465" stroke="#2CB49C" stroke-width="0.8" fill="none" opacity="0.7"/>
+    <path d="M0,485 Q70,478 140,485 Q210,492 280,485 Q350,478 420,485 Q490,492 560,485 Q630,478 700,485 Q770,492 840,485 Q910,478 980,485 Q1050,492 1120,485 Q1155,480 1200,485" stroke="#1A6B5A" stroke-width="0.6" fill="none" opacity="0.5"/>
+  </g>
+
+  <!-- Sunset reflection on sea -->
+  <g filter="url(#softBlur)">
+    <rect x="480" y="440" width="240" height="80" fill="#F0A030" opacity="0.08"/>
+    <rect x="520" y="445" width="160" height="50" fill="#FFD080" opacity="0.06"/>
+    <path d="M560,440 L560,520 M580,440 L580,510 M600,440 L600,520 M620,440 L620,505 M640,440 L640,515" stroke="#FFD080" stroke-width="3" opacity="0.04"/>
+  </g>
+
+  <!-- Fog on horizon -->
+  <g filter="url(#fogBlur)">
+    <rect x="0" y="400" width="1200" height="80" fill="#F5E6C8" opacity="0.06"/>
+    <ellipse cx="300" cy="440" rx="200" ry="30" fill="#FFF" opacity="0.04"/>
+    <ellipse cx="900" cy="435" rx="180" ry="25" fill="#FFF" opacity="0.03"/>
+  </g>
+
+  <!-- Distant birds -->
+  <g opacity="0.25">
+    <path d="M300,250 Q305,245 310,250 Q315,245 320,250" stroke="#1A2A3A" stroke-width="1" fill="none"/>
+    <path d="M330,260 Q334,256 338,260 Q342,256 346,260" stroke="#1A2A3A" stroke-width="0.8" fill="none"/>
+    <path d="M280,265 Q283,262 286,265" stroke="#1A2A3A" stroke-width="0.6" fill="none"/>
+    <path d="M750,230 Q755,225 760,230 Q765,225 770,230" stroke="#1A2A3A" stroke-width="0.8" fill="none"/>
+    <path d="M780,240 Q783,237 786,240" stroke="#1A2A3A" stroke-width="0.6" fill="none"/>
+  </g>
+</svg>

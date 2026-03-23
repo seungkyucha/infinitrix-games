@@ -1,7 +1,14 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #32 spectral-sleuth_
+_Last updated: Cycle #35 abyss-diver_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 35]** Deep-sea arcade puzzle platformer (3,457 lines) with 13-state machine. ACTIVE_SYSTEMS generated programmatically via IIFE, explicitly managing diving/puzzle/boss-specific physics·traps·o2press system activation. **When state count exceeds 10, manual matrix creation risks omissions — programmatic generation with individual overrides is safer.**
+- **[Cycle 35]** All 5 bosses share the same createBoss() structure with lures (anglerfish-only), tentacles (octopus-only), minions (jellyfish-only) unified as empty arrays. Same pattern as Cycle 34; negligible performance impact from filter/map on empty arrays. **Separate into factory pattern when boss count exceeds 10.**
+- **[Cycle 35]** beginTransition() creates new proxy objects per stage (proxy1→proxy2), immediately applying Cycle 34's lesson — preventing tween invalidation. **Per-stage new proxy creation is now the standard pattern.**
+- **[Cycle 35]** Procedural SFX pseudo-noise uses Math.sin-based generation (not SeededRNG). Not Math.random, but deterministic audio reproduction would require SeededRNG integration. **Acceptable for audio-only use; needs conversion if replay features are added.**
+- **[Cycle 34]** In a dual-phase (PORT/BATTLE) port management + naval strategy game (3,611 lines), ACTIVE_SYSTEMS matrix must manage port-series and battle-series systems as mutually exclusive. Economy/idle systems only active in PORT states, AI system only in BATTLE states. **For dual-phase games, generate ACTIVE_SYSTEMS programmatically (IIFE) to prevent omissions.**
+- **[Cycle 34]** Boss tentacles array (Kraken-specific) initialized as empty for all boss types, causing unnecessary iterations. **Boss-specific attributes should only be initialized/accessed after boss type check.**
+- **[Cycle 34]** In beginTransition() two-stage alpha tween (fadeOut→enterState→fadeIn), reusing the same proxy object causes second tween to be ineffective since from/to are already at destination. **Create new proxy object for each transition stage.**
 - **[Cycle 32]** In a mystery puzzle adventure (4,186 lines), synchronizing transitionAlpha with tw.add() proxy object requires explicit per-frame sync after tw.update() or direct proxy usage in render. **When controlling transition alpha via tween, verify exactly 1 path exists from tween value to render.**
 - **[Cycle 32]** Puzzle board evidence placement (placeEvidenceInSlot) stores slotIdx as puzzleSelected, but checkChain's validChains compare against case-specific clue indices — mismatch between array index and logical clue ID. **Puzzle verification must explicitly define mapping between "array index" and "logical clue ID".**
 - **[Cycle 32]** User instruction > spec principle applied 6th time (Cycle 24/27/29/30/31/32). **Fully established — no further recording needed.**
@@ -51,6 +58,14 @@ _Last updated: Cycle #32 spectral-sleuth_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 34]** Pirate port management + naval strategy roguelite (Corsair Tides) in 3,611-line single file. 20-state machine (INIT~SETTINGS) + port management (6 facilities ×5 levels) + naval combat (4 cannon types ×3 formations) + 5 bosses (phase transitions) + ship unlock tree + 8-branch crew skills + 8 voyage event types + 5 weather types + 6 trade goods + 7 treasure map pieces. casual+strategy genre combination.
+- **[Cycle 34]** ACTIVE_SYSTEMS matrix generated programmatically via IIFE — portStates/battleStates arrays guarantee economy/AI system mutual exclusivity at data level. Matrix pattern 18 cycles in a row.
+- **[Cycle 34]** SVG asset preload + Canvas fallback dual structure for nautical theme: bgLayer1/2 parallax ocean, player/enemy ships, uiHeart/uiStar HUD, effectHit explosions. Full rendering with Canvas shapes when assets unavailable.
+- **[Cycle 34]** Web Audio API: 10 procedural SFX + 4 BGM tracks. Zero external audio files.
+- **[Cycle 34]** SeededRNG complete, setTimeout 0, Math.random 0, confirm/alert 0, external CDN 0 — platform hygiene perfect, 18 cycles running.
+- **[Cycle 34]** Boss phase transition: fireTimer reset + phaseTransitioning guard + immediate re-check (checkBossPhase recall) triple safety. Cycle 24-32 lessons fully applied.
+- **[Cycle 34]** DDA: consecutiveLosses counter with -15%/-25% enemy HP adjustment at 3/5 consecutive losses.
+- **[Cycle 34]** Mobile touch: virtual joystick (left) + attack button (right) + tap-based UI. Full flow TITLE→PORT→VOYAGE→BATTLE→GAMEOVER playable touch-only.
 - **[Cycle 32]** Mystery puzzle adventure (Spectral Sleuth) implemented in 4,186-line single file. 18-state machine + evidence combination puzzle + turn-based confrontation boss battle + 3-branch ghost ability upgrade + 5-zone weather/environment system + Korean/English dual language. Non-combat boss battles (deduction-based) are a platform first.
 - **[Cycle 32]** ESCAPE_ALLOWED + RESTART_ALLOWED + STATE_PRIORITY + ACTIVE_SYSTEMS 4-dictionary pattern applied to all 18 states. beginTransition() guard logic ensures state transition safety. Cycle 31 pattern successfully ported to puzzle genre.
 - **[Cycle 32]** 8 SVG assets preloaded with Canvas fallback in all drawing functions. Game fully functional without assets (fallback shape drawing). Asset-free operation confirmed.
@@ -140,6 +155,11 @@ _Last updated: Cycle #32 spectral-sleuth_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **[Cycle 34→35] Boss AI pattern full data-driven**: Current boss attacks use switch(bossType) hardcoding. Convert to [{type:'tentacle',count:3,hp:80}, {type:'cannon',cd:2,dmg:50}] per-boss pattern arrays for data-only boss additions.
+- **[Cycle 34→35] Voyage map BFS reachability validation**: Current generateVoyageRoute() generates linear routes (always reachable), but branching paths require BFS validation. validateRoute() pattern exists in spec for immediate application.
+- **[Cycle 34→35] Offscreen canvas caching**: Port buildings and battle backgrounds drawn with individual fillRect every frame. One-time offscreen render + drawImage copy can reduce rendering cost 50%+.
+- **[Cycle 34→35] Trade system procedural price trends**: Current sea-region-fixed price variation only. Time/trade-count-based supply/demand simulation would deepen trading strategy.
+- **[Cycle 34→35] ACTIVE_SYSTEMS IIFE build pattern standardization**: Programmatic matrix generation validated in Cycle 34 — apply to all future dual-phase games.
 - **[Cycle 32→33] Puzzle verification unit testing**: checkChain() and evaluateDeduction() are pure functions — test all valid/invalid chain combinations via headless tests. Implement pre-validation for next puzzle game.
 - **[Cycle 32→33] Confrontation answer index management improvement**: Resolve index mismatch between essential clue array and full evidence array via ID-based matching.
 - **[Cycle 32→33] Transition alpha proxy pattern standardization**: Extract transProxy-based tween control + render sync into shared TransitionManager class.

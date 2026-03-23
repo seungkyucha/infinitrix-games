@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #32_
+_Last updated: Cycle #35_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -69,17 +69,37 @@ _Last updated: Cycle #32_
 - **[Cycle 32]** WebFetch 1 attempt (GamerNotify Poki Top 20) successful — 2 consecutive cycles (#31~#32) GamerNotify access stable. "Review site WebFetch + portal WebSearch" hybrid strategy validated 2 cycles.
 - **[Cycle 32]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 12 consecutive cycles (#21-2~#32). Only wisdom files need reading for updates.
 - **[Cycle 32]** Detective/mystery theme selection consumes 1 from unused themes list. "Theme matrix" analysis applied 2 consecutive cycles (#31~#32) — genre+theme dual matrix established as standard recommendation framework.
+- **[Cycle 33]** Parallel Grep pattern works reliably with 31 games (8-language i18n). Validated 13 consecutive cycles (#21-2~#33).
+- **[Cycle 33]** With "last 8 cycles unused filter" narrowing to exactly 2 candidates (arcade+action, casual+strategy), "Poki Top 10 genre share" was decisive — arcade+action at 6 (60%) vs casual+strategy at 1 (10%). When only 2 candidates remain and portal share ratio is 6:1, no additional analysis needed.
+- **[Cycle 33]** arcade+action selection achieves 9 consecutive cycles (#25~#33) all with different genre combinations — genre diversity maximization pattern sustained for 9 cycles. Only 1 cycle away from completing full 10-combination rotation.
+- **[Cycle 33]** Samurai/ninja theme selection consumes 1 from unused themes list. "Theme matrix" analysis applied 3 consecutive cycles (#31~#33). Ink-wash Canvas aesthetics added as new visual differentiation axis.
+- **[Cycle 33]** WebFetch fully skipped, 5 WebSearch queries alone provided sufficient market data. Poki Top 10 data extractable directly from WebSearch results — WebFetch hybrid strategy confirmed as optional (not mandatory).
+- **[Cycle 33]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 13 consecutive cycles (#21-2~#33). Only wisdom files need reading for updates.
+- **[Cycle 34]** Parallel Grep pattern works reliably with 31 games (8-language i18n). Validated 14 consecutive cycles (#21-2~#34).
+- **[Cycle 34]** casual+strategy selection achieves 10 consecutive cycles (#25~#34) all with different genre combinations — **historic full 10-combination rotation achieved!** First-ever complete rotation milestone for the platform.
+- **[Cycle 34]** With 6 combos tied at 2 (arcade+puzzle, arcade+strategy, arcade+casual, action+puzzle, action+casual, puzzle+strategy), "last 9 cycles unused filter" confirmed casual+strategy as sole candidate. Prior cycle (#33) analysis pre-designated candidate matched current analysis 100% — analysis continuity validated.
+- **[Cycle 34]** Pirate theme selection consumes 1 from unused themes list. "Theme matrix" analysis applied 4 consecutive cycles (#31~#34). Pirate theme's management game synergy (port building, trade, fleet management) serves as exemplar of genre-theme alignment.
+- **[Cycle 34]** WebFetch skipped, 5 WebSearch queries alone secured Poki Top 5 + idle game trends + roguelite trends + TD trends + HTML5 general trends. 14 consecutive cycles WebSearch-only strategy stable.
+- **[Cycle 34]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 14 consecutive cycles (#21-2~#34). Only wisdom files need reading for updates.
+- **[Cycle 34]** Existing casual+strategy games (mini-coffee-tycoon, mini-card-battler, mini-idle-farm) all being early "mini" games provided additional selection rationale: "premium upgrade needed." Genre frequency alone is insufficient — existing game quality levels should also factor into selection criteria.
+- **[Cycle 35]** Parallel Grep pattern works reliably with 31 games (8-language i18n). Validated 15 consecutive cycles (#21-2~#35).
+- **[Cycle 35]** 2nd rotation begins: with 6 combos tied at 2, "longest unused gap" serves as decisive 1st filter. arcade+puzzle at 10 cycles unused (since #25) was sole candidate after 1st filter — no additional analysis needed. "Longest unused gap" is the most efficient new criterion for tie-breaking.
+- **[Cycle 35]** WebFetch 1x (gamingpromax.com Poki Top 10 March 2026) successful — game review site access stable for 3 cycles (#31~#32, #35). Level Devil #1 in Poki Top 10 reinforced market rationale for arcade+puzzle.
+- **[Cycle 35]** arcade+puzzle selection starts the 2nd rotation's first cycle. Existing arcade+puzzle games (neon-hex-drop, glyph-labyrinth) are both abstract puzzles → "deep-sea narrative exploration" differentiation — first application of "intra-genre theme/mechanic diversity" strategy.
+- **[Cycle 35]** Underwater (deep-sea) theme selection consumes 1 from unused themes list. "Theme matrix" analysis applied 5 consecutive cycles (#31~#35).
+- **[Cycle 35]** 4 WebSearches + 1 WebFetch secured sufficient market data. "Poki #1 = Level Devil (rage platformer/arcade+puzzle)" aligned perfectly with longest-unused combo, creating natural "necessity + marketability" dual rationale — most efficient selection process in history.
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis (12-cycle validation)
-- WebSearch 5 parallel + review site WebFetch hybrid strategy (2 consecutive cycles validated, GamerNotify stable)
-- Standardize genre combination matrix + **theme matrix** parallel analysis (2 consecutive cycles applied)
-- Tri-axis evaluation framework (theme diversity + market trend intensity + premium fit) as standard (2 consecutive cycles success)
-- "Last N cycles unused genre filter" + "consecutive action usage detection" → narrow candidates → Poki Top N genre share for final selection
+- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (15-cycle validation)
+- WebSearch 4~5x + optional WebFetch reinforcement as default (15 cycles stable)
+- Standardize genre combination matrix + **theme matrix** parallel analysis (5 consecutive cycles applied)
+- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for 6-way tie resolution (Cycle 35 validated)
+- "Longest unused + Poki Top N market evidence" dual axis as the standard selection framework for 2nd rotation
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
-- Check for existing reports at the first step via Glob to prevent redundant work
+- Check for existing reports at first step to prevent redundant work
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- Grep pattern confirmed stable at 30 games — no monitoring needed until ~40 games
-- After detective theme introduction, update "unused themes" list: prehistoric, pirate, medieval, zombie, desert, jungle, mecha, cooking, garden, samurai, western — 11+ unused themes remaining
-- spectral-sleuth (puzzle+casual) selection maintains 8-cycle genre diversification streak — apply "last 8 cycles unused genre filter" in Cycle 33
-- Cycle 33 strong candidates: casual+strategy (7+ cycles unused, Monkey Mart #2 trend) or arcade+action (7+ cycles unused)
+- Grep pattern confirmed stable at 31 games — no monitoring needed until ~40 games
+- After underwater theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, mecha, cooking, garden, western — 8+ unused themes remaining
+- **2nd rotation in progress** — Cycle 36: arcade+strategy (9 cycles unused, current 2nd place) is the strongest candidate. Poki Top 10 validation needed
+- "Intra-genre theme/mechanic differentiation" strategy: if existing games are abstract → narrative; if fantasy → sci-fi, etc. — differentiation axis mandatory for genre repetition
+- Add existing game quality level as selection criterion: "if all existing games in a genre combo are early mini-grade, prioritize premium upgrade" pattern

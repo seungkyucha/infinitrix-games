@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #32_
+_Last updated: Cycle #35_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -35,6 +35,16 @@ _Last updated: Cycle #32_
 - **[Cycle 32]** When designing non-combat boss battles (confrontation/argumentation), **if the spec doesn't clearly define whether correct answer judgment is "exact evidence ID matching" or "evidence category matching"**, implementers may create overly strict or lenient judgment. §7.5 must include a "valid evidence list per contradiction type" as a complete table.
 - **[Cycle 32]** When designing multiple solution paths in puzzle games, **if valid chains are not fully enumerated in the spec, implementers cannot judge "does this combination also work?"** Provide a reference table of minimum 2 valid chains × 16 cases = 32+ chains in §10.2, or specify chain generation rules algorithmically.
 - **[Cycle 32]** When "environmental storytelling" is planned as a text-minimization strategy in detective/mystery games, **if visual presentations are not mapped to their narrative information**, implementers may add decorative effects while missing narrative function. Specify presentation↔narrative mapping: "ghost afterimage = past event visualization, emotion aura = character psychological state."
+- **[Cycle 33]** In action platformers, if boss weaknesses for 5 bosses × 3 phases **are not linked to the jutsu unlock order**, players may enter a boss fight without the required jutsu and find it unwinnable. **§10.4 must include a complete "jutsu unlock order → path accessibility map" table** to ensure castle progression is logically consistent with jutsu unlocking.
+- **[Cycle 33]** Roguelike builds (3 schools) × skill tree (4×5) × tools (12) can produce extreme builds that exceed combat balance caps (DPS 200%, synergy 150%). **Pre-verify 3 extreme builds via formulas in Appendix A and specify automatic exclusion logic for cap-exceeding choices** to prevent balance collapse preemptively.
+- **[Cycle 33]** Hybrid procedural generation (predefined tilemaps + randomized variation elements) has lower BFS reachability verification failure rates than full procedural, improving implementation stability. However, **whether the variation range (±2 tiles, 30% activation variation) provides sufficient replay feel needs postmortem verification**.
+- **[Cycle 34]** In management+combat hybrid (casual+strategy), **idle income vs battle rewards economic ratio must be specified** to prevent trade becoming meaningless (battle rewards dominate) or combat unnecessary (trade alone suffices). Target ratio: trade:combat ≈ 40:60.
+- **[Cycle 34]** After achieving complete 10-combo cycle, genre selection criteria must shift from "gap filling" to **"quality gap resolution + theme diversity + market fit" 3-axis evaluation**. Without gaps to fill, inertial repetition of old patterns weakens decision rationale.
+
+- **[Cycle 35]** When adapting a rage platformer (Level Devil-style "hostile environment") to a deep-sea theme, **underwater physics (buoyancy, pressure, currents) provide a natural justification for control distortion**, allowing Level Devil's "control reversal" mechanic to integrate seamlessly. However, **when physics parameters (WATER_DRAG, BUOYANCY, DEPTH_DRAG_COEFF) vary per biome, balance variables explode** — collapsing physics changes into a single depthFactor coefficient is key.
+- **[Cycle 35]** Instead of dual-phase systems (management/combat), **focusing on a single core loop (dive→breakthrough→escape) reduces both code volume and balance variables simultaneously.** This resolves Cycle 34's "dual system oversize" regret through genre design itself. Deep gameplay can emerge from complexity of environmental change axes (traps+physics+visibility+tools) rather than system count.
+- **[Cycle 35]** When starting the 2nd genre cycle with the same combination (arcade+puzzle), **failing to differentiate from existing games (neon-hex-drop, glyph-labyrinth) in both mechanics and theme** risks being perceived as "similar game, same genre." **If existing are abstract puzzles, pivot to narrative+exploration; if existing are static, pivot to real-time arcade.**
+- **[Cycle 35]** When designing DDA fallback for instant-death+instant-respawn mechanics, **trap deactivation (visual dim) that signals "it got easier" destroys the rage game's core challenge feeling.** Alternatives like "ghost path hints" that **maintain difficulty while providing more information** preserve the rage game's core fun while improving accessibility.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -89,6 +99,20 @@ _Last updated: Cycle #32_
 - **[Cycle 32]** Non-combat boss battles (confrontation/argumentation) are an innovative platform-first experience with lower implementation complexity than combat bosses. **Turn-based argumentation has clear state transitions (testimony→selection→judgment→result) and fewer balance variables (credibility/wrong count), increasing first-review pass probability.**
 - **[Cycle 32]** Fully specifying the INIT_EMPTY pattern in §5.1 as a **global object list with initial value table** structurally prevents Cycle 31's TDZ P0 crash (workshopBonuses uninitialized). The key is determining "which objects need empty initialization" at the planning stage.
 - **[Cycle 32]** Detective theme + Art Deco visuals effectively address the platform's fantasy/neon/cyber theme bias. **Market trend alignment (2 of Poki Top 5 are puzzle+casual) coinciding with platform genre gap (7+ cycles unused) enabled 8 consecutive cycles of unique genre combinations (#25~#32).**
+- **[Cycle 33]** arcade+action combo occupying 60% (6 titles) of Poki Top 10 combined with ninja/ink-wash as a platform-first theme. The triple-alignment pattern of genre matrix gap (8 cycles unused) + market trend (Level Devil #1) + theme differentiation (zero Japanese-style games) enabled 9 consecutive unique genre combinations (#25~#33).
+- **[Cycle 33]** Transitioning from non-combat bosses (Cycle 32 argumentation) to combat bosses (5 yokai pattern mastery), **linking each boss's weakness to player abilities (jutsu)** transforms boss fights from "DPS race" to "ability utilization puzzle." Tengu (clone for aggro split), Kappa (back weakness = leap behind) mapping adds strategic depth to combat.
+- **[Cycle 33]** Expanding smoke test gate to 19 items with Cycle 32's pain point (orphaned SVG 3rd review) addressed by "zero orphaned files (#19)" as FAIL gate. Boss-related gates (#12~#13) also included to cover combat-focused game core flow.
+- **[Cycle 33]** Environmental hazard detail table (§7.3) specifying **damage/duration/cooldown/countermeasure** extends Cycle 30's "environment hazard values unspecified" lesson to 5 castle-specific environments (wind/forest/fire/ice/shadow). Concrete countermeasures for each of 10 hazard types add a strategic layer to combat.
+- **[Cycle 34]** **10 consecutive unique genre combinations achieved (#25~#34) — platform's first complete 10-combo cycle!** casual+strategy targeting completes the full rotation. Data-driven genre matrix analysis over 34 cycles made this milestone possible.
+- **[Cycle 34]** 21-state × 8-system ACTIVE_SYSTEMS matrix with **Economy/AI mutually exclusive in PORT/BATTLE phases** structurally applies Cycle 24's dual-phase lesson to management+combat hybrid. Only Idle system runs across PORT+PAUSED to guarantee idle income.
+- **[Cycle 34]** Ship unlock → region accessibility map as **12-row complete table** converts Cycle 33's "ability↔boss weakness" chain into "ship↔region access" chain for pirate theme. BFS reachability verification code (§10.3) integration increases implementation accuracy.
+- **[Cycle 34]** §17 "Previous Cycle Regret Resolution" table mapping 6 items across multiple cycles (C33×3 + C24×2 + C29×1) enables tracking not just recent but also older unresolved lessons in a single table.
+
+- **[Cycle 35]** Resolving arcade+puzzle 10-cycle longest unused gap + Level Devil Poki #1 trend + first deep-sea theme creates a **strong starting point for the 2nd genre cycle**. "Longest unused gap" criterion proves more effective for differentiation than "minimum frequency" when all combinations are at 2.
+- **[Cycle 35]** Adapting "hostile environment" (Level Devil) to underwater by **categorizing 10 trap types and restricting active traps per biome** ensures the same mechanic delivers progressively new experiences across 5 biomes. Gradual trap introduction (not all at once) is key to difficulty curve design.
+- **[Cycle 35]** Mapping boss 5 weaknesses 1:1 to tool unlock order (Boss1→no tool, Boss3→Shock required, Boss5→all tools required) creates a **virtuous cycle where progression system (tools) and boss design reinforce each other**. Extension of Cycle 33's ability↔boss weakness pattern with "required/recommended" two-tier system.
+- **[Cycle 35]** When balance formulas use upgrade tree 3-branches as different survival strategies (Pressure=time, Speed=fast pass, Detection=safe routes) instead of abstract "evasion rate" assumptions, **extreme build verification becomes intuitive simulation**. 3 builds × 3 variables (survival time/required time/O2 bubbles) is simpler to verify than complex DPS/EHP formulas.
+- **[Cycle 35]** Including **verification criteria** in the "Previous Cycle Regret Resolution" table (introduced Cycle 26) enables quantitative evaluation of "Was this solution actually effective?" in post-mortem. Concrete targets like "code 3300~3800 lines" and "balance variables ≤10" are key.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -130,12 +154,26 @@ _Last updated: Cycle #32_
 - [ ] Verify 10 REGION dependency directions are maintained in code — R2+R3 depend only on R1, zero circular references
 - [ ] Track match-3 DDA 3-stage fallback (auto-hint/boss ATK reduction/enemy HP erosion) trigger frequency and play experience improvement
 - [ ] Verify 14-item smoke test gate (Cycle 28) FAIL/WARN 2-tier separation improves first-review pass rate — target: APPROVED within 2 rounds
+- [ ] Verify casual+strategy management income vs battle reward ratio (target 40:60) is appropriate in actual play
+- [ ] Confirm 21-state × 8-system ACTIVE_SYSTEMS matrix Economy/AI mutual exclusion prevents PORT↔BATTLE transition bugs
+- [ ] Validate ship unlock → region accessibility chain achieves 0 logical inconsistencies with BFS verification
+- [ ] Confirm route event 30~50% randomization provides sufficient replay variety — continuation of Cycle 33 task
+- [ ] Verify boss 50% defense rate keeps max-firepower build clear time above 15 seconds
+- [ ] After 10-combo completion, confirm "3-axis evaluation" maintains decision quality for genre selection
+- [ ] Track whether boarding mini-game timing windows feel responsive across mobile/desktop
 - [ ] Verify 3-axis evaluation framework (theme diversity + market trend + premium suitability) leads to better game selection than genre-gap-based approach
 - [ ] Verify DEPLOY/COMBAT phase Input mode separation actually prevents input misfires in RTS-like unit placement game
 - [ ] Verify blueprint DPS cap (200%) + synergy cap (150%) adequately limits extreme builds while maintaining build diversity
 - [ ] Verify environmental mechanics table (§7.3) values are "neither decoration nor excessive" appropriate threats in actual gameplay
 - [ ] Verify non-combat boss battles (confrontation) improve first-review pass rate compared to combat bosses — target: APPROVED within 2 rounds
 - [ ] Verify puzzle difficulty 3-variable control (clue count/time/wrong tolerance) is easier to verify than combat DPS/EHP balance
+- [ ] Verify underwater physics depthFactor single-coefficient approach adequately expresses per-biome physics variation while preventing balance variable explosion
+- [ ] Confirm DDA "ghost path hint" approach maintains difficulty while improving accessibility for instant-death mechanics — compare against trap deactivation (dim) approach
+- [ ] Verify single core loop (dive→breakthrough→escape) design achieves 3300~3800 line range while meeting premium quality requirements
+- [ ] Validate 10 trap types' gradual biome introduction is effective for difficulty curve — biome 1 (3 types) → biome 5 (all types) unlock progression
+- [ ] Confirm boss weakness ↔ tool unlock 1:1 mapping doesn't create "can't enter without required tool" situations while promoting tool usage
+- [ ] Verify 3-build (pressure/speed/detection) extreme build balance formulas match actual biome 5-3 clearability in post-mortem
+- [ ] Confirm 40~60% trap variation rate in hybrid procedural generation provides sufficient replay variety — Cycle 33~35 ongoing task
 - [ ] Verify multiple solution paths (minimum 2 valid chains per case) actually increase replay value — measure alternate path selection rate on 2nd playthrough
 - [ ] Verify INIT_EMPTY pattern (§5.1 global object initial value table) completely prevents TDZ crashes in 1st review
 - [ ] Verify environmental storytelling (ghost afterimages/emotion auras) delivers sufficient narrative depth within 3-line dialogue limit
@@ -152,3 +190,10 @@ _Last updated: Cycle #32_
 - [ ] Verify Dimension Shift (reality↔shadow) rendering maintains 60fps while correctly showing/hiding dual-dimension objects — performance on low-spec mobile
 - [ ] Verify permanent upgrades (Shadow/Rift/Echo trees) and per-run artifacts are balanced complementarily — check DPS cap exceeded at upgrade Lv5 + 3 epic artifacts
 - [ ] Verify virtual joystick + 4-button (A/B/C/S) mobile layout doesn't excessively consume screen space — readability at 320px viewport
+- [ ] Verify jutsu unlock order → path accessibility map (§10.4) completely prevents "stuck at a castle without required jutsu" in actual gameplay
+- [ ] Verify hybrid procedural generation (predefined tilemaps + variation elements) provides sufficient replay feel vs full procedural — check if 2~3 replays feel like "same map" in postmortem
+- [ ] Verify DPS cap (200%) + synergy cap (150%) correctly applies across 3 schools × 4 jutsu skill Lv5 combinations, keeping boss clear time within 30~120s range
+- [ ] Verify 19-item smoke test gate (Cycle 33) achieves zero orphaned files + APPROVED within 2 rounds
+- [ ] Verify 5 boss weaknesses are logically linked to jutsu, making "no-jutsu brute-force clear" impossible — especially Onimaru (final boss) "only Shadow Blade damages" weakness
+- [ ] Verify 20×12 ACTIVE_SYSTEMS matrix Input modes (menu/game/skip/pause/modal) correctly apply across all 20 states
+- [ ] Verify ink-wash style Canvas drawing (sumi outlines + limited palette) provides sufficient differentiation from existing neon/fantasy visuals — first-impression player feedback

@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-23T12:41:14.110Z",
-  "totalGames": 31,
+  "lastUpdated": "2026-03-23T22:36:29.751Z",
+  "totalGames": 32,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -4610,14 +4610,25 @@
       "id": "elemental-cascade",
       "title": "엘리멘탈 캐스케이드",
       "description": "6원소 보석을 매칭하고 스펠을 시전하여 던전을 공략하는 매치-3 RPG",
-      "genre": ["puzzle", "strategy"],
+      "genre": [
+        "puzzle",
+        "strategy"
+      ],
       "thumbnail": "/games/elemental-cascade/assets/thumbnail.svg",
       "path": "/games/elemental-cascade/index.html",
       "addedAt": "2026-03-22T22:19:38.305Z",
       "featured": true,
       "playCount": 0,
       "rating": 0,
-      "tags": ["매치3", "RPG", "로그라이크", "퍼즐전략", "원소마법", "보스전", "턴제전투"],
+      "tags": [
+        "매치3",
+        "RPG",
+        "로그라이크",
+        "퍼즐전략",
+        "원소마법",
+        "보스전",
+        "턴제전투"
+      ],
       "controls": [
         "마우스 드래그: 보석 스왑",
         "1~6: 스펠 슬롯 선택",
@@ -4633,7 +4644,15 @@
         "en": {
           "title": "Elemental Cascade",
           "description": "Match 6-element gems and cast spells to conquer sealed dungeons in this match-3 roguelike RPG",
-          "tags": ["match-3", "RPG", "roguelike", "puzzle-strategy", "elemental magic", "boss battle", "turn-based"],
+          "tags": [
+            "match-3",
+            "RPG",
+            "roguelike",
+            "puzzle-strategy",
+            "elemental magic",
+            "boss battle",
+            "turn-based"
+          ],
           "controls": [
             "Mouse drag: Swap gems",
             "1~6: Select spell slot",
@@ -4646,7 +4665,15 @@
         "ja": {
           "title": "エレメンタルカスケード",
           "description": "6属性の宝石をマッチさせ、魔法を唱えて封印されたダンジョンを攻略するマッチ3ローグライクRPG",
-          "tags": ["マッチ3", "RPG", "ローグライク", "パズル戦略", "属性魔法", "ボス戦", "ターン制"],
+          "tags": [
+            "マッチ3",
+            "RPG",
+            "ローグライク",
+            "パズル戦略",
+            "属性魔法",
+            "ボス戦",
+            "ターン制"
+          ],
           "controls": [
             "マウスドラッグ: 宝石をスワップ",
             "1~6: スペルスロット選択",
@@ -4659,7 +4686,15 @@
         "zh-CN": {
           "title": "元素连锁",
           "description": "匹配6种元素宝石并施放法术，攻略封印地牢的三消Roguelike RPG",
-          "tags": ["三消", "RPG", "肉鸽", "益智策略", "元素魔法", "Boss战", "回合制"],
+          "tags": [
+            "三消",
+            "RPG",
+            "肉鸽",
+            "益智策略",
+            "元素魔法",
+            "Boss战",
+            "回合制"
+          ],
           "controls": [
             "鼠标拖拽: 交换宝石",
             "1~6: 选择法术槽",
@@ -4672,7 +4707,15 @@
         "zh-TW": {
           "title": "元素連鎖",
           "description": "匹配6種元素寶石並施放法術，攻略封印地城的三消Roguelike RPG",
-          "tags": ["三消", "RPG", "肉鴿", "益智策略", "元素魔法", "Boss戰", "回合制"],
+          "tags": [
+            "三消",
+            "RPG",
+            "肉鴿",
+            "益智策略",
+            "元素魔法",
+            "Boss戰",
+            "回合制"
+          ],
           "controls": [
             "滑鼠拖曳: 交換寶石",
             "1~6: 選擇法術欄",
@@ -4685,7 +4728,15 @@
         "es": {
           "title": "Cascada Elemental",
           "description": "Combina gemas de 6 elementos y lanza hechizos para conquistar mazmorras selladas en este RPG roguelike de match-3",
-          "tags": ["match-3", "RPG", "roguelike", "puzle-estrategia", "magia elemental", "jefe", "por turnos"],
+          "tags": [
+            "match-3",
+            "RPG",
+            "roguelike",
+            "puzle-estrategia",
+            "magia elemental",
+            "jefe",
+            "por turnos"
+          ],
           "controls": [
             "Arrastrar ratón: Intercambiar gemas",
             "1~6: Seleccionar ranura de hechizo",
@@ -4698,7 +4749,15 @@
         "fr": {
           "title": "Cascade Élémentaire",
           "description": "Associez des gemmes de 6 éléments et lancez des sorts pour conquérir des donjons scellés dans ce RPG roguelike match-3",
-          "tags": ["match-3", "RPG", "roguelike", "puzzle-stratégie", "magie élémentaire", "boss", "tour par tour"],
+          "tags": [
+            "match-3",
+            "RPG",
+            "roguelike",
+            "puzzle-stratégie",
+            "magie élémentaire",
+            "boss",
+            "tour par tour"
+          ],
           "controls": [
             "Glisser souris : Échanger les gemmes",
             "1~6 : Sélectionner un sort",
@@ -4711,7 +4770,15 @@
         "de": {
           "title": "Elementarkaskade",
           "description": "Kombiniere Edelsteine aus 6 Elementen und wirke Zauber, um versiegelte Dungeons in diesem Match-3-Roguelike-RPG zu bezwingen",
-          "tags": ["Match-3", "RPG", "Roguelike", "Puzzle-Strategie", "Elementarmagie", "Bosskampf", "Rundenbasiert"],
+          "tags": [
+            "Match-3",
+            "RPG",
+            "Roguelike",
+            "Puzzle-Strategie",
+            "Elementarmagie",
+            "Bosskampf",
+            "Rundenbasiert"
+          ],
           "controls": [
             "Maus ziehen: Edelsteine tauschen",
             "1~6: Zauberplatz wählen",
@@ -4724,7 +4791,15 @@
         "pt": {
           "title": "Cascata Elemental",
           "description": "Combine gemas de 6 elementos e lance feitiços para conquistar masmorras seladas neste RPG roguelike de match-3",
-          "tags": ["match-3", "RPG", "roguelike", "puzzle-estratégia", "magia elemental", "chefe", "por turnos"],
+          "tags": [
+            "match-3",
+            "RPG",
+            "roguelike",
+            "puzzle-estratégia",
+            "magia elemental",
+            "chefe",
+            "por turnos"
+          ],
           "controls": [
             "Arrastar mouse: Trocar gemas",
             "1~6: Selecionar slot de feitiço",
@@ -4770,7 +4845,14 @@
         "en": {
           "title": "Neon Pulse",
           "description": "Defeat enemies to the beat and conquer the neon dungeon!",
-          "tags": ["rhythm", "arcade", "roguelite", "neon", "beat", "combo"],
+          "tags": [
+            "rhythm",
+            "arcade",
+            "roguelite",
+            "neon",
+            "beat",
+            "combo"
+          ],
           "controls": [
             "Space/↑: Attack on the beat",
             "←→/Swipe: Move & dodge",
@@ -4781,7 +4863,14 @@
         "ja": {
           "title": "ネオンパルス",
           "description": "ビートに合わせて敵を倒し、ネオンダンジョンを突破せよ！",
-          "tags": ["リズム", "アーケード", "ローグライト", "ネオン", "ビート", "コンボ"],
+          "tags": [
+            "リズム",
+            "アーケード",
+            "ローグライト",
+            "ネオン",
+            "ビート",
+            "コンボ"
+          ],
           "controls": [
             "Space/↑: ビートに合わせて攻撃",
             "←→/スワイプ: 移動・回避",
@@ -4792,7 +4881,14 @@
         "zh-CN": {
           "title": "霓虹脉冲",
           "description": "跟随节拍消灭敌人，突破霓虹地下城！",
-          "tags": ["节奏", "街机", "肉鸽", "霓虹", "节拍", "连击"],
+          "tags": [
+            "节奏",
+            "街机",
+            "肉鸽",
+            "霓虹",
+            "节拍",
+            "连击"
+          ],
           "controls": [
             "Space/↑: 跟随节拍攻击",
             "←→/滑动: 左右移动·闪避",
@@ -4803,7 +4899,14 @@
         "zh-TW": {
           "title": "霓虹脈衝",
           "description": "跟隨節拍消滅敵人，突破霓虹地下城！",
-          "tags": ["節奏", "街機", "肉鴿", "霓虹", "節拍", "連擊"],
+          "tags": [
+            "節奏",
+            "街機",
+            "肉鴿",
+            "霓虹",
+            "節拍",
+            "連擊"
+          ],
           "controls": [
             "Space/↑: 跟隨節拍攻擊",
             "←→/滑動: 左右移動·閃避",
@@ -4814,7 +4917,14 @@
         "es": {
           "title": "Pulso Neón",
           "description": "¡Derrota enemigos al ritmo y conquista la mazmorra neón!",
-          "tags": ["ritmo", "arcade", "roguelite", "neón", "beat", "combo"],
+          "tags": [
+            "ritmo",
+            "arcade",
+            "roguelite",
+            "neón",
+            "beat",
+            "combo"
+          ],
           "controls": [
             "Space/↑: Atacar al ritmo",
             "←→/Deslizar: Mover y esquivar",
@@ -4825,7 +4935,14 @@
         "fr": {
           "title": "Néon Pulse",
           "description": "Éliminez les ennemis en rythme et conquérez le donjon néon !",
-          "tags": ["rythme", "arcade", "roguelite", "néon", "beat", "combo"],
+          "tags": [
+            "rythme",
+            "arcade",
+            "roguelite",
+            "néon",
+            "beat",
+            "combo"
+          ],
           "controls": [
             "Space/↑ : Attaquer en rythme",
             "←→/Glisser : Se déplacer et esquiver",
@@ -4836,7 +4953,14 @@
         "de": {
           "title": "Neon Puls",
           "description": "Besiege Feinde im Takt und erobere den Neon-Dungeon!",
-          "tags": ["Rhythmus", "Arcade", "Roguelite", "Neon", "Beat", "Combo"],
+          "tags": [
+            "Rhythmus",
+            "Arcade",
+            "Roguelite",
+            "Neon",
+            "Beat",
+            "Combo"
+          ],
           "controls": [
             "Space/↑: Im Takt angreifen",
             "←→/Wischen: Bewegen & Ausweichen",
@@ -4847,7 +4971,14 @@
         "pt": {
           "title": "Pulso Neon",
           "description": "Derrote inimigos no ritmo e conquiste a masmorra neon!",
-          "tags": ["ritmo", "arcade", "roguelite", "neon", "beat", "combo"],
+          "tags": [
+            "ritmo",
+            "arcade",
+            "roguelite",
+            "neon",
+            "beat",
+            "combo"
+          ],
           "controls": [
             "Space/↑: Atacar no ritmo",
             "←→/Deslizar: Mover e desviar",
@@ -4861,14 +4992,24 @@
       "id": "shadow-rift",
       "title": "섀도우 리프트",
       "description": "차원 균열을 탐험하며 능력을 해금하는 메트로이드바니아!",
-      "genre": ["action", "puzzle"],
+      "genre": [
+        "action",
+        "puzzle"
+      ],
       "thumbnail": "/games/shadow-rift/assets/thumbnail.svg",
       "path": "/games/shadow-rift/index.html",
       "addedAt": "2026-03-23T04:49:10.214Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["액션", "퍼즐", "메트로이드바니아", "로그라이트", "플랫포머", "보스전"],
+      "tags": [
+        "액션",
+        "퍼즐",
+        "메트로이드바니아",
+        "로그라이트",
+        "플랫포머",
+        "보스전"
+      ],
       "controls": [
         "←→/A,D: 이동",
         "↑/W/Space: 점프",
@@ -4884,7 +5025,14 @@
         "en": {
           "title": "Shadow Rift",
           "description": "Explore dimensional rifts, unlock abilities in this metroidvania!",
-          "tags": ["action", "puzzle", "metroidvania", "roguelite", "platformer", "boss fight"],
+          "tags": [
+            "action",
+            "puzzle",
+            "metroidvania",
+            "roguelite",
+            "platformer",
+            "boss fight"
+          ],
           "controls": [
             "←→/A,D: Move",
             "↑/W/Space: Jump",
@@ -4898,7 +5046,14 @@
         "ja": {
           "title": "シャドウリフト",
           "description": "次元の裂け目を探索し、能力を解放するメトロイドヴァニア！",
-          "tags": ["アクション", "パズル", "メトロイドヴァニア", "ローグライト", "プラットフォーマー", "ボス戦"],
+          "tags": [
+            "アクション",
+            "パズル",
+            "メトロイドヴァニア",
+            "ローグライト",
+            "プラットフォーマー",
+            "ボス戦"
+          ],
           "controls": [
             "←→/A,D: 移動",
             "↑/W/Space: ジャンプ",
@@ -4912,7 +5067,14 @@
         "zh-CN": {
           "title": "暗影裂隙",
           "description": "探索次元裂隙，解锁能力的银河恶魔城！",
-          "tags": ["动作", "解谜", "银河恶魔城", "肉鸽", "平台跳跃", "Boss战"],
+          "tags": [
+            "动作",
+            "解谜",
+            "银河恶魔城",
+            "肉鸽",
+            "平台跳跃",
+            "Boss战"
+          ],
           "controls": [
             "←→/A,D: 移动",
             "↑/W/Space: 跳跃",
@@ -4926,7 +5088,14 @@
         "zh-TW": {
           "title": "暗影裂隙",
           "description": "探索次元裂隙，解鎖能力的銀河惡魔城！",
-          "tags": ["動作", "解謎", "銀河惡魔城", "肉鴿", "平台跳躍", "Boss戰"],
+          "tags": [
+            "動作",
+            "解謎",
+            "銀河惡魔城",
+            "肉鴿",
+            "平台跳躍",
+            "Boss戰"
+          ],
           "controls": [
             "←→/A,D: 移動",
             "↑/W/Space: 跳躍",
@@ -4940,7 +5109,14 @@
         "es": {
           "title": "Grieta de Sombras",
           "description": "¡Explora grietas dimensionales y desbloquea habilidades en este metroidvania!",
-          "tags": ["acción", "puzzle", "metroidvania", "roguelite", "plataformas", "jefe"],
+          "tags": [
+            "acción",
+            "puzzle",
+            "metroidvania",
+            "roguelite",
+            "plataformas",
+            "jefe"
+          ],
           "controls": [
             "←→/A,D: Mover",
             "↑/W/Space: Saltar",
@@ -4954,7 +5130,14 @@
         "fr": {
           "title": "Faille de l'Ombre",
           "description": "Explorez les failles dimensionnelles et débloquez des pouvoirs dans ce metroidvania !",
-          "tags": ["action", "puzzle", "metroidvania", "roguelite", "plateforme", "boss"],
+          "tags": [
+            "action",
+            "puzzle",
+            "metroidvania",
+            "roguelite",
+            "plateforme",
+            "boss"
+          ],
           "controls": [
             "←→/A,D : Se déplacer",
             "↑/W/Space : Sauter",
@@ -4968,7 +5151,14 @@
         "de": {
           "title": "Schattenriss",
           "description": "Erkunde dimensionale Risse und schalte Fähigkeiten frei in diesem Metroidvania!",
-          "tags": ["Action", "Puzzle", "Metroidvania", "Roguelite", "Plattformer", "Bosskampf"],
+          "tags": [
+            "Action",
+            "Puzzle",
+            "Metroidvania",
+            "Roguelite",
+            "Plattformer",
+            "Bosskampf"
+          ],
           "controls": [
             "←→/A,D: Bewegen",
             "↑/W/Space: Springen",
@@ -4982,7 +5172,14 @@
         "pt": {
           "title": "Fenda Sombria",
           "description": "Explore fendas dimensionais e desbloqueie habilidades neste metroidvania!",
-          "tags": ["ação", "puzzle", "metroidvania", "roguelite", "plataforma", "chefe"],
+          "tags": [
+            "ação",
+            "puzzle",
+            "metroidvania",
+            "roguelite",
+            "plataforma",
+            "chefe"
+          ],
           "controls": [
             "←→/A,D: Mover",
             "↑/W/Space: Pular",
@@ -4999,14 +5196,24 @@
       "id": "celestial-drift",
       "title": "천체 표류",
       "description": "우주를 표류하며 자원을 수집하고 보스를 격퇴하라!",
-      "genre": ["action", "casual"],
+      "genre": [
+        "action",
+        "casual"
+      ],
       "thumbnail": "/games/celestial-drift/assets/thumbnail.svg",
       "path": "/games/celestial-drift/index.html",
       "addedAt": "2026-03-23T06:56:15.316Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["우주", "서바이벌", "액션", "로그라이트", "SF", "보스전"],
+      "tags": [
+        "우주",
+        "서바이벌",
+        "액션",
+        "로그라이트",
+        "SF",
+        "보스전"
+      ],
       "controls": [
         "WASD/방향키: 함선 이동",
         "마우스 좌클릭/Z: 무기 발사",
@@ -5022,7 +5229,14 @@
         "en": {
           "title": "Celestial Drift",
           "description": "Drift through space, gather resources, and defeat sector bosses!",
-          "tags": ["space", "survival", "action", "roguelite", "sci-fi", "boss"],
+          "tags": [
+            "space",
+            "survival",
+            "action",
+            "roguelite",
+            "sci-fi",
+            "boss"
+          ],
           "controls": [
             "WASD/Arrow Keys: Move ship",
             "Left Click/Z: Fire weapon",
@@ -5036,7 +5250,14 @@
         "ja": {
           "title": "セレスティアル・ドリフト",
           "description": "宇宙を漂流し、資源を集めてボスを撃破せよ！",
-          "tags": ["宇宙", "サバイバル", "アクション", "ローグライト", "SF", "ボス戦"],
+          "tags": [
+            "宇宙",
+            "サバイバル",
+            "アクション",
+            "ローグライト",
+            "SF",
+            "ボス戦"
+          ],
           "controls": [
             "WASD/矢印キー: 船を移動",
             "左クリック/Z: 武器発射",
@@ -5050,7 +5271,14 @@
         "zh-CN": {
           "title": "星际漂流",
           "description": "在宇宙中漂流，收集资源并击败区域Boss！",
-          "tags": ["太空", "生存", "动作", "肉鸽", "科幻", "Boss战"],
+          "tags": [
+            "太空",
+            "生存",
+            "动作",
+            "肉鸽",
+            "科幻",
+            "Boss战"
+          ],
           "controls": [
             "WASD/方向键：移动飞船",
             "鼠标左键/Z：发射武器",
@@ -5064,7 +5292,14 @@
         "zh-TW": {
           "title": "星際漂流",
           "description": "在宇宙中漂流，蒐集資源並擊敗區域Boss！",
-          "tags": ["太空", "生存", "動作", "肉鴿", "科幻", "Boss戰"],
+          "tags": [
+            "太空",
+            "生存",
+            "動作",
+            "肉鴿",
+            "科幻",
+            "Boss戰"
+          ],
           "controls": [
             "WASD/方向鍵：移動飛船",
             "滑鼠左鍵/Z：發射武器",
@@ -5078,7 +5313,14 @@
         "es": {
           "title": "Deriva Celestial",
           "description": "¡Deriva por el espacio, recolecta recursos y derrota a los jefes!",
-          "tags": ["espacio", "supervivencia", "acción", "roguelite", "ciencia ficción", "jefe"],
+          "tags": [
+            "espacio",
+            "supervivencia",
+            "acción",
+            "roguelite",
+            "ciencia ficción",
+            "jefe"
+          ],
           "controls": [
             "WASD/Flechas: Mover nave",
             "Clic izq./Z: Disparar arma",
@@ -5092,7 +5334,14 @@
         "fr": {
           "title": "Dérive Céleste",
           "description": "Dérivez dans l'espace, collectez des ressources et terrassez les boss !",
-          "tags": ["espace", "survie", "action", "roguelite", "science-fiction", "boss"],
+          "tags": [
+            "espace",
+            "survie",
+            "action",
+            "roguelite",
+            "science-fiction",
+            "boss"
+          ],
           "controls": [
             "WASD/Flèches : Déplacer le vaisseau",
             "Clic gauche/Z : Tirer",
@@ -5106,7 +5355,14 @@
         "de": {
           "title": "Himmlische Drift",
           "description": "Treibe durch das All, sammle Ressourcen und besiege die Bosse!",
-          "tags": ["Weltraum", "Überleben", "Action", "Roguelite", "Sci-Fi", "Bosskampf"],
+          "tags": [
+            "Weltraum",
+            "Überleben",
+            "Action",
+            "Roguelite",
+            "Sci-Fi",
+            "Bosskampf"
+          ],
           "controls": [
             "WASD/Pfeiltasten: Schiff bewegen",
             "Linksklick/Z: Waffe abfeuern",
@@ -5120,7 +5376,14 @@
         "pt": {
           "title": "Deriva Celestial",
           "description": "Vagueie pelo espaço, colete recursos e derrote os chefes!",
-          "tags": ["espaço", "sobrevivência", "ação", "roguelite", "ficção científica", "chefe"],
+          "tags": [
+            "espaço",
+            "sobrevivência",
+            "ação",
+            "roguelite",
+            "ficção científica",
+            "chefe"
+          ],
           "controls": [
             "WASD/Setas: Mover nave",
             "Clique esq./Z: Disparar arma",
@@ -5137,14 +5400,24 @@
       "id": "ironclad-vanguard",
       "title": "철갑 선봉대",
       "description": "스팀펑크 도시를 탈환하는 실시간 전술 액션 로그라이트",
-      "genre": ["action", "strategy"],
+      "genre": [
+        "action",
+        "strategy"
+      ],
       "thumbnail": "/games/ironclad-vanguard/assets/thumbnail.svg",
       "path": "/games/ironclad-vanguard/index.html",
       "addedAt": "2026-03-23T09:34:08.908Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["스팀펑크", "전술", "로그라이트", "액션", "전략", "실시간"],
+      "tags": [
+        "스팀펑크",
+        "전술",
+        "로그라이트",
+        "액션",
+        "전략",
+        "실시간"
+      ],
       "controls": [
         "WASD/방향키: 카메라 이동",
         "1/2/3: 유닛 선택",
@@ -5159,7 +5432,14 @@
         "en": {
           "title": "Ironclad Vanguard",
           "description": "Reclaim a steampunk city in this real-time tactical action roguelite!",
-          "tags": ["steampunk", "tactics", "roguelite", "action", "strategy", "real-time"],
+          "tags": [
+            "steampunk",
+            "tactics",
+            "roguelite",
+            "action",
+            "strategy",
+            "real-time"
+          ],
           "controls": [
             "WASD/Arrow Keys: Move camera",
             "1/2/3: Select unit",
@@ -5172,7 +5452,14 @@
         "ja": {
           "title": "鉄壁の先鋒隊",
           "description": "スチームパンク都市を奪還するリアルタイム戦術アクションローグライト！",
-          "tags": ["スチームパンク", "戦術", "ローグライト", "アクション", "ストラテジー", "リアルタイム"],
+          "tags": [
+            "スチームパンク",
+            "戦術",
+            "ローグライト",
+            "アクション",
+            "ストラテジー",
+            "リアルタイム"
+          ],
           "controls": [
             "WASD/矢印キー: カメラ移動",
             "1/2/3: ユニット選択",
@@ -5185,7 +5472,14 @@
         "zh-CN": {
           "title": "铁甲先锋",
           "description": "夺回蒸汽朋克城市的即时战术动作肉鸽游戏！",
-          "tags": ["蒸汽朋克", "战术", "肉鸽", "动作", "策略", "即时"],
+          "tags": [
+            "蒸汽朋克",
+            "战术",
+            "肉鸽",
+            "动作",
+            "策略",
+            "即时"
+          ],
           "controls": [
             "WASD/方向键: 移动视角",
             "1/2/3: 选择单位",
@@ -5198,7 +5492,14 @@
         "zh-TW": {
           "title": "鐵甲先鋒",
           "description": "奪回蒸氣龐克城市的即時戰術動作肉鴿遊戲！",
-          "tags": ["蒸氣龐克", "戰術", "肉鴿", "動作", "策略", "即時"],
+          "tags": [
+            "蒸氣龐克",
+            "戰術",
+            "肉鴿",
+            "動作",
+            "策略",
+            "即時"
+          ],
           "controls": [
             "WASD/方向鍵: 移動視角",
             "1/2/3: 選擇單位",
@@ -5211,7 +5512,14 @@
         "es": {
           "title": "Vanguardia Acorazada",
           "description": "¡Reconquista una ciudad steampunk en este roguelite de acción táctica en tiempo real!",
-          "tags": ["steampunk", "táctica", "roguelite", "acción", "estrategia", "tiempo real"],
+          "tags": [
+            "steampunk",
+            "táctica",
+            "roguelite",
+            "acción",
+            "estrategia",
+            "tiempo real"
+          ],
           "controls": [
             "WASD/Flechas: Mover cámara",
             "1/2/3: Seleccionar unidad",
@@ -5224,7 +5532,14 @@
         "fr": {
           "title": "Avant-garde Blindée",
           "description": "Reconquérez une cité steampunk dans ce roguelite d'action tactique en temps réel !",
-          "tags": ["steampunk", "tactique", "roguelite", "action", "stratégie", "temps réel"],
+          "tags": [
+            "steampunk",
+            "tactique",
+            "roguelite",
+            "action",
+            "stratégie",
+            "temps réel"
+          ],
           "controls": [
             "ZQSD/Flèches : Déplacer la caméra",
             "1/2/3 : Sélectionner une unité",
@@ -5237,7 +5552,14 @@
         "de": {
           "title": "Eiserne Vorhut",
           "description": "Erobere eine Steampunk-Stadt in diesem Echtzeit-Taktik-Action-Roguelite zurück!",
-          "tags": ["Steampunk", "Taktik", "Roguelite", "Action", "Strategie", "Echtzeit"],
+          "tags": [
+            "Steampunk",
+            "Taktik",
+            "Roguelite",
+            "Action",
+            "Strategie",
+            "Echtzeit"
+          ],
           "controls": [
             "WASD/Pfeiltasten: Kamera bewegen",
             "1/2/3: Einheit auswählen",
@@ -5250,7 +5572,14 @@
         "pt": {
           "title": "Vanguarda Blindada",
           "description": "Reconquiste uma cidade steampunk neste roguelite de ação tática em tempo real!",
-          "tags": ["steampunk", "tática", "roguelite", "ação", "estratégia", "tempo real"],
+          "tags": [
+            "steampunk",
+            "tática",
+            "roguelite",
+            "ação",
+            "estratégia",
+            "tempo real"
+          ],
           "controls": [
             "WASD/Setas: Mover câmera",
             "1/2/3: Selecionar unidade",
@@ -5266,14 +5595,25 @@
       "id": "spectral-sleuth",
       "title": "유령 탐정",
       "description": "유령 능력으로 단서를 찾고 범인을 추리하세요!",
-      "genre": ["puzzle", "casual"],
+      "genre": [
+        "puzzle",
+        "casual"
+      ],
       "thumbnail": "/games/spectral-sleuth/assets/thumbnail.svg",
       "path": "/games/spectral-sleuth/index.html",
       "addedAt": "2026-03-23T12:41:14.110Z",
       "featured": false,
       "playCount": 0,
       "rating": 0,
-      "tags": ["미스터리", "퍼즐", "추리", "탐정", "유령", "어드벤처", "캐주얼"],
+      "tags": [
+        "미스터리",
+        "퍼즐",
+        "추리",
+        "탐정",
+        "유령",
+        "어드벤처",
+        "캐주얼"
+      ],
       "controls": [
         "마우스 클릭: 단서 조사/선택",
         "터치: 단서 조사/선택 (모바일)",
@@ -5287,7 +5627,14 @@
         "en": {
           "title": "Spectral Sleuth",
           "description": "Use ghost powers to find clues and solve the mystery!",
-          "tags": ["mystery", "puzzle", "detective", "ghost", "adventure", "casual"],
+          "tags": [
+            "mystery",
+            "puzzle",
+            "detective",
+            "ghost",
+            "adventure",
+            "casual"
+          ],
           "controls": [
             "Mouse Click: Investigate/Select clues",
             "Touch: Investigate/Select clues (mobile)",
@@ -5298,7 +5645,15 @@
         "ja": {
           "title": "幽霊探偵",
           "description": "幽霊の能力で手がかりを見つけ、犯人を推理しよう！",
-          "tags": ["ミステリー", "パズル", "推理", "探偵", "幽霊", "アドベンチャー", "カジュアル"],
+          "tags": [
+            "ミステリー",
+            "パズル",
+            "推理",
+            "探偵",
+            "幽霊",
+            "アドベンチャー",
+            "カジュアル"
+          ],
           "controls": [
             "マウスクリック: 手がかり調査/選択",
             "タッチ: 手がかり調査/選択（モバイル）",
@@ -5309,7 +5664,15 @@
         "zh-CN": {
           "title": "幽灵侦探",
           "description": "运用幽灵能力寻找线索，推理出真凶！",
-          "tags": ["悬疑", "益智", "推理", "侦探", "幽灵", "冒险", "休闲"],
+          "tags": [
+            "悬疑",
+            "益智",
+            "推理",
+            "侦探",
+            "幽灵",
+            "冒险",
+            "休闲"
+          ],
           "controls": [
             "鼠标点击: 调查/选择线索",
             "触控: 调查/选择线索（移动端）",
@@ -5320,7 +5683,15 @@
         "zh-TW": {
           "title": "幽靈偵探",
           "description": "運用幽靈能力尋找線索，推理出真兇！",
-          "tags": ["懸疑", "益智", "推理", "偵探", "幽靈", "冒險", "休閒"],
+          "tags": [
+            "懸疑",
+            "益智",
+            "推理",
+            "偵探",
+            "幽靈",
+            "冒險",
+            "休閒"
+          ],
           "controls": [
             "滑鼠點擊: 調查/選擇線索",
             "觸控: 調查/選擇線索（行動裝置）",
@@ -5331,7 +5702,14 @@
         "es": {
           "title": "Detective Espectral",
           "description": "¡Usa poderes fantasmales para encontrar pistas y resolver el misterio!",
-          "tags": ["misterio", "puzle", "detective", "fantasma", "aventura", "casual"],
+          "tags": [
+            "misterio",
+            "puzle",
+            "detective",
+            "fantasma",
+            "aventura",
+            "casual"
+          ],
           "controls": [
             "Clic: Investigar/Seleccionar pistas",
             "Táctil: Investigar/Seleccionar pistas (móvil)",
@@ -5342,7 +5720,14 @@
         "fr": {
           "title": "Détective Spectral",
           "description": "Utilisez vos pouvoirs fantomatiques pour trouver des indices et résoudre le mystère !",
-          "tags": ["mystère", "puzzle", "détective", "fantôme", "aventure", "casual"],
+          "tags": [
+            "mystère",
+            "puzzle",
+            "détective",
+            "fantôme",
+            "aventure",
+            "casual"
+          ],
           "controls": [
             "Clic : Examiner/Sélectionner des indices",
             "Tactile : Examiner/Sélectionner des indices (mobile)",
@@ -5353,7 +5738,14 @@
         "de": {
           "title": "Geisterdetektiv",
           "description": "Nutze Geisterkräfte, um Hinweise zu finden und das Rätsel zu lösen!",
-          "tags": ["Krimi", "Puzzle", "Detektiv", "Geist", "Abenteuer", "Casual"],
+          "tags": [
+            "Krimi",
+            "Puzzle",
+            "Detektiv",
+            "Geist",
+            "Abenteuer",
+            "Casual"
+          ],
           "controls": [
             "Mausklick: Hinweise untersuchen/auswählen",
             "Touch: Hinweise untersuchen/auswählen (Mobil)",
@@ -5364,12 +5756,224 @@
         "pt": {
           "title": "Detetive Espectral",
           "description": "Use poderes fantasmagóricos para encontrar pistas e resolver o mistério!",
-          "tags": ["mistério", "puzzle", "detetive", "fantasma", "aventura", "casual"],
+          "tags": [
+            "mistério",
+            "puzzle",
+            "detetive",
+            "fantasma",
+            "aventura",
+            "casual"
+          ],
           "controls": [
             "Clique: Investigar/Selecionar pistas",
             "Toque: Investigar/Selecionar pistas (mobile)",
             "Arrastar: Combinar evidências",
             "ESC: Menu/Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "abyss-diver",
+      "title": "어비스 다이버",
+      "description": "심해 자체가 적! 함정을 돌파하고 고대 문명의 비밀을 밝혀라",
+      "genre": [
+        "arcade",
+        "puzzle"
+      ],
+      "thumbnail": "/games/abyss-diver/assets/thumbnail.svg",
+      "path": "/games/abyss-diver/index.html",
+      "addedAt": "2026-03-23T22:36:29.751Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "아케이드",
+        "퍼즐",
+        "플랫포머",
+        "심해",
+        "탐험",
+        "즉사"
+      ],
+      "controls": [
+        "방향키/WASD: 이동",
+        "Space/W: 상승 (수영)",
+        "S: 급강하",
+        "Z: 도구 사용",
+        "X: 도구 전환",
+        "R: 즉시 재시작",
+        "터치: 가상 버튼 (모바일)"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Abyss Diver",
+          "description": "The deep sea is your enemy! Break through traps and uncover ancient secrets",
+          "tags": [
+            "arcade",
+            "puzzle",
+            "platformer",
+            "deep sea",
+            "exploration",
+            "instant death"
+          ],
+          "controls": [
+            "Arrow Keys/WASD: Move",
+            "Space/W: Swim Up",
+            "S: Dive Down",
+            "Z: Use Tool",
+            "X: Switch Tool",
+            "R: Instant Restart",
+            "Touch: Virtual Buttons (Mobile)"
+          ]
+        },
+        "ja": {
+          "title": "アビスダイバー",
+          "description": "深海そのものが敵！罠を突破し古代文明の秘密を解き明かせ",
+          "tags": [
+            "アーケード",
+            "パズル",
+            "プラットフォーマー",
+            "深海",
+            "探検",
+            "即死"
+          ],
+          "controls": [
+            "矢印キー/WASD: 移動",
+            "Space/W: 上昇（泳ぐ）",
+            "S: 急降下",
+            "Z: ツール使用",
+            "X: ツール切替",
+            "R: 即リスタート",
+            "タッチ: 仮想ボタン（モバイル）"
+          ]
+        },
+        "zh-CN": {
+          "title": "深渊潜水员",
+          "description": "深海本身就是敌人！突破陷阱，揭开古代文明的秘密",
+          "tags": [
+            "街机",
+            "益智",
+            "平台跳跃",
+            "深海",
+            "探索",
+            "即死"
+          ],
+          "controls": [
+            "方向键/WASD: 移动",
+            "Space/W: 上浮（游泳）",
+            "S: 急速下潜",
+            "Z: 使用工具",
+            "X: 切换工具",
+            "R: 立即重启",
+            "触屏: 虚拟按钮（移动端）"
+          ]
+        },
+        "zh-TW": {
+          "title": "深淵潛水員",
+          "description": "深海本身就是敵人！突破陷阱，揭開古代文明的秘密",
+          "tags": [
+            "街機",
+            "益智",
+            "平台跳躍",
+            "深海",
+            "探索",
+            "即死"
+          ],
+          "controls": [
+            "方向鍵/WASD: 移動",
+            "Space/W: 上浮（游泳）",
+            "S: 急速下潛",
+            "Z: 使用工具",
+            "X: 切換工具",
+            "R: 立即重啟",
+            "觸控: 虛擬按鈕（行動裝置）"
+          ]
+        },
+        "es": {
+          "title": "Buzo del Abismo",
+          "description": "¡El mar profundo es tu enemigo! Supera trampas y descubre secretos antiguos",
+          "tags": [
+            "arcade",
+            "puzzle",
+            "plataformas",
+            "mar profundo",
+            "exploración",
+            "muerte instantánea"
+          ],
+          "controls": [
+            "Flechas/WASD: Mover",
+            "Space/W: Nadar hacia arriba",
+            "S: Descenso rápido",
+            "Z: Usar herramienta",
+            "X: Cambiar herramienta",
+            "R: Reinicio instantáneo",
+            "Táctil: Botones virtuales (Móvil)"
+          ]
+        },
+        "fr": {
+          "title": "Plongeur des Abysses",
+          "description": "Les abysses sont votre ennemi ! Franchissez les pièges et percez les secrets anciens",
+          "tags": [
+            "arcade",
+            "puzzle",
+            "plateforme",
+            "abysses",
+            "exploration",
+            "mort instantanée"
+          ],
+          "controls": [
+            "Flèches/WASD: Se déplacer",
+            "Space/W: Nager vers le haut",
+            "S: Plongée rapide",
+            "Z: Utiliser outil",
+            "X: Changer d'outil",
+            "R: Redémarrage instantané",
+            "Tactile: Boutons virtuels (Mobile)"
+          ]
+        },
+        "de": {
+          "title": "Abgrundtaucher",
+          "description": "Die Tiefsee ist dein Feind! Überwinde Fallen und enthülle uralte Geheimnisse",
+          "tags": [
+            "Arcade",
+            "Puzzle",
+            "Plattformer",
+            "Tiefsee",
+            "Erkundung",
+            "Soforttod"
+          ],
+          "controls": [
+            "Pfeiltasten/WASD: Bewegen",
+            "Space/W: Aufsteigen (Schwimmen)",
+            "S: Schnelltauchen",
+            "Z: Werkzeug benutzen",
+            "X: Werkzeug wechseln",
+            "R: Sofort neustarten",
+            "Touch: Virtuelle Tasten (Mobil)"
+          ]
+        },
+        "pt": {
+          "title": "Mergulhador do Abismo",
+          "description": "O mar profundo é seu inimigo! Supere armadilhas e desvende segredos ancestrais",
+          "tags": [
+            "arcade",
+            "puzzle",
+            "plataforma",
+            "mar profundo",
+            "exploração",
+            "morte instantânea"
+          ],
+          "controls": [
+            "Setas/WASD: Mover",
+            "Space/W: Nadar para cima",
+            "S: Mergulho rápido",
+            "Z: Usar ferramenta",
+            "X: Trocar ferramenta",
+            "R: Reinício instantâneo",
+            "Toque: Botões virtuais (Mobile)"
           ]
         }
       }

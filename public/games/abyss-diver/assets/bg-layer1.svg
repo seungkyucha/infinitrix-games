@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <!-- Deep ocean gradient -->
+    <linearGradient id="oceanGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A2E4D"/>
+      <stop offset="30%" stop-color="#071E35"/>
+      <stop offset="60%" stop-color="#051528"/>
+      <stop offset="100%" stop-color="#040D21"/>
+    </linearGradient>
+    <!-- Light beam -->
+    <linearGradient id="lightBeam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#87CEEB" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#87CEEB" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Nebula/underwater haze -->
+    <radialGradient id="haze1" cx="0.3" cy="0.4" r="0.4">
+      <stop offset="0%" stop-color="#9B59FF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#9B59FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haze2" cx="0.7" cy="0.6" r="0.35">
+      <stop offset="0%" stop-color="#00FFE5" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#00FFE5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haze3" cx="0.5" cy="0.3" r="0.3">
+      <stop offset="0%" stop-color="#FF7EB3" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FF7EB3" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haze4" cx="0.15" cy="0.7" r="0.25">
+      <stop offset="0%" stop-color="#00B8A9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#00B8A9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haze5" cx="0.85" cy="0.3" r="0.3">
+      <stop offset="0%" stop-color="#6A0DAD" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#6A0DAD" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Distant terrain gradient -->
+    <linearGradient id="terrainGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A2E4D" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#040D21" stop-opacity="0.8"/>
+    </linearGradient>
+    <!-- Ruin silhouette -->
+    <linearGradient id="ruinGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#071E35"/>
+      <stop offset="100%" stop-color="#040D21"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base ocean gradient -->
+  <rect width="1200" height="800" fill="url(#oceanGrad)"/>
+
+  <!-- Underwater hazes (5 layers) -->
+  <rect width="1200" height="800" fill="url(#haze1)"/>
+  <rect width="1200" height="800" fill="url(#haze2)"/>
+  <rect width="1200" height="800" fill="url(#haze3)"/>
+  <rect width="1200" height="800" fill="url(#haze4)"/>
+  <rect width="1200" height="800" fill="url(#haze5)"/>
+
+  <!-- Light beams from surface -->
+  <g opacity="0.3">
+    <polygon points="200,0 280,0 400,800 320,800" fill="url(#lightBeam)"/>
+    <polygon points="500,0 560,0 650,800 590,800" fill="url(#lightBeam)"/>
+    <polygon points="800,0 850,0 920,800 870,800" fill="url(#lightBeam)"/>
+    <polygon points="1050,0 1090,0 1140,800 1100,800" fill="url(#lightBeam)"/>
+  </g>
+
+  <!-- Distant mountain/ridge silhouettes -->
+  <g>
+    <path d="M0,620 C50,580 100,560 180,570 C260,580 300,540 400,550 C500,560 550,520 650,530 C750,540 800,510 900,520 C1000,530 1050,500 1100,510 C1150,520 1200,530 1200,540 L1200,800 L0,800 Z" fill="url(#terrainGrad)" opacity="0.5"/>
+    <path d="M0,680 C80,650 150,640 250,650 C350,660 420,630 520,640 C620,650 700,620 800,630 C900,640 950,610 1050,620 C1150,630 1200,640 1200,650 L1200,800 L0,800 Z" fill="url(#terrainGrad)" opacity="0.7"/>
+  </g>
+
+  <!-- Ancient ruins (distant) -->
+  <g opacity="0.3">
+    <!-- Tower 1 -->
+    <rect x="180" y="500" width="25" height="80" fill="url(#ruinGrad)"/>
+    <path d="M175,500 L192.5,470 L210,500 Z" fill="url(#ruinGrad)"/>
+    <!-- Tower 2 -->
+    <rect x="900" y="480" width="30" height="90" fill="url(#ruinGrad)"/>
+    <path d="M895,480 L915,445 L935,480 Z" fill="url(#ruinGrad)"/>
+    <!-- Broken arch -->
+    <path d="M400,560 C410,520 430,500 450,500 C470,500 490,520 500,560" fill="none" stroke="#071E35" stroke-width="8" opacity="0.4"/>
+    <rect x="396" y="560" width="12" height="40" fill="url(#ruinGrad)" opacity="0.4"/>
+    <!-- Column ruins -->
+    <rect x="700" y="520" width="8" height="50" fill="url(#ruinGrad)" opacity="0.3"/>
+    <rect x="720" y="530" width="8" height="40" fill="url(#ruinGrad)" opacity="0.25"/>
+    <rect x="740" y="525" width="6" height="35" fill="url(#ruinGrad)" opacity="0.2"/>
+    <!-- Sunken dome -->
+    <ellipse cx="1050" cy="540" rx="40" ry="25" fill="url(#ruinGrad)" opacity="0.25"/>
+    <path d="M1010,540 C1020,510 1050,495 1080,510 C1090,515 1090,540" fill="none" stroke="#0A2E4D" stroke-width="3" opacity="0.3"/>
+  </g>
+
+  <!-- Bioluminescent particles (80+ points) -->
+  <g>
+    <!-- Cluster 1: upper left -->
+    <circle cx="50" cy="80" r="1.5" fill="#00FFE5" opacity="0.4"/><circle cx="80" cy="120" r="1" fill="#00FFE5" opacity="0.3"/>
+    <circle cx="30" cy="150" r="1.2" fill="#9B59FF" opacity="0.3"/><circle cx="110" cy="90" r="0.8" fill="#00FFE5" opacity="0.5"/>
+    <circle cx="70" cy="200" r="1" fill="#9B59FF" opacity="0.25"/><circle cx="140" cy="160" r="1.3" fill="#00FFE5" opacity="0.35"/>
+    <circle cx="20" cy="250" r="0.8" fill="#00FFE5" opacity="0.3"/><circle cx="100" cy="280" r="1" fill="#9B59FF" opacity="0.2"/>
+    <circle cx="160" cy="100" r="0.6" fill="#FF7EB3" opacity="0.2"/><circle cx="45" cy="320" r="1.2" fill="#00FFE5" opacity="0.3"/>
+    <!-- Cluster 2: upper center -->
+    <circle cx="300" cy="60" r="1" fill="#00FFE5" opacity="0.4"/><circle cx="350" cy="100" r="1.5" fill="#9B59FF" opacity="0.3"/>
+    <circle cx="400" cy="80" r="0.8" fill="#00FFE5" opacity="0.35"/><circle cx="450" cy="130" r="1.2" fill="#00FFE5" opacity="0.4"/>
+    <circle cx="320" cy="180" r="1" fill="#9B59FF" opacity="0.25"/><circle cx="480" cy="70" r="0.8" fill="#FF7EB3" opacity="0.2"/>
+    <circle cx="380" cy="220" r="1.3" fill="#00FFE5" opacity="0.3"/><circle cx="420" cy="160" r="0.6" fill="#00FFE5" opacity="0.45"/>
+    <circle cx="500" cy="140" r="1" fill="#9B59FF" opacity="0.3"/><circle cx="340" cy="260" r="0.8" fill="#00FFE5" opacity="0.25"/>
+    <!-- Cluster 3: upper right -->
+    <circle cx="600" cy="50" r="1.2" fill="#00FFE5" opacity="0.35"/><circle cx="650" cy="110" r="1" fill="#9B59FF" opacity="0.3"/>
+    <circle cx="700" cy="70" r="0.8" fill="#00FFE5" opacity="0.4"/><circle cx="750" cy="140" r="1.5" fill="#00FFE5" opacity="0.3"/>
+    <circle cx="680" cy="200" r="1" fill="#9B59FF" opacity="0.25"/><circle cx="800" cy="90" r="0.8" fill="#FF7EB3" opacity="0.2"/>
+    <circle cx="720" cy="250" r="1.2" fill="#00FFE5" opacity="0.3"/><circle cx="770" cy="180" r="0.6" fill="#00FFE5" opacity="0.4"/>
+    <circle cx="850" cy="120" r="1" fill="#9B59FF" opacity="0.2"/><circle cx="620" cy="160" r="0.8" fill="#00FFE5" opacity="0.35"/>
+    <!-- Cluster 4: far right -->
+    <circle cx="900" cy="60" r="1" fill="#00FFE5" opacity="0.3"/><circle cx="950" cy="100" r="1.3" fill="#9B59FF" opacity="0.25"/>
+    <circle cx="1000" cy="80" r="0.8" fill="#00FFE5" opacity="0.4"/><circle cx="1050" cy="150" r="1" fill="#00FFE5" opacity="0.3"/>
+    <circle cx="1100" cy="70" r="1.2" fill="#9B59FF" opacity="0.3"/><circle cx="1150" cy="130" r="0.8" fill="#FF7EB3" opacity="0.2"/>
+    <circle cx="980" cy="200" r="1" fill="#00FFE5" opacity="0.25"/><circle cx="1080" cy="220" r="0.6" fill="#00FFE5" opacity="0.35"/>
+    <circle cx="920" cy="180" r="1.5" fill="#9B59FF" opacity="0.2"/><circle cx="1120" cy="180" r="0.8" fill="#00FFE5" opacity="0.3"/>
+    <!-- Cluster 5: mid-left -->
+    <circle cx="60" cy="400" r="1" fill="#00FFE5" opacity="0.3"/><circle cx="120" cy="380" r="1.2" fill="#9B59FF" opacity="0.25"/>
+    <circle cx="180" cy="420" r="0.8" fill="#00FFE5" opacity="0.35"/><circle cx="90" cy="450" r="1.5" fill="#00FFE5" opacity="0.3"/>
+    <circle cx="200" cy="360" r="1" fill="#9B59FF" opacity="0.2"/><circle cx="150" cy="480" r="0.8" fill="#FF7EB3" opacity="0.15"/>
+    <!-- Cluster 6: mid-center -->
+    <circle cx="500" cy="350" r="1.2" fill="#00FFE5" opacity="0.3"/><circle cx="550" cy="400" r="1" fill="#9B59FF" opacity="0.25"/>
+    <circle cx="600" cy="380" r="0.8" fill="#00FFE5" opacity="0.35"/><circle cx="530" cy="450" r="1.3" fill="#00FFE5" opacity="0.2"/>
+    <circle cx="650" cy="320" r="1" fill="#9B59FF" opacity="0.2"/><circle cx="580" cy="480" r="0.6" fill="#00FFE5" opacity="0.3"/>
+    <!-- Cluster 7: mid-right -->
+    <circle cx="850" cy="350" r="1" fill="#00FFE5" opacity="0.3"/><circle cx="900" cy="400" r="1.2" fill="#9B59FF" opacity="0.2"/>
+    <circle cx="950" cy="380" r="0.8" fill="#00FFE5" opacity="0.3"/><circle cx="880" cy="450" r="1.5" fill="#00FFE5" opacity="0.25"/>
+    <circle cx="1000" cy="320" r="1" fill="#FF7EB3" opacity="0.15"/><circle cx="1050" cy="400" r="0.6" fill="#00FFE5" opacity="0.3"/>
+    <!-- Extra scattered particles -->
+    <circle cx="250" cy="500" r="0.8" fill="#00FFE5" opacity="0.2"/><circle cx="350" cy="480" r="1" fill="#9B59FF" opacity="0.15"/>
+    <circle cx="750" cy="500" r="1.2" fill="#00FFE5" opacity="0.2"/><circle cx="1100" cy="450" r="0.8" fill="#9B59FF" opacity="0.15"/>
+    <circle cx="150" cy="550" r="1" fill="#00FFE5" opacity="0.15"/><circle cx="450" cy="520" r="0.8" fill="#00FFE5" opacity="0.2"/>
+    <circle cx="1000" cy="500" r="1" fill="#9B59FF" opacity="0.15"/><circle cx="550" cy="550" r="0.6" fill="#00FFE5" opacity="0.2"/>
+  </g>
+
+  <!-- Jellyfish silhouettes (distant) -->
+  <g opacity="0.15">
+    <ellipse cx="250" cy="300" rx="12" ry="8" fill="#9B59FF"/>
+    <path d="M240,308 C238,320 240,330 242,335" stroke="#9B59FF" stroke-width="0.8" fill="none"/>
+    <path d="M248,308 C247,322 248,332 250,338" stroke="#9B59FF" stroke-width="0.8" fill="none"/>
+    <path d="M256,308 C258,318 256,328 254,332" stroke="#9B59FF" stroke-width="0.8" fill="none"/>
+    <path d="M260,308 C262,315 260,325 258,328" stroke="#9B59FF" stroke-width="0.6" fill="none"/>
+  </g>
+  <g opacity="0.1">
+    <ellipse cx="800" cy="280" rx="10" ry="7" fill="#FF7EB3"/>
+    <path d="M792,287 C790,298 792,305 794,310" stroke="#FF7EB3" stroke-width="0.6" fill="none"/>
+    <path d="M800,287 C799,300 800,308 802,312" stroke="#FF7EB3" stroke-width="0.6" fill="none"/>
+    <path d="M808,287 C810,296 808,304 806,308" stroke="#FF7EB3" stroke-width="0.6" fill="none"/>
+  </g>
+
+  <!-- Floating particles/dust (organic) -->
+  <g opacity="0.2">
+    <ellipse cx="200" cy="400" rx="3" ry="1.5" fill="#87CEEB" transform="rotate(20,200,400)"/>
+    <ellipse cx="600" cy="300" rx="2.5" ry="1" fill="#87CEEB" transform="rotate(-15,600,300)"/>
+    <ellipse cx="1000" cy="350" rx="3" ry="1.2" fill="#87CEEB" transform="rotate(30,1000,350)"/>
+    <ellipse cx="400" cy="500" rx="2" ry="1" fill="#87CEEB" transform="rotate(-25,400,500)"/>
+    <ellipse cx="800" cy="450" rx="2.5" ry="1.2" fill="#87CEEB" transform="rotate(10,800,450)"/>
+  </g>
+
+  <!-- Fog/mist layers -->
+  <g opacity="0.08">
+    <ellipse cx="300" cy="600" rx="300" ry="60" fill="#87CEEB"/>
+    <ellipse cx="800" cy="550" rx="250" ry="50" fill="#9B59FF"/>
+    <ellipse cx="1100" cy="650" rx="200" ry="40" fill="#00FFE5"/>
+    <ellipse cx="100" cy="700" rx="200" ry="50" fill="#00B8A9"/>
+    <ellipse cx="600" cy="680" rx="280" ry="45" fill="#87CEEB"/>
+  </g>
+
+  <!-- Distant bioluminescent creature trails -->
+  <g opacity="0.12">
+    <path d="M100,350 C150,340 200,350 250,340 C300,330 350,340 400,335" stroke="#00FFE5" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M700,420 C750,415 800,425 850,418 C900,410 950,420 1000,415" stroke="#9B59FF" stroke-width="1" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Vignette overlay (darker edges) -->
+  <rect width="1200" height="800" fill="url(#oceanGrad)" opacity="0.15"/>
+</svg>
