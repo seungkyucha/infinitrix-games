@@ -2666,23 +2666,28 @@ function drawTransition(ctx, w, h) {
 
 // -- Process input based on state (all input in update, not render — Cycle 23 lesson) --
 function processInput(dt) {
-  // Debug: always process input on TITLE regardless of sys flag
+  // TITLE: bypass all sys checks, handle directly
   if (G.state === STATE.TITLE) {
-    if (input.jp('Space') || input.jp('Enter') || input.tapped || input.mouseDown) {
-      // Skip language toggle check on Space/Enter
-      if (!input.tapped || (() => {
-        const lx = cW/2 - 30, ly = cH * 0.85 - 12, lw = 60, lh = 25;
-        return !(input.tapX >= lx && input.tapX <= lx + lw && input.tapY >= ly && input.tapY <= ly + lh);
-      })()) {
-        beginTransition(STATE.DIFF_SELECT);
-        sound.init();
-        sound.playSfx('select');
-        return;
-      } else {
+    // Language toggle (check tap in lang button area)
+    if (input.tapped) {
+      const lx = cW/2 - 30, ly = cH * 0.85 - 12, lw = 60, lh = 25;
+      if (input.tapX >= lx && input.tapX <= lx + lw && input.tapY >= ly && input.tapY <= ly + lh) {
         G.lang = G.lang === 'ko' ? 'en' : 'ko';
         saveSave();
         return;
       }
+      // Tapped outside lang button = start game
+      setStateDirect(STATE.DIFF_SELECT);
+      onStateEnter(STATE.DIFF_SELECT);
+      sound.init();
+      return;
+    }
+    // Keyboard/mouse start
+    if (input.jp('Space') || input.jp('Enter') || input.mouseDown) {
+      setStateDirect(STATE.DIFF_SELECT);
+      onStateEnter(STATE.DIFF_SELECT);
+      sound.init();
+      return;
     }
     return;
   }
