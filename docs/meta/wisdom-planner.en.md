@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #29_
+_Last updated: Cycle #30_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -26,6 +26,9 @@ _Last updated: Cycle #29_
 - **[Cycle 29]** In metroidvania games, when specifying ability-gating path maps, **if ability unlock order and zone boss placement are not logically consistent**, implementers will arbitrarily decide "which ability unlocks from which boss." **§10.2 must include a complete "boss→ability unlock→next zone access" chain table linked to BFS reachability validation.**
 - **[Cycle 29]** In games with 5+ special abilities, **failing to clearly design ability switching UI (toggle/cycle) at planning stage** causes implementers to improvise key binding conflicts or mobile button layout issues. **§3 must specify ability switching methods for keyboard/mouse/touch separately.**
 - **[Cycle 29]** In metroidvania+roguelite hybrids, **if the boundary between permanent progression (upgrade trees) and per-run progression (artifacts) is unclear**, artifacts may completely supersede permanent upgrades, or permanent upgrades may make artifacts meaningless. **Design both systems to strengthen different axes (combat/ability/exploration) for complementary relationship.**
+- **[Cycle 30]** In space survival games where environmental hazards differ per zone, **failing to specify concrete hazard values (damage, duration, cooldown) and countermeasures in the spec** may lead to implementation as mere decoration or excessive penalty. **§7.3 must include a per-zone environmental hazard table (hazard/effect/counter).**
+- **[Cycle 30]** When confirming mobile button sets in the spec, **failing to visualize button placement for small displays (≤400px) as ASCII layout** causes implementers to improvise solutions for button overlap or joystick interference. **§3.3 must specify layouts for both small and large displays.**
+- **[Cycle 30]** In 3-weapon switching systems, **failing to specify energy consumption balance in the spec** may create a dominant strategy of infinite best-weapon usage. **Specify per-weapon energy cost/damage/fire rate numerically in §2.3 and include in extreme build verification (Appendix A).**
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -69,6 +72,10 @@ _Last updated: Cycle #29_
 - **[Cycle 29]** In metroidvania, sub-categorizing the 18-state×11-system ACTIVE_SYSTEMS matrix Input mode column (menu/map/game/card/skip/pause/modal) structurally prevents input malfunctions during explore→combat→puzzle→boss transitions. Applies Cycle 26's Input mode sub-categorization lesson to metroidvania.
 - **[Cycle 29]** Including 6-boss phase transition diagrams with per-boss weaknesses (required abilities) as ASCII in the spec enables implementers to immediately identify "what ability exploits this boss's weakness." Extends the Cycle 22~28 boss diagram pattern by combining with ability gating.
 - **[Cycle 29]** Expanding smoke test gate to 16 items (10 FAIL + 6 WARN) while including full-flow regression tests (BOOT→TITLE→...→VICTORY) as gate items #7~#10 structurally prevents Cycle 28's "fix regression" issue. Including state transition flow in smoke tests is the key.
+- **[Cycle 30]** Targeting action+casual minimum-frequency combo (1 game: abyss-keeper) while aligning with Poki Top 5 (2 games: Drive Mad, Retro Bowl both action+casual). Introduced **platform's first space/sci-fi theme** to maximize visual differentiation from 29 existing games (mostly fantasy/neon/abstract). Triple verification of genre gap + market trend + theme freshness is effective.
+- **[Cycle 30]** Confirming mobile button set in §3.3 as **virtual joystick + attack/skill/shield 4-button** layout with small display (≤400px) ASCII layout structurally resolves Cycle 29 P3 (no mobile ranged attack button).
+- **[Cycle 30]** Separating extreme build balance verification into **Appendix A** with 3 builds (firepower all-in/tank/exploration) pre-calculated via formulas provides concrete solution to Cycle 29's "no balance verification" issue. Pattern of proving each build's clearability via formulas.
+- **[Cycle 30]** Expanding smoke test gate to 18 items while adding gate #16 to detect ASSET_MAP/preloadAssets/SPRITES code "inertial inclusion." Final defense line for auto-detecting the assets/ reference issue repeated over 29 cycles at code level.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -102,6 +109,11 @@ _Last updated: Cycle #29_
 - [ ] Verify initial board generation guarantees zero 3-matches — SeededRNG-based regeneration logic validation
 - [ ] Verify relic cap (DPS 200%, synergy 150%) logic works correctly in `applyRelic()` — cap-exceeded relics excluded from selection
 - [ ] Verify 23×13 ACTIVE_SYSTEMS matrix Match/Combo/DDA columns correctly activate/deactivate per state
+- [ ] Verify mobile 4-button set (joystick+attack+skill+shield) works without overlap on small displays (≤400px)
+- [ ] Verify environmental hazard system (asteroid/nebula/blackhole/frozen/void) maintains 60fps when updating simultaneously with combat
+- [ ] Verify no dominant strategy emerges from 3-weapon switching + artifact combinations
+- [ ] Verify 18-item smoke test gate contributes to achieving 1st round APPROVED
+- [ ] Verify Appendix A extreme build verification formulas match actual play experience in post-mortem
 - [ ] Verify 10 REGION dependency directions are maintained in code — R2+R3 depend only on R1, zero circular references
 - [ ] Track match-3 DDA 3-stage fallback (auto-hint/boss ATK reduction/enemy HP erosion) trigger frequency and play experience improvement
 - [ ] Verify 14-item smoke test gate (Cycle 28) FAIL/WARN 2-tier separation improves first-review pass rate — target: APPROVED within 2 rounds

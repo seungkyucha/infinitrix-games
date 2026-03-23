@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8EC8E8"/>
+      <stop offset="40%" stop-color="#3A6B8C"/>
+      <stop offset="100%" stop-color="#1A2F44"/>
+    </linearGradient>
+    <linearGradient id="cockpit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00FFEE"/>
+      <stop offset="60%" stop-color="#0088AA"/>
+      <stop offset="100%" stop-color="#004466"/>
+    </linearGradient>
+    <radialGradient id="engineGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#00FFFF" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#0088CC" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#004466" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreGlow" cx="0.5" cy="0.3" r="0.6">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#00DDFF" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#003344" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wingL" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5A8FAA"/>
+      <stop offset="100%" stop-color="#1A3344"/>
+    </linearGradient>
+    <linearGradient id="wingR" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5A8FAA"/>
+      <stop offset="100%" stop-color="#1A3344"/>
+    </linearGradient>
+    <linearGradient id="stripe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00CCFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00CCFF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00CCFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Engine exhaust outer -->
+  <g id="engines">
+    <ellipse cx="44" cy="105" rx="8" ry="14" fill="url(#engineGlow)" filter="url(#softGlow)" opacity="0.7"/>
+    <ellipse cx="84" cy="105" rx="8" ry="14" fill="url(#engineGlow)" filter="url(#softGlow)" opacity="0.7"/>
+    <ellipse cx="44" cy="103" rx="4" ry="9" fill="#00FFFF" opacity="0.9"/>
+    <ellipse cx="84" cy="103" rx="4" ry="9" fill="#00FFFF" opacity="0.9"/>
+    <ellipse cx="44" cy="101" rx="2" ry="5" fill="#FFFFFF" opacity="0.95"/>
+    <ellipse cx="84" cy="101" rx="2" ry="5" fill="#FFFFFF" opacity="0.95"/>
+  </g>
+
+  <!-- Wings -->
+  <g id="wings">
+    <!-- Left wing -->
+    <path d="M52,55 L12,88 L18,92 L28,90 L38,85 L52,72 Z" fill="url(#wingL)" stroke="#4AA8CC" stroke-width="0.5"/>
+    <path d="M16,89 L24,86 L22,90 Z" fill="#00CED1" opacity="0.6"/>
+    <!-- Left wing detail lines -->
+    <line x1="30" y1="82" x2="48" y2="62" stroke="#00CCFF" stroke-width="0.4" opacity="0.5"/>
+    <line x1="22" y1="87" x2="44" y2="68" stroke="#00CCFF" stroke-width="0.3" opacity="0.3"/>
+    <!-- Left wing tip light -->
+    <circle cx="14" cy="89" r="2" fill="#00FFCC" filter="url(#glow)" opacity="0.9"/>
+
+    <!-- Right wing -->
+    <path d="M76,55 L116,88 L110,92 L100,90 L90,85 L76,72 Z" fill="url(#wingR)" stroke="#4AA8CC" stroke-width="0.5"/>
+    <path d="M112,89 L104,86 L106,90 Z" fill="#00CED1" opacity="0.6"/>
+    <!-- Right wing detail lines -->
+    <line x1="98" y1="82" x2="80" y2="62" stroke="#00CCFF" stroke-width="0.4" opacity="0.5"/>
+    <line x1="106" y1="87" x2="84" y2="68" stroke="#00CCFF" stroke-width="0.3" opacity="0.3"/>
+    <!-- Right wing tip light -->
+    <circle cx="114" cy="89" r="2" fill="#00FFCC" filter="url(#glow)" opacity="0.9"/>
+  </g>
+
+  <!-- Main hull body -->
+  <g id="body">
+    <path d="M64,10 C54,10 46,28 44,48 L44,90 C44,95 50,98 64,98 C78,98 84,95 84,90 L84,48 C82,28 74,10 64,10 Z" fill="url(#hull)" stroke="#5AAFCC" stroke-width="0.7"/>
+    <!-- Hull panel lines -->
+    <path d="M52,35 L52,85" stroke="#2A5A72" stroke-width="0.6" opacity="0.7"/>
+    <path d="M76,35 L76,85" stroke="#2A5A72" stroke-width="0.6" opacity="0.7"/>
+    <path d="M48,55 L80,55" stroke="#2A5A72" stroke-width="0.5" opacity="0.5"/>
+    <path d="M46,72 L82,72" stroke="#2A5A72" stroke-width="0.5" opacity="0.5"/>
+    <!-- Hull energy stripe -->
+    <rect x="46" y="60" width="36" height="2" rx="1" fill="url(#stripe)"/>
+    <rect x="48" y="76" width="32" height="1.5" rx="0.75" fill="url(#stripe)" opacity="0.6"/>
+    <!-- Hull rivets -->
+    <circle cx="50" cy="45" r="1" fill="#6ABED6" opacity="0.5"/>
+    <circle cx="78" cy="45" r="1" fill="#6ABED6" opacity="0.5"/>
+    <circle cx="50" cy="65" r="1" fill="#6ABED6" opacity="0.5"/>
+    <circle cx="78" cy="65" r="1" fill="#6ABED6" opacity="0.5"/>
+    <circle cx="50" cy="82" r="1" fill="#6ABED6" opacity="0.5"/>
+    <circle cx="78" cy="82" r="1" fill="#6ABED6" opacity="0.5"/>
+  </g>
+
+  <!-- Cockpit (soul point) -->
+  <g id="cockpit">
+    <ellipse cx="64" cy="30" rx="10" ry="14" fill="url(#cockpit)" stroke="#00DDFF" stroke-width="0.8"/>
+    <ellipse cx="64" cy="28" rx="6" ry="9" fill="url(#coreGlow)" opacity="0.7"/>
+    <!-- Cockpit highlight -->
+    <ellipse cx="62" cy="24" rx="3" ry="5" fill="#FFFFFF" opacity="0.3"/>
+    <!-- Cockpit inner ring -->
+    <ellipse cx="64" cy="30" rx="7" ry="10" fill="none" stroke="#00FFEE" stroke-width="0.4" opacity="0.6"/>
+  </g>
+
+  <!-- Nose cannon -->
+  <g id="cannon">
+    <rect x="62" y="8" width="4" height="10" rx="2" fill="#5A8FAA" stroke="#00CED1" stroke-width="0.4"/>
+    <circle cx="64" cy="8" r="2" fill="#00FFFF" filter="url(#glow)" opacity="0.8"/>
+  </g>
+
+  <!-- Decorative elements -->
+  <g id="decorations">
+    <!-- Antenna left -->
+    <line x1="48" y1="20" x2="38" y2="12" stroke="#5AAFCC" stroke-width="0.8"/>
+    <circle cx="37" cy="11" r="1.5" fill="#00FFCC" filter="url(#glow)"/>
+    <!-- Antenna right -->
+    <line x1="80" y1="20" x2="90" y2="12" stroke="#5AAFCC" stroke-width="0.8"/>
+    <circle cx="91" cy="11" r="1.5" fill="#00FFCC" filter="url(#glow)"/>
+    <!-- Side thrusters -->
+    <rect x="40" y="85" width="6" height="10" rx="2" fill="#2A4A5A"/>
+    <rect x="82" y="85" width="6" height="10" rx="2" fill="#2A4A5A"/>
+    <!-- Core light center -->
+    <circle cx="64" cy="64" r="3" fill="#00EEFF" filter="url(#softGlow)" opacity="0.6"/>
+    <!-- Rim light top -->
+    <path d="M54,14 C58,10 70,10 74,14" stroke="#AAEEFF" stroke-width="0.6" fill="none" opacity="0.5"/>
+  </g>
+</svg>

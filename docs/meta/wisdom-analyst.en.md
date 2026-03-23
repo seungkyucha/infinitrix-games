@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #29_
+_Last updated: Cycle #30_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -11,6 +11,7 @@ _Last updated: Cycle #29_
 - **[Cycle 27]** With 4 minimum-count combinations tied (arcade+casual, action+puzzle, action+casual, puzzle+strategy at 1 each), "search volume quantitative data" (Block Blast 823K monthly searches) serves as the strongest trend intensity evidence. Combining authoritative media assessments + search volume data provides the optimal selection rationale.
 - **[Cycle 28]** With 3 minimum-count combinations tied (arcade+casual, puzzle+action, action+casual at 1 each), Poki Top 5 popularity analysis served as the decisive differentiator. "3 out of Top 5 are arcade+casual in nature" — portal popularity data with genre classification provides more intuitive and compelling selection logic than search volume data alone.
 - **[Cycle 29]** With 2 minimum-count combinations tied (action+puzzle, action+casual at 1 each), "Poki #1 game genre classification" again served as decisive differentiator. Level Devil (action+puzzle) being Poki's March 2026 #1 + metroidvania as 2026's top growth genre (comicbook.com + GameSpot cross-verified) provided dual evidence stronger than action+casual's single survival trend.
+- **[Cycle 30]** With action+casual as the sole minimum-count (1 game) combination, selection was essentially predetermined. However, 2 of Poki Top 5 (Drive Mad #2, Retro Bowl #4) being action+casual provided "necessity + marketability" dual evidence — making selection logic the strongest ever. Sole minimum-count + multiple portal Top 5 matches = no additional differentiation analysis needed.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -48,17 +49,22 @@ _Last updated: Cycle #29_
 - **[Cycle 29]** 5 parallel web searches stable for 9 consecutive cycles (#21~#29). "Portal #1 game genre classification" served as decisive differentiator for 2 consecutive cycles (#28~#29) — portal ranking data established as one of three core trend evidence pillars alongside search volume and media assessments.
 - **[Cycle 29]** action+puzzle selection achieves 5 consecutive cycles (#25~#29) all with different genre combinations — genre diversity maximization pattern sustained for 5 cycles.
 - **[Cycle 29]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 9 consecutive cycles (#21-2~#29). Only wisdom files need reading for updates.
+- **[Cycle 30]** Parallel Grep pattern works reliably with 29 games (8-language i18n). Validated 10 consecutive cycles (#21-2~#30). 30-game milestone reached — Grep pattern stability at 30 games confirmed.
+- **[Cycle 30]** 5 parallel web searches stable for 10 consecutive cycles (#21~#30). When action+casual is the sole minimum-count combination, "that genre's share within Poki Top 5" serves as the most effective supplementary evidence — necessity (minimum count) + marketability (portal popularity) dual axis.
+- **[Cycle 30]** action+casual selection achieves 6 consecutive cycles (#25~#30) all with different genre combinations — genre diversity maximization pattern sustained for 6 cycles.
+- **[Cycle 30]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 10 consecutive cycles (#21-2~#30). Only wisdom files need reading for updates.
+- **[Cycle 30]** With game #30, all 10 genre combinations now have at minimum 2 games — "minimum-count 1 combination resolution" phase complete. Starting Cycle 31, transition to new analysis framework (theme diversity, mechanic innovation, serialization potential, etc.) is needed.
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis (8-cycle validation)
-- Fully replace direct portal visits with 5 parallel WebSearch queries (8-cycle validation)
+- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis (10-cycle validation)
+- Fully replace direct portal visits with 5 parallel WebSearch queries (10-cycle validation)
 - Standardize genre combination matrix as an analysis tool every cycle
 - Maintain multi-criteria evaluation framework (lowest-count reinforcement + market trend alignment + premium fit)
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
 - Check for existing reports at the first step via Glob to prevent redundant work
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- After shadow-rift (action+puzzle) selection, the sole minimum-count combination is action+casual (1: abyss-keeper) — Cycle 30 should prioritize action+casual reinforcement
-- Grep pattern expected stable at 28 games — no monitoring needed until ~30 games
-- In tied minimum-count situations, use triple evidence: "portal #1 game genre classification + media cross-verification + existing game mechanic overlap check"
-- Cycle 30 likely candidate: action+casual (crafting survival/action farming) — the only minimum-count (1) combination remaining
-- Metroidvania implementation's key technical challenge is the interconnected map system — ability gating graph design + state×system matrix auto-verification mandatory
+- After celestial-drift (action+casual) selection, all 10 genre combinations have 2+ games — introduce "theme diversity + mechanic innovation + serialization potential" as new evaluation axes starting Cycle 31
+- Grep pattern confirmed stable at 30 games — no monitoring needed until ~40 games
+- When sole minimum-count combination exists, no differentiation analysis needed (necessity itself is decisive) — portal popularity data as supplementary marketability evidence is sufficient
+- Space/sci-fi theme is platform first — consider introducing "unused theme matrix" analysis alongside genre matrix from Cycle 31
+- 30-game analysis framework transition point: genre balance → expand to theme/mechanic/series diversity

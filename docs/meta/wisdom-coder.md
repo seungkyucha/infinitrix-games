@@ -1,7 +1,11 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #29 shadow-rift_
+_마지막 갱신: 사이클 #30 celestial-drift_
 
 ## 반복되는 실수 🚫
+- **[Cycle 30]** 우주 서바이벌 액션 로그라이트에서 기획서가 "assets/ 디렉토리 절대 생성 금지"(F77)를 명시하면서 유저 지시가 preloadAssets 사용을 요구하는 경우, 기획서와 유저 지시의 우선순위를 매번 재확인해야 한다. Cycle 24/27/29에 이어 4번째 발생. **유저 지시 > 기획서** 원칙을 코딩 시작 전 체크리스트 첫 항목으로 고정할 것.
+- **[Cycle 30]** 3,000줄 이상 단일 파일에서 drawGameWorld()처럼 복합 렌더링 함수가 월드 좌표/화면 좌표를 ctx.translate로 전환할 때, 포스트 이펙트(존별 환경 이펙트)가 월드 좌표에서 렌더링되는지 화면 좌표에서 렌더링되는지 혼동하기 쉽다. **ctx.save/restore 블록별로 좌표계를 주석으로 명시**할 것 (// 화면 좌표 / // 월드 좌표).
+- **[Cycle 30]** 템플릿 리터럴 내에서 따옴표와 `#`이 혼합된 색상값(예: `'#FF44FF'`)을 전달할 때, 따옴표 누락으로 syntax error가 발생하기 쉽다. 특히 함수 호출 인자 내 inline 색상은 반드시 따옴표로 감쌀 것 — 첫 검증에서 1건 발견 즉시 수정.
+- **[Cycle 30]** 보스 AI의 fireTimer를 phase별로 다르게 설정할 때, phaseTransitioning 동안 fireTimer가 계속 감소하면 전환 완료 직후 즉시 연사가 발생한다. Cycle 24-26 교훈("페이즈 전환 시 모든 관련 타이머 리셋")을 이번에도 적용 — phaseTransitioning 해제 시 fireTimer 리셋 코드를 tweenMgr.delay onComplete에 포함.
 - **[Cycle 29]** 메트로이드바니아에서 18상태 머신의 EXPLORE→COMBAT 전환을 적 근접 감지(300px)로 자동 트리거할 때, 전투 종료 후 방 내에 적이 남아있으면 무한 EXPLORE↔COMBAT 전환이 발생할 수 있다. room.cleared 체크를 EXPLORE 상태 진입 시 반드시 수행하여 이미 클리어된 방에서는 COMBAT 전환을 차단할 것.
 - **[Cycle 29]** 보스 페이즈 전환 중(phaseTransitioning=true) 보스에게 대미지가 계속 들어가면 HP가 다음 threshold까지 내려가도 phase가 건너뛴다. phaseTransitioning 동안 checkBossPhase()가 무시되므로, 전환 완료 후 즉시 재체크하거나 전환 중 대미지를 큐잉할 것.
 - **[Cycle 29]** 디자이너 에셋(manifest.json)이 존재하면서 기획서가 "assets/ 디렉토리 미생성"을 명시하는 경우, 유저 지시(preloadAssets 요구)가 기획서를 오버라이드한다. 이 경우 스모크 테스트 "assets/ 미존재" 항목을 "에셋 프리로더 사용 시 제외"로 조건부 적용해야 한다.
@@ -40,6 +44,12 @@ _마지막 갱신: 사이클 #29 shadow-rift_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 30]** 우주 서바이벌 액션 로그라이트(천체 표류)에서 디자이너 SVG 에셋 8종(player/enemy/bgLayer1/bgLayer2/uiHeart/uiStar/powerup/effectHit)을 preloadAssets()로 프리로드하고, 모든 drawXxx() 함수에서 SPRITES[key] ? drawImage : Canvas 폴백 이중 구조를 구현. 에셋 없이도 게임이 완전히 작동하는 안정성 확보.
+- **[Cycle 30]** 17상태 머신(BOOT~SETTINGS)에 STATE_PRIORITY 체계 + ACTIVE_SYSTEMS 매트릭스(17×9)를 적용하여, Tween은 모든 상태에서 활성, PAUSE 복귀는 setState() 즉시 전환(Cycle 28 교훈 적용). 14사이클 연속 매트릭스 패턴 성공.
+- **[Cycle 30]** 5존+히든 = 16섹터, 6체 보스, 14종 아티팩트, 3트리 영구 업그레이드, DDA 3단계 + 3단 난이도를 3,043줄 단일 파일로 구현. 10 REGION 코드 구조(CONFIG→ENGINE→ENTITY→DRAW→COMBAT→SECTOR→ROGUE→STATE→SAVE→MAIN) 유지.
+- **[Cycle 30]** SeededRNG 완전 사용(Math.random 0건), setTimeout 0건(TweenManager.delay 전용), confirm/alert 0건, 외부 CDN 0건 — 플랫폼 코드 위생 원칙 완벽 준수.
+- **[Cycle 30]** 모바일 터치 입력을 가상 조이스틱(좌측) + 공격/스킬/실드 3버튼(우측) + 무기 슬롯 3개(좌상단)으로 전문화. 터치 전용으로 시작~플레이~재시작 전체 플로우 완주 가능(Cycle 29 P3 해결).
+- **[Cycle 30]** 존별 환경 이펙트 5종(소행성 폭풍/성운 글리치/블랙홀 렌즈/빙결 서리/공허 균열)을 별도 함수로 분리하여 drawPostEffects()에서 디스패치. 코드 구조가 깔끔하고 존 추가 시 확장 용이.
 - **[Cycle 29]** 메트로이드바니아 로그라이트(섀도우 리프트)에서 18상태 × 11시스템 ACTIVE_SYS 매트릭스를 배열 기반(0/1)으로 구현 — SYS.TWEEN이 모든 상태에서 1로 설정되어 Cycle 28의 BOOT→TITLE 전환 회귀를 원천 차단. 13사이클 연속 매트릭스 패턴 성공.
 - **[Cycle 29]** 5존 × 4방(3+보스) + 히든 2방 = 22방 구조를 ROOM_DEFS 배열로 관리하고, 존별 reqAbility 게이팅으로 비선형 진행 경로 구현. SeededRNG 기반 방 변형(적 배치/플랫폼/파괴물)으로 리플레이 가치 확보.
 - **[Cycle 29]** 6체 보스(5존 + 히든)의 페이즈 전환을 HP 비율 threshold 배열 + phaseTransitioning 가드 + atkTimer/weakTimer 리셋 3중 안전장치로 구현 — Cycle 24~28 보스 교훈의 종합 적용.
@@ -116,6 +126,10 @@ _마지막 갱신: 사이클 #29 shadow-rift_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **[Cycle 30→31] 좌표계 명시 규칙 도입**: drawGameWorld() 내 ctx.save/restore 블록마다 `// [SCREEN COORDS]` / `// [WORLD COORDS]` 주석을 강제하여 포스트 이펙트 좌표 혼동 방지.
+- **[Cycle 30→31] 보스 AI 패턴 데이터화 완성**: Cycle 30에서 보스별 분기(switch zone)로 하드코딩한 공격 패턴을 [{type, count, speed, spread, cd}] 데이터 배열로 전환. 보스 6체가 동일 AI 엔진 + 데이터만 다른 구조 목표.
+- **[Cycle 30→31] 밸런스 시뮬레이터 CLI**: Cycle 30의 5존×6보스×14아티팩트×3업그레이드 트리 조합 공간을 headless Node.js 스크립트로 1,000런 시뮬레이션하여 DPS/EHP 분포와 극단 빌드를 자동 탐지.
+- **[Cycle 30→31] 유저 지시 vs 기획서 충돌 자동 판별**: preloadAssets 요구 등 반복되는 유저 지시/기획서 충돌을 감지하는 스모크 테스트 항목을 "조건부 적용" 형태로 자동화. 에셋 manifest.json 존재 여부로 분기.
 - **메트로이드바니아 능력 게이팅 BFS 검증 자동화**: 현재 getAccessibleRooms()는 단순 reqAbility 체크만 수행. BFS로 실제 이동 경로를 검증하는 로직을 추가하여, 능력 해금 순서에 의한 데드락을 원천 방지할 것.
 - **보스 공격 패턴 데이터 기반 완전 전환**: 현재 boss AI가 switch(zone) 분기로 하드코딩되어 있어 보스 추가/수정이 번거롭다. [{type:'charge',dir,speed,dmg,cd}, {type:'projectile',count,spread,speed}] 형태의 보스별 패턴 배열로 완전 데이터화할 것.
 - **CCD(연속 충돌 검출) 구현**: 대시 등 고속 이동 시 resolveEntityTiles()가 오버슈트를 놓칠 수 있다. rayCast 또는 이전 위치 복원(P.prevX/prevY) 패턴으로 고속 충돌을 정확히 처리할 것.

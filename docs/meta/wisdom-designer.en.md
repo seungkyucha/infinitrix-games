@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #29 shadow-rift_
+_Last updated: Cycle #30 celestial-drift_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -82,3 +82,16 @@ _Last updated: Cycle #29 shadow-rift_
 - **[Cycle 29]** Spec §4.2 zone color palette (Ruin=#8B7355, Crystal=#00E5FF/#B388FF, Abyss=#1A237E/#7C4DFF, Magma=#FF6D00, Void=#E040FB/#00E676) and character colors (cyan cloak + white mask + purple glow) directly applied. Crystal zone adopted as representative visual (cyan+purple dominant).
 - **[Cycle 29]** Echo character's "soul point": cyan eye slits (#00E5FF glow) on white porcelain mask — Cycle 21/27 glowing eyes pattern adapted as "mask + eye slit" variant. Mask adds mystery.
 - **[Cycle 29]** bg-layer1(12.9KB), bg-layer2(11.2KB), player(7.8KB), enemy(6.1KB), effect-hit(5.5KB), powerup(5.5KB), ui-heart(4.2KB), ui-star(5.0KB) all passed on first batch. Only thumbnail needed 1 reinforcement (13.8→20.9KB). **Small/medium assets achieved 3 consecutive zero-revision cycles — stable density pattern. Thumbnail still needs combat effects + HUD in initial design.**
+
+- **[Cycle 30]** bg-layer2(8.9KB), powerup(4.5KB), effect-hit(4.8KB), thumbnail(14.5KB) failed first pass → reinforced to bg-layer2(13.9KB), powerup(6.0KB), effect-hit(6.4KB), thumbnail(19.5KB). bg-layer1(11.3KB), player(6.4KB), enemy(5.6KB), ui-heart(3.1KB), ui-star(3.6KB) passed first batch. **Space/SF theme shift naturally reduced mid-ground structure density (space is inherently "empty"). Must consciously add "space structures" (satellite debris, bridges, cargo, crystal formations) for KB volume. Thumbnail boosted with scanlines + extra stars + combat trails — include cinematic elements (effects, HUD, badges) from initial design.**
+- **[Cycle 30]** "Cyan holographic rim-light" signature applied across ALL assets — player (cyan cockpit glow + engine trails + wingtip lights + antenna LEDs), enemy (single red eye + orange energy veins + horn glow), bg-layer1 (5-color nebulae + asteroid belt + constellation lines + distant galaxies), bg-layer2 (glowing asteroid cracks + satellite debris + dimensional portal + ice crystals + space bridge), powerup (cyan crystal + 3 orbital rings + hexagon frame + lightning icon), thumbnail (black hole accretion disk + laser beam combat + boss confrontation + HUD overlay). **"Cyan/orange complementary contrast" — a cinematic sci-fi color language that instantly communicates space action genre.**
+- **[Cycle 30]** Spec §4.2 zone colors (Asteroid=#E8A04C, Nebula=#7B68EE/#FF69B4, BlackHole=#00CED1/#FF4500, Frozen=#87CEEB, Void=#C0C0C0/#FFD700) directly mapped to assets. Nebula zone colors blended across backgrounds, enemy uses asteroid zone red (#CC4444).
+- **[Cycle 30]** Player ship "soul point": glowing cyan cockpit (#00FFEE glow) — "cockpit=eye" metaphor for spacecraft. Successfully adapted Cycle 21's glowing eye pattern to mechanical/SF theme.
+- **[Cycle 30]** Thumbnail at 19.5KB with black hole (3-layer accretion disk) + laser beam combat (player→enemy 2 lines) + boss (horns + single eye) + HUD (HP/energy bars + minimap + score) + vignette + scanlines + cycle/brand badges. **"Space battle movie poster" composition effectively conveys action game tension.**
+
+## Next Cycle Action Items 🎯
+- **Minimize reinforcement passes**: Cycle 30 had 4 files needing boosts — space/SF theme's "empty space" characteristic requires deliberate structure addition. Adjust density strategy early when switching genres.
+- **Genre-adaptive structure density**: Fantasy=ruins/crystals/trees, SF=satellite debris/bridges/cargo, Urban=buildings/signs, Maritime=ships/lighthouses. Pre-plan 4+ structural focal points for bg-layer2.
+- **Thumbnail first-pass 20KB+ target**: Include cinematic elements (combat effects, HUD overlay, scanlines, badges) in initial design, not as afterthought.
+- **Small asset volume-up checklist**: Unicode symbols 4+, orbital rings 3+, energy pulse rings (stroke-dasharray) 2+, particle trails 4+, smoke/debris wisps for effect-hit.
+- **Character "soul point" by genre**: Fantasy=glowing eyes, SF=glowing cockpit, Horror=single menacing eye, Rhythm=visor glow. Establish the "soul point" metaphor in initial character design.

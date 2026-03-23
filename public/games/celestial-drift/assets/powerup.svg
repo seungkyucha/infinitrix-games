@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="pCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="20%" stop-color="#00FFFF"/>
+      <stop offset="60%" stop-color="#0088CC"/>
+      <stop offset="100%" stop-color="#003366" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pAura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#00DDFF" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#0066AA" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#002244" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pGem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#88FFFF"/>
+      <stop offset="50%" stop-color="#00CCDD"/>
+      <stop offset="100%" stop-color="#006688"/>
+    </linearGradient>
+    <linearGradient id="pRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00EEFF"/>
+      <stop offset="100%" stop-color="#0066AA"/>
+    </linearGradient>
+    <filter id="pGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="pSoftGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer aura -->
+  <circle cx="32" cy="32" r="30" fill="url(#pAura)" opacity="0.5"/>
+  <circle cx="32" cy="32" r="24" fill="url(#pAura)" opacity="0.3"/>
+
+  <!-- Orbiting ring 1 -->
+  <ellipse cx="32" cy="32" rx="22" ry="8" fill="none" stroke="url(#pRing)" stroke-width="1.2" opacity="0.6" transform="rotate(-30,32,32)"/>
+  <!-- Orbiting ring 2 -->
+  <ellipse cx="32" cy="32" rx="20" ry="7" fill="none" stroke="#00BBDD" stroke-width="0.8" opacity="0.4" transform="rotate(30,32,32)"/>
+  <!-- Orbiting ring 3 -->
+  <ellipse cx="32" cy="32" rx="18" ry="6" fill="none" stroke="#00DDFF" stroke-width="0.6" opacity="0.3" transform="rotate(90,32,32)"/>
+
+  <!-- Hexagonal frame -->
+  <polygon points="32,10 50,21 50,43 32,54 14,43 14,21" fill="none" stroke="#00CCEE" stroke-width="1" opacity="0.5"/>
+  <polygon points="32,14 46,23 46,41 32,50 18,41 18,23" fill="none" stroke="#00AACC" stroke-width="0.6" opacity="0.3"/>
+
+  <!-- Central crystal -->
+  <g filter="url(#pGlow)">
+    <polygon points="32,18 40,26 40,38 32,46 24,38 24,26" fill="url(#pGem)" stroke="#00EEFF" stroke-width="0.8"/>
+  </g>
+
+  <!-- Crystal facets -->
+  <polygon points="32,18 40,26 32,30" fill="#AAFFFF" opacity="0.3"/>
+  <polygon points="32,18 24,26 32,30" fill="#66DDEE" opacity="0.2"/>
+  <polygon points="32,46 40,38 32,34" fill="#004466" opacity="0.3"/>
+  <polygon points="32,30 40,26 40,38 32,34" fill="#00AACC" opacity="0.15"/>
+
+  <!-- Core glow -->
+  <circle cx="32" cy="32" r="6" fill="url(#pCore)" filter="url(#pSoftGlow)" opacity="0.9"/>
+
+  <!-- Energy wisps -->
+  <path d="M18,18 Q24,22 22,28" stroke="#00FFFF" stroke-width="0.7" fill="none" opacity="0.5"/>
+  <path d="M46,18 Q40,22 42,28" stroke="#00FFFF" stroke-width="0.7" fill="none" opacity="0.5"/>
+  <path d="M18,46 Q24,42 22,36" stroke="#00DDFF" stroke-width="0.6" fill="none" opacity="0.4"/>
+  <path d="M46,46 Q40,42 42,36" stroke="#00DDFF" stroke-width="0.6" fill="none" opacity="0.4"/>
+
+  <!-- Sparkle dots on orbits -->
+  <circle cx="12" cy="28" r="1.5" fill="#00FFFF" filter="url(#pGlow)" opacity="0.8"/>
+  <circle cx="52" cy="36" r="1.5" fill="#00FFFF" filter="url(#pGlow)" opacity="0.8"/>
+  <circle cx="32" cy="8" r="1.2" fill="#88FFFF" filter="url(#pGlow)" opacity="0.7"/>
+  <circle cx="32" cy="56" r="1.2" fill="#88FFFF" filter="url(#pGlow)" opacity="0.7"/>
+
+  <!-- Corner accent dots -->
+  <circle cx="8" cy="14" r="0.8" fill="#AAFFFF" opacity="0.5"/>
+  <circle cx="56" cy="14" r="0.8" fill="#AAFFFF" opacity="0.5"/>
+  <circle cx="8" cy="50" r="0.8" fill="#AAFFFF" opacity="0.5"/>
+  <circle cx="56" cy="50" r="0.8" fill="#AAFFFF" opacity="0.5"/>
+
+  <!-- Lightning bolt icon in center -->
+  <path d="M30,26 L34,26 L32,31 L36,31 L29,40 L31,34 L28,34 Z" fill="#FFFFFF" opacity="0.7"/>
+
+  <!-- Sound wave arcs -->
+  <path d="M10,32 Q10,24 16,20" stroke="#00CCEE" stroke-width="0.5" fill="none" opacity="0.3"/>
+  <path d="M54,32 Q54,24 48,20" stroke="#00CCEE" stroke-width="0.5" fill="none" opacity="0.3"/>
+  <path d="M10,32 Q10,40 16,44" stroke="#00BBDD" stroke-width="0.5" fill="none" opacity="0.25"/>
+  <path d="M54,32 Q54,40 48,44" stroke="#00BBDD" stroke-width="0.5" fill="none" opacity="0.25"/>
+
+  <!-- Rune symbols (unicode) -->
+  <text x="22" y="22" font-family="serif" font-size="5" fill="#00EEFF" opacity="0.4">⚡</text>
+  <text x="38" y="22" font-family="serif" font-size="5" fill="#00EEFF" opacity="0.4">✦</text>
+  <text x="22" y="46" font-family="serif" font-size="5" fill="#00DDFF" opacity="0.3">✧</text>
+  <text x="38" y="46" font-family="serif" font-size="5" fill="#00DDFF" opacity="0.3">⟡</text>
+
+  <!-- Inner diamond facets -->
+  <polygon points="32,24 36,32 32,40 28,32" fill="none" stroke="#66FFFF" stroke-width="0.4" opacity="0.35"/>
+  <polygon points="32,26 34,32 32,38 30,32" fill="#AAFFFF" opacity="0.1"/>
+
+  <!-- Orbital dots -->
+  <circle cx="18" cy="32" r="1" fill="#00FFFF" opacity="0.5"/>
+  <circle cx="46" cy="32" r="1" fill="#00FFFF" opacity="0.5"/>
+  <circle cx="32" cy="18" r="1" fill="#00FFFF" opacity="0.5"/>
+  <circle cx="32" cy="46" r="1" fill="#00FFFF" opacity="0.5"/>
+
+  <!-- Energy pulse rings -->
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#00BBDD" stroke-width="0.4" opacity="0.2" stroke-dasharray="3,4"/>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#0099BB" stroke-width="0.3" opacity="0.15" stroke-dasharray="2,5"/>
+
+  <!-- Particle trails -->
+  <path d="M14,14 Q18,20 16,26" stroke="#00EEFF" stroke-width="0.4" fill="none" opacity="0.3"/>
+  <path d="M50,14 Q46,20 48,26" stroke="#00EEFF" stroke-width="0.4" fill="none" opacity="0.3"/>
+  <path d="M14,50 Q18,44 16,38" stroke="#00DDFF" stroke-width="0.4" fill="none" opacity="0.25"/>
+  <path d="M50,50 Q46,44 48,38" stroke="#00DDFF" stroke-width="0.4" fill="none" opacity="0.25"/>
+</svg>

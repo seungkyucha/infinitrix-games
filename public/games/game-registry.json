@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-23T04:49:10.214Z",
-  "totalGames": 28,
+  "lastUpdated": "2026-03-23T06:56:15.316Z",
+  "totalGames": 29,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -4990,6 +4990,144 @@
             "Z/J: Ataque corpo a corpo",
             "X/K: Ataque à distância",
             "C/L: Habilidade especial",
+            "Toque: Joystick virtual + botões"
+          ]
+        }
+      }
+    },
+    {
+      "id": "celestial-drift",
+      "title": "천체 표류",
+      "description": "우주를 표류하며 자원을 수집하고 보스를 격퇴하라!",
+      "genre": ["action", "casual"],
+      "thumbnail": "/games/celestial-drift/assets/thumbnail.svg",
+      "path": "/games/celestial-drift/index.html",
+      "addedAt": "2026-03-23T06:56:15.316Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["우주", "서바이벌", "액션", "로그라이트", "SF", "보스전"],
+      "controls": [
+        "WASD/방향키: 함선 이동",
+        "마우스 좌클릭/Z: 무기 발사",
+        "1/2/3: 무기 전환 (레이저/미사일/플라즈마)",
+        "Space: 스킬 발동",
+        "Shift/X: 대시",
+        "E: 에너지 실드",
+        "터치: 가상 조이스틱 + 공격/스킬/실드 버튼"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Celestial Drift",
+          "description": "Drift through space, gather resources, and defeat sector bosses!",
+          "tags": ["space", "survival", "action", "roguelite", "sci-fi", "boss"],
+          "controls": [
+            "WASD/Arrow Keys: Move ship",
+            "Left Click/Z: Fire weapon",
+            "1/2/3: Switch weapon (Laser/Missile/Plasma)",
+            "Space: Activate skill",
+            "Shift/X: Dash",
+            "E: Energy shield",
+            "Touch: Virtual joystick + action buttons"
+          ]
+        },
+        "ja": {
+          "title": "セレスティアル・ドリフト",
+          "description": "宇宙を漂流し、資源を集めてボスを撃破せよ！",
+          "tags": ["宇宙", "サバイバル", "アクション", "ローグライト", "SF", "ボス戦"],
+          "controls": [
+            "WASD/矢印キー: 船を移動",
+            "左クリック/Z: 武器発射",
+            "1/2/3: 武器切替（レーザー/ミサイル/プラズマ）",
+            "Space: スキル発動",
+            "Shift/X: ダッシュ",
+            "E: エネルギーシールド",
+            "タッチ: 仮想ジョイスティック + ボタン"
+          ]
+        },
+        "zh-CN": {
+          "title": "星际漂流",
+          "description": "在宇宙中漂流，收集资源并击败区域Boss！",
+          "tags": ["太空", "生存", "动作", "肉鸽", "科幻", "Boss战"],
+          "controls": [
+            "WASD/方向键：移动飞船",
+            "鼠标左键/Z：发射武器",
+            "1/2/3：切换武器（激光/导弹/等离子）",
+            "Space：释放技能",
+            "Shift/X：冲刺",
+            "E：能量护盾",
+            "触屏：虚拟摇杆 + 操作按钮"
+          ]
+        },
+        "zh-TW": {
+          "title": "星際漂流",
+          "description": "在宇宙中漂流，蒐集資源並擊敗區域Boss！",
+          "tags": ["太空", "生存", "動作", "肉鴿", "科幻", "Boss戰"],
+          "controls": [
+            "WASD/方向鍵：移動飛船",
+            "滑鼠左鍵/Z：發射武器",
+            "1/2/3：切換武器（雷射/飛彈/電漿）",
+            "Space：發動技能",
+            "Shift/X：衝刺",
+            "E：能量護盾",
+            "觸控：虛擬搖桿 + 操作按鈕"
+          ]
+        },
+        "es": {
+          "title": "Deriva Celestial",
+          "description": "¡Deriva por el espacio, recolecta recursos y derrota a los jefes!",
+          "tags": ["espacio", "supervivencia", "acción", "roguelite", "ciencia ficción", "jefe"],
+          "controls": [
+            "WASD/Flechas: Mover nave",
+            "Clic izq./Z: Disparar arma",
+            "1/2/3: Cambiar arma (Láser/Misil/Plasma)",
+            "Space: Activar habilidad",
+            "Shift/X: Dash",
+            "E: Escudo de energía",
+            "Táctil: Joystick virtual + botones"
+          ]
+        },
+        "fr": {
+          "title": "Dérive Céleste",
+          "description": "Dérivez dans l'espace, collectez des ressources et terrassez les boss !",
+          "tags": ["espace", "survie", "action", "roguelite", "science-fiction", "boss"],
+          "controls": [
+            "WASD/Flèches : Déplacer le vaisseau",
+            "Clic gauche/Z : Tirer",
+            "1/2/3 : Changer d'arme (Laser/Missile/Plasma)",
+            "Space : Activer compétence",
+            "Shift/X : Dash",
+            "E : Bouclier d'énergie",
+            "Tactile : Joystick virtuel + boutons"
+          ]
+        },
+        "de": {
+          "title": "Himmlische Drift",
+          "description": "Treibe durch das All, sammle Ressourcen und besiege die Bosse!",
+          "tags": ["Weltraum", "Überleben", "Action", "Roguelite", "Sci-Fi", "Bosskampf"],
+          "controls": [
+            "WASD/Pfeiltasten: Schiff bewegen",
+            "Linksklick/Z: Waffe abfeuern",
+            "1/2/3: Waffe wechseln (Laser/Rakete/Plasma)",
+            "Space: Fähigkeit aktivieren",
+            "Shift/X: Dash",
+            "E: Energieschild",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
+        },
+        "pt": {
+          "title": "Deriva Celestial",
+          "description": "Vagueie pelo espaço, colete recursos e derrote os chefes!",
+          "tags": ["espaço", "sobrevivência", "ação", "roguelite", "ficção científica", "chefe"],
+          "controls": [
+            "WASD/Setas: Mover nave",
+            "Clique esq./Z: Disparar arma",
+            "1/2/3: Trocar arma (Laser/Míssil/Plasma)",
+            "Space: Ativar habilidade",
+            "Shift/X: Dash",
+            "E: Escudo de energia",
             "Toque: Joystick virtual + botões"
           ]
         }

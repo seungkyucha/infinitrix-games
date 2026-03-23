@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #29 shadow-rift_
+_Last updated: Cycle #30 celestial-drift_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 30]** When spec says "no assets/ directory" (F77) but user instructions require preloadAssets(), the user instruction vs spec priority must be re-confirmed every time. 4th occurrence (Cycle 24/27/29/30). **Fix user instruction > spec as first item in pre-coding checklist.**
+- **[Cycle 30]** In 3,000+ line single files, complex render functions like drawGameWorld() switching between world/screen coordinates via ctx.translate can confuse post-effects (zone environment effects). **Annotate coordinate system per ctx.save/restore block** (// SCREEN COORDS / // WORLD COORDS).
+- **[Cycle 30]** Template literal color values (e.g., `'#FF44FF'`) missing quotes inside function call arguments cause syntax errors. Always wrap inline color strings in quotes — 1 case found and fixed in first validation.
+- **[Cycle 30]** Boss AI fireTimer decreases during phaseTransitioning, causing instant burst fire after transition completes. Apply Cycle 24-26 lesson ("reset all related timers on phase transition") — include fireTimer reset in tweenMgr.delay onComplete.
 - **[Cycle 29]** In metroidvania, auto-transitioning EXPLORE→COMBAT on enemy proximity (300px) can cause infinite state toggling if enemies remain alive after combat. Always check room.cleared before triggering COMBAT in EXPLORE state.
 - **[Cycle 29]** During boss phase transition (phaseTransitioning=true), continued damage can skip phase thresholds since checkBossPhase() is ignored. Either re-check phase after transition completes or queue damage during transitions.
 - **[Cycle 29]** When designer assets exist in manifest.json but spec says "no assets/ directory", user instructions (preloadAssets requirement) override the spec. Smoke test "no assets/ dir" must be conditionally excluded when asset preloader is in use.
@@ -40,6 +44,12 @@ _Last updated: Cycle #29 shadow-rift_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 30]** Space survival action roguelite (Celestial Drift) preloads 8 designer SVG assets via preloadAssets() with Canvas fallback in every drawXxx() function. Game works fully without assets — dual rendering stability achieved.
+- **[Cycle 30]** 17-state machine (BOOT~SETTINGS) with STATE_PRIORITY + ACTIVE_SYSTEMS matrix (17×9). Tween active in all states, PAUSE resume via setState() instant transition (Cycle 28 lesson). 14 consecutive cycles of matrix success.
+- **[Cycle 30]** 5 zones + hidden = 16 sectors, 6 bosses, 14 artifacts, 3 upgrade trees, DDA 3-level + 3 difficulty presets in 3,043-line single file. 10 REGION code structure maintained.
+- **[Cycle 30]** Perfect code hygiene: SeededRNG complete (Math.random 0), setTimeout 0 (TweenManager.delay only), confirm/alert 0, external CDN 0.
+- **[Cycle 30]** Mobile touch specialized: virtual joystick (left) + attack/skill/shield 3 buttons (right) + 3 weapon slots (top-left). Full flow completable via touch only (Cycle 29 P3 resolved).
+- **[Cycle 30]** 5 zone-specific environment effects (asteroid storm/nebula glitch/black hole lens/frozen frost/void rift) separated into individual functions dispatched by drawPostEffects(). Clean extensible structure.
 - **[Cycle 29]** Metroidvania roguelite (Shadow Rift) uses 18-state × 11-system ACTIVE_SYS matrix with array-based (0/1) flags — SYS.TWEEN set to 1 in ALL states, preventing Cycle 28's BOOT→TITLE regression. 13 consecutive cycles of successful matrix pattern.
 - **[Cycle 29]** 5 zones × 4 rooms (3+boss) + 2 hidden = 22 rooms managed via ROOM_DEFS array with per-zone reqAbility gating for non-linear progression. SeededRNG-based room variation (enemy placement/platforms/destructibles) for replay value.
 - **[Cycle 29]** 6 bosses (5 zone + hidden) with HP ratio threshold array + phaseTransitioning guard + atkTimer/weakTimer reset triple safety — comprehensive application of boss lessons from Cycles 24-28.

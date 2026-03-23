@@ -1,0 +1,197 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#020010"/>
+      <stop offset="30%" stop-color="#0A0A2A"/>
+      <stop offset="60%" stop-color="#0D0620"/>
+      <stop offset="100%" stop-color="#050515"/>
+    </linearGradient>
+    <radialGradient id="nebula1" cx="0.3" cy="0.4" r="0.4">
+      <stop offset="0%" stop-color="#7B68EE" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#5544AA" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#221155" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula2" cx="0.7" cy="0.3" r="0.35">
+      <stop offset="0%" stop-color="#FF69B4" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#CC3388" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#440022" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula3" cx="0.5" cy="0.7" r="0.3">
+      <stop offset="0%" stop-color="#00CED1" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#006688" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#002233" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula4" cx="0.15" cy="0.8" r="0.25">
+      <stop offset="0%" stop-color="#E8A04C" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#553300" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula5" cx="0.85" cy="0.65" r="0.28">
+      <stop offset="0%" stop-color="#87CEEB" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#224466" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="starGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="bSoftGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="bFog">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+    <filter id="bNebBlur">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+  </defs>
+
+  <!-- Deep space background -->
+  <rect width="1200" height="800" fill="url(#sky)"/>
+
+  <!-- Nebula clouds -->
+  <ellipse cx="360" cy="320" rx="300" ry="200" fill="url(#nebula1)" filter="url(#bNebBlur)"/>
+  <ellipse cx="840" cy="240" rx="280" ry="180" fill="url(#nebula2)" filter="url(#bNebBlur)"/>
+  <ellipse cx="600" cy="560" rx="250" ry="160" fill="url(#nebula3)" filter="url(#bNebBlur)"/>
+  <ellipse cx="180" cy="640" rx="200" ry="140" fill="url(#nebula4)" filter="url(#bNebBlur)"/>
+  <ellipse cx="1020" cy="520" rx="220" ry="150" fill="url(#nebula5)" filter="url(#bNebBlur)"/>
+
+  <!-- Distant galaxy spiral -->
+  <g opacity="0.06" transform="translate(900,180) rotate(25)">
+    <ellipse cx="0" cy="0" rx="80" ry="30" fill="#CCAAFF" filter="url(#bFog)"/>
+    <ellipse cx="0" cy="0" rx="50" ry="18" fill="#EEDDFF"/>
+    <ellipse cx="0" cy="0" rx="20" ry="8" fill="#FFFFFF"/>
+  </g>
+  <g opacity="0.04" transform="translate(200,150) rotate(-15)">
+    <ellipse cx="0" cy="0" rx="60" ry="22" fill="#AACCFF" filter="url(#bFog)"/>
+    <ellipse cx="0" cy="0" rx="30" ry="12" fill="#DDEEFF"/>
+  </g>
+
+  <!-- Distant structures / ruins floating in space -->
+  <g opacity="0.08">
+    <!-- Tower silhouette 1 -->
+    <path d="M150,500 L155,420 L160,410 L170,410 L175,420 L180,500 Z" fill="#1A1A3A"/>
+    <rect x="158" y="430" width="14" height="3" fill="#2A2A5A" opacity="0.5"/>
+    <rect x="158" y="450" width="14" height="3" fill="#2A2A5A" opacity="0.5"/>
+    <!-- Tower silhouette 2 -->
+    <path d="M1050,460 L1058,380 L1065,370 L1075,370 L1082,380 L1090,460 Z" fill="#1A1A3A"/>
+    <circle cx="1070" cy="390" r="4" fill="#2A2A5A" opacity="0.4"/>
+  </g>
+
+  <!-- Distant asteroid belt line -->
+  <g opacity="0.12">
+    <circle cx="100" cy="350" r="3" fill="#665544"/>
+    <circle cx="140" cy="345" r="2" fill="#776655"/>
+    <circle cx="180" cy="352" r="4" fill="#554433"/>
+    <circle cx="230" cy="348" r="2.5" fill="#665544"/>
+    <circle cx="280" cy="355" r="3.5" fill="#776655"/>
+    <circle cx="340" cy="350" r="2" fill="#554433"/>
+    <circle cx="400" cy="347" r="3" fill="#665544"/>
+    <circle cx="460" cy="353" r="2.5" fill="#776655"/>
+    <circle cx="530" cy="349" r="4" fill="#554433"/>
+    <circle cx="600" cy="352" r="2" fill="#665544"/>
+    <circle cx="670" cy="348" r="3.5" fill="#776655"/>
+    <circle cx="740" cy="354" r="2.5" fill="#554433"/>
+    <circle cx="820" cy="350" r="3" fill="#665544"/>
+    <circle cx="900" cy="346" r="2" fill="#776655"/>
+    <circle cx="970" cy="353" r="3.5" fill="#554433"/>
+    <circle cx="1050" cy="349" r="2.5" fill="#665544"/>
+    <circle cx="1130" cy="352" r="3" fill="#776655"/>
+  </g>
+
+  <!-- Stars - layer 1 (dim, far) 40 stars -->
+  <g opacity="0.4">
+    <circle cx="45" cy="30" r="0.8" fill="#CCCCDD"/><circle cx="120" cy="65" r="0.6" fill="#AAAACC"/>
+    <circle cx="210" cy="42" r="0.7" fill="#BBBBDD"/><circle cx="305" cy="28" r="0.5" fill="#9999BB"/>
+    <circle cx="390" cy="72" r="0.8" fill="#CCCCDD"/><circle cx="480" cy="18" r="0.6" fill="#AAAACC"/>
+    <circle cx="560" cy="55" r="0.7" fill="#BBBBDD"/><circle cx="650" cy="38" r="0.5" fill="#9999BB"/>
+    <circle cx="740" cy="82" r="0.8" fill="#CCCCDD"/><circle cx="830" cy="22" r="0.6" fill="#AAAACC"/>
+    <circle cx="920" cy="48" r="0.7" fill="#BBBBDD"/><circle cx="1010" cy="68" r="0.5" fill="#9999BB"/>
+    <circle cx="1100" cy="35" r="0.8" fill="#CCCCDD"/><circle cx="1160" cy="75" r="0.6" fill="#AAAACC"/>
+    <circle cx="60" cy="180" r="0.7" fill="#BBBBDD"/><circle cx="155" cy="210" r="0.5" fill="#9999BB"/>
+    <circle cx="250" cy="165" r="0.8" fill="#CCCCDD"/><circle cx="345" cy="195" r="0.6" fill="#AAAACC"/>
+    <circle cx="440" cy="175" r="0.7" fill="#BBBBDD"/><circle cx="535" cy="225" r="0.5" fill="#9999BB"/>
+    <circle cx="630" cy="155" r="0.8" fill="#CCCCDD"/><circle cx="725" cy="245" r="0.6" fill="#AAAACC"/>
+    <circle cx="815" cy="175" r="0.7" fill="#BBBBDD"/><circle cx="910" cy="215" r="0.5" fill="#9999BB"/>
+    <circle cx="1005" cy="160" r="0.8" fill="#CCCCDD"/><circle cx="1095" cy="235" r="0.6" fill="#AAAACC"/>
+    <circle cx="80" cy="420" r="0.6" fill="#BBBBDD"/><circle cx="175" cy="480" r="0.7" fill="#9999BB"/>
+    <circle cx="270" cy="440" r="0.5" fill="#CCCCDD"/><circle cx="365" cy="510" r="0.8" fill="#AAAACC"/>
+    <circle cx="455" cy="430" r="0.6" fill="#BBBBDD"/><circle cx="550" cy="490" r="0.7" fill="#9999BB"/>
+    <circle cx="645" cy="460" r="0.5" fill="#CCCCDD"/><circle cx="735" cy="520" r="0.8" fill="#AAAACC"/>
+    <circle cx="825" cy="445" r="0.6" fill="#BBBBDD"/><circle cx="915" cy="505" r="0.7" fill="#9999BB"/>
+    <circle cx="1010" cy="470" r="0.5" fill="#CCCCDD"/><circle cx="1100" cy="530" r="0.8" fill="#AAAACC"/>
+    <circle cx="50" cy="620" r="0.6" fill="#BBBBDD"/><circle cx="160" cy="680" r="0.7" fill="#9999BB"/>
+  </g>
+
+  <!-- Stars - layer 2 (medium brightness) 30 stars -->
+  <g opacity="0.6">
+    <circle cx="95" cy="110" r="1" fill="#DDDDEF"/><circle cx="235" cy="90" r="1.2" fill="#EEEEFF"/>
+    <circle cx="375" cy="130" r="0.9" fill="#DDDDEF"/><circle cx="510" cy="105" r="1.1" fill="#EEEEFF"/>
+    <circle cx="660" cy="125" r="1" fill="#DDDDEF"/><circle cx="790" cy="95" r="1.2" fill="#EEEEFF"/>
+    <circle cx="935" cy="140" r="0.9" fill="#DDDDEF"/><circle cx="1070" cy="110" r="1.1" fill="#EEEEFF"/>
+    <circle cx="130" cy="290" r="1" fill="#DDDDEF"/><circle cx="300" cy="310" r="1.2" fill="#EEEEFF"/>
+    <circle cx="470" cy="280" r="0.9" fill="#DDDDEF"/><circle cx="580" cy="320" r="1.1" fill="#EEEEFF"/>
+    <circle cx="710" cy="295" r="1" fill="#DDDDEF"/><circle cx="860" cy="315" r="1.2" fill="#EEEEFF"/>
+    <circle cx="990" cy="285" r="0.9" fill="#DDDDEF"/><circle cx="1140" cy="305" r="1.1" fill="#EEEEFF"/>
+    <circle cx="100" cy="550" r="1" fill="#DDDDEF"/><circle cx="260" cy="580" r="1.2" fill="#EEEEFF"/>
+    <circle cx="420" cy="560" r="0.9" fill="#DDDDEF"/><circle cx="590" cy="600" r="1.1" fill="#EEEEFF"/>
+    <circle cx="750" cy="570" r="1" fill="#DDDDEF"/><circle cx="880" cy="610" r="1.2" fill="#EEEEFF"/>
+    <circle cx="1030" cy="590" r="0.9" fill="#DDDDEF"/><circle cx="1170" cy="575" r="1.1" fill="#EEEEFF"/>
+    <circle cx="190" cy="720" r="1" fill="#DDDDEF"/><circle cx="400" cy="740" r="1.2" fill="#EEEEFF"/>
+    <circle cx="620" cy="710" r="0.9" fill="#DDDDEF"/><circle cx="840" cy="750" r="1.1" fill="#EEEEFF"/>
+    <circle cx="1050" cy="725" r="1" fill="#DDDDEF"/><circle cx="1160" cy="700" r="0.9" fill="#EEEEFF"/>
+  </g>
+
+  <!-- Stars - layer 3 (bright, near) 20 stars -->
+  <g opacity="0.85">
+    <circle cx="180" cy="60" r="1.5" fill="#FFFFFF"/><circle cx="420" cy="45" r="1.8" fill="#FFFFFF"/>
+    <circle cx="700" cy="70" r="1.5" fill="#FFFFFF"/><circle cx="950" cy="55" r="1.8" fill="#FFFFFF"/>
+    <circle cx="1150" cy="42" r="1.5" fill="#FFFFFF"/><circle cx="60" cy="260" r="1.8" fill="#FFFFFF"/>
+    <circle cx="330" cy="240" r="1.5" fill="#FFFFFF"/><circle cx="550" cy="270" r="1.8" fill="#FFFFFF"/>
+    <circle cx="780" cy="250" r="1.5" fill="#FFFFFF"/><circle cx="1000" cy="240" r="1.8" fill="#FFFFFF"/>
+    <circle cx="140" cy="450" r="1.5" fill="#FFFFFF"/><circle cx="380" cy="470" r="1.8" fill="#FFFFFF"/>
+    <circle cx="620" cy="440" r="1.5" fill="#FFFFFF"/><circle cx="850" cy="465" r="1.8" fill="#FFFFFF"/>
+    <circle cx="1080" cy="455" r="1.5" fill="#FFFFFF"/><circle cx="200" cy="650" r="1.8" fill="#FFFFFF"/>
+    <circle cx="490" cy="670" r="1.5" fill="#FFFFFF"/><circle cx="720" cy="640" r="1.8" fill="#FFFFFF"/>
+    <circle cx="960" cy="660" r="1.5" fill="#FFFFFF"/><circle cx="1130" cy="650" r="1.8" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Bright featured stars with glow -->
+  <g filter="url(#bSoftGlow)">
+    <circle cx="300" cy="120" r="2.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="680" cy="180" r="3" fill="#AADDFF" opacity="0.85"/>
+    <circle cx="1050" cy="140" r="2.8" fill="#FFDDAA" opacity="0.9"/>
+    <circle cx="480" cy="380" r="2.5" fill="#DDCCFF" opacity="0.85"/>
+    <circle cx="900" cy="420" r="3" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="150" cy="580" r="2.5" fill="#AADDFF" opacity="0.85"/>
+    <circle cx="750" cy="620" r="2.8" fill="#FFCCAA" opacity="0.9"/>
+  </g>
+
+  <!-- Constellation lines -->
+  <g stroke="#4466AA" stroke-width="0.3" opacity="0.08" fill="none">
+    <path d="M300,120 L420,45 L550,270"/>
+    <path d="M680,180 L780,250 L950,55"/>
+    <path d="M150,580 L200,650 L380,470"/>
+  </g>
+
+  <!-- Shooting star / meteor -->
+  <g opacity="0.4">
+    <line x1="850" y1="50" x2="780" y2="100" stroke="url(#starGlow)" stroke-width="2"/>
+    <circle cx="780" cy="100" r="1.5" fill="#FFFFFF" opacity="0.8"/>
+    <line x1="300" y1="680" x2="250" y2="720" stroke="url(#starGlow)" stroke-width="1.5"/>
+    <circle cx="250" cy="720" r="1" fill="#FFFFFF" opacity="0.7"/>
+  </g>
+
+  <!-- Fog / atmospheric haze layers -->
+  <g opacity="0.06">
+    <ellipse cx="400" cy="700" rx="400" ry="60" fill="#7B68EE" filter="url(#bFog)"/>
+    <ellipse cx="900" cy="750" rx="350" ry="50" fill="#00CED1" filter="url(#bFog)"/>
+    <ellipse cx="200" cy="100" rx="300" ry="40" fill="#FF69B4" filter="url(#bFog)"/>
+  </g>
+
+  <!-- Distant planet / moon -->
+  <g opacity="0.1" transform="translate(1050,600)">
+    <circle cx="0" cy="0" r="35" fill="#1A2A3A"/>
+    <path d="M-35,0 A35,35 0 0,1 35,0" fill="#2A3A4A" opacity="0.5"/>
+    <ellipse cx="0" cy="0" rx="35" ry="8" fill="none" stroke="#3A4A5A" stroke-width="1" opacity="0.3" transform="rotate(-20)"/>
+  </g>
+</svg>
