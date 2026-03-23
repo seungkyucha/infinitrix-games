@@ -11,7 +11,7 @@ canvas{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
+<canvas id="gameCanvas" tabindex="0"></canvas>
 <script>
 // ══════════════════════════════════════════════════════════════════
 // ══ REGION 1: CONFIG ══
@@ -3183,6 +3183,11 @@ function init() {
   // Start
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
+
+  // Ensure focus for keyboard input (especially in iframe)
+  canvas.focus();
+  document.body.addEventListener('click', () => canvas.focus());
+  document.body.addEventListener('touchstart', () => canvas.focus());
 }
 
 init();

@@ -81,15 +81,19 @@ export default function GameFrame({ game }: { game: Game }) {
           id="game-iframe"
           src={game.path}
           title={game.title}
-          className={`w-full border-0 ${isFullscreen ? 'h-[calc(100vh-44px)]' : 'h-[480px] sm:h-[560px]'}`}
+          tabIndex={0}
+          className={`w-full border-0 outline-none ${isFullscreen ? 'h-[calc(100vh-44px)]' : 'h-[480px] sm:h-[560px]'}`}
           onLoad={() => {
             setIsLoading(false)
-            // iframe 로드 후 자동 포커스
+            const iframe = document.getElementById('game-iframe') as HTMLIFrameElement
+            iframe?.focus()
+          }}
+          onClick={() => {
             const iframe = document.getElementById('game-iframe') as HTMLIFrameElement
             iframe?.focus()
           }}
           sandbox="allow-scripts allow-same-origin"
-          allow="fullscreen"
+          allow="fullscreen; autoplay"
         />
       </div>
     </div>
