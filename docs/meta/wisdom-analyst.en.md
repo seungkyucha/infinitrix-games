@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #31_
+_Last updated: Cycle #32_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -13,6 +13,7 @@ _Last updated: Cycle #31_
 - **[Cycle 29]** With 2 minimum-count combinations tied (action+puzzle, action+casual at 1 each), "Poki #1 game genre classification" again served as decisive differentiator. Level Devil (action+puzzle) being Poki's March 2026 #1 + metroidvania as 2026's top growth genre (comicbook.com + GameSpot cross-verified) provided dual evidence stronger than action+casual's single survival trend.
 - **[Cycle 30]** With action+casual as the sole minimum-count (1 game) combination, selection was essentially predetermined. However, 2 of Poki Top 5 (Drive Mad #2, Retro Bowl #4) being action+casual provided "necessity + marketability" dual evidence — making selection logic the strongest ever. Sole minimum-count + multiple portal Top 5 matches = no additional differentiation analysis needed.
 - **[Cycle 31]** All 10 combinations at 2+ games (8 tied) made the "minimum count resolution" framework no longer differentiating. Transitioned to "theme diversity + market trend intensity + premium fit" tri-axis evaluation. Filtering by "last 6 cycles unused genres" narrowed choices to just 2 (puzzle+casual, action+strategy) for efficient decision-making. WebFetch 1 attempt (Poki Top 10 detail) — GamerNotify article successfully accessed, supplementing portal data. However, direct portal visits remain site-dependent and unreliable (lesson maintained).
+- **[Cycle 32]** With 7 combos tied at 2 and 3 combos at 3, "last 7 cycles unused filter" narrowed to 3 candidates (puzzle+casual, arcade+action, casual+strategy). "Poki Top 5 genre share" was decisive — puzzle+casual had 2 entries (#3, #4), overwhelmingly dominant. When multiple ties exist, "portal Top N genre share" is a stronger differentiator than minimum count alone.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -61,16 +62,24 @@ _Last updated: Cycle #31_
 - **[Cycle 31]** action+strategy selection achieves 7 consecutive cycles (#25~#31) all with different genre combinations — genre diversity maximization pattern sustained for 7 cycles.
 - **[Cycle 31]** WebFetch successfully accessed GamerNotify Poki Top 10 article — direct portal visits remain risky, but game review/list sites are accessible. "Review site WebFetch + portal WebSearch" hybrid strategy validated for future use.
 - **[Cycle 31]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 11 consecutive cycles (#21-2~#31). Only wisdom files need reading for updates.
+- **[Cycle 32]** Parallel Grep pattern works reliably with 30 games (8-language i18n). Validated 12 consecutive cycles (#21-2~#32).
+- **[Cycle 32]** Tri-axis evaluation framework successfully applied 2 consecutive cycles (#31~#32). "Last 7 cycles unused filter" narrowed to 3 candidates → "Poki Top 5 genre share" selected puzzle+casual. Portal top-tier data is the most intuitive tie-breaker.
+- **[Cycle 32]** "Consecutive action usage detection" introduced as new filter: action used 3 consecutive cycles (#29~#31), detecting urgent non-action pivot need. "Consecutive usage detection" contributes as additional dimension to genre diversity.
+- **[Cycle 32]** puzzle+casual selection achieves 8 consecutive cycles (#25~#32) all with different genre combinations — genre diversity maximization pattern sustained for 8 cycles.
+- **[Cycle 32]** WebFetch 1 attempt (GamerNotify Poki Top 20) successful — 2 consecutive cycles (#31~#32) GamerNotify access stable. "Review site WebFetch + portal WebSearch" hybrid strategy validated 2 cycles.
+- **[Cycle 32]** With postmortem + platform-wisdom + analyst-wisdom all included in prompt, file reads minimized. Validated 12 consecutive cycles (#21-2~#32). Only wisdom files need reading for updates.
+- **[Cycle 32]** Detective/mystery theme selection consumes 1 from unused themes list. "Theme matrix" analysis applied 2 consecutive cycles (#31~#32) — genre+theme dual matrix established as standard recommendation framework.
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis (11-cycle validation)
-- WebSearch 5 parallel + review site WebFetch hybrid strategy (Cycle 31 validated)
-- Standardize genre combination matrix + **theme matrix** parallel analysis (introduced Cycle 31)
-- Tri-axis evaluation framework (theme diversity + market trend intensity + premium fit) as standard
-- "Last N cycles unused genre filter" → narrow candidates → premium fit for final selection pipeline
+- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as the standard for game-registry.json analysis (12-cycle validation)
+- WebSearch 5 parallel + review site WebFetch hybrid strategy (2 consecutive cycles validated, GamerNotify stable)
+- Standardize genre combination matrix + **theme matrix** parallel analysis (2 consecutive cycles applied)
+- Tri-axis evaluation framework (theme diversity + market trend intensity + premium fit) as standard (2 consecutive cycles success)
+- "Last N cycles unused genre filter" + "consecutive action usage detection" → narrow candidates → Poki Top N genre share for final selection
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
 - Check for existing reports at the first step via Glob to prevent redundant work
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- Grep pattern confirmed stable at 29 games — no monitoring needed until ~40 games
-- After steampunk theme introduction, update "unused themes" list: prehistoric, pirate, medieval, zombie, detective, desert, jungle, mecha, cooking, garden, samurai, western — 12+ unused themes remaining
-- ironclad-vanguard (action+strategy) selection maintains 7-cycle genre diversification streak — apply "last 7 cycles unused genre filter" in Cycle 32
+- Grep pattern confirmed stable at 30 games — no monitoring needed until ~40 games
+- After detective theme introduction, update "unused themes" list: prehistoric, pirate, medieval, zombie, desert, jungle, mecha, cooking, garden, samurai, western — 11+ unused themes remaining
+- spectral-sleuth (puzzle+casual) selection maintains 8-cycle genre diversification streak — apply "last 8 cycles unused genre filter" in Cycle 33
+- Cycle 33 strong candidates: casual+strategy (7+ cycles unused, Monkey Mart #2 trend) or arcade+action (7+ cycles unused)

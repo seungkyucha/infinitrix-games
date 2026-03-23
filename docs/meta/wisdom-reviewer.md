@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #31 (1회차 — ironclad-vanguard) ❌ NEEDS_MAJOR_FIX_
+_마지막 갱신: 사이클 #32 (1회차 — spectral-sleuth) ⚠️ NEEDS_MINOR_FIX_
 
 ## 반복되는 실수 🚫
 
@@ -44,6 +44,10 @@ _마지막 갱신: 사이클 #31 (1회차 — ironclad-vanguard) ❌ NEEDS_MAJOR
 - **[Cycle 31]** **치명적 TDZ(Temporal Dead Zone) 크래시**: `const G` 선언 시 초기화 표현식에서 `getWorkshopBonus()` 호출 → 해당 함수가 `G.save.workshop.attack` 참조 → G가 아직 TDZ 상태 → `ReferenceError`로 스크립트 전체 중단. **게임이 전혀 시작되지 않는 완전 불능 상태.** F12(TDZ 방지: 변수 선언 → DOM 할당 → 이벤트 등록 순서)가 기획서에 명시되어 있음에도 `const G` 초기화 표현식 내 자기 참조라는 새로운 변형으로 위반. 이전 사이클의 TDZ 버그는 "이벤트 리스너에서 미초기화 변수 참조" 패턴이었으나, 이번에는 **"객체 초기화 표현식 내 자기 참조"**라는 완전히 새로운 유형.
 - **[Cycle 31]** assets/ F1 위반 **13사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조 10+회. Canvas 폴백 100% 존재. Cycle 28 R3에서 물리 파일까지 삭제 완료되었으나, 신규 게임에서 다시 8개 SVG + manifest.json + 코드 참조가 생성됨. **아트 에이전트의 에셋 생성 → 코더의 에셋 로딩 코드 삽입 구조적 패턴이 31사이클째 근절 불가.**
 - **[Cycle 31]** 'speed' 가상 버튼 터치 타겟 크기 부족: `btnSize * 0.8` × `btnSize * 0.6` = 44.8×33.6px (btnSize=56일 때). **Cycle 23(0.85) → Cycle 24(0.8) → Cycle 31(0.8×0.6)로 축소 계수가 2축으로 확장되어 악화.** Math.max(48, ...) 미래핑 패턴 지속.
+
+- **[Cycle 32]** assets/ F1 위반 **14사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조. Canvas 폴백 100% 존재. Cycle 28 R3에서 물리 파일까지 삭제 완료되었으나, 신규 게임(spectral-sleuth)에서 다시 8개 SVG + manifest.json + 코드 참조가 생성됨. **아트 에이전트의 에셋 생성 → 코더의 에셋 로딩 코드 삽입 구조적 패턴이 32사이클째 근절 불가.**
+- **[Cycle 32]** `beginTransition` 함수 **이중 정의**: 1차 정의(Line 1635)에 STATE_PRIORITY 가드가 있으나 빈 블록(return 없음)으로 실질 데드코드. 2차 정의(Line 4121)가 완전 오버라이드. **기획서 상 F6(STATE_PRIORITY + beginTransition 체계)의 의도와 실제 구현 불일치.** 기능적 버그는 없으나, 만약 2차 정의가 삭제되면 1차의 빈 가드가 활성화되어 모든 전환이 허용되는 상황 (return 없으므로). 혼란 소지.
+- **[Cycle 32]** RESTART_ALLOWED 데드코드 **재발 (8번째)**. 선언(Line 1587)만 되고 코드 어디에서도 참조되지 않음. GAME_OVER→ZONE_MAP 전환은 handleKeyAction에서 직접 beginTransition 호출로 처리. Cycle 27 R2에서 해결되었으나 신규 게임에서 다시 데드코드로 등장.
 
 ## 검증된 성공 패턴 ✅
 
@@ -116,6 +120,14 @@ _마지막 갱신: 사이클 #31 (1회차 — ironclad-vanguard) ❌ NEEDS_MAJOR
 - **[Cycle 31]** 모든 draw 함수에 Canvas 폴백 else 블록 존재: drawBgLayer1/2, drawUnit, drawEnemy, drawEffect, drawPowerups, drawNarrative, drawHUD, drawWorkshopScreen — SVG 로드 실패 시에도 시각 출력 보장.
 - **[Cycle 31]** 모바일 완전 플레이 가능: 7개 가상 버튼(striker/gunner/engineer/skill/recall/speed/go) + 터치 드래그 카메라 + 더블탭 + 롱프레스. 키보드 없이도 시작→워크샵→존선택→배치→전투→게임오버→재시작 전체 흐름 가능.
 
+- **[Cycle 32]** **TDZ 문제 완전 해결**: `G` 객체가 INIT_EMPTY 패턴으로 모든 프로퍼티를 선언 시점에 빈 값/기본값으로 초기화. Cycle 31의 치명적 TDZ 크래시(getWorkshopBonus 자기 참조)가 완전 근절됨. [F12, F86 준수]
+- **[Cycle 32]** **ESCAPE_ALLOWED 18개 상태 완전 매핑**: 모든 게임 상태에 대해 ESC 전환 대상이 정의됨 [F90 준수]. PAUSE에서 '__PREVIOUS__' 패턴으로 이전 상태 복귀도 정확히 구현.
+- **[Cycle 32]** **transAlpha 동기화 — transProxy 몽키패칭 패턴**: tw.add/tw.update를 몽키패칭하여 `transProxy.a`를 `transitionAlpha`에 매 프레임 동기화. 이전 사이클의 "G 프로퍼티 직접 tween" 패턴과 달리 프록시 객체 방식이나 기능적으로 정상 동작. **7사이클 연속 transAlpha 정상 동작** (Cycle 25, 27, 28, 29, 31, 32).
+- **[Cycle 32]** **모바일 입력 완전 구현 (새 패턴)**: 가상 조이스틱(탐색) + 능력 버튼 3개(하단 중앙) + 더블탭(상호작용) + 롱프레스(능력 사용). 모든 상태에서 터치 전용 조작 경로 존재. 퍼즐 미스터리 장르에 맞는 입력 설계 — 전투 게임보다 단순하지만 증거 카드 탭/슬롯 탭 등 정밀 인터랙션 잘 구현.
+- **[Cycle 32]** **다국어(ko/en) 완전 지원**: 모든 UI 텍스트, 사건명, 단서명, 대질 대사까지 이중 언어 구현. `getLang()` 헬퍼 함수로 일관된 접근.
+- **[Cycle 32]** **퍼즐/추리 시스템 완성**: 증거 수집 → 추리 체인(3슬롯) → 검증 → 대질 보스전 전체 루프. getValidChains()로 다중 해결 경로 지원. 비전투 보스전이라는 플랫폼 최초 메커닉이 코드로 완전 구현됨.
+- **[Cycle 32]** **콘솔 에러 0건 + 1차 리뷰에서 게임 플레이 완전 작동**: Cycle 31의 P0 TDZ 크래시와 달리 1차 리뷰에서 게임이 완전히 동작. INIT_EMPTY 패턴이 효과적임을 실증.
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
@@ -155,3 +167,6 @@ _마지막 갱신: 사이클 #31 (1회차 — ironclad-vanguard) ❌ NEEDS_MAJOR
 - [ ] **[Cycle 31 추가]** **`const G` 선언 시 자기 참조 함수 호출 금지 규칙 추가**: F12(TDZ 방지)를 확장하여, 전역 상태 객체 `const G = { ... }` 초기화 표현식 내에서 `G`를 참조하는 함수(getWorkshopBonus, getDefaultSave 등)를 호출하는 것을 금지. 기획서 §5.1에 "전역 상태 객체 초기화 시 자기 참조 함수 호출 금지 — 빈 값으로 선언 후 init()에서 할당" 규칙 추가.
 - [ ] **[Cycle 31 추가]** **스모크 테스트에 "Canvas 크기 300×150 검출" 추가**: Canvas가 HTML 기본값(300×150)이면 게임 초기화가 실패한 것이므로 즉시 FAIL 판정. 이번 P0처럼 "검은 화면"의 원인을 빠르게 진단하는 지표.
 - [ ] **[Cycle 31 추가]** **`'use strict'` + `const` 스코프에서의 puppeteer evaluate 한계**: strict mode에서 const/let으로 선언된 변수는 window 객체에 노출되지 않아 외부 JS 평가로 접근 불가. 브라우저 테스트에서 게임 상태 확인 시 canvas pixel 검사(`getImageData`), canvas 크기 확인 등 간접 방법을 우선 사용해야 함.
+- [ ] **[Cycle 32 추가]** **`beginTransition` 이중 정의 탐지**: 함수가 두 번 정의되어 2차 정의가 1차를 완전 오버라이드하는 패턴 감시. 특히 1차 정의에 가드 로직(STATE_PRIORITY 체크)이 있고 2차 정의에 없으면, 코더의 의도와 실제 동작이 불일치. `function beginTransition`이 코드에서 2회 이상 등장하면 경고.
+- [ ] **[Cycle 32 추가]** **RESTART_ALLOWED 패턴의 구조적 재발 방지**: Cycle 27 R2에서 해결되었으나 신규 게임에서 다시 데드코드로 생성됨. 코더에게 제공하는 코드 템플릿에 RESTART_ALLOWED 사용 예시를 beginTransition() 내부에 포함시킬 것. 또는 사용하지 않을 거면 아예 선언하지 않도록 유도.
+- [x] **[Cycle 32 해결]** **TDZ 방지 INIT_EMPTY 패턴**: Cycle 31의 P0 TDZ 크래시가 Cycle 32에서 완전 해결됨. G 객체 모든 프로퍼티가 선언 시점에 기본값으로 초기화. **기획서 F86의 효과 실증.**

@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #31 ironclad-vanguard_
+_Last updated: Cycle #32 spectral-sleuth_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 32]** In a mystery puzzle adventure (4,186 lines), synchronizing transitionAlpha with tw.add() proxy object requires explicit per-frame sync after tw.update() or direct proxy usage in render. **When controlling transition alpha via tween, verify exactly 1 path exists from tween value to render.**
+- **[Cycle 32]** Puzzle board evidence placement (placeEvidenceInSlot) stores slotIdx as puzzleSelected, but checkChain's validChains compare against case-specific clue indices — mismatch between array index and logical clue ID. **Puzzle verification must explicitly define mapping between "array index" and "logical clue ID".**
+- **[Cycle 32]** User instruction > spec principle applied 6th time (Cycle 24/27/29/30/31/32). **Fully established — no further recording needed.**
+- **[Cycle 32]** Confrontation boss battle's confrontCorrectEvIdx depends on essential filter of G.evidence array — optional clues in evidence shift indices. **Boss answer indices should use separate essential-only array or ID-based matching.**
 - **[Cycle 31]** In a real-time tactical action roguelite (3,200+ lines), environment hazard systems (5 zone-specific mechanics) were separated into dedicated functions (updateEnvironmentHazards/drawEnvironmentHazards), but environment state variables (envTimer, envTraps, envLavaSpots) must be explicitly initialized in initRun() — otherwise previous run's traps persist on restart. **All per-run state variables must be reset in initRun().** Especially procedural generation caches: null-initialize + lazy init pattern.
 - **[Cycle 31]** User instruction > spec principle applied for the 5th time (Cycle 24/27/29/30/31). When spec F1/F77 (no assets/) conflicts with user instruction (preload assets required), follow user instruction and conditionally exclude "assets/ not found" smoke test item. **This pattern is now fully established — no further re-confirmation needed.**
 - **[Cycle 31]** Smoke test grep false positives from forbidden patterns in comments ("setTimeout replacement", "Math.random 0 calls") occurred for 4 consecutive cycles (Cycle 28-31). **Most practical solution: confirm "found in comments only" → PASS.**
@@ -47,6 +51,12 @@ _Last updated: Cycle #31 ironclad-vanguard_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 32]** Mystery puzzle adventure (Spectral Sleuth) implemented in 4,186-line single file. 18-state machine + evidence combination puzzle + turn-based confrontation boss battle + 3-branch ghost ability upgrade + 5-zone weather/environment system + Korean/English dual language. Non-combat boss battles (deduction-based) are a platform first.
+- **[Cycle 32]** ESCAPE_ALLOWED + RESTART_ALLOWED + STATE_PRIORITY + ACTIVE_SYSTEMS 4-dictionary pattern applied to all 18 states. beginTransition() guard logic ensures state transition safety. Cycle 31 pattern successfully ported to puzzle genre.
+- **[Cycle 32]** 8 SVG assets preloaded with Canvas fallback in all drawing functions. Game fully functional without assets (fallback shape drawing). Asset-free operation confirmed.
+- **[Cycle 32]** Coordinate system annotations (// screen coords / // world coords) applied in renderExploration ctx.save/restore blocks. 3 consecutive cycles of Cycle 30 lesson application.
+- **[Cycle 32]** Environment hazard state variables (envTimer, envTraps) explicitly initialized in initExploration(). Direct application of Cycle 31 P0 TDZ lesson — 0 residual data on restart.
+- **[Cycle 32]** PAUSE → game resume via setState() instant transition (no beginTransition). Cycle 28 lesson applied 4 consecutive cycles.
 - **[Cycle 31]** Steampunk real-time tactical action roguelite (Ironclad Vanguard) implements 8 designer SVG assets + 5 zone-specific environment hazard systems + powerup system + DDA dynamic balance in 3,235-line single file. 10 REGION structure maintained with EXTRA region for environment mechanics, weather effects, and camera choreography.
 - **[Cycle 31]** Boss phase transition fireTimer reset pattern (Cycle 30 lesson) placed inside tw.delay onComplete, preventing post-transition burst fire. Combined with phaseTransitioning guard — 3 consecutive cycles of stable boss AI.
 - **[Cycle 31]** Environment hazards separated into zone-independent functions with lazy init pattern (envTraps=null → created on first update). Coordinate system annotations (`// screen coords` / `// world coords`) applied at every ctx.save/restore block.
@@ -130,6 +140,9 @@ _Last updated: Cycle #31 ironclad-vanguard_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **[Cycle 32→33] Puzzle verification unit testing**: checkChain() and evaluateDeduction() are pure functions — test all valid/invalid chain combinations via headless tests. Implement pre-validation for next puzzle game.
+- **[Cycle 32→33] Confrontation answer index management improvement**: Resolve index mismatch between essential clue array and full evidence array via ID-based matching.
+- **[Cycle 32→33] Transition alpha proxy pattern standardization**: Extract transProxy-based tween control + render sync into shared TransitionManager class.
 - **[Cycle 31→32] Environment hazard automated testing**: Verify 5 zone-specific hazard values (DPS, duration, cycle) match spec via headless test with manipulated dt.
 - **[Cycle 31→32] Powerup balance pre-verification**: Simulate powerup drop rate (15%) and effects (steam+30, HP 50%, ATK×1.3) in extreme builds. Watch for uncapped damage powerup stacking.
 - **[Cycle 31→32] User instruction > spec conflict pattern fully automated**: 5 consecutive cycles, same pattern. Automate "manifest.json exists → preloadAssets used → conditional smoke test" flow in pre-coding checklist.

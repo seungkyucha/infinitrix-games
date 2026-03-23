@@ -1,0 +1,4185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>유령 탐정 — Spectral Sleuth</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0B1426;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+// REGION 1: CONFIG — 상수, 밸런스 수치, 다국어 텍스트
+// ═══════════════════════════════════════════════════════════════
+
+const C = {
+  // 색상 팔레트
+  BG_DEEP: '#0B1426',
+  BG_SLATE: '#2D3748',
+  GHOST_CYAN: '#00D4FF',
+  GHOST_GLOW: '#7FEFFF',
+  CLUE_GOLD: '#FFB800',
+  DANGER_RED: '#FF3366',
+  SUCCESS_GREEN: '#00FF88',
+  TEXT_PRIMARY: '#E8E8E8',
+  TEXT_SECONDARY: '#8899AA',
+  DECO_BRONZE: '#C4953A',
+  SUSPECT_PURPLE: '#9B59B6',
+  CRED_BLUE: '#5DADE2',
+
+  // 게임 밸런스 §2.3
+  ETHER_INIT: 50,
+  ETHER_MAX: 100,
+  ABILITY_COST: { clairvoyance: 3, empathy: 5, rewind: 8 },
+  CREDIBILITY: { easy: 150, medium: 100, hard: 75 },
+  WRONG_PENALTY: { normal: 15, critical: 25 },
+  ETHER_REGEN: { easy: 2, medium: 1, hard: 0.5 },
+
+  // 환경 위험 §7.3
+  ENV_HAZARD: {
+    port: { vision: 0.6, desc: 'fog' },
+    alley: { etherDrain: 1/3, desc: 'spirits' },
+    mansion: { cooldownMult: 1.5, desc: 'barrier' },
+    warehouse: { requireLv: 3, desc: 'sealed' },
+    cityhall: { falseEmotion: 0.3, desc: 'disruption' },
+    hidden: { rewindLimit: 10, desc: 'timewarp' }
+  },
+
+  // 이동 속도
+  PLAYER_SPEED: 160,
+  PLAYER_SIZE: 24,
+
+  // 터치 타겟 최소 크기
+  TOUCH_MIN: 48,
+
+  // 점수 §11.1
+  BASE_SCORE_MULT: 1000,
+  TIME_BONUS_MULT: 10,
+  ACCURACY_BONUS: 500,
+  EXPLORE_BONUS: 300,
+
+  // 업그레이드 비용 §12.1
+  UPGRADE_COST: [1, 2, 3, 4, 5],
+
+  // 대질 라운드 수
+  CONFRONT_ROUNDS: { normal: 4, boss: 5, hidden: 7 },
+
+  // DDA §8.2
+  DDA_STREAK_THRESHOLD: 2,
+  DDA_HAZARD_MULT: 1.2,
+  DDA_PENALTY_REDUCTION: 0.8,
+
+  // 카메라 줌 범위
+  CAM_ZOOM_MIN: 0.8,
+  CAM_ZOOM_MAX: 1.5,
+
+  // 타이머 (사건당 시간제한 초)
+  CASE_TIME: { easy: 300, medium: 480, hard: 720 }
+};
+
+// 다국어 텍스트 §9.1
+const LANG = {
+  ko: {
+    title: '유령 탐정',
+    subtitle: 'SPECTRAL SLEUTH',
+    startPrompt: 'SPACE 또는 탭하여 시작',
+    difficulty: ['견습 탐정', '탐정', '전설 탐정'],
+    abilities: ['투시', '감응', '시간역행'],
+    ether: '에테르',
+    credibility: '신뢰도',
+    soulFragments: '영혼 파편',
+    evidence: '증거',
+    deductionBoard: '추리 보드',
+    present: '제시',
+    verify: '검증',
+    correct: '정확합니다!',
+    wrong: '증거가 맞지 않습니다...',
+    caseComplete: '사건 해결!',
+    gameOver: '신뢰도 소진',
+    restart: 'R키 또는 탭하여 재시작',
+    pause: '일시정지',
+    resume: '계속하기',
+    settings: '설정',
+    upgrade: '업그레이드',
+    zoneNames: ['항구', '뒷골목', '부유층 저택', '창고 지구', '시청', '지하 신전'],
+    bossNames: ['"독사" 빅터', '"거울" 마리안', '"백작" 레오폴드', '"철면" 감독관', '"인형사" 시의원', '"그림자 조종자"'],
+    caseNames: [
+      ['선원 실종','화물 변조','밀수 조직 거래'],
+      ['위조 지폐','보험 사기','갱단 자금 세탁'],
+      ['유산 분쟁','이중 정체','비밀 결사 의식'],
+      ['증거 인멸','증인 실종','경찰 매수'],
+      ['시장 협박','선거 조작','도시 전복 계획'],
+      ['루시안의 죽음']
+    ],
+    caseBriefs: [
+      ['부두에서 선원 한 명이 사라졌다.\n마지막 목격은 부두 끝, 황혼 무렵.','화물 목록이 변조된 흔적이 발견됐다.\n누군가 내부에서 조작한 것 같다.','밀수 조직의 대규모 거래가 임박했다.\n증거를 모아 두목을 찾아야 한다.'],
+      ['위조 지폐가 뒷골목에 돌고 있다.\n인쇄소의 흔적을 찾아야 한다.','보험금 청구서에 이상한 패턴이 보인다.\n누군가 의도적으로 사고를 만들고 있다.','세탁된 자금의 흐름을 추적해야 한다.\n갱단의 금고 위치를 찾아라.'],
+      ['유산 상속 분쟁 중 유서가 사라졌다.\n저택 안에서 진짜 유서를 찾아라.','초대받은 손님 중 이중 신분이 있다.\n누가 가면을 쓰고 있는가?','지하에서 비밀 결사 의식의 흔적 발견.\n의식의 목적을 밝혀야 한다.'],
+      ['결정적 증거가 창고에서 사라졌다.\n누가 증거를 인멸했는가?','핵심 증인이 갑자기 실종됐다.\n그의 마지막 동선을 추적하라.','경찰 내부에 매수된 자가 있다.\n누가 배신자인지 밝혀라.'],
+      ['시장에게 협박 편지가 도착했다.\n범인의 정체를 추리하라.','선거 개표에 조작 의혹이 있다.\n증거를 찾아 진실을 밝혀라.','도시 전복 음모의 전모를 파헤쳐라.\n모든 단서가 하나로 연결된다.'],
+      ['루시안, 네 죽음의 진실이 여기 있다.\n모든 것의 시작과 끝을 밝혀라.']
+    ],
+    confrontDialogue: [
+      ['나는 그날 밤 부두에 없었소!', '그 화물은 내가 확인한 적 없다!', '조직? 무슨 조직이란 말이오!', '증거를 대시오! 억지는 통하지 않소!'],
+      ['이건 진짜 화폐라고요!', '사고? 나와 무관합니다!', '세탁이라니, 이건 합법적인 거래입니다!', '내 거울에 비친 건 진실뿐이에요...'],
+      ['유서는 원래 없었소!', '나는 항상 이 사람이었소!', '의식? 그건 단순한 모임이오!', '백작의 이름으로 맹세하오!'],
+      ['증거? 처음부터 없었소!', '그 증인은 스스로 떠난 거요!', '매수라니, 모욕적이군!', '나의 철면은 깨지지 않소!'],
+      ['협박이라니, 이건 충고였소!', '선거는 공정했소!', '이 도시는 변화가 필요할 뿐이오!', '인형의 줄은 이미 끊어졌소!'],
+      ['너는 이미 알고 있었지, 루시안...', '그림자는 빛이 있어야 존재한다.', '모든 줄은 내 손에서 시작됐다.', '진실을 감당할 수 있겠나?']
+    ],
+    clueNames: [
+      [['소금기 묻은 장갑','부두 끝 발자국','밀수 목록 조각'],['변조된 화물표','잉크 자국','비밀 창고 열쇠'],['거래 장부','밀수품 샘플','내부자 메모']],
+      [['위조 지폐 샘플','인쇄기 잉크','비밀 작업장 열쇠'],['사고 보고서','보험 청구서','목격자 증언'],['세탁 계좌 명세','갱단 문양','금고 좌표']],
+      [['원본 유서 사본','변호사 기록','저택 설계도'],['위조 초대장','변장 도구','이중 여권'],['의식용 촛대','비문 조각','결사 명부']],
+      [['소각 흔적','증거 보관 일지','창고 CCTV 잔상'],['증인 일기','미행 기록','실종 전 통화'],['매수 금봉투','비밀 계좌','내부 고발문']],
+      [['협박 편지 원본','편지지 섬유','전달자 동선'],['투표지 분석','개표 소프트웨어','조작 지시서'],['전복 계획서','무기 반입 기록','공모자 명단']],
+      [['루시안의 일기','사건 당일 증거','최후의 편지']]
+    ],
+    tutorialHint: '방향키로 이동, 1/2/3으로 능력 선택, SPACE로 사용',
+    noEther: '에테르가 부족합니다!',
+    clueFound: '단서 발견!',
+    newTool: '새 도구 획득!',
+    rankNames: ['S','A','B','C'],
+    complete: '게임 클리어!',
+    completeMsg: '미스트헤이븐의 모든 진실이 밝혀졌다.',
+    score: '점수',
+    highScore: '최고 점수',
+    totalScore: '총점',
+    back: '돌아가기',
+    lang: '언어: 한국어',
+    sfxVol: '효과음',
+    bgmVol: '배경음악',
+    diffLabel: '난이도',
+    selectCase: '사건을 선택하세요',
+    locked: '잠김',
+    cleared: '해결됨',
+    hintAvail: '힌트 사용 가능 (H키)',
+    nextRound: '다음 라운드',
+    selectEvidence: '증거를 선택하여 모순을 지적하세요',
+    bossAppear: '용의자가 나타났다!',
+    presentEvidence: '증거 제시!',
+    chain: '추리 체인',
+    slots: '슬롯',
+    connect: '연결하여 검증하세요',
+    upgradeTitle: '능력 업그레이드',
+    cost: '비용',
+    level: 'Lv',
+    max: '최대',
+    tools: ['돋보기','지문 키트','필적 분석기','타임라인 보드','관계도','화학 키트','심리 프로필러','에테르 스캐너'],
+    toolDescs: ['단서 상세 확인','지문 대조','문서 위조 판별','시간순 자동 정렬','인물 관계 연결','성분 분석','행동 패턴 분석','초자연 흔적 추적'],
+    credits: '미스트헤이븐의 안개가 걷혔다...\n유령 탐정 루시안 그레이의 이야기는\n이제 당신의 기억 속에 남는다.',
+  },
+  en: {
+    title: 'Spectral Sleuth',
+    subtitle: 'GHOST DETECTIVE',
+    startPrompt: 'SPACE or tap to start',
+    difficulty: ['Apprentice', 'Detective', 'Legend'],
+    abilities: ['Clairvoyance', 'Empathy', 'Rewind'],
+    ether: 'Ether',
+    credibility: 'Credibility',
+    soulFragments: 'Soul Fragments',
+    evidence: 'Evidence',
+    deductionBoard: 'Deduction Board',
+    present: 'Present',
+    verify: 'Verify',
+    correct: 'Correct!',
+    wrong: 'Wrong evidence...',
+    caseComplete: 'Case Solved!',
+    gameOver: 'Credibility Lost',
+    restart: 'R or tap to restart',
+    pause: 'PAUSED',
+    resume: 'Resume',
+    settings: 'Settings',
+    upgrade: 'Upgrade',
+    zoneNames: ['Harbor','Back Alleys','Mansion District','Warehouse','City Hall','Hidden Temple'],
+    bossNames: ['"Viper" Victor','"Mirror" Marian','"Count" Leopold','"Ironface" Inspector','"Puppeteer" Councilor','"Shadow Master"'],
+    caseNames: [
+      ['Missing Sailor','Cargo Tampering','Smuggling Deal'],
+      ['Counterfeit Bills','Insurance Fraud','Money Laundering'],
+      ['Inheritance Dispute','Double Identity','Secret Society'],
+      ['Evidence Destruction','Missing Witness','Police Corruption'],
+      ['Blackmail','Election Rigging','City Overthrow'],
+      ["Lucian's Death"]
+    ],
+    caseBriefs: [
+      ['A sailor vanished at the pier.\nLast seen at dusk, at the pier\'s end.','Cargo manifests show signs of tampering.\nSomeone altered them from inside.','A major smuggling deal is imminent.\nGather evidence to find the ringleader.'],
+      ['Counterfeit bills are circulating.\nFind traces of the printing press.','Insurance claims show a suspicious pattern.\nSomeone is staging accidents.','Follow the laundered money trail.\nLocate the gang\'s vault.'],
+      ['A will has vanished during inheritance dispute.\nFind the real will inside the mansion.','One guest has a double identity.\nWho wears the mask?','Secret society ritual traces found below.\nUncover the ritual\'s purpose.'],
+      ['Crucial evidence disappeared from storage.\nWho destroyed it?','A key witness suddenly vanished.\nTrace their last movements.','Someone inside the police was bribed.\nIdentify the traitor.'],
+      ['A threatening letter reached the mayor.\nDeduce the sender\'s identity.','Vote counting suspected of fraud.\nFind proof of the truth.','Uncover the full plot to overthrow the city.\nAll clues connect as one.'],
+      ['Lucian, the truth of your death lies here.\nReveal the beginning and the end.']
+    ],
+    confrontDialogue: [
+      ["I wasn't at the pier that night!","I never checked that cargo!","Organization? What organization!","Show me proof! Bluffs won't work!"],
+      ["This is real currency!","Accidents? Nothing to do with me!","Laundering? These are legal transactions!","My mirror reflects only truth..."],
+      ["There was never a will!","I've always been this person!","Ritual? Just a social gathering!","I swear on the Count's name!"],
+      ["Evidence? Never existed!","That witness left on their own!","Bribery? How insulting!","My iron face never cracks!"],
+      ["Threat? It was advice!","The election was fair!","This city simply needs change!","The puppet strings are already cut!"],
+      ["You already knew, Lucian...","Shadows exist only where there is light.","All strings began from my hands.","Can you handle the truth?"]
+    ],
+    clueNames: [
+      [['Salty gloves','Pier footprints','Smuggling list scrap'],['Altered cargo tag','Ink stain','Secret warehouse key'],['Ledger','Contraband sample','Insider memo']],
+      [['Counterfeit sample','Printer ink','Workshop key'],['Accident report','Insurance claim','Witness statement'],['Laundering ledger','Gang insignia','Vault coordinates']],
+      [['Will copy','Lawyer records','Mansion blueprints'],['Forged invitation','Disguise kit','Double passport'],['Ritual candlestick','Inscription fragment','Society roster']],
+      [['Burn marks','Evidence log','CCTV ghost image'],['Witness diary','Surveillance log','Last phone call'],['Bribe envelope','Secret account','Whistleblower note']],
+      [['Threat letter','Paper fiber','Courier route'],['Ballot analysis','Counting software','Rigging orders'],['Overthrow plans','Weapons log','Conspirator list']],
+      [["Lucian's diary",'Crime day evidence','Final letter']]
+    ],
+    tutorialHint: 'Arrows to move, 1/2/3 for abilities, SPACE to use',
+    noEther: 'Not enough Ether!',
+    clueFound: 'Clue Found!',
+    newTool: 'New Tool Acquired!',
+    rankNames: ['S','A','B','C'],
+    complete: 'Game Complete!',
+    completeMsg: 'All truths of Misthaven have been revealed.',
+    score: 'Score',
+    highScore: 'High Score',
+    totalScore: 'Total Score',
+    back: 'Back',
+    lang: 'Language: English',
+    sfxVol: 'SFX Volume',
+    bgmVol: 'BGM Volume',
+    diffLabel: 'Difficulty',
+    selectCase: 'Select a case',
+    locked: 'Locked',
+    cleared: 'Cleared',
+    hintAvail: 'Hint available (H key)',
+    nextRound: 'Next Round',
+    selectEvidence: 'Select evidence to point out the contradiction',
+    bossAppear: 'The suspect appears!',
+    presentEvidence: 'Present Evidence!',
+    chain: 'Deduction Chain',
+    slots: 'Slots',
+    connect: 'Connect and verify',
+    upgradeTitle: 'Ability Upgrade',
+    cost: 'Cost',
+    level: 'Lv',
+    max: 'MAX',
+    tools: ['Magnifier','Fingerprint Kit','Handwriting Analyzer','Timeline Board','Relationship Map','Chemistry Kit','Psych Profiler','Ether Scanner'],
+    toolDescs: ['Examine clue details','Compare fingerprints','Detect forgery','Auto-sort by time','Link characters','Analyze compounds','Behavior patterns','Trace supernatural energy'],
+    credits: 'The mist of Misthaven has cleared...\nThe tale of ghost detective Lucian Grey\nnow lives in your memory.',
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 2: ENGINE — TweenManager, ObjectPool, SeededRNG, SoundManager
+// ═══════════════════════════════════════════════════════════════
+
+// --- SeededRNG (Math.random 0건) ---
+const rng = {
+  _s: 12345,
+  seed(s) { this._s = s | 0 || 1; },
+  // xorshift32 알고리즘
+  next() {
+    let s = this._s;
+    s ^= s << 13; s ^= s >> 17; s ^= s << 5;
+    this._s = s;
+    return (s >>> 0) / 4294967296;
+  },
+  // 범위 내 정수 반환
+  int(min, max) { return min + ((this.next() * (max - min + 1)) | 0); },
+  // 배열 셔플
+  shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = this.int(0, i);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  },
+  // 배열에서 랜덤 선택
+  pick(arr) { return arr[this.int(0, arr.length - 1)]; }
+};
+
+// --- TweenManager (setTimeout 0건) ---
+const tw = {
+  _tweens: [],
+  _pendingCancel: false,
+
+  // 새 트윈 추가
+  add(obj, props, dur, ease, onComplete) {
+    const t = { obj, props: {}, dur, elapsed: 0, ease: ease || 'easeOut', onComplete, done: false };
+    for (const k in props) { t.props[k] = { from: obj[k], to: props[k] }; }
+    this._tweens.push(t);
+    return t;
+  },
+
+  // 지연 후 콜백 실행
+  delay(dur, cb) {
+    const dummy = { _v: 0 };
+    return this.add(dummy, { _v: 1 }, dur, 'linear', cb);
+  },
+
+  // 즉시 전체 정리 [F13]
+  clearImmediate() {
+    this._tweens.length = 0;
+    this._pendingCancel = false;
+  },
+
+  // 전체 취소 요청 (deferred)
+  cancelAll() { this._pendingCancel = true; },
+
+  // 매 프레임 갱신
+  update(dt) {
+    if (this._pendingCancel) {
+      this._tweens.length = 0;
+      this._pendingCancel = false;
+      return;
+    }
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const t = this._tweens[i];
+      if (t.done) continue;
+      t.elapsed += dt;
+      let p = t.elapsed / t.dur;
+      if (p >= 1) p = 1;
+      const ep = this._ease(p, t.ease);
+      for (const k in t.props) {
+        const pr = t.props[k];
+        t.obj[k] = pr.from + (pr.to - pr.from) * ep;
+      }
+      if (p >= 1) {
+        t.done = true;
+        if (t.onComplete) t.onComplete();
+      }
+    }
+    // 완료된 트윈 제거
+    this._tweens = this._tweens.filter(t => !t.done);
+  },
+
+  // 이징 함수
+  _ease(t, type) {
+    switch (type) {
+      case 'linear': return t;
+      case 'easeIn': return t * t;
+      case 'easeOut': return 1 - (1 - t) * (1 - t);
+      case 'easeInOut': return t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+      case 'easeOutBounce': {
+        if (t < 1/2.75) return 7.5625*t*t;
+        if (t < 2/2.75) { t -= 1.5/2.75; return 7.5625*t*t + 0.75; }
+        if (t < 2.5/2.75) { t -= 2.25/2.75; return 7.5625*t*t + 0.9375; }
+        t -= 2.625/2.75; return 7.5625*t*t + 0.984375;
+      }
+      default: return 1 - (1 - t) * (1 - t);
+    }
+  }
+};
+
+// --- ObjectPool ---
+const pool = {
+  _pools: {},
+  // 풀에서 객체 가져오기
+  get(type, factory) {
+    if (!this._pools[type]) this._pools[type] = [];
+    const p = this._pools[type];
+    for (let i = 0; i < p.length; i++) {
+      if (!p[i].active) { p[i].active = true; return p[i]; }
+    }
+    const obj = factory();
+    obj.active = true;
+    p.push(obj);
+    return obj;
+  },
+  // 풀에 반환
+  release(type, obj) { obj.active = false; },
+  // 타입별 활성 객체 순회
+  each(type, fn) {
+    const p = this._pools[type];
+    if (!p) return;
+    for (let i = 0; i < p.length; i++) {
+      if (p[i].active) fn(p[i]);
+    }
+  },
+  // 전체 초기화
+  clear() { for (const k in this._pools) this._pools[k].length = 0; }
+};
+
+// --- SoundManager (Web Audio API) ---
+const snd = {
+  _ctx: null,
+  _gains: {},
+  _bgmNode: null,
+  _muted: false,
+  sfxVol: 0.7,
+  bgmVol: 0.5,
+
+  // 초기화 (사용자 제스처 후 호출)
+  init() {
+    if (this._ctx) return;
+    try {
+      this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this._gains.master = this._ctx.createGain();
+      this._gains.master.connect(this._ctx.destination);
+      this._gains.sfx = this._ctx.createGain();
+      this._gains.sfx.gain.value = this.sfxVol;
+      this._gains.sfx.connect(this._gains.master);
+      this._gains.bgm = this._ctx.createGain();
+      this._gains.bgm.gain.value = this.bgmVol;
+      this._gains.bgm.connect(this._gains.master);
+    } catch(e) { /* Web Audio 미지원 시 무시 */ }
+  },
+
+  // 효과음 재생 (프로시저럴)
+  playSfx(type) {
+    if (!this._ctx || this._muted) return;
+    const ctx = this._ctx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this._gains.sfx);
+
+    switch(type) {
+      case 'clue_found': // 차임벨 상승 3음
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now);
+        osc.frequency.setValueAtTime(659, now + 0.1);
+        osc.frequency.setValueAtTime(784, now + 0.2);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+        break;
+      case 'ability_use': // 에테리얼 웅
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(440, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+        break;
+      case 'correct': // 화음 상승
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554, now + 0.15);
+        osc.frequency.setValueAtTime(659, now + 0.3);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+        break;
+      case 'wrong': // 불협 하강
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(350, now);
+        osc.frequency.linearRampToValueAtTime(200, now + 0.3);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+        break;
+      case 'transition': // 와이프 스위시
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now); osc.stop(now + 0.25);
+        break;
+      case 'boss_appear': // 드라마틱 저음
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.setValueAtTime(60, now + 0.5);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+        osc.start(now); osc.stop(now + 1.0);
+        break;
+      case 'chain_complete': // 연쇄 차임
+        osc.type = 'sine';
+        for (let i = 0; i < 4; i++) {
+          osc.frequency.setValueAtTime(440 + i * 110, now + i * 0.1);
+        }
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        osc.start(now); osc.stop(now + 0.6);
+        break;
+      case 'ghost_mode': // 에코 리버브
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(330, now + 0.4);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        osc.start(now); osc.stop(now + 0.6);
+        break;
+      default: // 기본 클릭음
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    }
+  },
+
+  // BGM 시작 (프로시저럴 미니멀 루프)
+  startBgm(type) {
+    if (!this._ctx) return;
+    this.stopBgm();
+    const ctx = this._ctx;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    const g2 = ctx.createGain();
+    osc1.connect(g1); g1.connect(this._gains.bgm);
+    osc2.connect(g2); g2.connect(this._gains.bgm);
+
+    // 미스터리 분위기 — 저음 드론 + 고음 트레몰로
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+    const baseFreq = type === 'boss' ? 55 : type === 'puzzle' ? 165 : type === 'upgrade' ? 220 : 110;
+    osc1.frequency.value = baseFreq;
+    osc2.frequency.value = baseFreq * 3;
+    g1.gain.value = 0.06;
+    g2.gain.value = 0.02;
+
+    // 트레몰로 LFO
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = type === 'boss' ? 4 : 2;
+    lfoGain.gain.value = 0.01;
+    lfo.connect(lfoGain);
+    lfoGain.connect(g2.gain);
+
+    osc1.start(); osc2.start(); lfo.start();
+    this._bgmNode = { osc1, osc2, lfo, g1, g2 };
+  },
+
+  // BGM 정지
+  stopBgm() {
+    if (this._bgmNode) {
+      try {
+        this._bgmNode.osc1.stop();
+        this._bgmNode.osc2.stop();
+        this._bgmNode.lfo.stop();
+      } catch(e) {}
+      this._bgmNode = null;
+    }
+  },
+
+  // 음소거 토글
+  toggleMute() {
+    this._muted = !this._muted;
+    if (this._gains.master) {
+      this._gains.master.gain.value = this._muted ? 0 : 1;
+    }
+  },
+
+  // 볼륨 조절
+  setSfxVol(v) { this.sfxVol = v; if (this._gains.sfx) this._gains.sfx.gain.value = v; },
+  setBgmVol(v) { this.bgmVol = v; if (this._gains.bgm) this._gains.bgm.gain.value = v; }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 3: ENTITY — 루시안, 용의자, NPC, 단서 오브젝트
+// ═══════════════════════════════════════════════════════════════
+
+// 루시안 생성
+function createLucian() {
+  return {
+    x: 400, y: 300, vx: 0, vy: 0,
+    dir: 0, // 0~7 8방향
+    mode: 'normal', // normal, clairvoyance, empathy, rewind
+    alpha: 0.8,
+    trail: [], // 잔상 트레일 (최대 5)
+    abilityTimer: 0,
+    abilityCooldown: [0, 0, 0],
+    moving: false,
+    interacting: false
+  };
+}
+
+// 단서 오브젝트 생성
+function createClue(id, x, y, type, requiredAbility, requiredLv) {
+  return {
+    id, x, y, type, // 'physical', 'emotional', 'temporal'
+    requiredAbility, // 'clairvoyance', 'empathy', 'rewind'
+    requiredLv,
+    discovered: false,
+    glowPhase: 0,
+    active: true
+  };
+}
+
+// 용의자 생성
+function createSuspect(zoneIdx) {
+  return {
+    x: 0, y: 0,
+    emotion: 'calm', // calm, nervous, angry, confessing
+    speaking: false,
+    health: 4, // 대질 라운드 남은 수
+    currentDialogue: 0,
+    defeated: false
+  };
+}
+
+// NPC 시민 생성
+function createNPC(x, y) {
+  return {
+    x, y, vx: (rng.next() - 0.5) * 30, vy: 0,
+    frame: 0, active: true
+  };
+}
+
+// 탐색 맵 생성 (사건별 랜덤화된 클루 배치)
+function generateExplorationMap(zoneIdx, caseIdx, abilityLevels) {
+  const mapW = 1200, mapH = 900;
+  const clues = [];
+  const lang = getLang();
+  const clueNames = lang.clueNames[zoneIdx] ? (lang.clueNames[zoneIdx][caseIdx] || []) : [];
+
+  // 필수 단서 3개 배치 (SeededRNG)
+  const positions = [];
+  for (let i = 0; i < 8; i++) {
+    positions.push({ x: 100 + rng.int(0, mapW - 200), y: 100 + rng.int(0, mapH - 200) });
+  }
+  rng.shuffle(positions);
+
+  const abilityTypes = ['clairvoyance', 'empathy', 'rewind'];
+  for (let i = 0; i < 3; i++) {
+    const pos = positions[i];
+    const aType = abilityTypes[i % 3];
+    const reqLv = zoneIdx < 2 ? 1 : zoneIdx < 4 ? 2 : 3;
+    const name = clueNames[i] || `Clue ${i + 1}`;
+    clues.push(createClue(
+      `z${zoneIdx}c${caseIdx}_${i}`, pos.x, pos.y,
+      i === 0 ? 'physical' : i === 1 ? 'emotional' : 'temporal',
+      aType, reqLv
+    ));
+    clues[clues.length - 1].name = name;
+    clues[clues.length - 1].essential = true;
+  }
+
+  // 선택 단서 1~2개
+  const optCount = rng.int(1, 2);
+  for (let i = 0; i < optCount; i++) {
+    const pos = positions[3 + i];
+    if (!pos) break;
+    clues.push(createClue(
+      `z${zoneIdx}c${caseIdx}_opt${i}`, pos.x, pos.y,
+      rng.pick(['physical', 'emotional', 'temporal']),
+      rng.pick(abilityTypes), 1
+    ));
+    clues[clues.length - 1].name = `Optional ${i + 1}`;
+    clues[clues.length - 1].essential = false;
+  }
+
+  // 배경 오브젝트 (가스등, 건물 등)
+  const objects = [];
+  for (let i = 0; i < 12; i++) {
+    objects.push({
+      type: rng.pick(['gaslamp', 'crate', 'barrel', 'bench', 'pillar']),
+      x: rng.int(50, mapW - 50),
+      y: rng.int(50, mapH - 50),
+      w: rng.int(30, 60),
+      h: rng.int(30, 60)
+    });
+  }
+
+  // NPC 배치
+  const npcs = [];
+  for (let i = 0; i < rng.int(3, 6); i++) {
+    npcs.push(createNPC(rng.int(100, mapW - 100), rng.int(100, mapH - 100)));
+  }
+
+  return { w: mapW, h: mapH, clues, objects, npcs };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 4: DRAW — 모든 순수 드로잉 함수
+// ═══════════════════════════════════════════════════════════════
+
+// 현재 언어 텍스트 가져오기
+function getLang() { return LANG[G.settings.lang] || LANG.ko; }
+
+// 루시안(유령 탐정) 그리기
+function drawLucian(ctx, gt, x, y, dir, mode, alpha, trail) {
+  // 잔상 트레일 그리기
+  if (trail && trail.length > 0) {
+    for (let i = 0; i < trail.length; i++) {
+      const t = trail[i];
+      const a = (i / trail.length) * 0.2;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = C.GHOST_CYAN;
+      ctx.fillRect(t.x - 10, t.y - 20, 20, 40);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 유령 글로우 오라
+  const glowR = 40 + 5 * Math.sin(gt * 3);
+  ctx.save();
+  ctx.globalAlpha = 0.15 + 0.05 * Math.sin(gt * 2);
+  ctx.beginPath();
+  ctx.arc(x, y - 5, glowR, 0, Math.PI * 2);
+  ctx.fillStyle = mode === 'clairvoyance' ? '#FFB800' :
+                  mode === 'empathy' ? '#9B59B6' :
+                  mode === 'rewind' ? '#FF8844' : C.GHOST_GLOW;
+  ctx.fill();
+  ctx.restore();
+
+  // 캐릭터 본체
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  {
+    // 트렌치코트 실루엣
+    ctx.fillStyle = C.GHOST_CYAN;
+    // 머리
+    ctx.beginPath();
+    ctx.arc(x, y - 22, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // 모자 (페도라)
+    ctx.fillRect(x - 12, y - 30, 24, 4);
+    ctx.fillRect(x - 8, y - 34, 16, 4);
+    // 몸통 (트렌치코트)
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y - 14);
+    ctx.lineTo(x - 14, y + 16);
+    ctx.lineTo(x + 14, y + 16);
+    ctx.lineTo(x + 10, y - 14);
+    ctx.fill();
+    // 돋보기 (우측 손)
+    if (dir <= 4) {
+      ctx.strokeStyle = C.DECO_BRONZE;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x + 16, y - 6, 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + 12, y - 2);
+      ctx.lineTo(x + 8, y + 4);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // 능력 모드 시각 효과
+  if (mode !== 'normal') {
+    ctx.save();
+    ctx.globalAlpha = 0.3 + 0.1 * Math.sin(gt * 5);
+    ctx.strokeStyle = mode === 'clairvoyance' ? C.CLUE_GOLD :
+                      mode === 'empathy' ? C.SUSPECT_PURPLE : '#FF8844';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(x, y, 30 + 5 * Math.sin(gt * 4), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+// 단서 오브젝트 그리기
+function drawClue(ctx, gt, x, y, type, discovered, glow, requiredAbility, playerMode) {
+  if (discovered) {
+    // 발견된 단서: 골드 글로우
+    ctx.save();
+    ctx.globalAlpha = 0.5 + 0.3 * Math.sin(gt * 4);
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.fillStyle = C.CLUE_GOLD;
+    ctx.fill();
+    ctx.restore();
+
+    // 아이콘
+    ctx.fillStyle = '#FFF';
+    ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(type === 'physical' ? '🔍' : type === 'emotional' ? '💭' : '⏪', x, y + 5);
+  } else if (playerMode === requiredAbility) {
+    // 올바른 능력 모드에서만 보이는 단서
+    ctx.save();
+    ctx.globalAlpha = 0.3 + 0.2 * Math.sin(gt * 3);
+    ctx.strokeStyle = C.CLUE_GOLD;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // 물음표
+    ctx.fillStyle = C.CLUE_GOLD;
+    ctx.globalAlpha = 0.5;
+    ctx.font = '16px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('?', x, y + 5);
+    ctx.globalAlpha = 1;
+  }
+  // 능력 미일치 시 보이지 않음
+}
+
+// 아르데코 건물 그리기
+function drawBuilding(ctx, gt, x, y, w, h, style, timeOfDay) {
+  const darkMult = timeOfDay === 'midnight' ? 0.5 : timeOfDay === 'dawn' ? 0.7 : timeOfDay === 'dusk' ? 0.8 : 1;
+  ctx.save();
+
+  // 건물 본체
+  ctx.fillStyle = `rgba(45,55,72,${darkMult})`;
+  ctx.fillRect(x, y, w, h);
+
+  // 아르데코 장식 — 상단 삼각 장식
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.3, y);
+  ctx.lineTo(x + w * 0.5, y - 15);
+  ctx.lineTo(x + w * 0.7, y);
+  ctx.fill();
+
+  // 창문 (빛나는)
+  const cols = Math.max(2, (w / 30) | 0);
+  const rows = Math.max(2, (h / 40) | 0);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const wx = x + 10 + c * ((w - 20) / cols);
+      const wy = y + 15 + r * ((h - 20) / rows);
+      const lit = rng.next() > 0.4;
+      ctx.fillStyle = lit ? `rgba(255,184,0,${0.3 + 0.1 * Math.sin(gt * 2 + c + r)})` : 'rgba(0,0,0,0.3)';
+      ctx.fillRect(wx, wy, 10, 14);
+      // 창 프레임
+      ctx.strokeStyle = 'rgba(196,149,58,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(wx, wy, 10, 14);
+    }
+  }
+
+  // 코니스 라인
+  ctx.strokeStyle = C.DECO_BRONZE;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x - 3, y + 2);
+  ctx.lineTo(x + w + 3, y + 2);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// 가스등 그리기
+function drawGaslamp(ctx, gt, x, y) {
+  // 기둥
+  ctx.fillStyle = '#555';
+  ctx.fillRect(x - 2, y - 30, 4, 30);
+  // 등불
+  ctx.beginPath();
+  ctx.arc(x, y - 35, 6, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(255,184,0,${0.5 + 0.2 * Math.sin(gt * 3)})`;
+  ctx.fill();
+  // 광원 글로우
+  const grad = ctx.createRadialGradient(x, y - 35, 0, x, y - 35, 50);
+  grad.addColorStop(0, 'rgba(255,184,0,0.15)');
+  grad.addColorStop(1, 'rgba(255,184,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x - 50, y - 85, 100, 100);
+}
+
+// 용의자 그리기
+function drawSuspect(ctx, gt, x, y, emotion, speaking, zoneIdx) {
+  const colors = ['#E74C3C','#9B59B6','#F39C12','#7F8C8D','#2C3E50','#1A1A2E'];
+  const color = colors[zoneIdx] || colors[0];
+
+  ctx.save();
+  if (zoneIdx === 5) {
+    // 히든 보스 "그림자 조종자" — 강화된 위협적 실루엣
+    ctx.fillStyle = '#1A1A2E';
+    // 그림자 오라
+    const oraR = 50 + 8 * Math.sin(gt * 2);
+    const oraGrad = ctx.createRadialGradient(x, y - 10, 10, x, y - 10, oraR);
+    oraGrad.addColorStop(0, 'rgba(155,89,182,0.3)');
+    oraGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = oraGrad;
+    ctx.fillRect(x - oraR, y - 10 - oraR, oraR * 2, oraR * 2);
+    // 몸통 (크고 위협적)
+    ctx.fillStyle = '#1A1A2E';
+    ctx.fillRect(x - 25, y - 20, 50, 50);
+    // 머리
+    ctx.beginPath();
+    ctx.arc(x, y - 32, 16, 0, Math.PI * 2);
+    ctx.fill();
+    // 후드/망토
+    ctx.beginPath();
+    ctx.moveTo(x - 30, y - 40);
+    ctx.lineTo(x, y - 50);
+    ctx.lineTo(x + 30, y - 40);
+    ctx.lineTo(x + 35, y + 30);
+    ctx.lineTo(x - 35, y + 30);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(26,26,46,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = C.SUSPECT_PURPLE;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // 빛나는 눈
+    ctx.fillStyle = C.DANGER_RED;
+    ctx.beginPath();
+    ctx.arc(x - 6, y - 34, 3, 0, Math.PI * 2);
+    ctx.arc(x + 6, y - 34, 3, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // 일반 용의자 — 실루엣 캐릭터
+    ctx.fillStyle = color;
+    // 머리
+    ctx.beginPath();
+    ctx.arc(x, y - 28, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // 몸통
+    ctx.fillRect(x - 15, y - 16, 30, 36);
+    // 감정 표현
+    if (emotion === 'nervous') {
+      // 떨림 효과
+      const shake = Math.sin(gt * 20) * 2;
+      ctx.translate(shake, 0);
+    }
+    // 눈
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(x - 6, y - 32, 4, 3);
+    ctx.fillRect(x + 2, y - 32, 4, 3);
+    if (emotion === 'angry') {
+      // 눈썹 찌푸림
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 8, y - 36);
+      ctx.lineTo(x - 2, y - 34);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + 8, y - 36);
+      ctx.lineTo(x + 2, y - 34);
+      ctx.stroke();
+    }
+  }
+
+  // 대화 중 말풍선 표시
+  if (speaking) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y - 48);
+    ctx.lineTo(x + 4, y - 48);
+    ctx.lineTo(x, y - 42);
+    ctx.fill();
+    ctx.fillRect(x - 5, y - 58, 10, 10);
+    ctx.fillRect(x - 3, y - 66, 6, 6);
+  }
+  ctx.restore();
+}
+
+// 배경 레이어 (parallax) 그리기
+function drawBackground(ctx, gt, zone, timeOfDay, weather, camX, camY, cw, ch) {
+  // 하늘 색상 (시간대별)
+  const skyColors = {
+    dusk: '#1a0a2e', midnight: '#050510', dawn: '#0d1b2a', afternoon: '#0B1426', evening: '#0f0920'
+  };
+  ctx.fillStyle = skyColors[timeOfDay] || C.BG_DEEP;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 원거리 배경 (별 + 달, 느린 패러랙스)
+  drawStarfield(ctx, gt, cw, ch);
+  ctx.fillStyle = '#DDE';
+  ctx.beginPath();
+  ctx.arc(cw * 0.8 - camX * 0.02, ch * 0.15, 25, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 중거리 배경 (건물 실루엣, 중간 패러랙스)
+  drawCitySilhouette(ctx, gt, cw, ch, camX * 0.3);
+
+  // 날씨 효과
+  drawWeather(ctx, gt, weather, cw, ch);
+}
+
+// 별하늘 그리기 (폴백)
+function drawStarfield(ctx, gt, cw, ch) {
+  rng.seed(42); // 고정 시드로 일관된 별
+  for (let i = 0; i < 80; i++) {
+    const sx = rng.next() * cw;
+    const sy = rng.next() * ch * 0.4;
+    const brightness = 0.3 + 0.5 * rng.next() + 0.2 * Math.sin(gt * 2 + i);
+    ctx.fillStyle = `rgba(255,255,255,${brightness})`;
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+  rng.seed(G._rngState || 12345); // 원래 시드 복원
+}
+
+// 도시 실루엣 (폴백)
+function drawCitySilhouette(ctx, gt, cw, ch, offset) {
+  ctx.fillStyle = C.BG_SLATE;
+  const baseY = ch * 0.5;
+  rng.seed(99);
+  for (let i = 0; i < 20; i++) {
+    const bx = i * 70 - (offset % 70);
+    const bw = 40 + rng.int(0, 30);
+    const bh = 60 + rng.int(0, 120);
+    ctx.fillRect(bx, baseY - bh, bw, bh + ch);
+  }
+  rng.seed(G._rngState || 12345);
+}
+
+// 날씨 효과 그리기
+function drawWeather(ctx, gt, weather, cw, ch) {
+  if (!weather || weather === 'clear') return;
+  ctx.save();
+
+  if (weather === 'fog') {
+    // 안개 — 반투명 레이어
+    for (let i = 0; i < 5; i++) {
+      const fy = ch * 0.3 + i * 50 + Math.sin(gt * 0.5 + i) * 20;
+      const grad = ctx.createLinearGradient(0, fy - 30, 0, fy + 30);
+      grad.addColorStop(0, 'rgba(150,170,190,0)');
+      grad.addColorStop(0.5, `rgba(150,170,190,${0.08 + 0.03 * Math.sin(gt + i)})`);
+      grad.addColorStop(1, 'rgba(150,170,190,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, fy - 30, cw, 60);
+    }
+  } else if (weather === 'rain') {
+    // 비
+    ctx.strokeStyle = 'rgba(100,140,200,0.3)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 60; i++) {
+      const rx = (i * 23 + gt * 200) % cw;
+      const ry = (i * 37 + gt * 400) % ch;
+      ctx.beginPath();
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx - 2, ry + 12);
+      ctx.stroke();
+    }
+  } else if (weather === 'snow') {
+    // 눈
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let i = 0; i < 40; i++) {
+      const sx = (i * 31 + gt * 20 + Math.sin(gt + i) * 30) % cw;
+      const sy = (i * 19 + gt * 40) % ch;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.5 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (weather === 'dust') {
+    // 먼지바람
+    ctx.fillStyle = 'rgba(180,150,100,0.05)';
+    ctx.fillRect(0, 0, cw, ch);
+    for (let i = 0; i < 30; i++) {
+      const dx = (i * 41 + gt * 80) % cw;
+      const dy = (i * 29 + Math.sin(gt * 2 + i) * 50) % ch;
+      ctx.fillStyle = `rgba(180,150,100,${0.2 + 0.1 * Math.sin(gt + i)})`;
+      ctx.fillRect(dx, dy, 2, 2);
+    }
+  } else if (weather === 'ether') {
+    // 에테르 입자
+    ctx.fillStyle = C.GHOST_CYAN;
+    for (let i = 0; i < 25; i++) {
+      const ex = (i * 47 + Math.sin(gt * 1.5 + i * 0.7) * 100) % cw;
+      const ey = (i * 33 + Math.cos(gt + i) * 80) % ch;
+      ctx.globalAlpha = 0.2 + 0.2 * Math.sin(gt * 3 + i);
+      ctx.beginPath();
+      ctx.arc(ex, ey, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+// HUD 그리기 (에테르/신뢰도/영혼 파편)
+function drawHUD(ctx, gt, cw, ch, ether, maxEther, credibility, maxCred, soulFrags, abilities, zone, caseNum, score, mode) {
+  const lang = getLang();
+  const pad = 10;
+  const barW = Math.min(160, cw * 0.25);
+  const barH = 14;
+  const fontSize = Math.max(11, Math.min(14, cw * 0.018));
+  ctx.font = `bold ${fontSize}px "Segoe UI", system-ui, sans-serif`;
+
+  // 에테르 바 (좌상단)
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(pad, pad, barW + 40, barH + 4);
+  // 에테르 아이콘 (다이아몬드 + 글로우)
+  ctx.fillStyle = C.GHOST_CYAN;
+  ctx.beginPath();
+  ctx.moveTo(pad + 13, pad - 2);
+  ctx.lineTo(pad + 22, pad + 7);
+  ctx.lineTo(pad + 13, pad + 16);
+  ctx.lineTo(pad + 4, pad + 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = C.GHOST_GLOW;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // 바 배경
+  ctx.fillStyle = 'rgba(0,212,255,0.15)';
+  ctx.fillRect(pad + 26, pad + 2, barW, barH);
+  // 바 채움
+  const etherRatio = ether / maxEther;
+  ctx.fillStyle = C.GHOST_CYAN;
+  ctx.fillRect(pad + 26, pad + 2, barW * etherRatio, barH);
+  // 텍스트
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.textAlign = 'left';
+  ctx.fillText(`${lang.ether}: ${ether | 0}/${maxEther}`, pad + 30 + barW, pad + barH);
+
+  // 신뢰도 바 (좌상단 아래)
+  const credY = pad + barH + 12;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(pad, credY, barW + 40, barH + 4);
+  // 하트 아이콘 (신뢰도)
+  ctx.fillStyle = C.CRED_BLUE;
+  ctx.beginPath();
+  const hx = pad + 13, hy = credY + 5;
+  ctx.moveTo(hx, hy + 4);
+  ctx.bezierCurveTo(hx - 8, hy - 4, hx - 8, hy - 10, hx, hy - 6);
+  ctx.bezierCurveTo(hx + 8, hy - 10, hx + 8, hy - 4, hx, hy + 4);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(93,173,226,0.15)';
+  ctx.fillRect(pad + 26, credY + 2, barW, barH);
+  const credRatio = credibility / maxCred;
+  ctx.fillStyle = credRatio > 0.5 ? C.CRED_BLUE : credRatio > 0.25 ? C.CLUE_GOLD : C.DANGER_RED;
+  ctx.fillRect(pad + 26, credY + 2, barW * credRatio, barH);
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.fillText(`${lang.credibility}: ${credibility | 0}`, pad + 30 + barW, credY + barH);
+
+  // 영혼 파편 (우상단)
+  ctx.textAlign = 'right';
+  // 영혼 파편 별 아이콘
+  drawStarIcon(ctx, cw - pad - 12 - 70, pad + 8, 9, C.CLUE_GOLD);
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.fillText(`${lang.soulFragments}: ${soulFrags}`, cw - pad, pad + 14);
+
+  // 점수 (우상단 아래)
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.fillText(`${lang.score}: ${score}`, cw - pad, pad + 32);
+
+  // 능력 모드 표시 (하단 중앙)
+  const abilityY = ch - 54;
+  const abilityW = Math.max(C.TOUCH_MIN, cw * 0.12);
+  const totalW = abilityW * 3 + 20;
+  const startX = (cw - totalW) / 2;
+
+  for (let i = 0; i < 3; i++) {
+    const ax = startX + i * (abilityW + 10);
+    const active = mode === ['clairvoyance', 'empathy', 'rewind'][i];
+    const colors = [C.CLUE_GOLD, C.SUSPECT_PURPLE, '#FF8844'];
+
+    ctx.fillStyle = active ? colors[i] : 'rgba(255,255,255,0.1)';
+    ctx.globalAlpha = active ? 0.8 : 0.4;
+    ctx.fillRect(ax, abilityY, abilityW, abilityW * 0.7);
+    ctx.globalAlpha = 1;
+
+    // 테두리
+    ctx.strokeStyle = active ? colors[i] : 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(ax, abilityY, abilityW, abilityW * 0.7);
+
+    // 번호 + 이름
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.max(10, fontSize - 1)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(`${i + 1} ${lang.abilities[i]}`, ax + abilityW / 2, abilityY + abilityW * 0.45);
+
+    // 레벨 표시
+    const lvl = abilities[['clairvoyance', 'empathy', 'rewind'][i]];
+    ctx.font = `${Math.max(9, fontSize - 2)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(`Lv${lvl}`, ax + abilityW / 2, abilityY + abilityW * 0.65);
+  }
+
+  // 구역/사건 정보 (상단 중앙)
+  if (zone >= 0 && caseNum >= 0) {
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${fontSize}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillStyle = C.DECO_BRONZE;
+    const zName = lang.zoneNames[zone] || '';
+    const cName = lang.caseNames[zone] ? (lang.caseNames[zone][caseNum] || '') : '';
+    ctx.fillText(`${zName} — ${cName}`, cw / 2, pad + 14);
+  }
+}
+
+// 이펙트 히트 그리기 (충돌/발견 시)
+function drawEffectHit(ctx, gt, x, y, scale, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  {
+    // 방사형 버스트
+    const rays = 8;
+    for (let i = 0; i < rays; i++) {
+      const angle = (i / rays) * Math.PI * 2;
+      const len = 20 * scale;
+      ctx.strokeStyle = i % 2 === 0 ? C.GHOST_CYAN : C.DANGER_RED;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(angle) * 5, y + Math.sin(angle) * 5);
+      ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// 별 아이콘 그리기 (영혼 파편/uiStar 대체)
+function drawStarIcon(ctx, cx, cy, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const outerAngle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+    const innerAngle = outerAngle + Math.PI / 5;
+    const ox = cx + Math.cos(outerAngle) * r;
+    const oy = cy + Math.sin(outerAngle) * r;
+    const ix = cx + Math.cos(innerAngle) * (r * 0.4);
+    const iy = cy + Math.sin(innerAngle) * (r * 0.4);
+    if (i === 0) ctx.moveTo(ox, oy);
+    else ctx.lineTo(ox, oy);
+    ctx.lineTo(ix, iy);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+// 아르데코 프레임 그리기 (UI 패널용)
+function drawDecoFrame(ctx, x, y, w, h, title) {
+  ctx.save();
+  // 배경
+  ctx.fillStyle = 'rgba(11,20,38,0.92)';
+  ctx.fillRect(x, y, w, h);
+
+  // 테두리
+  ctx.strokeStyle = C.DECO_BRONZE;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+  ctx.strokeRect(x + 6, y + 6, w - 12, h - 12);
+
+  // 코너 장식 (아르데코)
+  const cs = 12;
+  const corners = [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]];
+  ctx.fillStyle = C.DECO_BRONZE;
+  for (const [cx, cy] of corners) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 타이틀
+  if (title) {
+    ctx.fillStyle = C.BG_DEEP;
+    const tw = ctx.measureText(title).width + 20;
+    ctx.fillRect(x + (w - tw) / 2, y - 2, tw, 18);
+    ctx.fillStyle = C.DECO_BRONZE;
+    ctx.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, x + w / 2, y + 12);
+  }
+  ctx.restore();
+}
+
+// 파티클 시스템
+const particles = [];
+
+// 파티클 생성
+function spawnParticles(x, y, count, color, speed, life) {
+  for (let i = 0; i < count; i++) {
+    const angle = rng.next() * Math.PI * 2;
+    const spd = speed * (0.5 + rng.next());
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd,
+      life: life * (0.5 + rng.next() * 0.5),
+      maxLife: life,
+      color,
+      size: 2 + rng.next() * 3
+    });
+  }
+}
+
+// 파티클 갱신
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+// 파티클 렌더링
+function drawParticles(ctx) {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 5: ABILITY — 유령 능력 시스템
+// ═══════════════════════════════════════════════════════════════
+
+// 능력 사용 가능 여부 체크
+function canUseAbility(abilityKey, ether, cooldowns, abilityIdx) {
+  if (ether < C.ABILITY_COST[abilityKey]) return false;
+  if (cooldowns[abilityIdx] > 0) return false;
+  return true;
+}
+
+// 투시 능력 사용
+function useClairvoyance(lucian, ether, abilityLv, map) {
+  const cost = C.ABILITY_COST.clairvoyance;
+  if (ether < cost) return { ether, revealed: [] };
+  const range = 100 + abilityLv * 50;
+  const revealed = [];
+  for (const clue of map.clues) {
+    if (clue.discovered) continue;
+    if (clue.requiredAbility !== 'clairvoyance') continue;
+    if (clue.requiredLv > abilityLv) continue;
+    const dist = Math.hypot(clue.x - lucian.x, clue.y - lucian.y);
+    if (dist < range) {
+      revealed.push(clue);
+    }
+  }
+  return { ether: ether - cost, revealed };
+}
+
+// 감응 능력 사용
+function useEmpathy(lucian, ether, abilityLv, map) {
+  const cost = C.ABILITY_COST.empathy;
+  if (ether < cost) return { ether, revealed: [] };
+  const range = 80 + abilityLv * 40;
+  const revealed = [];
+  for (const clue of map.clues) {
+    if (clue.discovered) continue;
+    if (clue.requiredAbility !== 'empathy') continue;
+    if (clue.requiredLv > abilityLv) continue;
+    const dist = Math.hypot(clue.x - lucian.x, clue.y - lucian.y);
+    if (dist < range) {
+      revealed.push(clue);
+    }
+  }
+  return { ether: ether - cost, revealed };
+}
+
+// 시간역행 능력 사용
+function useRewind(lucian, ether, abilityLv, map) {
+  const cost = C.ABILITY_COST.rewind;
+  if (ether < cost) return { ether, revealed: [] };
+  const range = 60 + abilityLv * 35;
+  const revealed = [];
+  for (const clue of map.clues) {
+    if (clue.discovered) continue;
+    if (clue.requiredAbility !== 'rewind') continue;
+    if (clue.requiredLv > abilityLv) continue;
+    const dist = Math.hypot(clue.x - lucian.x, clue.y - lucian.y);
+    if (dist < range) {
+      revealed.push(clue);
+    }
+  }
+  return { ether: ether - cost, revealed };
+}
+
+// 능력 사용 통합 함수
+function useAbility(abilityIdx, lucian, G, map) {
+  const keys = ['clairvoyance', 'empathy', 'rewind'];
+  const key = keys[abilityIdx];
+  if (!canUseAbility(key, G.ether, lucian.abilityCooldown, abilityIdx)) return false;
+
+  const lv = G.abilities[key];
+  let result;
+  switch(abilityIdx) {
+    case 0: result = useClairvoyance(lucian, G.ether, lv, map); break;
+    case 1: result = useEmpathy(lucian, G.ether, lv, map); break;
+    case 2: result = useRewind(lucian, G.ether, lv, map); break;
+  }
+
+  G.ether = result.ether;
+  lucian.mode = key;
+  lucian.abilityTimer = 3; // 3초간 능력 모드 유지
+
+  // 쿨다운 설정
+  const baseCooldown = 2 + abilityIdx;
+  const cooldownMult = G.currentZone === 2 ? C.ENV_HAZARD.mansion.cooldownMult : 1;
+  // 시간역행 Lv3+ 쿨다운 감소
+  const rewindReduction = (key === 'rewind' && lv >= 3) ? 0.7 : 1;
+  lucian.abilityCooldown[abilityIdx] = baseCooldown * cooldownMult * rewindReduction;
+
+  // 발견된 단서 처리
+  for (const clue of result.revealed) {
+    clue.discovered = true;
+    if (!G.discoveredClues[clue.id]) {
+      G.discoveredClues[clue.id] = true;
+      G.evidence.push(clue);
+      G.archivePoints++;
+      spawnParticles(clue.x, clue.y, 12, C.CLUE_GOLD, 60, 0.8);
+      snd.playSfx('clue_found');
+    }
+  }
+
+  snd.playSfx('ability_use');
+  spawnParticles(lucian.x, lucian.y, 8,
+    abilityIdx === 0 ? C.CLUE_GOLD : abilityIdx === 1 ? C.SUSPECT_PURPLE : '#FF8844',
+    40, 0.6);
+
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 6: PUZZLE — 증거 조합 퍼즐 로직
+// ═══════════════════════════════════════════════════════════════
+
+// 유효 추리 체인 목록 가져오기 (사건별 정의)
+function getValidChains(zoneIdx, caseIdx) {
+  // 각 사건에 최소 2가지 유효 체인 정의
+  // 체인은 단서 인덱스 배열 (필수 단서 0,1,2 + 선택 opt0, opt1)
+  const chains = [];
+  // 기본 체인: 필수 단서 3개 순서대로
+  chains.push([0, 1, 2]);
+  // 대체 체인: 필수 2개 + 선택 1개 (역순 또는 다른 조합)
+  chains.push([2, 0, 1]);
+  if (caseIdx === 2) {
+    // 구역 보스 사건은 추가 체인
+    chains.push([1, 2, 0]);
+  }
+  return chains;
+}
+
+// 추리 체인 검증
+function checkChain(slots, validChains) {
+  if (slots.length < 3) return { valid: false, reason: 'insufficient' };
+  // 슬롯의 단서 인덱스 추출
+  const slotIndices = slots.map(s => s ? s.slotIdx : -1);
+  if (slotIndices.includes(-1)) return { valid: false, reason: 'empty_slot' };
+
+  for (const chain of validChains) {
+    let match = true;
+    for (let i = 0; i < chain.length; i++) {
+      if (slotIndices[i] !== chain[i]) { match = false; break; }
+    }
+    if (match) return { valid: true, chain };
+  }
+
+  return { valid: false, reason: 'wrong_order' };
+}
+
+// 추리 결과 평가
+function evaluateDeduction(G, zoneIdx, caseIdx, usedHints) {
+  const timeSpent = G.caseTimer;
+  const totalClues = G.currentMap ? G.currentMap.clues.length : 3;
+  const foundClues = G.evidence.filter(e => e.id && e.id.startsWith(`z${zoneIdx}c${caseIdx}`)).length;
+
+  // 점수 계산 §11.1 [F8: 판정 먼저, 저장 나중에]
+  const baseScore = C.BASE_SCORE_MULT * (zoneIdx + 1);
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  const timeLimit = C.CASE_TIME[diffKey];
+  const timeBonus = Math.max(0, (timeLimit - timeSpent) * C.TIME_BONUS_MULT);
+  const maxCred = C.CREDIBILITY[diffKey];
+  const accuracyBonus = (G.credibility / maxCred) * C.ACCURACY_BONUS;
+  const exploreBonus = (foundClues / totalClues) * C.EXPLORE_BONUS;
+  const rawScore = (baseScore + timeBonus + accuracyBonus + exploreBonus) | 0;
+
+  // 랭크 판정
+  let rank = 3; // C
+  if (G.confrontWrongs === 0 && foundClues >= totalClues && timeSpent < timeLimit * 0.5) rank = 0; // S
+  else if (G.confrontWrongs <= 1 && foundClues >= 3) rank = 1; // A
+  else if (G.credibility >= maxCred * 0.5) rank = 2; // B
+
+  const rankMult = [2.0, 1.5, 1.0, 0.7][rank];
+  const finalScore = (rawScore * rankMult) | 0;
+
+  return { rawScore, finalScore, rank, rankMult, timeBonus: timeBonus | 0, accuracyBonus: accuracyBonus | 0, exploreBonus: exploreBonus | 0 };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 7: CONFRONT — 대질 보스전 시스템
+// ═══════════════════════════════════════════════════════════════
+
+// 대질 시작
+function startConfrontation(G, zoneIdx) {
+  G.confrontRound = 0;
+  G.confrontMaxRounds = zoneIdx === 5 ? C.CONFRONT_ROUNDS.hidden :
+                        (G.currentCase === 2) ? C.CONFRONT_ROUNDS.boss : C.CONFRONT_ROUNDS.normal;
+  G.confrontWrongs = 0;
+  G.confrontPhase = 'testimony'; // testimony → select → present → result
+  G.confrontSuspect = createSuspect(zoneIdx);
+  G.confrontCorrectEvIdx = G.confrontRound % G.evidence.length;
+  G.bossRewardGiven = false;
+}
+
+// 증거 제시 판정
+function presentEvidence(G, evidenceIdx) {
+  const correctIdx = G.confrontCorrectEvIdx;
+  if (evidenceIdx === correctIdx) {
+    // 정답
+    G.confrontRound++;
+    G.confrontSuspect.emotion = G.confrontRound >= G.confrontMaxRounds ? 'confessing' : 'nervous';
+    G.confrontPhase = 'result_correct';
+    snd.playSfx('correct');
+    spawnParticles(G._cw / 2, G._ch / 2, 15, C.SUCCESS_GREEN, 80, 0.8);
+    return true;
+  } else {
+    // 오답
+    G.confrontWrongs++;
+    const penalty = (evidenceIdx === -1) ? C.WRONG_PENALTY.critical : C.WRONG_PENALTY.normal;
+    const ddaPenalty = G.ddaLevel < 0 ? penalty * C.DDA_PENALTY_REDUCTION : penalty;
+    G.credibility -= ddaPenalty;
+    G.confrontSuspect.emotion = 'angry';
+    G.confrontPhase = 'result_wrong';
+    snd.playSfx('wrong');
+    G.screenShake = 0.3;
+    return false;
+  }
+}
+
+// 대질 증언 텍스트 가져오기
+function getBossDialogue(zoneIdx, round, langKey) {
+  const lang = LANG[langKey] || LANG.ko;
+  const dialogues = lang.confrontDialogue[zoneIdx];
+  if (!dialogues) return '...';
+  return dialogues[round % dialogues.length] || '...';
+}
+
+// 대질 모순 탐지 (올바른 증거 인덱스 계산)
+function checkContradiction(G, round) {
+  // 라운드별로 올바른 증거가 다름 — 필수 단서 중 해당 라운드에 맞는 것
+  const essentialEvidence = G.evidence.filter(e => e.essential);
+  if (essentialEvidence.length === 0) return 0;
+  return G.evidence.indexOf(essentialEvidence[round % essentialEvidence.length]);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 8: STATE — 상태 머신, 전환 가드
+// ═══════════════════════════════════════════════════════════════
+
+// 게임 상태 목록
+const STATES = {
+  TITLE: 'TITLE',
+  INTRO_CUTSCENE: 'INTRO_CUTSCENE',
+  ZONE_MAP: 'ZONE_MAP',
+  CASE_BRIEFING: 'CASE_BRIEFING',
+  EXPLORATION: 'EXPLORATION',
+  EVIDENCE_FOUND: 'EVIDENCE_FOUND',
+  PUZZLE_BOARD: 'PUZZLE_BOARD',
+  DEDUCTION_RESULT: 'DEDUCTION_RESULT',
+  CONFRONTATION_INTRO: 'CONFRONTATION_INTRO',
+  CONFRONTATION: 'CONFRONTATION',
+  BOSS_REWARD: 'BOSS_REWARD',
+  CASE_SOLVED: 'CASE_SOLVED',
+  UPGRADE_MENU: 'UPGRADE_MENU',
+  GAME_COMPLETE: 'GAME_COMPLETE',
+  CREDITS: 'CREDITS',
+  PAUSE: 'PAUSE',
+  SETTINGS: 'SETTINGS',
+  GAME_OVER: 'GAME_OVER'
+};
+
+// 상태 전환 허용 딕셔너리 [F6, F90]
+const ESCAPE_ALLOWED = {
+  TITLE: [],
+  INTRO_CUTSCENE: ['TITLE'],
+  ZONE_MAP: ['PAUSE'],
+  CASE_BRIEFING: ['ZONE_MAP'],
+  EXPLORATION: ['PAUSE'],
+  EVIDENCE_FOUND: [],
+  PUZZLE_BOARD: ['EXPLORATION'],
+  DEDUCTION_RESULT: [],
+  CONFRONTATION_INTRO: [],
+  CONFRONTATION: ['PAUSE'],
+  BOSS_REWARD: [],
+  CASE_SOLVED: [],
+  UPGRADE_MENU: ['ZONE_MAP'],
+  GAME_COMPLETE: ['CREDITS'],
+  CREDITS: ['TITLE'],
+  PAUSE: ['__PREVIOUS__'],
+  SETTINGS: ['PAUSE'],
+  GAME_OVER: ['TITLE']
+};
+
+// 상태 우선순위
+const STATE_PRIORITY = {
+  TITLE: 0, ZONE_MAP: 1, CASE_BRIEFING: 2,
+  EXPLORATION: 3, EVIDENCE_FOUND: 4, PUZZLE_BOARD: 5,
+  DEDUCTION_RESULT: 6, CONFRONTATION_INTRO: 7,
+  CONFRONTATION: 8, BOSS_REWARD: 9, CASE_SOLVED: 10,
+  UPGRADE_MENU: 3, GAME_COMPLETE: 11, CREDITS: 0,
+  PAUSE: 99, SETTINGS: 100, GAME_OVER: 50,
+  INTRO_CUTSCENE: 0
+};
+
+// 상태 × 시스템 활성화 매트릭스 [F7]
+const ACTIVE_SYSTEMS = {
+  TITLE:               { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  INTRO_CUTSCENE:      { tween: true, input: 'cutscene', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  ZONE_MAP:            { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: 'mini', weather: false },
+  CASE_BRIEFING:       { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: 'mini', weather: false },
+  EXPLORATION:         { tween: true, input: 'game', explore: true, puzzle: false, confront: false, hud: true, weather: true },
+  EVIDENCE_FOUND:      { tween: true, input: 'limited', explore: false, puzzle: false, confront: false, hud: true, weather: true },
+  PUZZLE_BOARD:        { tween: true, input: 'puzzle', explore: false, puzzle: true, confront: false, hud: true, weather: false },
+  DEDUCTION_RESULT:    { tween: true, input: 'cutscene', explore: false, puzzle: false, confront: false, hud: true, weather: false },
+  CONFRONTATION_INTRO: { tween: true, input: 'cutscene', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  CONFRONTATION:       { tween: true, input: 'confront', explore: false, puzzle: false, confront: true, hud: true, weather: false },
+  BOSS_REWARD:         { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  CASE_SOLVED:         { tween: true, input: 'cutscene', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  UPGRADE_MENU:        { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: 'mini', weather: false },
+  GAME_COMPLETE:       { tween: true, input: 'cutscene', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  CREDITS:             { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  PAUSE:               { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  SETTINGS:            { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: false, weather: false },
+  GAME_OVER:           { tween: true, input: 'menu', explore: false, puzzle: false, confront: false, hud: false, weather: false }
+};
+
+// 전환 변수
+let transitionActive = false;
+let transitionAlpha = 0;
+let transitionTarget = '';
+let transitionType = 'fade';
+let previousState = '';
+
+// 상태 진입 시 초기화
+function onStateEnter(state) {
+  switch(state) {
+    case STATES.TITLE:
+      G.titlePhase = 0;
+      snd.startBgm('title');
+      break;
+    case STATES.ZONE_MAP:
+      snd.startBgm('map');
+      break;
+    case STATES.CASE_BRIEFING:
+      G.briefTimer = 0;
+      break;
+    case STATES.EXPLORATION:
+      initExploration();
+      snd.startBgm('zone');
+      break;
+    case STATES.PUZZLE_BOARD:
+      initPuzzleBoard();
+      snd.startBgm('puzzle');
+      break;
+    case STATES.CONFRONTATION_INTRO:
+      G.introTimer = 0;
+      snd.playSfx('boss_appear');
+      snd.startBgm('boss');
+      tw.delay(2.0, () => {
+        if (G.state === STATES.CONFRONTATION_INTRO) {
+          beginTransition(STATES.CONFRONTATION, 'dramatic', 1.0);
+        }
+      });
+      break;
+    case STATES.CONFRONTATION:
+      startConfrontation(G, G.currentZone);
+      break;
+    case STATES.BOSS_REWARD:
+      if (!G.bossRewardGiven) {
+        G.bossRewardGiven = true; // [F17] 1회 보장
+        G.soulFragments += 3;
+        // 도구 해금
+        const toolIdx = G.currentZone;
+        if (toolIdx < G.toolsUnlocked.length) G.toolsUnlocked[toolIdx] = true;
+      }
+      snd.startBgm('upgrade');
+      break;
+    case STATES.CASE_SOLVED:
+      G.caseSolvedTimer = 0;
+      // 점수 계산 [F8: 판정 먼저, 저장 나중에]
+      G.lastResult = evaluateDeduction(G, G.currentZone, G.currentCase, G.hintsUsed);
+      G.totalScore += G.lastResult.finalScore;
+      // 사건 완료 기록
+      const caseKey = `z${G.currentZone}c${G.currentCase}`;
+      G.solvedCases[caseKey] = { rank: G.lastResult.rank, score: G.lastResult.finalScore };
+      // DDA 갱신
+      if (G.lastResult.rank <= 1) G.ddaStreak++;
+      else G.ddaStreak = 0;
+      if (G.ddaStreak >= C.DDA_STREAK_THRESHOLD) G.ddaLevel++;
+      // 저장 (판정 후) [F8]
+      saveProgress();
+      snd.playSfx('chain_complete');
+      tw.delay(3.0, () => {
+        if (G.state === STATES.CASE_SOLVED) {
+          // 구역 보스 사건이었으면 업그레이드로, 아니면 존맵으로
+          if (G.currentCase === 2 || (G.currentZone === 5 && G.currentCase === 0)) {
+            beginTransition(STATES.BOSS_REWARD, 'fade');
+          } else {
+            beginTransition(STATES.ZONE_MAP, 'fade');
+          }
+        }
+      });
+      break;
+    case STATES.UPGRADE_MENU:
+      snd.startBgm('upgrade');
+      break;
+    case STATES.GAME_COMPLETE:
+      G.completeTimer = 0;
+      snd.startBgm('ending');
+      break;
+    case STATES.GAME_OVER:
+      G.screenShake = 0.5;
+      snd.stopBgm();
+      break;
+    case STATES.PAUSE:
+      snd.stopBgm();
+      break;
+    case STATES.CREDITS:
+      G.creditsScroll = 0;
+      break;
+  }
+}
+
+// 탐색 모드 초기화
+function initExploration() {
+  rng.seed(G.currentZone * 100 + G.currentCase * 10 + G.runSeed);
+  G.currentMap = generateExplorationMap(G.currentZone, G.currentCase, G.abilities);
+  G.lucian = createLucian();
+  G.lucian.x = G.currentMap.w / 2;
+  G.lucian.y = G.currentMap.h / 2;
+  G.caseTimer = 0;
+  G.caseEvidence = [];
+  G.camX = 0;
+  G.camY = 0;
+  // 환경 위험 초기화 [Cycle 31 학습]
+  G.envTimer = 0;
+  G.envTraps = null;
+}
+
+// 퍼즐 보드 초기화
+function initPuzzleBoard() {
+  G.puzzleSlots = [null, null, null];
+  G.puzzleSelected = -1;
+  G.puzzleResult = null;
+  G.puzzleDragging = -1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 9: SAVE — 로컬 스토리지 저장/불러오기
+// ═══════════════════════════════════════════════════════════════
+
+const SAVE_KEY = 'spectral_sleuth_save';
+const HIGH_KEY = 'spectral_sleuth_high';
+
+// 진행 상태 저장
+function saveProgress() {
+  try {
+    const data = {
+      zone: G.currentZone,
+      caseNum: G.currentCase,
+      abilities: G.abilities,
+      upgrades: G.upgrades,
+      soulFragments: G.soulFragments,
+      solvedCases: G.solvedCases,
+      toolsUnlocked: G.toolsUnlocked,
+      totalScore: G.totalScore,
+      difficulty: G.difficulty,
+      ddaLevel: G.ddaLevel,
+      lang: G.settings.lang
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+
+    // 최고 점수 갱신 [F8: 판정 먼저, 저장 나중에]
+    const prev = parseInt(localStorage.getItem(HIGH_KEY)) || 0;
+    if (G.totalScore > prev) {
+      localStorage.setItem(HIGH_KEY, G.totalScore.toString());
+    }
+  } catch(e) { /* localStorage 불가 시 무시 */ }
+}
+
+// 진행 상태 불러오기
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    G.currentZone = data.zone || 0;
+    G.currentCase = data.caseNum || 0;
+    G.abilities = data.abilities || { clairvoyance: 1, empathy: 1, rewind: 1 };
+    G.upgrades = data.upgrades || { clairvoyance: 0, empathy: 0, rewind: 0 };
+    G.soulFragments = data.soulFragments || 0;
+    G.solvedCases = data.solvedCases || {};
+    G.toolsUnlocked = data.toolsUnlocked || [true, false, false, false, false, false, false, false];
+    G.totalScore = data.totalScore || 0;
+    G.difficulty = data.difficulty || 1;
+    G.ddaLevel = data.ddaLevel || 0;
+    G.settings.lang = data.lang || 'ko';
+    return true;
+  } catch(e) { return false; }
+}
+
+// 최고 점수 가져오기
+function getHighScore() {
+  try { return parseInt(localStorage.getItem(HIGH_KEY)) || 0; } catch(e) { return 0; }
+}
+
+// 진행 초기화
+function resetProgress() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(HIGH_KEY);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 10: MAIN — 초기화, 메인 루프, 이벤트 바인딩
+// ═══════════════════════════════════════════════════════════════
+
+// --- 전역 게임 상태 (INIT_EMPTY 패턴) [F12, F86] ---
+const G = {
+  state: STATES.TITLE,
+  lucian: createLucian(),
+  evidence: [],
+  abilities: { clairvoyance: 1, empathy: 1, rewind: 1 },
+  upgrades: { clairvoyance: 0, empathy: 0, rewind: 0 },
+  ether: C.ETHER_INIT,
+  credibility: 100,
+  soulFragments: 0,
+  archivePoints: 0,
+  currentZone: 0,
+  currentCase: 0,
+  currentMap: null,
+  discoveredClues: {},
+  solvedCases: {},
+  settings: { lang: 'ko', sfxVol: 0.7, bgmVol: 0.5 },
+  difficulty: 1, // 0=easy, 1=medium, 2=hard
+  toolsUnlocked: [true, false, false, false, false, false, false, false],
+  totalScore: 0,
+  highScore: 0,
+  caseTimer: 0,
+  caseEvidence: [],
+  confrontRound: 0,
+  confrontMaxRounds: 4,
+  confrontWrongs: 0,
+  confrontPhase: 'testimony',
+  confrontSuspect: null,
+  confrontCorrectEvIdx: 0,
+  bossRewardGiven: false,
+  ddaLevel: 0,
+  ddaStreak: 0,
+  hintsUsed: 0,
+  hintsAvail: 3,
+  camX: 0,
+  camY: 0,
+  camZoom: 1,
+  screenShake: 0,
+  titlePhase: 0,
+  briefTimer: 0,
+  introTimer: 0,
+  caseSolvedTimer: 0,
+  completeTimer: 0,
+  creditsScroll: 0,
+  lastResult: null,
+  runSeed: 12345,
+  _rngState: 12345,
+  _cw: 800,
+  _ch: 600,
+
+  // 퍼즐 보드 상태
+  puzzleSlots: [null, null, null],
+  puzzleSelected: -1,
+  puzzleResult: null,
+  puzzleDragging: -1,
+
+  // 환경 상태 [Cycle 31 학습]
+  envTimer: 0,
+  envTraps: null,
+
+  // 가상 조이스틱
+  joystick: { active: false, sx: 0, sy: 0, cx: 0, cy: 0, dx: 0, dy: 0 },
+
+  // 팝업 텍스트
+  popups: [],
+
+  // 업그레이드 메뉴 선택
+  upgradeSelected: 0,
+
+  // 존맵 선택
+  zoneSelected: 0,
+  caseSelected: 0,
+
+  // 대질 증거 선택
+  confrontEvidenceSelected: 0,
+
+  // 설정 메뉴 선택
+  settingsSelected: 0
+};
+
+// Canvas 초기화
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let dpr = 1;
+
+// Canvas 크기 조정 (devicePixelRatio 대응)
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  G._cw = w;
+  G._ch = h;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- 입력 관리 ---
+const keys = {};
+let mouseX = 0, mouseY = 0;
+let mouseDown = false;
+let mouseClicked = false;
+let touchActive = false;
+let doubleTapTimer = 0;
+let longPressTimer = 0;
+let longPressed = false;
+
+// 키보드 이벤트
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  handleKeyAction(e.code);
+  e.preventDefault();
+});
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  e.preventDefault();
+});
+
+// 키 액션 처리
+function handleKeyAction(code) {
+  const lang = getLang();
+  const sys = ACTIVE_SYSTEMS[G.state];
+  if (!sys) return;
+
+  // 글로벌 키
+  if (code === 'Escape') {
+    const allowed = ESCAPE_ALLOWED[G.state];
+    if (allowed && allowed.length > 0) {
+      const target = allowed[0] === '__PREVIOUS__' ? previousState : allowed[0];
+      if (target) beginTransition(target, 'fade', 0.3);
+    }
+    return;
+  }
+
+  // 상태별 키 처리
+  switch(G.state) {
+    case STATES.TITLE:
+      if (code === 'Space' || code === 'Enter') {
+        snd.init();
+        if (loadProgress() && Object.keys(G.solvedCases).length > 0) {
+          beginTransition(STATES.ZONE_MAP, 'fade', 0.5);
+        } else {
+          G.runSeed = Date.now() & 0xFFFF;
+          rng.seed(G.runSeed);
+          beginTransition(STATES.INTRO_CUTSCENE, 'fade', 0.6);
+        }
+      }
+      if (code === 'KeyL') {
+        G.settings.lang = G.settings.lang === 'ko' ? 'en' : 'ko';
+      }
+      if (code === 'ArrowUp' || code === 'KeyW') {
+        G.difficulty = Math.max(0, G.difficulty - 1);
+      }
+      if (code === 'ArrowDown' || code === 'KeyS') {
+        G.difficulty = Math.min(2, G.difficulty + 1);
+      }
+      break;
+
+    case STATES.INTRO_CUTSCENE:
+      if (code === 'Space' || code === 'Enter') {
+        beginTransition(STATES.ZONE_MAP, 'fade', 0.5);
+      }
+      break;
+
+    case STATES.ZONE_MAP:
+      if (code === 'ArrowLeft' || code === 'KeyA') G.zoneSelected = Math.max(0, G.zoneSelected - 1);
+      if (code === 'ArrowRight' || code === 'KeyD') G.zoneSelected = Math.min(5, G.zoneSelected + 1);
+      if (code === 'ArrowUp' || code === 'KeyW') G.caseSelected = Math.max(0, G.caseSelected - 1);
+      if (code === 'ArrowDown' || code === 'KeyS') {
+        const maxCase = G.zoneSelected === 5 ? 0 : 2;
+        G.caseSelected = Math.min(maxCase, G.caseSelected + 1);
+      }
+      if (code === 'Space' || code === 'Enter') {
+        if (canEnterCase(G.zoneSelected, G.caseSelected)) {
+          G.currentZone = G.zoneSelected;
+          G.currentCase = G.caseSelected;
+          beginTransition(STATES.CASE_BRIEFING, 'wipe', 0.3);
+        }
+      }
+      break;
+
+    case STATES.CASE_BRIEFING:
+      if (code === 'Space' || code === 'Enter') {
+        beginTransition(STATES.EXPLORATION, 'wipe', 0.3);
+      }
+      break;
+
+    case STATES.EXPLORATION:
+      // 능력 선택
+      if (code === 'Digit1') selectAbility(0);
+      if (code === 'Digit2') selectAbility(1);
+      if (code === 'Digit3') selectAbility(2);
+      // 능력 사용 / 단서 수집
+      if (code === 'Space') {
+        if (G.lucian.mode !== 'normal') {
+          const abilityIdx = ['clairvoyance', 'empathy', 'rewind'].indexOf(G.lucian.mode);
+          useAbility(abilityIdx, G.lucian, G, G.currentMap);
+        } else {
+          tryCollectClue();
+        }
+      }
+      // 상호작용
+      if (code === 'KeyE') tryInteract();
+      // 증거 인벤토리
+      if (code === 'Tab') {
+        if (G.evidence.length >= 3) {
+          beginTransition(STATES.PUZZLE_BOARD, 'slide', 0.3);
+        }
+      }
+      // 추리 보드
+      if (code === 'KeyQ') {
+        if (G.evidence.length >= 3) {
+          beginTransition(STATES.PUZZLE_BOARD, 'slide', 0.3);
+        }
+      }
+      // 힌트
+      if (code === 'KeyH') useHint();
+      break;
+
+    case STATES.PUZZLE_BOARD:
+      if (code === 'ArrowLeft' || code === 'KeyA') G.puzzleSelected = Math.max(0, G.puzzleSelected - 1);
+      if (code === 'ArrowRight' || code === 'KeyD') G.puzzleSelected = Math.min(G.evidence.length - 1, G.puzzleSelected + 1);
+      if (code === 'Space' || code === 'Enter') {
+        placeEvidenceInSlot();
+      }
+      if (code === 'KeyV') verifyPuzzle();
+      if (code === 'Backspace') clearPuzzleSlot();
+      break;
+
+    case STATES.CONFRONTATION:
+      if (code === 'ArrowLeft' || code === 'KeyA') {
+        G.confrontEvidenceSelected = Math.max(0, G.confrontEvidenceSelected - 1);
+      }
+      if (code === 'ArrowRight' || code === 'KeyD') {
+        G.confrontEvidenceSelected = Math.min(G.evidence.length - 1, G.confrontEvidenceSelected + 1);
+      }
+      if (code === 'Space' || code === 'Enter') {
+        if (G.confrontPhase === 'select') {
+          presentEvidence(G, G.confrontEvidenceSelected);
+        } else if (G.confrontPhase === 'result_correct' || G.confrontPhase === 'result_wrong') {
+          advanceConfrontation();
+        } else if (G.confrontPhase === 'testimony') {
+          G.confrontPhase = 'select';
+        }
+      }
+      break;
+
+    case STATES.BOSS_REWARD:
+      if (code === 'Space' || code === 'Enter') {
+        beginTransition(STATES.UPGRADE_MENU, 'fade', 0.4);
+      }
+      break;
+
+    case STATES.UPGRADE_MENU:
+      if (code === 'ArrowUp' || code === 'KeyW') G.upgradeSelected = Math.max(0, G.upgradeSelected - 1);
+      if (code === 'ArrowDown' || code === 'KeyS') G.upgradeSelected = Math.min(2, G.upgradeSelected + 1);
+      if (code === 'Space' || code === 'Enter') tryUpgrade(G.upgradeSelected);
+      if (code === 'KeyB' || code === 'Backspace') beginTransition(STATES.ZONE_MAP, 'fade', 0.3);
+      break;
+
+    case STATES.GAME_OVER:
+      if (code === 'KeyR' || code === 'Space') {
+        resetCurrentRun();
+        beginTransition(STATES.ZONE_MAP, 'fade', 0.5);
+      }
+      break;
+
+    case STATES.GAME_COMPLETE:
+      if (code === 'Space' || code === 'Enter') {
+        beginTransition(STATES.CREDITS, 'fade', 0.6);
+      }
+      break;
+
+    case STATES.CREDITS:
+      if (code === 'Space' || code === 'Enter') {
+        beginTransition(STATES.TITLE, 'fade', 0.5);
+      }
+      break;
+
+    case STATES.PAUSE:
+      if (code === 'Space' || code === 'Enter') {
+        // 즉시 복귀 [Cycle 28: PAUSE 복귀는 즉시 setState]
+        G.state = previousState;
+        snd.startBgm('zone');
+      }
+      if (code === 'KeyS') {
+        G.state = STATES.SETTINGS;
+        onStateEnter(STATES.SETTINGS);
+      }
+      break;
+
+    case STATES.SETTINGS:
+      if (code === 'ArrowUp' || code === 'KeyW') G.settingsSelected = Math.max(0, G.settingsSelected - 1);
+      if (code === 'ArrowDown' || code === 'KeyS') G.settingsSelected = Math.min(3, G.settingsSelected + 1);
+      if (code === 'ArrowLeft' || code === 'KeyA') adjustSetting(-1);
+      if (code === 'ArrowRight' || code === 'KeyD') adjustSetting(1);
+      if (code === 'Backspace') {
+        G.state = STATES.PAUSE;
+      }
+      break;
+  }
+}
+
+// 능력 선택
+function selectAbility(idx) {
+  const keys = ['clairvoyance', 'empathy', 'rewind'];
+  G.lucian.mode = G.lucian.mode === keys[idx] ? 'normal' : keys[idx];
+  snd.playSfx('ghost_mode');
+}
+
+// 단서 수집 시도
+function tryCollectClue() {
+  if (!G.currentMap) return;
+  for (const clue of G.currentMap.clues) {
+    if (clue.discovered) continue;
+    const dist = Math.hypot(clue.x - G.lucian.x, clue.y - G.lucian.y);
+    if (dist < 40) {
+      // 직접 수집 가능 (능력 없이)
+      clue.discovered = true;
+      if (!G.discoveredClues[clue.id]) {
+        G.discoveredClues[clue.id] = true;
+        G.evidence.push(clue);
+        G.archivePoints++;
+        snd.playSfx('clue_found');
+        spawnParticles(clue.x, clue.y, 10, C.CLUE_GOLD, 50, 0.7);
+        addPopup(getLang().clueFound, clue.x, clue.y - 30, C.CLUE_GOLD);
+      }
+      return;
+    }
+  }
+}
+
+// 상호작용 시도
+function tryInteract() {
+  if (!G.currentMap) return;
+  // NPC와 대화
+  for (const npc of G.currentMap.npcs) {
+    if (!npc.active) continue;
+    const dist = Math.hypot(npc.x - G.lucian.x, npc.y - G.lucian.y);
+    if (dist < 50) {
+      addPopup('...', npc.x, npc.y - 40, C.TEXT_SECONDARY);
+      return;
+    }
+  }
+}
+
+// 힌트 사용
+function useHint() {
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  const maxHints = diffKey === 'easy' ? 99 : diffKey === 'medium' ? 3 : 1;
+  if (G.hintsUsed >= maxHints) return;
+  if (!G.currentMap) return;
+
+  // 미발견 단서 중 가장 가까운 것 표시
+  let nearest = null, nearDist = Infinity;
+  for (const clue of G.currentMap.clues) {
+    if (clue.discovered) continue;
+    const d = Math.hypot(clue.x - G.lucian.x, clue.y - G.lucian.y);
+    if (d < nearDist) { nearDist = d; nearest = clue; }
+  }
+  if (nearest) {
+    spawnParticles(nearest.x, nearest.y, 15, C.CLUE_GOLD, 30, 2.0);
+    G.hintsUsed++;
+    G.credibility -= 10;
+    addPopup('💡', nearest.x, nearest.y - 20, C.CLUE_GOLD);
+  }
+}
+
+// 퍼즐 슬롯에 증거 배치
+function placeEvidenceInSlot() {
+  if (G.puzzleSelected < 0 || G.puzzleSelected >= G.evidence.length) return;
+  const ev = G.evidence[G.puzzleSelected];
+  // 빈 슬롯 찾기
+  for (let i = 0; i < 3; i++) {
+    if (!G.puzzleSlots[i]) {
+      G.puzzleSlots[i] = { ...ev, slotIdx: G.puzzleSelected };
+      snd.playSfx('clue_found');
+      return;
+    }
+  }
+}
+
+// 퍼즐 슬롯 비우기
+function clearPuzzleSlot() {
+  for (let i = 2; i >= 0; i--) {
+    if (G.puzzleSlots[i]) {
+      G.puzzleSlots[i] = null;
+      return;
+    }
+  }
+}
+
+// 퍼즐 검증
+function verifyPuzzle() {
+  const validChains = getValidChains(G.currentZone, G.currentCase);
+  const result = checkChain(G.puzzleSlots, validChains);
+  G.puzzleResult = result;
+
+  if (result.valid) {
+    snd.playSfx('chain_complete');
+    spawnParticles(G._cw / 2, G._ch / 2, 20, C.SUCCESS_GREEN, 80, 1.0);
+    tw.delay(1.5, () => {
+      if (G.state === STATES.PUZZLE_BOARD) {
+        beginTransition(STATES.CONFRONTATION_INTRO, 'fade', 0.6);
+      }
+    });
+  } else {
+    snd.playSfx('wrong');
+    G.screenShake = 0.2;
+  }
+}
+
+// 대질 진행
+function advanceConfrontation() {
+  if (G.confrontRound >= G.confrontMaxRounds) {
+    // 대질 성공
+    beginTransition(STATES.CASE_SOLVED, 'fade', 0.6);
+    return;
+  }
+  if (G.credibility <= 0) {
+    // 신뢰도 소진 — 게임 오버
+    beginTransition(STATES.GAME_OVER, 'fade', 0.5);
+    return;
+  }
+  // 다음 라운드
+  G.confrontPhase = 'testimony';
+  G.confrontCorrectEvIdx = checkContradiction(G, G.confrontRound);
+  G.confrontSuspect.emotion = 'calm';
+  G.confrontSuspect.speaking = true;
+}
+
+// 사건 진입 가능 여부 확인
+function canEnterCase(zoneIdx, caseIdx) {
+  if (zoneIdx === 5) {
+    // 히든: 구역 1~5 모두 클리어 필요
+    for (let z = 0; z < 5; z++) {
+      if (!G.solvedCases[`z${z}c2`]) return false;
+    }
+    return true;
+  }
+  if (caseIdx === 0) {
+    // 첫 사건은 이전 구역 보스 클리어 필요 (구역 0은 항상 가능)
+    if (zoneIdx === 0) return true;
+    return !!G.solvedCases[`z${zoneIdx - 1}c2`];
+  }
+  // 이전 사건 클리어 필요
+  return !!G.solvedCases[`z${zoneIdx}c${caseIdx - 1}`];
+}
+
+// 업그레이드 시도
+function tryUpgrade(abilityIdx) {
+  const keys = ['clairvoyance', 'empathy', 'rewind'];
+  const key = keys[abilityIdx];
+  const currentLv = G.upgrades[key];
+  if (currentLv >= 5) return; // 최대 레벨
+  const cost = C.UPGRADE_COST[currentLv];
+  if (G.soulFragments < cost) return;
+  G.soulFragments -= cost;
+  G.upgrades[key]++;
+  G.abilities[key] = G.upgrades[key] + 1;
+  snd.playSfx('correct');
+  spawnParticles(G._cw / 2, G._ch / 2, 10, C.GHOST_CYAN, 60, 0.6);
+  saveProgress();
+}
+
+// 설정 조절
+function adjustSetting(dir) {
+  switch(G.settingsSelected) {
+    case 0: // 언어
+      G.settings.lang = G.settings.lang === 'ko' ? 'en' : 'ko';
+      break;
+    case 1: // 효과음
+      snd.setSfxVol(Math.max(0, Math.min(1, snd.sfxVol + dir * 0.1)));
+      break;
+    case 2: // 배경음
+      snd.setBgmVol(Math.max(0, Math.min(1, snd.bgmVol + dir * 0.1)));
+      break;
+    case 3: // 난이도
+      G.difficulty = Math.max(0, Math.min(2, G.difficulty + dir));
+      break;
+  }
+}
+
+// 현재 런 초기화
+function resetCurrentRun() {
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  G.credibility = C.CREDIBILITY[diffKey];
+  G.ether = C.ETHER_INIT;
+  G.evidence = [];
+  G.discoveredClues = {};
+  G.confrontWrongs = 0;
+  G.hintsUsed = 0;
+  G.hintsAvail = diffKey === 'easy' ? 99 : diffKey === 'medium' ? 3 : 1;
+  G.caseTimer = 0;
+  G.screenShake = 0;
+  G.envTimer = 0;
+  G.envTraps = null;
+  particles.length = 0;
+}
+
+// 텍스트 팝업 추가
+function addPopup(text, x, y, color) {
+  G.popups.push({ text, x, y, color, life: 1.5, maxLife: 1.5 });
+}
+
+// --- 터치 이벤트 ---
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  snd.init();
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const tx = t.clientX - rect.left;
+  const ty = t.clientY - rect.top;
+  mouseX = tx;
+  mouseY = ty;
+  touchActive = true;
+  mouseDown = true;
+  longPressTimer = 0.5; // 500ms
+  longPressed = false;
+
+  // 더블 탭 감지
+  if (doubleTapTimer > 0) {
+    handleDoubleTap(tx, ty);
+    doubleTapTimer = 0;
+  } else {
+    doubleTapTimer = 0.3;
+  }
+
+  // 가상 조이스틱 시작 (탐색 모드에서 하단 좌측)
+  if (G.state === STATES.EXPLORATION && ty > G._ch * 0.5) {
+    G.joystick.active = true;
+    G.joystick.sx = tx;
+    G.joystick.sy = ty;
+    G.joystick.cx = tx;
+    G.joystick.cy = ty;
+  }
+
+  handleTouchAction(tx, ty);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  mouseX = t.clientX - rect.left;
+  mouseY = t.clientY - rect.top;
+
+  if (G.joystick.active) {
+    G.joystick.cx = mouseX;
+    G.joystick.cy = mouseY;
+    const dx = G.joystick.cx - G.joystick.sx;
+    const dy = G.joystick.cy - G.joystick.sy;
+    const dist = Math.hypot(dx, dy);
+    const maxDist = 50;
+    if (dist > 0) {
+      G.joystick.dx = (dx / dist) * Math.min(dist, maxDist) / maxDist;
+      G.joystick.dy = (dy / dist) * Math.min(dist, maxDist) / maxDist;
+    }
+  }
+  longPressTimer = 0; // 이동 시 롱프레스 취소
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  touchActive = false;
+  mouseDown = false;
+  G.joystick.active = false;
+  G.joystick.dx = 0;
+  G.joystick.dy = 0;
+  longPressTimer = 0;
+}, { passive: false });
+
+// 마우스 이벤트
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left;
+  mouseY = e.clientY - rect.top;
+  mouseDown = true;
+  mouseClicked = true;
+  handleTouchAction(mouseX, mouseY);
+});
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left;
+  mouseY = e.clientY - rect.top;
+});
+canvas.addEventListener('mouseup', () => { mouseDown = false; });
+
+// 터치/클릭 통합 액션 처리
+function handleTouchAction(tx, ty) {
+  snd.init();
+  const cw = G._cw, ch = G._ch;
+  const sys = ACTIVE_SYSTEMS[G.state];
+
+  switch(G.state) {
+    case STATES.TITLE:
+      handleKeyAction('Space');
+      break;
+
+    case STATES.INTRO_CUTSCENE:
+      handleKeyAction('Space');
+      break;
+
+    case STATES.ZONE_MAP:
+      handleZoneMapTouch(tx, ty, cw, ch);
+      break;
+
+    case STATES.CASE_BRIEFING:
+      handleKeyAction('Space');
+      break;
+
+    case STATES.EXPLORATION:
+      handleExplorationTouch(tx, ty, cw, ch);
+      break;
+
+    case STATES.PUZZLE_BOARD:
+      handlePuzzleTouch(tx, ty, cw, ch);
+      break;
+
+    case STATES.CONFRONTATION:
+      handleConfrontationTouch(tx, ty, cw, ch);
+      break;
+
+    case STATES.BOSS_REWARD:
+    case STATES.CASE_SOLVED:
+    case STATES.GAME_COMPLETE:
+    case STATES.CREDITS:
+      handleKeyAction('Space');
+      break;
+
+    case STATES.UPGRADE_MENU:
+      handleUpgradeTouch(tx, ty, cw, ch);
+      break;
+
+    case STATES.GAME_OVER:
+      handleKeyAction('KeyR');
+      break;
+
+    case STATES.PAUSE:
+      // 상단: 계속, 하단: 설정
+      if (ty < ch / 2) handleKeyAction('Space');
+      else handleKeyAction('KeyS');
+      break;
+
+    case STATES.SETTINGS:
+      handleSettingsTouch(tx, ty, cw, ch);
+      break;
+  }
+}
+
+// 더블 탭 처리 (E키 대체)
+function handleDoubleTap(tx, ty) {
+  if (G.state === STATES.EXPLORATION) {
+    tryInteract();
+  }
+}
+
+// 존맵 터치 처리
+function handleZoneMapTouch(tx, ty, cw, ch) {
+  const zonePad = 20;
+  const zoneW = Math.min(100, (cw - zonePad * 7) / 6);
+  const startX = (cw - (zoneW * 6 + zonePad * 5)) / 2;
+  const startY = ch * 0.3;
+
+  for (let i = 0; i < 6; i++) {
+    const zx = startX + i * (zoneW + zonePad);
+    if (hitTest(tx, ty, zx, startY, zoneW, zoneW * 1.2)) {
+      G.zoneSelected = i;
+      G.caseSelected = 0;
+      // 사건 선택 표시
+      return;
+    }
+  }
+
+  // 사건 선택 (선택된 구역 아래)
+  const caseY = startY + zoneW * 1.5;
+  const maxCases = G.zoneSelected === 5 ? 1 : 3;
+  for (let c = 0; c < maxCases; c++) {
+    const cx = startX + c * (zoneW + zonePad);
+    if (hitTest(tx, ty, cx, caseY, zoneW, 40)) {
+      G.caseSelected = c;
+      if (canEnterCase(G.zoneSelected, G.caseSelected)) {
+        G.currentZone = G.zoneSelected;
+        G.currentCase = G.caseSelected;
+        beginTransition(STATES.CASE_BRIEFING, 'wipe', 0.3);
+      }
+      return;
+    }
+  }
+}
+
+// 탐색 모드 터치 처리
+function handleExplorationTouch(tx, ty, cw, ch) {
+  // 능력 버튼 (하단 중앙)
+  const abilityY = ch - 54;
+  const abilityW = Math.max(C.TOUCH_MIN, cw * 0.12);
+  const totalW = abilityW * 3 + 20;
+  const startX = (cw - totalW) / 2;
+
+  for (let i = 0; i < 3; i++) {
+    const ax = startX + i * (abilityW + 10);
+    if (hitTest(tx, ty, ax, abilityY, abilityW, abilityW * 0.7)) {
+      selectAbility(i);
+      return;
+    }
+  }
+
+  // 퍼즐 보드 버튼 (우하단)
+  if (tx > cw - 80 && ty > ch - 80 && G.evidence.length >= 3) {
+    beginTransition(STATES.PUZZLE_BOARD, 'slide', 0.3);
+    return;
+  }
+
+  // 상단 영역이 아닌 곳을 탭하면 이동 목표 설정
+  if (ty < ch - 60) {
+    // 클릭 위치를 월드 좌표로 변환
+    const worldX = tx + G.camX;
+    const worldY = ty + G.camY;
+    // 단서 수집 시도
+    if (G.currentMap) {
+      for (const clue of G.currentMap.clues) {
+        if (clue.discovered) continue;
+        const dist = Math.hypot(clue.x - worldX, clue.y - worldY);
+        if (dist < 30) {
+          // 가까이 이동 후 수집
+          G.lucian.x += (clue.x - G.lucian.x) * 0.3;
+          G.lucian.y += (clue.y - G.lucian.y) * 0.3;
+          tryCollectClue();
+          if (G.lucian.mode !== 'normal') {
+            const abilityIdx = ['clairvoyance', 'empathy', 'rewind'].indexOf(G.lucian.mode);
+            useAbility(abilityIdx, G.lucian, G, G.currentMap);
+          }
+          return;
+        }
+      }
+    }
+  }
+}
+
+// 퍼즐 보드 터치 처리
+function handlePuzzleTouch(tx, ty, cw, ch) {
+  // 증거 카드 선택 (좌측)
+  const cardW = Math.max(C.TOUCH_MIN, 80);
+  const cardH = 50;
+  const cardX = 20;
+  for (let i = 0; i < G.evidence.length; i++) {
+    const cy = 80 + i * (cardH + 10);
+    if (hitTest(tx, ty, cardX, cy, cardW, cardH)) {
+      G.puzzleSelected = i;
+      placeEvidenceInSlot();
+      return;
+    }
+  }
+
+  // 슬롯 (우측)
+  const slotX = cw * 0.5;
+  const slotW = Math.max(C.TOUCH_MIN, 100);
+  const slotH = 50;
+  for (let i = 0; i < 3; i++) {
+    const sy = 100 + i * (slotH + 20);
+    if (hitTest(tx, ty, slotX, sy, slotW, slotH)) {
+      if (G.puzzleSlots[i]) {
+        G.puzzleSlots[i] = null;
+      }
+      return;
+    }
+  }
+
+  // 검증 버튼 (하단)
+  const verifyBtnX = cw / 2 - 60;
+  const verifyBtnY = ch - 70;
+  if (hitTest(tx, ty, verifyBtnX, verifyBtnY, 120, C.TOUCH_MIN)) {
+    verifyPuzzle();
+    return;
+  }
+
+  // 돌아가기 (좌상단)
+  if (hitTest(tx, ty, 10, 10, 60, 40)) {
+    beginTransition(STATES.EXPLORATION, 'fade', 0.3);
+  }
+}
+
+// 대질 터치 처리
+function handleConfrontationTouch(tx, ty, cw, ch) {
+  if (G.confrontPhase === 'testimony') {
+    // 탭하면 증거 선택으로
+    G.confrontPhase = 'select';
+    return;
+  }
+  if (G.confrontPhase === 'select') {
+    // 증거 선택
+    const cardW = Math.max(C.TOUCH_MIN, 80);
+    const cardH = Math.max(C.TOUCH_MIN, 40);
+    const startX = (cw - (G.evidence.length * (cardW + 10))) / 2;
+    const cardY = ch - cardH - 20;
+    for (let i = 0; i < G.evidence.length; i++) {
+      const cx = startX + i * (cardW + 10);
+      if (hitTest(tx, ty, cx, cardY, cardW, cardH)) {
+        G.confrontEvidenceSelected = i;
+        presentEvidence(G, i);
+        return;
+      }
+    }
+    return;
+  }
+  if (G.confrontPhase === 'result_correct' || G.confrontPhase === 'result_wrong') {
+    advanceConfrontation();
+  }
+}
+
+// 업그레이드 터치 처리
+function handleUpgradeTouch(tx, ty, cw, ch) {
+  const optW = Math.min(300, cw * 0.6);
+  const optH = 60;
+  const startX = (cw - optW) / 2;
+  const startY = ch * 0.25;
+
+  for (let i = 0; i < 3; i++) {
+    const oy = startY + i * (optH + 15);
+    if (hitTest(tx, ty, startX, oy, optW, optH)) {
+      G.upgradeSelected = i;
+      tryUpgrade(i);
+      return;
+    }
+  }
+
+  // 돌아가기 버튼 (하단)
+  if (ty > ch - 80) {
+    beginTransition(STATES.ZONE_MAP, 'fade', 0.3);
+  }
+}
+
+// 설정 터치 처리
+function handleSettingsTouch(tx, ty, cw, ch) {
+  const optH = 50;
+  const startY = ch * 0.25;
+  for (let i = 0; i < 4; i++) {
+    const oy = startY + i * (optH + 10);
+    if (hitTest(tx, ty, 0, oy, cw, optH)) {
+      G.settingsSelected = i;
+      // 좌/우에 따라 조절
+      adjustSetting(tx < cw / 2 ? -1 : 1);
+      return;
+    }
+  }
+  if (ty > ch - 60) {
+    G.state = STATES.PAUSE;
+  }
+}
+
+// 충돌 감지 통합 함수 [F16]
+function hitTest(px, py, rx, ry, rw, rh) {
+  return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════════
+
+let lastTime = 0;
+let gt = 0; // 게임 시간 (초)
+
+// 메인 루프
+function loop(time) {
+  requestAnimationFrame(loop);
+
+  // dt 계산 (상한 1/30)
+  let dt = (time - lastTime) / 1000;
+  if (dt > 1/30) dt = 1/30;
+  if (dt <= 0) dt = 1/60;
+  lastTime = time;
+  gt += dt;
+
+  const cw = G._cw;
+  const ch = G._ch;
+  const sys = ACTIVE_SYSTEMS[G.state] || ACTIVE_SYSTEMS.TITLE;
+
+  // 트윈 갱신
+  if (sys.tween) tw.update(dt);
+
+  // 더블탭 타이머
+  if (doubleTapTimer > 0) doubleTapTimer -= dt;
+
+  // 롱프레스 타이머
+  if (longPressTimer > 0 && touchActive) {
+    longPressTimer -= dt;
+    if (longPressTimer <= 0 && !longPressed) {
+      longPressed = true;
+      if (G.state === STATES.EXPLORATION) {
+        // 롱프레스 = 능력 사용
+        if (G.lucian.mode !== 'normal') {
+          const idx = ['clairvoyance', 'empathy', 'rewind'].indexOf(G.lucian.mode);
+          useAbility(idx, G.lucian, G, G.currentMap);
+        }
+      }
+    }
+  }
+
+  // 상태별 업데이트
+  updateState(dt, cw, ch, sys);
+
+  // 파티클 갱신
+  updateParticles(dt);
+
+  // 팝업 갱신
+  for (let i = G.popups.length - 1; i >= 0; i--) {
+    G.popups[i].life -= dt;
+    G.popups[i].y -= dt * 30;
+    if (G.popups[i].life <= 0) G.popups.splice(i, 1);
+  }
+
+  // 화면 셰이크 감쇠
+  if (G.screenShake > 0) G.screenShake -= dt * 2;
+
+  // 렌더링
+  render(ctx, gt, cw, ch);
+
+  // 전환 오버레이
+  if (transitionActive) {
+    // transitionAlpha는 tw가 관리하므로 여기서는 시각 효과만
+  }
+
+  mouseClicked = false;
+}
+
+// 상태별 업데이트
+function updateState(dt, cw, ch, sys) {
+  switch(G.state) {
+    case STATES.TITLE:
+      G.titlePhase += dt;
+      break;
+
+    case STATES.INTRO_CUTSCENE:
+      G.introTimer += dt;
+      if (G.introTimer > 5) {
+        beginTransition(STATES.ZONE_MAP, 'fade', 0.5);
+      }
+      break;
+
+    case STATES.EXPLORATION:
+      updateExploration(dt, cw, ch);
+      break;
+
+    case STATES.PUZZLE_BOARD:
+      // 퍼즐은 입력 기반, 자동 업데이트 없음
+      break;
+
+    case STATES.CONFRONTATION:
+      updateConfrontation(dt);
+      break;
+
+    case STATES.CASE_SOLVED:
+      G.caseSolvedTimer += dt;
+      break;
+
+    case STATES.GAME_COMPLETE:
+      G.completeTimer += dt;
+      break;
+
+    case STATES.CREDITS:
+      G.creditsScroll += dt * 30;
+      break;
+  }
+}
+
+// 탐색 모드 업데이트
+function updateExploration(dt, cw, ch) {
+  const L = G.lucian;
+  let dx = 0, dy = 0;
+
+  // 키보드 이동
+  if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+  if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+  if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+  if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+
+  // 조이스틱 이동
+  if (G.joystick.active) {
+    dx += G.joystick.dx;
+    dy += G.joystick.dy;
+  }
+
+  // 정규화
+  const mag = Math.hypot(dx, dy);
+  if (mag > 0) {
+    dx /= mag; dy /= mag;
+    L.moving = true;
+    // 8방향 계산
+    L.dir = ((Math.atan2(dy, dx) / Math.PI * 4 + 4.5) | 0) % 8;
+  } else {
+    L.moving = false;
+  }
+
+  // 이동 적용
+  L.vx = dx * C.PLAYER_SPEED;
+  L.vy = dy * C.PLAYER_SPEED;
+  L.x += L.vx * dt;
+  L.y += L.vy * dt;
+
+  // 맵 경계 제한
+  if (G.currentMap) {
+    L.x = Math.max(16, Math.min(G.currentMap.w - 16, L.x));
+    L.y = Math.max(16, Math.min(G.currentMap.h - 16, L.y));
+  }
+
+  // 잔상 트레일 갱신
+  if (L.moving) {
+    L.trail.push({ x: L.x, y: L.y });
+    if (L.trail.length > 5) L.trail.shift();
+  }
+
+  // 능력 타이머 감소
+  if (L.abilityTimer > 0) {
+    L.abilityTimer -= dt;
+    if (L.abilityTimer <= 0) L.mode = 'normal';
+  }
+
+  // 쿨다운 감소
+  for (let i = 0; i < 3; i++) {
+    if (L.abilityCooldown[i] > 0) L.abilityCooldown[i] -= dt;
+  }
+
+  // 에테르 자연 회복
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  G.ether = Math.min(C.ETHER_MAX, G.ether + C.ETHER_REGEN[diffKey] * dt);
+
+  // 환경 위험 처리
+  updateEnvironmentHazards(dt);
+
+  // 사건 타이머
+  G.caseTimer += dt;
+
+  // 카메라 추적
+  const targetCamX = L.x - cw / 2;
+  const targetCamY = L.y - ch / 2;
+  G.camX += (targetCamX - G.camX) * 5 * dt;
+  G.camY += (targetCamY - G.camY) * 5 * dt;
+
+  // 카메라 맵 경계 클램프
+  if (G.currentMap) {
+    G.camX = Math.max(0, Math.min(G.currentMap.w - cw, G.camX));
+    G.camY = Math.max(0, Math.min(G.currentMap.h - ch, G.camY));
+  }
+
+  // NPC 이동
+  if (G.currentMap) {
+    for (const npc of G.currentMap.npcs) {
+      if (!npc.active) continue;
+      npc.x += npc.vx * dt;
+      if (npc.x < 30 || npc.x > G.currentMap.w - 30) npc.vx *= -1;
+    }
+  }
+
+  // 모든 단서 발견 + 3개 이상이면 추리 보드 자동 알림
+  if (G.evidence.length >= 3 && !G._puzzleNotified) {
+    G._puzzleNotified = true;
+    addPopup('Q: ' + getLang().deductionBoard, cw / 2, ch * 0.4, C.GHOST_CYAN);
+  }
+}
+
+// 환경 위험 갱신
+function updateEnvironmentHazards(dt) {
+  G.envTimer += dt;
+  const zone = G.currentZone;
+
+  // 뒷골목: 에테르 자연 감소
+  if (zone === 1 && G.abilities.empathy < 2) {
+    G.ether = Math.max(0, G.ether - C.ENV_HAZARD.alley.etherDrain * dt);
+  }
+}
+
+// 대질 업데이트
+function updateConfrontation(dt) {
+  if (G.confrontSuspect) {
+    G.confrontSuspect.speaking = (G.confrontPhase === 'testimony');
+  }
+  // 신뢰도 체크
+  if (G.credibility <= 0 && G.state === STATES.CONFRONTATION) {
+    beginTransition(STATES.GAME_OVER, 'fade', 0.5);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function render(ctx, gt, cw, ch) {
+  ctx.save();
+
+  // 화면 셰이크
+  if (G.screenShake > 0) {
+    const sx = (rng.next() - 0.5) * G.screenShake * 10;
+    const sy = (rng.next() - 0.5) * G.screenShake * 10;
+    ctx.translate(sx, sy);
+  }
+
+  // 배경 클리어
+  ctx.fillStyle = C.BG_DEEP;
+  ctx.fillRect(0, 0, cw, ch);
+
+  switch(G.state) {
+    case STATES.TITLE: renderTitle(ctx, gt, cw, ch); break;
+    case STATES.INTRO_CUTSCENE: renderIntroCutscene(ctx, gt, cw, ch); break;
+    case STATES.ZONE_MAP: renderZoneMap(ctx, gt, cw, ch); break;
+    case STATES.CASE_BRIEFING: renderCaseBriefing(ctx, gt, cw, ch); break;
+    case STATES.EXPLORATION: renderExploration(ctx, gt, cw, ch); break;
+    case STATES.PUZZLE_BOARD: renderPuzzleBoard(ctx, gt, cw, ch); break;
+    case STATES.CONFRONTATION_INTRO: renderConfrontIntro(ctx, gt, cw, ch); break;
+    case STATES.CONFRONTATION: renderConfrontation(ctx, gt, cw, ch); break;
+    case STATES.BOSS_REWARD: renderBossReward(ctx, gt, cw, ch); break;
+    case STATES.CASE_SOLVED: renderCaseSolved(ctx, gt, cw, ch); break;
+    case STATES.UPGRADE_MENU: renderUpgradeMenu(ctx, gt, cw, ch); break;
+    case STATES.GAME_OVER: renderGameOver(ctx, gt, cw, ch); break;
+    case STATES.GAME_COMPLETE: renderGameComplete(ctx, gt, cw, ch); break;
+    case STATES.CREDITS: renderCredits(ctx, gt, cw, ch); break;
+    case STATES.PAUSE: renderPause(ctx, gt, cw, ch); break;
+    case STATES.SETTINGS: renderSettings(ctx, gt, cw, ch); break;
+    case STATES.EVIDENCE_FOUND: renderExploration(ctx, gt, cw, ch); break;
+    case STATES.DEDUCTION_RESULT: renderPuzzleBoard(ctx, gt, cw, ch); break;
+  }
+
+  // 파티클 (화면 좌표) // 화면 좌표
+  drawParticles(ctx);
+
+  // 팝업 텍스트
+  for (const p of G.popups) {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 16px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.text, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+
+  // 전환 오버레이 — 타입별 렌더링 [§6.3]
+  if (transitionActive) {
+    const ta = transitionAlpha;
+    if (transitionType === 'wipe') {
+      // 좌→우 사각형 와이프
+      ctx.fillStyle = `rgba(11,20,38,1)`;
+      ctx.fillRect(0, 0, cw * ta, ch);
+    } else if (transitionType === 'zoomIn') {
+      // 중앙에서 확대되는 원형 클리핑 (역: 원 밖을 덮음)
+      ctx.fillStyle = `rgba(11,20,38,1)`;
+      ctx.fillRect(0, 0, cw, ch);
+      if (ta < 1) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        const r = Math.max(cw, ch) * (1 - ta);
+        ctx.arc(cw / 2, ch / 2, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    } else if (transitionType === 'slide') {
+      // 좌→우 슬라이드 (새 화면이 밀려 들어옴)
+      ctx.fillStyle = `rgba(11,20,38,1)`;
+      const slideX = cw * (1 - ta);
+      ctx.fillRect(slideX, 0, cw, ch);
+    } else if (transitionType === 'dramatic') {
+      // 암전 + 스포트라이트 원형 reveal
+      ctx.fillStyle = `rgba(2,2,5,${Math.min(1, ta * 1.5)})`;
+      ctx.fillRect(0, 0, cw, ch);
+      if (ta > 0.4) {
+        const spotP = (ta - 0.4) / 0.6;
+        const spotR = Math.max(cw, ch) * 0.5 * spotP;
+        const spotGrad = ctx.createRadialGradient(cw / 2, ch * 0.4, 0, cw / 2, ch * 0.4, spotR);
+        spotGrad.addColorStop(0, `rgba(255,184,0,${0.12 * spotP})`);
+        spotGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = spotGrad;
+        ctx.fillRect(0, 0, cw, ch);
+      }
+    } else {
+      // fade (기본)
+      ctx.fillStyle = `rgba(11,20,38,${ta})`;
+      ctx.fillRect(0, 0, cw, ch);
+    }
+  }
+
+  ctx.restore();
+}
+
+// --- 타이틀 화면 렌더 ---
+function renderTitle(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 배경 도시 (bgLayer1+2)
+  drawBackground(ctx, gt, 0, 'midnight', 'fog', gt * 20, 0, cw, ch);
+
+  // 비네팅 효과
+  const vGrad = ctx.createRadialGradient(cw/2, ch/2, cw*0.2, cw/2, ch/2, cw*0.7);
+  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 유령 실루엣 (중앙)
+  const ghostY = ch * 0.35 + Math.sin(gt * 1.5) * 8;
+  drawLucian(ctx, gt, cw / 2, ghostY, 0, 'normal', 0.6, []);
+
+  // 글로우 라인 (아르데코)
+  ctx.strokeStyle = C.DECO_BRONZE;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.5 + 0.2 * Math.sin(gt * 2);
+  const lineY = ch * 0.52;
+  ctx.beginPath();
+  ctx.moveTo(cw * 0.15, lineY);
+  ctx.lineTo(cw * 0.42, lineY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cw * 0.58, lineY);
+  ctx.lineTo(cw * 0.85, lineY);
+  ctx.stroke();
+  // 다이아몬드 장식
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.save();
+  ctx.translate(cw / 2, lineY);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-5, -5, 10, 10);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  // 타이틀 텍스트 — 스캔라인 + 글로우
+  const titleSize = Math.min(48, cw * 0.08);
+  ctx.font = `bold ${titleSize}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+
+  // 글로우
+  ctx.shadowColor = C.GHOST_CYAN;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = C.GHOST_CYAN;
+  ctx.fillText(lang.title, cw / 2, ch * 0.22);
+  ctx.shadowBlur = 0;
+
+  // 서브타이틀
+  const subSize = Math.min(18, cw * 0.03);
+  ctx.font = `${subSize}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.fillText(lang.subtitle, cw / 2, ch * 0.28);
+
+  // 스캔라인 오버레이
+  ctx.globalAlpha = 0.03;
+  for (let y = 0; y < ch; y += 3) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, y, cw, 1);
+  }
+  ctx.globalAlpha = 1;
+
+  // 난이도 선택
+  const diffY = ch * 0.6;
+  ctx.font = `bold ${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.fillText(`${lang.diffLabel}: ▲▼`, cw / 2, diffY - 15);
+  for (let i = 0; i < 3; i++) {
+    const active = G.difficulty === i;
+    ctx.fillStyle = active ? C.GHOST_CYAN : C.TEXT_SECONDARY;
+    ctx.font = `${active ? 'bold' : 'normal'} ${Math.min(16, cw * 0.028)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(lang.difficulty[i], cw / 2, diffY + 5 + i * 22);
+    if (active) {
+      ctx.strokeStyle = C.GHOST_CYAN;
+      ctx.lineWidth = 1;
+      const tw = ctx.measureText(lang.difficulty[i]).width;
+      ctx.strokeRect(cw / 2 - tw / 2 - 8, diffY - 8 + i * 22, tw + 16, 20);
+    }
+  }
+
+  // 시작 프롬프트 (깜빡임)
+  if (Math.sin(gt * 3) > 0) {
+    ctx.font = `${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.fillText(lang.startPrompt, cw / 2, ch * 0.88);
+  }
+
+  // 언어 토글 (우하단)
+  ctx.font = `${Math.min(12, cw * 0.02)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.fillText('L: ' + lang.lang, cw - 15, ch - 15);
+
+  // 최고 점수
+  const hs = getHighScore();
+  if (hs > 0) {
+    ctx.textAlign = 'left';
+    ctx.fillText(`${lang.highScore}: ${hs}`, 15, ch - 15);
+  }
+}
+
+// --- 인트로 컷신 렌더 ---
+function renderIntroCutscene(ctx, gt, cw, ch) {
+  const lang = getLang();
+  const t = G.introTimer;
+
+  // 어두운 배경
+  ctx.fillStyle = '#050510';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 텍스트 페이드인
+  const lines = [
+    { text: lang.title, y: 0.3, delay: 0.5, size: 32 },
+    { text: '미스트헤이븐, 1920년대...', y: 0.45, delay: 1.5, size: 16 },
+    { text: '명탐정 루시안 그레이가 살해당했다.', y: 0.55, delay: 2.5, size: 14 },
+    { text: '그의 영혼은 진실을 찾아 헤맨다...', y: 0.65, delay: 3.5, size: 14 }
+  ];
+
+  for (const line of lines) {
+    if (t < line.delay) continue;
+    const alpha = Math.min(1, (t - line.delay) / 0.8);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = line === lines[0] ? C.GHOST_CYAN : C.TEXT_PRIMARY;
+    ctx.font = `${Math.min(line.size, cw * line.size / 600)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(line.text, cw / 2, ch * line.y);
+  }
+  ctx.globalAlpha = 1;
+
+  // 스킵 안내
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.font = `12px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.fillText('SPACE to skip', cw - 15, ch - 15);
+}
+
+// --- 존맵 렌더 ---
+function renderZoneMap(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 배경
+  drawBackground(ctx, gt, 0, 'evening', 'fog', gt * 10, 0, cw, ch);
+
+  // 타이틀
+  ctx.font = `bold ${Math.min(20, cw * 0.035)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.fillText(lang.selectCase, cw / 2, 35);
+
+  // 구역 카드
+  const zonePad = 10;
+  const maxZoneW = 90;
+  const zoneW = Math.min(maxZoneW, (cw - zonePad * 7) / 6);
+  const zoneH = zoneW * 1.2;
+  const startX = (cw - (zoneW * 6 + zonePad * 5)) / 2;
+  const startY = ch * 0.15;
+
+  const zoneColors = ['#1a3a5c', '#2a1a3c', '#3c2a1a', '#2a2a2a', '#1a2a3c', '#0a0a1f'];
+  const zoneWeathers = ['fog', 'rain', 'clear', 'dust', 'snow', 'ether'];
+
+  for (let i = 0; i < 6; i++) {
+    const zx = startX + i * (zoneW + zonePad);
+    const selected = G.zoneSelected === i;
+    const accessible = i === 5 ? canEnterCase(5, 0) : (i === 0 || !!G.solvedCases[`z${i-1}c2`]);
+
+    // 카드 배경
+    ctx.fillStyle = accessible ? zoneColors[i] : 'rgba(30,30,40,0.5)';
+    ctx.fillRect(zx, startY, zoneW, zoneH);
+
+    // 선택 테두리
+    if (selected) {
+      ctx.strokeStyle = C.GHOST_CYAN;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(zx - 2, startY - 2, zoneW + 4, zoneH + 4);
+    }
+
+    // 구역 이름
+    ctx.fillStyle = accessible ? C.TEXT_PRIMARY : C.TEXT_SECONDARY;
+    ctx.font = `bold ${Math.min(11, zoneW * 0.14)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(lang.zoneNames[i], zx + zoneW / 2, startY + zoneH * 0.4);
+
+    // 보스 이름
+    ctx.font = `${Math.min(9, zoneW * 0.11)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillStyle = C.SUSPECT_PURPLE;
+    ctx.fillText(lang.bossNames[i], zx + zoneW / 2, startY + zoneH * 0.6);
+
+    // 잠금 표시
+    if (!accessible) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(zx, startY, zoneW, zoneH);
+      ctx.fillStyle = C.DANGER_RED;
+      ctx.font = `bold ${Math.min(14, zoneW * 0.18)}px "Segoe UI", system-ui, sans-serif`;
+      ctx.fillText('🔒', zx + zoneW / 2, startY + zoneH * 0.5);
+    }
+
+    // 클리어 마크
+    if (G.solvedCases[`z${i}c2`] || (i === 5 && G.solvedCases[`z5c0`])) {
+      ctx.fillStyle = C.SUCCESS_GREEN;
+      ctx.font = `bold ${Math.min(14, zoneW * 0.18)}px "Segoe UI", system-ui, sans-serif`;
+      ctx.fillText('✓', zx + zoneW / 2, startY + zoneH * 0.85);
+    }
+  }
+
+  // 선택된 구역의 사건 목록
+  if (G.zoneSelected >= 0 && G.zoneSelected <= 5) {
+    const caseY = startY + zoneH + 30;
+    const maxCases = G.zoneSelected === 5 ? 1 : 3;
+    const caseW = Math.min(150, (cw - 60) / maxCases);
+
+    ctx.font = `bold ${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.textAlign = 'center';
+    ctx.fillText(`— ${lang.zoneNames[G.zoneSelected]} —`, cw / 2, caseY - 10);
+
+    for (let c = 0; c < maxCases; c++) {
+      const cx = (cw - maxCases * (caseW + 10)) / 2 + c * (caseW + 10);
+      const can = canEnterCase(G.zoneSelected, c);
+      const solved = !!G.solvedCases[`z${G.zoneSelected}c${c}`];
+      const caseSelected = G.caseSelected === c;
+
+      // 사건 카드
+      ctx.fillStyle = solved ? 'rgba(0,255,136,0.1)' : can ? 'rgba(0,212,255,0.08)' : 'rgba(50,50,60,0.3)';
+      ctx.fillRect(cx, caseY, caseW, 80);
+
+      if (caseSelected) {
+        ctx.strokeStyle = C.GHOST_CYAN;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 1, caseY - 1, caseW + 2, 82);
+      }
+
+      // 사건 이름
+      const caseName = lang.caseNames[G.zoneSelected] ? (lang.caseNames[G.zoneSelected][c] || '') : '';
+      ctx.fillStyle = can ? C.TEXT_PRIMARY : C.TEXT_SECONDARY;
+      ctx.font = `bold ${Math.min(12, caseW * 0.1)}px "Segoe UI", system-ui, sans-serif`;
+      ctx.fillText(caseName, cx + caseW / 2, caseY + 25);
+
+      // 상태
+      ctx.font = `${Math.min(11, caseW * 0.09)}px "Segoe UI", system-ui, sans-serif`;
+      if (solved) {
+        const rank = G.solvedCases[`z${G.zoneSelected}c${c}`].rank;
+        ctx.fillStyle = C.SUCCESS_GREEN;
+        ctx.fillText(`${lang.cleared} [${lang.rankNames[rank]}]`, cx + caseW / 2, caseY + 50);
+      } else if (!can) {
+        ctx.fillStyle = C.DANGER_RED;
+        ctx.fillText(lang.locked, cx + caseW / 2, caseY + 50);
+      } else {
+        ctx.fillStyle = C.GHOST_CYAN;
+        ctx.fillText('▶', cx + caseW / 2, caseY + 50);
+      }
+    }
+  }
+
+  // 소울 프래그먼트 표시
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.font = `bold 13px "Segoe UI", system-ui, sans-serif`;
+  drawStarIcon(ctx, cw - 112, ch - 26, 8, C.CLUE_GOLD);
+  ctx.fillText(`${lang.soulFragments}: ${G.soulFragments}`, cw - 15, ch - 20);
+
+  // 총점
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.fillText(`${lang.totalScore}: ${G.totalScore}`, cw - 15, ch - 40);
+
+  // 업그레이드 버튼 (좌하단)
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.GHOST_CYAN;
+  ctx.fillText(`[U] ${lang.upgrade}`, 15, ch - 20);
+
+  // 업그레이드 키 체크
+  if (keys['KeyU']) {
+    keys['KeyU'] = false;
+    beginTransition(STATES.UPGRADE_MENU, 'fade', 0.3);
+  }
+
+  // 게임 완료 체크
+  const allSolved = [0,1,2,3,4].every(z => !!G.solvedCases[`z${z}c2`]) && !!G.solvedCases['z5c0'];
+  if (allSolved && !G._gameCompleteTriggered) {
+    G._gameCompleteTriggered = true;
+    beginTransition(STATES.GAME_COMPLETE, 'fade', 1.0);
+  }
+}
+
+// --- 사건 브리핑 렌더 ---
+function renderCaseBriefing(ctx, gt, cw, ch) {
+  const lang = getLang();
+  G.briefTimer += 0; // 카운트는 updateState에서
+
+  // 어두운 배경 + 구역 색조
+  const zoneColors = ['#0a1520', '#1a0a20', '#201a0a', '#151515', '#0a1520', '#050510'];
+  ctx.fillStyle = zoneColors[G.currentZone] || C.BG_DEEP;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 아르데코 프레임
+  drawDecoFrame(ctx, cw * 0.1, ch * 0.15, cw * 0.8, ch * 0.6,
+    `${lang.zoneNames[G.currentZone]} — ${lang.caseNames[G.currentZone][G.currentCase] || ''}`);
+
+  // 브리핑 텍스트
+  const briefs = lang.caseBriefs[G.currentZone];
+  const text = briefs ? (briefs[G.currentCase] || '') : '';
+  const lines = text.split('\n');
+  ctx.font = `${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], cw / 2, ch * 0.4 + i * 24);
+  }
+
+  // 난이도 표시
+  ctx.font = `${Math.min(12, cw * 0.02)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.fillText(`${lang.diffLabel}: ${lang.difficulty[G.difficulty]}`, cw / 2, ch * 0.65);
+
+  // 진행 안내
+  if (Math.sin(gt * 3) > 0) {
+    ctx.fillStyle = C.GHOST_CYAN;
+    ctx.fillText(lang.startPrompt, cw / 2, ch * 0.82);
+  }
+}
+
+// --- 탐색 모드 렌더 ---
+function renderExploration(ctx, gt, cw, ch) {
+  const lang = getLang();
+  const L = G.lucian;
+  const map = G.currentMap;
+  if (!map) return;
+
+  const zoneWeathers = ['fog', 'rain', 'clear', 'dust', 'snow', 'ether'];
+  const zoneTimes = ['dusk', 'midnight', 'evening', 'dawn', 'afternoon', 'midnight'];
+
+  // 배경 (패러랙스) // 화면 좌표
+  drawBackground(ctx, gt, G.currentZone, zoneTimes[G.currentZone], zoneWeathers[G.currentZone], G.camX, G.camY, cw, ch);
+
+  // 월드 좌표로 전환
+  ctx.save(); // 월드 좌표
+  ctx.translate(-G.camX, -G.camY);
+
+  // 환경 오브젝트
+  for (const obj of map.objects) {
+    if (obj.type === 'gaslamp') {
+      drawGaslamp(ctx, gt, obj.x, obj.y);
+    } else {
+      // 일반 오브젝트 (상자, 통 등)
+      ctx.fillStyle = 'rgba(60,50,40,0.6)';
+      ctx.fillRect(obj.x - obj.w / 2, obj.y - obj.h / 2, obj.w, obj.h);
+      ctx.strokeStyle = 'rgba(100,80,60,0.3)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(obj.x - obj.w / 2, obj.y - obj.h / 2, obj.w, obj.h);
+    }
+  }
+
+  // 단서 오브젝트
+  for (const clue of map.clues) {
+    drawClue(ctx, gt, clue.x, clue.y, clue.type, clue.discovered, clue.glowPhase, clue.requiredAbility, L.mode);
+  }
+
+  // NPC
+  for (const npc of map.npcs) {
+    if (!npc.active) continue;
+    ctx.fillStyle = '#6a6a7a';
+    ctx.beginPath();
+    ctx.arc(npc.x, npc.y - 12, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(npc.x - 5, npc.y - 6, 10, 16);
+  }
+
+  // 루시안
+  drawLucian(ctx, gt, L.x, L.y, L.dir, L.mode, L.alpha, L.trail);
+
+  // 투시 모드 시 시야 범위 표시
+  if (L.mode === 'clairvoyance') {
+    const range = 100 + G.abilities.clairvoyance * 50;
+    const visionMult = G.currentZone === 0 && G.abilities.clairvoyance < 2 ? C.ENV_HAZARD.port.vision : 1;
+    ctx.strokeStyle = C.CLUE_GOLD;
+    ctx.globalAlpha = 0.2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.arc(L.x, L.y, range * visionMult, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore(); // 화면 좌표로 복귀
+
+  // 환경 위험 오버레이 (화면 좌표) // 화면 좌표
+  if (G.currentZone === 0 && G.abilities.clairvoyance < 2) {
+    // 항구: 시야 제한 (가장자리 어둡게)
+    const fogGrad = ctx.createRadialGradient(cw/2, ch/2, cw*0.15, cw/2, ch/2, cw*0.4);
+    fogGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    fogGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // HUD (화면 좌표) // 화면 좌표
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  const maxCred = C.CREDIBILITY[diffKey];
+  drawHUD(ctx, gt, cw, ch, G.ether, C.ETHER_MAX, G.credibility, maxCred,
+    G.soulFragments, G.abilities, G.currentZone, G.currentCase, G.totalScore, L.mode);
+
+  // 가상 조이스틱 (터치 모드)
+  if (G.joystick.active) {
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = C.GHOST_CYAN;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(G.joystick.sx, G.joystick.sy, 40, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = C.GHOST_CYAN;
+    ctx.beginPath();
+    ctx.arc(G.joystick.cx, G.joystick.cy, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // 조작 안내 (첫 5초)
+  if (G.caseTimer < 5) {
+    ctx.globalAlpha = Math.max(0, 1 - G.caseTimer / 5);
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.font = `${Math.min(12, cw * 0.02)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(lang.tutorialHint, cw / 2, ch * 0.15);
+    ctx.globalAlpha = 1;
+  }
+
+  // 증거 수 표시 (우하단)
+  if (G.evidence.length > 0) {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = C.CLUE_GOLD;
+    ctx.font = `bold 13px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(`${lang.evidence}: ${G.evidence.length}`, cw - 15, ch - 65);
+    if (G.evidence.length >= 3) {
+      ctx.fillStyle = C.GHOST_CYAN;
+      ctx.font = `11px "Segoe UI", system-ui, sans-serif`;
+      ctx.fillText(`Q: ${lang.deductionBoard}`, cw - 15, ch - 80);
+    }
+  }
+}
+
+// --- 퍼즐 보드 렌더 ---
+function renderPuzzleBoard(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 배경
+  ctx.fillStyle = 'rgba(11,20,38,0.95)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 아르데코 프레임
+  drawDecoFrame(ctx, 10, 10, cw - 20, ch - 20, lang.deductionBoard);
+
+  // 증거 카드 (좌측 열)
+  const cardW = Math.max(C.TOUCH_MIN, Math.min(120, cw * 0.2));
+  const cardH = 45;
+  const cardX = 25;
+  ctx.font = `${Math.min(11, cw * 0.02)}px "Segoe UI", system-ui, sans-serif`;
+
+  for (let i = 0; i < G.evidence.length; i++) {
+    const cy = 60 + i * (cardH + 8);
+    if (cy + cardH > ch - 80) break; // 화면 초과 방지
+    const ev = G.evidence[i];
+    const selected = G.puzzleSelected === i;
+
+    ctx.fillStyle = selected ? 'rgba(0,212,255,0.15)' : 'rgba(255,184,0,0.05)';
+    ctx.fillRect(cardX, cy, cardW, cardH);
+    ctx.strokeStyle = selected ? C.GHOST_CYAN : C.DECO_BRONZE;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(cardX, cy, cardW, cardH);
+
+    // 아이콘
+    const icon = ev.type === 'physical' ? '🔍' : ev.type === 'emotional' ? '💭' : '⏪';
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.textAlign = 'left';
+    ctx.fillText(`${icon} ${ev.name || ev.id}`, cardX + 8, cy + cardH / 2 + 4);
+  }
+
+  // 추리 체인 슬롯 (우측)
+  const slotX = cw * 0.45;
+  const slotW = Math.max(C.TOUCH_MIN, Math.min(180, cw * 0.35));
+  const slotH = 50;
+
+  ctx.font = `bold ${Math.min(13, cw * 0.023)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.fillText(`${lang.chain} — ${lang.slots}`, slotX + slotW / 2, 55);
+
+  for (let i = 0; i < 3; i++) {
+    const sy = 80 + i * (slotH + 25);
+    const filled = G.puzzleSlots[i];
+
+    ctx.fillStyle = filled ? 'rgba(0,255,136,0.08)' : 'rgba(255,255,255,0.03)';
+    ctx.fillRect(slotX, sy, slotW, slotH);
+    ctx.strokeStyle = filled ? C.SUCCESS_GREEN : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(slotX, sy, slotW, slotH);
+
+    // 슬롯 번호
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.textAlign = 'center';
+    ctx.font = `bold 12px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(`${i + 1}`, slotX - 12, sy + slotH / 2 + 4);
+
+    if (filled) {
+      ctx.fillStyle = C.TEXT_PRIMARY;
+      ctx.font = `11px "Segoe UI", system-ui, sans-serif`;
+      ctx.fillText(filled.name || filled.id, slotX + slotW / 2, sy + slotH / 2 + 4);
+    }
+
+    // 슬롯 간 연결선
+    if (i < 2) {
+      ctx.strokeStyle = filled && G.puzzleSlots[i+1] ? C.SUCCESS_GREEN : 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(slotX + slotW / 2, sy + slotH);
+      ctx.lineTo(slotX + slotW / 2, sy + slotH + 25);
+      ctx.stroke();
+    }
+  }
+
+  // 검증 버튼
+  const verifyBtnW = 120;
+  const verifyBtnH = Math.max(C.TOUCH_MIN, 40);
+  const verifyBtnX = cw / 2 - verifyBtnW / 2;
+  const verifyBtnY = ch - 65;
+  const allFilled = G.puzzleSlots.every(s => s !== null);
+
+  ctx.fillStyle = allFilled ? C.GHOST_CYAN : 'rgba(100,100,120,0.3)';
+  ctx.fillRect(verifyBtnX, verifyBtnY, verifyBtnW, verifyBtnH);
+  ctx.fillStyle = allFilled ? '#000' : C.TEXT_SECONDARY;
+  ctx.font = `bold 14px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`[V] ${lang.verify}`, cw / 2, verifyBtnY + verifyBtnH / 2 + 5);
+
+  // 돌아가기 (좌상단)
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.font = `12px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText(`← ${lang.back}`, 20, 30);
+
+  // 결과 표시
+  if (G.puzzleResult) {
+    ctx.textAlign = 'center';
+    ctx.font = `bold 18px "Segoe UI", system-ui, sans-serif`;
+    if (G.puzzleResult.valid) {
+      ctx.fillStyle = C.SUCCESS_GREEN;
+      ctx.fillText(lang.correct, cw / 2, ch - 90);
+    } else {
+      ctx.fillStyle = C.DANGER_RED;
+      ctx.fillText(lang.wrong, cw / 2, ch - 90);
+    }
+  }
+
+  // 안내
+  ctx.font = `11px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.textAlign = 'center';
+  ctx.fillText(lang.connect, cw / 2, ch - 10);
+}
+
+// --- 대질 인트로 렌더 ---
+function renderConfrontIntro(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 암전
+  ctx.fillStyle = '#020205';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 스포트라이트
+  const t = G.introTimer || 0;
+  const spotR = Math.min(cw * 0.3, t * 150);
+  const grad = ctx.createRadialGradient(cw/2, ch*0.4, 0, cw/2, ch*0.4, spotR);
+  grad.addColorStop(0, 'rgba(255,184,0,0.15)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 용의자 실루엣
+  drawSuspect(ctx, gt, cw / 2, ch * 0.45, 'calm', false, G.currentZone);
+
+  // 보스 이름
+  ctx.font = `bold ${Math.min(22, cw * 0.04)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.DANGER_RED;
+  const bossName = lang.bossNames[G.currentZone] || '';
+  ctx.globalAlpha = Math.min(1, t * 0.8);
+  ctx.fillText(bossName, cw / 2, ch * 0.7);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.font = `14px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(lang.bossAppear, cw / 2, ch * 0.8);
+}
+
+// --- 대질 렌더 ---
+function renderConfrontation(ctx, gt, cw, ch) {
+  const lang = getLang();
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  const maxCred = C.CREDIBILITY[diffKey];
+
+  // 배경 — 대질 장면 (아르데코 법정 느낌)
+  ctx.fillStyle = '#0a0a15';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 기하학 배경 패턴
+  ctx.strokeStyle = 'rgba(196,149,58,0.05)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 20; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * (cw / 20), 0);
+    ctx.lineTo(i * (cw / 20), ch);
+    ctx.stroke();
+  }
+
+  // 용의자 (상단)
+  const suspectX = cw / 2;
+  const suspectY = ch * 0.25;
+  drawSuspect(ctx, gt, suspectX, suspectY, G.confrontSuspect ? G.confrontSuspect.emotion : 'calm',
+    G.confrontPhase === 'testimony', G.currentZone);
+
+  // 라운드 표시
+  ctx.font = `bold 14px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.fillText(`Round ${G.confrontRound + 1} / ${G.confrontMaxRounds}`, cw / 2, 25);
+
+  // 신뢰도 바 (상단)
+  const credBarW = Math.min(200, cw * 0.35);
+  const credBarX = (cw - credBarW) / 2;
+  ctx.fillStyle = 'rgba(93,173,226,0.15)';
+  ctx.fillRect(credBarX, 35, credBarW, 12);
+  ctx.fillStyle = (G.credibility / maxCred) > 0.3 ? C.CRED_BLUE : C.DANGER_RED;
+  ctx.fillRect(credBarX, 35, credBarW * (G.credibility / maxCred), 12);
+  // 하트 아이콘
+  ctx.fillStyle = (G.credibility / maxCred) > 0.3 ? C.CRED_BLUE : C.DANGER_RED;
+  ctx.beginPath();
+  const chx = credBarX - 13, chy = 37;
+  ctx.moveTo(chx, chy + 4);
+  ctx.bezierCurveTo(chx - 7, chy - 3, chx - 7, chy - 8, chx, chy - 5);
+  ctx.bezierCurveTo(chx + 7, chy - 8, chx + 7, chy - 3, chx, chy + 4);
+  ctx.fill();
+
+  // 대화 상자
+  const dlgY = ch * 0.4;
+  const dlgW = Math.min(cw * 0.8, 500);
+  const dlgH = 80;
+  const dlgX = (cw - dlgW) / 2;
+  drawDecoFrame(ctx, dlgX, dlgY, dlgW, dlgH);
+
+  // 증언 텍스트
+  const dialogue = getBossDialogue(G.currentZone, G.confrontRound, G.settings.lang);
+  ctx.font = `${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  ctx.fillText(dialogue, cw / 2, dlgY + dlgH / 2 + 5);
+
+  // 상태별 표시
+  if (G.confrontPhase === 'testimony') {
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.font = `12px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText('SPACE / 탭 → ' + lang.selectEvidence, cw / 2, dlgY + dlgH + 20);
+  } else if (G.confrontPhase === 'select') {
+    // 증거 카드 목록 (하단)
+    const cardW = Math.max(C.TOUCH_MIN, Math.min(80, (cw - 40) / Math.max(1, G.evidence.length)));
+    const cardH = Math.max(C.TOUCH_MIN, 40);
+    const totalW = G.evidence.length * (cardW + 8);
+    const startEvX = (cw - totalW) / 2;
+    const cardY = ch - cardH - 20;
+
+    ctx.font = `bold 12px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillStyle = C.DECO_BRONZE;
+    ctx.fillText(lang.selectEvidence, cw / 2, cardY - 15);
+
+    for (let i = 0; i < G.evidence.length; i++) {
+      const ex = startEvX + i * (cardW + 8);
+      const selected = G.confrontEvidenceSelected === i;
+
+      ctx.fillStyle = selected ? 'rgba(0,212,255,0.2)' : 'rgba(255,184,0,0.05)';
+      ctx.fillRect(ex, cardY, cardW, cardH);
+      ctx.strokeStyle = selected ? C.GHOST_CYAN : C.DECO_BRONZE;
+      ctx.lineWidth = selected ? 2 : 1;
+      ctx.strokeRect(ex, cardY, cardW, cardH);
+
+      ctx.fillStyle = C.TEXT_PRIMARY;
+      ctx.textAlign = 'center';
+      ctx.font = `${Math.min(10, cardW * 0.12)}px "Segoe UI", system-ui, sans-serif`;
+      const evName = G.evidence[i].name || G.evidence[i].id;
+      ctx.fillText(evName.substring(0, 10), ex + cardW / 2, cardY + cardH / 2 + 4);
+    }
+
+    // 제시 버튼
+    ctx.fillStyle = C.GHOST_CYAN;
+    ctx.font = `bold 14px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(`[SPACE] ${lang.presentEvidence}`, cw / 2, cardY - 35);
+  } else if (G.confrontPhase === 'result_correct') {
+    // 이펙트
+    drawEffectHit(ctx, gt, cw / 2, ch * 0.4, 1.5, 0.6);
+    ctx.fillStyle = C.SUCCESS_GREEN;
+    ctx.font = `bold 20px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(lang.correct, cw / 2, ch * 0.65);
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.font = `14px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(lang.nextRound, cw / 2, ch * 0.72);
+  } else if (G.confrontPhase === 'result_wrong') {
+    ctx.fillStyle = C.DANGER_RED;
+    ctx.font = `bold 20px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(lang.wrong, cw / 2, ch * 0.65);
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.font = `14px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(`${lang.credibility}: ${G.credibility | 0}`, cw / 2, ch * 0.72);
+  }
+}
+
+// --- 보스 보상 렌더 ---
+function renderBossReward(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  ctx.fillStyle = 'rgba(11,20,38,0.95)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawDecoFrame(ctx, cw * 0.15, ch * 0.15, cw * 0.7, ch * 0.6);
+
+  ctx.font = `bold ${Math.min(22, cw * 0.04)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.fillText(lang.caseComplete, cw / 2, ch * 0.28);
+
+  // 보상 표시
+  ctx.font = `${Math.min(16, cw * 0.03)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  drawStarIcon(ctx, cw / 2 - 48, ch * 0.38 + 12, 10, C.CLUE_GOLD);
+  ctx.fillText(`${lang.soulFragments} +3`, cw / 2 + 10, ch * 0.4);
+
+  // 도구 획득
+  const toolIdx = G.currentZone;
+  if (toolIdx < 8) {
+    ctx.fillStyle = C.SUCCESS_GREEN;
+    ctx.fillText(`${lang.newTool}: ${lang.tools[toolIdx]}`, cw / 2, ch * 0.5);
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.font = `${Math.min(12, cw * 0.02)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(lang.toolDescs[toolIdx], cw / 2, ch * 0.56);
+  }
+
+  // 진행 안내
+  if (Math.sin(gt * 3) > 0) {
+    ctx.fillStyle = C.GHOST_CYAN;
+    ctx.font = `14px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(lang.startPrompt, cw / 2, ch * 0.72);
+  }
+}
+
+// --- 사건 해결 렌더 ---
+function renderCaseSolved(ctx, gt, cw, ch) {
+  const lang = getLang();
+  const r = G.lastResult;
+
+  ctx.fillStyle = 'rgba(0,20,10,0.95)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawDecoFrame(ctx, cw * 0.1, ch * 0.1, cw * 0.8, ch * 0.75,
+    `${lang.caseComplete} — ${lang.zoneNames[G.currentZone]}`);
+
+  if (!r) return;
+
+  const fontSize = Math.min(14, cw * 0.025);
+  ctx.font = `bold ${fontSize + 4}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+
+  // 랭크 (대형 표시)
+  const rankColors = [C.CLUE_GOLD, C.SUCCESS_GREEN, C.CRED_BLUE, C.TEXT_SECONDARY];
+  ctx.fillStyle = rankColors[r.rank];
+  ctx.font = `bold ${Math.min(48, cw * 0.08)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(lang.rankNames[r.rank], cw / 2, ch * 0.32);
+
+  // 점수 상세
+  ctx.font = `${fontSize}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  const lines = [
+    `${lang.score}: ${r.rawScore} × ${r.rankMult} = ${r.finalScore}`,
+    `Time Bonus: +${r.timeBonus}`,
+    `Accuracy: +${r.accuracyBonus}`,
+    `Explore: +${r.exploreBonus}`
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], cw / 2, ch * 0.45 + i * 22);
+  }
+
+  // 총점
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.font = `bold ${fontSize + 2}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(`${lang.totalScore}: ${G.totalScore}`, cw / 2, ch * 0.7);
+}
+
+// --- 업그레이드 메뉴 렌더 ---
+function renderUpgradeMenu(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  ctx.fillStyle = 'rgba(11,20,38,0.95)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawDecoFrame(ctx, cw * 0.1, ch * 0.05, cw * 0.8, ch * 0.85, lang.upgradeTitle);
+
+  // 영혼 파편 표시
+  ctx.font = `bold 14px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.CLUE_GOLD;
+  drawStarIcon(ctx, cw / 2 - 60, ch * 0.12 + 10, 9, C.CLUE_GOLD);
+  ctx.fillText(`${lang.soulFragments}: ${G.soulFragments}`, cw / 2, ch * 0.15);
+
+  // 능력 업그레이드 카드
+  const keys = ['clairvoyance', 'empathy', 'rewind'];
+  const abilityColors = [C.CLUE_GOLD, C.SUSPECT_PURPLE, '#FF8844'];
+  const optW = Math.min(300, cw * 0.65);
+  const optH = 70;
+  const startX = (cw - optW) / 2;
+  const startY = ch * 0.22;
+
+  for (let i = 0; i < 3; i++) {
+    const oy = startY + i * (optH + 15);
+    const key = keys[i];
+    const lvl = G.upgrades[key];
+    const selected = G.upgradeSelected === i;
+    const maxed = lvl >= 5;
+    const cost = maxed ? 0 : C.UPGRADE_COST[lvl];
+    const canAfford = G.soulFragments >= cost && !maxed;
+
+    // 카드 배경
+    ctx.fillStyle = selected ? `rgba(${i === 0 ? '255,184,0' : i === 1 ? '155,89,182' : '255,136,68'},0.1)` : 'rgba(30,30,50,0.5)';
+    ctx.fillRect(startX, oy, optW, optH);
+    ctx.strokeStyle = selected ? abilityColors[i] : 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(startX, oy, optW, optH);
+
+    // 능력 이름
+    ctx.fillStyle = abilityColors[i];
+    ctx.font = `bold ${Math.min(15, cw * 0.028)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(lang.abilities[i], startX + 15, oy + 22);
+
+    // 레벨 바
+    const barX = startX + 15;
+    const barY = oy + 35;
+    const barW = optW - 30;
+    const barH = 8;
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = abilityColors[i];
+    ctx.fillRect(barX, barY, barW * (lvl / 5), barH);
+
+    // 레벨 텍스트
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.font = `12px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`${lang.level}${G.abilities[key]}`, barX, oy + 60);
+
+    // 비용/상태
+    ctx.textAlign = 'right';
+    if (maxed) {
+      ctx.fillStyle = C.SUCCESS_GREEN;
+      ctx.fillText(lang.max, startX + optW - 15, oy + 60);
+    } else {
+      ctx.fillStyle = canAfford ? C.CLUE_GOLD : C.DANGER_RED;
+      ctx.fillText(`${lang.cost}: ${cost} ✦`, startX + optW - 15, oy + 60);
+    }
+  }
+
+  // 돌아가기
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.font = `13px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(`[B] ${lang.back}`, cw / 2, ch * 0.9);
+}
+
+// --- 게임 오버 렌더 ---
+function renderGameOver(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 어두운 레드 배경
+  ctx.fillStyle = 'rgba(20,0,5,0.95)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 글리치 효과
+  for (let i = 0; i < 5; i++) {
+    const gy = rng.int(0, ch);
+    ctx.fillStyle = `rgba(255,51,102,${0.03 + 0.02 * Math.sin(gt * 10 + i)})`;
+    ctx.fillRect(0, gy, cw, 2);
+  }
+
+  // 게임 오버 텍스트
+  ctx.font = `bold ${Math.min(36, cw * 0.06)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.DANGER_RED;
+  ctx.shadowColor = C.DANGER_RED;
+  ctx.shadowBlur = 15;
+  ctx.fillText(lang.gameOver, cw / 2, ch * 0.35);
+  ctx.shadowBlur = 0;
+
+  // 점수
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.font = `${Math.min(18, cw * 0.03)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(`${lang.totalScore}: ${G.totalScore}`, cw / 2, ch * 0.5);
+
+  // 최고점수
+  const hs = getHighScore();
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.fillText(`${lang.highScore}: ${hs}`, cw / 2, ch * 0.58);
+
+  // 재시작 안내
+  if (Math.sin(gt * 3) > 0) {
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.font = `${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(lang.restart, cw / 2, ch * 0.78);
+  }
+}
+
+// --- 게임 완료 렌더 ---
+function renderGameComplete(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 골드 배경
+  ctx.fillStyle = '#0a0a10';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 골드 입자
+  for (let i = 0; i < 30; i++) {
+    const px = (i * 43 + gt * 15 + Math.sin(gt + i) * 50) % cw;
+    const py = (i * 31 + gt * 10) % ch;
+    ctx.fillStyle = `rgba(255,215,0,${0.2 + 0.15 * Math.sin(gt * 2 + i)})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 타이틀
+  ctx.font = `bold ${Math.min(32, cw * 0.055)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.shadowColor = C.CLUE_GOLD;
+  ctx.shadowBlur = 20;
+  ctx.fillText(lang.complete, cw / 2, ch * 0.25);
+  ctx.shadowBlur = 0;
+
+  // 메시지
+  ctx.font = `${Math.min(16, cw * 0.028)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillStyle = C.TEXT_PRIMARY;
+  ctx.fillText(lang.completeMsg, cw / 2, ch * 0.4);
+
+  // 총점
+  ctx.fillStyle = C.CLUE_GOLD;
+  ctx.font = `bold ${Math.min(24, cw * 0.04)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(`${lang.totalScore}: ${G.totalScore}`, cw / 2, ch * 0.55);
+
+  // 루시안 실루엣
+  drawLucian(ctx, gt, cw / 2, ch * 0.72, 0, 'normal', 0.8, []);
+
+  // 계속 안내
+  if (Math.sin(gt * 2) > 0) {
+    ctx.fillStyle = C.TEXT_SECONDARY;
+    ctx.font = `14px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText(lang.startPrompt, cw / 2, ch * 0.9);
+  }
+}
+
+// --- 크레딧 렌더 ---
+function renderCredits(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  ctx.fillStyle = '#050510';
+  ctx.fillRect(0, 0, cw, ch);
+
+  const text = lang.credits;
+  const lines = text.split('\n');
+  const baseY = ch - G.creditsScroll;
+
+  ctx.font = `${Math.min(16, cw * 0.028)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.TEXT_PRIMARY;
+
+  for (let i = 0; i < lines.length; i++) {
+    const ly = baseY + i * 30;
+    if (ly > -30 && ly < ch + 30) {
+      ctx.fillText(lines[i], cw / 2, ly);
+    }
+  }
+
+  // "Made with Canvas" 표시
+  const footY = baseY + lines.length * 30 + 60;
+  if (footY > -30 && footY < ch + 30) {
+    ctx.fillStyle = C.DECO_BRONZE;
+    ctx.font = `bold 14px "Segoe UI", system-ui, sans-serif`;
+    ctx.fillText('Made with HTML5 Canvas', cw / 2, footY);
+    ctx.fillStyle = C.GHOST_CYAN;
+    ctx.fillText('유령 탐정 — Spectral Sleuth', cw / 2, footY + 25);
+  }
+
+  if (G.creditsScroll > lines.length * 30 + 200) {
+    beginTransition(STATES.TITLE, 'fade', 0.5);
+  }
+
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.font = `12px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.fillText('SPACE to skip', cw - 15, ch - 15);
+}
+
+// --- 일시정지 렌더 ---
+function renderPause(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  // 반투명 오버레이
+  ctx.fillStyle = 'rgba(5,5,15,0.85)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawDecoFrame(ctx, cw * 0.2, ch * 0.25, cw * 0.6, ch * 0.4, lang.pause);
+
+  ctx.font = `bold ${Math.min(18, cw * 0.03)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+
+  // 계속
+  ctx.fillStyle = C.GHOST_CYAN;
+  ctx.fillText(`[SPACE] ${lang.resume}`, cw / 2, ch * 0.42);
+
+  // 설정
+  ctx.fillStyle = C.DECO_BRONZE;
+  ctx.fillText(`[S] ${lang.settings}`, cw / 2, ch * 0.52);
+
+  // 타이틀로
+  ctx.fillStyle = C.DANGER_RED;
+  ctx.font = `${Math.min(14, cw * 0.025)}px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText('[ESC] → Title', cw / 2, ch * 0.6);
+}
+
+// --- 설정 렌더 ---
+function renderSettings(ctx, gt, cw, ch) {
+  const lang = getLang();
+
+  ctx.fillStyle = 'rgba(5,5,15,0.92)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  drawDecoFrame(ctx, cw * 0.15, ch * 0.1, cw * 0.7, ch * 0.7, lang.settings);
+
+  const options = [
+    { label: lang.lang, value: G.settings.lang === 'ko' ? '한국어' : 'English' },
+    { label: lang.sfxVol, value: `${(snd.sfxVol * 100) | 0}%` },
+    { label: lang.bgmVol, value: `${(snd.bgmVol * 100) | 0}%` },
+    { label: lang.diffLabel, value: lang.difficulty[G.difficulty] }
+  ];
+
+  const optH = 50;
+  const startY = ch * 0.25;
+  const optW = Math.min(300, cw * 0.5);
+  const optX = (cw - optW) / 2;
+
+  for (let i = 0; i < options.length; i++) {
+    const oy = startY + i * (optH + 10);
+    const selected = G.settingsSelected === i;
+
+    ctx.fillStyle = selected ? 'rgba(0,212,255,0.08)' : 'rgba(30,30,50,0.3)';
+    ctx.fillRect(optX, oy, optW, optH);
+    if (selected) {
+      ctx.strokeStyle = C.GHOST_CYAN;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(optX, oy, optW, optH);
+    }
+
+    ctx.fillStyle = C.TEXT_PRIMARY;
+    ctx.font = `bold 13px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(options[i].label, optX + 15, oy + 22);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = C.GHOST_CYAN;
+    ctx.fillText(`◀ ${options[i].value} ▶`, optX + optW - 15, oy + 22);
+
+    if (selected) {
+      ctx.fillStyle = C.TEXT_SECONDARY;
+      ctx.font = `11px "Segoe UI", system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('← / → to adjust', optX + optW / 2, oy + 42);
+    }
+  }
+
+  // 돌아가기
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.TEXT_SECONDARY;
+  ctx.font = `13px "Segoe UI", system-ui, sans-serif`;
+  ctx.fillText(`[Backspace] ${lang.back}`, cw / 2, ch * 0.85);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+// 전환 알파 업데이트를 위한 프록시
+const transProxy = { a: 0 };
+const origTwAdd = tw.add.bind(tw);
+tw.add = function(obj, props, dur, ease, onComplete) {
+  // transitionAlpha를 트윈으로 제어
+  if (obj === transProxy || (obj.a !== undefined && props.a !== undefined && obj !== G)) {
+    const wrapped = origTwAdd(obj, props, dur, ease, () => {
+      transitionAlpha = obj.a;
+      if (onComplete) onComplete();
+    });
+    // 매 프레임 알파 업데이트
+    const origUpdate = tw.update.bind(tw);
+    return wrapped;
+  }
+  return origTwAdd(obj, props, dur, ease, onComplete);
+};
+// 전환 알파를 매 프레임 동기화
+const origTwUpdate = tw.update;
+tw.update = function(dt) {
+  origTwUpdate.call(tw, dt);
+  // transProxy.a를 transitionAlpha에 동기화
+  transitionAlpha = transProxy ? transProxy.a || 0 : 0;
+};
+
+// beginTransition을 transProxy 사용으로 재정의
+function beginTransition(targetState, type, duration) {
+  if (transitionActive) return;
+  transitionActive = true;
+  transitionTarget = targetState;
+  transitionType = type || 'fade';
+  transProxy.a = 0;
+  transitionAlpha = 0;
+
+  const dur = duration || 0.4;
+  origTwAdd(transProxy, { a: 1 }, dur / 2, 'easeIn', () => {
+    transitionAlpha = 1;
+    previousState = G.state;
+    G.state = targetState;
+    onStateEnter(targetState);
+    origTwAdd(transProxy, { a: 0 }, dur / 2, 'easeOut', () => {
+      transitionActive = false;
+      transitionAlpha = 0;
+      transProxy.a = 0;
+    });
+  });
+
+  snd.playSfx('transition');
+}
+
+// 게임 시작
+async function startGame() {
+  // 로딩 화면 표시
+  ctx.fillStyle = C.BG_DEEP;
+  ctx.fillRect(0, 0, G._cw, G._ch);
+  ctx.fillStyle = C.GHOST_CYAN;
+  ctx.font = 'bold 18px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Loading...', G._cw / 2, G._ch / 2);
+
+  // 최고 점수 로드
+  G.highScore = getHighScore();
+
+  // 이전 진행 불러오기 시도
+  loadProgress();
+
+  // 난이도 기반 초기화
+  const diffKey = ['easy', 'medium', 'hard'][G.difficulty];
+  G.credibility = C.CREDIBILITY[diffKey];
+  G.hintsAvail = diffKey === 'easy' ? 99 : diffKey === 'medium' ? 3 : 1;
+
+  // RNG 시드
+  rng.seed(G.runSeed);
+  G._rngState = G.runSeed;
+
+  // 타이틀 상태로 시작
+  G.state = STATES.TITLE;
+  onStateEnter(STATES.TITLE);
+
+  // 메인 루프 시작
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+// 게임 시작!
+startGame();
+</script>
+</body>
+</html>

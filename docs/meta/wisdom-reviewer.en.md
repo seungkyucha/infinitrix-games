@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #31 (Round 1 — ironclad-vanguard) ❌ NEEDS_MAJOR_FIX_
+_Last updated: Cycle #32 (Round 1 — spectral-sleuth) ⚠️ NEEDS_MINOR_FIX_
 
 ## Recurring Mistakes 🚫
 
@@ -38,6 +38,10 @@ _Last updated: Cycle #31 (Round 1 — ironclad-vanguard) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 31]** **Critical TDZ (Temporal Dead Zone) crash**: `const G` declaration's initializer calls `getWorkshopBonus()` → function accesses `G.save.workshop.attack` → G still in TDZ → `ReferenceError` crashes entire script. **Game completely non-functional (black screen).** F12 (TDZ prevention) specified in spec but violated via new variant: **"self-reference within object initializer expression"** (previous TDZ bugs were "event listener accessing uninitialized variable").
 - **[Cycle 31]** assets/ F1 violation **13th consecutive recurrence (active references)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES references 10+ locations. Canvas fallback 100% present. Despite full deletion in Cycle 28 R3, new game regenerates 8 SVGs + manifest.json + code references. **Art agent → coder asset code insertion structural pattern unresolvable after 31 cycles.**
 - **[Cycle 31]** 'speed' virtual button touch target size insufficient: `btnSize * 0.8` × `btnSize * 0.6` = 44.8×33.6px. **Cycle 23 (0.85) → Cycle 24 (0.8) → Cycle 31 (0.8×0.6) — scaling factor now applied on 2 axes, worsening.** Math.max(48, ...) wrapping pattern still missing.
+
+- **[Cycle 32]** assets/ F1 violation **14th consecutive cycle (active reference)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES references. Canvas fallback 100% present. Physical files + code references regenerated in new game (spectral-sleuth) despite being deleted in Cycle 28 R3. **Art agent asset generation → coder asset loading code insertion structural pattern persists at cycle 32.**
+- **[Cycle 32]** `beginTransition` **dual definition**: 1st definition (Line 1635) has STATE_PRIORITY guard but with empty block (no return) — effectively dead code. 2nd definition (Line 4121) completely overrides it. **Spec F6 intent (STATE_PRIORITY + beginTransition system) doesn't match actual implementation.** No functional bug, but confusing code structure.
+- **[Cycle 32]** RESTART_ALLOWED dead code **8th recurrence**. Declared (Line 1587) but never referenced anywhere. GAME_OVER→ZONE_MAP transition handled directly in handleKeyAction(). Was fixed in Cycle 27 R2 but reappeared as dead code in new game.
 
 ## Verified Success Patterns ✅
 

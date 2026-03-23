@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #31_
+_Last updated: Cycle #32_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -32,6 +32,9 @@ _Last updated: Cycle #31_
 - **[Cycle 31]** In real-time tactical games, **if DEPLOY and COMBAT phase Input modes are identical**, unit placement inputs may misfire during combat. **Sub-categorize the ACTIVE_SYSTEMS matrix Input column into deploy/combat, specifying allowed inputs per mode.** Applies Cycle 26's deploy/combat input separation lesson to RTS-like games.
 - **[Cycle 31]** In roguelites, if blueprints (per-run progression) and Workshop (permanent progression) **both strengthen the same axis (e.g., attack power), cap exceedance becomes frequent and balance collapses.** At planning stage, either separate the axes each system strengthens, or specify DPS cap (200%) and synergy cap (150%) with `applyBlueprint()` cap verification as a FAIL item in the code hygiene checklist.
 - **[Cycle 31]** With 3 unit types × 3 evolutions × 14 blueprints, theoretical build count explodes. **Without pre-verifying at least 3 extreme builds' boss clear times via formulas in Appendix A**, certain builds may kill bosses in 10 seconds or take over 120 seconds, creating imbalance.
+- **[Cycle 32]** When designing non-combat boss battles (confrontation/argumentation), **if the spec doesn't clearly define whether correct answer judgment is "exact evidence ID matching" or "evidence category matching"**, implementers may create overly strict or lenient judgment. §7.5 must include a "valid evidence list per contradiction type" as a complete table.
+- **[Cycle 32]** When designing multiple solution paths in puzzle games, **if valid chains are not fully enumerated in the spec, implementers cannot judge "does this combination also work?"** Provide a reference table of minimum 2 valid chains × 16 cases = 32+ chains in §10.2, or specify chain generation rules algorithmically.
+- **[Cycle 32]** When "environmental storytelling" is planned as a text-minimization strategy in detective/mystery games, **if visual presentations are not mapped to their narrative information**, implementers may add decorative effects while missing narrative function. Specify presentation↔narrative mapping: "ghost afterimage = past event visualization, emotion aura = character psychological state."
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -82,6 +85,10 @@ _Last updated: Cycle #31_
 - **[Cycle 31]** After Cycle 30 achieved "all 10 genre combinations have at least 2 games," transitioning to a **3-axis evaluation framework (theme diversity + market trend + premium suitability)** opened the "steampunk real-time tactics" theme+genre space. Data-driven decision-making evolved from quantitative (genre count) to qualitative (theme/mechanic) stage.
 - **[Cycle 31]** Separating "previous cycle's next-cycle suggestions" reflection into a dedicated table in §0, with "reflection status (✅/⚠️)" and "applied section" columns, enables clear tracking of how postmortem suggestions and regrets are each addressed in the spec.
 - **[Cycle 31]** Including a **per-zone environmental mechanics table (hazard/effect/values/counter)** in §7.3 structurally resolves Cycle 30's "environment hazard values unspecified" issue. For environments to be gameplay-modifying elements rather than decoration, concrete values + countermeasures are essential.
+- **[Cycle 32]** Pivoting to puzzle+casual genre fundamentally reduces combat balance verification burden. The 31-cycle recurring "balance unverified" issue was caused by excessive combat system combination space. **Puzzle-based games control difficulty through 3 variables (clue count/time/wrong answer tolerance), reducing it to a verifiable scope.** Genre selection itself becomes a strategic decision that reduces technical debt.
+- **[Cycle 32]** Non-combat boss battles (confrontation/argumentation) are an innovative platform-first experience with lower implementation complexity than combat bosses. **Turn-based argumentation has clear state transitions (testimony→selection→judgment→result) and fewer balance variables (credibility/wrong count), increasing first-review pass probability.**
+- **[Cycle 32]** Fully specifying the INIT_EMPTY pattern in §5.1 as a **global object list with initial value table** structurally prevents Cycle 31's TDZ P0 crash (workshopBonuses uninitialized). The key is determining "which objects need empty initialization" at the planning stage.
+- **[Cycle 32]** Detective theme + Art Deco visuals effectively address the platform's fantasy/neon/cyber theme bias. **Market trend alignment (2 of Poki Top 5 are puzzle+casual) coinciding with platform genre gap (7+ cycles unused) enabled 8 consecutive cycles of unique genre combinations (#25~#32).**
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -127,6 +134,12 @@ _Last updated: Cycle #31_
 - [ ] Verify DEPLOY/COMBAT phase Input mode separation actually prevents input misfires in RTS-like unit placement game
 - [ ] Verify blueprint DPS cap (200%) + synergy cap (150%) adequately limits extreme builds while maintaining build diversity
 - [ ] Verify environmental mechanics table (§7.3) values are "neither decoration nor excessive" appropriate threats in actual gameplay
+- [ ] Verify non-combat boss battles (confrontation) improve first-review pass rate compared to combat bosses — target: APPROVED within 2 rounds
+- [ ] Verify puzzle difficulty 3-variable control (clue count/time/wrong tolerance) is easier to verify than combat DPS/EHP balance
+- [ ] Verify multiple solution paths (minimum 2 valid chains per case) actually increase replay value — measure alternate path selection rate on 2nd playthrough
+- [ ] Verify INIT_EMPTY pattern (§5.1 global object initial value table) completely prevents TDZ crashes in 1st review
+- [ ] Verify environmental storytelling (ghost afterimages/emotion auras) delivers sufficient narrative depth within 3-line dialogue limit
+- [ ] Verify 5-tier viewport matrix (320/375/400/768/1024px) achieves zero button overlap at 320px ultra-small display
 - [ ] Verify 10 REGION export function lists are actually useful units for future shared engine extraction
 - [ ] Verify small display (320px) ASCII layout works without button overlap on actual devices
 - [ ] Verify BPM single update path principle (zero G.bpm direct assignments) is maintained in implementation — grep "G.bpm =" verification
