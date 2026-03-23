@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-22T22:19:38.305Z",
-  "totalGames": 26,
+  "lastUpdated": "2026-03-23T02:09:45.911Z",
+  "totalGames": 27,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -4732,6 +4732,127 @@
             "H: Dica",
             "ESC: Pausa",
             "Toque: Deslizar para trocar gemas"
+          ]
+        }
+      }
+    },
+    {
+      "id": "neon-pulse",
+      "title": "네온 펄스",
+      "description": "비트에 맞춰 적을 처치하고 네온 던전을 돌파하라!",
+      "genre": [
+        "arcade",
+        "casual"
+      ],
+      "thumbnail": "/games/neon-pulse/assets/thumbnail.svg",
+      "path": "/games/neon-pulse/index.html",
+      "addedAt": "2026-03-23T02:09:45.911Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "리듬",
+        "아케이드",
+        "로그라이트",
+        "네온",
+        "비트",
+        "콤보"
+      ],
+      "controls": [
+        "Space/↑: 비트에 맞춰 공격",
+        "←→/스와이프: 좌우 이동·회피",
+        "터치: 화면 탭으로 공격 (모바일)",
+        "ESC: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Neon Pulse",
+          "description": "Defeat enemies to the beat and conquer the neon dungeon!",
+          "tags": ["rhythm", "arcade", "roguelite", "neon", "beat", "combo"],
+          "controls": [
+            "Space/↑: Attack on the beat",
+            "←→/Swipe: Move & dodge",
+            "Tap: Attack (mobile)",
+            "ESC: Pause"
+          ]
+        },
+        "ja": {
+          "title": "ネオンパルス",
+          "description": "ビートに合わせて敵を倒し、ネオンダンジョンを突破せよ！",
+          "tags": ["リズム", "アーケード", "ローグライト", "ネオン", "ビート", "コンボ"],
+          "controls": [
+            "Space/↑: ビートに合わせて攻撃",
+            "←→/スワイプ: 移動・回避",
+            "タップ: 攻撃（モバイル）",
+            "ESC: ポーズ"
+          ]
+        },
+        "zh-CN": {
+          "title": "霓虹脉冲",
+          "description": "跟随节拍消灭敌人，突破霓虹地下城！",
+          "tags": ["节奏", "街机", "肉鸽", "霓虹", "节拍", "连击"],
+          "controls": [
+            "Space/↑: 跟随节拍攻击",
+            "←→/滑动: 左右移动·闪避",
+            "点击: 攻击（移动端）",
+            "ESC: 暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "霓虹脈衝",
+          "description": "跟隨節拍消滅敵人，突破霓虹地下城！",
+          "tags": ["節奏", "街機", "肉鴿", "霓虹", "節拍", "連擊"],
+          "controls": [
+            "Space/↑: 跟隨節拍攻擊",
+            "←→/滑動: 左右移動·閃避",
+            "點擊: 攻擊（行動裝置）",
+            "ESC: 暫停"
+          ]
+        },
+        "es": {
+          "title": "Pulso Neón",
+          "description": "¡Derrota enemigos al ritmo y conquista la mazmorra neón!",
+          "tags": ["ritmo", "arcade", "roguelite", "neón", "beat", "combo"],
+          "controls": [
+            "Space/↑: Atacar al ritmo",
+            "←→/Deslizar: Mover y esquivar",
+            "Toque: Atacar (móvil)",
+            "ESC: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Néon Pulse",
+          "description": "Éliminez les ennemis en rythme et conquérez le donjon néon !",
+          "tags": ["rythme", "arcade", "roguelite", "néon", "beat", "combo"],
+          "controls": [
+            "Space/↑ : Attaquer en rythme",
+            "←→/Glisser : Se déplacer et esquiver",
+            "Toucher : Attaquer (mobile)",
+            "ESC : Pause"
+          ]
+        },
+        "de": {
+          "title": "Neon Puls",
+          "description": "Besiege Feinde im Takt und erobere den Neon-Dungeon!",
+          "tags": ["Rhythmus", "Arcade", "Roguelite", "Neon", "Beat", "Combo"],
+          "controls": [
+            "Space/↑: Im Takt angreifen",
+            "←→/Wischen: Bewegen & Ausweichen",
+            "Tippen: Angreifen (Mobil)",
+            "ESC: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Pulso Neon",
+          "description": "Derrote inimigos no ritmo e conquiste a masmorra neon!",
+          "tags": ["ritmo", "arcade", "roguelite", "neon", "beat", "combo"],
+          "controls": [
+            "Space/↑: Atacar no ritmo",
+            "←→/Deslizar: Mover e desviar",
+            "Toque: Atacar (mobile)",
+            "ESC: Pausa"
           ]
         }
       }

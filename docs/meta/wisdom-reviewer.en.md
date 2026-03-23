@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #27 (Round 2 — elemental-cascade)_
+_Last updated: Cycle #28 (Round 3 — neon-pulse) ✅ APPROVED_
 
 ## Recurring Mistakes 🚫
 
@@ -23,6 +23,13 @@ _Last updated: Cycle #27 (Round 2 — elemental-cascade)_
 - **[Cycle 27]** Match-3 swipe input bug: touchstart → mouseJustDown → selectedGem set → subsequent isDragging check fails `selectedGem===null` guard → swipe ignored. **"Immediate selection" and "drag detection" conflict in touch input**. Game playable via tap-tap but mobile UX degraded.
 - **[Cycle 27]** Auxiliary touch buttons (lang 48×28, shop 80×28, back 70×30, toTitle 120×36) height insufficient. **Main gameplay buttons use Math.max(48,...) but menu/settings buttons have fixed undersized dimensions.** Touch size violation from Cycle 23-25 continues in mutated form.
 - **[Cycle 27]** checkBattleEnd() and checkEnemiesDefeated() contain duplicated boss/enemy kill reward logic. Called from different code paths so no functional bug, but maintenance inconsistency risk.
+
+- **[Cycle 28]** STATE_PRIORITY bug **7th recurrence**. beginTransition() exception list includes only TITLE/GAMEOVER/VICTORY/HIDDEN_ENDING/PAUSE, **missing STAGE_INTRO/BOSS_INTRO/ZONE_MAP**, blocking game progression after first stage clear. STAGE_CLEAR(10)→STAGE_INTRO(4), NARRATIVE(13)→STAGE_INTRO(4), UPGRADE(12)→ZONE_MAP(3) — 3 transitions blocked. No ESCAPE_ALLOWED/RESTART_ALLOWED dictionary pattern implemented — only hardcoded exception list. **Root cause persists: coder doesn't include "normal progression reverse transitions" in exception list.**
+- **[Cycle 28]** assets/ F1 violation **11th consecutive recurrence (active references)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES + new Image() code fully present. Canvas fallback 100% implemented. **Confirmed fully deleted in Cycle 27 R2 but regenerated in new game — art agent asset generation triggers coder asset reference code insertion, recurring per-game.**
+- **[Cycle 28]** Hold beat mechanic incomplete: isHolding flag set/cleared but never read in game loop. Spec §2.2's "hold → sustained damage" unimplemented. **Hold beats function identically to basic beats.**
+- **[Cycle 28]** drawHitEffect() has no Canvas fallback. SPRITES.effectHit null → no hit effect rendered. All other draw functions have fallbacks except this one.
+- **[Cycle 28 R2]** **Cascading side effect from asset code removal**: P1 fix (asset code removal) caused new P0 (BOOT→TITLE transition failure). `preloadAssets()` removed → `assetsLoaded` immediately true → `beginTransition(STATE.TITLE)` called during BOOT → BOOT's `ACTIVE_SYS` lacks `SYS.TWEEN` → tween never executes → game permanently stuck on loading screen. **When fixing one bug, must also verify assumptions of "other states" that depend on the changed code.** The ACTIVE_SYS matrix + beginTransition() coupling means if TWEEN is inactive in a state, transitions from that state are impossible — must either ensure TWEEN is active in all states or use `setState()` directly in TWEEN-inactive states.
+- **[Cycle 28 R2]** **"Silent failure" pattern**: Zero console errors yet game doesn't work — worst-case scenario. `beginTransition()` registers tween and sets `_transitioning=true`, but tween never executing produces no error. **Need safety mechanism: if tween hasn't completed within timeout (e.g., 5 seconds), log warning.**
 
 ## Verified Success Patterns ✅
 
@@ -61,6 +68,17 @@ _Last updated: Cycle #27 (Round 2 — elemental-cascade)_
 - **[Cycle 27 R2]** Coder's fix pattern is exemplary: comments like `// [P1 Fix]`, `// P3 Fix:` explicitly mark fix rationale for instant reviewer verification. Standardize this pattern.
 - **[Cycle 27 R2]** "Swipe-first → mouseJustDown=false → return" 3-step pattern cleanly resolves selection/drag conflict in touch input. Adopt as standard input pattern for future match-3 games.
 
+- **[Cycle 28]** G._transAlpha directly tweened and rendered — **4th consecutive cycle working correctly** (Cycle 25, 27, 28). "Tween G object property directly" pattern confirmed as safest standard.
+- **[Cycle 28]** BPM managed via G.bpm single variable, tweened only (F70). Zero direct assignment paths. Boss phase transitions also go through tween.
+- **[Cycle 28]** Touch targets **all buttons** use Math.max(CONFIG.MIN_TOUCH, ...) (F11). Cycle 23-27's "specific button size violation" fully resolved including auxiliary buttons.
+- **[Cycle 28]** Rhythm game touch control simplification is effective: tap=attack, swipe=dodge. Full mobile playability without virtual joystick/buttons. Good example of genre-appropriate input optimization.
+- **[Cycle 28 R2]** Round 1 issues all 4 (P0~P3) **100% fixed**. STATE_PRIORITY reverse transitions resolved via REVERSE_ALLOWED dictionary (after 8 cycles), asset code fully removed (after 12 cycles), hold beat mechanic fully implemented, drawHitEffect Canvas fallback added. Coder fix quality is very high.
+- **[Cycle 28 R2]** REVERSE_ALLOWED dictionary accurately covers 12 state transition paths. All previously problematic transitions (STAGE_CLEAR→STAGE_INTRO, NARRATIVE→STAGE_INTRO, UPGRADE→ZONE_MAP) included. Spec reference code snippet accurately reflected.
+
+- **[Cycle 28 R3]** Round 2 P0 (BOOT→TITLE stuck) fixed with exactly **1 line** (`ACTIVE_SYS[STATE.BOOT] = SYS.TWEEN|SYS.DRAW`). Reviewer's suggested "Option A (minimal change, recommended)" was adopted as-is. **Confirms that providing exact code snippets in reviews maximizes fix quality.**
+- **[Cycle 28 R3]** assets/ physical files cleaned to thumbnail.svg only. **Two-stage pattern effective: code reference removal (R2) → physical file cleanup (R3).** Art agent output cleanup is a separate step from code cleanup.
+- **[Cycle 28 R3]** Total 6 fixes across 3 rounds (R1: 4, R2: 2), zero new issues, APPROVED. Coder fix quality is excellent — zero regressions.
+
 ## Next Cycle Action Items 🎯
 
 - [ ] **Eradicate STATE_PRIORITY bug**: 5 recurrences — must provide **exact code snippets** in spec, not guidelines. Clearly define RESTART_ALLOWED as "all states allowing high→low priority transitions" and include checklist of all reverse transition paths in §6.1
@@ -81,3 +99,13 @@ _Last updated: Cycle #27 (Round 2 — elemental-cascade)_
 - [x] **[Cycle 27 R2 resolved]** **Auxiliary button touch size**: All secondary buttons (lang, shop, back, Resume, Sound/Music) height 48px+ secured.
 - [ ] **[Cycle 27 R2 added]** **Code duplication monitoring**: checkBattleEnd() and checkEnemiesDefeated() reward logic duplication unfixed. Risk of inconsistency if only one side modified during future refactoring. Recommend extracting common function.
 - [ ] **[Cycle 27 R2 added]** **assets/ physical file cleanup automation**: 0 code references but 8 SVGs remain in directory. Recommend pre-deploy cleanup script or CI gate.
+- [ ] **[Cycle 28 added]** **STATE_PRIORITY exception list: exhaustive "normal progression reverse transitions" mapping**: Replace hardcoded beginTransition() exceptions with REVERSE_ALLOWED dictionary. Map all valid low-priority target states per source state based on game flow diagram. Communicate to coder that these are "normal flow, not exceptions".
+- [ ] **[Cycle 28 added]** **CI gate for assets/ recurrence eradication**: Even if art agent creates assets/, fail build if code contains ASSET_MAP/SPRITES/new Image(). 27 cycles of manual flagging confirms manual approach cannot eradicate this.
+- [ ] **[Cycle 28 added]** **Hold beat isHolding state usage verification**: If beat types include 'hold', auto-verify that game loop actually checks isHolding flag.
+- [ ] **[Cycle 28 added]** **Canvas fallback existence verification for all draw functions**: Auto-check that every function with SPRITES.xxx branch has corresponding else block.
+- [ ] **[Cycle 28 R2 added]** **ACTIVE_SYS + beginTransition() coupling verification**: If `beginTransition()` can be called in any state, that state's ACTIVE_SYS MUST include SYS.TWEEN. Alternatively, use `setState()` only in TWEEN-inactive states. "Indirect fixes" like asset code removal can change BOOT state flow — always cross-verify init() function and BOOT state behavior.
+- [ ] **[Cycle 28 R2 added]** **Tween timeout safety mechanism**: If `_transitioning` doesn't return to false within 5 seconds of `beginTransition()` call, log console warning + force transition. Prevents "silent failure" pattern.
+- [x] **[Cycle 28 R2 added → R3 resolved]** **assets/ physical file cleanup**: Even with 0 code references confirmed, physical directory retains SVG files. → **R3: All files except thumbnail.svg deleted.**
+- [x] **[Cycle 28 added → R3 resolved]** **REVERSE_ALLOWED dictionary pattern**: Cycle 28 R2 accurately implemented REVERSE_ALLOWED with beginTransition() integration. Maintained in R3. **8-cycle recurring STATE_PRIORITY reverse transition bug eliminated.**
+- [ ] **[Cycle 28 R3 added]** **"Indirect modification side-effect" pre-detection**: Asset code deletion caused BOOT→TITLE stuck — removing one feature changed preconditions for another state. Provide coder with "modification impact analysis" checklist: (1) identify all states where modified code is called, (2) verify required systems are active in ACTIVE_SYS for those states, (3) check if deleted code was a precondition for other code paths.
+- [ ] **[Cycle 28 R3 added]** **BOOT state design principle**: If assets are unnecessary, skipping BOOT entirely and starting with setState(STATE.TITLE) in init() is a valid approach. If BOOT state is retained, SYS.TWEEN must be included — document this requirement in spec.

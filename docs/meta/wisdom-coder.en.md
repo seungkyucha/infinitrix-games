@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #27 elemental-cascade_
+_Last updated: Cycle #28 neon-pulse_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 28]** In rhythm games, beat judge windows (±50/100/150ms) and automatic Miss checks can process the same beat simultaneously. judgeInput() and checkMissedBeats() must use mutually exclusive judged/missed flags — once judged=true, the beat must be skipped in missed checks.
+- **[Cycle 28]** When G.bpm is tween-only (F14, F70), boss phase transitions that regenerate beat patterns (generateBossBeats) before the BPM tween completes will use the old BPM. Beat regeneration must happen inside the tween's onComplete callback.
+- **[Cycle 28]** PAUSE→resume via beginTransition() creates a fade dead-time where game inputs are blocked. PAUSE resume should use setState() for instant transition, providing better UX.
+- **[Cycle 28]** "setTimeout" string in TweenManager comment triggers grep smoke test false positive — same issue flagged in Cycle 27. Either avoid the string in comments or filter comment lines in smoke tests.
 - **[Cycle 27]** In a match-3 engine, detecting 5→T→L→4→3 priority matches requires O(n²) cross-match comparison for intersecting horizontal+vertical matches. Using a `used[][]` array to prevent double-counting is correct but the marking order matters. Always mark larger matches first.
 - **[Cycle 27]** In turn-based RPG with match-3, the COMBO_DISPLAY→next state transition must check hasUsableSpell() to auto-advance to ENEMY_TURN when mana is 0. Without this, players can be stuck in spell selection with no castable spells.
 - **[Cycle 27]** Even when spec says "pure Canvas drawing" + "new Image() 0 count", user instruction to preload assets takes precedence. Smoke test #4 (new Image 0) must be conditionally applied when asset preloader is explicitly requested by user.
@@ -32,6 +36,12 @@ _Last updated: Cycle #27 elemental-cascade_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 28]** Rhythm arcade roguelite (Neon Pulse) implements BPM-synced beat combat + 4-tier timing judgement (Perfect/Great/Good/Miss) as pure functions (judgeInput, calcDamage, updateCombo). Zero global state direct references in combat logic confirmed feasible.
+- **[Cycle 28]** Boss phase transition + BPM tween + beat pattern regeneration chained: applyDamageToBoss() → HP check → phase++ → tw.add(bpm change) → onComplete: generateBossBeats(). Includes atkTimer reset (accumulated lessons from Cycles 24-27).
+- **[Cycle 28]** 13 sound chips with DPS cap (2.0) and synergy cap (1.5) pre-filtered in generateChipChoices() — removes over-cap chips from selection to prevent overpower builds at data level.
+- **[Cycle 28]** DDA (Dynamic Difficulty Adjustment) 3-tier via HP ratio + miss streak counter, with getDDAJudgeWindows() for dynamic window expansion. Maestro difficulty fully disables DDA for hardcore experience.
+- **[Cycle 28]** ACTIVE_SYS matrix implemented as bitmask (SYS.TWEEN|SYS.INPUT|...) — O(1) lookup vs array includes(), less memory. `sys(SYS.RHYTHM)` one-liner pattern adopted as standard. 12 consecutive cycles of matrix pattern success.
+- **[Cycle 28]** Permanent upgrade 3-tree (Rhythm/Power/Flow) × 5 levels declared in CONFIG.UPGRADES data object with purchaseUpgrade() single function — adding a tree requires one data entry only.
 - **[Cycle 27]** Match-3 RPG (Elemental Cascade) with 25 states managed via ACTIVE_SYSTEMS matrix + state-based switch dispatch. Turn-based match→combo→spell→enemy loop cycles cleanly through state machine. 11 consecutive cycles of success.
 - **[Cycle 27]** findMatches() with 5→T→L→4→3 priority detection + used[][] double-count prevention works accurately on 8×8 grid. Marking larger matches first ensures no overlap in score/mana calculations.
 - **[Cycle 27]** 6-element affinity matrix initialized via IIFE closure — cyclic affinity (Fire→Earth→Wind→Water→Fire) + mutual affinity (Light↔Dark) in 6×6 2D array for O(1) lookup. Immediately applicable to boss weakness and elemental damage calculations.
@@ -91,6 +101,11 @@ _Last updated: Cycle #27 elemental-cascade_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **Beat pattern regeneration timing**: When BPM tween is in progress, calling generateBossBeats() uses intermediate BPM. Must call inside tween onComplete only.
+- **PAUSE resume instant transition**: Use setState() instead of beginTransition() for PAUSE→game resume to eliminate fade dead-time.
+- **Bitmask ACTIVE_SYS standard**: Migrate all future games from array-based matrix to bitmask pattern. `sys(SYS.RHYTHM)` is now the standard.
+- **Rhythm game debug overlay**: Visualize judge timing (delta display above judge line) during development for faster balance tuning.
+- **Chip/relic cap pre-filtering**: Remove over-cap items at selection generation time in all roguelite games to prevent "available but meaningless" choices.
 - **Match-3 special gem activation**: Cycle 27 designed data structures for 4-match→cross gem and 5-match→rainbow gem, but special gem type storage (-2/-3) in grid and cascading explosion logic remain unimplemented. Need to add special gem creation+activation+chain logic.
 - **Boss-specific board mechanics**: Spec's per-boss board mutations (lava gem conversion, ink darkening, root obstacles, gem shuffle, mana disruption) are declared as data but actual board manipulation code is not implemented. Each boss phase entry should trigger a board mutation function.
 - **Smoke test comment exclusion**: Grep-based smoke tests produce false positives from comment strings. Add `grep -v '^\s*//' | grep -c 'pattern'` to filter comment lines.

@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #27_
+_Last updated: Cycle #28_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -20,6 +20,9 @@ _Last updated: Cycle #27_
 - **[Cycle 27]** In match-3 RPG hybrids where combat is turn-based+puzzle, **failing to specify match detection priority (5-match→T→L→4→3) in the spec can cause implementers to use arbitrary detection order, resulting in special matches being absorbed by 3-matches.** §7.1.2 must clearly specify the detection algorithm priority.
 - **[Cycle 27]** Initial gem board generation must guarantee "no 3-matches exist", but **failing to specify this validation logic in the spec causes cascades to fire immediately at game start, generating mana without player intent.** §7.1.1 must include initial board validation steps.
 - **[Cycle 27]** Even when relic caps (DPS 200%, synergy 150%) are specified, **omitting cap-exceeded relic selection exclusion logic at implementation renders caps meaningless.** §14.2 code hygiene checklist must explicitly include "cap verification in applyRelic()" item.
+- **[Cycle 28]** In rhythm games, dual update paths for BPM (tween + direct assignment) recreate Cycle 5 B2's bpm double-registration issue. **Core variables affecting the entire game like BPM must follow "single update path" principle in the spec, with grep verification in §14.2 code hygiene checklist.** Verify zero `G.bpm = xxx` direct assignments via smoke test.
+- **[Cycle 28]** Web Audio API's `audioCtx.currentTime`-based beat scheduling and requestAnimationFrame-based game loop may have different time references. **Without specifying audio-game time synchronization strategy in the spec, beat judgement accuracy degrades during frame drops.** §7.1.1 must specify `audioCtx.currentTime` as the judgement reference.
+- **[Cycle 28]** Rhythm game judgement windows (±50ms Perfect, etc.) are affected by per-device/browser audio latency. **Without considering audio latency calibration at planning stage, Perfect judgements may feel inaccurate on certain devices.** DDA fallback is a partial solution, but root fix requires latency measurement + compensation.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -55,6 +58,10 @@ _Last updated: Cycle #27_
 - **[Cycle 27]** Expanding the ACTIVE_SYSTEMS matrix to 23 states × 13 systems while separating Match/Combo/DDA into distinct columns enables clear planning-stage decisions on subtle inter-system interactions like "should DDA intervene during matching?" Particularly useful for match-3 RPG's multi-stage states (MATCH_IDLE→MATCH_ANIM→MATCH_CHECK→COMBO_DISPLAY).
 - **[Cycle 27]** Specifying **dependency directions** in REGION structure enables planning-stage verification of circular-reference-free architecture for future module extraction. Explicit directions like "R2→R1 only", "R6→R1~R5" provide structural preparation for the shared engine extraction delayed 27 cycles.
 - **[Cycle 27]** Specifying per-difficulty **assumptions (match success rate, combo count, weakness accuracy)** in DPS/EHP balance formulas and co-designing 3-stage DDA fallbacks for wrong assumptions structurally prevents the "formula assumptions vs actual play gap." Applies Cycle 24~25 lessons to match-3 RPG context.
+- **[Cycle 28]** In rhythm games, including **beat pattern sequences (A-A-H, D-D-H-E, etc.)** in boss phase diagrams enables implementers to directly convert them to CONFIG arrays. Similar to match-3 detection priority, beat sequence order determines play experience in rhythm games.
+- **[Cycle 28]** Expanding smoke test gate to 14 items (9 FAIL + 5 WARN) with FAIL/WARN 2-tier separation enables implementers to immediately distinguish "must pass" from "recommended." The 2-tier split proposed in Cycle 25 is fully applied in Cycle 28.
+- **[Cycle 28]** Specifying rhythm game balance assumptions (Perfect rate, Great rate, avg combo) per difficulty enables pre-calculation of "is this stage clearable?" by substituting values into the DPS formula. Same pattern as match-3 "match success rate" assumptions but adapted for rhythm games.
+- **[Cycle 28]** Data-driven arcade+casual minimum-frequency combo targeting proved effective. Identifying 3 combos with only 1 game each (arcade+casual, puzzle+action, action+casual) from the genre distribution matrix, combined with market trends (3 of Poki 2026.3 Top 5 are arcade+casual), made the decision clear.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -90,3 +97,9 @@ _Last updated: Cycle #27_
 - [ ] Verify 23×13 ACTIVE_SYSTEMS matrix Match/Combo/DDA columns correctly activate/deactivate per state
 - [ ] Verify 10 REGION dependency directions are maintained in code — R2+R3 depend only on R1, zero circular references
 - [ ] Track match-3 DDA 3-stage fallback (auto-hint/boss ATK reduction/enemy HP erosion) trigger frequency and play experience improvement
+- [ ] Verify 14-item smoke test gate (Cycle 28) FAIL/WARN 2-tier separation improves first-review pass rate — target: APPROVED within 2 rounds
+- [ ] Verify BPM single update path principle (zero G.bpm direct assignments) is maintained in implementation — grep "G.bpm =" verification
+- [ ] Verify Web Audio API `audioCtx.currentTime`-based beat judgement remains accurate during frame drops — test judgement accuracy on low-spec devices
+- [ ] Verify all 6 boss phase transition diagrams (with beat sequences) correspond 1:1 with implementation CONFIG arrays
+- [ ] Verify sound chip DPS cap (200%)/synergy cap (150%) logic correctly operates in chip selection generation — cap-exceeded chip exclusion verification
+- [ ] Measure rhythm judgement audio latency impact in post-mortem — especially Perfect judgement perceived accuracy on mobile browsers

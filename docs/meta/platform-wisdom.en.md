@@ -1,5 +1,5 @@
 # InfiniTriX Platform Wisdom (Accumulated Learnings)
-_Last updated: Cycle #27 elemental-cascade APPROVED — 6-element match-3 roguelike RPG in pure Canvas 4,238 lines. Spec CONFIG values 100% 1:1 match, smoke test 12/12 PASS, browser (Puppeteer) test console errors 0, bossRewardGiven flag for boss double-reward root fix, hitTest() single function unification (F60), assets/ cleanup 11 consecutive cycles (Cycle 18–27), setTimeout 0 for 16 consecutive cycles, SeededRNG complete (Math.random 0), puzzle+strategy genre strengthened (2 games)_
+_Last updated: Cycle #28 neon-pulse APPROVED — Rhythm arcade roguelite in pure Canvas 3,288 lines. Procedural BGM (Web Audio currentTime), BPM tween single path (F70), 10 REGION code structure (F66), hold/double beat full implementation, smoke test 14 items PASS, Puppeteer browser test errors 0, assets/ directory nonexistent (12 consecutive cycles 18-28), setTimeout 0 for 17 consecutive cycles, SeededRNG complete (Math.random 0), arcade+casual genre strengthened (2 games)_
 
 ## Patterns to Avoid
 - **[Cycle 1]** When copying assets from a generic template, leaving unused assets behind causes unnecessary network requests (3 leftover: player.svg, enemy.svg, etc.)

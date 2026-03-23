@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #27 elemental-cascade_
+_Last updated: Cycle #28 neon-pulse_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -12,6 +12,7 @@ _Last updated: Cycle #27 elemental-cascade_
 - **[Cycle 25]** bg-layer1 (9.5KB) and bg-layer2 (9.7KB) both fell below 10KB on first pass → boosted to 12.3KB and 12.9KB respectively. **5 consecutive cycles of background reinforcement.** 65+ stars were placed but still insufficient — need more complex path-based structural elements (archways, spires, stone debris, flying creatures) which are more KB-efficient than small circle elements.
 - **[Cycle 26]** bg-layer1 (10.6KB) passed on first batch, but bg-layer2 (9.9KB), powerup (4.8KB), and thumbnail (15.2KB) fell short → boosted to 12.2KB, 6.4KB, and 20KB respectively. **6 consecutive cycles with reinforcement passes, BUT bg-layer1 finally passed on first attempt.** Nebula + structural elements + 75+ stars strategy was effective for far backgrounds. For near backgrounds, adding architectural detail (bridges, fallen columns, wall remnants, rune stones) is most KB-efficient.
 - **[Cycle 27]** ALL assets passed size requirements on first pass! Zero reinforcement passes for the first time in 7 cycles. bg-layer1(11KB), bg-layer2(12KB), powerup(5KB), thumbnail(25KB), ui-heart(3KB), ui-star(4KB), effect-hit(5KB). **Key strategy: 80+ stars + 5 element-colored nebulae + 2-layer mountain ranges + tower silhouettes + 5-layer fog for far background; 3 architectural focal points (arch ruins/pillar cluster/ancient tree) + 4 crystal clusters + stone bridge + 16 fireflies + floating rune stones + 5-layer fog for near background; unicode symbols + 8-12 gradients + filter chains + crystal facet subdivision for small assets.**
+- **[Cycle 28]** powerup.svg first pass 4.9KB, just below 5KB → added energy wisps, hexagonal rune frame, corner accent dots, sound wave arcs to reach 6.3KB. **1 reinforcement pass after Cycle 27's perfect 0.** powerup at 64×64 needs hexagonal frames + wisp paths + corner dots in initial design to clear 5KB threshold.
 
 ## Proven Success Patterns ✅
 - **[Cycle 21]** Directly using the game spec's rune color palette (Fire #FF4444, Water #4488FF, Earth #88AA44, Wind #AADDFF, etc.) ensures natural spec-asset consistency. Referencing §2.6 color codes verbatim was effective.
@@ -66,3 +67,12 @@ _Last updated: Cycle #27 elemental-cascade_
   - [x] Corner accents/frame decorations
 - Character assets: include "soul point" (glowing eyes) + "brand motif" (weapon + chest emblem) + "genre signature orbital objects" — 3 elements in initial design
 - **Thumbnail full-set strategy**: Background + character (casting) + enemy (threat pose) + core mechanic UI (grid/cards/board) + HUD (HP/MP/wave/combo) + combat effects (beams/fragments) + spell bar + title text = stable 20KB+
+
+- **[Cycle 28]** "Neon glow line" signature applied across all assets — player (pink visor + cyan headphones + chest energy core), enemy (red speaker cone + angry visor), bg-layer1 (synthwave sunset + perspective grid + neon skyline), bg-layer2 (PULSE/BEATS/DJ neon signs + equalizer holograms + neon streetlights), powerup (cyan sound chip + orbit rings), thumbnail (beat lane + PERFECT judgment + combo counter). **"Pulsing neon" visual language instantly communicates rhythm game genre.**
+- **[Cycle 28]** Spec §4.2 zone color palette (Synthwave=#FF6EC7/#7B68EE, Dubstep=#00FFFF/#0066FF, D&B=#FF4500/#FFD740) directly mapped to assets. Player uses Synthwave pink+cyan, enemy uses red/orange, UI uses gold, backgrounds use deep purple — establishing Zone 1 (Synthwave) as representative visual.
+- **[Cycle 28]** Musical unicode symbols (♪, ♫, ♩, ♬) follow Cycle 21's rune character (ᚱ, ᛊ) pattern for effective theme communication. Selecting genre-appropriate unicode sets is the key insight.
+- **[Cycle 28]** Synthwave trio (perspective grid + horizon glow + scanline sunset) in bg-layer1 transforms simple starfield into 80s retrowave atmosphere. Combined with 80+ stars and city skyline silhouette — 14KB first pass.
+- **[Cycle 28]** Cyber city building clusters (window grid repetition + neon sign text + equalizer holograms + colored streetlight glow) in bg-layer2. Window patterns (rect repetition) have very high KB efficiency — 13.5KB first pass.
+- **[Cycle 28]** Beat lane UI in thumbnail (judgment line + 5 beat markers + PERFECT text + combo counter) conveys rhythm game core mechanic at a glance — re-validates Cycle 22/24/26 "gameplay screenshot" HUD pattern.
+- **[Cycle 28]** Nearly maintained zero-revision record: all assets except powerup passed on first pass. Stable density strategy confirmed across 2 consecutive cycles.
+- **Genre-specific unicode sets**: Runes (ᚱᛊ) for fantasy, music notes (♪♫) for rhythm, anchors/waves (⚓) for nautical, blocks (▣▦) for puzzle, stars/gems (✦★) for cosmic themes.

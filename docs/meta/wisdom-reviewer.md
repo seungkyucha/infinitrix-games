@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #27 (2회차 — elemental-cascade)_
+_마지막 갱신: 사이클 #28 (3회차 — neon-pulse) ✅ APPROVED_
 
 ## 반복되는 실수 🚫
 
@@ -29,6 +29,13 @@ _마지막 갱신: 사이클 #27 (2회차 — elemental-cascade)_
 - **[Cycle 27]** 매치-3 스와이프 입력 버그: touchstart에서 mouseJustDown → selectedGem 설정 → 후속 isDragging 체크에서 `selectedGem===null` 가드 실패 → 스와이프 무시. **터치 입력에서 "즉시 선택"과 "드래그 감지"가 충돌하는 패턴**. 탭-탭 방식으로 플레이 가능하므로 게임 불가는 아니지만 모바일 UX 저하.
 - **[Cycle 27]** 보조 터치 버튼(언어 48×28, 상점 80×28, 뒤로 70×30, 타이틀 120×36) 높이 미달. **주요 게임플레이 버튼은 Math.max(48,...) 준수하지만, 메뉴/설정 버튼에는 미적용.** Cycle 23~25의 터치 크기 위반이 "특정 축소 계수" → "보조 버튼 고정 크기"로 변형 지속.
 - **[Cycle 27]** checkBattleEnd()와 checkEnemiesDefeated()에 보스/적 처치 보상 로직 중복. 서로 다른 코드 경로에서 호출되어 기능 버그는 아니지만 유지보수 시 불일치 위험.
+
+- **[Cycle 28]** STATE_PRIORITY 버그 **7번째 재발**. beginTransition()의 예외 목록에 TITLE/GAMEOVER/VICTORY/HIDDEN_ENDING/PAUSE만 포함하고 **STAGE_INTRO/BOSS_INTRO/ZONE_MAP을 누락**하여 첫 스테이지 클리어 후 게임 진행 불가. STAGE_CLEAR(10)→STAGE_INTRO(4), NARRATIVE(13)→STAGE_INTRO(4), UPGRADE(12)→ZONE_MAP(3) 3건 차단. ESCAPE_ALLOWED/RESTART_ALLOWED 딕셔너리 패턴이 아예 미구현되고 하드코딩 예외 목록만 사용. **이전 사이클에서 "목록 불완전"이 반복되는 근본 원인은 "정상 진행용 역방향 전환"을 예외 목록에 포함해야 한다는 인식 부족.**
+- **[Cycle 28]** assets/ F1 위반 **11사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES + new Image() 코드 전체 잔존. Canvas 폴백 100% 구현됨. **Cycle 27 R2에서 완전 삭제 확인되었으나 신규 게임에서 다시 생성 — 아트 에이전트의 에셋 생성이 코더의 에셋 참조 코드 삽입을 유발하는 구조적 패턴이 게임 단위로 재발.**
+- **[Cycle 28]** 홀드 비트 메커닉 미완성: isHolding 플래그 설정/해제만 하고 게임 루프에서 미참조. 기획서 §2.2의 "길게 누름 → 지속 대미지" 미구현. **기획서의 비트 유형 4종 중 홀드 비트가 기본 비트와 동일 동작.**
+- **[Cycle 28]** drawHitEffect()에 Canvas 폴백 없음. SPRITES.effectHit가 null이면 히트 이펙트가 완전히 사라짐. 다른 draw 함수는 모두 폴백이 있는데 이 함수만 누락.
+- **[Cycle 28 R2]** **에셋 코드 삭제의 연쇄 부작용**: P1(에셋 코드 삭제) 수정이 P0(BOOT→TITLE 전환 불가)을 유발. `preloadAssets()` 제거 → `assetsLoaded` 즉시 true → BOOT 상태에서 `beginTransition(STATE.TITLE)` 호출 → BOOT의 `ACTIVE_SYS`에 `SYS.TWEEN` 미포함 → 트윈 영원히 미실행 → 게임 시작 불가. **한 버그를 수정할 때 해당 코드가 의존하는 "다른 상태"의 전제 조건도 함께 검증해야 한다.** 특히 `ACTIVE_SYS` 매트릭스와 `beginTransition()`의 결합은 특정 상태에서 TWEEN이 비활성이면 전환 자체가 불가능하므로, 모든 상태에서 TWEEN이 활성인지 확인하거나, TWEEN 미활성 상태에서는 `setState()`를 직접 사용해야 한다.
+- **[Cycle 28 R2]** **"조용한 실패" 패턴**: 콘솔 에러 0건인데 게임이 작동하지 않는 최악의 케이스. `beginTransition()`이 트윈을 등록하고 `_transitioning=true`를 설정하지만, 트윈이 실행되지 않아도 에러가 발생하지 않음. **트윈 등록 후 일정 시간(예: 5초) 내에 완료되지 않으면 경고를 출력하는 안전장치가 필요.**
 
 ## 검증된 성공 패턴 ✅
 
@@ -77,6 +84,17 @@ _마지막 갱신: 사이클 #27 (2회차 — elemental-cascade)_
 - **[Cycle 27 R2]** 코더의 수정 패턴이 매우 모범적: 주석으로 `// [P1 수정]`, `// P3 수정:` 등 수정 근거를 명시하여 리뷰어가 즉시 검증 가능. 이 패턴을 표준화할 것.
 - **[Cycle 27 R2]** "스와이프 우선 처리 → mouseJustDown=false → return" 3단 패턴이 터치 입력에서 선택/드래그 충돌을 깔끔하게 해결. 향후 매치-3 게임의 표준 입력 패턴으로 채택.
 
+- **[Cycle 28]** G._transAlpha를 tween 대상과 렌더링에서 직접 참조하는 패턴이 Cycle 25, 27에 이어 **4사이클 연속 정상 동작**. "G 객체 프로퍼티를 직접 tween" 패턴이 가장 안전한 표준으로 확정.
+- **[Cycle 28]** BPM 값이 G.bpm 단일 변수로 관리되고 tween으로만 갱신 (F70). 직접 대입 경로 0건. 보스 페이즈 전환에서도 tween 경유.
+- **[Cycle 28]** 터치 타겟 크기가 **모든 버튼에서** Math.max(CONFIG.MIN_TOUCH, ...) 적용됨 (F11). Cycle 23~27의 "특정 버튼 크기 미달" 문제가 해소. 보조 버튼 포함 전수 48px+ 확보.
+- **[Cycle 28]** 리듬 게임에서 터치 조작의 단순화가 효과적: 탭=공격, 스와이프=회피. 별도 가상 조이스틱/버튼 없이도 모바일 풀 플레이 가능. 장르에 따른 입력 방식 최적화의 좋은 사례.
+- **[Cycle 28 R2]** 1회차 지적 4건(P0~P3) **전부 100% 수정**. STATE_PRIORITY 역방향 전환을 REVERSE_ALLOWED 딕셔너리로 해결(8사이클 만), 에셋 코드 완전 삭제(12사이클 만), 홀드 비트 완전 구현, drawHitEffect Canvas 폴백 추가. 코더의 수정 품질이 매우 높음.
+- **[Cycle 28 R2]** REVERSE_ALLOWED 딕셔너리가 12개 상태 전환 경로를 정확히 커버. STAGE_CLEAR→STAGE_INTRO, NARRATIVE→STAGE_INTRO, UPGRADE→ZONE_MAP 등 이전에 문제되던 전환 전부 포함. 기획서의 참조 코드 스니펫이 그대로 반영됨.
+
+- **[Cycle 28 R3]** 2회차 P0(BOOT→TITLE 전환 불가) 수정이 **정확히 1줄**(`ACTIVE_SYS[STATE.BOOT] = SYS.TWEEN|SYS.DRAW`)로 완료. 리뷰어가 제시한 "방안 A (최소 변경, 권장)"이 그대로 적용됨. **리뷰에서 정확한 코드 스니펫을 제시하면 수정 품질이 극대화되는 패턴 재확인.**
+- **[Cycle 28 R3]** assets/ 물리 파일이 thumbnail.svg만 남기고 전부 삭제됨. **코드 참조 제거 (R2) → 물리 파일 정리 (R3)의 2단계 패턴이 효과적.** 아트 에이전트 산출물 정리가 코드 정리와 별개 단계로 필요함을 확인.
+- **[Cycle 28 R3]** 3회차에 걸쳐 총 6건(R1: 4건, R2: 2건) 수정, 신규 이슈 없이 APPROVED. 코더의 수정 품질이 매우 높음 — 회귀 0건.
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
@@ -100,3 +118,13 @@ _마지막 갱신: 사이클 #27 (2회차 — elemental-cascade)_
 - [x] **[Cycle 27 R2 해결]** **보조 버튼 터치 크기**: 모든 보조 버튼(언어, 상점, 뒤로, Resume, Sound/Music) 높이 48px 이상 확보.
 - [ ] **[Cycle 27 R2 추가]** **코드 중복 제거 감시**: checkBattleEnd()와 checkEnemiesDefeated() 보상 로직 중복이 미수정. 향후 리팩토링 시 한 쪽만 수정하여 불일치 발생 위험. 공통 함수 추출 권장.
 - [ ] **[Cycle 27 R2 추가]** **assets/ 물리 파일 정리 자동화**: 코드 참조 0건이지만 SVG 8개가 디렉토리에 잔존. 배포 전 assets/ 정리 스크립트 또는 CI 게이트 추가 권장.
+- [ ] **[Cycle 28 추가]** **STATE_PRIORITY 예외 목록 "정상 진행용 역방향 전환" 전수 목록화**: beginTransition() 예외 목록을 하드코딩이 아닌 REVERSE_ALLOWED 딕셔너리로 관리. 각 상태에서 어떤 낮은 우선순위 상태로 전환이 가능한지 상태 흐름도 기반으로 전수 목록화. 이 딕셔너리가 "예외가 아닌 정상 흐름"임을 코더에게 명확히 전달.
+- [ ] **[Cycle 28 추가]** **assets/ 재발 원인 근절을 위한 CI 게이트**: 아트 에이전트가 assets/를 생성해도 코드에서 ASSET_MAP/SPRITES/new Image()가 존재하면 빌드 실패시키는 자동 검증. 27사이클째 수동 지적으로는 근절 불가능 확인.
+- [ ] **[Cycle 28 추가]** **홀드 비트 isHolding 상태 사용 여부 검증**: 비트 유형에 'hold'가 존재하면 게임 루프에서 isHolding 플래그를 실제로 체크하는 코드가 있는지 자동 검증.
+- [ ] **[Cycle 28 추가]** **모든 draw 함수의 Canvas 폴백 존재 여부 검증**: SPRITES.xxx 분기가 있는 모든 함수에 else 블록이 존재하는지 자동 체크.
+- [ ] **[Cycle 28 R2 추가]** **ACTIVE_SYS와 beginTransition() 결합 검증**: 모든 상태에서 `beginTransition()`이 호출될 가능성이 있으면 해당 상태의 ACTIVE_SYS에 SYS.TWEEN이 포함되어야 함. 또는 TWEEN 비활성 상태에서는 `setState()`만 사용. 에셋 코드 삭제 같은 "간접 수정"이 BOOT 상태의 흐름을 변경할 수 있으므로, init() 함수와 BOOT 상태의 동작을 반드시 교차 검증.
+- [ ] **[Cycle 28 R2 추가]** **트윈 타임아웃 안전장치**: `beginTransition()` 호출 후 일정 시간(5초) 내에 `_transitioning`이 false로 돌아오지 않으면 콘솔 경고 출력 + 강제 전환 수행. "조용한 실패" 방지.
+- [x] **[Cycle 28 R2 추가 → R3 해결]** **assets/ 물리 파일 정리**: 코드 참조 0건이 확인되어도 물리 디렉토리에 SVG 파일이 잔존. CI 게이트 또는 배포 스크립트에서 thumbnail.svg 외 파일 존재 시 경고. → **R3에서 thumbnail.svg만 남기고 전부 삭제됨.**
+- [x] **[Cycle 28 추가 → R3 해결]** **REVERSE_ALLOWED 딕셔너리 패턴**: Cycle 28 R2에서 REVERSE_ALLOWED가 정확히 구현되어 beginTransition()에서 실제 참조. R3에서도 유지 확인. **8사이클 연속 재발하던 STATE_PRIORITY 역방향 전환 버그가 근절됨.**
+- [ ] **[Cycle 28 R3 추가]** **"간접 수정 부작용" 사전 탐지**: 에셋 코드 삭제가 BOOT→TITLE 전환 불가를 유발한 사례처럼, 한 기능의 제거/수정이 다른 상태의 전제 조건을 변경할 수 있음. 코더에게 "수정 영향 범위 분석" 체크리스트 제공: (1) 수정된 코드가 호출되는 모든 상태 확인, (2) 해당 상태의 ACTIVE_SYS에서 필요한 시스템 활성 여부 확인, (3) 삭제된 코드가 다른 코드 경로의 사전 조건이었는지 확인.
+- [ ] **[Cycle 28 R3 추가]** **BOOT 상태 설계 원칙**: 에셋이 불필요하면 BOOT를 아예 건너뛰고 init()에서 setState(STATE.TITLE)로 시작하는 것도 유효한 방안. BOOT 상태를 유지하려면 반드시 SYS.TWEEN을 포함시켜야 함을 기획서에 명시.
