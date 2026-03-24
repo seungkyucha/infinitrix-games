@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-23T22:36:29.751Z",
-  "totalGames": 32,
+  "lastUpdated": "2026-03-24T00:00:00Z",
+  "totalGames": 33,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -5974,6 +5974,184 @@
             "X: Trocar ferramenta",
             "R: Reinício instantâneo",
             "Toque: Botões virtuais (Mobile)"
+          ]
+        }
+      }
+    },
+    {
+      "id": "corsair-tides",
+      "title": "해적의 조류",
+      "description": "항구 경영과 해전 전략으로 5대 해역을 정복하는 해적 로그라이트!",
+      "genre": [
+        "casual",
+        "strategy"
+      ],
+      "thumbnail": "/games/corsair-tides/assets/thumbnail.svg",
+      "path": "/games/corsair-tides/index.html",
+      "addedAt": "2026-03-23T14:18:06.304Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "해적",
+        "항구경영",
+        "해전",
+        "로그라이트",
+        "전략",
+        "캐주얼"
+      ],
+      "controls": [
+        "마우스: 시설 건설, 선박 배치, 교역",
+        "터치: 탭으로 모든 조작",
+        "Space: 출항/전투 시작",
+        "P/ESC: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Corsair Tides",
+          "description": "Conquer five seas with port management and naval strategy in this pirate roguelite!",
+          "tags": [
+            "pirate",
+            "port management",
+            "naval battle",
+            "roguelite",
+            "strategy",
+            "casual"
+          ],
+          "controls": [
+            "Mouse: Build facilities, deploy ships, trade",
+            "Touch: Tap for all actions",
+            "Space: Set sail / Start battle",
+            "P/ESC: Pause"
+          ]
+        },
+        "ja": {
+          "title": "海賊の潮流",
+          "description": "港経営と海戦戦略で五大海域を制覇する海賊ローグライト！",
+          "tags": [
+            "海賊",
+            "港経営",
+            "海戦",
+            "ローグライト",
+            "戦略",
+            "カジュアル"
+          ],
+          "controls": [
+            "マウス: 施設建設、船配置、交易",
+            "タッチ: タップで全操作",
+            "Space: 出港/戦闘開始",
+            "P/ESC: 一時停止"
+          ]
+        },
+        "zh-CN": {
+          "title": "海盗潮汐",
+          "description": "用港口经营和海战策略征服五大海域的海盗肉鸽！",
+          "tags": [
+            "海盗",
+            "港口经营",
+            "海战",
+            "肉鸽",
+            "策略",
+            "休闲"
+          ],
+          "controls": [
+            "鼠标: 建设设施、部署船只、贸易",
+            "触摸: 点击操作",
+            "Space: 出港/开始战斗",
+            "P/ESC: 暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "海盜潮汐",
+          "description": "用港口經營和海戰策略征服五大海域的海盜肉鴿！",
+          "tags": [
+            "海盜",
+            "港口經營",
+            "海戰",
+            "肉鴿",
+            "策略",
+            "休閒"
+          ],
+          "controls": [
+            "滑鼠: 建設設施、部署船隻、貿易",
+            "觸控: 點擊操作",
+            "Space: 出港/開始戰鬥",
+            "P/ESC: 暫停"
+          ]
+        },
+        "es": {
+          "title": "Mareas Corsarias",
+          "description": "¡Conquista cinco mares con gestión portuaria y estrategia naval en este roguelite pirata!",
+          "tags": [
+            "pirata",
+            "gestión portuaria",
+            "batalla naval",
+            "roguelite",
+            "estrategia",
+            "casual"
+          ],
+          "controls": [
+            "Ratón: Construir, desplegar barcos, comerciar",
+            "Táctil: Tocar para todo",
+            "Space: Zarpar/Iniciar batalla",
+            "P/ESC: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Marées Corsaires",
+          "description": "Conquérez cinq mers avec gestion portuaire et stratégie navale dans ce roguelite pirate !",
+          "tags": [
+            "pirate",
+            "gestion portuaire",
+            "bataille navale",
+            "roguelite",
+            "stratégie",
+            "casual"
+          ],
+          "controls": [
+            "Souris: Construire, déployer navires, commercer",
+            "Tactile: Appuyer pour tout",
+            "Space: Appareiller/Lancer bataille",
+            "P/ESC: Pause"
+          ]
+        },
+        "de": {
+          "title": "Korsarengezeiten",
+          "description": "Erobere fünf Meere mit Hafenverwaltung und Marinestrategie in diesem Piraten-Roguelite!",
+          "tags": [
+            "Pirat",
+            "Hafenverwaltung",
+            "Seeschlacht",
+            "Roguelite",
+            "Strategie",
+            "Casual"
+          ],
+          "controls": [
+            "Maus: Bauen, Schiffe einsetzen, Handel",
+            "Touch: Tippen für alles",
+            "Space: Auslaufen/Kampf starten",
+            "P/ESC: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Marés Corsárias",
+          "description": "Conquiste cinco mares com gestão portuária e estratégia naval neste roguelite pirata!",
+          "tags": [
+            "pirata",
+            "gestão portuária",
+            "batalha naval",
+            "roguelite",
+            "estratégia",
+            "casual"
+          ],
+          "controls": [
+            "Mouse: Construir, posicionar navios, negociar",
+            "Toque: Toque para tudo",
+            "Space: Zarpar/Iniciar batalha",
+            "P/ESC: Pausa"
           ]
         }
       }
