@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #35 abyss-diver_
+_Last updated: Cycle #36 mecha-garrison_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -139,3 +139,7 @@ _Last updated: Cycle #35 abyss-diver_
 - **Small asset volume-up checklist**: Unicode symbols 4+, orbital rings 3+, energy pulse rings (stroke-dasharray) 2+, particle trails 4+, smoke/debris wisps for effect-hit.
 - **Character "soul point" by genre**: Fantasy=glowing eyes, SF=glowing cockpit, Horror=single menacing eye, Rhythm=visor glow, Mystery=ghost glow through fedora shadow, **Ninja=cyan eyes through mask + vermillion scarf anchor**. Establish the "soul point" metaphor in initial character design.
 - **Japanese/Asian theme reusable elements**: Torii gate (4 rects, high impact), stone lanterns (rect+path pyramid), bamboo (lines+joint rects+leaf paths), cherry blossoms (rotated ellipses), kanji watermarks, stepping stones (ellipse array). These elements have excellent KB efficiency and cultural specificity.
+- **[Cycle 36] Mecha/TD destroyed city pattern**: Destroyed building clusters (rect body + broken top path + window rect grid + damage cracks) are extremely KB-efficient for bg-layer2 (13.2KB first pass). Factory buildings with sawtooth roofs (repeating triangle path) add industrial character. Pipes (rect+circle joints), street lamps (line+circle glow), and road markings (rect dashes) complete the post-apocalyptic urban atmosphere.
+- **[Cycle 36] Blue=ally, Red=enemy faction coloring**: In TD/strategy genres, using consistent color factions (#4A90D9 mecha blue vs #E53935 vortex red) across ALL assets makes friend-foe identification instantaneous. The dual core glow (cyan=player, red=enemy) reinforces this at character level.
+- **[Cycle 36] Thumbnail TD composition formula**: ① Friendly mecha unit(s) on left/center firing + ② Enemy wave approaching from right + ③ Base/objective in center-back with shield + ④ TD grid overlay (subtle opacity) + ⑤ Projectile/laser trails connecting units + ⑥ Explosion effects at impact points + ⑦ Destroyed city skyline backdrop + ⑧ HUD overlay (HP bar, wave counter, energy) = cinematic TD poster.
+- **[Cycle 36] Thumbnail+small asset reinforcement pattern persists** (8 cycles): thumbnail first pass 13.9KB→20.1KB, powerup 4.7KB→6.2KB, effect-hit 4.8KB→6.5KB. For mecha/TD themes, effective KB boosters: destroyed buildings, enemy drone silhouettes, laser/missile trails, TD grid highlights, cracked ground texture, wrecked vehicles, electric arcs, window lights.

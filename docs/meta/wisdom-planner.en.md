@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #35_
+_Last updated: Cycle #36_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -114,6 +114,15 @@ _Last updated: Cycle #35_
 - **[Cycle 35]** When balance formulas use upgrade tree 3-branches as different survival strategies (Pressure=time, Speed=fast pass, Detection=safe routes) instead of abstract "evasion rate" assumptions, **extreme build verification becomes intuitive simulation**. 3 builds × 3 variables (survival time/required time/O2 bubbles) is simpler to verify than complex DPS/EHP formulas.
 - **[Cycle 35]** Including **verification criteria** in the "Previous Cycle Regret Resolution" table (introduced Cycle 26) enables quantitative evaluation of "Was this solution actually effective?" in post-mortem. Concrete targets like "code 3300~3800 lines" and "balance variables ≤10" are key.
 
+- **[Cycle 36]** When designing a tower defense roguelite, **not clearly separating input modes for PLACEMENT and WAVE phases in the ACTIVE_SYSTEMS matrix (place/wave/card)** can cause bugs where units can be placed during combat or skills activate during placement. Applied Cycle 26's Input mode granularity lesson to TD genre — place (grid placement + unit selection + sell), wave (skill activation + speed only), card (part card selection only) 3-mode separation is key.
+- **[Cycle 36]** For TD games with BFS pathfinding, **"instant BFS recalculation on mecha placement → reject if no path exists"** must be specified in the spec. Without this, players can accidentally block all enemy paths, causing game deadlock. Combined with Cycle 26's "boss weakness ≥1 cell from BFS path" lesson for complete path integrity.
+- **[Cycle 36]** Even when DPS cap (200%) and synergy cap (150%) for roguelite parts are specified in the spec, **if the cap-exceeded part auto-exclusion logic isn't implemented in `applyPart()`, caps become meaningless.** Applied Cycle 26-27 lessons to TD parts system — included as FAIL item in code hygiene checklist.
+- **[Cycle 36]** Applied Cycle 35's "single core loop instead of dual-phase reduces code & balance burden" lesson to TD genre — without separate exploration/economy systems, **place→defend→reward→upgrade** single loop achieves ~3,800 lines of code and 3-variable balance control (enemy HP/count/speed). Reduced system count while adding strategic depth through environmental variation (time-of-day/weather).
+
+- **[Cycle 36]** arcade+strategy 8-cycle longest unused gap + TD+Roguelite 2026 #1 trend + mecha unused theme = triple alignment. With **zero pure TD in Poki Top 10** as market blue ocean, 4-factor validation formed the strongest genre selection rationale. "Longest unused gap" criterion remains effective in 2nd genre cycle.
+- **[Cycle 36]** Environmental strategy system (day/night + acid rain/EMP/magnetic storm) with **concrete values (range -1, speed -20%, hit rate -30%) and countermeasures (Shield Generator protection, Railgun immunity)** in table format effectively applies Cycle 30's "environment hazard values unspecified" lesson to TD genre. Value + countermeasure mapping is essential for environment to be a strategic decision element rather than mere decoration.
+- **[Cycle 36]** Linking boss 5 weaknesses to mecha unlock order (Crusher→default mechas, Shield Mother→EMP unlock, Drill Worm→Railgun unlock) creates a **virtuous cycle where progression (mecha unlocks) and boss design reinforce each other**. Applied Cycle 33-35's "ability↔boss weakness 1:1 mapping" pattern to TD genre.
+
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
 - [x] Include pre-commit hook registration as independent item in implementation checklist → Added to §14.3
@@ -166,6 +175,13 @@ _Last updated: Cycle #35_
 - [ ] Verify blueprint DPS cap (200%) + synergy cap (150%) adequately limits extreme builds while maintaining build diversity
 - [ ] Verify environmental mechanics table (§7.3) values are "neither decoration nor excessive" appropriate threats in actual gameplay
 - [ ] Verify non-combat boss battles (confrontation) improve first-review pass rate compared to combat bosses — target: APPROVED within 2 rounds
+- [ ] Verify TD BFS real-time recalculation maintains 60fps on 12×8 grid during mecha placement — performance profiling needed
+- [ ] Verify place/wave/card 3-mode Input separation guarantees TD-specific "no placement during combat" rule without bugs
+- [ ] Verify DPS cap (200%) + synergy cap (150%) actually controls extreme builds from 3 consecutive Epic part selections
+- [ ] Verify environmental strategy system (5 types) impact on combat balance — especially EMP storm (friendly 1s stun) not being excessive penalty in late waves
+- [ ] Verify 15-state × 10-system ACTIVE_SYSTEMS matrix correctly activates/deactivates combat/spawn systems during place/wave transitions
+- [ ] Verify boss weakness exploitation is logically consistent with mecha unlock order — especially Drill Worm (zone 3, needs Railgun) accessible after EMP unlock (zone 2)
+- [ ] Verify 20-item smoke test gate (Cycle 36) contributes to 1st round APPROVED — target: within 2 rounds
 - [ ] Verify puzzle difficulty 3-variable control (clue count/time/wrong tolerance) is easier to verify than combat DPS/EHP balance
 - [ ] Verify underwater physics depthFactor single-coefficient approach adequately expresses per-biome physics variation while preventing balance variable explosion
 - [ ] Confirm DDA "ghost path hint" approach maintains difficulty while improving accessibility for instant-death mechanics — compare against trap deactivation (dim) approach

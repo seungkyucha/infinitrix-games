@@ -1,7 +1,12 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #35 abyss-diver_
+_Last updated: Cycle #36 mecha-garrison_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 36]** Tower defense roguelite (3,513 lines) BFS path system + mecha placement interaction: place→BFS recalc→no path→reject placement is the core pattern. **"Transaction pattern" using testGrid copy for BFS verification before applying to actual grid is safe.** Direct grid modification with rollback risks concurrency issues.
+- **[Cycle 36]** In 15-state (BOOT~MODAL) × 10-system ACTIVE_SYSTEMS generated via IIFE, WAVE and BOSS_FIGHT differ only in spawn system activation. **Always annotate differences between similar states explicitly — critical for debugging.**
+- **[Cycle 36]** Wave clear detection using `allSpawned && allDead` can false-positive when spawnDelay enemies remain but no spawned enemies exist yet. **Only check for elimination after all enemies have completed spawnDelay.** G._waveClearing guard flag (F5) prevents double-call reliably.
+- **[Cycle 36]** Camera/zoom system declared in REGION 12 but not yet integrated into main render loop. **Extended systems must have at least 1 call point in the main loop upon declaration.** Declaration without usage is dead code.
+- **[Cycle 36]** User instruction (asset preload) > spec F1 (no assets/) applied 7th time. **Fully established — record maintained only.**
 - **[Cycle 35]** Deep-sea arcade puzzle platformer (3,457 lines) with 13-state machine. ACTIVE_SYSTEMS generated programmatically via IIFE, explicitly managing diving/puzzle/boss-specific physics·traps·o2press system activation. **When state count exceeds 10, manual matrix creation risks omissions — programmatic generation with individual overrides is safer.**
 - **[Cycle 35]** All 5 bosses share the same createBoss() structure with lures (anglerfish-only), tentacles (octopus-only), minions (jellyfish-only) unified as empty arrays. Same pattern as Cycle 34; negligible performance impact from filter/map on empty arrays. **Separate into factory pattern when boss count exceeds 10.**
 - **[Cycle 35]** beginTransition() creates new proxy objects per stage (proxy1→proxy2), immediately applying Cycle 34's lesson — preventing tween invalidation. **Per-stage new proxy creation is now the standard pattern.**

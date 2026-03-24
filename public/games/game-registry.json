@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-24T00:00:00Z",
-  "totalGames": 33,
+  "lastUpdated": "2026-03-24T03:04:19.387Z",
+  "totalGames": 34,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -6152,6 +6152,210 @@
             "Toque: Toque para tudo",
             "Space: Zarpar/Iniciar batalha",
             "P/ESC: Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mecha-garrison",
+      "title": "메카 개리슨",
+      "description": "메카 유닛을 배치해 외계 군단의 침공을 막아라!",
+      "genre": [
+        "arcade",
+        "strategy"
+      ],
+      "thumbnail": "/games/mecha-garrison/assets/thumbnail.svg",
+      "path": "/games/mecha-garrison/index.html",
+      "addedAt": "2026-03-24T03:04:19.387Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "타워디펜스",
+        "로그라이트",
+        "메카",
+        "전략",
+        "아케이드",
+        "SF"
+      ],
+      "controls": [
+        "마우스 클릭: 메카 배치/업그레이드",
+        "우클릭: 메카 판매",
+        "1~5키: 메카 유닛 선택",
+        "Q: 전체 스킬 발동",
+        "Space: 웨이브 시작/빠른 진행",
+        "Esc: 일시정지",
+        "터치: 탭으로 배치, 롱프레스로 판매"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Mecha Garrison",
+          "description": "Deploy mecha units and defend your base against alien invaders!",
+          "tags": [
+            "tower defense",
+            "roguelite",
+            "mecha",
+            "strategy",
+            "arcade",
+            "sci-fi"
+          ],
+          "controls": [
+            "Click: Place/upgrade mecha",
+            "Right-click: Sell mecha",
+            "1-5 keys: Select mecha type",
+            "Q: Activate skill",
+            "Space: Start wave / Fast forward",
+            "Esc: Pause",
+            "Touch: Tap to place, long-press to sell"
+          ]
+        },
+        "ja": {
+          "title": "メカ・ギャリソン",
+          "description": "メカユニットを配置してエイリアン軍団の侵攻を防げ！",
+          "tags": [
+            "タワーディフェンス",
+            "ローグライト",
+            "メカ",
+            "戦略",
+            "アーケード",
+            "SF"
+          ],
+          "controls": [
+            "クリック: メカ配置/アップグレード",
+            "右クリック: メカ売却",
+            "1〜5キー: メカ選択",
+            "Q: スキル発動",
+            "Space: ウェーブ開始/早送り",
+            "Esc: 一時停止",
+            "タッチ: タップで配置、長押しで売却"
+          ]
+        },
+        "zh-CN": {
+          "title": "机甲要塞",
+          "description": "部署机甲单位，抵御外星军团的入侵！",
+          "tags": [
+            "塔防",
+            "肉鸽",
+            "机甲",
+            "策略",
+            "街机",
+            "科幻"
+          ],
+          "controls": [
+            "点击: 放置/升级机甲",
+            "右键: 出售机甲",
+            "1~5键: 选择机甲类型",
+            "Q: 释放技能",
+            "空格: 开始波次/快进",
+            "Esc: 暂停",
+            "触屏: 点击放置，长按出售"
+          ]
+        },
+        "zh-TW": {
+          "title": "機甲要塞",
+          "description": "部署機甲單位，抵禦外星軍團的入侵！",
+          "tags": [
+            "塔防",
+            "肉鴿",
+            "機甲",
+            "策略",
+            "街機",
+            "科幻"
+          ],
+          "controls": [
+            "點擊: 放置/升級機甲",
+            "右鍵: 出售機甲",
+            "1~5鍵: 選擇機甲類型",
+            "Q: 釋放技能",
+            "空白鍵: 開始波次/快進",
+            "Esc: 暫停",
+            "觸控: 點擊放置，長按出售"
+          ]
+        },
+        "es": {
+          "title": "Guarnición Mecha",
+          "description": "¡Despliega unidades mecha y defiende tu base de la invasión alienígena!",
+          "tags": [
+            "defensa de torres",
+            "roguelite",
+            "mecha",
+            "estrategia",
+            "arcade",
+            "ciencia ficción"
+          ],
+          "controls": [
+            "Clic: Colocar/mejorar mecha",
+            "Clic derecho: Vender mecha",
+            "Teclas 1-5: Seleccionar tipo de mecha",
+            "Q: Activar habilidad",
+            "Espacio: Iniciar oleada/Avance rápido",
+            "Esc: Pausa",
+            "Toque: Tocar para colocar, mantener para vender"
+          ]
+        },
+        "fr": {
+          "title": "Garnison Mecha",
+          "description": "Déployez des mechas et défendez votre base contre l'invasion extraterrestre !",
+          "tags": [
+            "tower defense",
+            "roguelite",
+            "mecha",
+            "stratégie",
+            "arcade",
+            "science-fiction"
+          ],
+          "controls": [
+            "Clic: Placer/améliorer un mecha",
+            "Clic droit: Vendre un mecha",
+            "Touches 1-5: Sélectionner le type de mecha",
+            "Q: Activer la compétence",
+            "Espace: Lancer la vague/Avance rapide",
+            "Échap: Pause",
+            "Tactile: Toucher pour placer, appui long pour vendre"
+          ]
+        },
+        "de": {
+          "title": "Mecha-Garnison",
+          "description": "Setze Mecha-Einheiten ein und verteidige deine Basis gegen die Alien-Invasion!",
+          "tags": [
+            "Tower Defense",
+            "Roguelite",
+            "Mecha",
+            "Strategie",
+            "Arcade",
+            "Sci-Fi"
+          ],
+          "controls": [
+            "Klick: Mecha platzieren/aufwerten",
+            "Rechtsklick: Mecha verkaufen",
+            "Tasten 1-5: Mecha-Typ wählen",
+            "Q: Fähigkeit aktivieren",
+            "Leertaste: Welle starten/Schnellvorlauf",
+            "Esc: Pause",
+            "Touch: Tippen zum Platzieren, lange drücken zum Verkaufen"
+          ]
+        },
+        "pt": {
+          "title": "Guarnição Mecha",
+          "description": "Posicione unidades mecha e defenda sua base da invasão alienígena!",
+          "tags": [
+            "tower defense",
+            "roguelite",
+            "mecha",
+            "estratégia",
+            "arcade",
+            "ficção científica"
+          ],
+          "controls": [
+            "Clique: Posicionar/melhorar mecha",
+            "Clique direito: Vender mecha",
+            "Teclas 1-5: Selecionar tipo de mecha",
+            "Q: Ativar habilidade",
+            "Espaço: Iniciar onda/Avanço rápido",
+            "Esc: Pausa",
+            "Toque: Tocar para posicionar, segurar para vender"
           ]
         }
       }

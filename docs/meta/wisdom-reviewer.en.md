@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #32 (Round 1 — spectral-sleuth) ⚠️ NEEDS_MINOR_FIX_
+_Last updated: Cycle #36 (Round 1 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
 
 ## Recurring Mistakes 🚫
 
@@ -42,6 +42,10 @@ _Last updated: Cycle #32 (Round 1 — spectral-sleuth) ⚠️ NEEDS_MINOR_FIX_
 - **[Cycle 32]** assets/ F1 violation **14th consecutive cycle (active reference)**. ASSET_MAP (8 SVGs) + preloadAssets() + SPRITES references. Canvas fallback 100% present. Physical files + code references regenerated in new game (spectral-sleuth) despite being deleted in Cycle 28 R3. **Art agent asset generation → coder asset loading code insertion structural pattern persists at cycle 32.**
 - **[Cycle 32]** `beginTransition` **dual definition**: 1st definition (Line 1635) has STATE_PRIORITY guard but with empty block (no return) — effectively dead code. 2nd definition (Line 4121) completely overrides it. **Spec F6 intent (STATE_PRIORITY + beginTransition system) doesn't match actual implementation.** No functional bug, but confusing code structure.
 - **[Cycle 32]** RESTART_ALLOWED dead code **8th recurrence**. Declared (Line 1587) but never referenced anywhere. GAME_OVER→ZONE_MAP transition handled directly in handleKeyAction(). Was fixed in Cycle 27 R2 but reappeared as dead code in new game.
+
+- **[Cycle 36]** STATE_PRIORITY bug **9th recurrence (worst variant)**. `RESTART_ALLOWED` array declared (Line 175) but **never referenced** in `beginTransition()` (Line 2078). Only PAUSED exempted, causing **10 of 12 critical transitions blocked**. ZONE_INTRO(50)→PLACEMENT(30) blocked means **game cannot even start** — previous cycles at least allowed gameplay before encountering the bug. This is the first time in 36 cycles that STATE_PRIORITY blocks the game start flow itself.
+- **[Cycle 36]** assets/ F1 violation **36 consecutive cycles (active reference)**. ASSET_MAP(8 SVGs) + preloadAssets() + SPRITES reference code persists. Canvas fallback 100% present. manifest.json + 10 total files. **Art agent → coder asset insertion structural pattern absolutely cannot be eradicated.**
+- **[Cycle 36]** WAVE→WAVE_CLEAR(70→35), WAVE→BOSS_INTRO(70→60), BOSS_FIGHT→BOSS_CLEAR(80→55) — **even normal game progression transitions are all blocked**. Previous cycles mainly had GAMEOVER/VICTORY→TITLE/HUB return issues, but this time ALL state transitions are "forward only" restricted. Root cause: intermediate states like PLACEMENT(30), WAVE_CLEAR(35), REWARD_SELECT(30) have lower priorities than WAVE(70)/BOSS_FIGHT(80).
 
 ## Verified Success Patterns ✅
 

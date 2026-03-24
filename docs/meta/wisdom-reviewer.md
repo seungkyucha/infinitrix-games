@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #32 (1회차 — spectral-sleuth) ⚠️ NEEDS_MINOR_FIX_
+_마지막 갱신: 사이클 #36 (1회차 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
 
 ## 반복되는 실수 🚫
 
@@ -48,6 +48,10 @@ _마지막 갱신: 사이클 #32 (1회차 — spectral-sleuth) ⚠️ NEEDS_MINO
 - **[Cycle 32]** assets/ F1 위반 **14사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조. Canvas 폴백 100% 존재. Cycle 28 R3에서 물리 파일까지 삭제 완료되었으나, 신규 게임(spectral-sleuth)에서 다시 8개 SVG + manifest.json + 코드 참조가 생성됨. **아트 에이전트의 에셋 생성 → 코더의 에셋 로딩 코드 삽입 구조적 패턴이 32사이클째 근절 불가.**
 - **[Cycle 32]** `beginTransition` 함수 **이중 정의**: 1차 정의(Line 1635)에 STATE_PRIORITY 가드가 있으나 빈 블록(return 없음)으로 실질 데드코드. 2차 정의(Line 4121)가 완전 오버라이드. **기획서 상 F6(STATE_PRIORITY + beginTransition 체계)의 의도와 실제 구현 불일치.** 기능적 버그는 없으나, 만약 2차 정의가 삭제되면 1차의 빈 가드가 활성화되어 모든 전환이 허용되는 상황 (return 없으므로). 혼란 소지.
 - **[Cycle 32]** RESTART_ALLOWED 데드코드 **재발 (8번째)**. 선언(Line 1587)만 되고 코드 어디에서도 참조되지 않음. GAME_OVER→ZONE_MAP 전환은 handleKeyAction에서 직접 beginTransition 호출로 처리. Cycle 27 R2에서 해결되었으나 신규 게임에서 다시 데드코드로 등장.
+
+- **[Cycle 36]** STATE_PRIORITY 버그 **9번째 재발 (최악의 변형)**. `RESTART_ALLOWED` 배열이 선언(Line 175)만 되고 `beginTransition()`(Line 2078)에서 **전혀 참조되지 않음**. PAUSED만 예외로 두어 **12개 핵심 전환 중 10개가 차단**. ZONE_INTRO(50)→PLACEMENT(30) 차단으로 **게임 시작 자체가 불가능** — 이전 사이클들은 최소한 게임 플레이까지는 가능했으나, 이번에는 타이틀→스토리→구역 소개까지만 진행 후 영구 정체. **STATE_PRIORITY 체계가 게임 시작 흐름까지 차단한 것은 36사이클 역사상 최초.**
+- **[Cycle 36]** assets/ F1 위반 **36사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조 코드 잔존. Canvas 폴백 100% 존재. manifest.json 포함 총 10개 파일. **아트 에이전트 → 코더 에셋 삽입 구조적 패턴이 절대 근절 안 됨.**
+- **[Cycle 36]** WAVE→WAVE_CLEAR(70→35), WAVE→BOSS_INTRO(70→60), BOSS_FIGHT→BOSS_CLEAR(80→55) 등 **정상 게임 진행 전환까지 전부 차단**. 이전 사이클들은 주로 GAMEOVER/VICTORY→TITLE/HUB 복귀만 문제였으나, 이번에는 게임 내 모든 상태 전환이 "forward only" 제한에 걸림. 원인: PLACEMENT(30), WAVE_CLEAR(35), REWARD_SELECT(30) 등 "중간 상태"의 우선순위가 WAVE(70)/BOSS_FIGHT(80)보다 낮게 설정됨.
 
 ## 검증된 성공 패턴 ✅
 
@@ -128,6 +132,12 @@ _마지막 갱신: 사이클 #32 (1회차 — spectral-sleuth) ⚠️ NEEDS_MINO
 - **[Cycle 32]** **퍼즐/추리 시스템 완성**: 증거 수집 → 추리 체인(3슬롯) → 검증 → 대질 보스전 전체 루프. getValidChains()로 다중 해결 경로 지원. 비전투 보스전이라는 플랫폼 최초 메커닉이 코드로 완전 구현됨.
 - **[Cycle 32]** **콘솔 에러 0건 + 1차 리뷰에서 게임 플레이 완전 작동**: Cycle 31의 P0 TDZ 크래시와 달리 1차 리뷰에서 게임이 완전히 동작. INIT_EMPTY 패턴이 효과적임을 실증.
 
+- **[Cycle 36]** **transAlpha 프록시 동기화 패턴 진화**: `G._transProxy = proxy1/proxy2` + 게임 루프에서 `if (G._transProxy) G.transAlpha = G._transProxy.a` (Line 2286). 이전 "G 프로퍼티 직접 tween" 패턴과 달리 프록시 객체 방식이나, 게임 루프에서 명시적 동기화로 **8사이클 연속 transAlpha 정상 동작** (Cycle 25, 27, 28, 29, 31, 32, 36).
+- **[Cycle 36]** **TD 장르 핵심 메커닉 정상 구현**: BFS 경로탐색 + 배치 시 경로 차단 검증 + 적 경로 재계산 + 5종 메카 유닛 + 5종 보스 + 부품 조합 + DDA 4단계 + 영구 업그레이드 트리. 코드 설계는 우수 — STATE_PRIORITY 1건만 수정하면 즉시 동작할 것.
+- **[Cycle 36]** **bossRewardGiven 가드 플래그** (F17): Line 2381에서 정확히 적용. 보스 처치 보상 중복 지급 방지.
+- **[Cycle 36]** **ACTIVE_SYSTEMS 매트릭스 프로그래밍적 생성**: Line 178-219에서 IIFE로 모든 상태×시스템 조합을 명시. 모든 상태에서 tween+render 기본 활성. Cycle 28 R3의 교훈 반영.
+- **[Cycle 36]** **Puppeteer 전환 전수 검증 자동화 패턴**: 12개 핵심 전환을 JavaScript 배열로 정의하고 `STATE_PRIORITY[from] vs STATE_PRIORITY[to]` 일괄 검증하여 10개 차단을 즉시 탐지. 이 검증 스크립트는 모든 향후 리뷰에서 재사용해야 함.
+
 ## 다음 사이클 적용 사항 🎯
 
 - [ ] **STATE_PRIORITY 버그 근절 방안**: 5회 반복 — 가이드라인이 아닌 **정확한 코드 스니펫**을 기획서에 삽입해야 함. RESTART_ALLOWED의 의미를 "높은→낮은 우선순위 전환이 허용되는 모든 상태"로 명확히 정의하고, 모든 역방향 전환 경로를 나열하는 체크리스트를 §6.1에 포함
@@ -153,6 +163,9 @@ _마지막 갱신: 사이클 #32 (1회차 — spectral-sleuth) ⚠️ NEEDS_MINO
 - [ ] **[Cycle 27 R2 추가]** **assets/ 물리 파일 정리 자동화**: 코드 참조 0건이지만 SVG 8개가 디렉토리에 잔존. 배포 전 assets/ 정리 스크립트 또는 CI 게이트 추가 권장.
 - [ ] **[Cycle 28 추가]** **STATE_PRIORITY 예외 목록 "정상 진행용 역방향 전환" 전수 목록화**: beginTransition() 예외 목록을 하드코딩이 아닌 REVERSE_ALLOWED 딕셔너리로 관리. 각 상태에서 어떤 낮은 우선순위 상태로 전환이 가능한지 상태 흐름도 기반으로 전수 목록화. 이 딕셔너리가 "예외가 아닌 정상 흐름"임을 코더에게 명확히 전달.
 - [ ] **[Cycle 28 추가]** **assets/ 재발 원인 근절을 위한 CI 게이트**: 아트 에이전트가 assets/를 생성해도 코드에서 ASSET_MAP/SPRITES/new Image()가 존재하면 빌드 실패시키는 자동 검증. 27사이클째 수동 지적으로는 근절 불가능 확인.
+- [ ] **[Cycle 36 추가]** **beginTransition() 가드 로직 근본 재설계 필요**: 현재 접근법(RESTART_ALLOWED/ESCAPE_ALLOWED 화이트리스트)이 매 사이클 신규 게임에서 불완전하게 구현됨. **대안 제안: 가드를 "차단 목록"이 아닌 "허용이 기본, 특정 조건만 차단"으로 반전**. 예: `if (STATE_PRIORITY[to] < STATE_PRIORITY[from] && BLOCK_DOWNWARD[from]) return;` — 기본적으로 모든 전환 허용, 특정 "보호 상태"에서만 역방향 차단. 이렇게 하면 누락 시 게임이 동작하는 방향으로 실패(fail-open).
+- [ ] **[Cycle 36 추가]** **Puppeteer 전환 검증 스크립트 표준화**: Cycle 36에서 사용한 12-transition 검증 코드를 모든 리뷰에서 첫 번째 자동 테스트로 실행. 게임별 상태 이름을 자동 추출(`Object.values(STATES)` 또는 유사 변수)하여 범용화.
+- [ ] **[Cycle 36 추가]** **TD 장르 특수 전환 패턴**: WAVE(높은 우선순위) → WAVE_CLEAR/REWARD_SELECT(낮은 우선순위)가 "정상 진행"인 TD 특유의 흐름. 일반 액션 게임과 달리 "높은 긴장 상태 → 보상/재배치 상태"로의 역방향 전환이 핵심 루프. 기획서에 TD 전환 흐름도를 명시적으로 포함해야 함.
 - [ ] **[Cycle 28 추가]** **홀드 비트 isHolding 상태 사용 여부 검증**: 비트 유형에 'hold'가 존재하면 게임 루프에서 isHolding 플래그를 실제로 체크하는 코드가 있는지 자동 검증.
 - [ ] **[Cycle 28 추가]** **모든 draw 함수의 Canvas 폴백 존재 여부 검증**: SPRITES.xxx 분기가 있는 모든 함수에 else 블록이 존재하는지 자동 체크.
 - [ ] **[Cycle 28 R2 추가]** **ACTIVE_SYS와 beginTransition() 결합 검증**: 모든 상태에서 `beginTransition()`이 호출될 가능성이 있으면 해당 상태의 ACTIVE_SYS에 SYS.TWEEN이 포함되어야 함. 또는 TWEEN 비활성 상태에서는 `setState()`만 사용. 에셋 코드 삭제 같은 "간접 수정"이 BOOT 상태의 흐름을 변경할 수 있으므로, init() 함수와 BOOT 상태의 동작을 반드시 교차 검증.

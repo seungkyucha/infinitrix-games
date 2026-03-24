@@ -1,0 +1,3867 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>메카 개리슨 — Mecha Garrison</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+// REGION 1: CONSTANTS, CONFIG, LANG, COLORS (~350 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- Color palette --
+const COL = {
+  mechaBlue:'#4A90D9', energyCyan:'#00E5FF', missileOrange:'#FF6B35',
+  enemyRed:'#E53935', bossPurple:'#9B59B6', bgDark:'#1A1A2E',
+  bgLight:'#2D3436', gold:'#FFD700', uiWhite:'#F0F0F0',
+  bgDeep:'#0D1117', bgDeepest:'#0D0D0D', accent:'#6c3cf7',
+  gridLine:'rgba(240,240,240,0.08)', gridHover:'rgba(0,229,255,0.25)',
+  gridBlocked:'rgba(229,57,53,0.15)', gridPath:'rgba(255,215,0,0.08)',
+  hpBar:'#4caf50', hpBarLow:'#f44336', shieldBar:'#2196f3'
+};
+
+// -- Game config (수치 정합성 테이블 F10) --
+const CONFIG = {
+  CORE_MAX_HP: 500, START_ENERGY: 100, ENERGY_PER_KILL: 5,
+  GRID_COLS_PC: 12, GRID_ROWS_PC: 8, GRID_COLS_MOB: 8, GRID_ROWS_MOB: 6,
+  CELL_MIN: 36, CELL_MAX: 64,
+  DPS_CAP: 2.0, SYNERGY_CAP: 1.5,
+  WAVES_PER_ZONE: 3, TOTAL_ZONES: 5,
+  BOSS_HP: [500, 800, 1200, 1500, 2500],
+  FAST_SPEED: 2,
+  DDA: [
+    { hpReduce: 0, extraEnergy: 0, freeMechas: 0, hint: false },
+    { hpReduce: 0, extraEnergy: 0.2, freeMechas: 0, hint: false },
+    { hpReduce: 0.15, extraEnergy: 0.2, freeMechas: 0, hint: false },
+    { hpReduce: 0.15, extraEnergy: 0.2, freeMechas: 2, hint: false },
+    { hpReduce: 0.15, extraEnergy: 0.2, freeMechas: 2, hint: true }
+  ],
+  // Mecha stats: [cost, range, atk, cooldown(ms), splash, special]
+  MECHA: [
+    { name:'blaster',  cost:30,  range:3, atk:10,  cd:1000, splash:0, special:'single' },
+    { name:'missile',  cost:60,  range:4, atk:25,  cd:2500, splash:1, special:'splash' },
+    { name:'shield',   cost:50,  range:2, atk:0,   cd:0,    splash:0, special:'shield' },
+    { name:'emp',      cost:80,  range:3, atk:5,   cd:3000, splash:0, special:'stun' },
+    { name:'railgun',  cost:120, range:6, atk:80,  cd:5000, splash:0, special:'pierce' }
+  ],
+  LEVEL_ATK_MULT: [1.0, 1.4, 1.96],
+  LEVEL_CD_MULT: [1.0, 0.85, 0.72],
+  LEVEL_COST_MULT: [1.0, 0.5, 1.0],
+  // Enemy stats: [hp, speed(cells/s), special, zone_min]
+  ENEMY: [
+    { name:'drone',    hp:30,  speed:2.0, special:'none',    zone:1, def:0 },
+    { name:'tank',     hp:120, speed:1.0, special:'armor',   zone:1, def:0.3 },
+    { name:'speeder',  hp:20,  speed:4.0, special:'fast',    zone:2, def:0 },
+    { name:'shieldbot',hp:60,  speed:1.5, special:'shield',  zone:3, def:0 },
+    { name:'bomber',   hp:40,  speed:3.0, special:'suicide', zone:4, def:0 },
+    { name:'helix',    hp:80,  speed:2.0, special:'flying',  zone:4, def:0 },
+    { name:'hacker',   hp:50,  speed:1.5, special:'hack',    zone:5, def:0 }
+  ],
+  ZONE_BG: [
+    ['#2D3436','#1A1A2E'], ['#1A1A2E','#0D1117'], ['#0D1117','#001a33'],
+    ['#0D0D0D','#1a0000'], ['#1A1A2E','#0D1117']
+  ],
+  ZONE_NAMES_KO: ['도시 외곽','산업 지구','에너지 코어','지하 벙커','최종 사령부'],
+  ZONE_NAMES_EN: ['City Outskirts','Industrial District','Energy Core','Underground Bunker','Final Command'],
+  SCORE_KILL_BASE: 10, SCORE_BOSS_BASE: 500, SCORE_NODMG_WAVE: 200,
+  SCORE_RUN_CLEAR: 10000, CP_WAVE_BASE: 10, CP_BOSS_BASE: 100,
+  UPGRADE_TREE: {
+    firepower: [{atkMult:0.1},{cdMult:0.1},{crit:0.05},{rangePlus:0.5},{ultimate:true}],
+    defense:   [{hpPlus:100},{mechaHpMult:0.2},{repairDrone:true},{counter:0.1},{emergencyShield:true}],
+    utility:   [{energyPlus:20},{partLuck:true},{sellRefund:0.2},{placeSpeed:0.3},{timeSlow:true}]
+  }
+};
+
+// -- Bilingual strings (60+ items) --
+const LANG = {
+  ko: {
+    title:'메카 개리슨', subtitle:'최후의 기지를 지켜라',
+    start:'출격', cont:'계속하기', tapToStart:'SPACE / 탭으로 시작',
+    zone_1:'도시 외곽', zone_2:'산업 지구', zone_3:'에너지 코어',
+    zone_4:'지하 벙커', zone_5:'최종 사령부',
+    mecha_1:'블래스터', mecha_2:'미사일런처', mecha_3:'실드제너레이터',
+    mecha_4:'EMP타워', mecha_5:'레일건',
+    wave:'웨이브', bossIncoming:'보스 접근!', gameover:'기지 함락',
+    victory:'인류 승리!', upgrade:'업그레이드',
+    firepower:'화력', defense:'방어', utility:'유틸리티',
+    corePoints:'코어 포인트', placeMecha:'메카를 배치하세요',
+    sell:'판매', energy:'에너지', score:'점수', best:'최고',
+    startWave:'웨이브 시작', zone:'구역', hp:'HP',
+    restart:'R키/탭으로 재시작', hub:'기지 귀환',
+    selectMecha:'유닛 선택', cost:'비용', range:'사거리',
+    atk:'공격력', speed:'공속', locked:'잠금',
+    reward:'부품 선택', common:'커먼', rare:'레어', epic:'에픽',
+    pause:'일시정지', resume:'계속', newRun:'새 출격',
+    confirmSell:'판매하시겠습니까?', yes:'예', no:'아니오',
+    storyIntro:'2187년, 외계 기계 군단 "볼텍스"가 지구를 침공했다.',
+    story_1:'첫 번째 방어선을 사수하라. 시민 대피가 완료될 때까지.',
+    story_2:'공장을 지키면 새 무기를 만들 수 있다.',
+    story_3:'에너지 코어가 함락되면 모든 메카가 멈춘다.',
+    story_4:'이곳이 무너지면 돌아갈 곳이 없다.',
+    story_5:'볼텍스 프라임을 끝내라. 인류의 내일을 위해.',
+    totalRuns:'총 출격', bestZone:'최고 구역',
+    upgradeFirepower:'화력 강화', upgradeDefense:'방어 강화',
+    upgradeUtility:'유틸 강화', langSwitch:'EN',
+    night:'야간', day:'주간', acidRain:'산성비', empStorm:'EMP 폭풍',
+    magStorm:'자기 폭풍', noPath:'경로 차단!', maxLevel:'최대 레벨',
+    bossDefeated:'보스 격파!', waveCleared:'웨이브 클리어!',
+    partObtained:'부품 획득!', loading:'로딩 중...',
+    dda:'난이도 보정 활성', skillReady:'스킬 준비(Q)',
+    fast:'배속', normal:'보통'
+  },
+  en: {
+    title:'Mecha Garrison', subtitle:'Defend the Last Base',
+    start:'Deploy', cont:'Continue', tapToStart:'SPACE / Tap to Start',
+    zone_1:'City Outskirts', zone_2:'Industrial District', zone_3:'Energy Core',
+    zone_4:'Underground Bunker', zone_5:'Final Command',
+    mecha_1:'Blaster', mecha_2:'Missile Launcher', mecha_3:'Shield Generator',
+    mecha_4:'EMP Tower', mecha_5:'Railgun',
+    wave:'Wave', bossIncoming:'Boss Incoming!', gameover:'Base Fallen',
+    victory:'Humanity Prevails!', upgrade:'Upgrade',
+    firepower:'Firepower', defense:'Defense', utility:'Utility',
+    corePoints:'Core Points', placeMecha:'Place your Mecha',
+    sell:'Sell', energy:'Energy', score:'Score', best:'Best',
+    startWave:'Start Wave', zone:'Zone', hp:'HP',
+    restart:'R / Tap to Restart', hub:'Return to Base',
+    selectMecha:'Select Unit', cost:'Cost', range:'Range',
+    atk:'ATK', speed:'Speed', locked:'Locked',
+    reward:'Select Part', common:'Common', rare:'Rare', epic:'Epic',
+    pause:'Paused', resume:'Resume', newRun:'New Run',
+    confirmSell:'Sell this mecha?', yes:'Yes', no:'No',
+    storyIntro:'Year 2187. The alien machine legion "Vortex" has invaded Earth.',
+    story_1:'Hold the first defense line. Until civilian evacuation is complete.',
+    story_2:'Defend the factories. New weapons can be produced.',
+    story_3:'If the Energy Core falls, all mechas will shut down.',
+    story_4:'If this place falls, there is nowhere to return.',
+    story_5:'Destroy Vortex Prime. For the future of humanity.',
+    totalRuns:'Total Runs', bestZone:'Best Zone',
+    upgradeFirepower:'Firepower Up', upgradeDefense:'Defense Up',
+    upgradeUtility:'Utility Up', langSwitch:'한',
+    night:'Night', day:'Day', acidRain:'Acid Rain', empStorm:'EMP Storm',
+    magStorm:'Mag Storm', noPath:'Path Blocked!', maxLevel:'Max Level',
+    bossDefeated:'Boss Defeated!', waveCleared:'Wave Cleared!',
+    partObtained:'Part Obtained!', loading:'Loading...',
+    dda:'Difficulty Assist Active', skillReady:'Skill Ready(Q)',
+    fast:'Fast', normal:'Normal'
+  }
+};
+
+// -- State machine --
+const STATES = {
+  BOOT:'BOOT', TITLE:'TITLE', STORY_INTRO:'STORY_INTRO',
+  ZONE_INTRO:'ZONE_INTRO', PLACEMENT:'PLACEMENT', WAVE:'WAVE',
+  WAVE_CLEAR:'WAVE_CLEAR', REWARD_SELECT:'REWARD_SELECT',
+  BOSS_INTRO:'BOSS_INTRO', BOSS_FIGHT:'BOSS_FIGHT', BOSS_CLEAR:'BOSS_CLEAR',
+  VICTORY:'VICTORY', GAMEOVER:'GAMEOVER', PAUSED:'PAUSED', MODAL:'MODAL',
+  HUB:'HUB'
+};
+
+const STATE_PRIORITY = {
+  BOOT:0, TITLE:10, HUB:20, STORY_INTRO:40, ZONE_INTRO:50,
+  PLACEMENT:30, REWARD_SELECT:30, WAVE:70, BOSS_INTRO:60,
+  BOSS_FIGHT:80, BOSS_CLEAR:55, WAVE_CLEAR:35, VICTORY:90,
+  GAMEOVER:100, PAUSED:5, MODAL:5
+};
+
+const RESTART_ALLOWED = ['PLACEMENT','WAVE','WAVE_CLEAR','REWARD_SELECT','GAMEOVER'];
+
+// -- Active systems matrix (F7, programmatic generation) --
+const ACTIVE_SYSTEMS = (function() {
+  const base = {};
+  const allStates = Object.values(STATES);
+  const systems = ['tween','input','physics','ai','combat','spawn','env','particle','sound','render'];
+  allStates.forEach(s => {
+    base[s] = {};
+    systems.forEach(sys => base[s][sys] = false);
+    base[s].tween = true;
+    base[s].render = true;
+  });
+  // Title
+  base.TITLE.input = true; base.TITLE.particle = true; base.TITLE.sound = true;
+  // Story/Zone intros
+  base.STORY_INTRO.input = true; base.STORY_INTRO.particle = true; base.STORY_INTRO.sound = true;
+  base.ZONE_INTRO.input = true; base.ZONE_INTRO.particle = true; base.ZONE_INTRO.sound = true;
+  // Placement
+  base.PLACEMENT.input = true; base.PLACEMENT.env = true; base.PLACEMENT.particle = true; base.PLACEMENT.sound = true;
+  // Wave (full activation)
+  base.WAVE.input = true; base.WAVE.physics = true; base.WAVE.ai = true;
+  base.WAVE.combat = true; base.WAVE.spawn = true; base.WAVE.env = true;
+  base.WAVE.particle = true; base.WAVE.sound = true;
+  // Wave clear
+  base.WAVE_CLEAR.input = true; base.WAVE_CLEAR.env = true; base.WAVE_CLEAR.particle = true; base.WAVE_CLEAR.sound = true;
+  // Reward
+  base.REWARD_SELECT.input = true; base.REWARD_SELECT.particle = true; base.REWARD_SELECT.sound = true;
+  // Boss intro
+  base.BOSS_INTRO.input = true; base.BOSS_INTRO.particle = true; base.BOSS_INTRO.sound = true;
+  // Boss fight (full except spawn)
+  base.BOSS_FIGHT.input = true; base.BOSS_FIGHT.physics = true; base.BOSS_FIGHT.ai = true;
+  base.BOSS_FIGHT.combat = true; base.BOSS_FIGHT.env = true;
+  base.BOSS_FIGHT.particle = true; base.BOSS_FIGHT.sound = true;
+  // Boss clear
+  base.BOSS_CLEAR.input = true; base.BOSS_CLEAR.particle = true; base.BOSS_CLEAR.sound = true;
+  // Victory/Gameover/Hub
+  base.VICTORY.input = true; base.VICTORY.particle = true; base.VICTORY.sound = true;
+  base.GAMEOVER.input = true; base.GAMEOVER.particle = true; base.GAMEOVER.sound = true;
+  base.HUB.input = true; base.HUB.particle = true; base.HUB.sound = true;
+  // Paused/Modal
+  base.PAUSED.input = true;
+  base.MODAL.input = true;
+  return base;
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 2: ENGINE (SeededRNG, TweenManager, ObjectPool,
+//           SoundManager, InputManager) (~600 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- SeededRNG (F18: Math.random 0건) --
+class SeededRNG {
+  constructor(seed) { this.s = seed || 12345; }
+  next() { this.s = (this.s * 16807 + 0) % 2147483647; return (this.s - 1) / 2147483646; }
+  nextInt(min, max) { return min + ((this.next() * (max - min + 1)) | 0); }
+  nextFloat(min, max) { return min + this.next() * (max - min); }
+  pick(arr) { return arr[(this.next() * arr.length) | 0]; }
+  shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (this.next() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+}
+
+// -- TweenManager (F4, F13, F14) --
+class TweenManager {
+  constructor() { this._tweens = []; this._toAdd = []; this._updating = false; }
+  add(obj, props, dur, ease, onComplete) {
+    const t = { obj, props: {}, dur, elapsed: 0, ease: ease || 'easeInOut', onComplete };
+    for (const k in props) t.props[k] = { from: obj[k], to: props[k] };
+    if (this._updating) this._toAdd.push(t);
+    else this._tweens.push(t);
+    return t;
+  }
+  update(dt) {
+    this._updating = true;
+    for (let i = this._tweens.length - 1; i >= 0; i--) {
+      const t = this._tweens[i];
+      t.elapsed += dt;
+      let p = Math.min(t.elapsed / t.dur, 1);
+      const ep = this._ease(p, t.ease);
+      for (const k in t.props) {
+        t.obj[k] = t.props[k].from + (t.props[k].to - t.props[k].from) * ep;
+      }
+      if (p >= 1) {
+        this._tweens.splice(i, 1);
+        if (t.onComplete) t.onComplete();
+      }
+    }
+    this._updating = false;
+    if (this._toAdd.length) {
+      this._tweens.push(...this._toAdd);
+      this._toAdd.length = 0;
+    }
+  }
+  // clearImmediate: F13 — 즉시 정리 (cancelAll 경쟁 조건 방지)
+  clearImmediate() { this._tweens.length = 0; this._toAdd.length = 0; }
+  cancel(tw) {
+    let idx = this._tweens.indexOf(tw);
+    if (idx >= 0) this._tweens.splice(idx, 1);
+    idx = this._toAdd.indexOf(tw);
+    if (idx >= 0) this._toAdd.splice(idx, 1);
+  }
+  _ease(t, type) {
+    if (type === 'linear') return t;
+    if (type === 'easeIn') return t * t;
+    if (type === 'easeOut') return t * (2 - t);
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOut
+  }
+}
+
+// -- ObjectPool --
+class ObjectPool {
+  constructor(factory, reset) { this._pool = []; this._factory = factory; this._reset = reset; }
+  get() {
+    const obj = this._pool.length ? this._pool.pop() : this._factory();
+    if (this._reset) this._reset(obj);
+    return obj;
+  }
+  release(obj) { this._pool.push(obj); }
+  clear() { this._pool.length = 0; }
+}
+
+// -- SoundManager (F19, Web Audio API procedural) --
+class SoundManager {
+  constructor() {
+    this.ctx = null; this.master = null; this.bgmGain = null;
+    this.sfxGain = null; this.muted = false; this._bgmOsc = [];
+    this._bgmTimer = 0; this._bgmBpm = 120; this._bgmKey = '';
+  }
+  init() {
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain(); this.master.gain.value = 0.3;
+      this.master.connect(this.ctx.destination);
+      this.bgmGain = this.ctx.createGain(); this.bgmGain.gain.value = 0.15;
+      this.bgmGain.connect(this.master);
+      this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.5;
+      this.sfxGain.connect(this.master);
+    } catch(e) { /* audio not available */ }
+  }
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  // Single update path for BPM (F14)
+  setBPM(bpm) { this._bgmBpm = bpm; }
+  playSfx(type) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    gain.connect(this.sfxGain);
+    osc.connect(gain);
+    const sfxDefs = {
+      place:    { wave:'square', f:440, f2:880, dur:0.15 },
+      shoot:    { wave:'sawtooth', f:660, f2:660, dur:0.1 },
+      missile:  { wave:'sawtooth', f:220, f2:330, dur:0.3 },
+      explosion:{ wave:'sawtooth', f:100, f2:20, dur:0.4 },
+      shield:   { wave:'sine', f:880, f2:1320, dur:0.2 },
+      emp:      { wave:'square', f:110, f2:55, dur:0.3 },
+      railgun:  { wave:'sawtooth', f:1760, f2:440, dur:0.5 },
+      hit:      { wave:'square', f:330, f2:200, dur:0.08 },
+      bossAlarm:{ wave:'square', f:220, f2:220, dur:1.0 },
+      coreHit:  { wave:'sine', f:110, f2:80, dur:0.3 },
+      reward:   { wave:'sine', f:660, f2:1320, dur:0.2 },
+      upgrade:  { wave:'sine', f:523, f2:1046, dur:0.4 },
+      click:    { wave:'sine', f:600, f2:800, dur:0.05 },
+      error:    { wave:'square', f:200, f2:100, dur:0.15 },
+      victory:  { wave:'sine', f:523, f2:1046, dur:0.6 }
+    };
+    const d = sfxDefs[type] || sfxDefs.click;
+    osc.type = d.wave;
+    osc.frequency.setValueAtTime(d.f, t);
+    osc.frequency.linearRampToValueAtTime(d.f2, t + d.dur);
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.linearRampToValueAtTime(0, t + d.dur);
+    osc.start(t);
+    osc.stop(t + d.dur + 0.05);
+  }
+  startBGM(key) {
+    if (!this.ctx || this._bgmKey === key) return;
+    this.stopBGM();
+    this._bgmKey = key;
+    // Simple procedural BGM loop using oscillators
+    const bgmDefs = {
+      title:  { bpm:90,  notes:[261,293,329,349,392], wave:'sine' },
+      calm:   { bpm:100, notes:[220,261,293,329,349], wave:'sine' },
+      battle: { bpm:140, notes:[329,392,440,493,523], wave:'sawtooth' },
+      boss:   { bpm:160, notes:[293,349,392,440,523], wave:'square' },
+      victory:{ bpm:120, notes:[523,659,783,523,659], wave:'sine' },
+      gameover:{ bpm:80, notes:[220,196,174,164],      wave:'sine' }
+    };
+    const d = bgmDefs[key] || bgmDefs.calm;
+    this._bgmBpm = d.bpm;
+    this._scheduleBGM(d);
+  }
+  _scheduleBGM(def) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const beatDur = 60 / this._bgmBpm;
+    for (let i = 0; i < 8; i++) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      gain.connect(this.bgmGain);
+      osc.connect(gain);
+      osc.type = def.wave;
+      const note = def.notes[i % def.notes.length];
+      osc.frequency.value = note;
+      const start = t + i * beatDur;
+      gain.gain.setValueAtTime(0.15, start);
+      gain.gain.linearRampToValueAtTime(0, start + beatDur * 0.8);
+      osc.start(start);
+      osc.stop(start + beatDur);
+      this._bgmOsc.push(osc);
+    }
+    this._bgmTimer = 8 * beatDur * 1000;
+  }
+  stopBGM() {
+    this._bgmOsc.forEach(o => { try { o.stop(); } catch(e){} });
+    this._bgmOsc = []; this._bgmKey = '';
+  }
+  update(dt) {
+    if (!this.ctx || !this._bgmKey) return;
+    this._bgmTimer -= dt;
+    if (this._bgmTimer <= 0) {
+      const bgmDefs = {
+        title:{ bpm:90, notes:[261,293,329,349,392], wave:'sine' },
+        calm:{ bpm:100, notes:[220,261,293,329,349], wave:'sine' },
+        battle:{ bpm:140, notes:[329,392,440,493,523], wave:'sawtooth' },
+        boss:{ bpm:160, notes:[293,349,392,440,523], wave:'square' },
+        victory:{ bpm:120, notes:[523,659,783,523,659], wave:'sine' },
+        gameover:{ bpm:80, notes:[220,196,174,164], wave:'sine' }
+      };
+      this._scheduleBGM(bgmDefs[this._bgmKey] || bgmDefs.calm);
+    }
+  }
+  toggle() { this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.3; }
+}
+
+// -- InputManager (F16: hitTest single function) --
+class InputManager {
+  constructor() {
+    this.keys = {};
+    this.mouseX = 0; this.mouseY = 0;
+    this.clicked = false; this.rightClicked = false;
+    this.tapped = false; this.doubleTapped = false;
+    this.longPressed = false;
+    this._touchStart = 0; this._tapCount = 0; this._tapTimer = 0;
+    this._touchId = null; this._longPressTimer = null;
+    this._touchStartX = 0; this._touchStartY = 0;
+    this._preventedKeys = ['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+      'KeyW','KeyA','KeyS','KeyD','KeyP','KeyR','KeyQ','Digit1','Digit2',
+      'Digit3','Digit4','Digit5','Escape','KeyE','KeyL'];
+  }
+  init(canvas) {
+    this._canvas = canvas;
+    // Keyboard
+    window.addEventListener('keydown', e => {
+      if (this._preventedKeys.includes(e.code)) e.preventDefault();
+      this.keys[e.code] = true;
+    });
+    window.addEventListener('keyup', e => {
+      this.keys[e.code] = false;
+    });
+    // Mouse
+    canvas.addEventListener('mousemove', e => {
+      const r = canvas.getBoundingClientRect();
+      this.mouseX = (e.clientX - r.left) * (canvas.width / r.width);
+      this.mouseY = (e.clientY - r.top) * (canvas.height / r.height);
+    });
+    canvas.addEventListener('mousedown', e => {
+      if (e.button === 0) this.clicked = true;
+      if (e.button === 2) { this.rightClicked = true; e.preventDefault(); }
+      const r = canvas.getBoundingClientRect();
+      this.mouseX = (e.clientX - r.left) * (canvas.width / r.width);
+      this.mouseY = (e.clientY - r.top) * (canvas.height / r.height);
+    });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    // Touch
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      this.mouseX = (touch.clientX - r.left) * (canvas.width / r.width);
+      this.mouseY = (touch.clientY - r.top) * (canvas.height / r.height);
+      this._touchStartX = this.mouseX;
+      this._touchStartY = this.mouseY;
+      this._touchStart = performance.now();
+      this._touchId = touch.identifier;
+      // Long press detection
+      this._longPressTimer = performance.now();
+      this.tapped = true;
+      // Double tap detection
+      this._tapCount++;
+      if (this._tapCount === 2 && performance.now() - this._tapTimer < 400) {
+        this.doubleTapped = true;
+        this._tapCount = 0;
+      } else if (this._tapCount === 1) {
+        this._tapTimer = performance.now();
+      }
+      if (this._tapCount > 2) this._tapCount = 0;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      this.mouseX = (touch.clientX - r.left) * (canvas.width / r.width);
+      this.mouseY = (touch.clientY - r.top) * (canvas.height / r.height);
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      const elapsed = performance.now() - this._touchStart;
+      if (elapsed > 500) this.longPressed = true;
+      this._touchId = null;
+    }, { passive: false });
+  }
+  // hitTest single function (F16, F26)
+  hitTest(x, y, rx, ry, rw, rh) {
+    return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
+  }
+  consumeClick() { const c = this.clicked; this.clicked = false; return c; }
+  consumeRightClick() { const c = this.rightClicked; this.rightClicked = false; return c; }
+  consumeTap() { const c = this.tapped; this.tapped = false; return c; }
+  consumeDoubleTap() { const c = this.doubleTapped; this.doubleTapped = false; return c; }
+  consumeLongPress() { const c = this.longPressed; this.longPressed = false; return c; }
+  consumeKey(code) { const v = this.keys[code]; this.keys[code] = false; return v; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 3: 비움 (F1, F23: 모든 비주얼은 Canvas 프로시저럴 드로잉)
+// ═══════════════════════════════════════════════════════════════
+// assets/ 디렉토리 없음. 외부 에셋 0개. SPRITES/ASSET_MAP/preloadAssets 0건.
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 4: DRAWING FUNCTIONS (pure functions — F9) (~800 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- Draw mecha unit (F9: pure function) --
+function drawMecha(ctx, x, y, size, type, level, time) {
+  const colors = [COL.mechaBlue, COL.missileOrange, COL.energyCyan, '#FFE082', '#E040FB'];
+  const c = colors[type] || COL.mechaBlue;
+  const pulse = Math.sin(time * 3) * 0.1 + 0.9;
+  const s = size * 0.8;
+  {
+    ctx.save();
+    ctx.translate(x, y);
+    // Base body
+    ctx.fillStyle = c;
+    ctx.globalAlpha = pulse;
+    if (type === 0) { // Blaster — triangular
+      ctx.beginPath();
+      ctx.moveTo(0, -s*0.4);
+      ctx.lineTo(s*0.35, s*0.3);
+      ctx.lineTo(-s*0.35, s*0.3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else if (type === 1) { // Missile — square with notch
+      ctx.fillRect(-s*0.35, -s*0.35, s*0.7, s*0.7);
+      ctx.fillStyle = COL.missileOrange;
+      ctx.fillRect(-s*0.15, -s*0.5, s*0.3, s*0.2);
+      ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(-s*0.35, -s*0.35, s*0.7, s*0.7);
+    } else if (type === 2) { // Shield — hexagonal
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 3 * i - Math.PI / 6;
+        const px = Math.cos(a) * s * 0.4;
+        const py = Math.sin(a) * s * 0.4;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 2;
+      ctx.stroke();
+      // Shield aura
+      ctx.globalAlpha = 0.15 * pulse;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.55, 0, Math.PI * 2);
+      ctx.fillStyle = COL.energyCyan;
+      ctx.fill();
+    } else if (type === 3) { // EMP — diamond
+      ctx.beginPath();
+      ctx.moveTo(0, -s*0.45); ctx.lineTo(s*0.35, 0);
+      ctx.lineTo(0, s*0.45); ctx.lineTo(-s*0.35, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#FFE082'; ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else if (type === 4) { // Railgun — long rectangle
+      ctx.fillRect(-s*0.15, -s*0.5, s*0.3, s*1.0);
+      ctx.fillStyle = '#E040FB';
+      ctx.fillRect(-s*0.25, -s*0.2, s*0.5, s*0.15);
+      ctx.strokeStyle = '#CE93D8'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(-s*0.15, -s*0.5, s*0.3, s*1.0);
+    }
+    ctx.globalAlpha = 1;
+    // Level indicator
+    if (level > 0) {
+      ctx.fillStyle = COL.gold;
+      ctx.font = `bold ${s*0.25}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('★'.repeat(level + 1), 0, s * 0.55);
+    }
+    // Core glow
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = COL.energyCyan;
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(time * 5);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+// -- Draw enemy unit (F9) --
+function drawEnemy(ctx, x, y, size, type, hp, maxHp, status, time) {
+  const s = size * 0.7;
+  const hpRatio = hp / maxHp;
+  {
+    ctx.save();
+    ctx.translate(x, y);
+    // Enemy body — different shapes per type
+    const enemyColors = [COL.enemyRed, '#B71C1C', '#FF5722', '#F44336', '#D32F2F', '#C62828', '#9C27B0'];
+    ctx.fillStyle = enemyColors[type % enemyColors.length];
+    if (type === 0) { // Drone — small diamond
+      ctx.beginPath();
+      ctx.moveTo(0, -s*0.3); ctx.lineTo(s*0.25, 0);
+      ctx.lineTo(0, s*0.3); ctx.lineTo(-s*0.25, 0);
+      ctx.closePath(); ctx.fill();
+    } else if (type === 1) { // Tank — large square with cross mark + thick border
+      const ts = s * 0.45;
+      ctx.fillRect(-ts, -ts, ts*2, ts*2);
+      ctx.strokeStyle = '#B71C1C'; ctx.lineWidth = 3;
+      ctx.strokeRect(-ts, -ts, ts*2, ts*2);
+      // Cross mark for visual distinction
+      ctx.strokeStyle = '#FF5252'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-ts*0.5, -ts*0.5); ctx.lineTo(ts*0.5, ts*0.5);
+      ctx.moveTo(ts*0.5, -ts*0.5); ctx.lineTo(-ts*0.5, ts*0.5);
+      ctx.stroke();
+    } else if (type === 2) { // Speeder — small triangle
+      ctx.beginPath();
+      ctx.moveTo(s*0.35, 0); ctx.lineTo(-s*0.25, -s*0.3); ctx.lineTo(-s*0.25, s*0.3);
+      ctx.closePath(); ctx.fill();
+    } else if (type === 3) { // Shieldbot — circle
+      ctx.beginPath(); ctx.arc(0, 0, s*0.35, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = COL.shieldBar; ctx.lineWidth = 2; ctx.stroke();
+    } else if (type === 4) { // Bomber — star shape
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = Math.PI * 2 / 5 * i - Math.PI / 2;
+        const px = Math.cos(a) * s * 0.35;
+        const py = Math.sin(a) * s * 0.35;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.fill();
+    } else if (type === 5) { // Helix — diamond (flying)
+      ctx.beginPath();
+      ctx.moveTo(0, -s*0.4); ctx.lineTo(s*0.3, 0);
+      ctx.lineTo(0, s*0.4); ctx.lineTo(-s*0.3, 0);
+      ctx.closePath(); ctx.fill();
+      // Wings
+      ctx.globalAlpha = 0.4;
+      ctx.fillRect(-s*0.5, -s*0.05, s*1.0, s*0.1);
+      ctx.globalAlpha = 1;
+    } else { // Hacker
+      ctx.fillRect(-s*0.3, -s*0.3, s*0.6, s*0.6);
+      ctx.fillStyle = '#9C27B0';
+      ctx.fillRect(-s*0.15, -s*0.15, s*0.3, s*0.3);
+    }
+    // Red eye/core
+    ctx.beginPath(); ctx.arc(0, -s*0.05, s*0.08, 0, Math.PI*2);
+    ctx.fillStyle = '#FF1744'; ctx.fill();
+    // Status effects
+    if (status === 'stunned') {
+      ctx.strokeStyle = '#FFE082'; ctx.lineWidth = 2;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.arc(0, 0, s*0.45, 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+  // HP bar
+  if (hpRatio < 1) {
+    const barW = size * 0.6;
+    const barH = 3;
+    ctx.fillStyle = '#333'; ctx.fillRect(x - barW/2, y - size*0.45, barW, barH);
+    ctx.fillStyle = hpRatio > 0.3 ? COL.hpBar : COL.hpBarLow;
+    ctx.fillRect(x - barW/2, y - size*0.45, barW * hpRatio, barH);
+  }
+}
+
+// -- Draw boss (F9) --
+function drawBoss(ctx, x, y, size, bossId, phase, hp, maxHp, time) {
+  const s = size * 1.5;
+  const pulse = Math.sin(time * 2) * 0.1 + 0.9;
+  ctx.save();
+  ctx.translate(x, y);
+  // Boss body
+  ctx.fillStyle = COL.bossPurple;
+  ctx.globalAlpha = pulse;
+  // All bosses share general shape with unique decorations
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = COL.enemyRed; ctx.lineWidth = 3;
+  ctx.stroke();
+  // Inner core
+  ctx.beginPath(); ctx.arc(0, 0, s * 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = COL.enemyRed; ctx.fill();
+  // Boss-specific decorations
+  if (bossId === 0) { // Crusher — horns
+    ctx.fillStyle = COL.bossPurple;
+    ctx.fillRect(-s*0.5, -s*0.45, s*0.15, s*0.3);
+    ctx.fillRect(s*0.35, -s*0.45, s*0.15, s*0.3);
+  } else if (bossId === 1) { // ShieldMother — outer ring
+    ctx.strokeStyle = COL.shieldBar; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, s*0.55, 0, Math.PI*2); ctx.stroke();
+  } else if (bossId === 2) { // DrillWorm — spikes
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI * 2 / 8 * i;
+      ctx.fillStyle = COL.missileOrange;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*s*0.4, Math.sin(a)*s*0.4);
+      ctx.lineTo(Math.cos(a+0.15)*s*0.55, Math.sin(a+0.15)*s*0.55);
+      ctx.lineTo(Math.cos(a-0.15)*s*0.55, Math.sin(a-0.15)*s*0.55);
+      ctx.closePath(); ctx.fill();
+    }
+  } else if (bossId === 3) { // Overload — electric arcs
+    ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI * 2 / 6 * i + time;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*s*0.4, Math.sin(a)*s*0.4);
+      ctx.lineTo(Math.cos(a)*s*0.65, Math.sin(a)*s*0.65);
+      ctx.stroke();
+    }
+  } else { // Vortex Prime — multi-ring
+    ctx.strokeStyle = COL.gold; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, s*0.55, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = COL.enemyRed;
+    ctx.beginPath(); ctx.arc(0, 0, s*0.65, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // Phase indicator
+  ctx.fillStyle = COL.gold;
+  ctx.font = `bold ${s*0.15}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`P${phase+1}`, 0, s*0.08);
+  ctx.restore();
+  // Boss HP bar
+  const barW = size * 2;
+  const barH = 6;
+  const hpRatio = hp / maxHp;
+  ctx.fillStyle = '#333'; ctx.fillRect(x - barW/2, y - s*0.55, barW, barH);
+  ctx.fillStyle = hpRatio > 0.3 ? COL.bossPurple : COL.hpBarLow;
+  ctx.fillRect(x - barW/2, y - s*0.55, barW * hpRatio, barH);
+}
+
+// -- Draw projectile (F9) --
+function drawProjectile(ctx, x, y, type, angle, time) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+  if (type === 'bullet') {
+    ctx.fillStyle = COL.energyCyan;
+    ctx.fillRect(-3, -1.5, 6, 3);
+  } else if (type === 'missile') {
+    ctx.fillStyle = COL.missileOrange;
+    ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(-4, -3); ctx.lineTo(-4, 3);
+    ctx.closePath(); ctx.fill();
+  } else if (type === 'emp') {
+    ctx.strokeStyle = '#FFE082'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.stroke();
+  } else if (type === 'railbeam') {
+    ctx.strokeStyle = '#E040FB'; ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(time * 10);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(200, 0); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+// -- Draw explosion / hit effect (F9) --
+function drawExplosion(ctx, x, y, radius, progress, type) {
+  const alpha = 1 - progress;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (type === 'explosion') {
+    ctx.fillStyle = COL.missileOrange;
+    ctx.beginPath(); ctx.arc(x, y, radius * (0.5 + progress * 0.5), 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath(); ctx.arc(x, y, radius * 0.3 * (1 - progress), 0, Math.PI*2); ctx.fill();
+  } else if (type === 'emp_wave') {
+    ctx.strokeStyle = '#FFE082'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, radius * progress, 0, Math.PI*2); ctx.stroke();
+  } else {
+    ctx.fillStyle = COL.energyCyan;
+    ctx.beginPath(); ctx.arc(x, y, radius * progress, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// -- Draw grid (F9) --
+function drawGrid(ctx, gridOffX, gridOffY, cols, rows, cellSize, grid, hoveredCell, pathCells, selectedMecha) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = gridOffX + c * cellSize;
+      const y = gridOffY + r * cellSize;
+      const cell = grid[r * cols + c];
+      // Cell background
+      if (cell === 2) { // obstacle
+        ctx.fillStyle = 'rgba(60,60,80,0.6)';
+        ctx.fillRect(x, y, cellSize, cellSize);
+        // Debris pattern
+        ctx.fillStyle = 'rgba(80,80,100,0.4)';
+        ctx.fillRect(x+cellSize*0.2, y+cellSize*0.3, cellSize*0.3, cellSize*0.2);
+        ctx.fillRect(x+cellSize*0.5, y+cellSize*0.6, cellSize*0.25, cellSize*0.15);
+      } else if (cell === 3) { // spawn
+        ctx.fillStyle = 'rgba(229,57,53,0.15)';
+        ctx.fillRect(x, y, cellSize, cellSize);
+      } else if (cell === 4) { // base
+        ctx.fillStyle = 'rgba(0,229,255,0.15)';
+        ctx.fillRect(x, y, cellSize, cellSize);
+      }
+      // Path overlay
+      if (pathCells && pathCells.has(r * cols + c) && cell !== 2) {
+        ctx.fillStyle = COL.gridPath;
+        ctx.fillRect(x, y, cellSize, cellSize);
+      }
+      // Grid lines
+      ctx.strokeStyle = COL.gridLine;
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x, y, cellSize, cellSize);
+    }
+  }
+  // Hovered cell highlight
+  if (hoveredCell !== null && hoveredCell >= 0 && hoveredCell < cols * rows) {
+    const hc = hoveredCell % cols;
+    const hr = (hoveredCell / cols) | 0;
+    const x = gridOffX + hc * cellSize;
+    const y = gridOffY + hr * cellSize;
+    const cell = grid[hoveredCell];
+    ctx.fillStyle = (cell === 0 || cell === 1) ? COL.gridHover : COL.gridBlocked;
+    ctx.fillRect(x, y, cellSize, cellSize);
+    // Range preview
+    if (selectedMecha >= 0 && selectedMecha < 5 && cell !== 2) {
+      const range = CONFIG.MECHA[selectedMecha].range;
+      ctx.strokeStyle = 'rgba(0,229,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x + cellSize/2, y + cellSize/2, range * cellSize, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+}
+
+// -- Draw environment background (F9) --
+function drawEnvironment(ctx, w, h, zone, timeOfDay, weather, time) {
+  // Background gradient per zone
+  const colors = CONFIG.ZONE_BG[zone] || CONFIG.ZONE_BG[0];
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, colors[0]);
+  grad.addColorStop(1, colors[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // Parallax bg layers (procedural — no SVG)
+  // Layer 1: slow scrolling grid pattern
+  ctx.globalAlpha = 0.04;
+  ctx.strokeStyle = COL.energyCyan;
+  ctx.lineWidth = 0.5;
+  const offX1 = (time * 5) % 60;
+  for (let lx = -offX1; lx < w; lx += 60) {
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, h); ctx.stroke();
+  }
+  for (let ly = 0; ly < h; ly += 60) {
+    ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(w, ly); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // Layer 2: faster scrolling dots/noise
+  ctx.globalAlpha = 0.06;
+  const offX2 = (time * 12) % 40;
+  for (let i = 0; i < 30; i++) {
+    const dx = ((i * 137 + offX2 * 3) % w);
+    const dy = ((i * 89) % h);
+    ctx.fillStyle = i % 2 === 0 ? COL.energyCyan : COL.mechaBlue;
+    ctx.fillRect(dx, dy, 2, 2);
+  }
+  ctx.globalAlpha = 1;
+  // Zone-specific decorations
+  if (zone === 0) { // City — smoke particles
+    ctx.fillStyle = 'rgba(200,100,50,0.04)';
+    for (let i = 0; i < 5; i++) {
+      const sx = w * 0.15 + i * w * 0.18;
+      const sy = h * 0.05 + Math.sin(time + i * 1.5) * 15;
+      ctx.beginPath(); ctx.arc(sx, sy, 20 + Math.sin(time * 0.5 + i) * 8, 0, Math.PI*2); ctx.fill();
+    }
+  } else if (zone === 1) { // Industrial — gears
+    ctx.strokeStyle = 'rgba(100,100,120,0.1)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const gx = w * (0.2 + i * 0.3);
+      const gy = h * 0.1;
+      ctx.beginPath(); ctx.arc(gx, gy, 25, 0, Math.PI*2); ctx.stroke();
+    }
+  } else if (zone === 2) { // Energy — glowing pipes
+    ctx.strokeStyle = 'rgba(0,229,255,0.08)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, h*0.15); ctx.lineTo(w, h*0.15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h*0.18); ctx.lineTo(w, h*0.18); ctx.stroke();
+    // Electric arc
+    ctx.strokeStyle = `rgba(0,229,255,${0.05 + 0.05 * Math.sin(time * 8)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    let arcY = h * 0.16;
+    ctx.moveTo(0, arcY);
+    for (let px = 0; px < w; px += 20) {
+      arcY = h * 0.16 + Math.sin(px * 0.05 + time * 4) * 5;
+      ctx.lineTo(px, arcY);
+    }
+    ctx.stroke();
+  } else if (zone === 3) { // Bunker — warning lights
+    const blink = Math.sin(time * 3) > 0;
+    if (blink) {
+      ctx.fillStyle = 'rgba(229,57,53,0.05)';
+      ctx.fillRect(0, 0, w, h);
+    }
+  } else if (zone === 4) { // Command — holographic lines
+    ctx.strokeStyle = 'rgba(255,215,0,0.06)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const ly = h * 0.05 + i * h * 0.03;
+      ctx.beginPath(); ctx.moveTo(w*0.1, ly); ctx.lineTo(w*0.9, ly); ctx.stroke();
+    }
+  }
+  // Night overlay
+  if (timeOfDay === 'night') {
+    ctx.fillStyle = 'rgba(0,0,20,0.3)';
+    ctx.fillRect(0, 0, w, h);
+  }
+  // Weather effects
+  if (weather === 'acid_rain') {
+    ctx.strokeStyle = 'rgba(0,255,100,0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 30; i++) {
+      const rx = (i * 97 + time * 200) % w;
+      const ry = (i * 53 + time * 400) % h;
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 2, ry + 10); ctx.stroke();
+    }
+  } else if (weather === 'emp_storm') {
+    const flash = Math.sin(time * 6) > 0.8;
+    if (flash) {
+      ctx.fillStyle = 'rgba(255,224,130,0.08)';
+      ctx.fillRect(0, 0, w, h);
+    }
+  } else if (weather === 'mag_storm') {
+    // Magnetic storm: purple/blue distortion lines
+    ctx.strokeStyle = 'rgba(155,89,182,0.12)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 15; i++) {
+      const mx = (i * 73 + time * 100) % w;
+      const my1 = Math.sin(time * 3 + i) * h * 0.3 + h * 0.5;
+      const my2 = my1 + Math.cos(time * 4 + i * 2) * 40;
+      ctx.beginPath(); ctx.moveTo(mx, my1); ctx.lineTo(mx + 10, my2); ctx.stroke();
+    }
+    // Flickering overlay
+    if (Math.sin(time * 10 + 3) > 0.9) {
+      ctx.fillStyle = 'rgba(155,89,182,0.04)';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+}
+
+// -- Draw HUD (F9) --
+function drawHUD(ctx, w, h, G, L, cellSize, gridOffY) {
+  const topH = gridOffY;
+  // Top bar background
+  ctx.fillStyle = 'rgba(10,10,15,0.85)';
+  ctx.fillRect(0, 0, w, topH);
+  ctx.fillStyle = 'rgba(30,30,48,0.5)';
+  ctx.fillRect(0, topH - 1, w, 1);
+  const fontSize = Math.max(12, Math.min(16, w * 0.025));
+  ctx.font = `bold ${fontSize}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textBaseline = 'middle';
+  const midY = topH / 2;
+  let px = 10;
+  // HP with heart icon (Canvas procedural)
+  ctx.fillStyle = COL.energyCyan;
+  ctx.fillText('♥', px, midY); px += 18;
+  const hpRatio = G.coreHp / G.coreMaxHp;
+  ctx.fillStyle = hpRatio > 0.3 ? COL.energyCyan : COL.hpBarLow;
+  ctx.textAlign = 'left';
+  ctx.fillText(`${G.coreHp}/${G.coreMaxHp}`, px, midY);
+  px += 80;
+  // Energy
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(`⚡${G.energy}`, px, midY);
+  px += 65;
+  // Zone / Wave
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(`${L.zone}${G.zone+1} ${L.wave}${G.wave+1}/${G.maxWave}`, px, midY);
+  // Score (right side)
+  ctx.textAlign = 'right';
+  // Star icon fallback (Canvas procedural)
+  ctx.fillStyle = COL.gold;
+  ctx.fillText('★', w - 110, midY);
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(`${G.score}`, w - 10, midY);
+  ctx.textAlign = 'left';
+  // Weather/time indicator
+  if (G.timeOfDay === 'night' || G.weather !== 'clear') {
+    ctx.fillStyle = 'rgba(255,224,130,0.7)';
+    ctx.font = `${fontSize * 0.8}px 'Segoe UI',system-ui,sans-serif`;
+    const weatherText = G.timeOfDay === 'night' ? (L.night || '야간') : '';
+    const envText = G.weather !== 'clear' ? L[G.weather] || G.weather : '';
+    ctx.fillText(`${weatherText} ${envText}`, w/2 - 40, midY);
+  }
+}
+
+// -- Draw bottom panel (mecha buttons + controls) --
+function drawBottomPanel(ctx, w, h, G, L, panelY, panelH, unlockedMechas) {
+  // Panel background
+  ctx.fillStyle = 'rgba(10,10,15,0.9)';
+  ctx.fillRect(0, panelY, w, panelH);
+  ctx.fillStyle = 'rgba(30,30,48,0.5)';
+  ctx.fillRect(0, panelY, w, 1);
+  const btnSize = Math.max(48, Math.min(56, w / 8));
+  const gap = 6;
+  const totalBtnW = 5 * btnSize + 4 * gap;
+  let startX = Math.max(8, (w * 0.6 - totalBtnW) / 2);
+  const btnY = panelY + (panelH - btnSize) / 2;
+  const mechaNames = [L.mecha_1, L.mecha_2, L.mecha_3, L.mecha_4, L.mecha_5];
+  const mechaColors = [COL.mechaBlue, COL.missileOrange, COL.energyCyan, '#FFE082', '#E040FB'];
+  // Store button rects for hit testing
+  G._mechaBtnRects = [];
+  for (let i = 0; i < 5; i++) {
+    const bx = startX + i * (btnSize + gap);
+    const by = btnY;
+    G._mechaBtnRects.push({ x: bx, y: by, w: btnSize, h: btnSize });
+    const unlocked = unlockedMechas[i];
+    const selected = G.selectedMecha === i;
+    // Button bg
+    ctx.fillStyle = selected ? 'rgba(0,229,255,0.2)' : 'rgba(20,20,35,0.8)';
+    ctx.fillRect(bx, by, btnSize, btnSize);
+    if (selected) {
+      ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 2;
+      ctx.strokeRect(bx, by, btnSize, btnSize);
+    } else {
+      ctx.strokeStyle = 'rgba(100,100,140,0.3)'; ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, btnSize, btnSize);
+    }
+    if (!unlocked) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by, btnSize, btnSize);
+      ctx.fillStyle = '#666'; ctx.font = `${btnSize*0.3}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🔒', bx + btnSize/2, by + btnSize/2);
+    } else {
+      // Mini mecha icon
+      drawMecha(ctx, bx + btnSize/2, by + btnSize * 0.4, btnSize * 0.6, i, 0, G._time || 0);
+      // Cost
+      ctx.fillStyle = COL.gold;
+      ctx.font = `${Math.max(9, btnSize*0.2)}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${CONFIG.MECHA[i].cost}E`, bx + btnSize/2, by + btnSize - 2);
+      // Key number
+      ctx.fillStyle = 'rgba(200,200,220,0.5)';
+      ctx.font = `${Math.max(8, btnSize*0.18)}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`${i+1}`, bx + 3, by + 2);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  // Right side controls
+  const ctrlX = w - btnSize * 3.5;
+  G._ctrlBtnRects = [];
+  // Play/Start Wave button
+  const playBtnX = ctrlX;
+  G._ctrlBtnRects.push({ x: playBtnX, y: btnY, w: btnSize, h: btnSize, action: 'startWave' });
+  const isWaveState = G.state === STATES.WAVE || G.state === STATES.BOSS_FIGHT;
+  ctx.fillStyle = isWaveState ? 'rgba(40,40,60,0.5)' : 'rgba(0,229,255,0.15)';
+  ctx.fillRect(playBtnX, btnY, btnSize, btnSize);
+  ctx.strokeStyle = isWaveState ? 'rgba(100,100,140,0.3)' : COL.energyCyan;
+  ctx.lineWidth = 1; ctx.strokeRect(playBtnX, btnY, btnSize, btnSize);
+  ctx.fillStyle = isWaveState ? '#666' : COL.energyCyan;
+  ctx.font = `${btnSize*0.5}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('▶', playBtnX + btnSize/2, btnY + btnSize/2);
+  // Speed button
+  const speedBtnX = ctrlX + btnSize + gap;
+  G._ctrlBtnRects.push({ x: speedBtnX, y: btnY, w: btnSize, h: btnSize, action: 'speed' });
+  ctx.fillStyle = G.speed > 1 ? 'rgba(255,215,0,0.15)' : 'rgba(20,20,35,0.8)';
+  ctx.fillRect(speedBtnX, btnY, btnSize, btnSize);
+  ctx.strokeStyle = G.speed > 1 ? COL.gold : 'rgba(100,100,140,0.3)';
+  ctx.lineWidth = 1; ctx.strokeRect(speedBtnX, btnY, btnSize, btnSize);
+  ctx.fillStyle = G.speed > 1 ? COL.gold : COL.uiWhite;
+  ctx.font = `bold ${btnSize*0.35}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(G.speed > 1 ? '×2' : '×1', speedBtnX + btnSize/2, btnY + btnSize/2);
+  // Pause button
+  const pauseBtnX = ctrlX + 2 * (btnSize + gap);
+  G._ctrlBtnRects.push({ x: pauseBtnX, y: btnY, w: btnSize, h: btnSize, action: 'pause' });
+  ctx.fillStyle = 'rgba(20,20,35,0.8)';
+  ctx.fillRect(pauseBtnX, btnY, btnSize, btnSize);
+  ctx.strokeStyle = 'rgba(100,100,140,0.3)'; ctx.lineWidth = 1;
+  ctx.strokeRect(pauseBtnX, btnY, btnSize, btnSize);
+  ctx.fillStyle = COL.uiWhite;
+  ctx.font = `${btnSize*0.45}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText('⏸', pauseBtnX + btnSize/2, btnY + btnSize/2);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw part card (F9) --
+function drawPartCard(ctx, x, y, w, h, part, selected, time) {
+  const borderCol = part.rarity === 'epic' ? COL.bossPurple : part.rarity === 'rare' ? COL.mechaBlue : '#888';
+  ctx.fillStyle = selected ? 'rgba(0,229,255,0.15)' : 'rgba(18,18,30,0.95)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = selected ? COL.energyCyan : borderCol;
+  ctx.lineWidth = selected ? 3 : 2;
+  ctx.strokeRect(x, y, w, h);
+  // Rarity glow
+  if (part.rarity === 'epic') {
+    ctx.shadowColor = COL.bossPurple; ctx.shadowBlur = 8;
+    ctx.strokeRect(x, y, w, h);
+    ctx.shadowBlur = 0;
+  }
+  // Powerup icon (Canvas procedural)
+  ctx.fillStyle = borderCol;
+  ctx.beginPath(); ctx.arc(x + w/2, y + 26, 12, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = COL.uiWhite; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(x + w/2, y + 26, 12, 0, Math.PI*2); ctx.stroke();
+  // Part name
+  ctx.fillStyle = COL.uiWhite;
+  ctx.font = `bold ${Math.max(11, w*0.1)}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(part.name, x + w/2, y + 55);
+  // Effect text
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `${Math.max(10, w*0.08)}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(part.effect, x + w/2, y + 75);
+  // Rarity badge
+  ctx.fillStyle = borderCol;
+  ctx.font = `bold ${Math.max(9, w*0.07)}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(part.rarityLabel, x + w/2, y + h - 10);
+  ctx.textAlign = 'left';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 5: GAME LOGIC — TD CORE (BFS, placement, spawn,
+//           combat, projectiles) (~600 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- BFS pathfinding (§10.3) --
+function findPath(grid, cols, rows, startIdx, endIdx) {
+  const queue = [startIdx];
+  const visited = new Set([startIdx]);
+  const parent = new Map();
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    if (cur === endIdx) {
+      // Reconstruct path
+      const path = [];
+      let c = endIdx;
+      while (c !== undefined) { path.unshift(c); c = parent.get(c); }
+      return path;
+    }
+    const cr = (cur / cols) | 0;
+    const cc = cur % cols;
+    const neighbors = [];
+    if (cr > 0) neighbors.push(cur - cols);
+    if (cr < rows - 1) neighbors.push(cur + cols);
+    if (cc > 0) neighbors.push(cur - 1);
+    if (cc < cols - 1) neighbors.push(cur + 1);
+    for (const n of neighbors) {
+      if (!visited.has(n) && grid[n] !== 2 && grid[n] !== 1) {
+        // 1 = mecha placed, 2 = obstacle
+        visited.add(n);
+        parent.set(n, cur);
+        queue.push(n);
+      }
+    }
+  }
+  return null; // No path
+}
+
+// -- Generate zone map (§10.2: hybrid procedural) --
+function generateZoneMap(zone, cols, rows, rng) {
+  const grid = new Array(cols * rows).fill(0);
+  const obstacleRatio = 0.2 + zone * 0.03;
+  // Fixed spawn (left column) and base (bottom-right)
+  const spawnCells = [];
+  for (let r = 0; r < rows; r++) {
+    if (r % 2 === 0 || rows <= 6) { grid[r * cols] = 3; spawnCells.push(r * cols); }
+  }
+  const baseIdx = (rows - 1) * cols + (cols - 1);
+  grid[baseIdx] = 4;
+  // Place obstacles using seeded RNG
+  const numObstacles = ((cols * rows * obstacleRatio) | 0);
+  let placed = 0;
+  let attempts = 0;
+  while (placed < numObstacles && attempts < 500) {
+    const idx = rng.nextInt(0, cols * rows - 1);
+    if (grid[idx] !== 0) { attempts++; continue; }
+    const r = (idx / cols) | 0;
+    const c = idx % cols;
+    // Don't block near spawn or base
+    if (c <= 1 || (c >= cols - 2 && r >= rows - 2)) { attempts++; continue; }
+    grid[idx] = 2;
+    // Verify path still exists
+    const testPath = findPath(grid, cols, rows, spawnCells[0], baseIdx);
+    if (!testPath) { grid[idx] = 0; } // Rollback if path blocked
+    else { placed++; }
+    attempts++;
+  }
+  return { grid, spawnCells, baseIdx };
+}
+
+// -- Spawn wave enemies (§7.2) --
+function spawnWaveEnemies(zone, wave, rng, ddaLevel, spawnCells, cols) {
+  const enemies = [];
+  const baseCount = 8 + zone * 4 + wave * 2;
+  const hpMult = zone < 2 ? 1.0 : zone < 3 ? 1.5 : 2.5;
+  const speedMult = zone < 2 ? 1.0 : zone < 3 ? 1.2 : 1.5;
+  const ddaHpReduce = CONFIG.DDA[ddaLevel] ? CONFIG.DDA[ddaLevel].hpReduce : 0;
+  const availableTypes = CONFIG.ENEMY.filter(e => e.zone <= zone + 1);
+  for (let i = 0; i < baseCount; i++) {
+    const typeData = rng.pick(availableTypes);
+    const typeIdx = CONFIG.ENEMY.indexOf(typeData);
+    const hp = Math.max(5, (typeData.hp * hpMult * (1 - ddaHpReduce)) | 0);
+    const spawnIdx = rng.pick(spawnCells);
+    const sr = (spawnIdx / cols) | 0;
+    const sc = spawnIdx % cols;
+    enemies.push({
+      type: typeIdx, hp, maxHp: hp,
+      speed: typeData.speed * speedMult,
+      special: typeData.special, def: typeData.def,
+      gridR: sr, gridC: sc, x: 0, y: 0,
+      pathIdx: 0, path: null,
+      spawnDelay: i * (600 + rng.nextInt(0, 400)),
+      spawned: false, alive: true, status: 'normal', statusTimer: 0
+    });
+  }
+  return enemies;
+}
+
+// -- Combat: mecha targeting and firing --
+function updateCombat(mechas, enemies, projectiles, dt, cellSize, gridOffX, gridOffY, cols, time, G) {
+  for (const m of mechas) {
+    if (!m.active || m.disabled > 0) {
+      m.disabled = Math.max(0, m.disabled - dt);
+      continue;
+    }
+    m.cooldownTimer -= dt;
+    if (m.cooldownTimer > 0) continue;
+    if (m.type === 2) continue; // Shield doesn't attack
+    // Find target in range
+    const mx = gridOffX + m.col * cellSize + cellSize/2;
+    const my = gridOffY + m.row * cellSize + cellSize/2;
+    const rangePx = m.range * cellSize;
+    let target = null;
+    let minDist = Infinity;
+    for (const e of enemies) {
+      if (!e.alive || !e.spawned) continue;
+      if (e.special === 'flying' && m.type !== 3 && m.type !== 4) {
+        // Only EMP and railgun can hit flying
+      }
+      const dx = e.x - mx;
+      const dy = e.y - my;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist <= rangePx && dist < minDist) {
+        minDist = dist;
+        target = e;
+      }
+    }
+    if (!target) continue;
+    m.cooldownTimer = m.cooldown;
+    const angle = Math.atan2(target.y - my, target.x - mx);
+    if (m.type === 4) { // Railgun — pierce
+      // Hit all enemies in line
+      for (const e of enemies) {
+        if (!e.alive || !e.spawned) continue;
+        const dx = e.x - mx;
+        const dy = e.y - my;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > rangePx) continue;
+        // Check if enemy is on the line
+        const cross = Math.abs(dx * Math.sin(angle) - dy * Math.cos(angle));
+        if (cross < cellSize * 0.5) {
+          applyDamage(e, m.atk, G);
+        }
+      }
+      projectiles.push({
+        x: mx, y: my, type: 'railbeam', angle, speed: 0, life: 300, maxLife: 300,
+        atk: 0, splash: 0, stun: 0
+      });
+      if (G.sound) G.sound.playSfx('railgun');
+    } else {
+      const projType = m.type === 1 ? 'missile' : m.type === 3 ? 'emp' : 'bullet';
+      projectiles.push({
+        x: mx, y: my, type: projType, angle,
+        speed: m.type === 1 ? 250 : 400,
+        life: 2000, maxLife: 2000,
+        atk: m.atk, splash: m.splash * cellSize,
+        stun: m.type === 3 ? 500 : 0, targetId: enemies.indexOf(target)
+      });
+      if (G.sound) {
+        if (m.type === 1) G.sound.playSfx('missile');
+        else if (m.type === 3) G.sound.playSfx('emp');
+        else G.sound.playSfx('shoot');
+      }
+    }
+  }
+}
+
+// -- Apply damage to enemy --
+function applyDamage(enemy, atk, G) {
+  const actualDmg = Math.max(1, atk * (1 - enemy.def));
+  enemy.hp -= actualDmg;
+  if (enemy.hp <= 0) {
+    enemy.alive = false;
+    G.score += CONFIG.SCORE_KILL_BASE * (G.zone + 1);
+    G.energy += Math.max(1, CONFIG.ENERGY_PER_KILL - G.zone);
+    G._killCount = (G._killCount || 0) + 1;
+    // Particle effect
+    if (G._addParticle) G._addParticle(enemy.x, enemy.y, 'explosion');
+    if (G.sound) G.sound.playSfx('hit');
+  }
+}
+
+// -- Update projectiles --
+function updateProjectiles(projectiles, enemies, dt, G) {
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.life -= dt;
+    if (p.life <= 0) { projectiles.splice(i, 1); continue; }
+    if (p.speed === 0) continue; // Static (railbeam)
+    // §7.3 mag_storm: trajectory distortion (railgun immune — railbeam has speed=0)
+    let projAngle = p.angle;
+    if (G.weather === 'mag_storm' && p.type !== 'railbeam') {
+      projAngle += Math.sin(G._time * 8 + p.x * 0.01) * 0.3; // Wobble trajectory
+    }
+    p.x += Math.cos(projAngle) * p.speed * dt / 1000;
+    p.y += Math.sin(projAngle) * p.speed * dt / 1000;
+    // Check collision with enemies
+    // §7.3 mag_storm: -30% accuracy → larger miss radius (railgun immune)
+    const missChance = (G.weather === 'mag_storm' && p.type !== 'railbeam') ? 0.3 : 0;
+    for (const e of enemies) {
+      if (!e.alive || !e.spawned) continue;
+      const dx = e.x - p.x;
+      const dy = e.y - p.y;
+      if (dx*dx + dy*dy < 400) { // ~20px radius
+        // Mag storm miss check
+        if (missChance > 0 && G.rng && G.rng.next() < missChance) {
+          // Miss — projectile passes through
+          continue;
+        }
+        if (p.splash > 0) {
+          // Splash damage
+          for (const e2 of enemies) {
+            if (!e2.alive || !e2.spawned) continue;
+            const sx = e2.x - p.x;
+            const sy = e2.y - p.y;
+            if (sx*sx + sy*sy < p.splash * p.splash) {
+              applyDamage(e2, p.atk, G);
+            }
+          }
+          if (G._addParticle) G._addParticle(p.x, p.y, 'explosion');
+          if (G.sound) G.sound.playSfx('explosion');
+        } else {
+          applyDamage(e, p.atk, G);
+          if (p.stun > 0) { e.status = 'stunned'; e.statusTimer = p.stun; }
+        }
+        projectiles.splice(i, 1);
+        break;
+      }
+    }
+  }
+}
+
+// -- Update enemy movement along BFS path --
+function updateEnemyAI(enemies, grid, cols, rows, baseIdx, cellSize, gridOffX, gridOffY, dt, G) {
+  const bx = gridOffX + (baseIdx % cols) * cellSize + cellSize/2;
+  const by = gridOffY + ((baseIdx / cols) | 0) * cellSize + cellSize/2;
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    if (!e.spawned) {
+      e.spawnDelay -= dt;
+      if (e.spawnDelay <= 0) {
+        e.spawned = true;
+        e.x = gridOffX + e.gridC * cellSize + cellSize/2;
+        e.y = gridOffY + e.gridR * cellSize + cellSize/2;
+        // Calculate path
+        const startIdx = e.gridR * cols + e.gridC;
+        e.path = findPath(grid, cols, rows, startIdx, baseIdx);
+        e.pathIdx = 0;
+      }
+      continue;
+    }
+    // Status effects
+    if (e.status === 'stunned') {
+      e.statusTimer -= dt;
+      if (e.statusTimer <= 0) e.status = 'normal';
+      continue;
+    }
+    if (!e.path || e.pathIdx >= e.path.length) {
+      // Reached base — damage core
+      G.coreHp -= (e.special === 'suicide' ? 30 : 10);
+      e.alive = false;
+      if (G._addParticle) G._addParticle(bx, by, 'core_hit');
+      if (G.sound) G.sound.playSfx('coreHit');
+      G._waveDamaged = true;
+      continue;
+    }
+    // Move toward next path cell
+    const nextIdx = e.path[e.pathIdx];
+    const nc = nextIdx % cols;
+    const nr = (nextIdx / cols) | 0;
+    const tx = gridOffX + nc * cellSize + cellSize/2;
+    const ty = gridOffY + nr * cellSize + cellSize/2;
+    const dx = tx - e.x;
+    const dy = ty - e.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    // §7.3 acid rain: enemy speed -20%
+    const weatherSpeedMult = (G.weather === 'acid_rain') ? 0.8 : 1.0;
+    const moveSpeed = e.speed * weatherSpeedMult * cellSize * dt / 1000;
+    if (dist < moveSpeed + 2) {
+      e.x = tx; e.y = ty;
+      e.gridR = nr; e.gridC = nc;
+      e.pathIdx++;
+    } else {
+      e.x += (dx / dist) * moveSpeed;
+      e.y += (dy / dist) * moveSpeed;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 6: GAME LOGIC — BOSS & PARTS (~400 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- Create boss for zone (§7.5) --
+function createBoss(zone, cols, rows, cellSize, gridOffX, gridOffY, baseIdx, rng) {
+  const hp = CONFIG.BOSS_HP[zone];
+  // Boss appears near center-left of grid
+  const bc = ((cols * 0.3) | 0);
+  const br = ((rows * 0.5) | 0);
+  return {
+    id: zone, hp, maxHp: hp, phase: 0,
+    x: gridOffX + bc * cellSize + cellSize/2,
+    y: gridOffY + br * cellSize + cellSize/2,
+    gridR: br, gridC: bc,
+    speed: 0.5, attackTimer: 0, attackCd: 3000,
+    patternTimer: 0, alive: true,
+    minions: [], rewardGiven: false,
+    weakpointExposed: false, weakpointTimer: 0
+  };
+}
+
+// -- Update boss (§7.5 patterns — per-boss unique patterns) --
+function updateBoss(boss, mechas, enemies, projectiles, dt, G, cellSize, gridOffX, gridOffY, cols, rows, baseIdx) {
+  if (!boss || !boss.alive) return;
+  const bx = gridOffX + (baseIdx % cols) * cellSize + cellSize/2;
+  const by = gridOffY + ((baseIdx / cols) | 0) * cellSize + cellSize/2;
+  // Boss phases
+  const hpRatio = boss.hp / boss.maxHp;
+  if (boss.id === 4) { // Vortex Prime — 3 phases at 60% and 25%
+    if (hpRatio < 0.25 && boss.phase < 2) boss.phase = 2;
+    else if (hpRatio < 0.6 && boss.phase < 1) boss.phase = 1;
+  } else {
+    if (hpRatio < 0.5 && boss.phase < 1) boss.phase = 1;
+  }
+
+  // === BOSS-SPECIFIC BEHAVIOR ===
+  if (boss.id === 0) {
+    // ── Crusher (§7.5): 돌진 → 메카 파괴 + 미끼 유인 ──
+    boss.patternTimer = (boss.patternTimer || 0) + dt;
+    if (!boss._charging) {
+      // Normal: move toward base slowly
+      const dx = bx - boss.x; const dy = by - boss.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > cellSize * 2) {
+        boss.x += (dx / dist) * boss.speed * cellSize * dt / 1000;
+        boss.y += (dy / dist) * boss.speed * cellSize * dt / 1000;
+      }
+      // Attack
+      boss.attackTimer -= dt;
+      if (boss.attackTimer <= 0) {
+        boss.attackTimer = boss.attackCd;
+        const angle = Math.atan2(by - boss.y, bx - boss.x);
+        projectiles.push({ x: boss.x, y: boss.y, type: 'missile', angle, speed: 200, life: 3000, maxLife: 3000, atk: 15, splash: cellSize, stun: 0, isBoss: true });
+        if (G.sound) G.sound.playSfx('bossAlarm');
+      }
+      // Charge pattern: every 6s, pick a random mecha and charge toward it
+      if (boss.patternTimer > 6000 && mechas.length > 0) {
+        boss.patternTimer = 0;
+        const targets = mechas.filter(m => m.active);
+        if (targets.length > 0) {
+          const target = G.rng ? G.rng.pick(targets) : targets[0];
+          boss._chargeTargetX = gridOffX + target.col * cellSize + cellSize/2;
+          boss._chargeTargetY = gridOffY + target.row * cellSize + cellSize/2;
+          boss._chargeTargetRow = target.row;
+          boss._chargeTargetCol = target.col;
+          boss._charging = true;
+          boss._chargeSpeed = 4; // Fast charge
+          if (G.sound) G.sound.playSfx('bossAlarm');
+        }
+      }
+    } else {
+      // Charging toward mecha
+      const dx = boss._chargeTargetX - boss.x;
+      const dy = boss._chargeTargetY - boss.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < cellSize) {
+        // Impact — destroy mecha at target cell
+        const mi = mechas.findIndex(m => m.row === boss._chargeTargetRow && m.col === boss._chargeTargetCol && m.active);
+        if (mi >= 0) {
+          mechas[mi].active = false;
+          G.grid[mechas[mi].row * G.cols + mechas[mi].col] = 0;
+          if (G._addParticle) G._addParticle(boss._chargeTargetX, boss._chargeTargetY, 'explosion');
+          if (G.sound) G.sound.playSfx('explosion');
+        }
+        boss._charging = false;
+        G._shakeTimer = 300;
+      } else {
+        boss.x += (dx / dist) * boss._chargeSpeed * cellSize * dt / 1000;
+        boss.y += (dy / dist) * boss._chargeSpeed * cellSize * dt / 1000;
+      }
+    }
+  } else if (boss.id === 1) {
+    // ── ShieldMother (§7.5): 잡졸 소환 + 전체 실드 + 등 뒤 약점 ──
+    const dx = bx - boss.x; const dy = by - boss.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > cellSize * 2) {
+      boss.x += (dx / dist) * boss.speed * cellSize * dt / 1000;
+      boss.y += (dy / dist) * boss.speed * cellSize * dt / 1000;
+    }
+    boss.attackTimer -= dt;
+    if (boss.attackTimer <= 0) {
+      boss.attackTimer = boss.attackCd;
+      const angle = Math.atan2(by - boss.y, bx - boss.x);
+      projectiles.push({ x: boss.x, y: boss.y, type: 'missile', angle, speed: 200, life: 3000, maxLife: 3000, atk: 20, splash: cellSize, stun: 0, isBoss: true });
+    }
+    boss.patternTimer = (boss.patternTimer || 0) + dt;
+    if (boss.patternTimer > 5000) {
+      boss.patternTimer = 0;
+      // Summon minions
+      const spawnIdx = boss.gridR * cols + boss.gridC;
+      const path = findPath(G._currentGrid, cols, rows, spawnIdx, baseIdx);
+      if (path) {
+        const count = boss.phase >= 1 ? 3 : 1;
+        for (let i = 0; i < count; i++) {
+          enemies.push({
+            type: 0, hp: 20 + boss.phase * 10, maxHp: 20 + boss.phase * 10, speed: 2.5, special: 'none', def: 0,
+            gridR: boss.gridR, gridC: boss.gridC, x: boss.x + (G.rng ? G.rng.nextFloat(-10,10) : 0), y: boss.y,
+            pathIdx: 0, path: path.slice(), spawnDelay: i * 300, spawned: i === 0, alive: true, status: 'normal', statusTimer: 0
+          });
+        }
+      }
+    }
+  } else if (boss.id === 2) {
+    // ── DrillWorm (§7.5): 지하 이동 → 출현 시 범위 공격 ──
+    boss.patternTimer = (boss.patternTimer || 0) + dt;
+    if (!boss._underground) {
+      // Above ground: normal movement + attacks
+      const dx = bx - boss.x; const dy = by - boss.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > cellSize * 2) {
+        boss.x += (dx / dist) * boss.speed * cellSize * dt / 1000;
+        boss.y += (dy / dist) * boss.speed * cellSize * dt / 1000;
+      }
+      boss.attackTimer -= dt;
+      if (boss.attackTimer <= 0) {
+        boss.attackTimer = boss.attackCd;
+        const angle = Math.atan2(by - boss.y, bx - boss.x);
+        projectiles.push({ x: boss.x, y: boss.y, type: 'missile', angle, speed: 200, life: 3000, maxLife: 3000, atk: 25, splash: cellSize * 1.5, stun: 0, isBoss: true });
+      }
+      // Go underground every 7s
+      if (boss.patternTimer > 7000) {
+        boss.patternTimer = 0;
+        boss._underground = true;
+        boss._undergroundTimer = 0;
+        boss._visible = false;
+        // Pick random emerge position
+        const ec = G.rng ? G.rng.nextInt(1, cols - 2) : ((cols / 2) | 0);
+        const er = G.rng ? G.rng.nextInt(1, rows - 2) : ((rows / 2) | 0);
+        boss._emergeX = gridOffX + ec * cellSize + cellSize/2;
+        boss._emergeY = gridOffY + er * cellSize + cellSize/2;
+        // Show warning indicator
+        boss._warningX = boss._emergeX;
+        boss._warningY = boss._emergeY;
+        if (G.sound) G.sound.playSfx('emp');
+      }
+    } else {
+      // Underground phase
+      boss._undergroundTimer += dt;
+      boss._visible = false;
+      if (boss._undergroundTimer > 2000) {
+        // Emerge with area damage
+        boss._underground = false;
+        boss._visible = true;
+        boss.x = boss._emergeX;
+        boss.y = boss._emergeY;
+        boss.gridC = ((boss.x - gridOffX) / cellSize) | 0;
+        boss.gridR = ((boss.y - gridOffY) / cellSize) | 0;
+        // AoE damage to nearby mechas
+        for (const m of mechas) {
+          if (!m.active) continue;
+          const mx = gridOffX + m.col * cellSize + cellSize/2;
+          const my = gridOffY + m.row * cellSize + cellSize/2;
+          const dx = mx - boss.x; const dy = my - boss.y;
+          if (dx*dx + dy*dy < (cellSize * 2) * (cellSize * 2)) {
+            m.disabled = 2000; // Stun nearby mechas
+          }
+        }
+        G._shakeTimer = 400;
+        if (G._addParticle) G._addParticle(boss.x, boss.y, 'explosion');
+        if (G.sound) G.sound.playSfx('explosion');
+      }
+    }
+  } else if (boss.id === 3) {
+    // ── Overload (§7.5): EMP 전체 + 3초 회복 중 약점 노출 ──
+    const dx = bx - boss.x; const dy = by - boss.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > cellSize * 2) {
+      boss.x += (dx / dist) * boss.speed * cellSize * dt / 1000;
+      boss.y += (dy / dist) * boss.speed * cellSize * dt / 1000;
+    }
+    boss.attackTimer -= dt;
+    if (boss.attackTimer <= 0) {
+      boss.attackTimer = boss.attackCd;
+      const angle = Math.atan2(by - boss.y, bx - boss.x);
+      projectiles.push({ x: boss.x, y: boss.y, type: 'missile', angle, speed: 200, life: 3000, maxLife: 3000, atk: 30, splash: cellSize, stun: 0, isBoss: true });
+    }
+    boss.patternTimer = (boss.patternTimer || 0) + dt;
+    if (boss.patternTimer > 6000 && !boss._recovering) {
+      boss.patternTimer = 0;
+      // EMP blast — stun all mechas
+      for (const m of mechas) { m.disabled = 1000; }
+      if (G._addParticle) G._addParticle(boss.x, boss.y, 'emp_wave');
+      if (G.sound) G.sound.playSfx('emp');
+      // Enter recovery — weakpoint exposed for 3s
+      boss._recovering = true;
+      boss._recoverTimer = 0;
+    }
+    if (boss._recovering) {
+      boss._recoverTimer = (boss._recoverTimer || 0) + dt;
+      boss.weakpointExposed = true;
+      if (boss._recoverTimer > 3000) {
+        boss._recovering = false;
+        boss.weakpointExposed = false;
+        boss._recoverTimer = 0;
+      }
+    }
+  } else if (boss.id === 4) {
+    // ── Vortex Prime (§7.5): 3페이즈 변신 ──
+    const dx = bx - boss.x; const dy = by - boss.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > cellSize * 2) {
+      boss.x += (dx / dist) * boss.speed * cellSize * dt / 1000;
+      boss.y += (dy / dist) * boss.speed * cellSize * dt / 1000;
+    }
+    boss.patternTimer = (boss.patternTimer || 0) + dt;
+    if (boss.phase === 0) {
+      // Phase 1 (100~60%): 원거리 레이저 → 2초 쿨다운 (약점: 코어 노출)
+      boss.attackTimer -= dt;
+      if (boss.attackTimer <= 0) {
+        boss.attackTimer = 2000;
+        // Laser beam toward base
+        const angle = Math.atan2(by - boss.y, bx - boss.x);
+        projectiles.push({ x: boss.x, y: boss.y, type: 'railbeam', angle, speed: 0, life: 500, maxLife: 500, atk: 0, splash: 0, stun: 0, isBoss: true });
+        // Direct damage to core
+        G.coreHp -= 15;
+        if (G._addParticle) G._addParticle(bx, by, 'core_hit');
+        if (G.sound) G.sound.playSfx('railgun');
+      }
+      // Weakpoint exposed periodically
+      boss.weakpointTimer = (boss.weakpointTimer || 0) + dt;
+      if (boss.weakpointTimer > 5000) { boss.weakpointExposed = true; }
+      if (boss.weakpointTimer > 8000) { boss.weakpointExposed = false; boss.weakpointTimer = 0; }
+    } else if (boss.phase === 1) {
+      // Phase 2 (60~25%): 돌진 + 잡졸 소환 → 잡졸 처치 시 실드 해제
+      boss.attackTimer -= dt;
+      if (boss.attackTimer <= 0) {
+        boss.attackTimer = 3000;
+        const angle = Math.atan2(by - boss.y, bx - boss.x);
+        projectiles.push({ x: boss.x, y: boss.y, type: 'missile', angle, speed: 250, life: 3000, maxLife: 3000, atk: 25, splash: cellSize, stun: 0, isBoss: true });
+      }
+      // Summon minions every 5s
+      if (boss.patternTimer > 5000) {
+        boss.patternTimer = 0;
+        const spawnIdx = boss.gridR * cols + boss.gridC;
+        const path = findPath(G._currentGrid, cols, rows, spawnIdx, baseIdx);
+        if (path) {
+          for (let i = 0; i < 2; i++) {
+            enemies.push({
+              type: G.rng ? G.rng.nextInt(0, 2) : 0, hp: 40, maxHp: 40, speed: 2.5, special: 'none', def: 0,
+              gridR: boss.gridR, gridC: boss.gridC, x: boss.x, y: boss.y,
+              pathIdx: 0, path: path.slice(), spawnDelay: i * 500, spawned: i === 0, alive: true, status: 'normal', statusTimer: 0
+            });
+          }
+        }
+        if (G.sound) G.sound.playSfx('bossAlarm');
+      }
+      // Weakpoint exposed when no minions alive
+      const aliveMinions = enemies.filter(e => e.alive && e.spawned);
+      boss.weakpointExposed = aliveMinions.length === 0;
+    } else {
+      // Phase 3 (25~0%): 전체 EMP + 자폭봇 연속 소환 → 코어 3초 노출
+      boss.attackTimer -= dt;
+      if (boss.attackTimer <= 0) {
+        boss.attackTimer = 4000;
+        // EMP blast
+        for (const m of mechas) { m.disabled = 1500; }
+        if (G._addParticle) G._addParticle(boss.x, boss.y, 'emp_wave');
+        if (G.sound) G.sound.playSfx('emp');
+      }
+      // Spawn suicide bots every 3s
+      if (boss.patternTimer > 3000) {
+        boss.patternTimer = 0;
+        const spawnIdx = boss.gridR * cols + boss.gridC;
+        const path = findPath(G._currentGrid, cols, rows, spawnIdx, baseIdx);
+        if (path) {
+          enemies.push({
+            type: 4, hp: 30, maxHp: 30, speed: 3.5, special: 'suicide', def: 0,
+            gridR: boss.gridR, gridC: boss.gridC, x: boss.x, y: boss.y,
+            pathIdx: 0, path: path.slice(), spawnDelay: 0, spawned: true, alive: true, status: 'normal', statusTimer: 0
+          });
+        }
+      }
+      // Core exposed for 3s after EMP
+      boss.weakpointExposed = true;
+    }
+  } else {
+    // Generic fallback for unknown boss IDs
+    const dx2 = bx - boss.x; const dy2 = by - boss.y;
+    const dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+    if (dist2 > cellSize * 2) {
+      boss.x += (dx2 / dist2) * boss.speed * cellSize * dt / 1000;
+      boss.y += (dy2 / dist2) * boss.speed * cellSize * dt / 1000;
+    }
+    boss.attackTimer -= dt;
+    if (boss.attackTimer <= 0) {
+      boss.attackTimer = boss.attackCd;
+      const angle = Math.atan2(by - boss.y, bx - boss.x);
+      projectiles.push({ x: boss.x, y: boss.y, type: 'missile', angle, speed: 200, life: 3000, maxLife: 3000, atk: 15 + boss.id * 5, splash: cellSize, stun: 0, isBoss: true });
+    }
+  }
+
+  // Weakpoint for non-special bosses (Crusher, ShieldMother use pattern-based weakpoints)
+  if (boss.id === 0 || boss.id === 1 || boss.id === 2) {
+    // Default weakpoint exposure timer (if not already managed by pattern)
+    if (boss.id !== 3 && boss.id !== 4) {
+      boss.weakpointTimer = (boss.weakpointTimer || 0) + dt;
+      if (boss.weakpointTimer > 8000) { boss.weakpointExposed = true; }
+      if (boss.weakpointTimer > 11000) { boss.weakpointExposed = false; boss.weakpointTimer = 0; }
+    }
+  }
+}
+
+// -- Handle boss projectiles hitting core --
+function updateBossProjectiles(projectiles, dt, G, cellSize, gridOffX, gridOffY, cols, rows, baseIdx) {
+  const bx = gridOffX + (baseIdx % cols) * cellSize + cellSize/2;
+  const by = gridOffY + ((baseIdx / cols) | 0) * cellSize + cellSize/2;
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    if (!p.isBoss) continue;
+    p.life -= dt;
+    if (p.life <= 0) { projectiles.splice(i, 1); continue; }
+    p.x += Math.cos(p.angle) * p.speed * dt / 1000;
+    p.y += Math.sin(p.angle) * p.speed * dt / 1000;
+    const dx = bx - p.x;
+    const dy = by - p.y;
+    if (dx*dx + dy*dy < cellSize * cellSize) {
+      G.coreHp -= p.atk;
+      projectiles.splice(i, 1);
+      if (G._addParticle) G._addParticle(bx, by, 'core_hit');
+      if (G.sound) G.sound.playSfx('coreHit');
+      G._waveDamaged = true;
+    }
+  }
+}
+
+// -- Generate part choices (§7.4) --
+function generatePartChoices(zone, rng, lang) {
+  const rarities = [
+    { name: 'common', chance: 0.6, label: lang.common || 'Common', color: '#888' },
+    { name: 'rare',   chance: 0.3, label: lang.rare || 'Rare', color: COL.mechaBlue },
+    { name: 'epic',   chance: 0.1, label: lang.epic || 'Epic', color: COL.bossPurple }
+  ];
+  const effects = {
+    common: [
+      { name: lang === LANG.ko ? '사거리 +0.5' : 'Range +0.5', stat: 'range', value: 0.5 },
+      { name: lang === LANG.ko ? '공격력 +10%' : 'ATK +10%', stat: 'atkMult', value: 0.1 },
+      { name: lang === LANG.ko ? '공속 +15%' : 'Speed +15%', stat: 'cdMult', value: 0.15 },
+      { name: lang === LANG.ko ? '에너지 +5' : 'Energy +5', stat: 'energy', value: 5 }
+    ],
+    rare: [
+      { name: lang === LANG.ko ? '공속 +25%' : 'Speed +25%', stat: 'cdMult', value: 0.25 },
+      { name: lang === LANG.ko ? '범위 공격' : 'Splash', stat: 'splash', value: 0.5 },
+      { name: lang === LANG.ko ? '에너지 회수 +15%' : 'Energy +15%', stat: 'energyMult', value: 0.15 }
+    ],
+    epic: [
+      { name: lang === LANG.ko ? '관통 추가' : 'Pierce', stat: 'pierce', value: 1 },
+      { name: lang === LANG.ko ? '스턴 0.3초' : 'Stun 0.3s', stat: 'stun', value: 300 },
+      { name: lang === LANG.ko ? '체인 라이트닝' : 'Chain Lightning', stat: 'chain', value: 2 }
+    ]
+  };
+  const choices = [];
+  for (let i = 0; i < 3; i++) {
+    const roll = rng.next();
+    let rarity = 'common';
+    if (roll > 0.9) rarity = 'epic';
+    else if (roll > 0.6) rarity = 'rare';
+    const rarityData = rarities.find(r => r.name === rarity);
+    const effectPool = effects[rarity];
+    const effect = rng.pick(effectPool);
+    choices.push({
+      name: effect.name, effect: `${effect.name}`,
+      rarity, rarityLabel: rarityData.label,
+      stat: effect.stat, value: effect.value
+    });
+  }
+  return choices;
+}
+
+// -- Count parts in same stat category for synergy cap (F27, §7.4) --
+function getStatCategory(stat) {
+  if (stat === 'atkMult' || stat === 'cdMult' || stat === 'pierce' || stat === 'chain') return 'offense';
+  if (stat === 'range' || stat === 'splash') return 'range';
+  if (stat === 'energy' || stat === 'energyMult') return 'economy';
+  if (stat === 'stun') return 'control';
+  return 'misc';
+}
+
+// -- Check if category has reached synergy cap (150%) --
+function isSynergyCapped(category, G) {
+  if (!G._synergyCounts) return false;
+  const count = G._synergyCounts[category] || 0;
+  // Synergy cap: 3+ same-category parts → total bonus capped at 150%
+  if (count >= 3) {
+    const bonusMap = {
+      offense: (G._partBonusAtk || 0) + (G._partBonusCd || 0),
+      range: (G._partBonusRange || 0) + (G._partBonusSplash || 0),
+      economy: (G._partBonusEnergy || 0),
+      control: (G._partBonusStun || 0) / 1000
+    };
+    return (bonusMap[category] || 0) >= CONFIG.SYNERGY_CAP;
+  }
+  return false;
+}
+
+// -- Apply selected part to all mechas (§7.4 with DPS cap + synergy cap F27) --
+function applyPart(part, G) {
+  G.parts.push(part);
+  // Track synergy counts per category
+  if (!G._synergyCounts) G._synergyCounts = {};
+  const category = getStatCategory(part.stat);
+  G._synergyCounts[category] = (G._synergyCounts[category] || 0) + 1;
+  // Synergy cap check (F27, §7.4): 동일 계열 부품 3개 이상 시 시너지 보너스 150% 제한
+  const capped = isSynergyCapped(category, G);
+  const effectiveMult = capped ? 0 : 1; // If capped, no additional bonus
+  // DPS cap + synergy cap applied
+  if (part.stat === 'atkMult') G._partBonusAtk = Math.min(CONFIG.DPS_CAP, (G._partBonusAtk || 0) + part.value * effectiveMult);
+  else if (part.stat === 'cdMult') G._partBonusCd = Math.min(CONFIG.DPS_CAP, (G._partBonusCd || 0) + part.value * effectiveMult);
+  else if (part.stat === 'range') G._partBonusRange = (G._partBonusRange || 0) + part.value * effectiveMult;
+  else if (part.stat === 'splash') G._partBonusSplash = (G._partBonusSplash || 0) + part.value * effectiveMult;
+  else if (part.stat === 'energy') G.energy += part.value; // Energy is immediate, not capped
+  else if (part.stat === 'energyMult') G._partBonusEnergy = Math.min(CONFIG.SYNERGY_CAP, (G._partBonusEnergy || 0) + part.value * effectiveMult);
+  else if (part.stat === 'stun') G._partBonusStun = (G._partBonusStun || 0) + part.value * effectiveMult;
+  else if (part.stat === 'pierce') G._partBonusPierce = (G._partBonusPierce || 0) + part.value * effectiveMult;
+  else if (part.stat === 'chain') G._partBonusChain = (G._partBonusChain || 0) + part.value * effectiveMult;
+  // Recalculate mecha stats
+  for (const m of G.mechas) {
+    recalcMechaStats(m, G);
+  }
+}
+
+// -- Filter part choices to exclude capped categories (§7.4) --
+function filterCappedChoices(choices, G) {
+  return choices.filter(c => !isSynergyCapped(getStatCategory(c.stat), G));
+}
+
+// -- Recalculate mecha stats with parts and upgrades --
+function recalcMechaStats(mecha, G) {
+  const base = CONFIG.MECHA[mecha.type];
+  const lvlAtk = CONFIG.LEVEL_ATK_MULT[mecha.level];
+  const lvlCd = CONFIG.LEVEL_CD_MULT[mecha.level];
+  const partAtk = 1 + (G._partBonusAtk || 0);
+  const partCd = 1 - Math.min(0.5, G._partBonusCd || 0);
+  const upgradeAtk = 1 + (G.upgrades.firepower >= 1 ? 0.1 : 0);
+  const upgradeCd = 1 - (G.upgrades.firepower >= 2 ? 0.1 : 0);
+  mecha.atk = (base.atk * lvlAtk * partAtk * upgradeAtk) | 0;
+  mecha.cooldown = base.cd * lvlCd * partCd * upgradeCd;
+  mecha.range = base.range + (G._partBonusRange || 0) + (G.upgrades.firepower >= 4 ? 0.5 : 0);
+  mecha.splash = base.splash + (G._partBonusSplash || 0);
+  // Night range reduction
+  if (G.timeOfDay === 'night' && mecha.type !== 3 && mecha.type !== 4) {
+    mecha.range = Math.max(1, mecha.range - 1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 7: GAME LOGIC — META PROGRESSION (upgrades, DDA) (~250 lines)
+// ═══════════════════════════════════════════════════════════════
+
+const SAVE_KEY = 'mecha-garrison-v1';
+
+// -- Load persistent save --
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    bestScore: 0, bestZone: 0, corePoints: 0,
+    upgrades: { firepower: 0, defense: 0, utility: 0 },
+    totalRuns: 0, consecutiveDeaths: 0,
+    unlockedMechas: [true, true, true, false, false],
+    lang: 'ko', version: 1
+  };
+}
+
+// -- Save persistent data (F8: judge first, save later) --
+function savePersistent(G) {
+  try {
+    const save = loadSave();
+    // Judge first
+    const isNewBest = G.score > save.bestScore;
+    const isNewZone = G.zone > save.bestZone;
+    // Then save
+    if (isNewBest) save.bestScore = G.score;
+    if (isNewZone) save.bestZone = G.zone;
+    save.corePoints = G.corePoints;
+    save.upgrades = { ...G.upgrades };
+    save.totalRuns = G.totalRuns;
+    save.consecutiveDeaths = G.consecutiveDeaths;
+    save.unlockedMechas = [...G.unlockedMechas];
+    save.lang = G.lang;
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    return isNewBest;
+  } catch(e) { return false; }
+}
+
+// -- Calculate DDA level --
+function calcDDALevel(consecutiveDeaths) {
+  if (consecutiveDeaths >= 10) return 4;
+  if (consecutiveDeaths >= 5) return 3;
+  if (consecutiveDeaths >= 3) return 2;
+  if (consecutiveDeaths >= 1) return 1;
+  return 0;
+}
+
+// -- Apply upgrade --
+function applyUpgrade(upgradeType, G) {
+  const level = G.upgrades[upgradeType];
+  if (level >= 5) return false;
+  const costs = [50, 150, 400, 800, 1500];
+  const cost = costs[level];
+  if (G.corePoints < cost) return false;
+  G.corePoints -= cost;
+  G.upgrades[upgradeType] = level + 1;
+  // Apply immediate effects
+  if (upgradeType === 'defense' && level === 0) G.coreMaxHp += 100;
+  if (upgradeType === 'utility' && level === 0) G._startEnergy = (G._startEnergy || CONFIG.START_ENERGY) + 20;
+  return true;
+}
+
+// -- Get upgrade cost --
+function getUpgradeCost(level) {
+  const costs = [50, 150, 400, 800, 1500];
+  return level < 5 ? costs[level] : 0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 8: UI & HUD (~300 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- Draw title screen --
+function drawTitleScreen(ctx, w, h, time, L) {
+  // Dark gradient background
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#0a0a0f');
+  grad.addColorStop(0.5, '#1A1A2E');
+  grad.addColorStop(1, '#0a0a0f');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // Scanline effect
+  ctx.fillStyle = 'rgba(0,229,255,0.015)';
+  for (let y = 0; y < h; y += 3) {
+    ctx.fillRect(0, y, w, 1);
+  }
+  // Floating particles
+  for (let i = 0; i < 20; i++) {
+    const px = (w * 0.5 + Math.sin(time * 0.3 + i * 1.1) * w * 0.4);
+    const py = (h * 0.5 + Math.cos(time * 0.4 + i * 0.9) * h * 0.35);
+    const size = 1.5 + Math.sin(time + i) * 1;
+    ctx.fillStyle = i % 3 === 0 ? COL.energyCyan : i % 3 === 1 ? COL.mechaBlue : COL.missileOrange;
+    ctx.globalAlpha = 0.3 + Math.sin(time * 2 + i) * 0.2;
+    ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Title with glitch effect
+  const titleSize = Math.min(48, w * 0.08);
+  ctx.font = `bold ${titleSize}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Glitch offset
+  const glitchX = Math.sin(time * 15) > 0.95 ? (Math.sin(time * 100) * 3) : 0;
+  const glitchY = Math.sin(time * 12) > 0.97 ? (Math.sin(time * 80) * 2) : 0;
+  // Shadow
+  ctx.fillStyle = COL.energyCyan;
+  ctx.globalAlpha = 0.3;
+  ctx.fillText(L.title, w/2 + 2 + glitchX, h * 0.32 + 2);
+  ctx.globalAlpha = 1;
+  // Main title
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(L.title, w/2 + glitchX, h * 0.32 + glitchY);
+  // Subtitle
+  ctx.font = `${titleSize * 0.4}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.energyCyan;
+  ctx.fillText(L.subtitle, w/2, h * 0.42);
+  // Mecha silhouette (Canvas procedural)
+  ctx.globalAlpha = 0.3 + Math.sin(time) * 0.1;
+  const imgSize = Math.min(w * 0.2, 120);
+  drawMecha(ctx, w/2, h * 0.55, imgSize, 0, 2, time);
+  ctx.globalAlpha = 1;
+  // Start prompt
+  ctx.font = `${titleSize * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.uiWhite;
+  ctx.globalAlpha = 0.5 + Math.sin(time * 3) * 0.5;
+  ctx.fillText(L.tapToStart, w/2, h * 0.82);
+  ctx.globalAlpha = 1;
+  // Best score
+  const save = loadSave();
+  if (save.bestScore > 0) {
+    ctx.font = `${titleSize * 0.28}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.fillStyle = COL.gold;
+    ctx.fillText(`${L.best}: ${save.bestScore}`, w/2, h * 0.9);
+  }
+  // Lang toggle button
+  ctx.font = `bold 14px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = 'rgba(200,200,220,0.5)';
+  ctx.textAlign = 'right';
+  ctx.fillText(L.langSwitch, w - 15, 20);
+  ctx.textAlign = 'left';
+}
+
+// -- Draw game over screen --
+function drawGameOverScreen(ctx, w, h, G, L, time, shakeX, shakeY) {
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+  // Overlay
+  ctx.fillStyle = 'rgba(10,0,0,0.8)';
+  ctx.fillRect(0, 0, w, h);
+  const titleSize = Math.min(40, w * 0.07);
+  ctx.font = `bold ${titleSize}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.enemyRed;
+  ctx.fillText(L.gameover, w/2, h * 0.3);
+  ctx.font = `${titleSize * 0.5}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(`${L.score}: ${G.score}`, w/2, h * 0.42);
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(`${L.corePoints}: +${G._earnedCP || 0}`, w/2, h * 0.5);
+  const save = loadSave();
+  if (G.score >= save.bestScore) {
+    ctx.fillStyle = COL.gold;
+    ctx.font = `bold ${titleSize * 0.4}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.fillText('★ NEW BEST ★', w/2, h * 0.58);
+  }
+  ctx.fillStyle = COL.uiWhite;
+  ctx.font = `${titleSize * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.globalAlpha = 0.5 + Math.sin(time * 3) * 0.5;
+  ctx.fillText(L.restart, w/2, h * 0.72);
+  ctx.globalAlpha = 1;
+  // Hub button
+  ctx.fillStyle = 'rgba(0,229,255,0.15)';
+  const hubBtnW = 160;
+  const hubBtnH = 44;
+  const hubBtnX = w/2 - hubBtnW/2;
+  const hubBtnY = h * 0.78;
+  ctx.fillRect(hubBtnX, hubBtnY, hubBtnW, hubBtnH);
+  ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 1;
+  ctx.strokeRect(hubBtnX, hubBtnY, hubBtnW, hubBtnH);
+  ctx.fillStyle = COL.energyCyan;
+  ctx.font = `bold ${titleSize * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(L.hub, w/2, hubBtnY + hubBtnH/2);
+  G._hubBtnRect = { x: hubBtnX, y: hubBtnY, w: hubBtnW, h: hubBtnH };
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
+
+// -- Draw victory screen --
+function drawVictoryScreen(ctx, w, h, G, L, time) {
+  ctx.fillStyle = 'rgba(0,10,20,0.85)';
+  ctx.fillRect(0, 0, w, h);
+  const titleSize = Math.min(44, w * 0.08);
+  ctx.font = `bold ${titleSize}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // Golden glow
+  ctx.shadowColor = COL.gold; ctx.shadowBlur = 20;
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(L.victory, w/2, h * 0.3);
+  ctx.shadowBlur = 0;
+  ctx.font = `${titleSize * 0.5}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(`${L.score}: ${G.score}`, w/2, h * 0.43);
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(`${L.corePoints}: +${G._earnedCP || 0}`, w/2, h * 0.51);
+  ctx.fillStyle = COL.uiWhite;
+  ctx.font = `${titleSize * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.globalAlpha = 0.5 + Math.sin(time * 3) * 0.5;
+  ctx.fillText(L.restart, w/2, h * 0.7);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw HUB screen (upgrade tree) --
+function drawHUBScreen(ctx, w, h, G, L, time) {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, w, h);
+  // Title
+  const ts = Math.min(32, w * 0.05);
+  ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(L.hub, w/2, h * 0.08);
+  // Core points
+  ctx.fillStyle = COL.gold;
+  ctx.font = `bold ${ts * 0.7}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(`${L.corePoints}: ${G.corePoints}`, w/2, h * 0.15);
+  // 3 upgrade branches
+  const branches = ['firepower', 'defense', 'utility'];
+  const branchNames = [L.firepower, L.defense, L.utility];
+  const branchColors = [COL.enemyRed, COL.mechaBlue, COL.gold];
+  const cardW = Math.min(180, w * 0.28);
+  const cardH = 180;
+  const totalW = 3 * cardW + 2 * 20;
+  const startX = (w - totalW) / 2;
+  const cardY = h * 0.22;
+  G._hubUpgradeRects = [];
+  for (let i = 0; i < 3; i++) {
+    const cx = startX + i * (cardW + 20);
+    const level = G.upgrades[branches[i]];
+    const cost = getUpgradeCost(level);
+    const canAfford = G.corePoints >= cost && level < 5;
+    // Card
+    ctx.fillStyle = 'rgba(18,18,30,0.95)';
+    ctx.fillRect(cx, cardY, cardW, cardH);
+    ctx.strokeStyle = canAfford ? branchColors[i] : 'rgba(100,100,140,0.3)';
+    ctx.lineWidth = canAfford ? 2 : 1;
+    ctx.strokeRect(cx, cardY, cardW, cardH);
+    // Branch name
+    ctx.fillStyle = branchColors[i];
+    ctx.font = `bold ${ts * 0.5}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.fillText(branchNames[i], cx + cardW/2, cardY + 25);
+    // Level
+    ctx.fillStyle = COL.uiWhite;
+    ctx.font = `${ts * 0.4}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.fillText(`Lv.${level}/5`, cx + cardW/2, cardY + 50);
+    // Level pips
+    for (let j = 0; j < 5; j++) {
+      ctx.fillStyle = j < level ? branchColors[i] : 'rgba(60,60,80,0.5)';
+      const pipX = cx + cardW * 0.2 + j * cardW * 0.15;
+      ctx.fillRect(pipX, cardY + 65, cardW * 0.1, 8);
+    }
+    // Cost
+    if (level < 5) {
+      ctx.fillStyle = canAfford ? COL.gold : '#666';
+      ctx.font = `${ts * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.fillText(`${cost} CP`, cx + cardW/2, cardY + 100);
+      // Upgrade button
+      const btnW = cardW * 0.6;
+      const btnH = 32;
+      const btnX = cx + (cardW - btnW)/2;
+      const btnY2 = cardY + 115;
+      ctx.fillStyle = canAfford ? 'rgba(0,229,255,0.15)' : 'rgba(40,40,60,0.3)';
+      ctx.fillRect(btnX, btnY2, btnW, btnH);
+      ctx.strokeStyle = canAfford ? COL.energyCyan : 'rgba(100,100,140,0.2)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(btnX, btnY2, btnW, btnH);
+      ctx.fillStyle = canAfford ? COL.energyCyan : '#666';
+      ctx.font = `bold ${ts * 0.3}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.fillText(L.upgrade, cx + cardW/2, btnY2 + btnH/2);
+      G._hubUpgradeRects.push({ x: btnX, y: btnY2, w: btnW, h: btnH, branch: branches[i], canAfford });
+    } else {
+      ctx.fillStyle = branchColors[i];
+      ctx.font = `bold ${ts * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.fillText('MAX', cx + cardW/2, cardY + 110);
+      G._hubUpgradeRects.push(null);
+    }
+  }
+  // Deploy button
+  const deployW = 200;
+  const deployH = 48;
+  const deployX = w/2 - deployW/2;
+  const deployY = h * 0.78;
+  ctx.fillStyle = 'rgba(0,229,255,0.2)';
+  ctx.fillRect(deployX, deployY, deployW, deployH);
+  ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 2;
+  ctx.strokeRect(deployX, deployY, deployW, deployH);
+  ctx.fillStyle = COL.energyCyan;
+  ctx.font = `bold ${ts * 0.5}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(L.start, w/2, deployY + deployH/2);
+  G._deployBtnRect = { x: deployX, y: deployY, w: deployW, h: deployH };
+  // Stats
+  ctx.fillStyle = '#8080a0';
+  ctx.font = `${ts * 0.3}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(`${L.totalRuns}: ${G.totalRuns}  |  ${L.bestZone}: ${G._bestZone + 1}  |  ${L.best}: ${G._bestScore}`, w/2, h * 0.92);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw pause overlay --
+function drawPauseOverlay(ctx, w, h, L) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+  const ts = Math.min(36, w * 0.06);
+  ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(L.pause, w/2, h * 0.4);
+  ctx.font = `${ts * 0.5}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.energyCyan;
+  ctx.fillText(L.resume + ' (ESC)', w/2, h * 0.55);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw zone intro --
+function drawZoneIntro(ctx, w, h, zone, L, time, progress) {
+  ctx.fillStyle = 'rgba(0,0,0,0.9)';
+  ctx.fillRect(0, 0, w, h);
+  const ts = Math.min(36, w * 0.06);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // Zone name
+  ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.energyCyan;
+  ctx.globalAlpha = Math.min(1, progress * 2);
+  ctx.fillText(`${L.zone} ${zone + 1}`, w/2, h * 0.35);
+  const zoneName = L['zone_' + (zone + 1)] || '';
+  ctx.font = `${ts * 0.6}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.uiWhite;
+  ctx.fillText(zoneName, w/2, h * 0.45);
+  // Story text
+  const storyKey = 'story_' + (zone + 1);
+  const storyText = L[storyKey] || '';
+  ctx.font = `${ts * 0.35}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = '#8080a0';
+  // Word wrap simple
+  const maxW = w * 0.8;
+  ctx.fillText(storyText, w/2, h * 0.58, maxW);
+  ctx.globalAlpha = 1;
+  // Skip hint
+  ctx.font = `${ts * 0.3}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = '#505070';
+  ctx.globalAlpha = 0.5 + Math.sin(time * 3) * 0.5;
+  ctx.fillText('TAP / SPACE', w/2, h * 0.8);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw reward select screen --
+function drawRewardSelect(ctx, w, h, choices, selectedIdx, L, time) {
+  ctx.fillStyle = 'rgba(0,0,10,0.85)';
+  ctx.fillRect(0, 0, w, h);
+  const ts = Math.min(28, w * 0.05);
+  ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(L.reward, w/2, h * 0.12);
+  // 3 cards
+  const cardW = Math.min(150, w * 0.25);
+  const cardH = 120;
+  const totalW = 3 * cardW + 2 * 15;
+  const startX = (w - totalW) / 2;
+  const cardY = h * 0.25;
+  const rects = [];
+  for (let i = 0; i < choices.length; i++) {
+    const cx = startX + i * (cardW + 15);
+    drawPartCard(ctx, cx, cardY, cardW, cardH, choices[i], i === selectedIdx, time);
+    rects.push({ x: cx, y: cardY, w: cardW, h: cardH });
+  }
+  // Confirm button
+  if (selectedIdx >= 0) {
+    const btnW = 140; const btnH = 40;
+    const btnX = w/2 - btnW/2;
+    const btnY = cardY + cardH + 30;
+    ctx.fillStyle = 'rgba(0,229,255,0.2)';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 1;
+    ctx.strokeRect(btnX, btnY, btnW, btnH);
+    ctx.fillStyle = COL.energyCyan;
+    ctx.font = `bold ${ts * 0.5}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.fillText('OK', w/2, btnY + btnH/2);
+    rects.push({ x: btnX, y: btnY, w: btnW, h: btnH, isConfirm: true });
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  return rects;
+}
+
+// -- Draw boss intro --
+function drawBossIntro(ctx, w, h, bossId, progress, L, time) {
+  ctx.fillStyle = 'rgba(10,0,0,0.9)';
+  ctx.fillRect(0, 0, w, h);
+  // Warning flash
+  if (Math.sin(time * 8) > 0) {
+    ctx.fillStyle = 'rgba(229,57,53,0.1)';
+    ctx.fillRect(0, 0, w, h);
+  }
+  const ts = Math.min(36, w * 0.06);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillStyle = COL.enemyRed;
+  ctx.globalAlpha = Math.min(1, progress * 3);
+  ctx.fillText(L.bossIncoming, w/2, h * 0.35);
+  // Boss preview
+  ctx.globalAlpha = Math.min(1, progress * 2);
+  drawBoss(ctx, w/2, h * 0.55, Math.min(80, w * 0.1), bossId, 0, 1, 1, time);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw wave clear overlay --
+function drawWaveClearOverlay(ctx, w, h, L, time, progress) {
+  ctx.fillStyle = `rgba(0,20,40,${0.6 * (1 - progress)})`;
+  ctx.fillRect(0, 0, w, h);
+  const ts = Math.min(32, w * 0.05);
+  ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.energyCyan;
+  ctx.globalAlpha = 1 - progress;
+  ctx.fillText(L.waveCleared, w/2, h * 0.4);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 9: STATE MACHINE & TRANSITIONS (~250 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- Global game state (F12: INIT_EMPTY) --
+const G = {
+  state: STATES.BOOT, prevState: '', transAlpha: 0,
+  coreHp: 0, coreMaxHp: CONFIG.CORE_MAX_HP, energy: CONFIG.START_ENERGY,
+  grid: [], cols: 0, rows: 0, cellSize: 0,
+  mechas: [], enemies: [], projectiles: [], particles: [],
+  zone: 0, wave: 0, maxWave: CONFIG.WAVES_PER_ZONE,
+  score: 0, boss: null, bossPhase: 0, bossRewardGiven: false,
+  parts: [], partChoices: [], _rewardRects: [],
+  corePoints: 0, upgrades: { firepower: 0, defense: 0, utility: 0 },
+  totalRuns: 0, consecutiveDeaths: 0, ddaLevel: 0,
+  timeOfDay: 'day', weather: 'clear',
+  tween: null, sound: null, input: null, rng: null,
+  selectedMecha: 0, hoveredCell: null, paused: false, speed: 1,
+  lang: 'ko', unlockedMechas: [true, true, true, false, false],
+  _time: 0, _shakeX: 0, _shakeY: 0, _shakeTimer: 0,
+  _gridOffX: 0, _gridOffY: 0, _currentGrid: [],
+  _spawnCells: [], _baseIdx: 0, _pathCells: new Set(),
+  _killCount: 0, _waveDamaged: false, _waveClearing: false,
+  _addParticle: null, _mechaBtnRects: [], _ctrlBtnRects: [],
+  _hubUpgradeRects: [], _deployBtnRect: null, _hubBtnRect: null,
+  _partBonusAtk: 0, _partBonusCd: 0, _partBonusRange: 0,
+  _partBonusSplash: 0, _partBonusEnergy: 0, _partBonusStun: 0,
+  _partBonusPierce: 0, _partBonusChain: 0,
+  _selectedReward: -1, _stateTimer: 0, _introProgress: 0,
+  _bestScore: 0, _bestZone: 0, _earnedCP: 0,
+  _startEnergy: CONFIG.START_ENERGY
+};
+
+// -- beginTransition single definition (F6, F21) --
+function beginTransition(fromState, toState, duration) {
+  if (STATE_PRIORITY[toState] < STATE_PRIORITY[G.state] && G.state !== STATES.PAUSED) return;
+  const proxy1 = { a: 0 };
+  G.tween.add(proxy1, { a: 1 }, duration / 2, 'easeIn', () => {
+    G.prevState = fromState;
+    G.state = toState;
+    G._stateTimer = 0;
+    G._introProgress = 0;
+    const proxy2 = { a: 1 };
+    G.tween.add(proxy2, { a: 0 }, duration / 2, 'easeOut', () => {
+      G.transAlpha = 0;
+    });
+    // Sync proxy2 → transAlpha each frame via particle hack
+    G._transProxy = proxy2;
+  });
+  G._transProxy = proxy1;
+}
+
+// -- Initialize new run --
+function initRun(G) {
+  const save = loadSave();
+  G.coreHp = CONFIG.CORE_MAX_HP + (G.upgrades.defense >= 1 ? 100 : 0);
+  G.coreMaxHp = G.coreHp;
+  G.energy = (G._startEnergy || CONFIG.START_ENERGY) + (CONFIG.DDA[G.ddaLevel]?.extraEnergy || 0) * CONFIG.START_ENERGY | 0;
+  G.mechas = []; G.enemies = []; G.projectiles = []; G.particles = [];
+  G.zone = 0; G.wave = 0; G.score = 0;
+  G.boss = null; G.bossRewardGiven = false;
+  G.parts = []; G.partChoices = [];
+  G._partBonusAtk = 0; G._partBonusCd = 0; G._partBonusRange = 0;
+  G._partBonusSplash = 0; G._partBonusEnergy = 0; G._partBonusStun = 0;
+  G._partBonusPierce = 0; G._partBonusChain = 0; G._synergyCounts = {};
+  G.timeOfDay = 'day'; G.weather = 'clear';
+  G._acidRainTimer = 0; G._empStormTimer = 0;
+  G.speed = 1; G._killCount = 0; G._waveDamaged = false;
+  G._waveClearing = false; G._selectedReward = -1;
+  G._earnedCP = 0;
+  G.rng = new SeededRNG(Date.now() % 100000);
+  G.totalRuns++;
+  setupZone(G);
+}
+
+// -- Setup zone (map generation) --
+function setupZone(G) {
+  const isMobile = G.cols <= 8;
+  G.cols = isMobile ? CONFIG.GRID_COLS_MOB : CONFIG.GRID_COLS_PC;
+  G.rows = isMobile ? CONFIG.GRID_ROWS_MOB : CONFIG.GRID_ROWS_PC;
+  const mapData = generateZoneMap(G.zone, G.cols, G.rows, G.rng);
+  G._currentGrid = mapData.grid;
+  G._spawnCells = mapData.spawnCells;
+  G._baseIdx = mapData.baseIdx;
+  G.grid = mapData.grid.slice();
+  G.wave = 0;
+  G.boss = null;
+  G.bossRewardGiven = false;
+  G.enemies = [];
+  G.projectiles = [];
+  // Keep existing mechas? No — new zone resets placement
+  G.mechas = [];
+  // DDA free mechas
+  if (CONFIG.DDA[G.ddaLevel]?.freeMechas) {
+    // Place free blasters near spawn
+    const count = CONFIG.DDA[G.ddaLevel].freeMechas;
+    for (let i = 0; i < count && i < G._spawnCells.length; i++) {
+      const sc = G._spawnCells[i];
+      const r = (sc / G.cols) | 0;
+      const c = Math.min(G.cols - 1, (sc % G.cols) + 2);
+      if (G.grid[r * G.cols + c] === 0) {
+        placeMecha(G, r, c, 0);
+      }
+    }
+  }
+  // Recalculate path
+  recalcPath(G);
+  // Time/Weather for zone
+  G.timeOfDay = 'day';
+  G.weather = 'clear';
+  if (G.zone >= 2) {
+    G.weather = G.rng.pick(['clear', 'acid_rain', 'clear']);
+  }
+  if (G.zone >= 3) {
+    G.weather = G.rng.pick(['clear', 'acid_rain', 'emp_storm']);
+  }
+  if (G.zone >= 4) {
+    G.weather = G.rng.pick(['acid_rain', 'emp_storm', 'mag_storm']);
+  }
+}
+
+// -- Place a mecha on the grid --
+function placeMecha(G, row, col, type) {
+  const idx = row * G.cols + col;
+  if (G.grid[idx] !== 0 && G.grid[idx] !== 1) return false; // Can't place on obstacle/spawn/base
+  const cost = CONFIG.MECHA[type].cost;
+  // Check if upgrading existing mecha
+  const existing = G.mechas.find(m => m.row === row && m.col === col && m.type === type && m.active);
+  if (existing) {
+    if (existing.level >= 2) return false; // Max level
+    const upgCost = (cost * CONFIG.LEVEL_COST_MULT[existing.level + 1]) | 0;
+    if (G.energy < upgCost) return false;
+    G.energy -= upgCost;
+    existing.level++;
+    recalcMechaStats(existing, G);
+    return true;
+  }
+  if (G.energy < cost) return false;
+  // Check path still exists after placement
+  const testGrid = G.grid.slice();
+  testGrid[idx] = 1;
+  const path = findPath(testGrid, G.cols, G.rows, G._spawnCells[0], G._baseIdx);
+  if (!path) return false; // Path blocked (§10.2)
+  G.energy -= cost;
+  G.grid[idx] = 1;
+  const base = CONFIG.MECHA[type];
+  const m = {
+    type, row, col, level: 0, active: true,
+    atk: base.atk, cooldown: base.cd, cooldownTimer: 0,
+    range: base.range, splash: base.splash,
+    disabled: 0
+  };
+  recalcMechaStats(m, G);
+  G.mechas.push(m);
+  recalcPath(G);
+  return true;
+}
+
+// -- Sell mecha --
+function sellMecha(G, row, col) {
+  const idx = row * G.cols + col;
+  const mi = G.mechas.findIndex(m => m.row === row && m.col === col && m.active);
+  if (mi < 0) return false;
+  const m = G.mechas[mi];
+  const refund = ((CONFIG.MECHA[m.type].cost * 0.5) * (1 + (G.upgrades.utility >= 3 ? 0.2 : 0))) | 0;
+  G.energy += refund;
+  G.grid[idx] = 0;
+  G.mechas.splice(mi, 1);
+  recalcPath(G);
+  return true;
+}
+
+// -- Recalculate BFS path and path cell set --
+function recalcPath(G) {
+  const path = findPath(G.grid, G.cols, G.rows, G._spawnCells[0], G._baseIdx);
+  G._pathCells = new Set();
+  if (path) path.forEach(idx => G._pathCells.add(idx));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 10: MAIN LOOP & INITIALIZATION (~200 lines)
+// ═══════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// -- Particle system --
+function addParticle(x, y, type) {
+  const count = type === 'explosion' ? 8 : type === 'core_hit' ? 12 : type === 'emp_wave' ? 1 : 5;
+  for (let i = 0; i < count; i++) {
+    G.particles.push({
+      x, y, type,
+      vx: (G.rng ? G.rng.nextFloat(-1, 1) : Math.sin(i)) * 80,
+      vy: (G.rng ? G.rng.nextFloat(-1, 1) : Math.cos(i)) * 80,
+      life: type === 'emp_wave' ? 600 : 400,
+      maxLife: type === 'emp_wave' ? 600 : 400,
+      size: type === 'emp_wave' ? 100 : 4
+    });
+  }
+}
+
+G._addParticle = addParticle;
+
+// -- Resize handler (devicePixelRatio) --
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Recalc grid dimensions
+  const isMobile = w < 600;
+  G.cols = isMobile ? CONFIG.GRID_COLS_MOB : CONFIG.GRID_COLS_PC;
+  G.rows = isMobile ? CONFIG.GRID_ROWS_MOB : CONFIG.GRID_ROWS_PC;
+  const topBar = 36;
+  const bottomPanel = 64;
+  const availH = h - topBar - bottomPanel;
+  const availW = w - 20;
+  G.cellSize = Math.min(CONFIG.CELL_MAX, Math.max(CONFIG.CELL_MIN,
+    Math.min(availW / G.cols, availH / G.rows) | 0));
+  G._gridOffX = ((w - G.cols * G.cellSize) / 2) | 0;
+  G._gridOffY = topBar;
+  G._panelY = G._gridOffY + G.rows * G.cellSize + 4;
+  G._panelH = h - G._panelY;
+  G._canvasW = w;
+  G._canvasH = h;
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// -- Main game loop --
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  requestAnimationFrame(gameLoop);
+  const rawDt = timestamp - lastTime;
+  lastTime = timestamp;
+  const dt = Math.min(rawDt, 50) * G.speed; // Cap + speed multiplier
+  G._time = timestamp / 1000;
+  G._stateTimer += dt;
+  G._introProgress = Math.min(1, G._stateTimer / 2000);
+  // Sync transition alpha from proxy
+  if (G._transProxy) G.transAlpha = G._transProxy.a;
+  const sys = ACTIVE_SYSTEMS[G.state];
+  if (!sys) { requestAnimationFrame(gameLoop); return; }
+  const L = LANG[G.lang] || LANG.ko;
+  const w = G._canvasW;
+  const h = G._canvasH;
+  // Update systems
+  if (sys.tween && G.tween) G.tween.update(dt);
+  if (sys.sound && G.sound) G.sound.update(dt);
+  // Screen shake
+  if (G._shakeTimer > 0) {
+    G._shakeTimer -= dt;
+    G._shakeX = (Math.sin(G._time * 50) * 3) * (G._shakeTimer / 300);
+    G._shakeY = (Math.cos(G._time * 60) * 2) * (G._shakeTimer / 300);
+  } else { G._shakeX = 0; G._shakeY = 0; }
+  // Update particles
+  if (sys.particle) {
+    for (let i = G.particles.length - 1; i >= 0; i--) {
+      const p = G.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { G.particles.splice(i, 1); continue; }
+      p.x += p.vx * dt / 1000;
+      p.y += p.vy * dt / 1000;
+      p.vy += 50 * dt / 1000; // gravity
+    }
+  }
+  // State-specific update
+  if (G.state === STATES.WAVE || G.state === STATES.BOSS_FIGHT) {
+    if (sys.ai) updateEnemyAI(G.enemies, G.grid, G.cols, G.rows, G._baseIdx,
+      G.cellSize, G._gridOffX, G._gridOffY, dt, G);
+    if (sys.combat) updateCombat(G.mechas, G.enemies, G.projectiles, dt,
+      G.cellSize, G._gridOffX, G._gridOffY, G.cols, G._time, G);
+    if (sys.physics) {
+      updateProjectiles(G.projectiles, G.enemies, dt, G);
+      updateBossProjectiles(G.projectiles, dt, G, G.cellSize, G._gridOffX, G._gridOffY, G.cols, G.rows, G._baseIdx);
+    }
+    if (sys.spawn && G.state === STATES.WAVE) {
+      // Check wave clear
+      if (!G._waveClearing && G.enemies.length > 0 &&
+          G.enemies.every(e => !e.alive || (!e.spawned && e.spawnDelay <= 0))) {
+        // Explicitly check: all enemies dead or done
+        const allDead = G.enemies.filter(e => e.spawned).every(e => !e.alive);
+        const allSpawned = G.enemies.every(e => e.spawned);
+        if (allDead && allSpawned) {
+          G._waveClearing = true; // Guard flag (F5)
+          // Wave clear rewards
+          const cp = CONFIG.CP_WAVE_BASE * (G.zone + 1);
+          G.corePoints += cp; G._earnedCP += cp;
+          if (!G._waveDamaged) G.score += CONFIG.SCORE_NODMG_WAVE;
+          if (G.sound) G.sound.playSfx('reward');
+          G.tween.add({ a: 0 }, { a: 1 }, 1500, 'easeOut', () => {
+            G._waveClearing = false;
+            if (G.wave < G.maxWave - 1) {
+              // Next wave or boss
+              G.wave++;
+              beginTransition(G.state, STATES.REWARD_SELECT, 600);
+            } else {
+              // Boss wave
+              beginTransition(G.state, STATES.BOSS_INTRO, 800);
+            }
+          });
+          beginTransition(G.state, STATES.WAVE_CLEAR, 400);
+        }
+      }
+    }
+    // Boss fight specific
+    if (G.state === STATES.BOSS_FIGHT && G.boss) {
+      updateBoss(G.boss, G.mechas, G.enemies, G.projectiles, dt, G,
+        G.cellSize, G._gridOffX, G._gridOffY, G.cols, G.rows, G._baseIdx);
+      // Boss damage from mechas (DrillWorm can't be hit underground)
+      if (G.boss.alive && G.boss.weakpointExposed && !G.boss._underground) {
+        for (const m of G.mechas) {
+          if (!m.active || m.disabled > 0 || m.type === 2) continue;
+          const mx = G._gridOffX + m.col * G.cellSize + G.cellSize/2;
+          const my = G._gridOffY + m.row * G.cellSize + G.cellSize/2;
+          const dx = G.boss.x - mx;
+          const dy = G.boss.y - my;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist <= m.range * G.cellSize) {
+            // Mecha hits boss
+            if (m.cooldownTimer <= 0) {
+              G.boss.hp -= m.atk;
+              m.cooldownTimer = m.cooldown;
+              addParticle(G.boss.x, G.boss.y, 'hit');
+              if (G.sound) G.sound.playSfx('hit');
+            }
+          }
+        }
+      }
+      // Boss defeated
+      if (G.boss && !G.boss.alive) {
+        // Already handled
+      }
+      if (G.boss && G.boss.hp <= 0 && G.boss.alive) {
+        G.boss.alive = false;
+        if (!G.bossRewardGiven) { // F17: guard flag
+          G.bossRewardGiven = true;
+          G.score += CONFIG.SCORE_BOSS_BASE * (G.zone + 1);
+          const cp = CONFIG.CP_BOSS_BASE * (G.zone + 1);
+          G.corePoints += cp; G._earnedCP += cp;
+          // Unlock mechas
+          if (G.zone === 1) G.unlockedMechas[3] = true; // EMP
+          if (G.zone === 2) G.unlockedMechas[4] = true; // Railgun
+          G._shakeTimer = 500;
+          if (G.sound) G.sound.playSfx('victory');
+          addParticle(G.boss.x, G.boss.y, 'explosion');
+          G.tween.add({ a: 0 }, { a: 1 }, 2000, 'easeOut', () => {
+            if (G.zone < CONFIG.TOTAL_ZONES - 1) {
+              G.zone++;
+              G.consecutiveDeaths = 0;
+              setupZone(G);
+              beginTransition(G.state, STATES.ZONE_INTRO, 800);
+            } else {
+              beginTransition(G.state, STATES.VICTORY, 800);
+            }
+          });
+          beginTransition(G.state, STATES.BOSS_CLEAR, 600);
+        }
+      }
+    }
+    // Check game over
+    if (G.coreHp <= 0 && G.state !== STATES.GAMEOVER) {
+      G.coreHp = 0;
+      G._shakeTimer = 600;
+      G.consecutiveDeaths++;
+      G.ddaLevel = calcDDALevel(G.consecutiveDeaths);
+      savePersistent(G);
+      if (G.sound) G.sound.playSfx('coreHit');
+      beginTransition(G.state, STATES.GAMEOVER, 800);
+    }
+    // Environment: night transition at wave 2 (§7.3: 웨이브 2에서 주간→야간)
+    if (sys.env) {
+      if (G.wave >= 2 && G.timeOfDay === 'day') {
+        G.timeOfDay = 'night';
+        // Recalc mecha ranges
+        for (const m of G.mechas) recalcMechaStats(m, G);
+      }
+      // §7.3 Weather gameplay effects (not just visual!)
+      if (G.weather === 'acid_rain') {
+        // Acid rain: enemy speed -20% applied in updateEnemyAI via G.weather
+        // Mecha HP -1/s (shield range protects)
+        G._acidRainTimer = (G._acidRainTimer || 0) + dt;
+        if (G._acidRainTimer >= 1000) {
+          G._acidRainTimer -= 1000;
+          // Find shield generator ranges
+          const shieldRanges = [];
+          for (const m of G.mechas) {
+            if (m.active && m.type === 2) {
+              shieldRanges.push({ col: m.col, row: m.row, range: m.range });
+            }
+          }
+          // Damage unshielded mechas
+          for (const m of G.mechas) {
+            if (!m.active) continue;
+            let shielded = false;
+            for (const s of shieldRanges) {
+              const dx = m.col - s.col;
+              const dy = m.row - s.row;
+              if (Math.sqrt(dx*dx + dy*dy) <= s.range) { shielded = true; break; }
+            }
+            if (!shielded) {
+              m._acidDmg = (m._acidDmg || 0) + 1;
+              if (m._acidDmg >= 20) { m.active = false; G.grid[m.row * G.cols + m.col] = 0; } // Mecha destroyed
+            }
+          }
+        }
+      }
+      if (G.weather === 'emp_storm') {
+        // EMP storm: stun unshielded mechas 1s every 3s cycle
+        G._empStormTimer = (G._empStormTimer || 0) + dt;
+        if (G._empStormTimer >= 3000) {
+          G._empStormTimer -= 3000;
+          const shieldRanges = [];
+          for (const m of G.mechas) {
+            if (m.active && m.type === 2) {
+              shieldRanges.push({ col: m.col, row: m.row, range: m.range });
+            }
+          }
+          for (const m of G.mechas) {
+            if (!m.active || m.type === 2) continue;
+            let shielded = false;
+            for (const s of shieldRanges) {
+              const dx = m.col - s.col;
+              const dy = m.row - s.row;
+              if (Math.sqrt(dx*dx + dy*dy) <= s.range) { shielded = true; break; }
+            }
+            if (!shielded) m.disabled = 1000; // 1s stun
+          }
+          if (G._addParticle) G._addParticle(G._canvasW / 2, G._canvasH / 2, 'emp_wave');
+        }
+      }
+      // mag_storm: accuracy -30% handled in projectile collision (railgun immune)
+    }
+  }
+  // ── RENDER ──
+  ctx.save();
+  ctx.clearRect(0, 0, w, h);
+  if (G.state === STATES.BOOT) {
+    // Loading screen
+    ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = COL.uiWhite;
+    ctx.font = `16px 'Segoe UI',system-ui,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(L.loading, w/2, h/2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  else if (G.state === STATES.TITLE) {
+    drawTitleScreen(ctx, w, h, G._time, L);
+  }
+  else if (G.state === STATES.HUB) {
+    drawHUBScreen(ctx, w, h, G, L, G._time);
+  }
+  else if (G.state === STATES.STORY_INTRO) {
+    drawZoneIntro(ctx, w, h, -1, L, G._time, G._introProgress);
+    // Override with story text
+    ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(0, 0, w, h);
+    const ts = Math.min(24, w * 0.04);
+    ctx.font = `${ts}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = COL.uiWhite;
+    ctx.globalAlpha = G._introProgress;
+    ctx.fillText(L.storyIntro, w/2, h * 0.45, w * 0.85);
+    ctx.fillStyle = '#505070';
+    ctx.font = `${ts * 0.6}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.globalAlpha = 0.5 + Math.sin(G._time * 3) * 0.5;
+    ctx.fillText('TAP / SPACE', w/2, h * 0.7);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  else if (G.state === STATES.ZONE_INTRO) {
+    drawZoneIntro(ctx, w, h, G.zone, L, G._time, G._introProgress);
+  }
+  else if (G.state === STATES.PLACEMENT || G.state === STATES.WAVE ||
+           G.state === STATES.WAVE_CLEAR || G.state === STATES.BOSS_FIGHT ||
+           G.state === STATES.BOSS_INTRO || G.state === STATES.BOSS_CLEAR) {
+    ctx.save();
+    ctx.translate(G._shakeX, G._shakeY);
+    // Environment BG
+    drawEnvironment(ctx, w, h, G.zone, G.timeOfDay, G.weather, G._time);
+    // Grid
+    drawGrid(ctx, G._gridOffX, G._gridOffY, G.cols, G.rows, G.cellSize,
+      G.grid, G.hoveredCell, G._pathCells, G.state === STATES.PLACEMENT ? G.selectedMecha : -1);
+    // Base marker
+    const bx = G._gridOffX + (G._baseIdx % G.cols) * G.cellSize;
+    const by = G._gridOffY + ((G._baseIdx / G.cols) | 0) * G.cellSize;
+    ctx.fillStyle = 'rgba(0,229,255,0.15)';
+    ctx.fillRect(bx, by, G.cellSize, G.cellSize);
+    ctx.strokeStyle = COL.energyCyan; ctx.lineWidth = 2;
+    ctx.strokeRect(bx + 2, by + 2, G.cellSize - 4, G.cellSize - 4);
+    ctx.fillStyle = COL.energyCyan;
+    ctx.font = `bold ${G.cellSize * 0.3}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('⬡', bx + G.cellSize/2, by + G.cellSize/2);
+    // Draw mechas
+    for (const m of G.mechas) {
+      if (!m.active) continue;
+      const mx = G._gridOffX + m.col * G.cellSize + G.cellSize/2;
+      const my = G._gridOffY + m.row * G.cellSize + G.cellSize/2;
+      drawMecha(ctx, mx, my, G.cellSize, m.type, m.level, G._time);
+      // Disabled overlay
+      if (m.disabled > 0) {
+        ctx.fillStyle = 'rgba(255,224,130,0.3)';
+        ctx.fillRect(G._gridOffX + m.col * G.cellSize, G._gridOffY + m.row * G.cellSize, G.cellSize, G.cellSize);
+      }
+    }
+    // Draw enemies
+    for (const e of G.enemies) {
+      if (!e.alive || !e.spawned) continue;
+      drawEnemy(ctx, e.x, e.y, G.cellSize, e.type, e.hp, e.maxHp, e.status, G._time);
+    }
+    // Draw boss
+    if (G.boss && G.boss.alive && (G.state === STATES.BOSS_FIGHT || G.state === STATES.BOSS_CLEAR)) {
+      // DrillWorm underground: draw warning indicator instead of boss
+      if (G.boss._underground && G.boss.id === 2) {
+        // Warning circle at emerge position
+        const warningPulse = Math.sin(G._time * 8) * 0.5 + 0.5;
+        ctx.strokeStyle = `rgba(229,57,53,${0.3 + warningPulse * 0.4})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(G.boss._warningX, G.boss._warningY, G.cellSize * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = `rgba(229,57,53,${0.1 + warningPulse * 0.1})`;
+        ctx.beginPath();
+        ctx.arc(G.boss._warningX, G.boss._warningY, G.cellSize * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (!G.boss._underground || G.boss.id !== 2) {
+        drawBoss(ctx, G.boss.x, G.boss.y, G.cellSize, G.boss.id, G.boss.phase,
+          G.boss.hp, G.boss.maxHp, G._time);
+      }
+      // Crusher charge trail
+      if (G.boss.id === 0 && G.boss._charging) {
+        ctx.strokeStyle = 'rgba(155,89,182,0.3)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(G.boss.x, G.boss.y);
+        ctx.lineTo(G.boss._chargeTargetX, G.boss._chargeTargetY);
+        ctx.stroke();
+      }
+      // Weakpoint indicator
+      if (G.boss.weakpointExposed) {
+        ctx.strokeStyle = COL.gold; ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.arc(G.boss.x, G.boss.y, G.cellSize * 0.8, 0, Math.PI*2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+    // Draw projectiles
+    for (const p of G.projectiles) {
+      drawProjectile(ctx, p.x, p.y, p.type, p.angle, G._time);
+    }
+    // Draw particles
+    for (const p of G.particles) {
+      const progress = 1 - p.life / p.maxLife;
+      drawExplosion(ctx, p.x, p.y, p.size, progress, p.type);
+    }
+    ctx.restore();
+    // HUD
+    drawHUD(ctx, w, h, G, L, G.cellSize, G._gridOffY);
+    // Bottom panel
+    drawBottomPanel(ctx, w, h, G, L, G._panelY, G._panelH, G.unlockedMechas);
+    // Overlays
+    if (G.state === STATES.WAVE_CLEAR) {
+      drawWaveClearOverlay(ctx, w, h, L, G._time, G._introProgress);
+    }
+    if (G.state === STATES.BOSS_INTRO) {
+      drawBossIntro(ctx, w, h, G.zone, G._introProgress, L, G._time);
+    }
+    if (G.state === STATES.BOSS_CLEAR) {
+      ctx.fillStyle = 'rgba(0,10,20,0.5)';
+      ctx.fillRect(0, 0, w, h);
+      const ts = Math.min(32, w * 0.05);
+      ctx.font = `bold ${ts}px 'Segoe UI',system-ui,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = COL.gold;
+      ctx.fillText(L.bossDefeated, w/2, h * 0.4);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    }
+    // DDA indicator
+    if (G.ddaLevel > 0) {
+      ctx.fillStyle = 'rgba(255,215,0,0.6)';
+      ctx.font = `10px 'Segoe UI',system-ui,sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${L.dda} Lv${G.ddaLevel}`, w - 10, G._gridOffY - 5);
+      ctx.textAlign = 'left';
+    }
+  }
+  else if (G.state === STATES.REWARD_SELECT) {
+    // Draw game behind
+    drawEnvironment(ctx, w, h, G.zone, G.timeOfDay, G.weather, G._time);
+    drawGrid(ctx, G._gridOffX, G._gridOffY, G.cols, G.rows, G.cellSize,
+      G.grid, null, G._pathCells, -1);
+    for (const m of G.mechas) {
+      if (!m.active) continue;
+      drawMecha(ctx, G._gridOffX + m.col * G.cellSize + G.cellSize/2,
+        G._gridOffY + m.row * G.cellSize + G.cellSize/2, G.cellSize, m.type, m.level, G._time);
+    }
+    drawHUD(ctx, w, h, G, L, G.cellSize, G._gridOffY);
+    // Reward overlay
+    G._rewardRects = drawRewardSelect(ctx, w, h, G.partChoices, G._selectedReward, L, G._time);
+  }
+  else if (G.state === STATES.GAMEOVER) {
+    drawGameOverScreen(ctx, w, h, G, L, G._time, G._shakeX, G._shakeY);
+  }
+  else if (G.state === STATES.VICTORY) {
+    drawVictoryScreen(ctx, w, h, G, L, G._time);
+  }
+  else if (G.state === STATES.PAUSED) {
+    // Draw game behind
+    drawEnvironment(ctx, w, h, G.zone, G.timeOfDay, G.weather, G._time);
+    drawGrid(ctx, G._gridOffX, G._gridOffY, G.cols, G.rows, G.cellSize,
+      G.grid, null, G._pathCells, -1);
+    for (const m of G.mechas) {
+      if (!m.active) continue;
+      drawMecha(ctx, G._gridOffX + m.col * G.cellSize + G.cellSize/2,
+        G._gridOffY + m.row * G.cellSize + G.cellSize/2, G.cellSize, m.type, m.level, G._time);
+    }
+    drawPauseOverlay(ctx, w, h, L);
+  }
+  // Transition overlay
+  if (G.transAlpha > 0.01) {
+    ctx.fillStyle = `rgba(10,10,15,${G.transAlpha})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.restore();
+  // ── INPUT HANDLING ──
+  handleInput(G, L, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 11: EVENT BINDING & INPUT HANDLING & BOOTSTRAP (~200 lines)
+// ═══════════════════════════════════════════════════════════════
+
+function handleInput(G, L, w, h) {
+  const input = G.input;
+  if (!input) return;
+  const mx = input.mouseX;
+  const my = input.mouseY;
+  // Calculate hovered cell
+  if (G.state === STATES.PLACEMENT || G.state === STATES.WAVE || G.state === STATES.BOSS_FIGHT) {
+    const gc = ((mx - G._gridOffX) / G.cellSize) | 0;
+    const gr = ((my - G._gridOffY) / G.cellSize) | 0;
+    if (gc >= 0 && gc < G.cols && gr >= 0 && gr < G.rows && my >= G._gridOffY && my < G._gridOffY + G.rows * G.cellSize) {
+      G.hoveredCell = gr * G.cols + gc;
+    } else {
+      G.hoveredCell = null;
+    }
+  }
+  // -- TITLE --
+  if (G.state === STATES.TITLE) {
+    if (input.consumeClick() || input.consumeTap() || input.consumeKey('Space')) {
+      if (G.sound) { G.sound.resume(); G.sound.playSfx('click'); }
+      // Check language toggle (top right)
+      if (input.hitTest(mx, my, w - 50, 5, 45, 30)) {
+        G.lang = G.lang === 'ko' ? 'en' : 'ko';
+        return;
+      }
+      const save = loadSave();
+      G.corePoints = save.corePoints;
+      G.upgrades = { ...save.upgrades };
+      G.totalRuns = save.totalRuns;
+      G.consecutiveDeaths = save.consecutiveDeaths;
+      G.unlockedMechas = [...save.unlockedMechas];
+      G._bestScore = save.bestScore;
+      G._bestZone = save.bestZone;
+      G.ddaLevel = calcDDALevel(G.consecutiveDeaths);
+      if (save.totalRuns > 0) {
+        beginTransition(G.state, STATES.HUB, 600);
+      } else {
+        beginTransition(G.state, STATES.STORY_INTRO, 800);
+      }
+      if (G.sound) G.sound.startBGM('title');
+    }
+  }
+  // -- STORY INTRO --
+  else if (G.state === STATES.STORY_INTRO) {
+    if (input.consumeClick() || input.consumeTap() || input.consumeKey('Space')) {
+      if (G.sound) G.sound.playSfx('click');
+      initRun(G);
+      beginTransition(G.state, STATES.ZONE_INTRO, 600);
+    }
+  }
+  // -- ZONE INTRO --
+  else if (G.state === STATES.ZONE_INTRO) {
+    if (input.consumeClick() || input.consumeTap() || input.consumeKey('Space')) {
+      if (G.sound) { G.sound.playSfx('click'); G.sound.startBGM('calm'); }
+      beginTransition(G.state, STATES.PLACEMENT, 400);
+    }
+  }
+  // -- HUB --
+  else if (G.state === STATES.HUB) {
+    if (input.consumeClick() || input.consumeTap()) {
+      // Check upgrade buttons
+      if (G._hubUpgradeRects) {
+        for (const rect of G._hubUpgradeRects) {
+          if (rect && rect.canAfford && input.hitTest(mx, my, rect.x, rect.y, rect.w, rect.h)) {
+            if (applyUpgrade(rect.branch, G)) {
+              if (G.sound) G.sound.playSfx('upgrade');
+              savePersistent(G);
+            }
+            return;
+          }
+        }
+      }
+      // Deploy button
+      if (G._deployBtnRect && input.hitTest(mx, my, G._deployBtnRect.x, G._deployBtnRect.y,
+          G._deployBtnRect.w, G._deployBtnRect.h)) {
+        if (G.sound) G.sound.playSfx('click');
+        initRun(G);
+        beginTransition(G.state, STATES.ZONE_INTRO, 600);
+        return;
+      }
+    }
+  }
+  // -- PLACEMENT --
+  else if (G.state === STATES.PLACEMENT) {
+    // Mecha selection (keyboard 1-5)
+    for (let i = 0; i < 5; i++) {
+      if (input.consumeKey(`Digit${i+1}`)) {
+        if (G.unlockedMechas[i]) G.selectedMecha = i;
+      }
+    }
+    // Start wave (Space)
+    if (input.consumeKey('Space')) {
+      startWave(G);
+      return;
+    }
+    // Pause (Escape)
+    if (input.consumeKey('Escape')) {
+      G.prevState = G.state;
+      G.state = STATES.PAUSED;
+      return;
+    }
+    // Click/tap — check buttons first, then grid
+    if (input.consumeClick() || input.consumeTap()) {
+      // Bottom panel mecha buttons
+      for (let i = 0; i < G._mechaBtnRects.length; i++) {
+        const r = G._mechaBtnRects[i];
+        if (r && input.hitTest(mx, my, r.x, r.y, r.w, r.h)) {
+          if (G.unlockedMechas[i]) {
+            G.selectedMecha = i;
+            if (G.sound) G.sound.playSfx('click');
+          } else if (G.sound) G.sound.playSfx('error');
+          return;
+        }
+      }
+      // Control buttons
+      for (const r of G._ctrlBtnRects) {
+        if (input.hitTest(mx, my, r.x, r.y, r.w, r.h)) {
+          if (r.action === 'startWave') startWave(G);
+          else if (r.action === 'speed') G.speed = G.speed > 1 ? 1 : CONFIG.FAST_SPEED;
+          else if (r.action === 'pause') { G.prevState = G.state; G.state = STATES.PAUSED; }
+          return;
+        }
+      }
+      // Grid placement
+      if (G.hoveredCell !== null) {
+        const r = (G.hoveredCell / G.cols) | 0;
+        const c = G.hoveredCell % G.cols;
+        if (placeMecha(G, r, c, G.selectedMecha)) {
+          if (G.sound) G.sound.playSfx('place');
+        } else if (G.sound) G.sound.playSfx('error');
+      }
+    }
+    // Right click / long press — sell
+    if (input.consumeRightClick() || input.consumeLongPress()) {
+      if (G.hoveredCell !== null) {
+        const r = (G.hoveredCell / G.cols) | 0;
+        const c = G.hoveredCell % G.cols;
+        if (sellMecha(G, r, c)) {
+          if (G.sound) G.sound.playSfx('click');
+        }
+      }
+    }
+    // Double tap — upgrade
+    if (input.consumeDoubleTap()) {
+      if (G.hoveredCell !== null) {
+        const r = (G.hoveredCell / G.cols) | 0;
+        const c = G.hoveredCell % G.cols;
+        const existing = G.mechas.find(m => m.row === r && m.col === c && m.active);
+        if (existing) {
+          if (placeMecha(G, r, c, existing.type)) {
+            if (G.sound) G.sound.playSfx('upgrade');
+          }
+        }
+      }
+    }
+    // Restart
+    if (input.consumeKey('KeyR')) {
+      initRun(G);
+      beginTransition(G.state, STATES.ZONE_INTRO, 400);
+    }
+  }
+  // -- WAVE / BOSS FIGHT --
+  else if (G.state === STATES.WAVE || G.state === STATES.BOSS_FIGHT) {
+    if (input.consumeKey('Escape')) {
+      G.prevState = G.state;
+      G.state = STATES.PAUSED;
+      return;
+    }
+    if (input.consumeKey('Space')) {
+      G.speed = G.speed > 1 ? 1 : CONFIG.FAST_SPEED;
+    }
+    // Skill (Q)
+    if (input.consumeKey('KeyQ')) {
+      // Ultimate skill — damages all visible enemies
+      if (G.upgrades.firepower >= 5) {
+        for (const e of G.enemies) {
+          if (e.alive && e.spawned) {
+            applyDamage(e, 50, G);
+            addParticle(e.x, e.y, 'hit');
+          }
+        }
+        if (G.boss && G.boss.alive) {
+          G.boss.hp -= 100;
+          addParticle(G.boss.x, G.boss.y, 'explosion');
+        }
+        if (G.sound) G.sound.playSfx('railgun');
+      }
+    }
+    // Control buttons (speed/pause)
+    if (input.consumeClick() || input.consumeTap()) {
+      for (const r of G._ctrlBtnRects) {
+        if (input.hitTest(mx, my, r.x, r.y, r.w, r.h)) {
+          if (r.action === 'speed') G.speed = G.speed > 1 ? 1 : CONFIG.FAST_SPEED;
+          else if (r.action === 'pause') { G.prevState = G.state; G.state = STATES.PAUSED; }
+          return;
+        }
+      }
+    }
+    if (input.consumeKey('KeyR') && RESTART_ALLOWED.includes(G.state)) {
+      initRun(G);
+      beginTransition(G.state, STATES.ZONE_INTRO, 400);
+    }
+  }
+  // -- WAVE CLEAR --
+  else if (G.state === STATES.WAVE_CLEAR) {
+    // Auto-transition via tween, but allow skip
+    if (input.consumeClick() || input.consumeTap() || input.consumeKey('Space')) {
+      // Skip handled by tween
+    }
+  }
+  // -- REWARD SELECT --
+  else if (G.state === STATES.REWARD_SELECT) {
+    if (input.consumeClick() || input.consumeTap()) {
+      // Check card clicks
+      if (G._rewardRects) {
+        for (let i = 0; i < G._rewardRects.length; i++) {
+          const r = G._rewardRects[i];
+          if (input.hitTest(mx, my, r.x, r.y, r.w, r.h)) {
+            if (r.isConfirm && G._selectedReward >= 0) {
+              // Apply part
+              applyPart(G.partChoices[G._selectedReward], G);
+              if (G.sound) G.sound.playSfx('reward');
+              G._waveDamaged = false;
+              beginTransition(G.state, STATES.PLACEMENT, 400);
+            } else if (!r.isConfirm) {
+              G._selectedReward = i;
+              if (G.sound) G.sound.playSfx('click');
+            }
+            return;
+          }
+        }
+      }
+    }
+  }
+  // -- BOSS INTRO --
+  else if (G.state === STATES.BOSS_INTRO) {
+    if (G._stateTimer > 2500 || input.consumeClick() || input.consumeTap() || input.consumeKey('Space')) {
+      // Start boss fight
+      G.boss = createBoss(G.zone, G.cols, G.rows, G.cellSize, G._gridOffX, G._gridOffY, G._baseIdx, G.rng);
+      G.enemies = []; G.projectiles = [];
+      if (G.sound) G.sound.startBGM('boss');
+      beginTransition(G.state, STATES.BOSS_FIGHT, 400);
+    }
+  }
+  // -- BOSS CLEAR --
+  else if (G.state === STATES.BOSS_CLEAR) {
+    // Auto-transition via tween
+  }
+  // -- GAMEOVER --
+  else if (G.state === STATES.GAMEOVER) {
+    if (input.consumeKey('KeyR') || input.consumeTap()) {
+      // Check if tapping hub button
+      if (G._hubBtnRect && input.hitTest(mx, my, G._hubBtnRect.x, G._hubBtnRect.y,
+          G._hubBtnRect.w, G._hubBtnRect.h)) {
+        savePersistent(G);
+        beginTransition(G.state, STATES.HUB, 600);
+        return;
+      }
+      savePersistent(G);
+      initRun(G);
+      beginTransition(G.state, STATES.ZONE_INTRO, 600);
+    }
+    if (input.consumeClick()) {
+      if (G._hubBtnRect && input.hitTest(mx, my, G._hubBtnRect.x, G._hubBtnRect.y,
+          G._hubBtnRect.w, G._hubBtnRect.h)) {
+        savePersistent(G);
+        beginTransition(G.state, STATES.HUB, 600);
+      } else {
+        savePersistent(G);
+        initRun(G);
+        beginTransition(G.state, STATES.ZONE_INTRO, 600);
+      }
+    }
+  }
+  // -- VICTORY --
+  else if (G.state === STATES.VICTORY) {
+    if (input.consumeKey('KeyR') || input.consumeClick() || input.consumeTap()) {
+      G.consecutiveDeaths = 0;
+      G.score += CONFIG.SCORE_RUN_CLEAR;
+      savePersistent(G);
+      beginTransition(G.state, STATES.HUB, 600);
+    }
+  }
+  // -- PAUSED --
+  else if (G.state === STATES.PAUSED) {
+    if (input.consumeKey('Escape') || input.consumeKey('KeyP') || input.consumeClick() || input.consumeTap()) {
+      G.state = G.prevState;
+    }
+  }
+}
+
+// -- Start wave --
+function startWave(G) {
+  if (G.state !== STATES.PLACEMENT) return;
+  G._waveDamaged = false;
+  G._waveClearing = false;
+  G._killCount = 0;
+  // Generate enemies
+  G.enemies = spawnWaveEnemies(G.zone, G.wave, G.rng, G.ddaLevel, G._spawnCells, G.cols);
+  // Assign paths
+  for (const e of G.enemies) {
+    if (!e.path) {
+      const startIdx = e.gridR * G.cols + e.gridC;
+      e.path = findPath(G.grid, G.cols, G.rows, startIdx, G._baseIdx);
+      e.pathIdx = 0;
+    }
+  }
+  G.projectiles = [];
+  // Generate reward choices for after wave
+  G.partChoices = generatePartChoices(G.zone, G.rng, LANG[G.lang]);
+  // Filter out capped categories (§7.4 synergy cap)
+  G.partChoices = filterCappedChoices(G.partChoices, G);
+  // Ensure at least 1 choice remains
+  if (G.partChoices.length === 0) {
+    G.partChoices = generatePartChoices(G.zone, G.rng, LANG[G.lang]).slice(0, 1);
+  }
+  G._selectedReward = -1;
+  if (G.sound) G.sound.startBGM('battle');
+  beginTransition(G.state, STATES.WAVE, 300);
+}
+
+// -- Bootstrap --
+async function boot() {
+  // No assets to preload (F1, F23: all visuals are Canvas procedural)
+  // Init systems
+  G.tween = new TweenManager();
+  G.sound = new SoundManager();
+  G.input = new InputManager();
+  G.input.init(canvas);
+  G.sound.init();
+  G.rng = new SeededRNG(42);
+  // Load save
+  const save = loadSave();
+  G.lang = save.lang || 'ko';
+  G._bestScore = save.bestScore;
+  G._bestZone = save.bestZone;
+  // Auto-transition to title
+  G.tween.add({ a: 0 }, { a: 1 }, 1000, 'easeOut', () => {
+    G.state = STATES.TITLE;
+  });
+  // Start loop
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+boot();
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 12: EXTENDED SYSTEMS — Camera, Environment Detail,
+//            Tooltip, Minimap, Advanced Particles (~450 lines)
+// ═══════════════════════════════════════════════════════════════
+
+// -- Camera system (§16) --
+const Camera = {
+  x: 0, y: 0, zoom: 1.0, targetZoom: 1.0, targetX: 0, targetY: 0,
+  shakeIntensity: 0, shakeDecay: 0.95,
+  // Smooth follow target
+  update(dt) {
+    this.x += (this.targetX - this.x) * 0.05;
+    this.y += (this.targetY - this.y) * 0.05;
+    this.zoom += (this.targetZoom - this.zoom) * 0.03;
+    if (this.shakeIntensity > 0.1) {
+      this.shakeIntensity *= this.shakeDecay;
+    } else {
+      this.shakeIntensity = 0;
+    }
+  },
+  // Boss entrance zoom
+  zoomToBoss(bx, by) {
+    this.targetX = bx * 0.15;
+    this.targetY = by * 0.15;
+    this.targetZoom = 1.15;
+  },
+  // Reset camera
+  reset() {
+    this.targetX = 0; this.targetY = 0;
+    this.targetZoom = 1.0;
+    this.x = 0; this.y = 0; this.zoom = 1.0;
+  },
+  // Screen shake
+  shake(intensity) {
+    this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
+  }
+};
+
+// -- Advanced particle types --
+const PARTICLE_COLORS = {
+  explosion: [COL.missileOrange, '#FF9800', '#FFC107', '#FFF'],
+  hit: [COL.energyCyan, COL.mechaBlue, '#FFF'],
+  core_hit: [COL.enemyRed, '#FF5722', '#FFF', COL.enemyRed],
+  emp_wave: [COL.energyCyan, '#FFE082'],
+  spark: [COL.energyCyan, COL.gold, '#FFF'],
+  smoke: ['#555', '#444', '#333', '#222'],
+  boss_death: [COL.bossPurple, COL.gold, '#FFF', COL.enemyRed, COL.energyCyan],
+  level_up: [COL.gold, '#FFC107', '#FFE082', '#FFF'],
+  shield_break: [COL.shieldBar, COL.energyCyan, '#FFF'],
+  chain_lightning: [COL.energyCyan, '#FFF', '#80DEEA']
+};
+
+// -- Enhanced particle spawner --
+function spawnParticlesBurst(x, y, type, count, rng) {
+  const colors = PARTICLE_COLORS[type] || PARTICLE_COLORS.explosion;
+  for (let i = 0; i < count; i++) {
+    const angle = rng ? rng.nextFloat(0, Math.PI * 2) : (Math.PI * 2 * i / count);
+    const speed = rng ? rng.nextFloat(30, 120) : (60 + i * 8);
+    const color = colors[i % colors.length];
+    G.particles.push({
+      x, y, type,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: type === 'smoke' ? 800 : type === 'boss_death' ? 1200 : 500,
+      maxLife: type === 'smoke' ? 800 : type === 'boss_death' ? 1200 : 500,
+      size: type === 'emp_wave' ? 80 : type === 'boss_death' ? 6 : 3,
+      color
+    });
+  }
+}
+
+// -- Draw enhanced particles with colors --
+function drawParticleAdvanced(ctx, p) {
+  const progress = 1 - p.life / p.maxLife;
+  const alpha = Math.max(0, 1 - progress * 1.2);
+  ctx.globalAlpha = alpha;
+  if (p.type === 'emp_wave') {
+    ctx.strokeStyle = p.color || COL.energyCyan;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (p.type === 'smoke') {
+    ctx.fillStyle = p.color || '#444';
+    const s = p.size * (1 + progress * 2);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, s, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (p.type === 'chain_lightning') {
+    ctx.strokeStyle = p.color || COL.energyCyan;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + p.vx * 0.3, p.y + p.vy * 0.3);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = p.color || COL.missileOrange;
+    const s = p.size * (1 - progress * 0.5);
+    ctx.fillRect(p.x - s/2, p.y - s/2, s, s);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// -- Mecha info tooltip --
+function drawMechaTooltip(ctx, x, y, mechaType, level, L, G) {
+  const base = CONFIG.MECHA[mechaType];
+  const w = 160;
+  const h = 100;
+  const tx = Math.min(x, G._canvasW - w - 10);
+  const ty = Math.max(y - h - 10, 5);
+  // Background
+  ctx.fillStyle = 'rgba(10,10,20,0.95)';
+  ctx.fillRect(tx, ty, w, h);
+  ctx.strokeStyle = COL.energyCyan;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(tx, ty, w, h);
+  // Content
+  ctx.fillStyle = COL.uiWhite;
+  ctx.font = `bold 12px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  const names = [L.mecha_1, L.mecha_2, L.mecha_3, L.mecha_4, L.mecha_5];
+  ctx.fillText(names[mechaType] || base.name, tx + 8, ty + 6);
+  ctx.fillStyle = COL.gold;
+  ctx.font = `10px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(`Lv.${level + 1}`, tx + w - 35, ty + 8);
+  ctx.fillStyle = '#aaa';
+  ctx.font = `11px 'Segoe UI',system-ui,sans-serif`;
+  const atkVal = (base.atk * CONFIG.LEVEL_ATK_MULT[level]) | 0;
+  const cdVal = (base.cd * CONFIG.LEVEL_CD_MULT[level] / 1000).toFixed(1);
+  ctx.fillText(`${L.atk}: ${atkVal}`, tx + 8, ty + 28);
+  ctx.fillText(`${L.range}: ${base.range}`, tx + 8, ty + 44);
+  ctx.fillText(`${L.speed}: ${cdVal}s`, tx + 8, ty + 60);
+  ctx.fillText(`${L.cost}: ${base.cost}E`, tx + 8, ty + 76);
+  ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw minimap --
+function drawMinimap(ctx, x, y, w, h, G) {
+  ctx.fillStyle = 'rgba(10,10,20,0.8)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(100,100,140,0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+  const cellW = w / G.cols;
+  const cellH = h / G.rows;
+  for (let r = 0; r < G.rows; r++) {
+    for (let c = 0; c < G.cols; c++) {
+      const idx = r * G.cols + c;
+      const cx = x + c * cellW;
+      const cy = y + r * cellH;
+      if (G.grid[idx] === 2) {
+        ctx.fillStyle = 'rgba(60,60,80,0.8)';
+        ctx.fillRect(cx, cy, cellW, cellH);
+      } else if (G.grid[idx] === 1) {
+        ctx.fillStyle = COL.mechaBlue;
+        ctx.fillRect(cx, cy, cellW, cellH);
+      } else if (G.grid[idx] === 3) {
+        ctx.fillStyle = 'rgba(229,57,53,0.5)';
+        ctx.fillRect(cx, cy, cellW, cellH);
+      } else if (G.grid[idx] === 4) {
+        ctx.fillStyle = COL.energyCyan;
+        ctx.fillRect(cx, cy, cellW, cellH);
+      }
+    }
+  }
+  // Enemy dots
+  for (const e of G.enemies) {
+    if (!e.alive || !e.spawned) continue;
+    const ex = x + (e.x - G._gridOffX) / G.cellSize * cellW;
+    const ey = y + (e.y - G._gridOffY) / G.cellSize * cellH;
+    ctx.fillStyle = COL.enemyRed;
+    ctx.fillRect(ex - 1, ey - 1, 2, 2);
+  }
+  // Boss dot
+  if (G.boss && G.boss.alive) {
+    const bxm = x + (G.boss.x - G._gridOffX) / G.cellSize * cellW;
+    const bym = y + (G.boss.y - G._gridOffY) / G.cellSize * cellH;
+    ctx.fillStyle = COL.bossPurple;
+    ctx.fillRect(bxm - 2, bym - 2, 4, 4);
+  }
+}
+
+// -- Environmental detail: animated background objects --
+function drawZoneDetails(ctx, w, h, zone, time) {
+  // Zone 0: City — building silhouettes and fire
+  if (zone === 0) {
+    ctx.fillStyle = 'rgba(20,20,30,0.3)';
+    // Buildings
+    const buildings = [
+      { x: w*0.05, w: w*0.06, h: h*0.25 },
+      { x: w*0.15, w: w*0.05, h: h*0.35 },
+      { x: w*0.25, w: w*0.07, h: h*0.20 },
+      { x: w*0.75, w: w*0.06, h: h*0.30 },
+      { x: w*0.85, w: w*0.05, h: h*0.22 },
+      { x: w*0.92, w: w*0.04, h: h*0.28 }
+    ];
+    buildings.forEach(b => {
+      ctx.fillRect(b.x, h * 0.02, b.w, b.h);
+      // Flickering fire on some buildings
+      if (Math.sin(time * 3 + b.x) > 0.5) {
+        ctx.fillStyle = 'rgba(255,100,30,0.06)';
+        ctx.fillRect(b.x, h * 0.02, b.w, b.h * 0.3);
+        ctx.fillStyle = 'rgba(20,20,30,0.3)';
+      }
+    });
+    // Smoke columns
+    for (let i = 0; i < 4; i++) {
+      const sx = w * 0.1 + i * w * 0.25;
+      const sy = h * 0.05 + Math.sin(time * 0.5 + i * 2) * 10;
+      ctx.fillStyle = 'rgba(80,80,100,0.04)';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 15 + Math.sin(time + i) * 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 5, sy - 15, 10 + Math.sin(time * 0.7 + i) * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Zone 1: Industrial — steam pipes and gears
+  else if (zone === 1) {
+    // Rotating gears
+    for (let i = 0; i < 4; i++) {
+      const gx = w * (0.1 + i * 0.25);
+      const gy = h * 0.06;
+      const radius = 18 + i * 3;
+      ctx.save();
+      ctx.translate(gx, gy);
+      ctx.rotate(time * (i % 2 === 0 ? 0.5 : -0.5));
+      ctx.strokeStyle = 'rgba(100,100,120,0.08)';
+      ctx.lineWidth = 2;
+      // Gear teeth
+      for (let t = 0; t < 8; t++) {
+        const a = Math.PI * 2 / 8 * t;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * radius, Math.sin(a) * radius);
+        ctx.lineTo(Math.cos(a) * (radius + 5), Math.sin(a) * (radius + 5));
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Steam bursts
+    for (let i = 0; i < 3; i++) {
+      const steamPhase = (time * 2 + i * 1.5) % 4;
+      if (steamPhase < 1) {
+        const sx = w * (0.2 + i * 0.3);
+        const alpha = 0.03 * (1 - steamPhase);
+        ctx.fillStyle = `rgba(200,200,220,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(sx, h * 0.12, 8 + steamPhase * 20, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  // Zone 2: Energy — pulsing pipeline network
+  else if (zone === 2) {
+    const pulseAlpha = 0.03 + Math.sin(time * 4) * 0.02;
+    ctx.strokeStyle = `rgba(0,229,255,${pulseAlpha})`;
+    ctx.lineWidth = 2;
+    // Horizontal pipes
+    for (let i = 0; i < 4; i++) {
+      const py = h * (0.03 + i * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(0, py);
+      ctx.lineTo(w, py);
+      ctx.stroke();
+    }
+    // Vertical connectors
+    for (let i = 0; i < 6; i++) {
+      const px = w * (0.1 + i * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(px, h * 0.03);
+      ctx.lineTo(px, h * 0.18);
+      ctx.stroke();
+    }
+    // Energy nodes (pulsing circles at intersections)
+    for (let i = 0; i < 6; i++) {
+      for (let j = 0; j < 4; j++) {
+        if ((i + j) % 3 !== 0) continue;
+        const nx = w * (0.1 + i * 0.16);
+        const ny = h * (0.03 + j * 0.05);
+        const nAlpha = 0.05 + Math.sin(time * 3 + i + j) * 0.03;
+        ctx.fillStyle = `rgba(0,229,255,${nAlpha})`;
+        ctx.beginPath();
+        ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Electric arc effect
+    ctx.strokeStyle = `rgba(0,229,255,${0.02 + Math.sin(time * 12) * 0.02})`;
+    ctx.lineWidth = 1;
+    for (let a = 0; a < 2; a++) {
+      ctx.beginPath();
+      const startX = w * (0.2 + a * 0.5);
+      let arcY = h * 0.1;
+      ctx.moveTo(startX, arcY);
+      for (let px = 0; px < w * 0.3; px += 8) {
+        arcY = h * 0.1 + Math.sin((startX + px) * 0.1 + time * 8) * 4;
+        ctx.lineTo(startX + px, arcY);
+      }
+      ctx.stroke();
+    }
+  }
+  // Zone 3: Bunker — emergency lights, cracks
+  else if (zone === 3) {
+    // Emergency light sweep
+    const sweepAngle = time * 1.5;
+    const lightX = w * 0.5 + Math.cos(sweepAngle) * w * 0.3;
+    const lightAlpha = 0.03 + Math.sin(time * 6) * 0.015;
+    const grad = ctx.createRadialGradient(lightX, h * 0.02, 0, lightX, h * 0.02, 80);
+    grad.addColorStop(0, `rgba(229,57,53,${lightAlpha})`);
+    grad.addColorStop(1, 'rgba(229,57,53,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h * 0.2);
+    // Wall cracks
+    ctx.strokeStyle = 'rgba(60,60,70,0.15)';
+    ctx.lineWidth = 1;
+    const cracks = [
+      [w*0.1, 0, w*0.12, h*0.08, w*0.15, h*0.04],
+      [w*0.7, 0, w*0.72, h*0.06, w*0.68, h*0.1],
+      [w*0.45, 0, w*0.47, h*0.05, w*0.44, h*0.09, w*0.46, h*0.12]
+    ];
+    cracks.forEach(pts => {
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      for (let i = 2; i < pts.length; i += 2) {
+        ctx.lineTo(pts[i], pts[i+1]);
+      }
+      ctx.stroke();
+    });
+  }
+  // Zone 4: Command — holographic tactical display
+  else if (zone === 4) {
+    // Holographic grid
+    ctx.strokeStyle = 'rgba(255,215,0,0.03)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 15; i++) {
+      const ly = h * 0.02 + i * h * 0.012;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.1, ly);
+      ctx.lineTo(w * 0.9, ly);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 20; i++) {
+      const lx = w * 0.1 + i * w * 0.04;
+      ctx.beginPath();
+      ctx.moveTo(lx, h * 0.02);
+      ctx.lineTo(lx, h * 0.2);
+      ctx.stroke();
+    }
+    // Scanning line
+    const scanY = h * 0.02 + ((time * 30) % (h * 0.18));
+    ctx.strokeStyle = 'rgba(255,215,0,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.1, scanY);
+    ctx.lineTo(w * 0.9, scanY);
+    ctx.stroke();
+    // Status indicators (small blinking dots)
+    for (let i = 0; i < 8; i++) {
+      const dx = w * (0.12 + i * 0.1);
+      const dy = h * 0.04;
+      const on = Math.sin(time * 2 + i * 0.7) > 0;
+      if (on) {
+        ctx.fillStyle = i < 5 ? 'rgba(0,255,135,0.12)' : 'rgba(229,57,53,0.12)';
+        ctx.fillRect(dx - 2, dy - 2, 4, 4);
+      }
+    }
+    // Golden beam from center
+    const beamAlpha = 0.02 + Math.sin(time * 2) * 0.01;
+    const beamGrad = ctx.createRadialGradient(w/2, h * 0.1, 0, w/2, h * 0.1, 60);
+    beamGrad.addColorStop(0, `rgba(255,215,0,${beamAlpha})`);
+    beamGrad.addColorStop(1, 'rgba(255,215,0,0)');
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(w * 0.3, 0, w * 0.4, h * 0.2);
+  }
+}
+
+// -- Extended LANG entries for missing UI text --
+// Already defined in LANG but extend runtime
+(function extendLang() {
+  const addKo = {
+    mechaInfo: '유닛 정보', waveInfo: '웨이브 정보',
+    noDamageBonus: '무피해 보너스!', bossWeakpoint: '약점 노출!',
+    acidRain: '산성비', empStorm: 'EMP 폭풍', magStorm: '자기 폭풍',
+    shieldActive: '실드 활성', stunned: '스턴!',
+    critHit: '치명타!', chainHit: '체인!',
+    runSummary: '출격 요약', killCount: '처치 수',
+    wavesCleared: '클리어 웨이브', partsCollected: '수집 부품',
+    tip1: '메카를 전략적으로 배치하세요',
+    tip2: '경로를 유도하면 효율이 올라갑니다',
+    tip3: '야간에는 사거리가 줄어듭니다',
+    tip4: '보스의 약점이 노출될 때 공격하세요',
+    tip5: '부품으로 메카를 강화하세요'
+  };
+  const addEn = {
+    mechaInfo: 'Unit Info', waveInfo: 'Wave Info',
+    noDamageBonus: 'No Damage Bonus!', bossWeakpoint: 'Weakpoint Exposed!',
+    acidRain: 'Acid Rain', empStorm: 'EMP Storm', magStorm: 'Mag Storm',
+    shieldActive: 'Shield Active', stunned: 'Stunned!',
+    critHit: 'Critical!', chainHit: 'Chain!',
+    runSummary: 'Run Summary', killCount: 'Kills',
+    wavesCleared: 'Waves Cleared', partsCollected: 'Parts Collected',
+    tip1: 'Place mechas strategically',
+    tip2: 'Maze the path for efficiency',
+    tip3: 'Night reduces range',
+    tip4: 'Attack when boss weakpoint is exposed',
+    tip5: 'Upgrade mechas with parts'
+  };
+  Object.assign(LANG.ko, addKo);
+  Object.assign(LANG.en, addEn);
+})();
+
+// -- Draw selection info panel (shown during PLACEMENT) --
+function drawSelectionInfo(ctx, x, y, G, L) {
+  if (G.state !== STATES.PLACEMENT) return;
+  const mType = G.selectedMecha;
+  const base = CONFIG.MECHA[mType];
+  if (!base) return;
+  const panelW = 130;
+  const panelH = 80;
+  // Background
+  ctx.fillStyle = 'rgba(10,10,20,0.9)';
+  ctx.fillRect(x, y, panelW, panelH);
+  ctx.strokeStyle = 'rgba(0,229,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, panelW, panelH);
+  // Mecha name
+  const names = [L.mecha_1, L.mecha_2, L.mecha_3, L.mecha_4, L.mecha_5];
+  ctx.fillStyle = COL.energyCyan;
+  ctx.font = `bold 11px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(names[mType], x + 6, y + 4);
+  // Stats
+  ctx.fillStyle = '#aaa';
+  ctx.font = `10px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(`${L.atk}: ${base.atk}  ${L.range}: ${base.range}`, x + 6, y + 22);
+  ctx.fillText(`${L.speed}: ${(base.cd / 1000).toFixed(1)}s`, x + 6, y + 38);
+  ctx.fillStyle = COL.gold;
+  ctx.fillText(`${L.cost}: ${base.cost}E`, x + 6, y + 54);
+  ctx.textBaseline = 'alphabetic';
+}
+
+// -- Draw run summary (shown at gameover/victory) --
+function drawRunSummary(ctx, x, y, w, h, G, L) {
+  ctx.fillStyle = 'rgba(10,10,20,0.95)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(100,100,140,0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.gold;
+  ctx.font = `bold 14px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(L.runSummary, x + w/2, y + 18);
+  ctx.fillStyle = '#aaa';
+  ctx.font = `12px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(`${L.zone}: ${G.zone + 1}`, x + w/2, y + 40);
+  ctx.fillText(`${L.killCount}: ${G._killCount || 0}`, x + w/2, y + 58);
+  ctx.fillText(`${L.partsCollected}: ${G.parts.length}`, x + w/2, y + 76);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Mecha shield aura rendering --
+function drawShieldAuras(ctx, mechas, cellSize, gridOffX, gridOffY, time) {
+  for (const m of mechas) {
+    if (!m.active || m.type !== 2) continue;
+    const mx = gridOffX + m.col * cellSize + cellSize/2;
+    const my = gridOffY + m.row * cellSize + cellSize/2;
+    const range = m.range * cellSize;
+    const alpha = 0.06 + Math.sin(time * 2) * 0.03;
+    ctx.strokeStyle = `rgba(33,150,243,${alpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(mx, my, range, 0, Math.PI * 2);
+    ctx.stroke();
+    // Shield effect on nearby mechas
+    for (const m2 of mechas) {
+      if (m2 === m || !m2.active || m2.type === 2) continue;
+      const dx = (m2.col - m.col) * cellSize;
+      const dy = (m2.row - m.row) * cellSize;
+      if (Math.sqrt(dx*dx + dy*dy) <= range) {
+        const m2x = gridOffX + m2.col * cellSize + cellSize/2;
+        const m2y = gridOffY + m2.row * cellSize + cellSize/2;
+        ctx.fillStyle = `rgba(33,150,243,${alpha * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(m2x, m2y, cellSize * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+// -- Loading screen with progress bar --
+function drawLoadingScreen(ctx, w, h, progress, L) {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, w, h);
+  // Mecha silhouette
+  ctx.fillStyle = 'rgba(74,144,217,0.1)';
+  ctx.font = `bold ${Math.min(80, w*0.15)}px 'Segoe UI',system-ui,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('⬡', w/2, h * 0.35);
+  // Loading text
+  ctx.fillStyle = COL.uiWhite;
+  ctx.font = `14px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(L.loading, w/2, h * 0.55);
+  // Progress bar
+  const barW = Math.min(200, w * 0.5);
+  const barH = 4;
+  const barX = (w - barW) / 2;
+  const barY = h * 0.6;
+  ctx.fillStyle = 'rgba(40,40,60,0.5)';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = COL.energyCyan;
+  ctx.fillRect(barX, barY, barW * progress, barH);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Grid cell info on hover (during placement) --
+function drawCellInfo(ctx, hoverIdx, G, L) {
+  if (hoverIdx === null || G.state !== STATES.PLACEMENT) return;
+  const cell = G.grid[hoverIdx];
+  const r = (hoverIdx / G.cols) | 0;
+  const c = hoverIdx % G.cols;
+  const mx = G._gridOffX + c * G.cellSize;
+  const my = G._gridOffY + r * G.cellSize;
+  // Check for existing mecha
+  const existing = G.mechas.find(m => m.row === r && m.col === c && m.active);
+  if (existing) {
+    drawMechaTooltip(ctx, mx, my, existing.type, existing.level, L, G);
+  }
+}
+
+// -- Wave countdown display --
+function drawWaveCountdown(ctx, w, h, waveNum, maxWave, zone, L) {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,229,255,0.7)';
+  ctx.font = `bold 11px 'Segoe UI',system-ui,sans-serif`;
+  ctx.fillText(`${L.wave} ${waveNum + 1}/${maxWave}`, w / 2, 14);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// -- Star field background effect for title/victory --
+function drawStarfield(ctx, w, h, time) {
+  for (let i = 0; i < 50; i++) {
+    // Deterministic star positions using sine
+    const sx = (w * (0.5 + Math.sin(i * 7.13) * 0.5));
+    const sy = (h * (0.5 + Math.cos(i * 11.37) * 0.5));
+    const brightness = 0.2 + Math.sin(time * 0.5 + i * 2.1) * 0.15;
+    const size = 0.5 + Math.sin(i * 3.7) * 0.5;
+    ctx.fillStyle = `rgba(200,200,240,${brightness})`;
+    ctx.fillRect(sx, sy, size, size);
+  }
+}
+
+// -- Integrate extended drawing into main render --
+// We hook into the existing render by replacing addParticle
+const _origAddParticle = G._addParticle;
+G._addParticle = function(x, y, type) {
+  // Use enhanced particles when possible
+  if (G.rng && PARTICLE_COLORS[type]) {
+    spawnParticlesBurst(x, y, type, type === 'boss_death' ? 20 : type === 'explosion' ? 10 : 6, G.rng);
+  } else {
+    _origAddParticle(x, y, type);
+  }
+};
+</script>
+</body>
+</html>

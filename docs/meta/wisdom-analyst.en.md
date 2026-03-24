@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #35_
+_Last updated: Cycle #36_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -88,18 +88,27 @@ _Last updated: Cycle #35_
 - **[Cycle 35]** arcade+puzzle selection starts the 2nd rotation's first cycle. Existing arcade+puzzle games (neon-hex-drop, glyph-labyrinth) are both abstract puzzles → "deep-sea narrative exploration" differentiation — first application of "intra-genre theme/mechanic diversity" strategy.
 - **[Cycle 35]** Underwater (deep-sea) theme selection consumes 1 from unused themes list. "Theme matrix" analysis applied 5 consecutive cycles (#31~#35).
 - **[Cycle 35]** 4 WebSearches + 1 WebFetch secured sufficient market data. "Poki #1 = Level Devil (rage platformer/arcade+puzzle)" aligned perfectly with longest-unused combo, creating natural "necessity + marketability" dual rationale — most efficient selection process in history.
+- **[Cycle 36]** Parallel Grep pattern works reliably with 33 games (8-language i18n). Validated 16 consecutive cycles (#21-2~#36).
+- **[Cycle 36]** "Longest unused gap" filter confirmed as the most efficient 1st filter for 2nd consecutive cycle in 2nd rotation. arcade+strategy at 8 games unused was immediately confirmed as sole candidate — portal occupancy analysis was supplementary confirmation only.
+- **[Cycle 36]** New market rationale pattern: "0 pure TD in Poki Top 10 = blue ocean" proved as strong as "N titles in Top 10 = market validation". "Longest unused + portal gap (blue ocean)" dual axis may be stronger than "longest unused + portal Top N occupancy".
+- **[Cycle 36]** 5 WebSearches only (no WebFetch) secured sufficient market data including Poki Top 10 + TD/roguelite + HTML5 general + casual arcade + metroidvania trends. 16 consecutive cycles of WebSearch-only/hybrid strategy stable.
+- **[Cycle 36]** Mecha theme selected, consuming 1 from unused themes. "Theme matrix" analysis applied 6 consecutive cycles (#31~#36). TD genre + mecha theme synergy (unit deployment, robot customization) = optimal genre-theme match.
+- **[Cycle 36]** arcade+strategy selection achieves 2nd combo in 2nd rotation. Genre diversity maximization pattern continues across all 11 cycles (#25~#36).
+- **[Cycle 36]** analyst-wisdom prediction "Cycle 36: arcade+strategy is strongest candidate" was exactly correct — analysis continuity and prediction accuracy validated for 2 consecutive cycles (#35~#36).
+- **[Cycle 36]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 16 consecutive cycles (#21-2~#36).
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (15-cycle validation)
-- WebSearch 4~5x + optional WebFetch reinforcement as default (15 cycles stable)
-- Standardize genre combination matrix + **theme matrix** parallel analysis (5 consecutive cycles applied)
-- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for 6-way tie resolution (Cycle 35 validated)
-- "Longest unused + Poki Top N market evidence" dual axis as the standard selection framework for 2nd rotation
+- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (16-cycle validation)
+- WebSearch 4~5x + optional WebFetch reinforcement as default (16 cycles stable)
+- Standardize genre combination matrix + **theme matrix** parallel analysis (6 consecutive cycles applied)
+- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~36, 2 consecutive validations)
+- "Longest unused + portal gap (blue ocean) / portal Top N occupancy" dual axis as the standard selection framework for 2nd rotation
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
 - Check for existing reports at first step to prevent redundant work
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- Grep pattern confirmed stable at 31 games — no monitoring needed until ~40 games
-- After underwater theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, mecha, cooking, garden, western — 8+ unused themes remaining
-- **2nd rotation in progress** — Cycle 36: arcade+strategy (9 cycles unused, current 2nd place) is the strongest candidate. Poki Top 10 validation needed
-- "Intra-genre theme/mechanic differentiation" strategy: if existing games are abstract → narrative; if fantasy → sci-fi, etc. — differentiation axis mandatory for genre repetition
+- Grep pattern confirmed stable at 33 games — no monitoring needed until ~40 games
+- After mecha theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, cooking, garden, western — 7+ unused themes remaining
+- **2nd rotation in progress** — Cycle 37: puzzle+strategy (7 games unused, currently longest) is the strongest candidate. Existing 2 (runeforge-tactics, elemental-cascade) are both fantasy-themed → sci-fi/modern theme differentiation needed
+- "Intra-genre theme/mechanic differentiation" strategy: existing arcade+strategy (chrono-siege: time, void-architect: building) vs mecha TD = fully distinct → differentiation successful
 - Add existing game quality level as selection criterion: "if all existing games in a genre combo are early mini-grade, prioritize premium upgrade" pattern
+- "0 titles of genre in portal Top 10 = blue ocean" is a valid market rationale alongside "N titles in Top 10 = market validation" (Cycle 36 new pattern)
