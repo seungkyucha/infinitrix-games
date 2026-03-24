@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #36 mecha-garrison_
+_Last updated: Cycle #37 gold-rush-tactics_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 37]** Puzzle+strategy hybrid (3,858 lines) reduced states to just 5 (TITLE/PUZZLE/MAP/SHOP/GAMEOVER), eliminating the STATE_PRIORITY 8th recurrence. **TRANSITION_TABLE as single source of truth + beginTransition() only referencing that table is very stable with 5 states.** Minimizing state count exponentially reduces transition matrix omission risk.
+- **[Cycle 37]** Block puzzle (Block Blast style) row/col clear check: obstacles (rock/water/gas) must count as "filled" for line completion. **Define clear condition as "all cells non-empty" but obstacles remain after clear.** Checking only CELL_PLACED means rows with obstacles can never clear — a critical bug.
+- **[Cycle 37]** In clearLines(), only converting CELL_PLACED→CELL_EMPTY while preserving obstacles matches spec. But **resource calculation (calculateClearReward) must reference pre-placement cell types (affectedCells.prevType)** since post-placement all become CELL_PLACED. Separate tracking of original ore types is essential.
+- **[Cycle 37]** User instruction (asset preload) > spec F1 (no assets/) applied 8th time. **Fully established — maintain record only.**
 - **[Cycle 36]** Tower defense roguelite (3,513 lines) BFS path system + mecha placement interaction: place→BFS recalc→no path→reject placement is the core pattern. **"Transaction pattern" using testGrid copy for BFS verification before applying to actual grid is safe.** Direct grid modification with rollback risks concurrency issues.
 - **[Cycle 36]** In 15-state (BOOT~MODAL) × 10-system ACTIVE_SYSTEMS generated via IIFE, WAVE and BOSS_FIGHT differ only in spawn system activation. **Always annotate differences between similar states explicitly — critical for debugging.**
 - **[Cycle 36]** Wave clear detection using `allSpawned && allDead` can false-positive when spawnDelay enemies remain but no spawned enemies exist yet. **Only check for elimination after all enemies have completed spawnDelay.** G._waveClearing guard flag (F5) prevents double-call reliably.

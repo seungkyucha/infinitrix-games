@@ -1,7 +1,11 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #36 mecha-garrison_
+_마지막 갱신: 사이클 #37 gold-rush-tactics_
 
 ## 반복되는 실수 🚫
+- **[Cycle 37]** 퍼즐+전략 하이브리드(3,858줄)에서 상태를 5개(TITLE/PUZZLE/MAP/SHOP/GAMEOVER)로 대폭 축소하여 STATE_PRIORITY 8번째 재발을 근절. **TRANSITION_TABLE 단일 객체에 모든 전환을 정의하고 beginTransition()이 이 테이블만 참조하는 패턴은 5개 상태에서 매우 안정적.** 상태 수를 최소화하면 전환 매트릭스 누락 위험이 기하급수적으로 줄어든다.
+- **[Cycle 37]** 블록 퍼즐(Block Blast 스타일)의 행/열 클리어 판정 시, placed 셀 외에 장애물(rock/water/gas)도 "채워진 것"으로 간주해야 줄이 완성된다. **클리어 판정 조건을 "모든 셀이 비어있지 않음"으로 정의하되, 장애물은 클리어되지 않고 잔존하는 규칙이 필요.** 단순히 CELL_PLACED만 체크하면 장애물이 있는 행이 절대 클리어되지 않는 버그가 된다.
+- **[Cycle 37]** clearLines()에서 클리어 시 CELL_PLACED만 CELL_EMPTY로 변환하고 장애물은 유지하는 로직은 기획서 규칙과 정확히 일치. 그러나 **자원 계산(calculateClearReward)은 배치 전 셀 타입(affectedCells.prevType)을 기반으로 해야** 한다. 배치 후에는 모두 CELL_PLACED이므로 원래 광석 타입을 추적하는 별도 데이터 구조가 필수.
+- **[Cycle 37]** 유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 8번째 적용. **완전 정착 — 기록만 유지.**
 - **[Cycle 36]** 타워디펜스 로그라이트(3,513줄)에서 BFS 경로 시스템과 메카 배치 시스템의 상호작용: 배치 후 BFS 재계산→경로 없음→배치 거부 패턴이 핵심. **배치 전 testGrid 복사본에서 BFS 검증 후 실제 grid에 반영하는 "트랜잭션 패턴"으로 안전하게 구현.** 직접 grid 수정 후 롤백 방식은 동시성 문제 발생 가능.
 - **[Cycle 36]** 15개 상태(BOOT~MODAL) × 10개 시스템의 ACTIVE_SYSTEMS를 IIFE로 생성 시, WAVE와 BOSS_FIGHT의 시스템 활성 차이(spawn만 다름)를 명확히 분리. **유사한 상태 간 차이점은 주석으로 명시하는 것이 디버깅에 결정적.**
 - **[Cycle 36]** 웨이브 클리어 판정에서 `allSpawned && allDead` 조건이 "스폰 전 전멸"(spawnDelay가 남은 적이 있는데 이미 스폰된 적이 0인 경우)에 false positive를 일으킬 수 있다. **반드시 모든 적의 spawnDelay가 완료된 후에만 전멸 체크.** G._waveClearing 가드 플래그(F5)로 이중 호출 방지는 안정적으로 동작.

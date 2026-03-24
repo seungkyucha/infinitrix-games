@@ -1,5 +1,5 @@
 # Designer Accumulated Wisdom
-_Last updated: Cycle #36 mecha-garrison_
+_Last updated: Cycle #37 gold-rush-tactics_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
@@ -132,6 +132,14 @@ _Last updated: Cycle #36 mecha-garrison_
 - **[Cycle 33]** bg-layer2 "Japanese garden trio" (torii gate + stone lanterns + bamboo groves) as focal points instantly conveys Sengoku-era Japan. Red torii gate achieves strong visual impact with minimal elements (4 rects) — excellent KB efficiency.
 - **[Cycle 33]** Cherry blossom petals (sakura) implemented via ellipse+transform="rotate()" — simple technique that dramatically enhances Japanese atmosphere. Just 13 petals scattered provide powerful seasonal/cultural context. Established as essential decoration for ninja/Japanese themes.
 - **[Cycle 33]** Thumbnail "ninja vs boss standoff" composition: ninja (action pose + shuriken + katana + flowing scarf) on left, oni boss (horns + flame eyes + claws) on right, flying shuriken in center, moonlit castle + bamboo backdrop. Asymmetric confrontation composition effectively conveys action game tension.
+
+- **[Cycle 37]** thumbnail.svg first pass 19KB under 20KB target → added wagon wheel tracks, horse silhouette, scattered coins, dried bushes, lantern glow, gold dust particles, subtitle text ("PUZZLE × STRATEGY") to reach 21.7KB. **For western themes, wagon tracks, horse silhouettes, coins, dried vegetation, and lanterns are effective KB boosters.** Thumbnail continues to require enhancement pass in most cycles.
+- **[Cycle 37]** "Golden glow (#FFD700)" signature consistently applied across ALL assets — player (golden aura + gold nugget in hand), enemy (brass ammo belt + skull buckle), ui-star ($ symbol sheriff badge), ui-heart (gold frame), powerup (lit dynamite + gold sparks), effect-hit (gold fragment scatter + dust clouds), thumbnail (3 gold ore cells glowing + scattered nuggets). **"Gold Rush golden light" visual language permeates all assets and instantly communicates western mining theme.**
+- **[Cycle 37]** 5-stage sunset gradient (#1A2A4E→#2C4A6E→#C75B39→#E8A040→#FFD080) effectively establishes western atmosphere. Dark navy top to golden bottom transition clearly conveys golden hour time of day.
+- **[Cycle 37]** Character good/evil contrast strategy: player (brown cowboy hat + light shirt + leather vest) vs enemy (black hat + dark duster coat + ammo belt). Brightness difference alone enables instant "good miner vs evil outlaw" identification.
+- **[Cycle 37]** Western town near-scene (bg-layer2): saloon + general store + sheriff office + water tower (4 building focals) + 2 cactus varieties + rock formations + mine cart rails + wooden fence + lantern + horse trough. **For western themes, 4+ buildings + 3+ natural elements + 3+ man-made props sufficiently convey frontier town atmosphere.**
+- **[Cycle 37]** Thumbnail center: 8×8 mining grid (gold/silver/copper ore + placed blocks + rock obstacles) instantly communicates puzzle genre. Left player + right enemy + center grid = "puzzle strategy hybrid" composition.
+- **[Cycle 37]** Asset size results: player(7.8KB)✅, enemy(8KB)✅, bg-layer1(11KB)✅, bg-layer2(13.8KB)✅, ui-heart(3.1KB)✅, ui-star(4.4KB)✅, powerup(5.6KB)✅, effect-hit(5.9KB)✅, thumbnail(21.7KB, 1 boost). **All assets except thumbnail passed on first attempt.**
 
 ## Next Cycle Action Items 🎯
 - **Minimize reinforcement passes**: Cycle 33 had only thumbnail needing 1 boost — 5 consecutive cycles of thumbnail-only reinforcement (Cycles 29/31/32/33). **For thumbnail first-pass 20KB+, always include: ① rain/snow/particle streaks 15+, ② ground texture/stepping stones, ③ decorative architecture (lanterns/lamps/signs), ④ branch/petal clusters, ⑤ smoke/fog wisps, ⑥ watermark kanji/runes, ⑦ grain texture overlay.**

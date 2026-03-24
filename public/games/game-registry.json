@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-24T03:04:19.387Z",
-  "totalGames": 34,
+  "lastUpdated": "2026-03-24T07:20:31.321Z",
+  "totalGames": 35,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -6356,6 +6356,201 @@
             "Espaço: Iniciar onda/Avanço rápido",
             "Esc: Pausa",
             "Toque: Tocar para posicionar, segurar para vender"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gold-rush-tactics",
+      "title": "골드러시 택틱스",
+      "description": "8×8 광산에서 블록을 배치해 금맥을 캐고 마을을 건설하세요!",
+      "genre": [
+        "puzzle",
+        "strategy"
+      ],
+      "thumbnail": "/games/gold-rush-tactics/assets/thumbnail.svg",
+      "path": "/games/gold-rush-tactics/index.html",
+      "addedAt": "2026-03-24T07:20:31.321Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "퍼즐",
+        "전략",
+        "골드러시",
+        "광산",
+        "블록배치",
+        "마을건설",
+        "서부"
+      ],
+      "controls": [
+        "마우스: 블록 드래그로 배치, 호버로 미리보기",
+        "키보드: 1/2/3 블록 선택, 방향키 이동, Space 확정",
+        "터치: 탭+드래그 배치, 더블탭 도구 사용, 롱프레스 정보",
+        "Q/E: 도구 사용 (곡괭이/다이너마이트)",
+        "Esc: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Gold Rush Tactics",
+          "description": "Place blocks in an 8×8 mine to dig gold veins and build your town!",
+          "tags": [
+            "puzzle",
+            "strategy",
+            "gold rush",
+            "mining",
+            "block placement",
+            "town building",
+            "western"
+          ],
+          "controls": [
+            "Mouse: Drag blocks to place, hover to preview",
+            "Keyboard: 1/2/3 select block, Arrow keys to move, Space to confirm",
+            "Touch: Tap+drag to place, double-tap to use tool, long-press for info",
+            "Q/E: Use tools (pickaxe/dynamite)",
+            "Esc: Pause"
+          ]
+        },
+        "ja": {
+          "title": "ゴールドラッシュ・タクティクス",
+          "description": "8×8の鉱山にブロックを配置して金脈を掘り、町を建設しよう！",
+          "tags": [
+            "パズル",
+            "戦略",
+            "ゴールドラッシュ",
+            "採掘",
+            "ブロック配置",
+            "町づくり",
+            "西部劇"
+          ],
+          "controls": [
+            "マウス: ブロックをドラッグして配置、ホバーでプレビュー",
+            "キーボード: 1/2/3でブロック選択、矢印キーで移動、Spaceで確定",
+            "タッチ: タップ+ドラッグで配置、ダブルタップでツール使用、長押しで情報",
+            "Q/E: ツール使用（つるはし/ダイナマイト）",
+            "Esc: 一時停止"
+          ]
+        },
+        "zh-CN": {
+          "title": "淘金战术",
+          "description": "在8×8矿山中放置方块，挖掘金脉并建设城镇！",
+          "tags": [
+            "益智",
+            "策略",
+            "淘金热",
+            "采矿",
+            "方块放置",
+            "城镇建设",
+            "西部"
+          ],
+          "controls": [
+            "鼠标：拖拽方块放置，悬停预览",
+            "键盘：1/2/3选择方块，方向键移动，空格确认",
+            "触屏：点击拖拽放置，双击使用工具，长按查看信息",
+            "Q/E：使用工具（镐/炸药）",
+            "Esc：暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "淘金戰術",
+          "description": "在8×8礦山中放置方塊，挖掘金脈並建設城鎮！",
+          "tags": [
+            "益智",
+            "策略",
+            "淘金熱",
+            "採礦",
+            "方塊放置",
+            "城鎮建設",
+            "西部"
+          ],
+          "controls": [
+            "滑鼠：拖曳方塊放置，懸停預覽",
+            "鍵盤：1/2/3選擇方塊，方向鍵移動，空白鍵確認",
+            "觸控：點擊拖曳放置，雙擊使用工具，長按查看資訊",
+            "Q/E：使用工具（鋤頭/炸藥）",
+            "Esc：暫停"
+          ]
+        },
+        "es": {
+          "title": "Tácticas de la Fiebre del Oro",
+          "description": "¡Coloca bloques en una mina 8×8 para extraer oro y construir tu pueblo!",
+          "tags": [
+            "puzle",
+            "estrategia",
+            "fiebre del oro",
+            "minería",
+            "colocación de bloques",
+            "construcción",
+            "western"
+          ],
+          "controls": [
+            "Ratón: Arrastra bloques para colocar, pasa el cursor para previsualizar",
+            "Teclado: 1/2/3 seleccionar bloque, Flechas para mover, Espacio para confirmar",
+            "Táctil: Toca y arrastra para colocar, doble toque para usar herramienta, mantén para info",
+            "Q/E: Usar herramientas (pico/dinamita)",
+            "Esc: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Ruée vers l'Or : Tactiques",
+          "description": "Placez des blocs dans une mine 8×8 pour extraire l'or et construire votre ville !",
+          "tags": [
+            "puzzle",
+            "stratégie",
+            "ruée vers l'or",
+            "mine",
+            "placement de blocs",
+            "construction de ville",
+            "western"
+          ],
+          "controls": [
+            "Souris : Glissez les blocs pour placer, survolez pour prévisualiser",
+            "Clavier : 1/2/3 sélectionner un bloc, Flèches pour déplacer, Espace pour confirmer",
+            "Tactile : Appuyez et glissez pour placer, double-tap pour utiliser l'outil, appui long pour info",
+            "Q/E : Utiliser les outils (pioche/dynamite)",
+            "Échap : Pause"
+          ]
+        },
+        "de": {
+          "title": "Goldrausch-Taktik",
+          "description": "Platziere Blöcke in einer 8×8-Mine, grabe Goldadern und baue deine Stadt!",
+          "tags": [
+            "Puzzle",
+            "Strategie",
+            "Goldrausch",
+            "Bergbau",
+            "Blockplatzierung",
+            "Städtebau",
+            "Western"
+          ],
+          "controls": [
+            "Maus: Blöcke ziehen zum Platzieren, Hover für Vorschau",
+            "Tastatur: 1/2/3 Block wählen, Pfeiltasten bewegen, Leertaste bestätigen",
+            "Touch: Tippen+Ziehen zum Platzieren, Doppeltippen für Werkzeug, lange drücken für Info",
+            "Q/E: Werkzeuge benutzen (Spitzhacke/Dynamit)",
+            "Esc: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Táticas da Corrida do Ouro",
+          "description": "Coloque blocos em uma mina 8×8 para escavar ouro e construir sua cidade!",
+          "tags": [
+            "puzzle",
+            "estratégia",
+            "corrida do ouro",
+            "mineração",
+            "colocação de blocos",
+            "construção de cidade",
+            "western"
+          ],
+          "controls": [
+            "Mouse: Arraste blocos para posicionar, passe o cursor para pré-visualizar",
+            "Teclado: 1/2/3 selecionar bloco, Setas para mover, Espaço para confirmar",
+            "Toque: Toque e arraste para posicionar, toque duplo para usar ferramenta, pressione longo para info",
+            "Q/E: Usar ferramentas (picareta/dinamite)",
+            "Esc: Pausa"
           ]
         }
       }

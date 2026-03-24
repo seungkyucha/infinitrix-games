@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #36_
+_Last updated: Cycle #37_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -96,19 +96,28 @@ _Last updated: Cycle #36_
 - **[Cycle 36]** arcade+strategy selection achieves 2nd combo in 2nd rotation. Genre diversity maximization pattern continues across all 11 cycles (#25~#36).
 - **[Cycle 36]** analyst-wisdom prediction "Cycle 36: arcade+strategy is strongest candidate" was exactly correct — analysis continuity and prediction accuracy validated for 2 consecutive cycles (#35~#36).
 - **[Cycle 36]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 16 consecutive cycles (#21-2~#36).
+- **[Cycle 37]** 4 combinations tied at 2 (action+puzzle, action+casual, puzzle+strategy, arcade+casual) — "longest unused gap" filter confirmed sole candidate for 3 consecutive cycles (#35~#37). puzzle+strategy at 8 games unused was overwhelmingly longest — 2-game gap from runner-up (arcade+casual, 6 games) made additional analysis unnecessary. WebFetch successfully accessed GamerNotify + gamingpromax.com (review site access stable for 4 consecutive cycles).
+- **[Cycle 37]** Parallel Grep pattern works reliably with 34 games (8-language i18n). Validated 17 consecutive cycles (#21-2~#37).
+- **[Cycle 37]** "Longest unused + blue ocean + strongest market trend" triple axis achieved the strongest selection rationale in history. puzzle+strategy: 8 games unused + 0 in Poki Top 10 (blue ocean) + Blue Prince puzzle roguelike = 2025 GOTY #1 candidate.
+- **[Cycle 37]** 5 WebSearches + 2 WebFetch (GamerNotify + gamingpromax.com) secured detailed Poki Top 10 data. Review site WebFetch access stable for 4 cycles (#31~#32, #35, #37) — "review site WebFetch + portal WebSearch" hybrid strategy validated across 4 cycles.
+- **[Cycle 37]** puzzle+strategy selection achieves 3rd combo in 2nd rotation. All 12 cycles (#25~#37) used different combos — genre diversity maximization continues.
+- **[Cycle 37]** Western theme selected, consuming 1 from unused themes. "Theme matrix" analysis applied 7 consecutive cycles (#31~#37). Existing puzzle+strategy (runeforge-tactics, elemental-cascade) both fantasy → Western = complete differentiation.
+- **[Cycle 37]** analyst-wisdom prediction "Cycle 37: puzzle+strategy is strongest candidate" was exactly correct — analysis continuity and prediction accuracy validated for 3 consecutive cycles (#35~#37).
+- **[Cycle 37]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 17 consecutive cycles (#21-2~#37).
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (16-cycle validation)
-- WebSearch 4~5x + optional WebFetch reinforcement as default (16 cycles stable)
-- Standardize genre combination matrix + **theme matrix** parallel analysis (6 consecutive cycles applied)
-- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~36, 2 consecutive validations)
-- "Longest unused + portal gap (blue ocean) / portal Top N occupancy" dual axis as the standard selection framework for 2nd rotation
+- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (17-cycle validation)
+- WebSearch 5x + optional WebFetch reinforcement (review sites) as default (17 cycles stable)
+- Standardize genre combination matrix + **theme matrix** parallel analysis (7 consecutive cycles applied)
+- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~37, 3 consecutive validations)
+- "Longest unused + blue ocean + strongest market trend" triple axis as the standard selection framework for 2nd rotation (Cycle 37 achieved strongest rationale)
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
 - Check for existing reports at first step to prevent redundant work
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- Grep pattern confirmed stable at 33 games — no monitoring needed until ~40 games
-- After mecha theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, cooking, garden, western — 7+ unused themes remaining
-- **2nd rotation in progress** — Cycle 37: puzzle+strategy (7 games unused, currently longest) is the strongest candidate. Existing 2 (runeforge-tactics, elemental-cascade) are both fantasy-themed → sci-fi/modern theme differentiation needed
-- "Intra-genre theme/mechanic differentiation" strategy: existing arcade+strategy (chrono-siege: time, void-architect: building) vs mecha TD = fully distinct → differentiation successful
-- Add existing game quality level as selection criterion: "if all existing games in a genre combo are early mini-grade, prioritize premium upgrade" pattern
-- "0 titles of genre in portal Top 10 = blue ocean" is a valid market rationale alongside "N titles in Top 10 = market validation" (Cycle 36 new pattern)
+- Grep pattern confirmed stable at 34 games — no monitoring needed until ~40 games
+- After western theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, cooking, garden — 7 unused themes remaining
+- **2nd rotation in progress** — Cycle 38: action+casual (6 games unused, currently longest candidate) is the strongest candidate. Existing 2 (abyss-keeper, celestial-drift) are deep-sea/space themes → jungle/desert terrestrial theme differentiation needed
+- "Intra-genre theme/mechanic differentiation" strategy: existing puzzle+strategy (runeforge-tactics: fantasy rune, elemental-cascade: fantasy elements) vs Gold Rush Tactics (western mining) = fully distinct → differentiation successful
+- Add existing game quality level as selection criterion: "if all existing games in a genre combo are early mini-grade, prioritize premium upgrade" pattern maintained
+- "0 titles of genre in portal Top 10 = blue ocean" validated for 3 consecutive cycles (#35~#37) — arcade+puzzle, arcade+strategy, puzzle+strategy sequentially confirmed
+- WebFetch review site access stable for 4 cycles: GamerNotify + gamingpromax.com — prioritize these 2 sites in future

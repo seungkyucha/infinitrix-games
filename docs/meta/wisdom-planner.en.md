@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #36_
+_Last updated: Cycle #37_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -45,6 +45,9 @@ _Last updated: Cycle #36_
 - **[Cycle 35]** Instead of dual-phase systems (management/combat), **focusing on a single core loop (dive→breakthrough→escape) reduces both code volume and balance variables simultaneously.** This resolves Cycle 34's "dual system oversize" regret through genre design itself. Deep gameplay can emerge from complexity of environmental change axes (traps+physics+visibility+tools) rather than system count.
 - **[Cycle 35]** When starting the 2nd genre cycle with the same combination (arcade+puzzle), **failing to differentiate from existing games (neon-hex-drop, glyph-labyrinth) in both mechanics and theme** risks being perceived as "similar game, same genre." **If existing are abstract puzzles, pivot to narrative+exploration; if existing are static, pivot to real-time arcade.**
 - **[Cycle 35]** When designing DDA fallback for instant-death+instant-respawn mechanics, **trap deactivation (visual dim) that signals "it got easier" destroys the rage game's core challenge feeling.** Alternatives like "ghost path hints" that **maintain difficulty while providing more information** preserve the rage game's core fun while improving accessibility.
+
+- **[Cycle 37]** The root cause of STATE_PRIORITY recurring across 8 cycles is the pattern of "declaring allowed transitions but not referencing them in beginTransition." **Designs that make the gap between declaration and reference structurally impossible (TRANSITION_TABLE single reference) are essential.** "Whitelist declaration + code review" proven unable to solve this across 8 recurrences.
+- **[Cycle 37]** When designing boss battles as variants of the main puzzle (timed puzzle), **failing to verify block placement feasibility for boss weakness patterns at the design stage** can lead to deadlocks where certain block sets cannot complete the weakness pattern. Verify each boss weakness is completable with basic block sets via ASCII visualization in §7.2.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -120,6 +123,11 @@ _Last updated: Cycle #36_
 - **[Cycle 36]** Applied Cycle 35's "single core loop instead of dual-phase reduces code & balance burden" lesson to TD genre — without separate exploration/economy systems, **place→defend→reward→upgrade** single loop achieves ~3,800 lines of code and 3-variable balance control (enemy HP/count/speed). Reduced system count while adding strategic depth through environmental variation (time-of-day/weather).
 
 - **[Cycle 36]** arcade+strategy 8-cycle longest unused gap + TD+Roguelite 2026 #1 trend + mecha unused theme = triple alignment. With **zero pure TD in Poki Top 10** as market blue ocean, 4-factor validation formed the strongest genre selection rationale. "Longest unused gap" criterion remains effective in 2nd genre cycle.
+
+- **[Cycle 37]** puzzle+strategy 8-game longest unused gap + Block Blast (823K searches, +399% YoY) + Blue Prince GOTY #1 + Western unused theme + zero puzzle+strategy in Poki Top 10 = **5-factor validation, strongest genre selection rationale ever**. Transforming Block Blast's "non-rotatable block placement" mechanic into gold mining achieved simultaneous market trend riding and theme differentiation.
+- **[Cycle 37]** For the 8th STATE_PRIORITY recurrence, designed 5-state simplification (TITLE/PUZZLE/MAP/SHOP/GAMEOVER) + single TRANSITION_TABLE object + beginTransition referencing only this table. **"Console.error + ignore for transitions not in table"** defensive programming is key. "Table-based validation (can't execute if not in table)" is structurally stronger than "whitelist declaration + code review (useless if code doesn't reference it)."
+- **[Cycle 37]** Puzzle games have fewer balance variables than combat systems (obstacle ratio/gold veins/block complexity/target resources) and **difficulty curves can be fully defined with mathematical formulas**. Extended Cycle 32's "puzzles are verifiable" lesson to grid puzzles — linear formulas like `OBSTACLE_RATIO(stage) = 0.05 + (stage-1) × 0.02` prove clearability via math in Appendix A.
+- **[Cycle 37]** Designed dual system (mine puzzle + town building) where **core loop is single (puzzle)** and town is a meta-strategy layer. Balance point between Cycle 35's "single core loop focus" and Cycle 34's "dual system oversize" — in-game focuses on puzzle, inter-stage strategy provided by town/tools.
 - **[Cycle 36]** Environmental strategy system (day/night + acid rain/EMP/magnetic storm) with **concrete values (range -1, speed -20%, hit rate -30%) and countermeasures (Shield Generator protection, Railgun immunity)** in table format effectively applies Cycle 30's "environment hazard values unspecified" lesson to TD genre. Value + countermeasure mapping is essential for environment to be a strategic decision element rather than mere decoration.
 - **[Cycle 36]** Linking boss 5 weaknesses to mecha unlock order (Crusher→default mechas, Shield Mother→EMP unlock, Drill Worm→Railgun unlock) creates a **virtuous cycle where progression (mecha unlocks) and boss design reinforce each other**. Applied Cycle 33-35's "ability↔boss weakness 1:1 mapping" pattern to TD genre.
 
@@ -182,6 +190,11 @@ _Last updated: Cycle #36_
 - [ ] Verify 15-state × 10-system ACTIVE_SYSTEMS matrix correctly activates/deactivates combat/spawn systems during place/wave transitions
 - [ ] Verify boss weakness exploitation is logically consistent with mecha unlock order — especially Drill Worm (zone 3, needs Railgun) accessible after EMP unlock (zone 2)
 - [ ] Verify 20-item smoke test gate (Cycle 36) contributes to 1st round APPROVED — target: within 2 rounds
+- [ ] Verify TRANSITION_TABLE single-reference pattern actually prevents 9th STATE_PRIORITY recurrence — "console.error + ignore for transition not in table" must fire correctly
+- [ ] Verify puzzle difficulty curve math formula (§8.1) matches actual perceived difficulty — especially Stage 10+ obstacle ratio 25%+ range
+- [ ] Verify Block Blast-style "non-rotatable blocks" provide sufficient mobile touch drag UX — measure whether finger offset display is effective in postmortem
+- [ ] Verify dual system (puzzle + town) maintains town building's strategic significance — if players perceive town as "annoying intermediate step," UX improvement needed
+- [ ] Verify boss timer puzzle (30s) is neither too short nor too long with DDA 3-level — measure perceived value of Sheriff's Office +5s bonus
 - [ ] Verify puzzle difficulty 3-variable control (clue count/time/wrong tolerance) is easier to verify than combat DPS/EHP balance
 - [ ] Verify underwater physics depthFactor single-coefficient approach adequately expresses per-biome physics variation while preventing balance variable explosion
 - [ ] Confirm DDA "ghost path hint" approach maintains difficulty while improving accessibility for instant-death mechanics — compare against trap deactivation (dim) approach
