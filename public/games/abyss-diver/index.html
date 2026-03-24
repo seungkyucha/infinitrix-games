@@ -107,7 +107,7 @@ const ACTIVE_SYSTEMS = (()=>{
   const S = {};
   const ALL_STATES = ['BOOT','TITLE','MAP','UPGRADE','STAGE_INTRO','DIVING','PUZZLE','BOSS','CUTSCENE','GAMEOVER','VICTORY','PAUSE','MODAL'];
   ALL_STATES.forEach(s => S[s] = { tween:true, physics:false, traps:false, boss:false, puzzle:false, o2press:false, particles:true, render:true, sound:true });
-  S.BOOT.tween=false; S.BOOT.particles=false; S.BOOT.sound=false;
+  S.BOOT.tween=true; S.BOOT.particles=false; S.BOOT.sound=false;
   S.DIVING.physics=true; S.DIVING.traps=true; S.DIVING.o2press=true;
   S.PUZZLE.physics=true; S.PUZZLE.puzzle=true; S.PUZZLE.o2press=true;
   S.BOSS.physics=true; S.BOSS.traps=true; S.BOSS.boss=true; S.BOSS.o2press=true;
