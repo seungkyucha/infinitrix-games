@@ -6,7 +6,7 @@ import { GoogleGenAI } from '@google/genai'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs'
 import { dirname } from 'path'
 
-const MODEL = 'gemini-2.0-flash-preview-image-generation'
+const MODEL = 'gemini-3.1-flash-image-preview'
 
 let client: GoogleGenAI | null = null
 
@@ -87,7 +87,7 @@ async function generateImage(prompt: string, filePath: string, name: string): Pr
 
     const response = await ai.models.generateContent({
       model: MODEL,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: prompt,
       config: { responseModalities: ['Text', 'Image'] },
     })
 
