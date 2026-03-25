@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-25T12:12:43.758Z",
+  "lastUpdated": "2026-03-25T15:00:00.000Z",
   "totalGames": 38,
   "games": [
     {
@@ -6936,7 +6936,7 @@
         "action",
         "strategy"
       ],
-      "thumbnail": "/games/ashen-stronghold/assets/thumbnail.png",
+      "thumbnail": "/games/ashen-stronghold/assets/thumbnail.svg",
       "path": "/games/ashen-stronghold/index.html",
       "addedAt": "2026-03-25T12:12:43.758Z",
       "featured": false,
