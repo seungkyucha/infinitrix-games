@@ -111,82 +111,274 @@ async function generateImage(prompt: string, filePath: string, name: string): Pr
 }
 
 /**
- * 프롬프트 빌더 — 에셋 정의 + 아트 디렉션을 Gemini 프롬프트로 변환
+ * 프롬프트 빌더 — 에셋 정의 + 아트 디렉션을 정밀한 Gemini 프롬프트로 변환
+ *
+ * 핵심 원칙:
+ * - 정확히 1개의 대상만 렌더링 (시트/여러 개 금지)
+ * - 배경 투명/불투명 명확 지정
+ * - 게임 엔진에서 바로 사용 가능한 구도
+ * - 에셋 간 일관된 아트 스타일
  */
 function buildPrompt(asset: AssetDef, art: ArtDirection, gameTitle: string, genre: string): string {
   const [w, h] = asset.size.split('x').map(Number)
-  const isBackground = asset.id.startsWith('bg-') || asset.id.includes('background')
-  const isEffect = asset.id.startsWith('effect-')
-  const isUI = asset.id.startsWith('ui-')
+
+  // 에셋 유형 분류
+  const isBackground = asset.id.startsWith('bg-') || asset.id.includes('background') || asset.id.includes('ground')
+  const isEffect = asset.id.startsWith('effect-') || asset.id.includes('particle') || asset.id.includes('explosion')
+  const isUI = asset.id.startsWith('ui-') || asset.id.includes('icon') || asset.id.includes('button')
   const isThumbnail = asset.id === 'thumbnail'
-  const isCharacter = asset.id.includes('player') || asset.id.includes('enemy') ||
-                      asset.id.includes('boss') || asset.id.includes('npc') ||
-                      asset.id.includes('character')
+  const isTile = asset.id.includes('tile') || asset.id.includes('platform') || asset.id.includes('block')
+  const isItem = asset.id.includes('item-') || asset.id.includes('powerup') || asset.id.includes('coin') ||
+                 asset.id.includes('gem') || asset.id.includes('potion') || asset.id.includes('weapon') ||
+                 asset.id.includes('spell') || asset.id.includes('card')
+  const isBoss = asset.id.includes('boss')
+  const isCharacter = !isBackground && !isEffect && !isUI && !isThumbnail && !isTile && !isItem &&
+    (asset.id.includes('player') || asset.id.includes('enemy') || asset.id.includes('npc') ||
+     asset.id.includes('character') || asset.id.includes('hero') || asset.id.includes('mob') || isBoss)
 
-  const qualityDirective = `QUALITY STANDARD: Professional Steam indie game / polished mobile game level.
-Art style: ${art.artStyle || 'stylized digital art, hand-painted feel'}.
-Color palette: ${art.colorPalette || 'rich and intentional, limited but vibrant'}.
-Mood: ${art.mood || 'dramatic and atmospheric'}.
-Reference: ${art.reference || 'Hollow Knight, Dead Cells, Celeste quality level'}.
-Lighting: Dramatic rim lighting, ambient occlusion, professional color grading.
-Detail: Texture visible — fabric, metal, wood, magical glow, atmospheric haze.
-NOT flat vector, NOT clipart, NOT stock photo, NOT AI-slop generic look.`
+  // 공통 아트 디렉션
+  const STYLE = art.artStyle || 'stylized digital art, hand-painted feel'
+  const PALETTE = art.colorPalette || 'rich, intentional, limited but vibrant'
+  const MOOD = art.mood || 'dramatic and atmospheric'
+  const REF = art.reference || 'Hollow Knight, Dead Cells, Celeste'
 
-  if (isThumbnail) {
-    return `Professional game store key art / thumbnail for "${gameTitle}" (${genre}).
-${qualityDirective}
-Subject: ${asset.desc}
-Composition: Dynamic scene with rule-of-thirds. Main character prominent.
-Typography: Game title "${gameTitle}" in stylish, genre-appropriate lettering — integrated into composition.
-Technical: ${w}x${h} pixels. Landscape. Marketing-quality.
-Must include: game title text, main character, atmospheric game scene.`
-  }
+  const QUALITY = `[ART DIRECTION]
+Style: ${STYLE}
+Color palette: ${PALETTE}
+Mood: ${MOOD}
+Reference games: ${REF}
+Quality level: Professional Steam indie game / polished mobile game (NOT flat vector, NOT clipart, NOT stock art, NOT generic AI look)`
 
-  if (isBackground) {
-    return `Professional game background layer for "${gameTitle}" (${genre}).
-${qualityDirective}
-Layer description: ${asset.desc}
-Rendering: Painterly style, atmospheric perspective, volumetric lighting.
-Composition: Parallax-scrolling ready. Rich environmental storytelling.
-Technical: ${w}x${h} pixels. No characters, no text, no UI.`
-  }
-
-  if (isEffect) {
-    return `Professional game VFX/effect for "${gameTitle}" (${genre}).
-${qualityDirective}
-Effect: ${asset.desc}
-Rendering: HDR bloom, energy tendrils, particle scatter. Bright core fading outward.
-Technical: ${w}x${h} pixels, centered, on solid dark (#0a0a1a) background.
-Do NOT include: text, characters, UI.`
-  }
-
-  if (isUI) {
-    return `Professional game UI icon for "${gameTitle}" (${genre}).
-${qualityDirective}
-Icon: ${asset.desc}
-Rendering: Glossy 3D-rendered look, specular highlight, subtle glow, drop shadow.
-Technical: ${w}x${h} pixels, centered, on solid dark (#0a0a1a) background.
-Premium mobile game UI quality. Do NOT include: text, numbers, frames.`
-  }
-
+  // ═══════════════════════════════════════
+  // 캐릭터 (플레이어, 적, NPC, 보스)
+  // ═══════════════════════════════════════
   if (isCharacter) {
-    return `Professional game character/entity sprite for "${gameTitle}" (${genre}).
-${qualityDirective}
-Character: ${asset.desc}
-Design: Distinctive silhouette, personality visible through pose and proportions.
-Rendering: Rich shading with multiple light sources (key, fill, rim). Semi-realistic or stylized.
-Details: Costume, accessories, implied motion, expressive features.
-Technical: ${w}x${h} pixels, centered, on solid dark (#0a0a1a) background.
-Do NOT include: text, UI, borders, multiple characters.`
+    const facing = asset.desc.match(/facing\s+(left|right|front|back)/i)?.[1] || 'front'
+    const pose = asset.desc.match(/pose:\s*([^,.]+)/i)?.[1] || 'idle standing'
+    return `[TASK] Generate a SINGLE game character sprite for use in an HTML5 Canvas game.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- Render exactly ONE character. No sprite sheet, no multiple poses, no variations.
+- Single idle/standing pose (${pose}), facing ${facing}.
+- Character must be CENTERED in the frame with consistent padding (15% margin on all sides).
+- Background: solid pure black (#000000). The game engine will use drawImage() to composite this onto the game scene.
+  → Do NOT use transparency/alpha. Use solid black background instead.
+  → The coder will treat black as the "empty" area.
+- No ground, no shadow on floor, no environment — character floats on black void.
+
+[RENDERING]
+- ${isBoss ? 'BOSS character — larger, more imposing, more detailed than regular enemies. Dramatic aura/glow effects.' : ''}
+- Rich shading: key light (top-left), fill light (subtle), rim light (edge highlight).
+- Visible texture details: fabric weave, metal scratches, skin pores, armor rivets.
+- Character silhouette must be instantly recognizable even at 64x64 display size.
+- ${w >= 512 ? 'High detail: face expression, finger details, clothing folds, material reflections.' : 'Clean readable shapes, bold outlines, clear color areas.'}
+
+[OUTPUT] ${w}x${h} pixels. Single character. Black background. No text, no UI, no borders, no watermarks.`
   }
 
-  // Generic item/object
-  return `Professional game asset for "${gameTitle}" (${genre}).
-${qualityDirective}
-Asset: ${asset.desc}
-Rendering: Polished, game-ready quality. Consistent with overall art direction.
-Technical: ${w}x${h} pixels, centered, on solid dark (#0a0a1a) background.
-Do NOT include: text, UI elements.`
+  // ═══════════════════════════════════════
+  // 배경 레이어
+  // ═══════════════════════════════════════
+  if (isBackground) {
+    const layer = asset.id.includes('far') || asset.id.includes('layer1') ? 'FAR (sky/horizon)' :
+                  asset.id.includes('mid') || asset.id.includes('layer2') ? 'MID (terrain silhouettes)' :
+                  asset.id.includes('near') || asset.id.includes('ground') ? 'NEAR (ground/platform)' : 'GENERAL'
+    return `[TASK] Generate a game background layer for parallax scrolling in an HTML5 Canvas game.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+[LAYER TYPE] ${layer}
+
+[CRITICAL RULES]
+- This is a BACKGROUND LAYER, not a complete scene. It will be composited with other layers.
+- NO characters, NO enemies, NO items, NO UI elements, NO text anywhere in the image.
+- ${layer.includes('FAR') ? 'Atmospheric, hazy, desaturated. Sky gradients, distant mountains/structures, clouds, stars. Softest layer.' : ''}
+- ${layer.includes('MID') ? 'Medium detail silhouettes: buildings, trees, rock formations. Slightly transparent areas for layering. Darker than far layer.' : ''}
+- ${layer.includes('NEAR') ? 'Highest detail ground elements: platforms, terrain texture, foliage. This layer is closest to the player.' : ''}
+- Background: fully painted, NO transparent areas. The image fills the entire canvas.
+- Suitable for horizontal scrolling (consider left-right continuity for tiling).
+
+[RENDERING]
+- Painterly digital art style with visible brushwork.
+- Atmospheric perspective: farther = more haze, less saturation.
+- Color temperature shift: warm horizon → cool upper sky (for far layer).
+- Rich environmental storytelling through small details.
+
+[OUTPUT] ${w}x${h} pixels. Full-bleed background layer. No characters, no text, no UI.`
+  }
+
+  // ═══════════════════════════════════════
+  // VFX 이펙트
+  // ═══════════════════════════════════════
+  if (isEffect) {
+    return `[TASK] Generate a game visual effect (VFX) for an HTML5 Canvas game.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- Render exactly ONE effect instance, CENTERED in frame.
+- Background: solid pure black (#000000). The game engine will composite this using additive blending or alpha.
+  → Bright parts = visible effect. Black = invisible in game.
+  → Design the effect knowing that black areas will become transparent in the game.
+- Effect should be RADIAL/CENTERED — emanating from the center outward.
+- No characters, no environment, no text.
+
+[RENDERING]
+- HDR-style bloom: pure white/yellow core → themed color mid → fading edges.
+- Energy tendrils, speed lines, spark particles scattered outward.
+- Multiple concentric layers: shockwave ring, inner flash, outer particle scatter.
+- ${asset.id.includes('hit') ? 'Impact/hit effect: short burst, directional energy lines, debris particles.' : ''}
+- ${asset.id.includes('explosion') ? 'Explosion: large radial burst, fire/smoke layering, flying debris.' : ''}
+- ${asset.id.includes('heal') ? 'Healing: upward-floating particles, soft green/white glow, gentle sparkles.' : ''}
+- ${asset.id.includes('dash') ? 'Dash/speed: horizontal motion blur, afterimage trail, wind lines.' : ''}
+
+[OUTPUT] ${w}x${h} pixels. Single centered effect. Black background. No text, no characters.`
+  }
+
+  // ═══════════════════════════════════════
+  // UI 아이콘
+  // ═══════════════════════════════════════
+  if (isUI) {
+    return `[TASK] Generate a game UI icon for an HTML5 Canvas game HUD.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- Render exactly ONE icon, CENTERED with consistent padding (20% margin).
+- Background: solid pure black (#000000). The game engine will drawImage() this onto the HUD.
+- Icon must be INSTANTLY READABLE at small display sizes (32x32 to 64x64 on screen).
+- Bold, clear shapes. High contrast. No fine detail that disappears at small size.
+- No text, no numbers, no labels — just the pure icon graphic.
+
+[RENDERING]
+- Premium mobile game quality: glossy surface, specular highlights, subtle 3D depth.
+- ${asset.id.includes('hp') || asset.id.includes('heart') || asset.id.includes('health') ?
+    'Health icon: rich red/crimson, heart or shield shape, inner glow, glass-like specular.' : ''}
+- ${asset.id.includes('score') || asset.id.includes('coin') || asset.id.includes('star') || asset.id.includes('gem') ?
+    'Currency/score icon: gold/amber metallic sheen, faceted gem or embossed coin, bright specular dot.' : ''}
+- ${asset.id.includes('mana') || asset.id.includes('energy') || asset.id.includes('mp') ?
+    'Mana/energy icon: blue/purple crystal or orb, internal glow, magical sparkle.' : ''}
+- Drop shadow below icon for floating appearance.
+- Material should match game theme (crystal, metal, organic, magical).
+
+[OUTPUT] ${w}x${h} pixels. Single icon. Black background. No text, no numbers, no frames.`
+  }
+
+  // ═══════════════════════════════════════
+  // 썸네일 / 키 아트
+  // ═══════════════════════════════════════
+  if (isThumbnail) {
+    return `[TASK] Generate game store cover art / marketing thumbnail for a game platform.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- This is the game's MARKETING IMAGE — the first thing players see on the platform.
+- Must include the game title "${gameTitle}" rendered in stylish, genre-appropriate typography.
+  → Title text must be LARGE, READABLE, and integrated into the composition (not slapped on).
+  → Use drop shadow, glow, metallic, or emboss effect on the title text.
+- Must show the main character + at least one key gameplay element (enemies, environment, items).
+- Background is a COMPLETE scene (not transparent, not black void).
+
+[COMPOSITION]
+- Rule of thirds. Main character at 30-40% of frame, slightly off-center.
+- Dynamic angle or action pose — movement, drama, tension.
+- Clear visual hierarchy: Title → Character → Background.
+- High contrast, saturated accent colors to catch attention in a grid of thumbnails.
+- Professional color grading like movie poster / Steam capsule art.
+
+[OUTPUT] ${w}x${h} pixels. Landscape orientation. Full scene with title text. Marketing quality.`
+  }
+
+  // ═══════════════════════════════════════
+  // 타일 / 플랫폼
+  // ═══════════════════════════════════════
+  if (isTile) {
+    return `[TASK] Generate a game tile/platform asset for an HTML5 Canvas game.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- Render a SEAMLESS TILEABLE texture/platform piece.
+- Background: solid pure black (#000000) around the tile shape.
+- The tile edges should be designed for tiling — left edge matches right, top matches bottom where applicable.
+- Single tile piece, not a grid of tiles.
+
+[RENDERING]
+- Visible material texture: stone cracks, wood grain, metal rivets, crystal facets.
+- Subtle lighting consistent with game's light direction (top-left).
+- Edge details: worn corners, moss growth, damage marks for environmental storytelling.
+
+[OUTPUT] ${w}x${h} pixels. Single tileable piece. Black background outside the tile shape.`
+  }
+
+  // ═══════════════════════════════════════
+  // 아이템 / 수집물
+  // ═══════════════════════════════════════
+  if (isItem) {
+    return `[TASK] Generate a game collectible/item sprite for an HTML5 Canvas game.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- Render exactly ONE item, CENTERED in frame with padding (20% margin).
+- Background: solid pure black (#000000). The game engine composites this onto the game world.
+- Item must look DESIRABLE — players should WANT to collect it.
+- Recognizable at small display sizes (32x32 to 64x64 on screen).
+- No character hands/arms holding the item. Item floats alone.
+
+[RENDERING]
+- Luminous/glossy surface with internal glow or magical aura.
+- Fresnel rim lighting around edges.
+- ${asset.id.includes('weapon') || asset.id.includes('sword') || asset.id.includes('staff') ?
+    'Weapon: metallic blade with reflection, magical glow on edge, ornate handle details.' : ''}
+- ${asset.id.includes('potion') || asset.id.includes('flask') ?
+    'Potion: glass bottle with liquid refraction, glowing contents, cork detail.' : ''}
+- ${asset.id.includes('card') ?
+    'Card: ornate border, centered symbol/illustration, slight 3D tilt with perspective.' : ''}
+- ${asset.id.includes('coin') || asset.id.includes('gem') ?
+    'Treasure: metallic sheen or crystal facets, bright specular highlight, slight rotation implied.' : ''}
+- Subtle sparkle/particle effects around the item suggesting value/power.
+
+[OUTPUT] ${w}x${h} pixels. Single item. Black background. No text, no UI, no hands.`
+  }
+
+  // ═══════════════════════════════════════
+  // 기타 (분류되지 않은 에셋)
+  // ═══════════════════════════════════════
+  return `[TASK] Generate a game asset for an HTML5 Canvas game.
+[GAME] "${gameTitle}" (${genre})
+${QUALITY}
+
+[SUBJECT] ${asset.desc}
+
+[CRITICAL RULES]
+- Render exactly ONE object/element, CENTERED in frame.
+- Background: solid pure black (#000000). Game engine composites via drawImage().
+- Must be game-ready: clean edges, consistent lighting, readable at display size.
+- No text, no UI elements, no watermarks.
+
+[RENDERING]
+- Consistent with the game's overall art direction and color palette.
+- Professional quality texturing, shading, and lighting.
+- Clear silhouette recognizable even when scaled down.
+
+[OUTPUT] ${w}x${h} pixels. Single asset. Black background. No text, no UI.`
 }
 
 /**
