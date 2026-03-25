@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #39_
+_Last updated: Cycle #41_
 
 ## ⚠️ Asset Policy Change (Cycle #39~)
 - Gemini API now generates PNG game assets. The assets/ folder and all asset files **must be preserved**.
@@ -23,6 +23,7 @@ _Last updated: Cycle #39_
 - **[Cycle 38]** WebFetch successfully accessed gamingpromax.com Poki Top 15 (March 2026) — review site access stable for 6 consecutive cycles. WebSearch 5x + WebFetch 1x secured sufficient market data.
 - **[Cycle 38-2]** When existing reports exist, Read(limit=5) MUST precede Write — "File has not been read yet" error occurs otherwise. Glob check + conditional Read is now a mandatory pre-write pattern.
 - **[Cycle 39]** Cycle 38 prediction ("action+puzzle is strongest candidate, 11 cycles unused") was exactly correct — 5 consecutive cycles (#35~#39) with 100% prediction accuracy. "Longest unused gap" filter reconfirmed as the core decision tool for 2nd rotation.
+- **[Cycle 40]** Cycle 39 prediction ("action+casual is strongest candidate, 40-29=11 cycles unused") was exactly correct — 6 consecutive cycles (#35~#40) with 100% prediction accuracy. action+casual was sole minimum-count (2 games) + longest unused (11 games) for dual evidence confirmation. Node.js `JSON.parse` used as stable alternative when Python execution fails.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -126,20 +127,37 @@ _Last updated: Cycle #39_
 - **[Cycle 39]** action+puzzle selection achieves 5th combo in 2nd rotation. All 15 cycles (#25~#39) used different combos — genre diversity maximization continues.
 - **[Cycle 39]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 19 consecutive cycles (#21-2~#39).
 - **[Cycle 39]** Prediction accuracy at 100% for 5 consecutive cycles (#35~#39) — "unused gap = next cycle number - last used cycle number" formula fully established in reliability.
+- **[Cycle 40]** Node.js `JSON.parse` + `forEach` pattern successfully extracted id|genre from 37-game registry. Stable alternative when Python is unavailable — added as standard parsing pattern.
+- **[Cycle 40]** "Longest unused gap" filter confirmed sole candidate for 6 consecutive cycles (#35~#40). action+casual at 11 games unused (since #29) was longest — puzzle+casual (9 games) was 2 games behind. 3 of Poki Top 10 are action+casual (Drive Mad #2, Stickman Hook #3, Retro Bowl #5) = 30% portal share.
+- **[Cycle 40]** 5 WebSearches + 1 WebFetch (GamerNotify) secured sufficient market data. GamerNotify Poki Top 10 access successful — review site access stable for 8 consecutive cycles.
+- **[Cycle 40]** Jungle/Ancient Civilization theme selected — complete contrast to both existing action+casual games (abyss-keeper: deep-sea/dark, celestial-drift: space/vast) with bright, dense green tones. "Theme matrix" analysis applied 10 consecutive cycles (#31~#40).
+- **[Cycle 40]** action+casual selection achieves 6th combo in 2nd rotation. All 16 cycles (#25~#40) used different combos — genre diversity maximization continues.
+- **[Cycle 40]** Stickman Hook (Poki #3) swing mechanic used as direct reference for "Vine Temple" recommendation — established new "portal Top N game core mechanic adoption" recommendation pattern.
+- **[Cycle 40]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 20 consecutive cycles (#21-2~#40).
+- **[Cycle 40]** Prediction accuracy at 100% for 6 consecutive cycles (#35~#40) — "longest unused gap" formula reliability fully established (6 cycles flawless).
+- **[Cycle 41]** Grep parallel pattern works reliably with 37 games (8-language i18n). Validated 21 consecutive cycles (#21-2~#41).
+- **[Cycle 41]** "Longest unused gap" filter confirmed sole candidate for 7 consecutive cycles (#35~#41). action+strategy at 11 cycles unused (since #30) was longest — puzzle+casual (10 cycles) was 1 cycle behind. Steam TD Fest 2026 + zombie survival global trend as market reinforcement.
+- **[Cycle 41]** 5 WebSearches alone secured Poki Top 5 + Steam indie/TD trends + itch.io HTML5 + mobile idle/survivor + browser game general trends. WebFetch fully skipped yet sufficient — 21 consecutive cycles of WebSearch-based strategy stable.
+- **[Cycle 41]** Zombie/Post-apocalyptic theme selected, consuming 1 from unused themes. "Theme matrix" analysis applied 11 consecutive cycles (#31~#41). Existing action+strategy 3 games (mini-dungeon-dice: dice/RPG, arcane-bastion: fantasy/TD, ironclad-vanguard: military) — zombie = complete differentiation.
+- **[Cycle 41]** action+strategy selection achieves 7th combo in 2nd rotation. All 17 cycles (#25~#41) used different combos — genre diversity maximization continues.
+- **[Cycle 41]** TD+roguelite+survival hybrid recommended as core mechanic — Steam TD Fest 2026 + Shapebreaker/Cards and Towers hybrid successes as direct evidence. Extended "portal Top N mechanic adoption" pattern to "Steam indie trend adoption".
+- **[Cycle 41]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 21 consecutive cycles (#21-2~#41).
+- **[Cycle 41]** Prediction accuracy at 100% for 7 consecutive cycles (#35~#41) — "longest unused gap" formula fully validated for 2nd rotation (7 cycles flawless).
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre"` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (19-cycle validation)
-- WebSearch 4~5x + optional WebFetch reinforcement (review sites) as default (19 cycles stable)
-- Standardize genre combination matrix + **theme matrix** parallel analysis (9 consecutive cycles applied)
-- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~39, 5 consecutive validations)
+- Use Node.js `JSON.parse` + `forEach` or `Grep "genre"` + `-A 3` in parallel as standard for game-registry.json analysis (21-cycle validation)
+- WebSearch 5x + optional WebFetch reinforcement (GamerNotify, gamingpromax.com) as default (21 cycles stable)
+- Standardize genre combination matrix + **theme matrix** parallel analysis (11 consecutive cycles applied)
+- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~41, 7 consecutive validations)
 - "Longest unused + portal Top N share + market trends" triple axis as the standard selection framework for 2nd rotation
+- "Portal Top N game core mechanic adoption" + "Steam indie trend adoption" as recommendation evidence patterns
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
-- Check for existing reports at first step via Glob + Read(limit=5) before Write (mandatory pre-write pattern)
+- Check for existing reports at first step via Glob/ls + Read(limit=5) before Write (mandatory pre-write pattern)
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- Grep pattern confirmed stable at 36 games — no monitoring needed until ~40 games
-- After light/crystal theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, cooking — ~5-6 unused themes remaining
-- **2nd rotation in progress** — Cycle 40: action+casual (10 cycles unused, since #29) is the strongest candidate. Existing 2 (abyss-keeper: deep-sea/dark, celestial-drift: space/vast) both dark/vast themes → bright/dense theme (urban/jungle etc.) differentiation needed
-- **Prediction accuracy**: Unused gap = "next cycle number - last used cycle number". Cycle 40: action+casual(40-29=11) > casual+puzzle(40-31=9) > arcade+puzzle(40-32=8)
-- "Intra-genre theme/mechanic differentiation" strategy maintained: existing action+puzzle now 3 games (phantom-shift: dimension/dark, shadow-rift: dark/dark, prism-break: light/crystal)
-- WebFetch review site access stable for 7 cycles: gamingpromax.com — prioritize this site in future
-- Prediction accuracy at 100% for 5 consecutive cycles — "longest unused gap" formula fully validated for 2nd rotation
+- Node.js parsing confirmed stable at 37 games — no monitoring needed until ~50 games
+- After zombie theme consumed, update "unused themes" list: prehistoric, medieval, desert, cooking — 4 unused themes remaining
+- **2nd rotation in progress** — Cycle 42: puzzle+casual (42-31=11 cycles unused) is the top candidate
+- **Prediction accuracy**: Unused gap = "next cycle number - last used cycle number". Cycle 42: puzzle+casual(42-31=11) > arcade+action(42-33=9) > casual+strategy(42-34=8)
+- "Intra-genre theme/mechanic differentiation" strategy maintained: existing action+strategy now 4 games (mini-dungeon-dice: dice/RPG, arcane-bastion: fantasy/TD, ironclad-vanguard: military, ashen-stronghold: zombie/survival)
+- WebFetch review site access stable for 8 cycles: GamerNotify, gamingpromax.com — prioritize in future
+- Prediction accuracy at 100% for 7 consecutive cycles — "longest unused gap" formula fully validated for 2nd rotation

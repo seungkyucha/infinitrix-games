@@ -1,5 +1,5 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #39 prism-break_
+_마지막 갱신: 사이클 #41 ashen-stronghold_
 
 ## ⚠️ 에셋 정책 (사이클 #39~)
 - assets/ 폴더의 PNG/SVG 에셋을 **반드시 사용**해야 합니다. 절대 삭제하지 마세요.
@@ -9,6 +9,11 @@ _마지막 갱신: 사이클 #39 prism-break_
 - 이전 사이클의 "assets/ 삭제", "F1 위반", "preloadAssets 금지" 관련 지혜는 더 이상 유효하지 않습니다.
 
 ## 반복되는 실수 🚫
+- **[Cycle 41]** 서바이벌 타워디펜스 로그라이트(3,884줄)에서 7상태(TITLE/MAP/DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE/BOSS_NIGHT/GAMEOVER) + 주야 이중 페이즈 시스템. **이중 페이즈(주간 탐색/야간 방어) 게임에서 ACTIVE_SYSTEMS 매트릭스의 Explore/Defense 열을 상호 배타적으로 관리하는 것이 핵심.** DAY_EXPLORE에서 Defense 비활성, NIGHT_WAVE에서 Explore 비활성이 명확히 분리되어야 시스템 간 간섭이 없다.
+- **[Cycle 41]** monkey-patch 패턴으로 확장 시스템(날씨/데미지팝업/콤보/미니맵/Fog of War)을 기존 update/render에 통합할 때, **패치 체인이 길어지면 실행 순서가 불확실**해진다. 처음부터 확장 포인트를 메인 루프에 훅으로 설계하는 것이 안전. 다음 사이클에서는 updateExtended()/renderExtended()를 메인 루프 내부에 직접 호출하는 방식으로 변경할 것.
+- **[Cycle 41]** BFS 경로 검증(tryPlace)에서 배치 전 tempGrid 복사 → BFS 4방향 모두 검증 → 실패 시 배치 거부 패턴이 안정적으로 동작. **Cycle 36 교훈(트랜잭션 패턴)을 그대로 적용.** 직접 grid 수정 후 롤백 방식은 사용하지 않음.
+- **[Cycle 41]** 보스 페이즈 전환 시 shakeIntensity + sfx + particles 이펙트를 monkey-patch로 추가했는데, **lastBossPhase 추적 변수가 보스 사망 후 리셋되지 않으면 다음 보스전에서 false positive 이펙트가 발생**할 수 있다. 보스 변경 시 항상 추적 변수를 -1로 초기화.
+- **[Cycle 41]** 스피터 좀비의 적 투사체(isEnemy 플래그) 시스템을 추가했으나, **기존 updateProjectiles()가 isEnemy 투사체도 좀비 충돌 검사를 수행하는 비효율**이 있다. 아군/적 투사체를 별도 배열로 관리하거나 isEnemy 가드로 충돌 대상을 분기해야 한다.
 - **[Cycle 39]** 빛 굴절 액션 퍼즐(3,778줄)에서 4상태(TITLE/MAP/PLAY/BOSS) + 6개 서브상태(SETUP/WAVE/PAUSED/CLEAR/DEAD/BOSS_INTRO) 패턴 계승. **빛 경로 트레이싱(traceLight)이 재귀적 빔 분기(C2 split)를 처리할 때 maxDepth 캡 없으면 무한 재귀 가능.** 반사 크리스탈 2개가 서로를 향하면 무한 반사 발생 — maxDepth=50으로 제한하여 방지.
 - **[Cycle 39]** IX Engine 통합 10번째 사이클. IX.Tween, IX.Particles, IX.Sound, IX.UI, IX.Save 모두 직접 활용하여 자체 매니저 코드 0줄 달성. **IX.Input의 flush()를 update() 마지막에 호출하는 패턴이 완전 정착.**
 - **[Cycle 39]** 에셋 프리로드: manifest.json 기반 AssetLoader.load() 사용. 모든 에셋(PNG/SVG)은 assets/ 폴더에서 로드하되, 로드 실패 시 Canvas 프로시저럴 폴백이 자동 동작하도록 drawCrystal/drawEnemyProcedural/drawBossProcedural 순수 함수를 별도 구현. **에셋 의존성 0으로 게임이 완전 동작하는 "에셋 독립" 패턴이 프리미엄 품질에서도 유효.**
@@ -83,6 +88,13 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 41]** 서바이벌 TD 로그라이트(잿빛 요새)를 3,884줄 단일 파일로 구현. 7상태 머신 + TRANSITION_TABLE 7키 + 주야 이중 페이즈(DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE) + 3구역×3야간=9웨이브+보스3종 + 업그레이드 트리(3갈래×5) + 유물 시스템(13종, 3등급) + BFS 경로 검증 + SeededRNG + DDA 4단계 + 서바이버 4종 AI + ko/en 다국어 + 날씨 시스템(비/먼지/안개) + 킬 콤보 + 미니맵 + Fog of War. action+strategy 장르 조합.
+- **[Cycle 41]** TDZ 방어 패턴 완전 적용(F23, F27): `G._ready` 플래그를 Engine 초기화 + 에셋 로드 + 레이아웃 계산 모두 완료 후에만 true로 설정. 모든 Engine 콜백(update/render/onResize)에서 `G._ready` 가드. Cycle 39 P0 TDZ 크래시 완전 방지.
+- **[Cycle 41]** IX Engine 12번째 사이클 통합. AssetLoader로 manifest.json 기반 22개 PNG 에셋 동적 로드 + assets.draw() 폴백 자동 처리. setTimeout 0건, setInterval 0건, Math.random 0건, confirm/alert 0건, 외부 CDN 0건.
+- **[Cycle 41]** Web Audio BGM lookahead 스케줄링 + SFX 12종 프로시저럴 생성. bgmNodes 슬라이딩 윈도우(64개 초과 시 32개 유지) 패턴 3사이클 연속 안정적.
+- **[Cycle 41]** BOSS_DEFS 데이터 배열 패턴으로 보스 3종(스포어 타이탄/아이언 리퍼/패이션트 제로)의 약점·페이즈·행동을 선언적으로 정의. 보스 추가가 배열 엔트리 추가만으로 가능.
+- **[Cycle 41]** DPS 캡(2.0) + 시너지 캡(1.5) 유물 밸런스 시스템으로 극단 빌드 방지. getRelicBonus() 내 Math.min으로 캡 강제.
+- **[Cycle 41]** 모바일 가상 조이스틱(120×120) + ATK/ACT/R 버튼(48px+) + 터치 기반 전체 플로우(시작→플레이→재시작) 구현. MIN_TOUCH_TARGET=48 강제 적용으로 Cycle 39 터치 타겟 미달 문제 해결.
 - **[Cycle 38]** 레이지 플랫포머(그래비티 플립)를 4,015줄 단일 파일로 구현. 4상태(TITLE/MAP/PLAY/BOSS) + 5서브상태(ALIVE/DEAD/CLEAR/PAUSED/INTRO) + 23스테이지(5구역×3+보스5+히든3) + 업그레이드 트리(3갈래×5) + BFS 검증 프로시저럴 레벨 + 5종 보스 AI + DDA 4단계 + ko/en 이중 언어. arcade+casual 장르 조합.
 - **[Cycle 38]** IX Engine(Engine/Input/Sound/Tween/Particles/AssetLoader/UI/Save/MathUtil) 통합 사용 — 자체 TweenManager/SoundManager 대신 엔진 공용 모듈 활용. input.flush() 프레임 끝 호출, tween.update(dt) 모든 상태에서 호출 패턴 안정적.
 - **[Cycle 38]** BGM lookahead 스케줄링: scheduleBGMNotes()가 audioCtx.currentTime + 2초까지 Web Audio 노트를 사전 예약. 게임 루프 매 프레임에서 호출하여 버퍼 보충. setInterval/setTimeout 0건으로 BGM 루프 구현 성공.
@@ -193,6 +205,12 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **[Cycle 41→42] 확장 시스템 통합 방식 개선**: monkey-patch 대신 메인 루프 내부에 `updateExtended(dt)` / `renderExtended(ctx, w, h)` 직접 호출로 변경. 패치 체인의 실행 순서 불확실성을 제거.
+- **[Cycle 41→42] 아군/적 투사체 분리 관리**: G.projectiles를 G.allyProjectiles + G.enemyProjectiles로 분리하여 충돌 대상 검사 효율화. isEnemy 플래그 기반 런타임 분기 대신 배열 수준 분리.
+- **[Cycle 41→42] 오프스크린 캔버스 캐싱**: 방어 그리드 배경(정적 셀 라인)을 오프스크린 캔버스에 한 번 렌더링 후 drawImage로 복사. 매 프레임 8×8 그리드 strokeRect 호출 절감.
+- **[Cycle 41→42] 보스 AI 완전 데이터화 검증**: BOSS_DEFS 패턴이 3종 보스에서 안정적으로 동작 확인. Phase 2 구현 시 보스 2종 추가(구역 4~5)를 배열 엔트리 추가만으로 테스트.
+- **[Cycle 41→42] 웨이브 클리어 판정 edge case**: spawnQueue가 비었지만 마지막 좀비가 트랩에 의해 동시 사망+스폰되는 타이밍 이슈 주의. waveClearing 가드가 이를 방지하지만 별도 타이머 기반 확인 추가 검토.
+- **[Cycle 41→42] 유물 UI 동적 레이아웃**: 현재 3개 고정 가로 배치. 화면 너비 < 350px에서 유물 카드가 겹칠 수 있음. 동적 열 수 계산 + 세로 스크롤 레이아웃 검토.
 - **[Cycle 38→39] IX Engine 활용 극대화**: Cycle 38에서 IX Engine 통합 성공. 다음 사이클에서는 IX.Tween의 add() API를 직접 사용하여 자체 TweenManager 완전 제거. IX.Particles도 커스텀 파티클 대신 활용.
 - **[Cycle 38→39] BGM lookahead 스케줄링 라이브러리화**: scheduleBGMNotes() 패턴을 재사용 가능한 BGMPlayer 클래스로 추출. 멜로디/화음/드럼을 별도 트랙으로 관리하면 음악 품질 향상 가능.
 - **[Cycle 38→39] 세그먼트 패턴 확장**: 현재 8종 기본 패턴이 난이도별로 변형. 패턴 20종+를 JSON 데이터로 외부화하면 레벨 디자인 수정이 코드 변경 없이 가능.

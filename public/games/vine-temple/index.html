@@ -1,0 +1,3343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Vine Temple — 바인 템플</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 1: CONFIG & CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+
+const GAME_ID = 'vine-temple';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil } = IX;
+
+// --- State machine ---
+const ST = { TITLE: 0, MAP: 1, PLAY: 2, BOSS: 3 };
+const SUB = { ACTIVE: 0, PAUSED: 1, GAMEOVER: 2, CLEAR: 3, BOSS_INTRO: 4, RESULT: 5 };
+
+// --- Transition table (F6/F21) ---
+const TRANSITION_TABLE = {
+  [ST.TITLE]: { targets: [ST.MAP], transition: 'fade' },
+  [ST.MAP]:   { targets: [ST.PLAY, ST.TITLE, ST.BOSS], transition: 'fade' },
+  [ST.PLAY]:  { targets: [ST.MAP, ST.BOSS], transition: 'fade' },
+  [ST.BOSS]:  { targets: [ST.MAP, ST.PLAY], transition: 'fade' }
+};
+
+// --- Physics constants ---
+const GRAVITY = 980;
+const AIR_DRAG = 0.999;
+const SWING_DAMPING = 0.998;
+const MAX_SWING_REACH = 280;
+const ROPE_LENGTH_MIN = 60;
+const ROPE_LENGTH_MAX = 200;
+const DASH_SPEED = 600;
+const DASH_DURATION = 0.3;
+const COMBO_TIME = 3.0;
+const INVINCIBLE_TIME = 1.5;
+
+// --- Score config (F10 — §11.3 exact match) ---
+const SCORE_CFG = {
+  ENEMY_KILL: 100,
+  COMBO_MULT: (c) => Math.min(c, 10) * 0.5 + 1,
+  COIN_COLLECT: 10,
+  RELIC_FIND: 500,
+  STAGE_CLEAR: 1000,
+  BOSS_KILL: 5000,
+  TIME_BONUS: (s) => Math.max(0, 300 - s) * 10,
+  NO_HIT_BONUS: 2000
+};
+
+// --- Enemy definitions (§7.2) ---
+const ENEMY_DEFS = {
+  frog:     { hp: 1, speed: 60,  ground: true,  drop: 1, assetKey: 'enemyFrog',     size: 36, color: '#2ecc71' },
+  snake:    { hp: 2, speed: 50,  ground: false, drop: 2, assetKey: 'enemySnake',    size: 40, color: '#27ae60' },
+  mushroom: { hp: 1, speed: 0,   ground: true,  drop: 2, assetKey: 'enemyMushroom', size: 44, color: '#8e44ad', shoots: true },
+  spider:   { hp: 2, speed: 40,  ground: false, drop: 3, assetKey: 'enemySpider',   size: 38, color: '#6c3cf7' },
+  eagle:    { hp: 2, speed: 80,  ground: false, drop: 3, assetKey: 'enemyEagle',    size: 48, color: '#f1c40f' }
+};
+
+// --- Boss definitions (§7.5 — data-driven, F17 pattern) ---
+const BOSS_DEFS = [
+  { id: 'guardian', hp: 30, assetKey: 'bossGuardian', name_ko: '밀림 수호자', name_en: 'Jungle Guardian',
+    size: 120, color: '#2ecc71', phases: [1.0, 0.6, 0.3], weakSpot: 'core',
+    biome: 0, reward: { relics: 5, score: 5000 } },
+  { id: 'queen', hp: 40, assetKey: 'bossQueen', name_ko: '늪지 여왕', name_en: 'Swamp Queen',
+    size: 130, color: '#8e44ad', phases: [1.0, 0.5], weakSpot: 'core',
+    biome: 1, reward: { relics: 8, score: 5000 } },
+  { id: 'sage', hp: 50, assetKey: 'bossSage', name_ko: '수관층 현자', name_en: 'Canopy Sage',
+    size: 140, color: '#3498db', phases: [1.0, 0.6, 0.3], weakSpot: 'back',
+    biome: 2, reward: { relics: 12, score: 5000 } }
+];
+
+// --- Upgrade trees (§9.1) ---
+const UPGRADE_TREES = {
+  combat: [
+    { name_ko: '날카로운 채찍', name_en: 'Sharp Whip', cost: 5, effect: 'dashDmg+1' },
+    { name_ko: '연속 타격', name_en: 'Chain Hit', cost: 10, effect: 'comboTime+1' },
+    { name_ko: '관통 돌진', name_en: 'Pierce Dash', cost: 20, effect: 'pierceDash' },
+    { name_ko: '독 내성', name_en: 'Poison Resist', cost: 35, effect: 'poisonResist' },
+    { name_ko: '바인 마스터', name_en: 'Vine Master', cost: 50, effect: 'swingDmg2x' }
+  ],
+  explore: [
+    { name_ko: '유물 탐지', name_en: 'Relic Radar', cost: 5, effect: 'relicRadar' },
+    { name_ko: '스윙 가속', name_en: 'Swing Boost', cost: 10, effect: 'swingSpeed+20' },
+    { name_ko: '이중 점프', name_en: 'Double Jump', cost: 20, effect: 'doubleJump' },
+    { name_ko: '보물 코', name_en: 'Treasure Nose', cost: 35, effect: 'hiddenHint' },
+    { name_ko: '바람 타기', name_en: 'Wind Rider', cost: 50, effect: 'windAccel' }
+  ],
+  survival: [
+    { name_ko: '강인한 체력', name_en: 'Tough HP', cost: 5, effect: 'maxHp+1' },
+    { name_ko: '부활', name_en: 'Revive', cost: 10, effect: 'revive1' },
+    { name_ko: '보호막 친화', name_en: 'Shield Pro', cost: 20, effect: 'shieldDur2x' },
+    { name_ko: '생명력 흡수', name_en: 'Life Steal', cost: 35, effect: 'lifeSteal5' },
+    { name_ko: '불사', name_en: 'Undying', cost: 50, effect: 'undying' }
+  ]
+};
+
+// --- Biome definitions (§7.1, §4.3) ---
+const BIOMES = [
+  { id: 'jungle', name_ko: '밀림', name_en: 'Jungle', bgKey: 'bgJungle',
+    bgColor: '#0b3d0b', accentColor: '#2ecc71', skyColor: '#1a5c2a',
+    enemies: ['frog', 'snake'], stages: 3, boss: 0 },
+  { id: 'swamp', name_ko: '늪지', name_en: 'Swamp', bgKey: 'bgSwamp',
+    bgColor: '#1a0a2e', accentColor: '#8e44ad', skyColor: '#2d1b4e',
+    enemies: ['mushroom', 'spider', 'frog'], stages: 3, boss: 1 },
+  { id: 'canopy', name_ko: '수관층', name_en: 'Canopy', bgKey: 'bgCanopy',
+    bgColor: '#0a2a4a', accentColor: '#3498db', skyColor: '#1a4a7a',
+    enemies: ['eagle', 'snake', 'spider'], stages: 3, boss: 2 }
+];
+
+// --- Difficulty distribution (§10.3) ---
+const DIFF_RATIO = [
+  { E: 0.5, M: 0.4, H: 0.1, X: 0 },
+  { E: 0.2, M: 0.4, H: 0.3, X: 0.1 },
+  { E: 0.1, M: 0.3, H: 0.4, X: 0.2 }
+];
+
+// --- DDA levels (§15.2) ---
+const DDA_LEVELS = [
+  { hpMul: 0.7, spdMul: 0.8, anchorBonus: 3, dropMul: 1.5 },
+  { hpMul: 1.0, spdMul: 1.0, anchorBonus: 0, dropMul: 1.0 },
+  { hpMul: 1.3, spdMul: 1.2, anchorBonus: -1, dropMul: 0.8 },
+  { hpMul: 1.6, spdMul: 1.4, anchorBonus: -2, dropMul: 0.6 }
+];
+
+// --- Colors (§4.2) ---
+const COL = {
+  jungle: '#2ecc71', gold: '#f1c40f', poison: '#8e44ad', sky: '#3498db',
+  earth: '#8b4513', coral: '#e74c3c', mist: '#ecf0f1',
+  bgPrimary: '#0a0a1a', bgCard: '#12121e', border: '#1e1e30',
+  textPrimary: '#e0e0f0', textSecondary: '#8080a0', textMuted: '#505070'
+};
+
+// --- i18n (§13) ---
+const LANG = {
+  ko: {
+    title: '바인 템플', subtitle: '고대 정글의 비밀을 풀어라',
+    play: '탐험 시작', upgrade: '업그레이드',
+    combat: '전투', explore: '탐험', survival: '생존',
+    stage_clear: '스테이지 클리어!', game_over: '탐험 종료',
+    boss_defeated: '보스 처치!', score: '점수', combo: '콤보', time: '시간',
+    new_best: '신기록!', relics: '유물', coins: '코인',
+    pause: '일시정지', resume: '계속하기', quit: '월드맵으로',
+    biome_jungle: '밀림', biome_swamp: '늪지', biome_canopy: '수관층',
+    controls_hint: '화면을 터치하여 덩굴을 잡으세요',
+    tap_start: '탭하여 시작', press_start: 'SPACE로 시작',
+    restart: 'R키 또는 탭으로 재시작', back_map: '월드맵으로 돌아가기',
+    dash: '대시', hp: 'HP', lv: 'Lv', cost_label: '비용',
+    locked: '잠김', max_level: '최대', not_enough: '유물 부족',
+    story_jungle: '이 덩굴… 살아있어.', story_swamp: '역병의 근원이 여기서 시작됐어.',
+    story_canopy: '하늘 위에도 신전이 있었다니!',
+    tutorial_grab: '터치/스페이스로 덩굴 잡기', tutorial_release: '놓으면 날아갑니다!',
+    tutorial_dash: 'X키/두 손가락 탭으로 대시 어택', no_hit: '무피격 보너스!',
+    time_bonus: '시간 보너스', total: '합계', best: '최고',
+    revive_prompt: '부활하시겠습니까?', yes: '예', no: '아니오'
+  },
+  en: {
+    title: 'Vine Temple', subtitle: 'Unravel the secrets of the ancient jungle',
+    play: 'Start Exploring', upgrade: 'Upgrade',
+    combat: 'Combat', explore: 'Explore', survival: 'Survival',
+    stage_clear: 'Stage Clear!', game_over: 'Exploration Over',
+    boss_defeated: 'Boss Defeated!', score: 'Score', combo: 'Combo', time: 'Time',
+    new_best: 'New Best!', relics: 'Relics', coins: 'Coins',
+    pause: 'Paused', resume: 'Resume', quit: 'World Map',
+    biome_jungle: 'Jungle', biome_swamp: 'Swamp', biome_canopy: 'Canopy',
+    controls_hint: 'Touch the screen to grab a vine',
+    tap_start: 'Tap to Start', press_start: 'Press SPACE',
+    restart: 'R or Tap to Restart', back_map: 'Back to Map',
+    dash: 'DASH', hp: 'HP', lv: 'Lv', cost_label: 'Cost',
+    locked: 'Locked', max_level: 'MAX', not_enough: 'Not enough relics',
+    story_jungle: 'These vines... they\'re alive.', story_swamp: 'The plague started here.',
+    story_canopy: 'A temple above the clouds!',
+    tutorial_grab: 'Touch/SPACE to grab vine', tutorial_release: 'Release to fly!',
+    tutorial_dash: 'X/2-finger tap for dash attack', no_hit: 'No-Hit Bonus!',
+    time_bonus: 'Time Bonus', total: 'Total', best: 'Best',
+    revive_prompt: 'Revive?', yes: 'Yes', no: 'No'
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 2: UTILS & SEEDED_RNG (F18 — Math.random 0건 for gameplay)
+// ═══════════════════════════════════════════════════════════════════
+
+/** SeededRNG — deterministic random for gameplay (F18) */
+class SeededRNG {
+  constructor(seed) { this.seed = seed % 2147483647; if (this.seed <= 0) this.seed += 2147483646; }
+  next() { this.seed = (this.seed * 16807) % 2147483647; return (this.seed - 1) / 2147483646; }
+  range(min, max) { return min + this.next() * (max - min); }
+  int(min, max) { return Math.floor(this.range(min, max + 1)); }
+  pick(arr) { return arr[this.int(0, arr.length - 1)]; }
+  chance(p) { return this.next() < p; }
+  shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = this.int(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+}
+
+/** Clamp, lerp, dist, angle — pure utility functions (F9) */
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+function angle(x1, y1, x2, y2) { return Math.atan2(y2 - y1, x2 - x1); }
+function circCol(x1, y1, r1, x2, y2, r2) { return dist(x1, y1, x2, y2) < r1 + r2; }
+function rectCol(ax, ay, aw, ah, bx, by, bw, bh) { return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }
+
+/** Get language text */
+let currentLang = 'ko';
+function t(key) { return (LANG[currentLang] && LANG[currentLang][key]) || (LANG.ko[key]) || key; }
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 3: GAME STATE (INIT_EMPTY pattern — F12/F23/F27)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Global game state — all fields initialized to safe empty values */
+const G = {
+  state: ST.TITLE,
+  sub: SUB.ACTIVE,
+  fadeAlpha: 0,
+  transitioning: false,
+  transitionTarget: -1,
+  _ready: false,
+
+  // Player
+  px: 0, py: 0, pvx: 0, pvy: 0,
+  pAngle: 0, pAngVel: 0, pRopeLen: 0,
+  pSwinging: false, pAttached: false, pAnchorIdx: -1,
+  pDashing: false, pDashTimer: 0, pDashDirX: 0, pDashDirY: 0,
+  pFacing: 1,
+  pHp: 3, pMaxHp: 3, pInvTimer: 0,
+  pCombo: 0, pComboTimer: 0,
+  pSize: 28,
+
+  // Camera
+  camX: 0, camY: 0, camTargetX: 0, camTargetY: 0,
+  camShake: 0,
+
+  // Stage
+  currentBiome: 0, currentStage: 0,
+  anchors: [], enemies: [], items: [], hazards: [],
+  stageW: 0, stageH: 0,
+  entryX: 0, entryY: 0, exitX: 0, exitY: 0,
+  stageTimer: 0, hitsTaken: 0,
+  stageScore: 0, totalScore: 0,
+
+  // Boss
+  bossIdx: -1, bossHp: 0, bossMaxHp: 0,
+  bossX: 0, bossY: 0, bossPhase: 0,
+  bossPatternTimer: 0, bossPattern: '',
+  bossWeakExposed: false, bossWeakTimer: 0,
+  bossRewardGiven: false,
+  bossAttacks: [],
+
+  // Map
+  mapSelectedBiome: 0, mapSelectedStage: 0,
+  mapScrollY: 0,
+
+  // Upgrade
+  upgradeTab: 'combat',
+
+  // Progress (persistent)
+  relicShards: 0, totalRelics: 0,
+  upgrades: { combat: 0, explore: 0, survival: 0 },
+  clearedStages: [],
+  bossesDefeated: [],
+  ddaLevel: 1,
+  ddaDeaths: 0, ddaNoHitClears: 0,
+  bestScores: {},
+
+  // Run state
+  coinsCollected: 0,
+  relicsCollected: 0,
+  reviveUsed: false,
+
+  // Tutorial
+  tutorialStep: 0,
+  tutorialDone: false,
+
+  // Title animation
+  titleTimer: 0, titleVineAngle: 0,
+
+  // Particles overlay
+  bgParticles: [],
+
+  // UI state
+  showUpgradePanel: false,
+  dashBtnX: 0, dashBtnY: 0, dashBtnSize: 56,
+  pauseBtnX: 0, pauseBtnY: 0, pauseBtnSize: 48
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 4: AUDIO SYSTEM (F19 — Web Audio API procedural)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Advanced sound system with BGM + SFX (§12) */
+const SND = {
+  ctx: null,
+  masterVol: 0.4,
+  sfxVol: 0.7,
+  bgmVol: 0.3,
+  bgmNodes: [],
+  bgmInterval: null,
+  currentBGM: '',
+  bgmScheduleTime: 0,
+
+  init() {
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) { return; }
+  },
+
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+
+  /** Create gain-connected oscillator */
+  _osc(freq, dur, type, vol, delay) {
+    if (!this.ctx) return null;
+    const t0 = this.ctx.currentTime + (delay || 0);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(vol * this.sfxVol * this.masterVol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(t0); osc.stop(t0 + dur);
+    return osc;
+  },
+
+  /** Create noise burst for percussive sounds */
+  _noise(dur, vol, delay) {
+    if (!this.ctx) return;
+    const t0 = this.ctx.currentTime + (delay || 0);
+    const bufSize = this.ctx.sampleRate * dur;
+    const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let seed = 42;
+    for (let i = 0; i < bufSize; i++) {
+      seed = (seed * 16807) % 2147483647;
+      data[i] = ((seed - 1) / 2147483646) * 2 - 1;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(vol * this.sfxVol * this.masterVol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    src.connect(gain); gain.connect(this.ctx.destination);
+    src.start(t0); src.stop(t0 + dur);
+  },
+
+  // --- SFX (§12.2) ---
+  vineGrab()    { this._osc(660, 0.06, 'sine', 0.3); this._osc(880, 0.08, 'sine', 0.2, 0.03); },
+  vineRelease() { this._osc(440, 0.05, 'square', 0.2); this._osc(220, 0.08, 'square', 0.15, 0.02); },
+  swingWhoosh(speed) {
+    const f = 100 + clamp(speed, 0, 600) * 0.5;
+    this._noise(0.08, 0.15);
+    this._osc(f, 0.1, 'sine', 0.1);
+  },
+  enemyHit() {
+    this._osc(300, 0.05, 'square', 0.3);
+    this._osc(600, 0.08, 'square', 0.2, 0.03);
+    this._osc(900, 0.1, 'sine', 0.15, 0.06);
+  },
+  playerHurt() {
+    this._osc(150, 0.2, 'sawtooth', 0.4);
+    this._noise(0.15, 0.3);
+  },
+  comboUp(combo) {
+    const base = 400 + combo * 60;
+    this._osc(base, 0.06, 'sine', 0.25);
+    this._osc(base * 1.5, 0.08, 'sine', 0.2, 0.04);
+  },
+  bossRoar() {
+    this._osc(60, 0.6, 'sawtooth', 0.5);
+    this._osc(80, 0.5, 'sawtooth', 0.3, 0.1);
+    this._noise(0.4, 0.3, 0.05);
+  },
+  stageClear() {
+    [523, 659, 784, 1047].forEach((f, i) => this._osc(f, 0.15, 'sine', 0.3, i * 0.1));
+  },
+  coinCollect() { this._osc(1200, 0.05, 'sine', 0.2); this._osc(1600, 0.06, 'sine', 0.15, 0.03); },
+  dashAttack() { this._noise(0.1, 0.3); this._osc(200, 0.12, 'sawtooth', 0.3); },
+  relicFind() { [660, 880, 1100, 1320].forEach((f, i) => this._osc(f, 0.12, 'sine', 0.25, i * 0.08)); },
+  uiSelect() { this._osc(800, 0.05, 'square', 0.2); },
+  uiBack() { this._osc(400, 0.05, 'square', 0.15); },
+  upgradeApply() { this._osc(523, 0.08, 'sine', 0.3); this._osc(784, 0.12, 'sine', 0.25, 0.06); this._osc(1047, 0.15, 'sine', 0.2, 0.12); },
+
+  // --- BGM (§12.1 — lookahead scheduling) ---
+  stopBGM() {
+    for (const n of this.bgmNodes) { try { n.stop(); } catch(e){} }
+    this.bgmNodes.length = 0;
+    this.currentBGM = '';
+    this.bgmScheduleTime = 0;
+  },
+
+  scheduleBGM(type) {
+    if (!this.ctx) return;
+    if (this.currentBGM !== type) {
+      this.stopBGM();
+      this.currentBGM = type;
+      this.bgmScheduleTime = this.ctx.currentTime;
+    }
+    const now = this.ctx.currentTime;
+    const lookahead = 2.0;
+    while (this.bgmScheduleTime < now + lookahead) {
+      this._scheduleBGMNote(type, this.bgmScheduleTime);
+      this.bgmScheduleTime += this._bgmBeatDur(type);
+    }
+    // Sliding window — keep at most 64 nodes (Cycle 39 pattern)
+    if (this.bgmNodes.length > 64) {
+      this.bgmNodes.splice(0, this.bgmNodes.length - 32);
+    }
+  },
+
+  _bgmBeatDur(type) {
+    if (type === 'title') return 0.8;
+    if (type === 'jungle') return 0.25;
+    if (type === 'swamp') return 0.5;
+    if (type === 'canopy') return 0.3;
+    if (type === 'boss') return 0.2;
+    return 0.4;
+  },
+
+  _scheduleBGMNote(type, t0) {
+    if (!this.ctx) return;
+    const vol = this.bgmVol * this.masterVol;
+    try {
+      if (type === 'title') {
+        // Ambient pads + bird chirps
+        const notes = [220, 330, 440, 330];
+        const idx = Math.floor((t0 * 1.25) % notes.length);
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sine'; osc.frequency.value = notes[idx];
+        g.gain.setValueAtTime(vol * 0.15, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.7);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(t0); osc.stop(t0 + 0.8);
+        this.bgmNodes.push(osc);
+      } else if (type === 'jungle') {
+        // Rhythmic marimba
+        const scale = [262, 294, 330, 392, 440, 523, 587, 659];
+        const idx = Math.floor((t0 * 4) % scale.length);
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'triangle'; osc.frequency.value = scale[idx];
+        g.gain.setValueAtTime(vol * 0.2, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(t0); osc.stop(t0 + 0.25);
+        this.bgmNodes.push(osc);
+      } else if (type === 'swamp') {
+        // Dark bass + echo drums
+        const bass = [110, 130, 110, 98];
+        const idx = Math.floor((t0 * 2) % bass.length);
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.value = bass[idx];
+        g.gain.setValueAtTime(vol * 0.12, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(t0); osc.stop(t0 + 0.5);
+        this.bgmNodes.push(osc);
+      } else if (type === 'canopy') {
+        // Bright harp + flute
+        const harp = [523, 659, 784, 880, 1047, 880, 784, 659];
+        const idx = Math.floor((t0 * 3.33) % harp.length);
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sine'; osc.frequency.value = harp[idx];
+        g.gain.setValueAtTime(vol * 0.18, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(t0); osc.stop(t0 + 0.3);
+        this.bgmNodes.push(osc);
+      } else if (type === 'boss') {
+        // Intense percussion + bass
+        const notes = [110, 165, 110, 220, 110, 165, 110, 130];
+        const idx = Math.floor((t0 * 5) % notes.length);
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'square'; osc.frequency.value = notes[idx];
+        g.gain.setValueAtTime(vol * 0.15, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(t0); osc.stop(t0 + 0.2);
+        this.bgmNodes.push(osc);
+      }
+    } catch(e) {}
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 5: ASSET_LOADER (manifest.json dynamic load)
+// ═══════════════════════════════════════════════════════════════════
+
+const assets = new AssetLoader();
+const tween = new Tween();
+const particles = new Particles(400);
+
+/** Load assets from manifest.json */
+async function loadAssets() {
+  try {
+    const manifest = await fetch('assets/manifest.json').then(r => r.json());
+    if (manifest && manifest.assets) {
+      const assetMap = {};
+      for (const [key, info] of Object.entries(manifest.assets)) {
+        assetMap[key] = 'assets/' + info.file;
+      }
+      await assets.load(assetMap);
+    }
+  } catch (e) {
+    console.warn('[VineTemple] Asset load failed, using fallbacks');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 6: PHYSICS ENGINE (§5.3 — swing physics)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Player swing states */
+const PS = { FREE_FALL: 0, ATTACH: 1, SWING: 2, LAUNCH: 3 };
+let playerSwingState = PS.FREE_FALL;
+
+/** Find nearest anchor within reach (F11/F25: 48px minimum hitbox) */
+function findNearestAnchor(px, py, anchors, maxDist) {
+  let best = -1, bestD = maxDist;
+  for (let i = 0; i < anchors.length; i++) {
+    const a = anchors[i];
+    if (a.broken) continue;
+    const d = dist(px, py, a.x, a.y);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
+/** Attach player to vine anchor */
+function attachToAnchor(idx) {
+  if (idx < 0 || idx >= G.anchors.length) return;
+  const a = G.anchors[idx];
+  G.pAnchorIdx = idx;
+  G.pAttached = true;
+  G.pSwinging = true;
+  playerSwingState = PS.SWING;
+
+  // Calculate rope length and initial angle
+  G.pRopeLen = clamp(dist(G.px, G.py, a.x, a.y), ROPE_LENGTH_MIN, ROPE_LENGTH_MAX);
+  G.pAngle = angle(a.x, a.y, G.px, G.py);
+
+  // Convert linear velocity to angular velocity
+  const tangentialSpeed = -G.pvx * Math.sin(G.pAngle) + G.pvy * Math.cos(G.pAngle);
+  G.pAngVel = tangentialSpeed / G.pRopeLen;
+
+  SND.vineGrab();
+}
+
+/** Release from vine — launch with tangential velocity */
+function releaseFromVine() {
+  if (!G.pAttached || G.pAnchorIdx < 0) return;
+  const a = G.anchors[G.pAnchorIdx];
+
+  // Tangential velocity at release point (§5.3)
+  G.pvx = -G.pAngVel * G.pRopeLen * Math.sin(G.pAngle);
+  G.pvy = G.pAngVel * G.pRopeLen * Math.cos(G.pAngle);
+
+  // Apply swing speed upgrade
+  if (G.upgrades.explore >= 2) {
+    G.pvx *= 1.2;
+    G.pvy *= 1.2;
+  }
+
+  G.pAttached = false;
+  G.pSwinging = false;
+  G.pAnchorIdx = -1;
+  playerSwingState = PS.LAUNCH;
+
+  SND.vineRelease();
+}
+
+/** Update swing physics (pure function on G state — F9) */
+function updateSwingPhysics(dt) {
+  const dtSec = dt / 1000;
+
+  if (G.pDashing) {
+    // Dash movement
+    G.px += G.pDashDirX * DASH_SPEED * dtSec;
+    G.py += G.pDashDirY * DASH_SPEED * dtSec;
+    G.pDashTimer -= dtSec;
+    if (G.pDashTimer <= 0) {
+      G.pDashing = false;
+      G.pvx = G.pDashDirX * DASH_SPEED * 0.5;
+      G.pvy = G.pDashDirY * DASH_SPEED * 0.5;
+      playerSwingState = PS.FREE_FALL;
+    }
+    return;
+  }
+
+  if (G.pAttached && G.pAnchorIdx >= 0) {
+    // SWING state — circular motion around anchor
+    const a = G.anchors[G.pAnchorIdx];
+
+    // Angular acceleration from gravity
+    G.pAngVel += (GRAVITY * Math.sin(G.pAngle) / G.pRopeLen) * dtSec;
+
+    // Damping
+    G.pAngVel *= SWING_DAMPING;
+
+    // Update angle
+    G.pAngle += G.pAngVel * dtSec;
+
+    // Update position
+    G.px = a.x + Math.cos(G.pAngle) * G.pRopeLen;
+    G.py = a.y + Math.sin(G.pAngle) * G.pRopeLen;
+
+    // Update facing direction
+    if (G.pAngVel > 0.1) G.pFacing = 1;
+    else if (G.pAngVel < -0.1) G.pFacing = -1;
+
+  } else {
+    // FREE_FALL / LAUNCH
+    G.pvy += GRAVITY * dtSec;
+    G.pvx *= AIR_DRAG;
+    G.px += G.pvx * dtSec;
+    G.py += G.pvy * dtSec;
+
+    // Facing
+    if (G.pvx > 20) G.pFacing = 1;
+    else if (G.pvx < -20) G.pFacing = -1;
+
+    // Floor collision (bottom of stage)
+    if (G.py > G.stageH - 20) {
+      G.py = G.stageH - 20;
+      G.pvy = -Math.abs(G.pvy) * 0.3;
+      if (Math.abs(G.pvy) < 50) G.pvy = 0;
+    }
+
+    // Walls
+    if (G.px < 10) { G.px = 10; G.pvx = Math.abs(G.pvx) * 0.5; }
+    if (G.px > G.stageW - 10) { G.px = G.stageW - 10; G.pvx = -Math.abs(G.pvx) * 0.5; }
+
+    // Ceiling
+    if (G.py < 10) { G.py = 10; G.pvy = Math.abs(G.pvy) * 0.3; }
+
+    playerSwingState = PS.FREE_FALL;
+  }
+}
+
+/** Start dash attack */
+function startDash() {
+  if (G.pDashing) return;
+  if (G.pAttached) releaseFromVine();
+
+  // Dash in facing/velocity direction
+  const speed = Math.hypot(G.pvx, G.pvy);
+  if (speed > 30) {
+    G.pDashDirX = G.pvx / speed;
+    G.pDashDirY = G.pvy / speed;
+  } else {
+    G.pDashDirX = G.pFacing;
+    G.pDashDirY = 0;
+  }
+
+  G.pDashing = true;
+  G.pDashTimer = DASH_DURATION;
+  SND.dashAttack();
+  particles.emit(G.px, G.py, 8, { color: '#2ecc71', speed: 200, life: 0.3, spread: Math.PI });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 7: GAME ENTITIES (player, enemies, boss, items)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Damage player (with invincibility frame check) */
+function damagePlayer(dmg) {
+  if (G.pInvTimer > 0) return;
+  if (G.pCombo >= 3 && G.pComboTimer > 0) return; // combo invincibility
+
+  // Poison resist upgrade
+  if (G.upgrades.combat >= 4) dmg *= 0.5;
+
+  G.pHp -= dmg;
+  G.hitsTaken++;
+  G.pInvTimer = INVINCIBLE_TIME;
+  G.camShake = 8;
+  SND.playerHurt();
+  particles.emit(G.px, G.py, 12, { color: '#e74c3c', speed: 150, life: 0.4 });
+
+  if (G.pHp <= 0) {
+    G.pHp = 0;
+    // Check revive upgrade
+    if (G.upgrades.survival >= 2 && !G.reviveUsed) {
+      G.reviveUsed = true;
+      G.pHp = 1;
+      G.pInvTimer = 3.0;
+      particles.emit(G.px, G.py, 20, { color: '#f1c40f', speed: 200, life: 0.6 });
+      return;
+    }
+    // Check undying upgrade
+    if (G.upgrades.survival >= 5 && !G.reviveUsed) {
+      G.reviveUsed = true;
+      G.pHp = 1;
+      G.pInvTimer = 3.0;
+      return;
+    }
+    triggerGameOver();
+  }
+}
+
+/** Trigger game over (with guard — F5) */
+let gameoverTriggered = false;
+function triggerGameOver() {
+  if (gameoverTriggered) return;
+  gameoverTriggered = true;
+  G.sub = SUB.GAMEOVER;
+  G.camShake = 12;
+  G.ddaDeaths++;
+  G.ddaNoHitClears = 0;
+  SND.stopBGM();
+  SND.playerHurt();
+
+  // Fade in
+  tween.add({ _t: 0 }, { _t: 1 }, 500, 'easeOut', () => {});
+}
+
+/** Trigger stage clear (with guard — F5) */
+let clearTriggered = false;
+function triggerStageClear() {
+  if (clearTriggered) return;
+  clearTriggered = true;
+  G.sub = SUB.CLEAR;
+  SND.stageClear();
+  SND.stopBGM();
+
+  // Calculate score (F8: judge first, save later)
+  const timeBonus = SCORE_CFG.TIME_BONUS(G.stageTimer);
+  const noHitBonus = G.hitsTaken === 0 ? SCORE_CFG.NO_HIT_BONUS : 0;
+  G.stageScore += SCORE_CFG.STAGE_CLEAR + timeBonus + noHitBonus;
+  G.totalScore += G.stageScore;
+
+  // Save best (F8: judge, compare, then save)
+  const stageKey = `${G.currentBiome}-${G.currentStage}`;
+  const prevBest = G.bestScores[stageKey] || 0;
+  const isNewBest = G.stageScore > prevBest;
+  if (isNewBest) G.bestScores[stageKey] = G.stageScore;
+  Save.setHighScore(GAME_ID, G.totalScore);
+  saveProgress();
+
+  // Mark stage cleared
+  if (!G.clearedStages.includes(stageKey)) {
+    G.clearedStages.push(stageKey);
+  }
+
+  // DDA evaluation
+  if (G.hitsTaken === 0) {
+    G.ddaNoHitClears++;
+    if (G.ddaNoHitClears >= 2 && G.ddaLevel < 3) G.ddaLevel++;
+  }
+}
+
+/** Update enemy AI (pure function on enemy object — F9) */
+function updateEnemy(e, dt, rng) {
+  const dtSec = dt / 1000;
+  const def = ENEMY_DEFS[e.type];
+  const ddaMul = DDA_LEVELS[G.ddaLevel].spdMul;
+
+  if (e.dead) return;
+
+  if (def.ground) {
+    // Ground patrol
+    e.x += e.dir * def.speed * ddaMul * dtSec;
+    if (e.x < e.patrolMin || e.x > e.patrolMax) {
+      e.dir *= -1;
+      e.x = clamp(e.x, e.patrolMin, e.patrolMax);
+    }
+    // Shooting (mushroom)
+    if (def.shoots) {
+      e.shootTimer = (e.shootTimer || 0) - dtSec;
+      if (e.shootTimer <= 0) {
+        e.shootTimer = 3.0;
+        const dx = G.px - e.x, dy = G.py - e.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 300 && d > 0) {
+          G.hazards.push({
+            type: 'spore', x: e.x, y: e.y - 10,
+            vx: (dx / d) * 120, vy: (dy / d) * 120,
+            life: 2.5, size: 8, dmg: 1
+          });
+        }
+      }
+    }
+  } else if (e.type === 'eagle') {
+    // Horizontal flight + occasional dive
+    e.x += e.dir * def.speed * ddaMul * dtSec;
+    e.flyTimer = (e.flyTimer || 0) - dtSec;
+    if (e.diving) {
+      e.y += 200 * dtSec;
+      e.diveTimer -= dtSec;
+      if (e.diveTimer <= 0) {
+        e.diving = false;
+        e.y = e.baseY;
+        e.flyTimer = 3.0;
+      }
+    } else if (e.flyTimer <= 0 && dist(e.x, e.y, G.px, G.py) < 250) {
+      e.diving = true;
+      e.diveTimer = 0.8;
+    }
+    if (e.x < e.patrolMin || e.x > e.patrolMax) e.dir *= -1;
+  } else if (e.type === 'snake') {
+    // Vine-following movement
+    if (e.vineAnchorIdx >= 0 && e.vineAnchorIdx < G.anchors.length) {
+      const a = G.anchors[e.vineAnchorIdx];
+      e.vineAngle = (e.vineAngle || 0) + e.dir * def.speed * ddaMul * 0.01 * dtSec;
+      e.x = a.x + Math.cos(e.vineAngle) * 50;
+      e.y = a.y + Math.sin(e.vineAngle) * 50;
+    }
+  } else if (e.type === 'spider') {
+    // Wall attachment + web shooting
+    e.shootTimer = (e.shootTimer || 0) - dtSec;
+    if (e.shootTimer <= 0 && dist(e.x, e.y, G.px, G.py) < 250) {
+      e.shootTimer = 4.0;
+      const dx = G.px - e.x, dy = G.py - e.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 0) {
+        G.hazards.push({
+          type: 'web', x: e.x, y: e.y,
+          vx: (dx / d) * 100, vy: (dy / d) * 100,
+          life: 2.0, size: 10, dmg: 0, slow: true
+        });
+      }
+    }
+  }
+
+  // Animation
+  e.animTimer = (e.animTimer || 0) + dtSec;
+}
+
+/** Collision detection — single hitTest function (F16) */
+function checkCollisions() {
+  const pSize = G.pSize;
+  const hitR = Math.max(24, pSize * 0.5);
+
+  // Player vs enemies
+  for (let i = G.enemies.length - 1; i >= 0; i--) {
+    const e = G.enemies[i];
+    if (e.dead) continue;
+    const eSize = Math.max(24, ENEMY_DEFS[e.type].size * 0.5);
+    if (!circCol(G.px, G.py, hitR, e.x, e.y, eSize)) continue;
+
+    // Dash attack — always kills
+    if (G.pDashing) {
+      hitEnemy(e, i, G.upgrades.combat >= 1 ? 3 : 2);
+      if (G.upgrades.combat < 3) continue; // No pierce without upgrade
+      continue;
+    }
+
+    // Swing from above — kill if player is above and moving down
+    if (G.py < e.y - eSize * 0.3 && G.pvy > 0) {
+      hitEnemy(e, i, G.upgrades.combat >= 5 ? 2 : 1);
+    } else {
+      // Player takes damage
+      damagePlayer(1);
+    }
+  }
+
+  // Player vs items
+  for (let i = G.items.length - 1; i >= 0; i--) {
+    const it = G.items[i];
+    if (it.collected) continue;
+    if (!circCol(G.px, G.py, hitR, it.x, it.y, 20)) continue;
+
+    it.collected = true;
+    particles.emit(it.x, it.y, 8, { color: '#f1c40f', speed: 100, life: 0.4 });
+
+    if (it.type === 'coin') {
+      G.coinsCollected++;
+      G.stageScore += SCORE_CFG.COIN_COLLECT;
+      SND.coinCollect();
+    } else if (it.type === 'potion') {
+      G.pHp = Math.min(G.pHp + 1, G.pMaxHp);
+      SND.coinCollect();
+    } else if (it.type === 'relic') {
+      G.relicsCollected++;
+      G.relicShards++;
+      G.totalRelics++;
+      G.stageScore += SCORE_CFG.RELIC_FIND;
+      SND.relicFind();
+    } else if (it.type === 'golden_vine') {
+      // Speed boost handled in physics
+      G.speedBoostTimer = 30;
+      SND.relicFind();
+    }
+  }
+
+  // Player vs hazards
+  for (let i = G.hazards.length - 1; i >= 0; i--) {
+    const h = G.hazards[i];
+    if (h.type === 'spore' || h.type === 'web') {
+      if (circCol(G.px, G.py, hitR, h.x, h.y, h.size)) {
+        if (h.dmg > 0) damagePlayer(h.dmg);
+        if (h.slow) { G.pvx *= 0.5; G.pvy *= 0.5; } // Web slow
+        G.hazards.splice(i, 1);
+      }
+    }
+  }
+
+  // Player vs exit
+  if (dist(G.px, G.py, G.exitX, G.exitY) < 40) {
+    triggerStageClear();
+  }
+}
+
+/** Hit an enemy — damage, combo, drops */
+function hitEnemy(e, idx, dmg) {
+  e.hp -= dmg;
+  G.camShake = 4;
+  SND.enemyHit();
+  particles.emit(e.x, e.y, 10, { color: COL.gold, speed: 120, life: 0.3 });
+
+  if (e.hp <= 0) {
+    e.dead = true;
+    G.stageScore += SCORE_CFG.ENEMY_KILL * SCORE_CFG.COMBO_MULT(G.pCombo);
+
+    // Combo system (§11.2)
+    G.pCombo++;
+    G.pComboTimer = COMBO_TIME + (G.upgrades.combat >= 2 ? 1 : 0);
+    SND.comboUp(G.pCombo);
+
+    // Drops
+    const def = ENEMY_DEFS[e.type];
+    const ddaDrop = DDA_LEVELS[G.ddaLevel].dropMul;
+    for (let d = 0; d < def.drop; d++) {
+      G.items.push({
+        type: 'coin', x: e.x + (d - def.drop/2) * 15, y: e.y - 10,
+        vy: -100, collected: false
+      });
+    }
+
+    // Life steal upgrade
+    if (G.upgrades.survival >= 4) {
+      // 5% chance per kill (use seeded RNG? — this is runtime, so Math.random is OK for VFX only)
+      // Actually use a counter-based approach for determinism
+      if (G.pCombo % 20 === 0 && G.pHp < G.pMaxHp) {
+        G.pHp++;
+        particles.emit(G.px, G.py, 10, { color: '#00ff87', speed: 80, life: 0.5 });
+      }
+    }
+  }
+}
+
+// --- Boss AI (§7.5) ---
+
+/** Initialize boss fight */
+function initBoss(bossIdx) {
+  const def = BOSS_DEFS[bossIdx];
+  G.bossIdx = bossIdx;
+  G.bossHp = def.hp;
+  G.bossMaxHp = def.hp;
+  G.bossX = G.stageW * 0.6;
+  G.bossY = G.stageH * 0.4;
+  G.bossPhase = 0;
+  G.bossPatternTimer = 2.0;
+  G.bossPattern = 'idle';
+  G.bossWeakExposed = false;
+  G.bossWeakTimer = 0;
+  G.bossRewardGiven = false;
+  G.bossAttacks = [];
+  G.sub = SUB.BOSS_INTRO;
+  SND.bossRoar();
+}
+
+/** Update boss AI (data-driven from BOSS_DEFS) */
+function updateBoss(dt) {
+  const dtSec = dt / 1000;
+  const def = BOSS_DEFS[G.bossIdx];
+  if (!def) return;
+
+  // Boss intro sub-state
+  if (G.sub === SUB.BOSS_INTRO) {
+    G.bossPatternTimer -= dtSec;
+    if (G.bossPatternTimer <= 0) {
+      G.sub = SUB.ACTIVE;
+      G.bossPatternTimer = 2.0;
+      G.bossPattern = 'attack1';
+    }
+    return;
+  }
+
+  // Determine phase
+  const hpRatio = G.bossHp / G.bossMaxHp;
+  let phase = 0;
+  for (let i = def.phases.length - 1; i >= 0; i--) {
+    if (hpRatio <= def.phases[i]) phase = i;
+  }
+  G.bossPhase = phase;
+
+  // Pattern timer
+  G.bossPatternTimer -= dtSec;
+  if (G.bossPatternTimer <= 0) {
+    advanceBossPattern(def, phase);
+  }
+
+  // Weak spot timer
+  if (G.bossWeakExposed) {
+    G.bossWeakTimer -= dtSec;
+    if (G.bossWeakTimer <= 0) {
+      G.bossWeakExposed = false;
+      G.bossPattern = 'attack1';
+      G.bossPatternTimer = 2.0;
+    }
+  }
+
+  // Move boss attacks
+  for (let i = G.bossAttacks.length - 1; i >= 0; i--) {
+    const a = G.bossAttacks[i];
+    a.x += (a.vx || 0) * dtSec;
+    a.y += (a.vy || 0) * dtSec;
+    a.life -= dtSec;
+    if (a.life <= 0) { G.bossAttacks.splice(i, 1); continue; }
+
+    // Check player hit
+    if (circCol(G.px, G.py, G.pSize * 0.4, a.x, a.y, a.size)) {
+      damagePlayer(a.dmg);
+      G.bossAttacks.splice(i, 1);
+    }
+  }
+
+  // Boss movement (simple float)
+  G.bossX += Math.sin(G.stageTimer * 0.5) * 30 * dtSec;
+  G.bossY += Math.cos(G.stageTimer * 0.7) * 20 * dtSec;
+  G.bossY = clamp(G.bossY, 80, G.stageH - 150);
+
+  // Check player collision with boss weak spot
+  if (G.bossWeakExposed) {
+    const weakX = G.bossX;
+    const weakY = G.bossY - def.size * 0.2;
+    if (circCol(G.px, G.py, G.pSize * 0.4, weakX, weakY, 30)) {
+      const dmg = G.pDashing ? 5 : 3;
+      G.bossHp -= dmg;
+      G.camShake = 6;
+      SND.enemyHit();
+      particles.emit(weakX, weakY, 15, { color: '#f1c40f', speed: 150, life: 0.5 });
+
+      if (G.bossHp <= 0) {
+        G.bossHp = 0;
+        triggerBossDefeat();
+      }
+    }
+  } else {
+    // Non-weak collision = player damage
+    if (circCol(G.px, G.py, G.pSize * 0.4, G.bossX, G.bossY, def.size * 0.4)) {
+      damagePlayer(1);
+    }
+  }
+}
+
+/** Advance boss attack pattern */
+function advanceBossPattern(def, phase) {
+  if (G.bossWeakExposed) return;
+
+  const patterns = ['attack1', 'attack2', 'expose'];
+  if (phase >= 2) patterns.push('rage');
+
+  // Simple pattern cycle
+  const currentIdx = patterns.indexOf(G.bossPattern);
+  const nextIdx = (currentIdx + 1) % patterns.length;
+  G.bossPattern = patterns[nextIdx];
+
+  if (G.bossPattern === 'expose') {
+    G.bossWeakExposed = true;
+    G.bossWeakTimer = phase >= 2 ? 1.0 : 1.5;
+    G.bossPatternTimer = G.bossWeakTimer + 0.5;
+  } else if (G.bossPattern === 'attack1') {
+    // Vine sweep / spore cloud / wind blade
+    G.bossPatternTimer = 2.0;
+    spawnBossAttack(def, 'sweep');
+  } else if (G.bossPattern === 'attack2') {
+    G.bossPatternTimer = 2.5;
+    spawnBossAttack(def, 'projectile');
+  } else if (G.bossPattern === 'rage') {
+    G.bossPatternTimer = 1.5;
+    spawnBossAttack(def, 'sweep');
+    spawnBossAttack(def, 'projectile');
+  }
+}
+
+/** Spawn boss attack projectile */
+function spawnBossAttack(def, type) {
+  const dx = G.px - G.bossX;
+  const dy = G.py - G.bossY;
+  const d = Math.max(1, Math.hypot(dx, dy));
+
+  if (type === 'sweep') {
+    // Horizontal sweep attack
+    for (let i = -2; i <= 2; i++) {
+      G.bossAttacks.push({
+        x: G.bossX + i * 60, y: G.bossY + 20,
+        vx: i * 80, vy: 100 + Math.abs(i) * 30,
+        size: 15, dmg: 1, life: 2.0, color: def.color
+      });
+    }
+  } else if (type === 'projectile') {
+    // Targeted projectile
+    for (let i = 0; i < 3; i++) {
+      const spread = (i - 1) * 0.3;
+      const ang = Math.atan2(dy, dx) + spread;
+      G.bossAttacks.push({
+        x: G.bossX, y: G.bossY,
+        vx: Math.cos(ang) * 180, vy: Math.sin(ang) * 180,
+        size: 12, dmg: 1, life: 2.5, color: '#e74c3c'
+      });
+    }
+  }
+}
+
+/** Boss defeated (F17 — bossRewardGiven guard) */
+function triggerBossDefeat() {
+  if (G.bossRewardGiven) return;
+  G.bossRewardGiven = true;
+
+  const def = BOSS_DEFS[G.bossIdx];
+  G.relicShards += def.reward.relics;
+  G.totalRelics += def.reward.relics;
+  G.stageScore += def.reward.score;
+  G.totalScore += G.stageScore;
+
+  if (!G.bossesDefeated.includes(def.id)) {
+    G.bossesDefeated.push(def.id);
+  }
+
+  Save.setHighScore(GAME_ID, G.totalScore);
+  saveProgress();
+
+  G.sub = SUB.CLEAR;
+  G.camShake = 15;
+  SND.stopBGM();
+  SND.stageClear();
+  particles.emit(G.bossX, G.bossY, 40, { color: '#f1c40f', speed: 250, life: 1.0 });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 8: MAP GENERATOR (procedural + BFS validation)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Generate a stage procedurally with SeededRNG (F18) */
+function generateStage(biomeIdx, stageIdx, seed) {
+  const rng = new SeededRNG(seed);
+  const biome = BIOMES[biomeIdx];
+  const dda = DDA_LEVELS[G.ddaLevel];
+
+  // Stage dimensions (§10.1)
+  const screensW = rng.int(4, 7);
+  const screensH = rng.int(2, 3);
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  G.stageW = screensW * W;
+  G.stageH = screensH * H;
+
+  // Generate anchors (vine points)
+  const anchors = [];
+  const gridSpacingX = 150;
+  const gridSpacingY = 120;
+  const anchorDensity = 1.0 + dda.anchorBonus * 0.1;
+
+  for (let gx = gridSpacingX; gx < G.stageW - gridSpacingX; gx += gridSpacingX) {
+    for (let gy = 80; gy < G.stageH - 100; gy += gridSpacingY) {
+      if (rng.chance(0.4 * anchorDensity)) {
+        const ox = rng.range(-30, 30);
+        const oy = rng.range(-25, 25);
+        anchors.push({
+          x: gx + ox, y: gy + oy,
+          id: anchors.length, broken: false
+        });
+      }
+    }
+  }
+
+  // Entry and exit
+  const entryX = 80;
+  const entryY = G.stageH * 0.5;
+  const exitX = G.stageW - 80;
+  const exitY = rng.range(G.stageH * 0.2, G.stageH * 0.6);
+
+  // Ensure anchors near entry and exit
+  anchors.push({ x: entryX + 100, y: entryY - 60, id: anchors.length, broken: false });
+  anchors.push({ x: entryX + 250, y: entryY - 40, id: anchors.length, broken: false });
+  anchors.push({ x: exitX - 150, y: exitY - 50, id: anchors.length, broken: false });
+
+  // BFS validation (§10.2)
+  let valid = validateReachability(anchors, entryX, entryY, exitX, exitY);
+  let retries = 0;
+  while (!valid && retries < 10) {
+    // Add bridge anchors
+    const midX = (entryX + exitX) / 2 + rng.range(-200, 200);
+    const midY = rng.range(G.stageH * 0.2, G.stageH * 0.6);
+    anchors.push({ x: midX, y: midY, id: anchors.length, broken: false });
+    anchors.push({ x: midX + rng.range(60, 150), y: midY + rng.range(-60, 60), id: anchors.length, broken: false });
+    valid = validateReachability(anchors, entryX, entryY, exitX, exitY);
+    retries++;
+  }
+
+  G.anchors = anchors;
+  G.entryX = entryX;
+  G.entryY = entryY;
+  G.exitX = exitX;
+  G.exitY = exitY;
+
+  // Generate enemies
+  G.enemies = [];
+  const diff = DIFF_RATIO[biomeIdx];
+  const enemyPool = biome.enemies;
+  const screenCount = screensW;
+
+  for (let s = 0; s < screenCount; s++) {
+    // Determine difficulty of this screen segment
+    const roll = rng.next();
+    let segDiff = 'E';
+    let cumul = 0;
+    for (const [key, ratio] of Object.entries(diff)) {
+      cumul += ratio;
+      if (roll < cumul) { segDiff = key; break; }
+    }
+
+    const enemyCount = segDiff === 'E' ? rng.int(0, 1) : segDiff === 'M' ? rng.int(1, 2)
+      : segDiff === 'H' ? rng.int(2, 3) : rng.int(3, 4);
+
+    for (let e = 0; e < enemyCount; e++) {
+      const type = rng.pick(enemyPool);
+      const def = ENEMY_DEFS[type];
+      const ex = s * W + rng.range(100, W - 100);
+      const ey = def.ground ? G.stageH - 40 : rng.range(100, G.stageH * 0.6);
+
+      G.enemies.push({
+        type, x: ex, y: ey, baseY: ey,
+        hp: Math.ceil(def.hp * dda.hpMul),
+        dir: rng.chance(0.5) ? 1 : -1,
+        patrolMin: ex - rng.range(80, 150),
+        patrolMax: ex + rng.range(80, 150),
+        dead: false, animTimer: 0,
+        vineAnchorIdx: type === 'snake' ? rng.int(0, anchors.length - 1) : -1,
+        vineAngle: 0, flyTimer: rng.range(1, 3), diving: false, diveTimer: 0,
+        shootTimer: rng.range(1, 3)
+      });
+    }
+  }
+
+  // Generate items
+  G.items = [];
+  for (let s = 0; s < screenCount; s++) {
+    // Coins near enemies
+    const coinCount = rng.int(2, 5);
+    for (let c = 0; c < coinCount; c++) {
+      G.items.push({
+        type: 'coin',
+        x: s * W + rng.range(50, W - 50),
+        y: rng.range(80, G.stageH - 60),
+        vy: 0, collected: false
+      });
+    }
+
+    // Occasional potion
+    if (rng.chance(0.15)) {
+      G.items.push({
+        type: 'potion',
+        x: s * W + rng.range(100, W - 100),
+        y: rng.range(100, G.stageH * 0.5),
+        vy: 0, collected: false
+      });
+    }
+
+    // Relic
+    if (rng.chance(0.1)) {
+      G.items.push({
+        type: 'relic',
+        x: s * W + rng.range(150, W - 150),
+        y: rng.range(60, G.stageH * 0.4),
+        vy: 0, collected: false
+      });
+    }
+  }
+
+  // One golden vine per stage
+  G.items.push({
+    type: 'golden_vine',
+    x: rng.range(G.stageW * 0.3, G.stageW * 0.7),
+    y: rng.range(60, G.stageH * 0.3),
+    vy: 0, collected: false
+  });
+
+  // Generate hazards (static)
+  G.hazards = [];
+  if (biomeIdx >= 1) {
+    // Poison pools in swamp
+    for (let i = 0; i < rng.int(2, 5); i++) {
+      G.hazards.push({
+        type: 'poison_pool',
+        x: rng.range(200, G.stageW - 200),
+        y: G.stageH - 15,
+        w: rng.range(80, 160), h: 30,
+        dmg: 0.5, persistent: true
+      });
+    }
+  }
+}
+
+/** BFS reachability validation (§10.2) */
+function validateReachability(anchors, entryX, entryY, exitX, exitY) {
+  // Find anchor closest to entry and exit
+  let startIdx = -1, endIdx = -1, bestSD = Infinity, bestED = Infinity;
+  for (let i = 0; i < anchors.length; i++) {
+    const sd = dist(anchors[i].x, anchors[i].y, entryX, entryY);
+    const ed = dist(anchors[i].x, anchors[i].y, exitX, exitY);
+    if (sd < bestSD) { bestSD = sd; startIdx = i; }
+    if (ed < bestED) { bestED = ed; endIdx = i; }
+  }
+  if (startIdx < 0 || endIdx < 0) return false;
+
+  // BFS
+  const visited = new Set();
+  const queue = [startIdx];
+  visited.add(startIdx);
+
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    if (cur === endIdx) return true;
+
+    for (let i = 0; i < anchors.length; i++) {
+      if (visited.has(i)) continue;
+      if (dist(anchors[cur].x, anchors[cur].y, anchors[i].x, anchors[i].y) <= MAX_SWING_REACH * 2) {
+        visited.add(i);
+        queue.push(i);
+      }
+    }
+  }
+  return false;
+}
+
+/** Generate boss arena */
+function generateBossArena(bossIdx) {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  G.stageW = W * 3;
+  G.stageH = H * 2;
+
+  // Circular arena with anchors around the edges
+  G.anchors = [];
+  const cx = G.stageW * 0.5;
+  const cy = G.stageH * 0.5;
+  const radius = Math.min(G.stageW, G.stageH) * 0.35;
+
+  for (let a = 0; a < 16; a++) {
+    const ang = (a / 16) * Math.PI * 2;
+    G.anchors.push({
+      x: cx + Math.cos(ang) * radius,
+      y: cy + Math.sin(ang) * radius,
+      id: a, broken: false
+    });
+  }
+  // Inner ring
+  for (let a = 0; a < 8; a++) {
+    const ang = (a / 8) * Math.PI * 2 + 0.2;
+    G.anchors.push({
+      x: cx + Math.cos(ang) * radius * 0.5,
+      y: cy + Math.sin(ang) * radius * 0.5,
+      id: 16 + a, broken: false
+    });
+  }
+
+  G.entryX = cx - radius;
+  G.entryY = cy;
+  G.exitX = cx + radius;
+  G.exitY = cy;
+  G.enemies = [];
+  G.items = [];
+  G.hazards = [];
+
+  initBoss(bossIdx);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 9: RENDER SYSTEM (drawing functions — all pure F9)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Draw parallax background (ctx, w, h, camX, camY, biomeIdx) */
+function drawBackground(ctx, w, h, camX, camY, biomeIdx) {
+  const biome = BIOMES[biomeIdx];
+
+  // Sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, biome.skyColor);
+  grad.addColorStop(1, biome.bgColor);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Try to draw background asset
+  const bgKey = biome.bgKey;
+  if (assets.sprites[bgKey]) {
+    // Parallax far layer (30% speed)
+    const parX = -camX * 0.1;
+    const img = assets.sprites[bgKey];
+    const scale = h / img.height;
+    const imgW = img.width * scale;
+    const drawX = (parX % imgW + imgW) % imgW - imgW;
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(img, drawX, 0, imgW, h);
+    ctx.drawImage(img, drawX + imgW, 0, imgW, h);
+    ctx.globalAlpha = 1;
+  }
+
+  // Procedural background elements per biome
+  if (biomeIdx === 0) {
+    // Jungle — tree silhouettes
+    drawJungleBG(ctx, w, h, camX, camY);
+  } else if (biomeIdx === 1) {
+    // Swamp — fog and mushrooms
+    drawSwampBG(ctx, w, h, camX, camY);
+  } else if (biomeIdx === 2) {
+    // Canopy — clouds and light rays
+    drawCanopyBG(ctx, w, h, camX, camY);
+  }
+}
+
+/** Jungle background — trees and vines */
+function drawJungleBG(ctx, w, h, camX, camY) {
+  ctx.fillStyle = '#0d4d0d';
+  // Mid-ground trees
+  for (let i = 0; i < 8; i++) {
+    const tx = (i * 250 - camX * 0.3) % (w + 200) - 100;
+    const tw = 40 + i * 5;
+    const th = h * 0.6 + i * 20;
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(tx, h - th, tw, th);
+    // Canopy
+    ctx.beginPath();
+    ctx.arc(tx + tw/2, h - th, tw * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Swamp background — purple fog */
+function drawSwampBG(ctx, w, h, camX, camY) {
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = '#8e44ad';
+  for (let i = 0; i < 5; i++) {
+    const fx = (i * 300 - camX * 0.2 + G.stageTimer * 10) % (w + 300) - 150;
+    ctx.beginPath();
+    ctx.arc(fx, h * 0.7 + Math.sin(G.stageTimer + i) * 30, 120 + i * 20, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Canopy background — clouds and sun rays */
+function drawCanopyBG(ctx, w, h, camX, camY) {
+  // Clouds
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 6; i++) {
+    const cx = (i * 280 - camX * 0.15 + G.stageTimer * 5) % (w + 400) - 200;
+    ctx.beginPath();
+    ctx.arc(cx, 60 + i * 15, 50 + i * 10, 0, Math.PI * 2);
+    ctx.arc(cx + 40, 50 + i * 15, 40 + i * 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Sun rays
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = '#f1c40f';
+  for (let i = 0; i < 4; i++) {
+    ctx.save();
+    ctx.translate(w * 0.7, -20);
+    ctx.rotate(0.2 + i * 0.15 + Math.sin(G.stageTimer * 0.3 + i) * 0.05);
+    ctx.fillRect(-10, 0, 20 + i * 5, h * 1.5);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Draw vine rope between player and anchor (ctx, ax, ay, px, py) */
+function drawVine(ctx, ax, ay, px, py, thickness, swayPhase) {
+  ctx.save();
+  ctx.strokeStyle = '#2ecc71';
+  ctx.lineWidth = thickness || 3;
+  ctx.shadowColor = '#2ecc71';
+  ctx.shadowBlur = 4;
+
+  // Bezier curve for natural vine look
+  const mx = (ax + px) / 2 + Math.sin(swayPhase || 0) * 15;
+  const my = (ay + py) / 2 + 20;
+  ctx.beginPath();
+  ctx.moveTo(ax, ay);
+  ctx.quadraticCurveTo(mx, my, px, py);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Draw anchor point (ctx, x, y, isNearest) */
+function drawAnchor(ctx, x, y, isNearest) {
+  ctx.save();
+  // Vine knot
+  ctx.fillStyle = isNearest ? '#f1c40f' : '#1a8c3a';
+  ctx.shadowColor = isNearest ? '#f1c40f' : '#2ecc71';
+  ctx.shadowBlur = isNearest ? 10 : 4;
+  ctx.beginPath();
+  ctx.arc(x, y, isNearest ? 8 : 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hanging vine decoration
+  ctx.strokeStyle = '#145a24';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 6);
+  ctx.lineTo(x + Math.sin(G.stageTimer * 2 + x * 0.1) * 8, y + 25);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/** Draw player (ctx, x, y, size, state, facing, invTimer) */
+function drawPlayer(ctx, x, y, size, facing, swinging, dashing, invTimer) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(facing, 1);
+
+  // Invincibility flash
+  if (invTimer > 0 && Math.floor(invTimer * 10) % 2 === 0) {
+    ctx.globalAlpha = 0.5;
+  }
+
+  // Choose asset based on state
+  let assetKey = 'playerIdle';
+  if (dashing) assetKey = 'playerDash';
+  else if (swinging) assetKey = 'playerSwing';
+
+  if (assets.sprites[assetKey]) {
+    ctx.drawImage(assets.sprites[assetKey], -size, -size, size * 2, size * 2);
+  } else {
+    // Fallback procedural player
+    drawPlayerFallback(ctx, size, swinging, dashing);
+  }
+
+  ctx.restore();
+}
+
+/** Procedural player fallback */
+function drawPlayerFallback(ctx, size, swinging, dashing) {
+  // Body
+  ctx.fillStyle = '#c4a36e'; // khaki
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = '#f0c89a';
+  ctx.beginPath();
+  ctx.arc(0, -size * 0.4, size * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hat
+  ctx.fillStyle = '#8b6914';
+  ctx.fillRect(-size * 0.3, -size * 0.65, size * 0.6, size * 0.12);
+  ctx.fillRect(-size * 0.18, -size * 0.8, size * 0.36, size * 0.2);
+
+  // Whip
+  if (dashing) {
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(size * 0.3, 0);
+    ctx.lineTo(size * 0.8, -size * 0.3);
+    ctx.stroke();
+  }
+
+  // Legs
+  ctx.strokeStyle = '#8b4513';
+  ctx.lineWidth = 3;
+  if (swinging) {
+    ctx.beginPath(); ctx.moveTo(-5, size*0.4); ctx.lineTo(-10, size*0.7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, size*0.4); ctx.lineTo(15, size*0.65); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(-5, size*0.4); ctx.lineTo(-5, size*0.7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, size*0.4); ctx.lineTo(5, size*0.7); ctx.stroke();
+  }
+}
+
+/** Draw enemy (ctx, x, y, enemy, biomeIdx) */
+function drawEnemy(ctx, x, y, enemy) {
+  if (enemy.dead) return;
+  const def = ENEMY_DEFS[enemy.type];
+  const s = def.size;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(enemy.dir, 1);
+
+  if (assets.sprites[def.assetKey]) {
+    ctx.drawImage(assets.sprites[def.assetKey], -s, -s, s * 2, s * 2);
+  } else {
+    // Fallback
+    ctx.fillStyle = def.color;
+    ctx.globalAlpha = 0.9;
+
+    if (enemy.type === 'frog') {
+      ctx.beginPath(); ctx.ellipse(0, 0, s*0.5, s*0.35, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-s*0.15, -s*0.25, 5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(s*0.15, -s*0.25, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(-s*0.15, -s*0.25, 2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(s*0.15, -s*0.25, 2, 0, Math.PI*2); ctx.fill();
+    } else if (enemy.type === 'snake') {
+      ctx.strokeStyle = def.color; ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-s*0.5, 0);
+      for (let i = 0; i < 5; i++) {
+        ctx.lineTo(-s*0.5 + i*s*0.25, Math.sin(enemy.animTimer*3+i)*8);
+      }
+      ctx.stroke();
+    } else if (enemy.type === 'mushroom') {
+      ctx.fillStyle = '#8e44ad';
+      ctx.beginPath(); ctx.arc(0, -s*0.2, s*0.4, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#6c3cf7';
+      ctx.fillRect(-s*0.1, -s*0.2, s*0.2, s*0.5);
+    } else if (enemy.type === 'spider') {
+      ctx.beginPath(); ctx.arc(0, 0, s*0.3, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = def.color; ctx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const a = (i/8)*Math.PI*2;
+        ctx.beginPath(); ctx.moveTo(0,0);
+        ctx.lineTo(Math.cos(a)*s*0.6, Math.sin(a)*s*0.6);
+        ctx.stroke();
+      }
+    } else if (enemy.type === 'eagle') {
+      ctx.beginPath(); ctx.moveTo(0, -s*0.1);
+      ctx.lineTo(-s*0.7, s*0.1+Math.sin(enemy.animTimer*5)*5);
+      ctx.lineTo(0, 0); ctx.lineTo(s*0.7, s*0.1+Math.sin(enemy.animTimer*5+1)*5);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // HP bar for multi-hit enemies
+  if (def.hp > 1 && enemy.hp > 0) {
+    const bw = s * 0.8;
+    ctx.fillStyle = '#333'; ctx.fillRect(-bw/2, -s*0.7, bw, 4);
+    ctx.fillStyle = '#e74c3c'; ctx.fillRect(-bw/2, -s*0.7, bw * (enemy.hp / (def.hp * DDA_LEVELS[G.ddaLevel].hpMul)), 4);
+  }
+
+  ctx.restore();
+}
+
+/** Draw boss (ctx, x, y, bossIdx, hp, maxHp, weakExposed, phase) */
+function drawBoss(ctx, x, y) {
+  const def = BOSS_DEFS[G.bossIdx];
+  if (!def) return;
+  const s = def.size;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  if (assets.sprites[def.assetKey]) {
+    // Draw with pulse effect during exposed phase
+    if (G.bossWeakExposed) {
+      ctx.shadowColor = '#f1c40f';
+      ctx.shadowBlur = 20 + Math.sin(G.stageTimer * 8) * 10;
+    }
+    ctx.drawImage(assets.sprites[def.assetKey], -s, -s, s * 2, s * 2);
+  } else {
+    // Fallback boss drawing
+    ctx.fillStyle = def.color;
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Weak spot glow
+    if (G.bossWeakExposed) {
+      ctx.fillStyle = '#f1c40f';
+      ctx.shadowColor = '#f1c40f';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.2, 15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-s*0.15, -s*0.1, 8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(s*0.15, -s*0.1, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath(); ctx.arc(-s*0.15, -s*0.1, 4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(s*0.15, -s*0.1, 4, 0, Math.PI*2); ctx.fill();
+
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+
+  // Boss HP bar
+  const barW = 200;
+  const barH = 12;
+  const bx = x - barW/2;
+  const by = y - s * 0.7;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(bx, by, barW, barH);
+  const hpRatio = G.bossHp / G.bossMaxHp;
+  const hpColor = hpRatio > 0.5 ? '#2ecc71' : hpRatio > 0.25 ? '#f1c40f' : '#e74c3c';
+  ctx.fillStyle = hpColor;
+  ctx.fillRect(bx, by, barW * hpRatio, barH);
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx, by, barW, barH);
+
+  // Boss name
+  const bossName = currentLang === 'ko' ? def.name_ko : def.name_en;
+  UI.text(ctx, bossName, x, by - 12, { size: 14, color: '#ecf0f1', bold: true, shadow: true });
+}
+
+/** Draw boss attacks */
+function drawBossAttacks(ctx) {
+  for (const a of G.bossAttacks) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, a.life);
+    ctx.fillStyle = a.color || '#e74c3c';
+    ctx.shadowColor = a.color || '#e74c3c';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+/** Draw item (ctx, x, y, item) */
+function drawItem(ctx, x, y, item) {
+  if (item.collected) return;
+  const s = 16;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Floating animation
+  const floatY = Math.sin(G.stageTimer * 3 + x * 0.01) * 4;
+  ctx.translate(0, floatY);
+
+  if (item.type === 'coin' && assets.sprites.itemCoin) {
+    ctx.drawImage(assets.sprites.itemCoin, -s, -s, s*2, s*2);
+  } else if (item.type === 'potion' && assets.sprites.itemPotion) {
+    ctx.drawImage(assets.sprites.itemPotion, -s, -s, s*2, s*2);
+  } else if (item.type === 'relic' && assets.sprites.itemRelic) {
+    ctx.drawImage(assets.sprites.itemRelic, -s, -s, s*2, s*2);
+  } else if (item.type === 'golden_vine' && assets.sprites.itemGoldenVine) {
+    ctx.drawImage(assets.sprites.itemGoldenVine, -s*1.2, -s*1.2, s*2.4, s*2.4);
+  } else {
+    // Fallback
+    if (item.type === 'coin') {
+      ctx.fillStyle = '#f1c40f';
+      ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+    } else if (item.type === 'potion') {
+      ctx.fillStyle = '#e74c3c';
+      ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill();
+    } else if (item.type === 'relic') {
+      ctx.fillStyle = '#2ecc71';
+      ctx.shadowColor = '#2ecc71'; ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(0, -10); ctx.lineTo(8, 0); ctx.lineTo(0, 10); ctx.lineTo(-8, 0); ctx.closePath();
+      ctx.fill();
+    } else if (item.type === 'golden_vine') {
+      ctx.fillStyle = '#f1c40f';
+      ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(0, -12); ctx.lineTo(10, -4); ctx.lineTo(6, 8); ctx.lineTo(-6, 8); ctx.lineTo(-10, -4);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // Relic radar glow (upgrade)
+  if (item.type === 'relic' && G.upgrades.explore >= 1) {
+    ctx.strokeStyle = '#2ecc71';
+    ctx.globalAlpha = 0.3 + Math.sin(G.stageTimer * 4) * 0.2;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+/** Draw hazards */
+function drawHazards(ctx) {
+  for (const h of G.hazards) {
+    if (h.type === 'poison_pool') {
+      ctx.save();
+      ctx.fillStyle = '#8e44ad';
+      ctx.globalAlpha = 0.6 + Math.sin(G.stageTimer * 2 + h.x * 0.01) * 0.1;
+      ctx.fillRect(h.x - h.w/2, h.y - h.h/2, h.w, h.h);
+      // Bubbles
+      for (let i = 0; i < 3; i++) {
+        const bx = h.x - h.w/2 + ((G.stageTimer * 20 + i * 50) % h.w);
+        const by = h.y - h.h/2 - Math.sin(G.stageTimer * 3 + i) * 8;
+        ctx.beginPath(); ctx.arc(bx, by, 3, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    } else if (h.type === 'spore') {
+      ctx.save();
+      ctx.fillStyle = '#8e44ad';
+      ctx.globalAlpha = Math.min(1, h.life);
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.size, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else if (h.type === 'web') {
+      ctx.save();
+      ctx.strokeStyle = '#aaa';
+      ctx.globalAlpha = Math.min(1, h.life);
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.size, 0, Math.PI*2); ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = (i/6)*Math.PI*2;
+        ctx.beginPath(); ctx.moveTo(h.x, h.y);
+        ctx.lineTo(h.x+Math.cos(a)*h.size, h.y+Math.sin(a)*h.size); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+}
+
+/** Draw exit portal */
+function drawExit(ctx, x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Glowing portal
+  const pulse = Math.sin(G.stageTimer * 3) * 0.3 + 0.7;
+  ctx.fillStyle = '#f1c40f';
+  ctx.shadowColor = '#f1c40f';
+  ctx.shadowBlur = 20 * pulse;
+  ctx.globalAlpha = pulse;
+  ctx.beginPath();
+  ctx.arc(0, 0, 25, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner glow
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(0, 0, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Arrow indicator
+  ctx.fillStyle = '#f1c40f';
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -35); ctx.lineTo(8, -25); ctx.lineTo(-8, -25);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/** Draw HUD overlay */
+function drawHUD(ctx, w, h) {
+  ctx.save();
+
+  // HP hearts
+  const heartSize = 24;
+  const heartY = 16;
+  for (let i = 0; i < G.pMaxHp; i++) {
+    const hx = 16 + i * (heartSize + 6);
+    if (assets.sprites.uiHp) {
+      ctx.globalAlpha = i < G.pHp ? 1 : 0.3;
+      ctx.drawImage(assets.sprites.uiHp, hx, heartY - heartSize/2, heartSize, heartSize);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = i < G.pHp ? '#e74c3c' : '#333';
+      ctx.beginPath();
+      const cx = hx + heartSize/2, cy = heartY;
+      ctx.moveTo(cx, cy + 6);
+      ctx.bezierCurveTo(cx - 8, cy - 8, cx - 14, cy + 4, cx, cy + 14);
+      ctx.bezierCurveTo(cx + 14, cy + 4, cx + 8, cy - 8, cx, cy + 6);
+      ctx.fill();
+    }
+  }
+
+  // Score
+  UI.text(ctx, `${t('score')}: ${Math.floor(G.stageScore)}`, w - 16, 16, {
+    size: 16, color: '#f1c40f', align: 'right', bold: true, shadow: true
+  });
+
+  // Combo
+  if (G.pCombo > 0 && G.pComboTimer > 0) {
+    const comboSize = 18 + Math.min(G.pCombo, 10) * 2;
+    const comboAlpha = Math.min(1, G.pComboTimer / 0.5);
+    ctx.globalAlpha = comboAlpha;
+    UI.text(ctx, `${G.pCombo}x ${t('combo')}`, w / 2, 50, {
+      size: comboSize, color: '#f1c40f', bold: true, glow: '#f1c40f'
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // Relics collected
+  UI.text(ctx, `${t('relics')}: ${G.relicShards}`, w - 16, 40, {
+    size: 12, color: '#2ecc71', align: 'right', shadow: true
+  });
+
+  // Mobile dash button (F11/F25: 56×56px ≥ 48px)
+  if (input.isMobile) {
+    const btnS = G.dashBtnSize;
+    const bx = w - btnS - 16;
+    const by = h - btnS - 16;
+    G.dashBtnX = bx;
+    G.dashBtnY = by;
+
+    ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, btnS, btnS, 12);
+    ctx.fill(); ctx.stroke();
+    UI.text(ctx, t('dash'), bx + btnS/2, by + btnS/2, { size: 14, color: '#2ecc71', bold: true });
+
+    // Pause button (48×48px)
+    const ps = G.pauseBtnSize;
+    const px2 = w - ps - 16;
+    const py2 = 50;
+    G.pauseBtnX = px2;
+    G.pauseBtnY = py2;
+
+    ctx.fillStyle = 'rgba(128,128,160,0.3)';
+    ctx.strokeStyle = '#8080a0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(px2, py2, ps, ps, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8080a0';
+    ctx.fillRect(px2 + ps*0.3, py2 + ps*0.25, 6, ps*0.5);
+    ctx.fillRect(px2 + ps*0.55, py2 + ps*0.25, 6, ps*0.5);
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REGION 10: ENGINE CORE (state machine, input, main loop)
+// ═══════════════════════════════════════════════════════════════════
+
+// --- Engine initialization (F12/F23/F27 — TDZ prevention) ---
+// NOTE: We do NOT reference `engine` inside onResize callback.
+// Instead, onResize receives (w, h) parameters from IX.Engine.
+// The `_ready` flag guards against premature callbacks.
+
+let engine = null; // Will be assigned after new Engine(...)
+const input = new Input(document.getElementById('gameCanvas'));
+
+/** Initialize background particles (called with w, h — no engine reference) */
+function initBgParticles(count, w, h) {
+  G.bgParticles = [];
+  for (let i = 0; i < count; i++) {
+    G.bgParticles.push({
+      x: Math.random() * w, // OK: visual only, not gameplay (F18 exception)
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 20,
+      vy: Math.random() * 10 + 5,
+      size: Math.random() * 3 + 1,
+      alpha: Math.random() * 0.5 + 0.1
+    });
+  }
+}
+
+/** Handle resize — uses ONLY parameters, never `engine` (F23/F27) */
+function handleResize(w, h) {
+  if (!G._ready) return; // TDZ guard
+  initBgParticles(30, w, h);
+
+  // Update UI layout
+  G.dashBtnX = w - G.dashBtnSize - 16;
+  G.dashBtnY = h - G.dashBtnSize - 16;
+  G.pauseBtnX = w - G.pauseBtnSize - 16;
+  G.pauseBtnY = 50;
+}
+
+/** Create engine with safe callbacks */
+engine = new Engine('gameCanvas', {
+  update: gameUpdate,
+  render: gameRender,
+  onResize: handleResize
+});
+
+// Mark ready AFTER engine construction completes (F27)
+G._ready = true;
+initBgParticles(30, engine.W, engine.H);
+
+// --- Save/Load progress ---
+function saveProgress() {
+  Save.set(`ix_${GAME_ID}_save`, {
+    relicShards: G.relicShards,
+    totalRelics: G.totalRelics,
+    upgrades: G.upgrades,
+    clearedStages: G.clearedStages,
+    bossesDefeated: G.bossesDefeated,
+    ddaLevel: G.ddaLevel,
+    bestScores: G.bestScores,
+    lang: currentLang
+  });
+}
+
+function loadProgress() {
+  const data = Save.get(`ix_${GAME_ID}_save`);
+  if (data) {
+    G.relicShards = data.relicShards || 0;
+    G.totalRelics = data.totalRelics || 0;
+    G.upgrades = data.upgrades || { combat: 0, explore: 0, survival: 0 };
+    G.clearedStages = data.clearedStages || [];
+    G.bossesDefeated = data.bossesDefeated || [];
+    G.ddaLevel = data.ddaLevel || 1;
+    G.bestScores = data.bestScores || {};
+    if (data.lang) currentLang = data.lang;
+  }
+}
+
+// --- State transitions (F6/F21/F24) ---
+function beginTransition(from, to) {
+  if (G.transitioning) return;
+  if (!TRANSITION_TABLE[from] || !TRANSITION_TABLE[from].targets.includes(to)) {
+    console.warn(`Invalid transition: ${from} → ${to}`);
+    return;
+  }
+  G.transitioning = true;
+  G.transitionTarget = to;
+  G.fadeAlpha = 0;
+
+  // Fade out (F24: explicit sync)
+  tween.clear();
+  const fadeObj = { _t: 0 };
+  tween.add(fadeObj, { _t: 1 }, 300, 'easeIn', () => {
+    G.fadeAlpha = 1;
+    executeTransition(to);
+    // Fade in
+    const fadeInObj = { _t: 1 };
+    tween.add(fadeInObj, { _t: 0 }, 300, 'easeOut', () => {
+      G.fadeAlpha = 0;
+      G.transitioning = false;
+    });
+    // Sync fadeAlpha during fade-in (add a parallel tween)
+    tween.add(G, { fadeAlpha: 0 }, 300, 'easeOut');
+  });
+  // Sync fadeAlpha during fade-out
+  tween.add(G, { fadeAlpha: 1 }, 300, 'easeIn');
+}
+
+function executeTransition(to) {
+  G.state = to;
+  G.sub = SUB.ACTIVE;
+
+  if (to === ST.TITLE) {
+    SND.stopBGM();
+    G.titleTimer = 0;
+  } else if (to === ST.MAP) {
+    SND.stopBGM();
+  } else if (to === ST.PLAY) {
+    startStage(G.currentBiome, G.currentStage);
+  } else if (to === ST.BOSS) {
+    startBossStage(G.currentBiome);
+  }
+}
+
+// --- Stage management ---
+function startStage(biome, stage) {
+  const seed = biome * 1000 + stage * 100 + G.ddaLevel;
+  generateStage(biome, stage, seed);
+
+  // Reset player
+  G.px = G.entryX;
+  G.py = G.entryY;
+  G.pvx = 0;
+  G.pvy = 0;
+  G.pAngle = 0;
+  G.pAngVel = 0;
+  G.pAttached = false;
+  G.pSwinging = false;
+  G.pDashing = false;
+  G.pAnchorIdx = -1;
+  playerSwingState = PS.FREE_FALL;
+
+  // Apply HP upgrade
+  G.pMaxHp = 3 + (G.upgrades.survival >= 1 ? 1 : 0);
+  G.pHp = G.pMaxHp;
+  G.pInvTimer = 0;
+  G.pCombo = 0;
+  G.pComboTimer = 0;
+
+  // Reset stage counters
+  G.stageTimer = 0;
+  G.hitsTaken = 0;
+  G.stageScore = 0;
+  G.coinsCollected = 0;
+  G.relicsCollected = 0;
+  G.reviveUsed = false;
+  G.speedBoostTimer = 0;
+
+  // Camera
+  G.camX = G.px - engine.W / 2;
+  G.camY = G.py - engine.H / 2;
+  G.camShake = 0;
+
+  // Reset guards (F5)
+  gameoverTriggered = false;
+  clearTriggered = false;
+
+  G.sub = SUB.ACTIVE;
+
+  // Tutorial for first stage
+  if (biome === 0 && stage === 0 && !G.tutorialDone) {
+    G.tutorialStep = 1;
+  }
+}
+
+function startBossStage(biome) {
+  const bossIdx = BIOMES[biome].boss;
+  generateBossArena(bossIdx);
+
+  G.px = G.entryX;
+  G.py = G.entryY;
+  G.pvx = 0;
+  G.pvy = 0;
+  G.pAttached = false;
+  G.pSwinging = false;
+  G.pDashing = false;
+  playerSwingState = PS.FREE_FALL;
+
+  G.pMaxHp = 3 + (G.upgrades.survival >= 1 ? 1 : 0);
+  G.pHp = G.pMaxHp;
+  G.pInvTimer = 0;
+  G.pCombo = 0;
+  G.pComboTimer = 0;
+  G.stageTimer = 0;
+  G.hitsTaken = 0;
+  G.stageScore = 0;
+  G.reviveUsed = false;
+  G.camShake = 0;
+
+  gameoverTriggered = false;
+  clearTriggered = false;
+}
+
+// --- Game reset for restart ---
+function fullRestart() {
+  G.state = ST.TITLE;
+  G.sub = SUB.ACTIVE;
+  G.fadeAlpha = 0;
+  G.transitioning = false;
+  G.titleTimer = 0;
+  tween.clear();
+  particles.clear();
+  SND.stopBGM();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UPDATE — Main game logic (§5.2 — state × system matrix F7)
+// ═══════════════════════════════════════════════════════════════════
+
+function gameUpdate(dt, timestamp) {
+  const dtSec = dt / 1000;
+
+  // ⚠️ tween.update in ALL states (F7: Cycle 2 B1 prevention)
+  tween.update(dt);
+  particles.update(dt);
+
+  // Title timer (visual only)
+  G.titleTimer += dtSec;
+
+  // ─── TITLE ───
+  if (G.state === ST.TITLE) {
+    updateTitle(dt);
+  }
+  // ─── MAP ───
+  else if (G.state === ST.MAP) {
+    updateMap(dt);
+  }
+  // ─── PLAY ───
+  else if (G.state === ST.PLAY) {
+    updatePlay(dt);
+  }
+  // ─── BOSS ───
+  else if (G.state === ST.BOSS) {
+    updateBossState(dt);
+  }
+
+  // BGM scheduling (every frame)
+  if (G.state === ST.TITLE) SND.scheduleBGM('title');
+  else if (G.state === ST.PLAY && G.sub === SUB.ACTIVE) {
+    const bgmType = ['jungle', 'swamp', 'canopy'][G.currentBiome] || 'jungle';
+    SND.scheduleBGM(bgmType);
+  }
+  else if (G.state === ST.BOSS && (G.sub === SUB.ACTIVE || G.sub === SUB.BOSS_INTRO)) {
+    SND.scheduleBGM('boss');
+  }
+
+  // ⚠️ input.flush() at end of every frame (F4 compliance)
+  input.flush();
+}
+
+function updateTitle(dt) {
+  const dtSec = dt / 1000;
+
+  // Background particles
+  for (const p of G.bgParticles) {
+    p.x += p.vx * dtSec;
+    p.y += p.vy * dtSec;
+    if (p.y > engine.H) { p.y = -5; p.x = Math.random() * engine.W; }
+    if (p.x < 0 || p.x > engine.W) p.vx *= -1;
+  }
+
+  // Vine animation
+  G.titleVineAngle += dtSec * 1.5;
+
+  // Language toggle
+  if (input.jp('KeyE')) {
+    currentLang = currentLang === 'ko' ? 'en' : 'ko';
+    SND.uiSelect();
+  }
+
+  // Start
+  if (input.confirm()) {
+    SND.init();
+    SND.resume();
+    SND.uiSelect();
+    loadProgress();
+    beginTransition(ST.TITLE, ST.MAP);
+  }
+}
+
+function updateMap(dt) {
+  const dtSec = dt / 1000;
+
+  // Navigation
+  if (input.jp('ArrowUp') || input.jp('KeyW')) {
+    G.mapSelectedBiome = Math.max(0, G.mapSelectedBiome - 1);
+    G.mapSelectedStage = 0;
+    SND.uiSelect();
+  }
+  if (input.jp('ArrowDown') || input.jp('KeyS')) {
+    G.mapSelectedBiome = Math.min(BIOMES.length - 1, G.mapSelectedBiome + 1);
+    G.mapSelectedStage = 0;
+    SND.uiSelect();
+  }
+  if (input.jp('ArrowLeft') || input.jp('KeyA')) {
+    G.mapSelectedStage = Math.max(0, G.mapSelectedStage - 1);
+    SND.uiSelect();
+  }
+  if (input.jp('ArrowRight') || input.jp('KeyD')) {
+    const maxStage = BIOMES[G.mapSelectedBiome].stages; // includes boss
+    G.mapSelectedStage = Math.min(maxStage, G.mapSelectedStage + 1);
+    SND.uiSelect();
+  }
+
+  // Click/tap navigation
+  if (input.tapped) {
+    handleMapClick(input.tapX, input.tapY);
+  }
+
+  // Enter stage
+  if (input.jp('Enter') || input.jp('Space')) {
+    enterSelectedStage();
+  }
+
+  // Upgrade panel toggle
+  if (input.jp('KeyQ')) {
+    G.showUpgradePanel = !G.showUpgradePanel;
+    SND.uiSelect();
+  }
+
+  // Escape to title
+  if (input.jp('Escape')) {
+    G.showUpgradePanel = false;
+    beginTransition(ST.MAP, ST.TITLE);
+  }
+}
+
+function handleMapClick(mx, my) {
+  const w = engine.W;
+  const h = engine.H;
+
+  // Upgrade button area (bottom-left)
+  if (UI.hitTest(mx, my, 16, h - 60, 120, 44)) {
+    G.showUpgradePanel = !G.showUpgradePanel;
+    SND.uiSelect();
+    return;
+  }
+
+  // If upgrade panel is open, handle upgrade clicks
+  if (G.showUpgradePanel) {
+    handleUpgradeClick(mx, my, w, h);
+    return;
+  }
+
+  // Language toggle (top-right)
+  if (UI.hitTest(mx, my, w - 70, 10, 60, 30)) {
+    currentLang = currentLang === 'ko' ? 'en' : 'ko';
+    SND.uiSelect();
+    saveProgress();
+    return;
+  }
+
+  // Biome/stage selection (center area)
+  const startY = 80;
+  for (let b = 0; b < BIOMES.length; b++) {
+    const biomeY = startY + b * 120;
+    if (UI.hitTest(mx, my, 30, biomeY - 10, w - 60, 100)) {
+      G.mapSelectedBiome = b;
+
+      // Stage buttons within biome
+      const stageStartX = 80;
+      for (let s = 0; s <= BIOMES[b].stages; s++) {
+        const sx = stageStartX + s * 80;
+        const btnW = Math.max(48, 60);
+        if (UI.hitTest(mx, my, sx - btnW/2, biomeY + 30, btnW, 40)) {
+          G.mapSelectedStage = s;
+          enterSelectedStage();
+          return;
+        }
+      }
+      SND.uiSelect();
+      return;
+    }
+  }
+}
+
+function handleUpgradeClick(mx, my, w, h) {
+  const panelX = w * 0.15;
+  const panelY = h * 0.15;
+  const panelW = w * 0.7;
+  const panelH = h * 0.7;
+
+  // Tab buttons
+  const tabs = ['combat', 'explore', 'survival'];
+  const tabW = panelW / 3;
+  for (let i = 0; i < tabs.length; i++) {
+    if (UI.hitTest(mx, my, panelX + i * tabW, panelY, tabW, 40)) {
+      G.upgradeTab = tabs[i];
+      SND.uiSelect();
+      return;
+    }
+  }
+
+  // Upgrade purchase buttons
+  const tree = UPGRADE_TREES[G.upgradeTab];
+  const currentLv = G.upgrades[G.upgradeTab];
+  if (currentLv < tree.length) {
+    const upg = tree[currentLv];
+    const btnY = panelY + panelH - 80;
+    const btnW2 = Math.max(48, 160);
+    const btnH2 = Math.max(48, 44);
+    if (UI.hitTest(mx, my, panelX + panelW/2 - btnW2/2, btnY, btnW2, btnH2)) {
+      if (G.relicShards >= upg.cost) {
+        G.relicShards -= upg.cost;
+        G.upgrades[G.upgradeTab]++;
+        SND.upgradeApply();
+        saveProgress();
+      } else {
+        SND.uiBack();
+      }
+      return;
+    }
+  }
+
+  // Close button
+  if (UI.hitTest(mx, my, panelX + panelW - 40, panelY, 40, 40)) {
+    G.showUpgradePanel = false;
+    SND.uiBack();
+  }
+}
+
+function enterSelectedStage() {
+  G.currentBiome = G.mapSelectedBiome;
+  const biome = BIOMES[G.currentBiome];
+
+  // Check if selecting boss stage (last one)
+  if (G.mapSelectedStage >= biome.stages) {
+    // Check if all stages in biome cleared
+    let allCleared = true;
+    for (let s = 0; s < biome.stages; s++) {
+      if (!G.clearedStages.includes(`${G.currentBiome}-${s}`)) {
+        allCleared = false;
+        break;
+      }
+    }
+    if (!allCleared) {
+      SND.uiBack();
+      return;
+    }
+    G.currentStage = -1; // boss
+    beginTransition(ST.MAP, ST.BOSS);
+  } else {
+    G.currentStage = G.mapSelectedStage;
+    beginTransition(ST.MAP, ST.PLAY);
+  }
+  SND.uiSelect();
+}
+
+function updatePlay(dt) {
+  const dtSec = dt / 1000;
+
+  // --- Paused sub-state ---
+  if (G.sub === SUB.PAUSED) {
+    if (input.jp('Escape') || input.jp('KeyP')) {
+      G.sub = SUB.ACTIVE;
+      SND.uiSelect();
+    }
+    if (input.tapped) {
+      // Resume button
+      const w = engine.W, h = engine.H;
+      const btnW = Math.max(48, 160), btnH = Math.max(48, 48);
+      if (UI.hitTest(input.tapX, input.tapY, w/2 - btnW/2, h/2 - 30, btnW, btnH)) {
+        G.sub = SUB.ACTIVE;
+        SND.uiSelect();
+      }
+      // Quit button
+      if (UI.hitTest(input.tapX, input.tapY, w/2 - btnW/2, h/2 + 30, btnW, btnH)) {
+        beginTransition(ST.PLAY, ST.MAP);
+        SND.uiBack();
+      }
+    }
+    return;
+  }
+
+  // --- Game Over sub-state ---
+  if (G.sub === SUB.GAMEOVER) {
+    if (input.jp('KeyR') || input.tapped || input.confirm()) {
+      beginTransition(ST.PLAY, ST.MAP);
+    }
+    return;
+  }
+
+  // --- Clear sub-state ---
+  if (G.sub === SUB.CLEAR) {
+    if (input.confirm() || input.tapped) {
+      beginTransition(ST.PLAY, ST.MAP);
+    }
+    return;
+  }
+
+  // --- Active gameplay ---
+  if (G.sub !== SUB.ACTIVE) return;
+
+  G.stageTimer += dtSec;
+
+  // Pause
+  if (input.jp('Escape') || input.jp('KeyP')) {
+    G.sub = SUB.PAUSED;
+    SND.uiSelect();
+    return;
+  }
+
+  // Mobile pause button
+  if (input.isMobile && input.tapped) {
+    if (UI.hitTest(input.tapX, input.tapY, G.pauseBtnX, G.pauseBtnY, G.pauseBtnSize, G.pauseBtnSize)) {
+      G.sub = SUB.PAUSED;
+      SND.uiSelect();
+      return;
+    }
+  }
+
+  // Restart
+  if (input.jp('KeyR')) {
+    startStage(G.currentBiome, G.currentStage);
+    return;
+  }
+
+  // --- Input handling ---
+  // Grab/release vine
+  if (input.jp('Space') || input.jp('KeyZ') || (input.tapped && !G.pAttached)) {
+    if (!G.pAttached && !G.pDashing) {
+      // Check mobile dash button first
+      if (input.isMobile && input.tapped &&
+          UI.hitTest(input.tapX, input.tapY, G.dashBtnX, G.dashBtnY, G.dashBtnSize, G.dashBtnSize)) {
+        startDash();
+      } else {
+        const nearest = findNearestAnchor(G.px, G.py, G.anchors, MAX_SWING_REACH);
+        if (nearest >= 0) {
+          attachToAnchor(nearest);
+        }
+      }
+    }
+  }
+
+  // Release vine on key/touch release
+  if (G.pAttached && !input.held('Space') && !input.held('KeyZ') && !input.mouseDown) {
+    releaseFromVine();
+  }
+
+  // Dash attack
+  if (input.jp('KeyX') || (input.touches.length >= 2)) {
+    startDash();
+  }
+
+  // Mobile dash button
+  if (input.isMobile && input.tapped && !G.pDashing &&
+      UI.hitTest(input.tapX, input.tapY, G.dashBtnX, G.dashBtnY, G.dashBtnSize, G.dashBtnSize)) {
+    startDash();
+  }
+
+  // --- Physics ---
+  updateSwingPhysics(dt);
+
+  // Speed boost
+  if (G.speedBoostTimer > 0) {
+    G.speedBoostTimer -= dtSec;
+  }
+
+  // Invincibility timer
+  if (G.pInvTimer > 0) G.pInvTimer -= dtSec;
+
+  // Combo timer
+  if (G.pComboTimer > 0) {
+    G.pComboTimer -= dtSec;
+    if (G.pComboTimer <= 0) {
+      G.pCombo = 0;
+    }
+  }
+
+  // --- Enemy AI ---
+  const rng = new SeededRNG(Math.floor(G.stageTimer * 100));
+  for (const e of G.enemies) {
+    updateEnemy(e, dt, rng);
+  }
+
+  // --- Hazard movement ---
+  for (let i = G.hazards.length - 1; i >= 0; i--) {
+    const h = G.hazards[i];
+    if (h.persistent) {
+      // Check player collision with persistent hazards
+      if (h.type === 'poison_pool') {
+        if (rectCol(G.px - G.pSize/2, G.py - G.pSize/2, G.pSize, G.pSize,
+                    h.x - h.w/2, h.y - h.h/2, h.w, h.h)) {
+          damagePlayer(h.dmg * dtSec * 2);
+        }
+      }
+      continue;
+    }
+    if (h.vx !== undefined) {
+      h.x += h.vx * dtSec;
+      h.y += h.vy * dtSec;
+    }
+    if (h.life !== undefined) {
+      h.life -= dtSec;
+      if (h.life <= 0) G.hazards.splice(i, 1);
+    }
+  }
+
+  // --- Item physics (dropped items fall) ---
+  for (const it of G.items) {
+    if (it.collected) continue;
+    if (it.vy) {
+      it.vy += 300 * dtSec;
+      it.y += it.vy * dtSec;
+      if (it.y > G.stageH - 20) {
+        it.y = G.stageH - 20;
+        it.vy = 0;
+      }
+    }
+  }
+
+  // --- Collisions (F16: single function) ---
+  if (G.sub === SUB.ACTIVE) {
+    checkCollisions();
+  }
+
+  // --- Camera follow ---
+  G.camTargetX = G.px - engine.W / 2;
+  G.camTargetY = G.py - engine.H / 2;
+  G.camX = lerp(G.camX, G.camTargetX, 0.08);
+  G.camY = lerp(G.camY, G.camTargetY, 0.08);
+
+  // Clamp camera
+  G.camX = clamp(G.camX, 0, Math.max(0, G.stageW - engine.W));
+  G.camY = clamp(G.camY, 0, Math.max(0, G.stageH - engine.H));
+
+  // Camera shake decay
+  if (G.camShake > 0) G.camShake *= 0.9;
+  if (G.camShake < 0.1) G.camShake = 0;
+
+  // Tutorial progression
+  if (G.tutorialStep === 1 && G.pAttached) {
+    G.tutorialStep = 2;
+  } else if (G.tutorialStep === 2 && !G.pAttached && G.pvy < 0) {
+    G.tutorialStep = 3;
+  } else if (G.tutorialStep === 3) {
+    G.tutorialStep = 0;
+    G.tutorialDone = true;
+  }
+
+  // DDA evaluation at stage end (§15.3)
+  if (G.ddaDeaths >= 3 && G.ddaLevel > 0) {
+    G.ddaLevel = 0; // Force easy
+    G.ddaDeaths = 0;
+  }
+}
+
+function updateBossState(dt) {
+  const dtSec = dt / 1000;
+
+  // Paused
+  if (G.sub === SUB.PAUSED) {
+    if (input.jp('Escape') || input.jp('KeyP') || input.tapped) {
+      G.sub = SUB.ACTIVE;
+    }
+    return;
+  }
+
+  // Game over
+  if (G.sub === SUB.GAMEOVER) {
+    if (input.jp('KeyR') || input.tapped || input.confirm()) {
+      beginTransition(ST.BOSS, ST.MAP);
+    }
+    return;
+  }
+
+  // Clear
+  if (G.sub === SUB.CLEAR) {
+    if (input.confirm() || input.tapped) {
+      beginTransition(ST.BOSS, ST.MAP);
+    }
+    return;
+  }
+
+  G.stageTimer += dtSec;
+
+  // Pause
+  if (input.jp('Escape') || input.jp('KeyP')) {
+    G.sub = SUB.PAUSED;
+    return;
+  }
+
+  // Grab/release vine (same as PLAY)
+  if (input.jp('Space') || input.jp('KeyZ') || (input.tapped && !G.pAttached)) {
+    if (!G.pAttached && !G.pDashing) {
+      if (input.isMobile && input.tapped &&
+          UI.hitTest(input.tapX, input.tapY, G.dashBtnX, G.dashBtnY, G.dashBtnSize, G.dashBtnSize)) {
+        startDash();
+      } else {
+        const nearest = findNearestAnchor(G.px, G.py, G.anchors, MAX_SWING_REACH);
+        if (nearest >= 0) attachToAnchor(nearest);
+      }
+    }
+  }
+  if (G.pAttached && !input.held('Space') && !input.held('KeyZ') && !input.mouseDown) {
+    releaseFromVine();
+  }
+  if (input.jp('KeyX') || (input.touches.length >= 2)) {
+    startDash();
+  }
+  if (input.isMobile && input.tapped && !G.pDashing &&
+      UI.hitTest(input.tapX, input.tapY, G.dashBtnX, G.dashBtnY, G.dashBtnSize, G.dashBtnSize)) {
+    startDash();
+  }
+
+  // Physics
+  updateSwingPhysics(dt);
+  if (G.pInvTimer > 0) G.pInvTimer -= dtSec;
+  if (G.pComboTimer > 0) { G.pComboTimer -= dtSec; if (G.pComboTimer <= 0) G.pCombo = 0; }
+
+  // Boss AI
+  if (G.sub === SUB.ACTIVE || G.sub === SUB.BOSS_INTRO) {
+    updateBoss(dt);
+  }
+
+  // Camera
+  G.camTargetX = G.px - engine.W / 2;
+  G.camTargetY = G.py - engine.H / 2;
+  G.camX = lerp(G.camX, G.camTargetX, 0.08);
+  G.camY = lerp(G.camY, G.camTargetY, 0.08);
+  G.camX = clamp(G.camX, 0, Math.max(0, G.stageW - engine.W));
+  G.camY = clamp(G.camY, 0, Math.max(0, G.stageH - engine.H));
+  if (G.camShake > 0) G.camShake *= 0.9;
+  if (G.camShake < 0.1) G.camShake = 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER — Main rendering (§5.2 step 4)
+// ═══════════════════════════════════════════════════════════════════
+
+function gameRender(ctx, w, h, dt) {
+  // Clear
+  ctx.fillStyle = COL.bgPrimary;
+  ctx.fillRect(0, 0, w, h);
+
+  if (G.state === ST.TITLE) {
+    renderTitle(ctx, w, h);
+  } else if (G.state === ST.MAP) {
+    renderMap(ctx, w, h);
+  } else if (G.state === ST.PLAY) {
+    renderPlay(ctx, w, h);
+  } else if (G.state === ST.BOSS) {
+    renderBossStage(ctx, w, h);
+  }
+
+  // Fade overlay (F24: synchronized with tween)
+  if (G.fadeAlpha > 0.01) {
+    UI.fade(ctx, w, h, G.fadeAlpha);
+  }
+}
+
+function renderTitle(ctx, w, h) {
+  // Background — jungle gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#0b3d0b');
+  grad.addColorStop(0.5, '#0a2a0a');
+  grad.addColorStop(1, '#0a0a1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Background particles (leaves falling)
+  ctx.save();
+  for (const p of G.bgParticles) {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillRect(p.x, p.y, p.size, p.size * 1.5);
+  }
+  ctx.restore();
+
+  // Animated vines on sides
+  ctx.save();
+  ctx.strokeStyle = '#2ecc71';
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 6; i++) {
+    const vx = i < 3 ? 20 + i * 30 : w - 20 - (i - 3) * 30;
+    ctx.beginPath();
+    ctx.moveTo(vx, 0);
+    for (let y = 0; y < h; y += 20) {
+      ctx.lineTo(vx + Math.sin(y * 0.02 + G.titleVineAngle + i) * 15, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Title text
+  const titleY = h * 0.3;
+  UI.text(ctx, t('title'), w / 2, titleY, {
+    size: Math.min(48, w * 0.1), color: '#f1c40f', bold: true, glow: '#f1c40f'
+  });
+
+  // Subtitle
+  UI.text(ctx, t('subtitle'), w / 2, titleY + 50, {
+    size: Math.min(18, w * 0.04), color: '#8080a0'
+  });
+
+  // Player character preview
+  const charY = h * 0.55;
+  if (assets.sprites.playerSwing) {
+    const sz = Math.min(80, w * 0.15);
+    ctx.save();
+    ctx.translate(w / 2, charY);
+    ctx.rotate(Math.sin(G.titleVineAngle * 0.7) * 0.15);
+    ctx.drawImage(assets.sprites.playerSwing, -sz, -sz, sz * 2, sz * 2);
+    ctx.restore();
+  }
+
+  // Start prompt
+  const blink = Math.sin(G.titleTimer * 3) > 0;
+  if (blink) {
+    UI.text(ctx, input.isMobile ? t('tap_start') : t('press_start'), w / 2, h * 0.78, {
+      size: 20, color: '#ecf0f1', bold: true
+    });
+  }
+
+  // Language toggle
+  ctx.fillStyle = 'rgba(100,100,150,0.3)';
+  ctx.strokeStyle = '#8080a0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(w - 70, h - 50, 60, 30, 6);
+  ctx.fill(); ctx.stroke();
+  UI.text(ctx, currentLang === 'ko' ? 'EN' : 'KO', w - 40, h - 35, { size: 14, color: '#8080a0' });
+
+  // Version
+  UI.text(ctx, 'v1.0 — Cycle #40', w / 2, h - 16, { size: 10, color: '#505070' });
+}
+
+function renderMap(ctx, w, h) {
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#0a1a0a');
+  grad.addColorStop(1, '#0a0a1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Title
+  UI.text(ctx, t('title') + ' — ' + t('upgrade'), w / 2, 30, {
+    size: 22, color: '#f1c40f', bold: true, shadow: true
+  });
+
+  // Relics counter
+  UI.text(ctx, `${t('relics')}: ${G.relicShards}`, w - 16, 30, {
+    size: 14, color: '#2ecc71', align: 'right', shadow: true
+  });
+
+  // Language toggle
+  ctx.fillStyle = 'rgba(100,100,150,0.3)';
+  ctx.strokeStyle = '#8080a0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(w - 70, 5, 60, 30, 6);
+  ctx.fill(); ctx.stroke();
+  UI.text(ctx, currentLang === 'ko' ? 'EN' : 'KO', w - 40, 20, { size: 12, color: '#8080a0' });
+
+  // Biome rows
+  const startY = 80;
+  for (let b = 0; b < BIOMES.length; b++) {
+    const biome = BIOMES[b];
+    const by = startY + b * 120;
+    const isSelected = b === G.mapSelectedBiome;
+
+    // Biome background
+    ctx.fillStyle = isSelected ? biome.bgColor : '#12121e';
+    ctx.strokeStyle = isSelected ? biome.accentColor : COL.border;
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.beginPath();
+    ctx.roundRect(20, by - 10, w - 40, 100, 10);
+    ctx.fill(); ctx.stroke();
+
+    // Biome name
+    const biomeName = currentLang === 'ko' ? biome.name_ko : biome.name_en;
+    UI.text(ctx, `${b + 1}. ${biomeName}`, 50, by + 12, {
+      size: 18, color: isSelected ? biome.accentColor : '#8080a0', bold: true, align: 'left'
+    });
+
+    // Stage buttons
+    const stageStartX = 80;
+    for (let s = 0; s <= biome.stages; s++) {
+      const sx = stageStartX + s * 80;
+      const sy = by + 50;
+      const isBoss = s >= biome.stages;
+      const stageKey = `${b}-${s}`;
+      const cleared = isBoss ? G.bossesDefeated.includes(BOSS_DEFS[biome.boss].id) : G.clearedStages.includes(stageKey);
+      const stageSelected = isSelected && s === G.mapSelectedStage;
+
+      // Button
+      const btnW = Math.max(48, 55);
+      const btnH = Math.max(48, 36);
+      ctx.fillStyle = cleared ? 'rgba(46,204,113,0.2)' : stageSelected ? 'rgba(241,196,15,0.2)' : 'rgba(30,30,48,0.8)';
+      ctx.strokeStyle = stageSelected ? '#f1c40f' : cleared ? '#2ecc71' : '#3a3a5a';
+      ctx.lineWidth = stageSelected ? 2 : 1;
+      ctx.beginPath();
+      ctx.roundRect(sx - btnW/2, sy - btnH/2, btnW, btnH, 8);
+      ctx.fill(); ctx.stroke();
+
+      // Stage label
+      const label = isBoss ? 'BOSS' : `${b + 1}-${s + 1}`;
+      UI.text(ctx, label, sx, sy, {
+        size: isBoss ? 11 : 14,
+        color: stageSelected ? '#f1c40f' : cleared ? '#2ecc71' : '#8080a0',
+        bold: stageSelected
+      });
+
+      // Cleared check mark
+      if (cleared) {
+        UI.text(ctx, '✓', sx + btnW/2 - 8, sy - btnH/2 + 8, { size: 12, color: '#2ecc71' });
+      }
+    }
+  }
+
+  // Story text for selected biome
+  const storyKeys = ['story_jungle', 'story_swamp', 'story_canopy'];
+  if (storyKeys[G.mapSelectedBiome]) {
+    UI.text(ctx, `"${t(storyKeys[G.mapSelectedBiome])}"`, w / 2, h - 100, {
+      size: 14, color: '#8080a0'
+    });
+  }
+
+  // Upgrade button (bottom-left)
+  const upgBtnW = Math.max(48, 120);
+  const upgBtnH = Math.max(48, 44);
+  ctx.fillStyle = 'rgba(108,60,247,0.3)';
+  ctx.strokeStyle = '#6c3cf7';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(16, h - 60, upgBtnW, upgBtnH, 8);
+  ctx.fill(); ctx.stroke();
+  UI.text(ctx, t('upgrade'), 16 + upgBtnW/2, h - 38, { size: 14, color: '#6c3cf7', bold: true });
+
+  // Controls hint
+  UI.text(ctx, input.isMobile ? t('controls_hint') : '↑↓: Biome  ←→: Stage  Enter: Go  Q: Upgrade', w / 2, h - 16, {
+    size: 11, color: '#505070'
+  });
+
+  // Upgrade panel overlay
+  if (G.showUpgradePanel) {
+    renderUpgradePanel(ctx, w, h);
+  }
+}
+
+function renderUpgradePanel(ctx, w, h) {
+  const panelX = w * 0.1;
+  const panelY = h * 0.1;
+  const panelW = w * 0.8;
+  const panelH = h * 0.8;
+
+  // Dim background
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Panel
+  ctx.fillStyle = '#12121e';
+  ctx.strokeStyle = '#6c3cf7';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 12);
+  ctx.fill(); ctx.stroke();
+
+  // Title
+  UI.text(ctx, t('upgrade'), panelX + panelW/2, panelY + 25, {
+    size: 20, color: '#f1c40f', bold: true
+  });
+
+  // Relics
+  UI.text(ctx, `${t('relics')}: ${G.relicShards}`, panelX + panelW - 20, panelY + 25, {
+    size: 14, color: '#2ecc71', align: 'right'
+  });
+
+  // Close button
+  ctx.fillStyle = 'rgba(200,50,50,0.3)';
+  ctx.beginPath();
+  ctx.roundRect(panelX + panelW - 40, panelY + 5, 35, 35, 6);
+  ctx.fill();
+  UI.text(ctx, '✕', panelX + panelW - 22, panelY + 22, { size: 18, color: '#e74c3c' });
+
+  // Tab buttons
+  const tabs = ['combat', 'explore', 'survival'];
+  const tabColors = ['#e74c3c', '#3498db', '#2ecc71'];
+  const tabW = panelW / 3;
+  for (let i = 0; i < tabs.length; i++) {
+    const tx = panelX + i * tabW;
+    const active = G.upgradeTab === tabs[i];
+    ctx.fillStyle = active ? tabColors[i] + '33' : 'transparent';
+    ctx.strokeStyle = active ? tabColors[i] : '#3a3a5a';
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.beginPath();
+    ctx.roundRect(tx + 4, panelY + 50, tabW - 8, 36, 6);
+    ctx.fill(); ctx.stroke();
+    UI.text(ctx, t(tabs[i]), tx + tabW/2, panelY + 68, {
+      size: 14, color: active ? tabColors[i] : '#8080a0', bold: active
+    });
+  }
+
+  // Upgrade list
+  const tree = UPGRADE_TREES[G.upgradeTab];
+  const currentLv = G.upgrades[G.upgradeTab];
+  const listY = panelY + 100;
+
+  for (let i = 0; i < tree.length; i++) {
+    const upg = tree[i];
+    const iy = listY + i * 50;
+    const unlocked = i < currentLv;
+    const available = i === currentLv;
+
+    const upgName = currentLang === 'ko' ? upg.name_ko : upg.name_en;
+
+    // Background
+    ctx.fillStyle = unlocked ? 'rgba(46,204,113,0.1)' : available ? 'rgba(241,196,15,0.1)' : 'rgba(30,30,48,0.5)';
+    ctx.beginPath();
+    ctx.roundRect(panelX + 20, iy, panelW - 40, 42, 6);
+    ctx.fill();
+
+    // Level indicator
+    UI.text(ctx, `${t('lv')} ${i + 1}`, panelX + 50, iy + 21, {
+      size: 12, color: unlocked ? '#2ecc71' : '#8080a0', bold: true
+    });
+
+    // Name
+    UI.text(ctx, upgName, panelX + panelW * 0.4, iy + 21, {
+      size: 14, color: unlocked ? '#2ecc71' : available ? '#f1c40f' : '#505070'
+    });
+
+    // Status
+    if (unlocked) {
+      UI.text(ctx, '✓', panelX + panelW - 40, iy + 21, { size: 16, color: '#2ecc71' });
+    } else if (available) {
+      UI.text(ctx, `${t('cost_label')}: ${upg.cost}`, panelX + panelW - 60, iy + 21, {
+        size: 12, color: G.relicShards >= upg.cost ? '#f1c40f' : '#e74c3c', align: 'right'
+      });
+    } else {
+      UI.text(ctx, t('locked'), panelX + panelW - 50, iy + 21, { size: 12, color: '#505070' });
+    }
+  }
+
+  // Purchase button (if available)
+  if (currentLv < tree.length) {
+    const upg = tree[currentLv];
+    const btnW2 = Math.max(48, 160);
+    const btnH2 = Math.max(48, 44);
+    const btnY = panelY + panelH - 70;
+    const canBuy = G.relicShards >= upg.cost;
+
+    ctx.fillStyle = canBuy ? 'rgba(241,196,15,0.3)' : 'rgba(80,80,80,0.3)';
+    ctx.strokeStyle = canBuy ? '#f1c40f' : '#555';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(panelX + panelW/2 - btnW2/2, btnY, btnW2, btnH2, 8);
+    ctx.fill(); ctx.stroke();
+    UI.text(ctx, canBuy ? `${t('upgrade')} (${upg.cost} ${t('relics')})` : t('not_enough'),
+      panelX + panelW/2, btnY + btnH2/2, {
+        size: 14, color: canBuy ? '#f1c40f' : '#555', bold: canBuy
+      });
+  } else {
+    UI.text(ctx, t('max_level'), panelX + panelW/2, panelY + panelH - 50, {
+      size: 16, color: '#f1c40f', bold: true
+    });
+  }
+}
+
+function renderPlay(ctx, w, h) {
+  // Camera offset + shake
+  const shakeOfs = G.camShake > 0 ? UI.shake(G.camShake) : { x: 0, y: 0 };
+  const cx = G.camX + shakeOfs.x;
+  const cy = G.camY + shakeOfs.y;
+
+  // Background (not affected by camera much)
+  drawBackground(ctx, w, h, cx, cy, G.currentBiome);
+
+  // World-space rendering
+  ctx.save();
+  ctx.translate(-cx, -cy);
+
+  // Anchors
+  const nearestAnchor = G.pAttached ? G.pAnchorIdx : findNearestAnchor(G.px, G.py, G.anchors, MAX_SWING_REACH);
+  for (let i = 0; i < G.anchors.length; i++) {
+    const a = G.anchors[i];
+    if (a.broken) continue;
+    // Frustum culling
+    if (a.x < cx - 50 || a.x > cx + w + 50 || a.y < cy - 50 || a.y > cy + h + 50) continue;
+    drawAnchor(ctx, a.x, a.y, i === nearestAnchor);
+  }
+
+  // Vine rope
+  if (G.pAttached && G.pAnchorIdx >= 0) {
+    const a = G.anchors[G.pAnchorIdx];
+    drawVine(ctx, a.x, a.y, G.px, G.py, 3, G.stageTimer);
+  }
+
+  // Hazards
+  drawHazards(ctx);
+
+  // Items
+  for (const it of G.items) {
+    if (it.collected) continue;
+    if (it.x < cx - 30 || it.x > cx + w + 30 || it.y < cy - 30 || it.y > cy + h + 30) continue;
+    drawItem(ctx, it.x, it.y, it);
+  }
+
+  // Enemies
+  for (const e of G.enemies) {
+    if (e.dead) continue;
+    if (e.x < cx - 60 || e.x > cx + w + 60 || e.y < cy - 60 || e.y > cy + h + 60) continue;
+    drawEnemy(ctx, e.x, e.y, e);
+  }
+
+  // Player
+  drawPlayer(ctx, G.px, G.py, G.pSize, G.pFacing, G.pSwinging, G.pDashing, G.pInvTimer);
+
+  // Dash trail effect
+  if (G.pDashing) {
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#2ecc71';
+    for (let i = 1; i <= 3; i++) {
+      const tx = G.px - G.pDashDirX * DASH_SPEED * 0.02 * i;
+      const ty = G.py - G.pDashDirY * DASH_SPEED * 0.02 * i;
+      ctx.globalAlpha = 0.3 - i * 0.08;
+      ctx.beginPath();
+      ctx.arc(tx, ty, G.pSize * (0.4 - i * 0.08), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Exit portal
+  drawExit(ctx, G.exitX, G.exitY);
+
+  // Particles (world space)
+  particles.render(ctx);
+
+  ctx.restore();
+
+  // HUD (screen space)
+  drawHUD(ctx, w, h);
+
+  // Tutorial overlay
+  if (G.tutorialStep > 0) {
+    renderTutorial(ctx, w, h);
+  }
+
+  // Sub-state overlays
+  if (G.sub === SUB.PAUSED) {
+    renderPauseOverlay(ctx, w, h);
+  } else if (G.sub === SUB.GAMEOVER) {
+    renderGameOverOverlay(ctx, w, h);
+  } else if (G.sub === SUB.CLEAR) {
+    renderClearOverlay(ctx, w, h);
+  }
+}
+
+function renderBossStage(ctx, w, h) {
+  const shakeOfs = G.camShake > 0 ? UI.shake(G.camShake) : { x: 0, y: 0 };
+  const cx = G.camX + shakeOfs.x;
+  const cy = G.camY + shakeOfs.y;
+
+  // Boss arena background
+  const biomeIdx = G.bossIdx >= 0 ? BOSS_DEFS[G.bossIdx].biome : 0;
+  drawBackground(ctx, w, h, cx, cy, biomeIdx);
+
+  // Darker overlay for boss arena
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.save();
+  ctx.translate(-cx, -cy);
+
+  // Anchors
+  const nearestAnchor = G.pAttached ? G.pAnchorIdx : findNearestAnchor(G.px, G.py, G.anchors, MAX_SWING_REACH);
+  for (let i = 0; i < G.anchors.length; i++) {
+    const a = G.anchors[i];
+    if (a.broken) continue;
+    drawAnchor(ctx, a.x, a.y, i === nearestAnchor);
+  }
+
+  // Vine rope
+  if (G.pAttached && G.pAnchorIdx >= 0) {
+    const a = G.anchors[G.pAnchorIdx];
+    drawVine(ctx, a.x, a.y, G.px, G.py, 3, G.stageTimer);
+  }
+
+  // Boss
+  if (G.bossIdx >= 0 && G.bossHp > 0) {
+    drawBoss(ctx, G.bossX, G.bossY);
+    drawBossAttacks(ctx);
+  }
+
+  // Player
+  drawPlayer(ctx, G.px, G.py, G.pSize, G.pFacing, G.pSwinging, G.pDashing, G.pInvTimer);
+
+  // Particles
+  particles.render(ctx);
+
+  ctx.restore();
+
+  // HUD
+  drawHUD(ctx, w, h);
+
+  // Boss intro overlay
+  if (G.sub === SUB.BOSS_INTRO) {
+    renderBossIntro(ctx, w, h);
+  } else if (G.sub === SUB.PAUSED) {
+    renderPauseOverlay(ctx, w, h);
+  } else if (G.sub === SUB.GAMEOVER) {
+    renderGameOverOverlay(ctx, w, h);
+  } else if (G.sub === SUB.CLEAR) {
+    renderBossClearOverlay(ctx, w, h);
+  }
+}
+
+function renderTutorial(ctx, w, h) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(0, h * 0.75, w, h * 0.25);
+
+  const text = G.tutorialStep === 1 ? t('tutorial_grab') :
+               G.tutorialStep === 2 ? t('tutorial_release') :
+               t('tutorial_dash');
+
+  UI.text(ctx, text, w / 2, h * 0.85, {
+    size: 18, color: '#f1c40f', bold: true, shadow: true
+  });
+  ctx.restore();
+}
+
+function renderPauseOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('pause'), w / 2, h * 0.35, {
+    size: 32, color: '#ecf0f1', bold: true, glow: '#6c3cf7'
+  });
+
+  // Resume button
+  const btnW = Math.max(48, 160);
+  const btnH = Math.max(48, 48);
+  UI.button(ctx, t('resume'), w/2 - btnW/2, h/2 - 30, btnW, btnH, { color: '#2ecc71' });
+
+  // Quit button
+  UI.button(ctx, t('quit'), w/2 - btnW/2, h/2 + 30, btnW, btnH, { color: '#e74c3c' });
+}
+
+function renderGameOverOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(10,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('game_over'), w / 2, h * 0.3, {
+    size: 36, color: '#e74c3c', bold: true, glow: '#e74c3c'
+  });
+
+  UI.text(ctx, `${t('score')}: ${Math.floor(G.stageScore)}`, w / 2, h * 0.45, {
+    size: 22, color: '#f1c40f', bold: true
+  });
+
+  UI.text(ctx, `${t('relics')}: +${G.relicsCollected}  ${t('coins')}: +${G.coinsCollected}`, w / 2, h * 0.55, {
+    size: 16, color: '#8080a0'
+  });
+
+  const blink = Math.sin(G.titleTimer * 3) > 0;
+  if (blink) {
+    UI.text(ctx, t('restart'), w / 2, h * 0.7, {
+      size: 16, color: '#ecf0f1'
+    });
+  }
+}
+
+function renderClearOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,10,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('stage_clear'), w / 2, h * 0.25, {
+    size: 36, color: '#2ecc71', bold: true, glow: '#2ecc71'
+  });
+
+  // Score breakdown
+  const cy = h * 0.4;
+  UI.text(ctx, `${t('score')}: ${Math.floor(G.stageScore)}`, w / 2, cy, {
+    size: 24, color: '#f1c40f', bold: true
+  });
+
+  const timeBonus = SCORE_CFG.TIME_BONUS(G.stageTimer);
+  UI.text(ctx, `${t('time_bonus')}: +${Math.floor(timeBonus)}`, w / 2, cy + 30, {
+    size: 14, color: '#3498db'
+  });
+
+  if (G.hitsTaken === 0) {
+    UI.text(ctx, `${t('no_hit')}: +${SCORE_CFG.NO_HIT_BONUS}`, w / 2, cy + 50, {
+      size: 14, color: '#f1c40f', glow: '#f1c40f'
+    });
+  }
+
+  UI.text(ctx, `${t('relics')}: +${G.relicsCollected}`, w / 2, cy + 75, {
+    size: 14, color: '#2ecc71'
+  });
+
+  // High score check
+  const stageKey = `${G.currentBiome}-${G.currentStage}`;
+  const best = G.bestScores[stageKey] || 0;
+  if (G.stageScore >= best && best > 0) {
+    UI.text(ctx, t('new_best'), w / 2, cy + 100, {
+      size: 20, color: '#f1c40f', bold: true, glow: '#f1c40f'
+    });
+  }
+
+  const blink = Math.sin(G.titleTimer * 3) > 0;
+  if (blink) {
+    UI.text(ctx, t('back_map'), w / 2, h * 0.8, { size: 16, color: '#ecf0f1' });
+  }
+}
+
+function renderBossIntro(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, w, h);
+
+  const def = BOSS_DEFS[G.bossIdx];
+  if (!def) return;
+
+  const bossName = currentLang === 'ko' ? def.name_ko : def.name_en;
+
+  // Boss name with dramatic styling
+  UI.text(ctx, bossName, w / 2, h * 0.4, {
+    size: 36, color: def.color, bold: true, glow: def.color
+  });
+
+  // Boss sprite preview
+  if (assets.sprites[def.assetKey]) {
+    const sz = 80;
+    ctx.drawImage(assets.sprites[def.assetKey], w/2 - sz, h*0.5, sz*2, sz*2);
+  }
+}
+
+function renderBossClearOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,10,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('boss_defeated'), w / 2, h * 0.3, {
+    size: 36, color: '#f1c40f', bold: true, glow: '#f1c40f'
+  });
+
+  const def = BOSS_DEFS[G.bossIdx];
+  if (def) {
+    UI.text(ctx, `+${def.reward.relics} ${t('relics')}`, w / 2, h * 0.45, {
+      size: 20, color: '#2ecc71', bold: true
+    });
+    UI.text(ctx, `+${def.reward.score} ${t('score')}`, w / 2, h * 0.52, {
+      size: 16, color: '#f1c40f'
+    });
+  }
+
+  const blink = Math.sin(G.titleTimer * 3) > 0;
+  if (blink) {
+    UI.text(ctx, t('back_map'), w / 2, h * 0.7, { size: 16, color: '#ecf0f1' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════
+
+async function init() {
+  // Load assets from manifest (F1/F22)
+  await loadAssets();
+
+  // Load saved progress
+  loadProgress();
+
+  // Apply max HP upgrade
+  G.pMaxHp = 3 + (G.upgrades.survival >= 1 ? 1 : 0);
+  G.pHp = G.pMaxHp;
+
+  // Start engine
+  engine.start();
+}
+
+init();
+
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 # reviewer 누적 지혜
-_마지막 갱신: 사이클 #36 (1회차 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
+_마지막 갱신: 사이클 #41 (2회차 — ashen-stronghold) ✅ APPROVED_
 
 ## ⚠️ 에셋 정책 (사이클 #39~)
 - assets/ 폴더와 PNG 에셋이 존재하는 것이 **정상**입니다. 삭제를 요구하지 마세요.
@@ -58,6 +58,11 @@ _마지막 갱신: 사이클 #36 (1회차 — mecha-garrison) ❌ NEEDS_MAJOR_FI
 - **[Cycle 36]** STATE_PRIORITY 버그 **9번째 재발 (최악의 변형)**. `RESTART_ALLOWED` 배열이 선언(Line 175)만 되고 `beginTransition()`(Line 2078)에서 **전혀 참조되지 않음**. PAUSED만 예외로 두어 **12개 핵심 전환 중 10개가 차단**. ZONE_INTRO(50)→PLACEMENT(30) 차단으로 **게임 시작 자체가 불가능** — 이전 사이클들은 최소한 게임 플레이까지는 가능했으나, 이번에는 타이틀→스토리→구역 소개까지만 진행 후 영구 정체. **STATE_PRIORITY 체계가 게임 시작 흐름까지 차단한 것은 36사이클 역사상 최초.**
 - **[Cycle 36]** assets/ F1 위반 **36사이클 연속 재발(적극적 참조)**. ASSET_MAP(8개 SVG) + preloadAssets() + SPRITES 참조 코드 잔존. Canvas 폴백 100% 존재. manifest.json 포함 총 10개 파일. **아트 에이전트 → 코더 에셋 삽입 구조적 패턴이 절대 근절 안 됨.**
 - **[Cycle 36]** WAVE→WAVE_CLEAR(70→35), WAVE→BOSS_INTRO(70→60), BOSS_FIGHT→BOSS_CLEAR(80→55) 등 **정상 게임 진행 전환까지 전부 차단**. 이전 사이클들은 주로 GAMEOVER/VICTORY→TITLE/HUB 복귀만 문제였으나, 이번에는 게임 내 모든 상태 전환이 "forward only" 제한에 걸림. 원인: PLACEMENT(30), WAVE_CLEAR(35), REWARD_SELECT(30) 등 "중간 상태"의 우선순위가 WAVE(70)/BOSS_FIGHT(80)보다 낮게 설정됨.
+
+- **[Cycle 41]** **자원 표시 부동소수점 오류**: `playerHealWithFood()`에서 `G.food -= 0.5 * dtSec`로 소수점 누적 → HUD에 `15.918369999997` 표시. **모든 프레임별 소수 연산 결과를 UI에 표시할 때 Math.round/floor 필수.** Cycle 23~25의 터치 크기 문제와 유사한 "작은 오차 누적" 패턴.
+- **[Cycle 41]** **R 버튼 터치 타겟 40px < 48px**: renderMobileControls에서 R 버튼 r=20 → 직경 40px. 터치 판정에 +10px 여유가 있어 기능적 문제는 없으나 F11 미달. **Cycle 23~31에서 반복되는 "특정 버튼만 MIN_TOUCH 미적용" 패턴의 변형.**
+- **[Cycle 41]** **monkey-patch IIFE 연쇄 패턴**: 7개 IIFE가 engine._update/engine._render를 순차 래핑. 기능적 문제는 없으나 깊은 콜스택과 디버깅 어려움. **확장 시스템은 기존 함수 내부에 직접 통합하는 것이 안전.**
+- **[Cycle 41]** **onBossDefeated tween 콜백 내 beginTransition 잠재 문제**: fadeAlpha tween 완료 콜백에서 `beginTransition(ST.MAP)` 호출 시 `G._transitioning`이 true일 수 있어 전환 차단 가능성. **tween 콜백에서 beginTransition 호출 전 _transitioning 초기화 필요.**
 
 ## 검증된 성공 패턴 ✅
 
@@ -143,6 +148,15 @@ _마지막 갱신: 사이클 #36 (1회차 — mecha-garrison) ❌ NEEDS_MAJOR_FI
 - **[Cycle 36]** **bossRewardGiven 가드 플래그** (F17): Line 2381에서 정확히 적용. 보스 처치 보상 중복 지급 방지.
 - **[Cycle 36]** **ACTIVE_SYSTEMS 매트릭스 프로그래밍적 생성**: Line 178-219에서 IIFE로 모든 상태×시스템 조합을 명시. 모든 상태에서 tween+render 기본 활성. Cycle 28 R3의 교훈 반영.
 - **[Cycle 36]** **Puppeteer 전환 전수 검증 자동화 패턴**: 12개 핵심 전환을 JavaScript 배열로 정의하고 `STATE_PRIORITY[from] vs STATE_PRIORITY[to]` 일괄 검증하여 10개 차단을 즉시 탐지. 이 검증 스크립트는 모든 향후 리뷰에서 재사용해야 함.
+
+- **[Cycle 41]** **TRANSITION_TABLE 패턴이 STATE_PRIORITY 버그 완전 근절**: STATE_PRIORITY 숫자 비교 대신 `TRANSITION_TABLE[from][to]` 허용 목록 방식으로 상태 전환 관리. 9사이클 연속 재발하던 역방향 전환 차단 버그가 **발생하지 않음**. `GAMEOVER→TITLE`, `MAP→TITLE`, `NIGHT_WAVE→MAP` 등 모든 역방향 전환이 테이블에 명시되어 안전하게 동작.
+- **[Cycle 41]** **ix-engine.js 기반 Input 시스템 활용**: 게임 자체 코드에 keydown/keyup 리스너를 직접 등록하지 않고 엔진의 Input 클래스를 사용. `input.held()`, `input.jp()`, `input.confirm()`, `input.tapped` 등 통일된 API로 데스크톱/모바일 입력 처리. preventDefault도 엔진에서 일괄 처리.
+- **[Cycle 41]** **manifest.json 기반 에셋 로드 정착**: Cycle 39+ 에셋 정책에 따라 Gemini API PNG 에셋 21개를 manifest.json 기반으로 로드. 모든 렌더 함수에 Canvas 폴백 존재. **에셋 로드 실패 시에도 게임 완전 동작 확인.**
+- **[Cycle 41]** **G 객체 fadeAlpha 직접 tween 패턴 정상 작동**: `tween.add(G, { fadeAlpha: 1 })` → 렌더링에서 `G.fadeAlpha` 직접 읽기. **9사이클 연속 transAlpha 정상 동작** (Cycle 25, 27, 28, 29, 31, 32, 36, 41).
+- **[Cycle 41]** **BFS 경로 검증 + 배치 전 경로 차단 검증**: tryPlace()에서 임시 그리드에 배치 후 4방향 스폰→코어 BFS 검증. 경로 차단 시 경고 표시 + 배치 거부. TD 장르 필수 패턴의 모범 구현.
+- **[Cycle 41]** **fullReset() 완전 초기화 검증**: 점수, 자원, 코어, 좀비, 투사체, 서바이버, 바리케이드, 포탑, 트랩, 보스, 유물, DDA, defenseGrid 등 **모든 게임 상태 변수** 초기화 확인. 재시작 후 잔존 상태 0건.
+- **[Cycle 41 R2]** **1회차 MINOR FIX 3건 모두 정확히 수정**: (1) Math.floor() 적용으로 부동소수점 표시 해결, (2) R 버튼 r=20→24로 터치 타겟 48px 충족, (3) onBossDefeated에서 직접 상태 전환으로 beginTransition 가드 충돌 방지. **수정 품질 우수 — 회귀 0건, 1회차 구조 유지.**
+- **[Cycle 41 R2]** **서바이벌 TD 로그라이트 장르의 복잡한 게임 루프(7상태, 주야 전환, BFS, DDA, 보스 3종×3페이즈) 완전 작동 확인**. 3,891줄 단일 HTML에서 콘솔 에러 0건 + 에셋 21개 로드 + 모바일 완전 플레이 가능.
 
 ## 다음 사이클 적용 사항 🎯
 

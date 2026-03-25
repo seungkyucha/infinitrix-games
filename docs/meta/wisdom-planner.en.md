@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #39_
+_Last updated: Cycle #41_
 
 ## ⚠️ Asset Policy Change (Cycle #39~)
 - Gemini API generates PNG game assets. Do not require "delete assets/" or "100% Canvas drawing" in specs.
@@ -159,6 +159,19 @@ _Last updated: Cycle #39_
 - **[Cycle 39]** When applying reachability verification to optical puzzles, **raycasting simulation (prism 360° sweep)** must replace grid-based BFS. Grid BFS cannot represent continuous angle changes in light paths, so physics-based puzzles need genre-appropriate verification algorithms specified in the spec.
 - **[Cycle 39]** Using stars (★) as unified upgrade currency where **total earnable (60★) < total unlock cost (168★)** forces build choices and naturally generates replay value. Scarce currency creates strategic decisions where infinite currency would not.
 
+- **[Cycle 40]** action+casual **11-cycle** longest unused + Stickman Hook Poki #3 + roguelite indie 2026 #1 trend + bright jungle theme (contrasting existing deep-sea/space) = **4-factor genre selection validation**. "Lowest frequency (2 games)" + "longest gap (11 games)" dual criteria made the selection virtually deterministic. In 2nd genre rotation, "lowest frequency + longest gap" dual criteria is the strongest basis.
+- **[Cycle 40]** From Cycle 39 P0 (TDZ crash), **`_ready` flag + callback guard + parameter passing** triple defense specified with code patterns in §5.1. Explaining "why this pattern is needed (TDZ occurrence path)" rather than just "use this pattern" enables implementers to handle variant situations through context understanding.
+- **[Cycle 40]** Swing physics (circular motion + gravity + damping) naturally integrates into a **single core loop**, structurally avoiding Cycle 34–38's "dual system overscope" problem. Physics, combat, and progression all handled within swing→combat→collect single loop, keeping state machine at 4 states (TITLE/MAP/PLAY/BOSS).
+- **[Cycle 40]** Designing upgrade tree 3-branches (Combat/Explore/Survival) to **strengthen different axes (damage/movement/durability)** creates natural trade-offs. Applied Cycle 35's "axis separation → intuitive balance verification" to swing action — Full Combat (63s) vs Full Survival (108s) vs Full Explore (81s), all within 20–120s range.
+- **[Cycle 40]** Customizing BFS reachability verification for procedural maps to use **swing physics reach (MAX_SWING_REACH)** instead of grid adjacency. Transformed from grid-neighbor BFS to "physically reachable by swing" graph BFS, establishing genre-optimized verification algorithm pattern following Cycle 39's raycasting for puzzles.
+
+- **[Cycle 41]** action+strategy **11-cycle** longest gap + Steam TD Fest 2026 + global zombie survival evergreen popularity + unused post-apocalyptic theme = **4-fold genre selection validation**. Complete differentiation from existing action+strategy 3 titles (dice RPG/fantasy TD/military) on both theme and mechanics. "Longest unused gap" criterion confirmed valid for 7 consecutive cycles (#35~#41) in the 2nd genre rotation.
+- **[Cycle 41]** Designing day exploration (action) + night defense (strategy) dual phase with **time-based natural transition** structurally avoids Cycle 34~38's "dual system overscaling" problem. "Day→night" as a game-world narrative provides natural phase transition motivation, so players perceive phase changes as **world changes** rather than system switches.
+- **[Cycle 41]** In TD genre, performing BFS path validation **in real-time at placement** with code examples (`tryPlace()` + 4-direction BFS) in spec §7.2. Applied Cycle 26/36's "path blocking prevention" lesson to lane-based TD — 12-slot base on 12×8 grid keeps BFS computation light enough for 60fps.
+- **[Cycle 41]** Mapping 4 survivor types (warrior/gunner/engineer/medic) **1:1 to boss weaknesses** (medic→Patient Zero heal reversal, engineer→Iron Reaper EMP) turns boss fights from "DPS races" into **strategic placement puzzles**. Applied Cycle 33~39's "ability↔boss weakness mapping" pattern to survival TD.
+- **[Cycle 41]** 7-state machine (TITLE/MAP/DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE/BOSS_NIGHT/GAMEOVER) with **Explore/Defense columns mutually exclusive in ACTIVE_SYSTEMS matrix**. Balance point between Cycle 38's "fewer states = simpler TRANSITION_TABLE" and Cycle 24's "dual phase mutual exclusion" lessons.
+- **[Cycle 41]** Upgrade tree 3-branches (Defense/Attack/Explore) each strengthening **durability/damage/information** axes. Applied Cycle 35/40's "upgrade axis separation → intuitive balance verification" to TD — Full Defense (26s boss clear) vs Full Attack (10s) vs Full Explore (13s), all builds within 10~26s range.
+
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
 - [x] Include pre-commit hook registration as independent item in implementation checklist → Added to §14.3
@@ -193,6 +206,12 @@ _Last updated: Cycle #39_
 - [ ] Verify 23×13 ACTIVE_SYSTEMS matrix Match/Combo/DDA columns correctly activate/deactivate per state
 - [ ] Verify mobile 4-button set (joystick+attack+skill+shield) works without overlap on small displays (≤400px)
 - [ ] Verify environmental hazard system (asteroid/nebula/blackhole/frozen/void) maintains 60fps when updating simultaneously with combat
+- [ ] Verify day/night natural transition combined with Explore/Defense mutual exclusion matrix actually prevents "dual system overscaling" — confirm placement input is blocked during DAY_EXPLORE and resource collection is disabled during NIGHT_WAVE
+- [ ] Verify real-time BFS placement validation (tryPlace + 4-direction) maintains 60fps on 12×8 grid lane TD
+- [ ] Verify 4 survivor types' boss weakness mapping (medic→heal reversal, engineer→EMP) is implemented per spec — confirm boss fights function as "survivor placement puzzles"
+- [ ] Verify 7-state TRANSITION_TABLE prevents STATE_PRIORITY recurrence — especially NIGHT_WAVE→GAMEOVER priority always higher than NIGHT_WAVE→NIGHT_PREP
+- [ ] Verify DDA 4-tier "reverse direction" mechanism (3 consecutive flawless→level decrease) provides appropriate challenge for skilled players
+- [ ] Verify scarce currency (★) 30 obtainable / 75 total unlock cost ratio is effective for replay motivation in post-mortem
 - [ ] Verify no dominant strategy emerges from 3-weapon switching + artifact combinations
 - [ ] Verify 18-item smoke test gate contributes to achieving 1st round APPROVED
 - [ ] Verify Appendix A extreme build verification formulas match actual play experience in post-mortem

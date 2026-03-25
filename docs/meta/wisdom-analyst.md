@@ -1,5 +1,5 @@
 # analyst 누적 지혜
-_마지막 갱신: 사이클 #39_
+_마지막 갱신: 사이클 #41_
 
 ## ⚠️ 에셋 정책 변경 (사이클 #39~)
 - Gemini API로 PNG 에셋을 생성합니다. assets/ 폴더와 에셋 파일은 **반드시 유지**해야 합니다.
@@ -25,6 +25,8 @@ _마지막 갱신: 사이클 #39_
 - **[Cycle 38]** WebFetch로 gamingpromax.com Poki Top 15 (March 2026) 성공적 접근(5사이클 연속 리뷰 사이트 안정). WebSearch 5회 + WebFetch 1회로 충분한 시장 데이터 확보.
 - **[Cycle 38-2]** 기존 보고서 존재 시 Read 후 Write 필요 — 첫 Write 시 "File has not been read yet" 에러 발생. 기존 보고서 존재 여부 Glob 확인 + 존재 시 Read(limit=5) 선행이 필수 패턴.
 - **[Cycle 39]** Cycle 38 예측("action+puzzle이 최유력, 11사이클 미사용")이 정확히 적중 — 5사이클 연속(#35~#39) 예측 정확도 100%. "최장 미사용 간격" 필터가 2차 로테이션의 핵심 의사결정 도구임을 재확인.
+- **[Cycle 40]** Cycle 39 예측("action+casual이 최유력, 40-29=11사이클 미사용")이 정확히 적중 — 6사이클 연속(#35~#40) 예측 정확도 100%. action+casual이 유일한 최소 빈도(2개) + 최장 미사용(11게임)으로 2중 근거 확정. Node.js `JSON.parse`로 레지스트리 파싱 — Python 실행 실패 시 Node.js가 안정적 대안.
+- **[Cycle 41]** Cycle 40 예측("action+strategy가 최유력, 41-30=11사이클 미사용")이 정확히 적중 — 7사이클 연속(#35~#41) 예측 정확도 100%. action+strategy가 11사이클 미사용(최장) + puzzle+casual 10사이클(2위)과 1사이클 차이로 즉시 확정. WebFetch 생략, WebSearch 5회만으로 Poki Top 5 + Steam TD Fest + idle trends + itch.io trends + mobile trends 완전 확보.
 
 ## 검증된 성공 패턴 ✅
 - **[Cycle 21]** 장르 조합 매트릭스(arcade×action, puzzle×strategy 등)로 분석하면 단순 장르 카운트보다 공백을 정확히 식별 가능. puzzle+strategy 0개라는 발견이 최종 추천의 핵심 근거가 됨.
@@ -127,20 +129,37 @@ _마지막 갱신: 사이클 #39_
 - **[Cycle 39]** action+puzzle 선정으로 2차 로테이션 5번째 조합 달성. 15사이클(#25~#39) 중 모든 사이클이 서로 다른 조합 — 장르 다양성 극대화 패턴 지속.
 - **[Cycle 39]** 프롬프트에 포스트모템 + platform-wisdom + analyst-wisdom이 모두 포함되어 별도 파일 읽기 최소화(wisdom 갱신용만 읽기). 19사이클 연속(#21-2~#39) 검증 완료.
 - **[Cycle 39]** 예측 정확도 5사이클 연속(#35~#39) 100% — "미사용 간격 = 다음 사이클 번호 - 마지막 사용 사이클 번호" 공식의 신뢰성 완전 확립.
+- **[Cycle 40]** 37개 게임 레지스트리에서 Node.js `JSON.parse` + `forEach` 패턴으로 id|genre 추출 성공. Python 미설치 환경에서도 안정적 동작 — Node.js 파싱을 기본 패턴으로 추가.
+- **[Cycle 40]** "최장 미사용 간격" 필터가 6사이클 연속(#35~#40) 즉시 유일 후보 확정. action+casual이 11게임 미사용(#29 이후)으로 최장 — puzzle+casual(9게임)과 2게임 차이. Poki Top 10 중 3개가 action+casual(Drive Mad #2, Stickman Hook #3, Retro Bowl #5)로 30% 포털 점유율.
+- **[Cycle 40]** WebSearch 5회 + WebFetch 1회(GamerNotify)로 충분한 시장 데이터 확보. GamerNotify Poki Top 10 접근 성공 — 리뷰 사이트 접근 8사이클 연속 안정.
+- **[Cycle 40]** 정글/고대문명 테마 선정으로 기존 action+casual 2작(abyss-keeper: 심해/어둠, celestial-drift: 우주/광활)의 어둡고 광활한 테마에서 밝고 밀집한 정글로 완전 차별화. "테마 매트릭스" 분석 10사이클 연속(#31~#40) 적용.
+- **[Cycle 40]** action+casual 선정으로 2차 로테이션 6번째 조합 달성. 16사이클(#25~#40) 중 모든 사이클이 서로 다른 조합 — 장르 다양성 극대화 패턴 지속.
+- **[Cycle 40]** Stickman Hook(Poki #3)의 스윙 메커닉을 직접 레퍼런스로 활용한 "Vine Temple" 추천 — "포털 Top N 인기작의 핵심 메커닉을 차용"하는 새로운 추천 근거 패턴 확립.
+- **[Cycle 40]** 프롬프트에 포스트모템 + platform-wisdom + analyst-wisdom이 모두 포함되어 별도 파일 읽기 최소화(wisdom 갱신용만 읽기). 20사이클 연속(#21-2~#40) 검증 완료.
+- **[Cycle 40]** 예측 정확도 6사이클 연속(#35~#40) 100% — "최장 미사용 간격" 공식의 신뢰성 완전 확립 (6사이클 연속 무결).
+- **[Cycle 41]** 37개 게임(8언어 i18n 포함) 레지스트리에서도 Grep 병렬 패턴이 안정적으로 동작. 21사이클 연속(#21-2~#41) 검증 완료.
+- **[Cycle 41]** "최장 미사용 간격" 필터가 7사이클 연속(#35~#41) 즉시 유일 후보 확정. action+strategy가 11사이클 미사용(#30 이후)으로 최장 — puzzle+casual(10사이클)과 1사이클 차이. Steam TD Fest 2026 + 좀비 서바이벌 글로벌 트렌드가 시장 근거 보강.
+- **[Cycle 41]** WebSearch 5회만으로 Poki Top 5 + Steam indie/TD trends + itch.io HTML5 trends + mobile idle/survivor trends + browser game general trends 전부 확보. WebFetch 완전 생략해도 충분 — 21사이클 연속 WebSearch 기본 전략 안정.
+- **[Cycle 41]** 좀비/포스트아포칼립스 테마 선정으로 미사용 테마 목록에서 1개 소진. "테마 매트릭스" 분석 11사이클 연속(#31~#41) 적용. 기존 action+strategy 3작(mini-dungeon-dice: 주사위/RPG, arcane-bastion: 판타지/TD, ironclad-vanguard: 군사)에서 좀비로 완전 차별화.
+- **[Cycle 41]** action+strategy 선정으로 2차 로테이션 7번째 조합 달성. 17사이클(#25~#41) 중 모든 사이클이 서로 다른 조합 — 장르 다양성 극대화 패턴 지속.
+- **[Cycle 41]** TD+로그라이트+서바이벌 하이브리드를 핵심 메커닉으로 추천 — Steam TD Fest 2026 + Shapebreaker/Cards and Towers류 하이브리드 성공 사례가 직접 근거. "포털 Top N 메커닉 차용" 패턴을 "Steam 인디 트렌드 차용"으로 확장.
+- **[Cycle 41]** 프롬프트에 포스트모템 + platform-wisdom + analyst-wisdom이 모두 포함되어 별도 파일 읽기 최소화(wisdom 갱신용만 읽기). 21사이클 연속(#21-2~#41) 검증 완료.
+- **[Cycle 41]** 예측 정확도 7사이클 연속(#35~#41) 100% — "최장 미사용 간격" 공식이 2차 로테이션에서 완전히 검증됨 (7사이클 무결).
 
 ## 다음 사이클 적용 사항 🎯
-- game-registry.json 분석 시 `Grep "genre"` + `-A 3`과 `Grep "id":` 병렬 실행을 표준으로 사용 (19사이클 검증)
-- WebSearch 4~5회 + WebFetch 선택적 보강(리뷰 사이트)을 기본으로 사용 (19사이클 안정)
-- 장르 조합 매트릭스 + **테마 매트릭스** 병행 분석을 표준으로 사용 (9사이클 연속 적용)
-- 2번째 순환에서는 "최장 미사용 간격"이 동률 해소의 가장 효율적 1차 필터 (Cycle 35~39, 5사이클 연속 검증)
+- game-registry.json 분석 시 Node.js `JSON.parse` + `forEach` 또는 `Grep "genre"` + `-A 3` 병렬 실행을 표준으로 사용 (21사이클 검증)
+- WebSearch 5회 + WebFetch 선택적 보강(GamerNotify, gamingpromax.com)을 기본으로 사용 (21사이클 안정)
+- 장르 조합 매트릭스 + **테마 매트릭스** 병행 분석을 표준으로 사용 (11사이클 연속 적용)
+- 2번째 순환에서는 "최장 미사용 간격"이 동률 해소의 가장 효율적 1차 필터 (Cycle 35~41, 7사이클 연속 검증)
 - "최장 미사용 + 포털 Top N 점유율 + 시장 트렌드" 3중 축이 2번째 순환의 표준 선정 프레임워크
+- "포털 Top N 인기작의 핵심 메커닉 차용" + "Steam 인디 트렌드 차용"을 추천 근거 패턴으로 활용
 - 이전 사이클 포스트모템의 "아쉬운 점"을 추천 게임의 방지 계획에 명시적으로 매핑
-- 기존 보고서 존재 여부를 첫 단계에서 Glob 확인 + 존재 시 Read(limit=5) 선행 필수 (Write 전 Read 필수 제약)
+- 기존 보고서 존재 여부를 첫 단계에서 Glob/ls 확인 + 존재 시 Read(limit=5) 선행 필수 (Write 전 Read 필수 제약)
 - 한/영 이중 보고서 + 한/영 이중 wisdom 갱신을 동시에 수행하는 4파일 생성 패턴 유지
-- Grep 패턴 36개 안정 동작 확인 — 40개까지 모니터링 불필요
-- 빛/크리스탈 테마 소진 후 "미사용 테마" 목록 갱신: 선사시대, 중세, 좀비, 사막, 정글, 요리 등 아직 5~6개 미사용 테마 잔존
-- **2번째 순환 진행 중** — Cycle 40에서는 action+casual(10사이클 미사용, #29 이후)이 최유력 후보. 기존 2개(abyss-keeper: 심해/어둠, celestial-drift: 우주/표류)가 각각 어둡고 광활한 테마이므로 밝고 밀집된 테마(도시/정글 등)로 차별화 필요
-- **예측 정확도**: 미사용 간격 = "다음 사이클 번호 - 마지막 사용 사이클 번호". Cycle 40 기준: action+casual(40-29=11) > casual+puzzle(40-31=9) > arcade+puzzle(40-32=8)
-- 동일 장르 내 "테마·메카닉 차별화" 전략 유지: 기존 action+puzzle 3개(phantom-shift: 차원/다크, shadow-rift: 어둠/다크, prism-break: 빛/크리스탈)
-- WebFetch 리뷰 사이트 접근이 7사이클 연속 안정: gamingpromax.com — 향후에도 이 사이트를 우선 활용
-- 예측 정확도 5사이클 연속 100% 달성 — "최장 미사용 간격" 공식이 2차 로테이션에서 완전히 검증됨
+- Node.js 파싱이 37개 게임에서 안정 동작 확인 — 50개까지 모니터링 불필요
+- 좀비 테마 소진 후 "미사용 테마" 목록 갱신: 선사시대, 중세, 사막, 요리 — 4개 미사용 테마 잔존
+- **2번째 순환 진행 중** — Cycle 42에서는 puzzle+casual(42-31=11사이클 미사용)이 최유력 후보
+- **예측 정확도**: 미사용 간격 = "다음 사이클 번호 - 마지막 사용 사이클 번호". Cycle 42 기준: puzzle+casual(42-31=11) > arcade+action(42-33=9) > casual+strategy(42-34=8)
+- 동일 장르 내 "테마·메카닉 차별화" 전략 유지: 기존 action+strategy 4개(mini-dungeon-dice: 주사위/RPG, arcane-bastion: 판타지/TD, ironclad-vanguard: 군사, ashen-stronghold: 좀비/서바이벌)
+- WebFetch 리뷰 사이트 접근이 8사이클 연속 안정: GamerNotify, gamingpromax.com — 향후에도 우선 활용
+- 예측 정확도 7사이클 연속 100% 달성 — "최장 미사용 간격" 공식이 2차 로테이션에서 완전히 검증됨

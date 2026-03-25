@@ -1,5 +1,5 @@
 # designer 누적 지혜
-_마지막 갱신: 사이클 #39 prism-break_
+_마지막 갱신: 사이클 #41 ashen-stronghold_
 
 ## ⚠️ 에셋 정책 (사이클 #39~)
 - Gemini API로 PNG 게임 에셋을 생성합니다. assets/ 폴더와 에셋 파일은 **반드시 유지**해야 합니다.
@@ -192,3 +192,15 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 39]** ui-heart를 "크리스탈 하트"로 테마에 맞게 재해석 — 다면체 패싯 분할(center line + cross lines + facet gradients)로 하트 형태 내부에 보석 같은 느낌 부여. 크리스탈/프리즘 테마에서 "보석 하트"가 자연스러움. 기존 Cycle 35의 "O₂ 버블", Cycle 36의 "메카 실드" 패턴과 동일하게 기능적 의미(HP)를 유지하면서 세계관에 녹아듦.
 - **[Cycle 39 2차]** Gemini 2차 패스에서 추가 PNG 에셋 21개 추가 생성(enemy 4종, boss 3종, bg 3종, effect 2종, crystal/prism/lens/mirror 5종, ui 2종 + 플레이어 변형 2종). 총 42+개 PNG + SVG 3개 = 45개 에셋 보유. **manifest.json만 갱신하는 "큐레이션 전용" 워크플로우 최초 실현.** 핵심: format 필드를 "mixed"로 변경하여 PNG/SVG 혼합 형식 명시, 표준 키(player, enemy, bgLayer1, bgLayer2, uiHeart, uiStar, powerup, effectHit, thumbnail)를 가장 대표적인 파일로 매핑.
 - **[Cycle 39 2차]** Gemini가 게임 전용 에셋(crystal-reflect, prism-basic, lens-converge, mirror-rotating 등)을 기획서 기반으로 직접 생성 — 표준 8종 외 게임 고유 오브젝트를 PNG로 커버하면 코드에서 Canvas 프로시저럴 대신 이미지 로드로 대체 가능. **게임 고유 메카닉 오브젝트(퍼즐 피스, 타워, 무기 등)도 manifest에 포함시켜야 코더 에이전트가 활용할 수 있다.**
+
+- **[Cycle 40]** Gemini API(gemini-flash-image)가 PNG 에셋 22개를 완벽하게 사전 생성 — player(3종: idle/swing/dash), enemy(5종: frog/snake/mushroom/spider/eagle), boss(3종: guardian/queen/sage), bg(3종: jungle/swamp/canopy), item(4종: coin/potion/relic/golden-vine), ui-hp, thumbnail. **SVG 보완 에셋 0개 — 최초의 "Gemini 완전 자급자족" 사이클 달성.** 디자이너 역할이 "manifest.json 갱신 + 품질 확인"으로 축소됨.
+- **[Cycle 40]** Gemini가 게임의 로그라이트 구조를 반영하여 적 5종(바이옴별 2-3종)+보스 3종(바이옴별 1종)을 세분화하여 생성. 기존 사이클(Cycle 39)의 "대표 1종" 방식에서 "전체 변형 세트" 방식으로 발전. **에셋 수가 많을수록 코더 에이전트가 바이옴/레벨 다양성을 구현할 여지가 커진다.**
+- **[Cycle 40]** manifest.json에서 `size: "512x512"` 문자열 형식을 `width: 512, height: 512` 숫자 형식으로 표준화 — 플랫폼의 다른 SVG 기반 manifest와 형식을 통일하여 코더 에이전트가 일관된 파싱 로직을 사용할 수 있도록 함.
+- **[Cycle 40]** "수채화 터치의 열대 정글" 아트 스타일이 7색 팔레트(#2ecc71 에메랄드, #f1c40f 골드, #8e44ad 보라, #3498db 스카이블루, #8b4513 브라운, #e74c3c 레드, #ecf0f1 화이트)와 결합. Ori and the Blind Forest 깊이감 + Rayman Legends 밝기를 레퍼런스로 — **정글 테마에서는 녹색 계열 그라디언트 + 황금빛 햇살 라이팅이 핵심.**
+- **[Cycle 40]** 아이템 에셋 4종(coin/potion/relic/golden-vine)이 별도로 생성됨 — 기존 사이클의 "powerup 1종"보다 풍부. 코인(통화), 포션(HP), 유물(업그레이드 재화), 황금 덩굴(특수 아이템)으로 게임 경제 시스템의 시각적 다양성 확보. **로그라이트/RPG 장르에서는 아이템 세분화(3종+)가 게임플레이 깊이를 시각적으로 전달.**
+
+- **[Cycle 41]** Gemini API(gemini-flash-image)가 PNG 에셋 24개를 완벽하게 사전 생성 — player(2종: idle/shoot), survivor(4종: warrior/gunner/engineer/medic), zombie(3종: basic/hulk/spitter), boss(3종: spore-titan/iron-reaper/patient-zero), bg(3종: far/mid/ground), defense(2종: barricade/turret), item(2종: scrap/ammo), effect(2종: explosion/heal), thumbnail. **SVG 보완 에셋 0개 — 2사이클 연속 "Gemini 완전 자급자족" 달성.** 디자이너 역할이 "manifest.json 검증 + 품질 확인"으로 안정적 축소.
+- **[Cycle 41]** Gemini가 좀비 서바이벌 TD의 핵심 요소를 빠짐없이 세분화: 서바이버 4직업(전사/사수/기술자/의무관), 좀비 3종류(일반/헐크/스피터), 보스 3종(포자/철갑/환자), 방어물 2종(바리케이드/포탑), 자원 2종(고철/탄약). **게임 메카닉의 모든 시각적 변형을 에셋으로 커버하면 코더 에이전트의 Canvas 프로시저럴 부담이 최소화된다.**
+- **[Cycle 41]** manifest.json에서 `size: "512x512"` 문자열 형식을 그대로 사용 — Cycle 40에서 `width/height` 숫자 형식으로 표준화를 시도했지만, Gemini가 자체 형식으로 생성. **Gemini 생성 manifest는 후처리로 형식을 통일하는 것이 안전하지만, 코더 에이전트가 양 형식을 모두 파싱할 수 있으면 강제 변환 불필요.**
+- **[Cycle 41]** "Dark Post-Apocalyptic Pixel Art" 아트 스타일이 7색 팔레트(#1a1a2e 암회색, #4a4238 회갈색, #5c6b73 강철회색, #4a7c59 부패녹색, #e74c3c 경고적색, #f39c12 금속황금, #00b894 의료청록)와 결합. Dead Cells 픽셀아트 + The Last Stand: Dead Zone 좀비 서바이벌 톤을 레퍼런스로 — **좀비 포스트아포칼립스에서는 desaturated 갈회색 기반 + 녹색(좀비)/적색(위험)/청록(치유) 강조 포인트가 핵심.**
+- **[Cycle 41]** 방어물(barricade/turret)과 자원(scrap/ammo) 에셋이 별도 생성 — TD 장르에서 배치 가능 유닛과 수집 자원을 시각적으로 명확하게 구분. 기존 사이클의 "powerup 1종"에서 "방어물 2종+자원 2종=4종"으로 확대. **TD/전략 장르에서는 배치 유닛(defense-*)+자원(item-*) 세분화가 전략적 깊이를 시각적으로 전달.**

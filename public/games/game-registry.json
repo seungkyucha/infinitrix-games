@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-25T07:58:12.847Z",
-  "totalGames": 37,
+  "lastUpdated": "2026-03-25T12:12:43.758Z",
+  "totalGames": 38,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -6923,6 +6923,202 @@
             "Clique: Colocar cristal",
             "Clique direito/R: Girar cristal",
             "Toque: Colocar e girar cristais (mobile)",
+            "ESC: Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ashen-stronghold",
+      "title": "잿빛 요새",
+      "description": "폐허 요새를 재건하며 좀비 무리에 맞서는 서바이벌 TD!",
+      "genre": [
+        "action",
+        "strategy"
+      ],
+      "thumbnail": "/games/ashen-stronghold/assets/thumbnail.png",
+      "path": "/games/ashen-stronghold/index.html",
+      "addedAt": "2026-03-25T12:12:43.758Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "액션",
+        "전략",
+        "타워디펜스",
+        "좀비",
+        "서바이벌",
+        "로그라이트",
+        "포스트아포칼립스"
+      ],
+      "controls": [
+        "클릭: 유닛/포탑 배치",
+        "드래그: 맵 탐색",
+        "우클릭/R: 배치 취소",
+        "터치: 배치 및 탐색 (모바일)",
+        "ESC: 일시정지"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Ashen Stronghold",
+          "description": "Rebuild a ruined fortress and defend against zombie hordes!",
+          "tags": [
+            "action",
+            "strategy",
+            "tower defense",
+            "zombie",
+            "survival",
+            "roguelite",
+            "post-apocalypse"
+          ],
+          "controls": [
+            "Click: Place unit/turret",
+            "Drag: Explore map",
+            "Right-click/R: Cancel placement",
+            "Touch: Place and explore (mobile)",
+            "ESC: Pause"
+          ]
+        },
+        "ja": {
+          "title": "灰の要塞",
+          "description": "廃墟の要塞を再建し、ゾンビの大群に立ち向かえ！",
+          "tags": [
+            "アクション",
+            "ストラテジー",
+            "タワーディフェンス",
+            "ゾンビ",
+            "サバイバル",
+            "ローグライト",
+            "ポストアポカリプス"
+          ],
+          "controls": [
+            "クリック: ユニット/タレット配置",
+            "ドラッグ: マップ探索",
+            "右クリック/R: 配置キャンセル",
+            "タッチ: 配置と探索（モバイル）",
+            "ESC: ポーズ"
+          ]
+        },
+        "zh-CN": {
+          "title": "灰烬要塞",
+          "description": "重建废墟要塞，抵御僵尸大军的进攻！",
+          "tags": [
+            "动作",
+            "策略",
+            "塔防",
+            "僵尸",
+            "生存",
+            "肉鸽",
+            "末日废土"
+          ],
+          "controls": [
+            "点击：放置单位/炮塔",
+            "拖拽：探索地图",
+            "右键/R：取消放置",
+            "触摸：放置和探索（移动端）",
+            "ESC：暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "灰燼要塞",
+          "description": "重建廢墟要塞，抵禦殭屍大軍的進攻！",
+          "tags": [
+            "動作",
+            "策略",
+            "塔防",
+            "殭屍",
+            "生存",
+            "肉鴿",
+            "末日廢土"
+          ],
+          "controls": [
+            "點擊：放置單位/砲塔",
+            "拖曳：探索地圖",
+            "右鍵/R：取消放置",
+            "觸控：放置和探索（行動裝置）",
+            "ESC：暫停"
+          ]
+        },
+        "es": {
+          "title": "Fortaleza de Cenizas",
+          "description": "¡Reconstruye una fortaleza en ruinas y defiéndete de hordas zombis!",
+          "tags": [
+            "acción",
+            "estrategia",
+            "defensa de torres",
+            "zombis",
+            "supervivencia",
+            "roguelite",
+            "postapocalíptico"
+          ],
+          "controls": [
+            "Clic: Colocar unidad/torreta",
+            "Arrastrar: Explorar mapa",
+            "Clic derecho/R: Cancelar colocación",
+            "Toque: Colocar y explorar (móvil)",
+            "ESC: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Forteresse de Cendres",
+          "description": "Reconstruisez une forteresse en ruines et repoussez les hordes de zombies !",
+          "tags": [
+            "action",
+            "stratégie",
+            "tower defense",
+            "zombie",
+            "survie",
+            "roguelite",
+            "post-apocalyptique"
+          ],
+          "controls": [
+            "Clic : Placer unité/tourelle",
+            "Glisser : Explorer la carte",
+            "Clic droit/R : Annuler le placement",
+            "Toucher : Placer et explorer (mobile)",
+            "ESC : Pause"
+          ]
+        },
+        "de": {
+          "title": "Aschefestung",
+          "description": "Baue eine zerstörte Festung wieder auf und wehre Zombiehorden ab!",
+          "tags": [
+            "Action",
+            "Strategie",
+            "Tower Defense",
+            "Zombie",
+            "Überleben",
+            "Roguelite",
+            "Postapokalypse"
+          ],
+          "controls": [
+            "Klick: Einheit/Geschütz platzieren",
+            "Ziehen: Karte erkunden",
+            "Rechtsklick/R: Platzierung abbrechen",
+            "Touch: Platzieren und erkunden (Mobil)",
+            "ESC: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Fortaleza de Cinzas",
+          "description": "Reconstrua uma fortaleza em ruínas e defenda-se das hordas de zumbis!",
+          "tags": [
+            "ação",
+            "estratégia",
+            "tower defense",
+            "zumbi",
+            "sobrevivência",
+            "roguelite",
+            "pós-apocalíptico"
+          ],
+          "controls": [
+            "Clique: Colocar unidade/torreta",
+            "Arrastar: Explorar mapa",
+            "Clique direito/R: Cancelar colocação",
+            "Toque: Colocar e explorar (mobile)",
             "ESC: Pausa"
           ]
         }

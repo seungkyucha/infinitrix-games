@@ -1,0 +1,3846 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>잿빛 요새 — Ashen Stronghold</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// R1 CONFIG — 상수, 밸런스 수치, 다국어, INIT_EMPTY
+// ═══════════════════════════════════════════════════════════
+
+const GAME_ID = 'ashen-stronghold';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil } = IX;
+const FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
+const MIN_TOUCH_TARGET = 48;
+
+// 다국어 (F20)
+const L = {
+  ko: {
+    title: '잿빛 요새', subtitle: '서바이벌 타워디펜스 로그라이트',
+    start: '생존 시작', tapToStart: '스페이스 / 탭으로 시작',
+    day: '주간 탐색', night: '야간 방어', prep: '방어 준비',
+    wave: '웨이브', boss: '보스', zone: '구역',
+    gameover: '요새 함락', score: '점수', best: '최고 점수',
+    scrap: '고철', food: '식량', ammo: '탄약',
+    core_hp: '코어', place_blocked: '경로 차단!',
+    upgrade: '업그레이드', defense: '방어', attack: '공격', explore: '탐색',
+    relic_choose: '유물 선택', survivor_found: '생존자 발견!',
+    zone_clear: '구역 클리어!', new_best: '신기록!',
+    restart: 'R / 탭으로 재시작', selectZone: '구역 선택',
+    night_coming: '밤이 온다!', barricade: '바리케이드', turretMG: '기관총',
+    turretFire: '화염 포탑', empTrap: 'EMP', mine: '지뢰',
+    warrior: '전사', gunner: '사수', engineer: '기술자', medic: '의무관',
+    stars: '별', cost: '비용', level: 'Lv',
+    boss1: '스포어 타이탄', boss2: '아이언 리퍼', boss3: '패이션트 제로',
+    zone1: '폐시가지', zone2: '산업단지', zone3: '병원',
+    phase1: '페이즈 1', phase2: '페이즈 2', phase3: '페이즈 3',
+    paused: '일시정지', resume: '계속', quit: '포기',
+    relicNormal: '일반', relicRare: '희귀', relicEpic: '에픽',
+    dayTime: '탐색 시간', prepTime: '준비 시간',
+    survivorSlot: '서바이버', noPath: '좀비 경로 없음!',
+    bossWeakness: '약점', fire: '화염', emp: '전기', heal: '치유 역전',
+    victory: '승리!', allClear: '모든 구역 클리어!',
+    narrativeZ1: '여기서 시작하자. 식량과 자재가 필요해.',
+    narrativeZ2: '공장에 발전기가 남아있을지도 몰라.',
+    narrativeZ3: '의약품... 그리고 뭔가 더 있다.',
+    tooltipBarricade: '좀비 감속 50%',
+    tooltipTurretMG: 'DPS 15, 사거리 3',
+    tooltipTurretFire: 'DPS 20(범위), 사거리 2',
+    tooltipEMP: '범위 기절 3초',
+    tooltipMine: '접촉 50 데미지',
+  },
+  en: {
+    title: 'Ashen Stronghold', subtitle: 'Survival Tower Defense Roguelite',
+    start: 'Start Survival', tapToStart: 'SPACE / TAP to Start',
+    day: 'Day Exploration', night: 'Night Defense', prep: 'Prepare Defenses',
+    wave: 'Wave', boss: 'Boss', zone: 'Zone',
+    gameover: 'Stronghold Fallen', score: 'Score', best: 'Best Score',
+    scrap: 'Scrap', food: 'Food', ammo: 'Ammo',
+    core_hp: 'Core', place_blocked: 'Path Blocked!',
+    upgrade: 'Upgrade', defense: 'Defense', attack: 'Attack', explore: 'Explore',
+    relic_choose: 'Choose Relic', survivor_found: 'Survivor Found!',
+    zone_clear: 'Zone Clear!', new_best: 'New Record!',
+    restart: 'R / TAP to Restart', selectZone: 'Select Zone',
+    night_coming: 'Night is coming!', barricade: 'Barricade', turretMG: 'Machine Gun',
+    turretFire: 'Flame Turret', empTrap: 'EMP', mine: 'Mine',
+    warrior: 'Warrior', gunner: 'Gunner', engineer: 'Engineer', medic: 'Medic',
+    stars: 'Stars', cost: 'Cost', level: 'Lv',
+    boss1: 'Spore Titan', boss2: 'Iron Reaper', boss3: 'Patient Zero',
+    zone1: 'Ruined City', zone2: 'Industrial Zone', zone3: 'Hospital',
+    phase1: 'Phase 1', phase2: 'Phase 2', phase3: 'Phase 3',
+    paused: 'Paused', resume: 'Resume', quit: 'Quit',
+    relicNormal: 'Normal', relicRare: 'Rare', relicEpic: 'Epic',
+    dayTime: 'Explore Time', prepTime: 'Prep Time',
+    survivorSlot: 'Survivor', noPath: 'Zombie path blocked!',
+    bossWeakness: 'Weakness', fire: 'Fire', emp: 'Electric', heal: 'Heal Reversal',
+    victory: 'Victory!', allClear: 'All Zones Cleared!',
+    narrativeZ1: 'Let\'s start here. We need food and materials.',
+    narrativeZ2: 'There might be a generator left in the factory.',
+    narrativeZ3: 'Medicine... and something more.',
+    tooltipBarricade: 'Slow zombies 50%',
+    tooltipTurretMG: 'DPS 15, Range 3',
+    tooltipTurretFire: 'DPS 20(AoE), Range 2',
+    tooltipEMP: 'AoE Stun 3s',
+    tooltipMine: 'Contact 50 DMG',
+  }
+};
+let lang = 'ko';
+function t(key) { return (L[lang] && L[lang][key]) || (L.ko[key]) || key; }
+
+// SeededRNG (F18 — Math.random 0건)
+class SeededRNG {
+  constructor(seed) { this.s = seed || 1; }
+  next() { this.s = (this.s * 16807 + 0) % 2147483647; return (this.s - 1) / 2147483646; }
+  range(min, max) { return min + this.next() * (max - min); }
+  int(min, max) { return Math.floor(this.range(min, max + 1)); }
+  pick(arr) { return arr[this.int(0, arr.length - 1)]; }
+  shuffle(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = this.int(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  chance(p) { return this.next() < p; }
+}
+
+// 상태 (7개)
+const ST = {
+  TITLE: 'TITLE', MAP: 'MAP', DAY_EXPLORE: 'DAY_EXPLORE',
+  NIGHT_PREP: 'NIGHT_PREP', NIGHT_WAVE: 'NIGHT_WAVE',
+  BOSS_NIGHT: 'BOSS_NIGHT', GAMEOVER: 'GAMEOVER'
+};
+
+// 전환 테이블 (F6, F21)
+const TRANSITION_TABLE = {
+  [ST.TITLE]:       { [ST.MAP]: true },
+  [ST.MAP]:         { [ST.DAY_EXPLORE]: true, [ST.TITLE]: true },
+  [ST.DAY_EXPLORE]: { [ST.NIGHT_PREP]: true, [ST.GAMEOVER]: true },
+  [ST.NIGHT_PREP]:  { [ST.NIGHT_WAVE]: true, [ST.BOSS_NIGHT]: true },
+  [ST.NIGHT_WAVE]:  { [ST.NIGHT_PREP]: true, [ST.BOSS_NIGHT]: true, [ST.GAMEOVER]: true, [ST.MAP]: true },
+  [ST.BOSS_NIGHT]:  { [ST.MAP]: true, [ST.GAMEOVER]: true },
+  [ST.GAMEOVER]:    { [ST.TITLE]: true },
+};
+
+// 밸런스 상수 (§14.1 수치 정합성)
+const CORE_BASE_HP = 100;
+const BARRICADE_HP = 50;
+const TURRET_MG_DPS = 15;
+const TURRET_FIRE_DPS = 20;
+const DAY_DURATION = 60;
+const PREP_DURATION = 30;
+const WAVE_DURATION = 90;
+const DPS_CAP_MULT = 2.0;
+const SYNERGY_CAP_MULT = 1.5;
+
+const ZOMBIE_BASE_HP = [20, 30, 40];
+const ZOMBIE_BASE_COUNT = [8, 14, 20];
+const ZOMBIE_NIGHT_SCALE = [4, 4, 5];
+const BOSS_HP = [300, 500, 400];
+const BOSS_NAMES = ['boss1', 'boss2', 'boss3'];
+const ZONE_NAMES = ['zone1', 'zone2', 'zone3'];
+const ZONE_NARRATIVES = ['narrativeZ1', 'narrativeZ2', 'narrativeZ3'];
+const BOSS_WEAKNESSES = ['fire', 'emp', 'heal'];
+
+// 방어물 데이터
+const DEF_TYPES = {
+  barricade:  { cost: 10, hp: BARRICADE_HP, key: 'barricade', tooltipKey: 'tooltipBarricade', color: '#8B7355' },
+  turretMG:   { cost: 30, hp: 30, dps: TURRET_MG_DPS, range: 3, key: 'turretMG', tooltipKey: 'tooltipTurretMG', color: '#556B2F' },
+  turretFire: { cost: 40, hp: 25, dps: TURRET_FIRE_DPS, range: 2, key: 'turretFire', tooltipKey: 'tooltipTurretFire', color: '#e74c3c' },
+  empTrap:    { cost: 25, hp: 1, single: true, key: 'empTrap', tooltipKey: 'tooltipEMP', color: '#00d4ff' },
+  mine:       { cost: 15, hp: 1, single: true, dmg: 50, key: 'mine', tooltipKey: 'tooltipMine', color: '#ffd700' },
+};
+const DEF_ORDER = ['barricade', 'turretMG', 'turretFire', 'empTrap', 'mine'];
+
+// 서바이버 데이터
+const SURV_TYPES = {
+  warrior:  { hp: 80, atk: 8, range: 1.2, speed: 60, key: 'warrior', color: '#e74c3c' },
+  gunner:   { hp: 50, atk: 12, range: 4, speed: 40, key: 'gunner', color: '#f39c12' },
+  engineer: { hp: 60, atk: 5, range: 2, speed: 50, key: 'engineer', color: '#e67e22' },
+  medic:    { hp: 40, atk: 3, range: 3, speed: 45, key: 'medic', color: '#00b894', heals: true },
+};
+const SURV_ORDER = ['warrior', 'gunner', 'engineer', 'medic'];
+
+// 업그레이드 트리 (§7.3)
+const UPGRADE_TREE = {
+  defense: [
+    { cost: 1, desc: 'Barricade HP +20%' },
+    { cost: 2, desc: 'Core HP +25' },
+    { cost: 3, desc: 'Repair barricades' },
+    { cost: 4, desc: '2nd barricade layer' },
+    { cost: 5, desc: 'Core regen 2/s' },
+  ],
+  attack: [
+    { cost: 1, desc: 'Shoot DMG +15%' },
+    { cost: 2, desc: 'Turret range +1' },
+    { cost: 3, desc: 'Piercing rounds' },
+    { cost: 4, desc: 'Fire/EMP turret unlock' },
+    { cost: 5, desc: 'Critical 20%' },
+  ],
+  explore: [
+    { cost: 1, desc: 'Explore time +10s' },
+    { cost: 2, desc: 'Radar range up' },
+    { cost: 3, desc: 'Survivor find +20%' },
+    { cost: 4, desc: 'Boss weakness hint' },
+    { cost: 5, desc: 'Hidden stage access' },
+  ],
+};
+
+// 유물 풀 (§7.4)
+const RELICS = [
+  // 일반(grey)
+  { id: 'r1', name: '녹슨 탄피', nameEn: 'Rusty Shell', tier: 0, stat: 'atkSpeed', val: 0.05 },
+  { id: 'r2', name: '임시 갑옷판', nameEn: 'Scrap Plate', tier: 0, stat: 'coreArmor', val: 0.05 },
+  { id: 'r3', name: '응급 키트', nameEn: 'First Aid', tier: 0, stat: 'survHp', val: 0.10 },
+  { id: 'r4', name: '탄약 벨트', nameEn: 'Ammo Belt', tier: 0, stat: 'maxAmmo', val: 0.10 },
+  { id: 'r5', name: '강화 볼트', nameEn: 'Reinforced Bolt', tier: 0, stat: 'barricadeHp', val: 0.10 },
+  { id: 'r6', name: '망원 조준경', nameEn: 'Long Scope', tier: 0, stat: 'range', val: 0.05 },
+  // 희귀(blue)
+  { id: 'r7', name: '군용 야시경', nameEn: 'Night Vision', tier: 1, stat: 'sightRange', val: 0.20 },
+  { id: 'r8', name: '튜닝된 발전기', nameEn: 'Tuned Generator', tier: 1, stat: 'turretDps', val: 0.15 },
+  { id: 'r9', name: '의료 보급품', nameEn: 'Med Supplies', tier: 1, stat: 'healRate', val: 0.20 },
+  { id: 'r10', name: '고급 공구', nameEn: 'Pro Tools', tier: 1, stat: 'buildDiscount', val: 0.15 },
+  // 에픽(purple)
+  { id: 'r11', name: '실험체 혈청', nameEn: 'Experiment Serum', tier: 2, stat: 'survAtk', val: 0.30 },
+  { id: 'r12', name: '핵 배터리', nameEn: 'Nuclear Battery', tier: 2, stat: 'turretDps', val: 0.35 },
+  { id: 'r13', name: '나노 수리봇', nameEn: 'Nano Repair Bot', tier: 2, stat: 'autoRepair', val: 0.40 },
+];
+
+// DDA (§9.1)
+const DDA_LEVELS = [
+  { hpMult: 1, spdMult: 1, countMult: 1, resMult: 1 },
+  { hpMult: 0.85, spdMult: 0.90, countMult: 1, resMult: 1 },
+  { hpMult: 0.75, spdMult: 0.80, countMult: 1, resMult: 1.20 },
+  { hpMult: 0.70, spdMult: 0.80, countMult: 0.70, resMult: 1.30 },
+];
+
+// 색상 팔레트 (§4.2)
+const COL = {
+  bgNight: '#1a1a2e', bgDay: '#4a4238', frame: '#5c6b73',
+  zombie: '#4a7c59', fire: '#e74c3c', gold: '#f39c12',
+  heal: '#00b894', text: '#ecf0f1', accent: '#e67e22',
+  purple: '#6c3cf7', cyan: '#00d4ff', dark: '#0a0a1a',
+  barricade: '#8B7355', turret: '#556B2F',
+  uiBg: 'rgba(10,10,26,0.85)', uiBorder: '#1e1e30',
+};
+
+// 그리드 (12×8 for explore, 4-dir defense layout for night)
+const GRID_COLS = 12;
+const GRID_ROWS = 8;
+const DEFENSE_GRID = 8; // 8×8 defense grid around core
+const DIRS_4 = [{dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0}];
+
+// ═══════════════════════════════════════════════════════════
+// INIT_EMPTY — 전역 게임 상태 (F12, F23)
+// ═══════════════════════════════════════════════════════════
+const G = {
+  state: ST.TITLE, _transitioning: false, _ready: false,
+  fadeAlpha: 0, shakeIntensity: 0,
+  score: 0, bestScore: 0, totalKills: 0,
+  zone: 0, nightNum: 0, waveNum: 0,
+  dayTimer: 0, prepTimer: 0, waveTimer: 0,
+  scrap: 30, food: 20, ammo: 30,
+  stars: 0,
+  core: { hp: CORE_BASE_HP, maxHp: CORE_BASE_HP },
+  player: { x: 0, y: 0, facing: 0, hp: 100, maxHp: 100, shootCd: 0, reloading: false, reloadTimer: 0, ammoClip: 10, maxClip: 10, speed: 120 },
+  zombies: [], projectiles: [], effects: [],
+  survivors: [], barricades: [], turrets: [], traps: [],
+  defenseGrid: null,
+  exploreGrid: null, exploreItems: [], exploreSurvivors: [],
+  camera: { x: 0, y: 0, zoom: 1, targetX: 0, targetY: 0 },
+  dda: { level: 0, consecutiveClears: 0, consecutiveFails: 0 },
+  upgrades: { defense: 0, attack: 0, explore: 0 },
+  relics: [],
+  bossesDefeated: [false, false, false],
+  zonesCleared: [false, false, false],
+  boss: null, bossRewardGiven: false,
+  spawnQueue: [], spawnTimer: 0, spawnInterval: 3,
+  waveClearing: false,
+  relicChoices: null, showRelicUI: false,
+  showUpgradeUI: false, showPauseUI: false,
+  subState: 'NONE', // for sub-states within main states
+  modal: null, // {type, data}
+  narrative: null, narrativeTimer: 0,
+  dayNightLerp: 0, // 0=night, 1=day
+  rng: new SeededRNG(42),
+  animTime: 0,
+  titleAnimT: 0,
+  joystick: { active: false, startX: 0, startY: 0, dx: 0, dy: 0, touchId: -1 },
+  touchButtons: [],
+  selectedDef: 0, selectedSurv: -1,
+  placementPreview: null,
+  minimap: false,
+  inputMode: 'menu', // menu|map|game|place|modal
+  playCount: 0,
+  langToggle: false,
+  screenW: 0, screenH: 0,
+  cellSize: 48,
+  gridOffX: 0, gridOffY: 0,
+};
+
+// ═══════════════════════════════════════════════════════════
+// R2 ENGINE — Canvas, Input, 리사이즈
+// ═══════════════════════════════════════════════════════════
+
+let engine, input, sound, tween, particles, assets;
+
+// onResize — TDZ 방어: engine 직접 참조 금지, 파라미터만 사용 (F23, F27)
+function onResize(w, h) {
+  if (!G._ready) return;
+  G.screenW = w;
+  G.screenH = h;
+  recalcLayout(w, h);
+}
+
+function recalcLayout(w, h) {
+  const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(w / (DEFENSE_GRID + 4), h / (DEFENSE_GRID + 6))));
+  G.cellSize = cs;
+  G.gridOffX = Math.floor((w - DEFENSE_GRID * cs) / 2);
+  G.gridOffY = Math.floor((h - DEFENSE_GRID * cs) / 2) + 20;
+}
+
+// ═══════════════════════════════════════════════════════════
+// R3 AUDIO — Web Audio API BGM + SFX 10종+ (F19)
+// ═══════════════════════════════════════════════════════════
+
+// BGM 시스템 — lookahead 스케줄링 (Cycle 38 패턴)
+let audioCtx = null;
+let bgmState = { playing: false, type: '', nodes: [], nextNoteTime: 0, tempo: 120, noteIndex: 0 };
+
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) {}
+}
+
+function playTone(freq, dur, type, vol, startTime) {
+  if (!audioCtx) return;
+  try {
+    const t0 = startTime || audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime((vol || 0.15) * 0.3, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+    if (bgmState.nodes.length > 64) bgmState.nodes.splice(0, 32);
+    bgmState.nodes.push(osc);
+  } catch(e) {}
+}
+
+// BGM 패턴 데이터 (음계 기반 프로시저럴)
+const BGM_PATTERNS = {
+  title:  { bpm: 60, notes: [220, 0, 165, 0, 220, 262, 0, 196], type: 'sine', vol: 0.08 },
+  day:    { bpm: 90, notes: [330, 0, 392, 330, 0, 294, 330, 0, 262, 0, 294, 330, 392, 0, 440, 0], type: 'triangle', vol: 0.06 },
+  prep:   { bpm: 120, notes: [440, 440, 0, 440, 440, 0, 523, 0, 440, 440, 0, 440, 523, 0, 587, 0], type: 'square', vol: 0.05 },
+  night:  { bpm: 140, notes: [196, 233, 262, 196, 0, 233, 262, 294, 196, 0, 294, 262, 233, 196, 0, 0], type: 'sawtooth', vol: 0.06 },
+  boss:   { bpm: 150, notes: [131, 0, 156, 131, 196, 0, 131, 156, 0, 196, 233, 0, 196, 156, 131, 0], type: 'sawtooth', vol: 0.08 },
+};
+
+function startBGM(name) {
+  if (!audioCtx) return;
+  if (bgmState.type === name && bgmState.playing) return;
+  stopBGM();
+  const pat = BGM_PATTERNS[name];
+  if (!pat) return;
+  bgmState.playing = true;
+  bgmState.type = name;
+  bgmState.tempo = pat.bpm;
+  bgmState.noteIndex = 0;
+  bgmState.nextNoteTime = audioCtx.currentTime + 0.1;
+}
+
+function stopBGM() {
+  bgmState.playing = false;
+  bgmState.type = '';
+  bgmState.nodes = [];
+}
+
+function scheduleBGMNotes() {
+  if (!audioCtx || !bgmState.playing) return;
+  const pat = BGM_PATTERNS[bgmState.type];
+  if (!pat) return;
+  const lookahead = 2.0;
+  while (bgmState.nextNoteTime < audioCtx.currentTime + lookahead) {
+    const note = pat.notes[bgmState.noteIndex % pat.notes.length];
+    const dur = 60 / pat.bpm;
+    if (note > 0) playTone(note, dur * 0.8, pat.type, pat.vol, bgmState.nextNoteTime);
+    bgmState.nextNoteTime += dur;
+    bgmState.noteIndex++;
+  }
+}
+
+// SFX 10종 (§12)
+function sfx(name) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  switch (name) {
+    case 'shoot': playTone(880, 0.05, 'square', 0.2); playTone(660, 0.03, 'square', 0.15); break;
+    case 'reload': playTone(440, 0.08, 'triangle', 0.1); playTone(550, 0.06, 'triangle', 0.1); break;
+    case 'zombie_hit': playTone(150, 0.1, 'sawtooth', 0.25); break;
+    case 'zombie_death': playTone(100, 0.2, 'sawtooth', 0.2); playTone(60, 0.3, 'sawtooth', 0.15); break;
+    case 'build': playTone(300, 0.05, 'square', 0.1); playTone(400, 0.05, 'square', 0.1); playTone(500, 0.05, 'square', 0.1); break;
+    case 'explosion': playTone(60, 0.4, 'sawtooth', 0.35); playTone(40, 0.5, 'sawtooth', 0.2); break;
+    case 'alert': playTone(800, 0.15, 'square', 0.2); playTone(600, 0.15, 'square', 0.2); break;
+    case 'pickup': playTone(700, 0.05, 'sine', 0.15); playTone(900, 0.08, 'sine', 0.12); break;
+    case 'heal': playTone(523, 0.1, 'sine', 0.1); playTone(659, 0.12, 'sine', 0.1); playTone(784, 0.15, 'sine', 0.08); break;
+    case 'gameover': playTone(220, 0.5, 'sawtooth', 0.2); playTone(110, 0.8, 'sawtooth', 0.15); break;
+    case 'select': playTone(660, 0.06, 'square', 0.12); playTone(880, 0.08, 'square', 0.1); break;
+    case 'boss_intro': playTone(110, 0.3, 'sawtooth', 0.3); playTone(130, 0.5, 'sawtooth', 0.25); playTone(87, 0.8, 'sawtooth', 0.2); break;
+    case 'score': playTone(523, 0.04, 'square', 0.1); playTone(659, 0.06, 'square', 0.1); playTone(784, 0.08, 'square', 0.08); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// R4 ENTITIES — Player, Zombie, Survivor, Turret, Barricade, Projectile
+// ═══════════════════════════════════════════════════════════
+
+// 플레이어 생성
+function resetPlayer() {
+  const p = G.player;
+  p.x = G.screenW / 2; p.y = G.screenH / 2;
+  p.hp = p.maxHp; p.facing = 0; p.shootCd = 0;
+  p.reloading = false; p.reloadTimer = 0;
+  p.ammoClip = p.maxClip;
+}
+
+// 좀비 생성
+function createZombie(x, y, type, zone) {
+  const ddaMult = DDA_LEVELS[G.dda.level];
+  let hp, speed, dmg, size, score;
+  switch (type) {
+    case 'hulk':
+      hp = (ZOMBIE_BASE_HP[zone] || 20) * 2.5; speed = 25; dmg = 8; size = 40; score = 30; break;
+    case 'spitter':
+      hp = (ZOMBIE_BASE_HP[zone] || 20) * 1.2; speed = 35; dmg = 4; size = 28; score = 20; break;
+    default:
+      hp = ZOMBIE_BASE_HP[zone] || 20; speed = 40; dmg = 5; size = 30; score = 10;
+  }
+  hp *= ddaMult.hpMult * (1 + G.nightNum * 0.15);
+  speed *= ddaMult.spdMult;
+  return {
+    x, y, type: type || 'basic', hp, maxHp: hp,
+    speed, dmg, size, score, facing: 0,
+    stunTimer: 0, pathIndex: 0, path: null,
+    animFrame: 0, animTimer: 0, alive: true,
+  };
+}
+
+// 서바이버 생성
+function createSurvivor(type) {
+  const def = SURV_TYPES[type];
+  if (!def) return null;
+  let hp = def.hp;
+  // 업그레이드/유물 적용
+  const survHpBonus = getRelicBonus('survHp');
+  hp *= (1 + survHpBonus);
+  return {
+    type, x: 0, y: 0, hp, maxHp: hp,
+    atk: def.atk * (1 + getRelicBonus('survAtk')),
+    range: def.range, speed: def.speed,
+    cooldown: 0, target: null, placed: false,
+    heals: !!def.heals, alive: true,
+  };
+}
+
+// 바리케이드 생성
+function createBarricade(gx, gy) {
+  let hp = BARRICADE_HP;
+  if (G.upgrades.defense >= 1) hp *= 1.2;
+  hp *= (1 + getRelicBonus('barricadeHp'));
+  return { gx, gy, hp, maxHp: hp, type: 'barricade' };
+}
+
+// 포탑 생성
+function createTurret(gx, gy, turretType) {
+  const def = DEF_TYPES[turretType];
+  let dps = def.dps || 0;
+  let range = def.range || 2;
+  dps *= (1 + getRelicBonus('turretDps'));
+  if (G.upgrades.attack >= 2) range += 1;
+  // DPS 캡 (F30)
+  const baseDps = DEF_TYPES[turretType].dps || 0;
+  if (baseDps > 0 && dps > baseDps * DPS_CAP_MULT) dps = baseDps * DPS_CAP_MULT;
+  return { gx, gy, type: turretType, hp: def.hp, maxHp: def.hp, dps, range, cooldown: 0, angle: 0, target: null };
+}
+
+// 트랩 생성
+function createTrap(gx, gy, trapType) {
+  const def = DEF_TYPES[trapType];
+  return { gx, gy, type: trapType, triggered: false, dmg: def.dmg || 0 };
+}
+
+// 투사체 생성
+function createProjectile(x, y, angle, speed, dmg, type) {
+  return { x, y, angle, speed: speed || 400, dmg, type: type || 'bullet', life: 2.0, piercing: G.upgrades.attack >= 3, hitCount: 0, maxHits: G.upgrades.attack >= 3 ? 3 : 1 };
+}
+
+// ═══════════════════════════════════════════════════════════
+// R5 AI — 좀비 BFS 경로, 서바이버 AI, 보스 패턴
+// ═══════════════════════════════════════════════════════════
+
+// BFS 경로 탐색 (F29)
+function gridKey(gx, gy) { return gx + ',' + gy; }
+
+function bfsPath(grid, start, goal, gridW, gridH) {
+  const queue = [{ x: start.x, y: start.y, path: [{ x: start.x, y: start.y }] }];
+  const visited = new Set([gridKey(start.x, start.y)]);
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    if (curr.x === goal.x && curr.y === goal.y) return curr.path;
+    for (const d of DIRS_4) {
+      const nx = curr.x + d.dx, ny = curr.y + d.dy;
+      const k = gridKey(nx, ny);
+      if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH && !visited.has(k) && grid[ny][nx] !== 1) {
+        visited.add(k);
+        queue.push({ x: nx, y: ny, path: [...curr.path, { x: nx, y: ny }] });
+      }
+    }
+  }
+  return null;
+}
+
+function bfsPathExists(grid, start, goal, gridW, gridH) {
+  const queue = [start];
+  const visited = new Set([gridKey(start.x, start.y)]);
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    if (curr.x === goal.x && curr.y === goal.y) return true;
+    for (const d of DIRS_4) {
+      const nx = curr.x + d.dx, ny = curr.y + d.dy;
+      const k = gridKey(nx, ny);
+      if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH && !visited.has(k) && grid[ny][nx] !== 1) {
+        visited.add(k);
+        queue.push({ x: nx, y: ny });
+      }
+    }
+  }
+  return false;
+}
+
+// 방어 그리드 초기화 (8×8, 중앙이 코어)
+function initDefenseGrid() {
+  const g = [];
+  for (let y = 0; y < DEFENSE_GRID; y++) {
+    g[y] = [];
+    for (let x = 0; x < DEFENSE_GRID; x++) g[y][x] = 0;
+  }
+  // 코어 위치: 중앙 2×2
+  const cx = Math.floor(DEFENSE_GRID / 2) - 1;
+  const cy = Math.floor(DEFENSE_GRID / 2) - 1;
+  g[cy][cx] = 2; g[cy][cx + 1] = 2;
+  g[cy + 1][cx] = 2; g[cy + 1][cx + 1] = 2;
+  G.defenseGrid = g;
+}
+
+// 스폰 포인트 (4방향)
+function getSpawnPoints() {
+  const mid = Math.floor(DEFENSE_GRID / 2);
+  return [
+    { x: mid, y: 0, dir: 'N' },           // top
+    { x: mid, y: DEFENSE_GRID - 1, dir: 'S' }, // bottom
+    { x: 0, y: mid, dir: 'W' },           // left
+    { x: DEFENSE_GRID - 1, y: mid, dir: 'E' }, // right
+  ];
+}
+
+function getCorePos() {
+  return { x: Math.floor(DEFENSE_GRID / 2), y: Math.floor(DEFENSE_GRID / 2) };
+}
+
+// 좀비 AI — BFS 기반 이동
+function updateZombieAI(z, dt) {
+  if (z.stunTimer > 0) { z.stunTimer -= dt / 1000; return; }
+  if (!z.path || z.pathIndex >= z.path.length) {
+    // 재계산 경로
+    const cs = G.cellSize;
+    const gx = Math.floor((z.x - G.gridOffX) / cs);
+    const gy = Math.floor((z.y - G.gridOffY) / cs);
+    const goal = getCorePos();
+    const clamped = { x: MathUtil.clamp(gx, 0, DEFENSE_GRID - 1), y: MathUtil.clamp(gy, 0, DEFENSE_GRID - 1) };
+    z.path = bfsPath(G.defenseGrid, clamped, goal, DEFENSE_GRID, DEFENSE_GRID);
+    z.pathIndex = 0;
+    if (!z.path) {
+      // 직선 이동 폴백
+      const coreX = G.gridOffX + goal.x * cs + cs / 2;
+      const coreY = G.gridOffY + goal.y * cs + cs / 2;
+      const ang = MathUtil.angle(z.x, z.y, coreX, coreY);
+      z.x += Math.cos(ang) * z.speed * dt / 1000;
+      z.y += Math.sin(ang) * z.speed * dt / 1000;
+      return;
+    }
+  }
+  if (z.path && z.pathIndex < z.path.length) {
+    const cs = G.cellSize;
+    const target = z.path[z.pathIndex];
+    const tx = G.gridOffX + target.x * cs + cs / 2;
+    const ty = G.gridOffY + target.y * cs + cs / 2;
+    const dist = MathUtil.dist(z.x, z.y, tx, ty);
+    if (dist < 5) {
+      z.pathIndex++;
+    } else {
+      const ang = MathUtil.angle(z.x, z.y, tx, ty);
+      z.facing = ang;
+      let spd = z.speed;
+      // 바리케이드 감속
+      const gx = Math.floor((z.x - G.gridOffX) / cs);
+      const gy = Math.floor((z.y - G.gridOffY) / cs);
+      if (gx >= 0 && gx < DEFENSE_GRID && gy >= 0 && gy < DEFENSE_GRID) {
+        for (const b of G.barricades) {
+          if (b.gx === gx && b.gy === gy && b.hp > 0) { spd *= 0.5; break; }
+        }
+      }
+      z.x += Math.cos(ang) * spd * dt / 1000;
+      z.y += Math.sin(ang) * spd * dt / 1000;
+    }
+  }
+  // 애니메이션 프레임
+  z.animTimer += dt;
+  if (z.animTimer > 200) { z.animFrame = (z.animFrame + 1) % 4; z.animTimer = 0; }
+}
+
+// 서바이버 AI
+function updateSurvivorAI(s, dt) {
+  if (!s.alive || !s.placed) return;
+  s.cooldown -= dt / 1000;
+  // 타겟 찾기
+  let closest = null, closestDist = Infinity;
+  const cs = G.cellSize;
+  const sx = G.gridOffX + s.gx * cs + cs / 2;
+  const sy = G.gridOffY + s.gy * cs + cs / 2;
+  if (s.heals) {
+    // 의무관: 가장 체력 낮은 서바이버 치유
+    for (const ally of G.survivors) {
+      if (!ally.alive || !ally.placed || ally === s) continue;
+      const d = MathUtil.dist(sx, sy, G.gridOffX + ally.gx * cs + cs / 2, G.gridOffY + ally.gy * cs + cs / 2);
+      if (d / cs <= s.range && ally.hp < ally.maxHp && (ally.maxHp - ally.hp) > (closest ? closest.maxHp - closest.hp : 0)) {
+        closest = ally;
+      }
+    }
+    if (closest && s.cooldown <= 0) {
+      closest.hp = Math.min(closest.maxHp, closest.hp + s.atk);
+      s.cooldown = 1.5;
+      sfx('heal');
+      const healX = G.gridOffX + closest.gx * cs + cs / 2;
+      const healY = G.gridOffY + closest.gy * cs + cs / 2;
+      particles.emit(healX, healY, 5, { color: COL.heal, speed: 40, life: 0.4, size: 3 });
+      // 치유 이펙트 PNG 오버레이
+      G.effects.push({ type: 'heal', x: healX, y: healY, timer: 0.4, maxTimer: 0.4 });
+    }
+  } else {
+    // 전투형: 가장 가까운 좀비 공격
+    for (const z of G.zombies) {
+      if (!z.alive) continue;
+      const d = MathUtil.dist(sx, sy, z.x, z.y);
+      if (d / cs <= s.range && d < closestDist) { closest = z; closestDist = d; }
+    }
+    // 보스도 타겟
+    if (G.boss && G.boss.alive) {
+      const bd = MathUtil.dist(sx, sy, G.boss.x, G.boss.y);
+      if (bd / cs <= s.range && bd < closestDist) { closest = G.boss; closestDist = bd; }
+    }
+    if (closest && s.cooldown <= 0) {
+      closest.hp -= s.atk;
+      s.cooldown = 1.0;
+      sfx('zombie_hit');
+      particles.emit(closest.x, closest.y, 3, { color: '#ff4444', speed: 60, life: 0.2 });
+    }
+  }
+}
+
+// 보스 데이터 배열 (Cycle 39 패턴: BOSS_DEFS)
+const BOSS_DEFS = [
+  { // 스포어 타이탄
+    name: 'boss1', asset: 'bossSporeTitan', weakness: 'fire',
+    phases: [
+      { hpPct: 1.0, action: 'sporeCloud', interval: 5, summonCount: 5 },
+      { hpPct: 0.66, action: 'sporeShield', shieldReduction: 0.5, counterType: 'turretFire', counterCount: 3 },
+      { hpPct: 0.33, action: 'enrage', speedMult: 2 },
+    ],
+  },
+  { // 아이언 리퍼
+    name: 'boss2', asset: 'bossIronReaper', weakness: 'emp',
+    phases: [
+      { hpPct: 1.0, action: 'charge', interval: 6, dmg: 30 },
+      { hpPct: 0.6, action: 'armor', armorReduction: 0.7, counterType: 'empTrap', counterCount: 3 },
+      { hpPct: 0.3, action: 'exposed' },
+    ],
+  },
+  { // 패이션트 제로
+    name: 'boss3', asset: 'bossPatientZero', weakness: 'heal',
+    phases: [
+      { hpPct: 1.0, action: 'virusAura', auraDmg: 5, auraRange: 3 },
+      { hpPct: 0.5, action: 'selfHeal', healRate: 10, counterType: 'medic' },
+      { hpPct: 0.25, action: 'frenzy' },
+    ],
+  },
+];
+
+function createBoss(zoneIndex) {
+  const def = BOSS_DEFS[zoneIndex];
+  const hp = BOSS_HP[zoneIndex];
+  const spawn = getSpawnPoints()[0]; // 상단에서 등장
+  const cs = G.cellSize;
+  return {
+    ...def,
+    x: G.gridOffX + spawn.x * cs + cs / 2,
+    y: G.gridOffY - 40,
+    hp, maxHp: hp,
+    currentPhase: 0, speed: 20, size: 60,
+    alive: true, actionTimer: 0,
+    shieldActive: false, armorActive: false,
+    empHits: 0, healReversed: false,
+    stunTimer: 0, animFrame: 0, animTimer: 0,
+    introTimer: 3.0, introActive: true,
+  };
+}
+
+function updateBossAI(boss, dt) {
+  if (!boss || !boss.alive) return;
+  const dtSec = dt / 1000;
+  // 인트로 연출
+  if (boss.introActive) {
+    boss.introTimer -= dtSec;
+    const cs = G.cellSize;
+    const targetY = G.gridOffY + cs;
+    boss.y = MathUtil.lerp(boss.y, targetY, 0.02);
+    if (boss.introTimer <= 0) boss.introActive = false;
+    return;
+  }
+  // 페이즈 결정
+  const hpPct = boss.hp / boss.maxHp;
+  let phase = 0;
+  for (let i = boss.phases.length - 1; i >= 0; i--) {
+    if (hpPct <= boss.phases[i].hpPct) phase = i;
+  }
+  boss.currentPhase = phase;
+  const pd = boss.phases[phase];
+  boss.actionTimer -= dtSec;
+  // 코어 접근
+  const cs = G.cellSize;
+  const coreX = G.gridOffX + getCorePos().x * cs + cs / 2;
+  const coreY = G.gridOffY + getCorePos().y * cs + cs / 2;
+  if (boss.stunTimer > 0) {
+    boss.stunTimer -= dtSec;
+  } else {
+    // 이동
+    let spd = boss.speed;
+    if (pd.action === 'enrage') spd *= pd.speedMult || 2;
+    const ang = MathUtil.angle(boss.x, boss.y, coreX, coreY);
+    const dist = MathUtil.dist(boss.x, boss.y, coreX, coreY);
+    if (dist > cs * 1.5) {
+      boss.x += Math.cos(ang) * spd * dtSec;
+      boss.y += Math.sin(ang) * spd * dtSec;
+    } else {
+      // 코어 공격
+      if (boss.actionTimer <= 0) {
+        G.core.hp -= 5;
+        boss.actionTimer = 1.5;
+        G.shakeIntensity = 8;
+        sfx('explosion');
+      }
+    }
+  }
+  // 페이즈별 특수 행동
+  if (boss.actionTimer <= 0) {
+    boss.actionTimer = pd.interval || 4;
+    switch (pd.action) {
+      case 'sporeCloud':
+        // 포자 구름 — 소환
+        for (let i = 0; i < (pd.summonCount || 3); i++) {
+          const ang = G.rng.range(0, Math.PI * 2);
+          const d = G.rng.range(40, 80);
+          const z = createZombie(boss.x + Math.cos(ang) * d, boss.y + Math.sin(ang) * d, 'basic', G.zone);
+          G.zombies.push(z);
+        }
+        particles.emit(boss.x, boss.y, 20, { color: '#4a7c59', speed: 80, life: 1, size: 5 });
+        sfx('explosion');
+        break;
+      case 'sporeShield':
+        boss.shieldActive = true;
+        break;
+      case 'charge':
+        // 돌진 — 코어 방향
+        boss.x = MathUtil.lerp(boss.x, coreX, 0.3);
+        boss.y = MathUtil.lerp(boss.y, coreY, 0.3);
+        G.core.hp -= pd.dmg || 15;
+        G.shakeIntensity = 12;
+        // 레인 파괴
+        const bgy = Math.floor((boss.y - G.gridOffY) / cs);
+        for (const b of G.barricades) { if (b.gy === bgy) b.hp = 0; }
+        sfx('explosion');
+        break;
+      case 'armor':
+        boss.armorActive = true;
+        break;
+      case 'virusAura':
+        // 바이러스 오라 — 범위 내 서바이버 데미지
+        for (const s of G.survivors) {
+          if (!s.alive || !s.placed) continue;
+          const sx = G.gridOffX + s.gx * cs + cs / 2;
+          const sy = G.gridOffY + s.gy * cs + cs / 2;
+          if (MathUtil.dist(boss.x, boss.y, sx, sy) / cs <= (pd.auraRange || 3)) {
+            s.hp -= pd.auraDmg * dtSec;
+            if (s.hp <= 0) { s.alive = false; sfx('zombie_death'); }
+          }
+        }
+        break;
+      case 'selfHeal':
+        if (!boss.healReversed) {
+          boss.hp = Math.min(boss.maxHp, boss.hp + pd.healRate * dtSec);
+        } else {
+          boss.hp -= pd.healRate * dtSec * 2; // 역반응
+        }
+        break;
+    }
+  }
+  // 방패 해제 조건 확인
+  if (boss.shieldActive) {
+    // 화염 포탑 3기 존재 시 해제
+    const fireTurrets = G.turrets.filter(t => t.type === 'turretFire');
+    if (fireTurrets.length >= 3) {
+      boss.shieldActive = false;
+      sfx('explosion');
+      particles.emit(boss.x, boss.y, 30, { color: COL.fire, speed: 120, life: 0.8, size: 5 });
+    }
+  }
+  // 갑옷 해제: EMP 3회
+  if (boss.armorActive && boss.empHits >= 3) {
+    boss.armorActive = false;
+    boss.stunTimer = 15;
+    sfx('explosion');
+  }
+  // 애니메이션
+  boss.animTimer += dt;
+  if (boss.animTimer > 300) { boss.animFrame = (boss.animFrame + 1) % 4; boss.animTimer = 0; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// R6 SYSTEMS — 충돌, 투사체, DDA, 웨이브 스포너, 배치 검증
+// ═══════════════════════════════════════════════════════════
+
+// 유물 보너스 계산
+function getRelicBonus(stat) {
+  let total = 0;
+  for (const r of G.relics) { if (r.stat === stat) total += r.val; }
+  // 시너지 캡 (F30)
+  return Math.min(total, SYNERGY_CAP_MULT - 1);
+}
+
+// 유물 선택지 생성 (F30)
+function generateRelicChoices() {
+  const pool = RELICS.filter(r => {
+    // 이미 보유한 같은 유물 허용 (스택)
+    return true;
+  });
+  // 확률 가중: 50% 일반, 35% 희귀, 15% 에픽
+  const tierWeights = [0.50, 0.35, 0.15];
+  const choices = [];
+  for (let i = 0; i < 3; i++) {
+    let roll = G.rng.next();
+    let tier = 0;
+    if (roll > tierWeights[0] + tierWeights[1]) tier = 2;
+    else if (roll > tierWeights[0]) tier = 1;
+    const tierPool = pool.filter(r => r.tier === tier);
+    if (tierPool.length > 0) choices.push(G.rng.pick(tierPool));
+    else choices.push(G.rng.pick(pool));
+  }
+  return choices;
+}
+
+// 배치 검증 (F29) — tryPlace
+function tryPlace(gx, gy, defType) {
+  if (gx < 0 || gx >= DEFENSE_GRID || gy < 0 || gy >= DEFENSE_GRID) return false;
+  if (G.defenseGrid[gy][gx] !== 0) return false;
+  // 비용 확인
+  const def = DEF_TYPES[defType];
+  let cost = def.cost;
+  cost = Math.ceil(cost * (1 - getRelicBonus('buildDiscount')));
+  if (G.scrap < cost) return false;
+  // BFS 검증 (F29)
+  const tempGrid = G.defenseGrid.map(row => [...row]);
+  tempGrid[gy][gx] = 1;
+  const corePos = getCorePos();
+  const spawns = getSpawnPoints();
+  for (const sp of spawns) {
+    if (!bfsPathExists(tempGrid, { x: sp.x, y: sp.y }, corePos, DEFENSE_GRID, DEFENSE_GRID)) {
+      showWarning(t('place_blocked'));
+      return false;
+    }
+  }
+  // 배치 실행
+  G.scrap -= cost;
+  G.defenseGrid[gy][gx] = 1;
+  if (defType === 'barricade') {
+    G.barricades.push(createBarricade(gx, gy));
+  } else if (defType === 'turretMG' || defType === 'turretFire') {
+    G.turrets.push(createTurret(gx, gy, defType));
+  } else if (defType === 'empTrap' || defType === 'mine') {
+    G.traps.push(createTrap(gx, gy, defType));
+  }
+  sfx('build');
+  return true;
+}
+
+// 경고 메시지
+let warningMsg = '';
+let warningTimer = 0;
+function showWarning(msg) { warningMsg = msg; warningTimer = 2.0; }
+
+// 투사체 업데이트
+function updateProjectiles(dt) {
+  const dtSec = dt / 1000;
+  for (let i = G.projectiles.length - 1; i >= 0; i--) {
+    const p = G.projectiles[i];
+    p.x += Math.cos(p.angle) * p.speed * dtSec;
+    p.y += Math.sin(p.angle) * p.speed * dtSec;
+    p.life -= dtSec;
+    // 충돌 검사 — 좀비
+    for (const z of G.zombies) {
+      if (!z.alive) continue;
+      if (MathUtil.dist(p.x, p.y, z.x, z.y) < z.size / 2 + 4) {
+        let dmg = p.dmg;
+        // 크리티컬 (업그레이드 공격 Lv5)
+        if (G.upgrades.attack >= 5 && G.rng.chance(0.2)) dmg *= 2;
+        z.hp -= dmg;
+        p.hitCount++;
+        sfx('zombie_hit');
+        particles.emit(z.x, z.y, 4, { color: '#e74c3c', speed: 80, life: 0.2 });
+        if (!p.piercing || p.hitCount >= p.maxHits) { p.life = 0; break; }
+      }
+    }
+    // 충돌 — 보스
+    if (G.boss && G.boss.alive && MathUtil.dist(p.x, p.y, G.boss.x, G.boss.y) < G.boss.size / 2 + 6) {
+      let dmg = p.dmg;
+      if (G.boss.shieldActive && p.type !== 'fire') dmg *= (1 - 0.5);
+      if (G.boss.armorActive) dmg *= (1 - 0.7);
+      if (G.upgrades.attack >= 5 && G.rng.chance(0.2)) dmg *= 2;
+      G.boss.hp -= dmg;
+      p.hitCount++;
+      sfx('zombie_hit');
+      particles.emit(G.boss.x, G.boss.y, 5, { color: '#ff8800', speed: 100, life: 0.3, size: 4 });
+      if (!p.piercing || p.hitCount >= p.maxHits) p.life = 0;
+    }
+    // 화면 밖 or 수명 끝
+    if (p.life <= 0 || p.x < -50 || p.x > G.screenW + 50 || p.y < -50 || p.y > G.screenH + 50) {
+      G.projectiles.splice(i, 1);
+    }
+  }
+}
+
+// 포탑 AI 업데이트
+function updateTurrets(dt) {
+  const dtSec = dt / 1000;
+  const cs = G.cellSize;
+  for (const tur of G.turrets) {
+    tur.cooldown -= dtSec;
+    if (tur.cooldown > 0) continue;
+    const tx = G.gridOffX + tur.gx * cs + cs / 2;
+    const ty = G.gridOffY + tur.gy * cs + cs / 2;
+    // 타겟 찾기
+    let target = null, minDist = Infinity;
+    const rangePixels = tur.range * cs;
+    for (const z of G.zombies) {
+      if (!z.alive) continue;
+      const d = MathUtil.dist(tx, ty, z.x, z.y);
+      if (d <= rangePixels && d < minDist) { target = z; minDist = d; }
+    }
+    if (G.boss && G.boss.alive) {
+      const bd = MathUtil.dist(tx, ty, G.boss.x, G.boss.y);
+      if (bd <= rangePixels && bd < minDist) { target = G.boss; minDist = bd; }
+    }
+    if (target) {
+      tur.angle = MathUtil.angle(tx, ty, target.x, target.y);
+      const dmgPerShot = tur.dps * 0.5; // 2 shots/sec
+      if (tur.type === 'turretFire') {
+        // 범위 공격
+        for (const z of G.zombies) {
+          if (z.alive && MathUtil.dist(tx, ty, z.x, z.y) <= rangePixels) {
+            z.hp -= dmgPerShot * 0.3; // spread damage
+          }
+        }
+        if (G.boss && G.boss.alive && MathUtil.dist(tx, ty, G.boss.x, G.boss.y) <= rangePixels) {
+          G.boss.hp -= dmgPerShot * 0.5;
+        }
+        particles.emit(tx, ty, 8, { color: COL.fire, speed: 100, life: 0.3, size: 4 });
+        sfx('shoot');
+      } else {
+        // 단일 투사체
+        G.projectiles.push(createProjectile(tx, ty, tur.angle, 350, dmgPerShot, 'turretBullet'));
+        sfx('shoot');
+      }
+      tur.cooldown = 0.5;
+    }
+  }
+}
+
+// 트랩 검사
+function checkTraps() {
+  const cs = G.cellSize;
+  for (let i = G.traps.length - 1; i >= 0; i--) {
+    const trap = G.traps[i];
+    if (trap.triggered) continue;
+    const tx = G.gridOffX + trap.gx * cs + cs / 2;
+    const ty = G.gridOffY + trap.gy * cs + cs / 2;
+    // 좀비/보스 근접 시 발동
+    let triggered = false;
+    if (trap.type === 'mine') {
+      for (const z of G.zombies) {
+        if (z.alive && MathUtil.dist(tx, ty, z.x, z.y) < cs) {
+          z.hp -= trap.dmg || 50;
+          triggered = true;
+        }
+      }
+      if (G.boss && G.boss.alive && MathUtil.dist(tx, ty, G.boss.x, G.boss.y) < cs) {
+        G.boss.hp -= trap.dmg || 50;
+        triggered = true;
+      }
+    } else if (trap.type === 'empTrap') {
+      for (const z of G.zombies) {
+        if (z.alive && MathUtil.dist(tx, ty, z.x, z.y) < cs * 2) {
+          z.stunTimer = 3;
+          triggered = true;
+        }
+      }
+      if (G.boss && G.boss.alive && MathUtil.dist(tx, ty, G.boss.x, G.boss.y) < cs * 2) {
+        G.boss.stunTimer = 3;
+        G.boss.empHits = (G.boss.empHits || 0) + 1;
+        triggered = true;
+      }
+    }
+    if (triggered) {
+      trap.triggered = true;
+      sfx('explosion');
+      particles.emit(tx, ty, 20, { color: trap.type === 'empTrap' ? COL.cyan : COL.gold, speed: 150, life: 0.5, size: 5 });
+      // 폭발 이펙트 PNG 오버레이
+      G.effects.push({ type: 'explosion', x: tx, y: ty, timer: 0.5, maxTimer: 0.5 });
+      G.defenseGrid[trap.gy][trap.gx] = 0;
+      G.traps.splice(i, 1);
+    }
+  }
+}
+
+// 좀비 → 코어/바리케이드 데미지
+function zombieAttack(dt) {
+  const dtSec = dt / 1000;
+  const cs = G.cellSize;
+  const corePos = getCorePos();
+  const corePx = G.gridOffX + corePos.x * cs + cs;
+  const corePy = G.gridOffY + corePos.y * cs + cs;
+  for (const z of G.zombies) {
+    if (!z.alive || z.stunTimer > 0) continue;
+    // 코어 근접 시 공격
+    if (MathUtil.dist(z.x, z.y, corePx, corePy) < cs * 1.8) {
+      G.core.hp -= z.dmg * dtSec;
+      G.shakeIntensity = Math.max(G.shakeIntensity, 3);
+    }
+    // 바리케이드 근접 시 공격
+    for (const b of G.barricades) {
+      if (b.hp <= 0) continue;
+      const bx = G.gridOffX + b.gx * cs + cs / 2;
+      const by = G.gridOffY + b.gy * cs + cs / 2;
+      if (MathUtil.dist(z.x, z.y, bx, by) < cs * 0.8) {
+        b.hp -= z.dmg * dtSec * 0.5;
+      }
+    }
+  }
+}
+
+// 죽은 좀비 정리 + 점수
+function cleanupZombies() {
+  for (let i = G.zombies.length - 1; i >= 0; i--) {
+    const z = G.zombies[i];
+    if (z.hp <= 0 && z.alive) {
+      z.alive = false;
+      G.score += z.score;
+      G.totalKills++;
+      sfx('zombie_death');
+      particles.emit(z.x, z.y, 12, { color: COL.zombie, speed: 100, life: 0.5, size: 4 });
+      // 폭발 이펙트 PNG 오버레이
+      G.effects.push({ type: 'explosion', x: z.x, y: z.y, timer: 0.4, maxTimer: 0.4 });
+      G.zombies.splice(i, 1);
+    }
+  }
+}
+
+// 파괴된 바리케이드 정리
+function cleanupBarricades() {
+  for (let i = G.barricades.length - 1; i >= 0; i--) {
+    if (G.barricades[i].hp <= 0) {
+      const b = G.barricades[i];
+      G.defenseGrid[b.gy][b.gx] = 0;
+      particles.emit(G.gridOffX + b.gx * G.cellSize + G.cellSize / 2, G.gridOffY + b.gy * G.cellSize + G.cellSize / 2, 8, { color: '#8B7355', speed: 60, life: 0.4 });
+      G.barricades.splice(i, 1);
+    }
+  }
+}
+
+// 웨이브 스포너
+function spawnWaveZombies() {
+  const ddaMult = DDA_LEVELS[G.dda.level];
+  const zone = G.zone;
+  const night = G.nightNum;
+  let count = ZOMBIE_BASE_COUNT[zone] + night * ZOMBIE_NIGHT_SCALE[zone];
+  count = Math.floor(count * ddaMult.countMult);
+  // 특수 좀비 배분
+  let hulks = 0, spitters = 0;
+  if (zone >= 0) hulks = Math.floor(night * 0.5);
+  if (zone >= 1) spitters = Math.floor(night * 0.4);
+  const basics = count - hulks - spitters;
+  G.spawnQueue = [];
+  for (let i = 0; i < Math.max(0, basics); i++) G.spawnQueue.push('basic');
+  for (let i = 0; i < hulks; i++) G.spawnQueue.push('hulk');
+  for (let i = 0; i < spitters; i++) G.spawnQueue.push('spitter');
+  G.spawnQueue = G.rng.shuffle(G.spawnQueue);
+  G.spawnTimer = 0;
+  G.spawnInterval = Math.max(1, 90 / (G.spawnQueue.length || 1));
+}
+
+function processSpawnQueue(dt) {
+  if (G.spawnQueue.length === 0) return;
+  G.spawnTimer -= dt / 1000;
+  if (G.spawnTimer <= 0) {
+    G.spawnTimer = G.spawnInterval;
+    const type = G.spawnQueue.shift();
+    // 랜덤 방향 스폰
+    const spawns = getSpawnPoints();
+    const dirs = G.rng.int(0, 3);
+    const sp = spawns[dirs];
+    const cs = G.cellSize;
+    const jitter = G.rng.range(-cs * 0.3, cs * 0.3);
+    const z = createZombie(
+      G.gridOffX + sp.x * cs + cs / 2 + jitter,
+      G.gridOffY + sp.y * cs + cs / 2 + jitter,
+      type, G.zone
+    );
+    G.zombies.push(z);
+  }
+}
+
+// DDA 업데이트
+function updateDDA(cleared) {
+  if (cleared) {
+    G.dda.consecutiveClears++;
+    G.dda.consecutiveFails = 0;
+    if (G.dda.consecutiveClears >= 3 && G.dda.level > 0) {
+      G.dda.level--;
+      G.dda.consecutiveClears = 0;
+    }
+  } else {
+    G.dda.consecutiveFails++;
+    G.dda.consecutiveClears = 0;
+    if (G.dda.consecutiveFails >= 5 && G.dda.level < 3) G.dda.level = 3;
+    else if (G.dda.consecutiveFails >= 3 && G.dda.level < 2) G.dda.level = 2;
+    else if (G.dda.consecutiveFails >= 2 && G.dda.level < 1) G.dda.level = 1;
+  }
+}
+
+// 탐색 맵 생성 (주간)
+function generateExploreMap() {
+  G.exploreGrid = [];
+  G.exploreItems = [];
+  G.exploreSurvivors = [];
+  const rng = G.rng;
+  for (let y = 0; y < GRID_ROWS; y++) {
+    G.exploreGrid[y] = [];
+    for (let x = 0; x < GRID_COLS; x++) {
+      const r = rng.next();
+      if (r < 0.15) G.exploreGrid[y][x] = 'building'; // 탐색 가능 건물
+      else if (r < 0.25) G.exploreGrid[y][x] = 'rubble'; // 잔해
+      else G.exploreGrid[y][x] = 'road'; // 도로
+    }
+  }
+  // 자원 배치
+  const itemCount = 8 + rng.int(0, 4);
+  for (let i = 0; i < itemCount; i++) {
+    const ix = rng.int(0, GRID_COLS - 1);
+    const iy = rng.int(0, GRID_ROWS - 1);
+    const types = ['scrap', 'food', 'ammo'];
+    G.exploreItems.push({ x: ix, y: iy, type: rng.pick(types), collected: false, amount: rng.int(5, 15) });
+  }
+  // 좀비 패트롤
+  G.zombies = [];
+  const patrolCount = 3 + G.zone * 2;
+  for (let i = 0; i < patrolCount; i++) {
+    const cs = G.cellSize;
+    const z = createZombie(
+      rng.range(50, G.screenW - 50),
+      rng.range(50, G.screenH - 100),
+      'basic', G.zone
+    );
+    z.speed = 25; // 패트롤 느림
+    z.patrolAngle = rng.range(0, Math.PI * 2);
+    z.patrolTimer = rng.range(0, 3);
+    G.zombies.push(z);
+  }
+  // 서바이버 발견 확률
+  let survChance = 0.3;
+  if (G.upgrades.explore >= 3) survChance += 0.2;
+  if (rng.chance(survChance)) {
+    const sx = rng.int(1, GRID_COLS - 2);
+    const sy = rng.int(1, GRID_ROWS - 2);
+    const st = rng.pick(SURV_ORDER);
+    G.exploreSurvivors.push({ x: sx, y: sy, type: st, rescued: false });
+  }
+}
+
+// 패트롤 좀비 AI (주간)
+function updatePatrolZombie(z, dt) {
+  const dtSec = dt / 1000;
+  z.patrolTimer -= dtSec;
+  if (z.patrolTimer <= 0) {
+    z.patrolAngle = G.rng.range(0, Math.PI * 2);
+    z.patrolTimer = G.rng.range(2, 5);
+  }
+  z.x += Math.cos(z.patrolAngle) * z.speed * dtSec;
+  z.y += Math.sin(z.patrolAngle) * z.speed * dtSec;
+  // 화면 내 유지
+  z.x = MathUtil.clamp(z.x, 20, G.screenW - 20);
+  z.y = MathUtil.clamp(z.y, 60, G.screenH - 20);
+  z.facing = z.patrolAngle;
+  z.animTimer += dt;
+  if (z.animTimer > 250) { z.animFrame = (z.animFrame + 1) % 4; z.animTimer = 0; }
+  // 플레이어 감지 시 추적
+  const dist = MathUtil.dist(z.x, z.y, G.player.x, G.player.y);
+  if (dist < 120) {
+    const ang = MathUtil.angle(z.x, z.y, G.player.x, G.player.y);
+    z.x += Math.cos(ang) * z.speed * 1.5 * dtSec;
+    z.y += Math.sin(ang) * z.speed * 1.5 * dtSec;
+    z.facing = ang;
+    // 근접 공격
+    if (dist < 25) {
+      G.player.hp -= z.dmg * dtSec;
+      G.shakeIntensity = 2;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// R7 GAMELOOP — 상태 머신, update/render
+// ═══════════════════════════════════════════════════════════
+
+// 전환 함수 (F21, F5 — 가드 플래그)
+function beginTransition(to, duration) {
+  const from = G.state;
+  if (!TRANSITION_TABLE[from] || !TRANSITION_TABLE[from][to]) {
+    console.error('Invalid transition:', from, '→', to);
+    return;
+  }
+  if (G._transitioning) return;
+  if (G.core.hp <= 0 && to !== ST.GAMEOVER) return; // 게임오버 우선 (F5 Cycle3 B2)
+  G._transitioning = true;
+  const dur = duration || 400;
+  G.fadeAlpha = 0;
+  tween.add(G, { fadeAlpha: 1 }, dur, 'easeIn', () => {
+    G.state = to;
+    enterState(to);
+    tween.add(G, { fadeAlpha: 0 }, dur, 'easeOut', () => {
+      G._transitioning = false;
+    });
+  });
+}
+
+function enterState(state) {
+  switch (state) {
+    case ST.TITLE:
+      G.inputMode = 'menu';
+      G.titleAnimT = 0;
+      startBGM('title');
+      break;
+    case ST.MAP:
+      G.inputMode = 'map';
+      G.showUpgradeUI = false;
+      startBGM('title');
+      break;
+    case ST.DAY_EXPLORE:
+      G.inputMode = 'game';
+      G.dayTimer = DAY_DURATION + (G.upgrades.explore >= 1 ? 10 : 0);
+      G.rng = new SeededRNG(G.zone * 1000 + G.nightNum * 100 + Date.now() % 10000);
+      generateExploreMap();
+      resetPlayer();
+      G.narrative = t(ZONE_NARRATIVES[G.zone] || 'narrativeZ1');
+      G.narrativeTimer = 3;
+      G.dayNightLerp = 1;
+      startBGM('day');
+      break;
+    case ST.NIGHT_PREP:
+      G.inputMode = 'place';
+      G.prepTimer = PREP_DURATION;
+      G.selectedDef = 0;
+      G.placementPreview = null;
+      G.dayNightLerp = 0;
+      if (!G.defenseGrid) initDefenseGrid();
+      startBGM('prep');
+      break;
+    case ST.NIGHT_WAVE:
+      G.inputMode = 'game';
+      G.waveTimer = WAVE_DURATION;
+      G.waveClearing = false;
+      G.rng = new SeededRNG(G.zone * 1000 + G.nightNum * 100 + G.waveNum);
+      spawnWaveZombies();
+      G.dayNightLerp = 0;
+      startBGM('night');
+      break;
+    case ST.BOSS_NIGHT:
+      G.inputMode = 'game';
+      G.boss = createBoss(G.zone);
+      G.bossRewardGiven = false;
+      G.waveClearing = false;
+      G.dayNightLerp = 0;
+      sfx('boss_intro');
+      startBGM('boss');
+      break;
+    case ST.GAMEOVER:
+      G.inputMode = 'modal';
+      sfx('gameover');
+      stopBGM();
+      // 판정 먼저, 저장 나중에 (F8)
+      const isNewBest = G.score > G.bestScore;
+      G.bestScore = Math.max(G.bestScore, G.score);
+      Save.setHighScore(GAME_ID, G.score);
+      saveProgress();
+      if (isNewBest) G.narrative = t('new_best');
+      break;
+  }
+}
+
+// 세이브 시스템
+function saveProgress() {
+  Save.set('ix_' + GAME_ID + '_progress', {
+    version: 1, bestScore: G.bestScore, totalKills: G.totalKills,
+    zonesCleared: G.zonesCleared, upgrades: G.upgrades,
+    stars: G.stars, bossesDefeated: G.bossesDefeated,
+    playCount: G.playCount, lang: lang,
+  });
+}
+
+function loadProgress() {
+  const data = Save.get('ix_' + GAME_ID + '_progress', null);
+  if (data) {
+    G.bestScore = data.bestScore || 0;
+    G.totalKills = data.totalKills || 0;
+    G.zonesCleared = data.zonesCleared || [false, false, false];
+    G.upgrades = data.upgrades || { defense: 0, attack: 0, explore: 0 };
+    G.stars = data.stars || 0;
+    G.bossesDefeated = data.bossesDefeated || [false, false, false];
+    G.playCount = data.playCount || 0;
+    if (data.lang) lang = data.lang;
+  }
+  G.bestScore = Math.max(G.bestScore, Save.getHighScore(GAME_ID));
+}
+
+// 완전 리셋
+function fullReset() {
+  G.score = 0; G.zone = 0; G.nightNum = 0; G.waveNum = 0;
+  G.scrap = 30; G.food = 20; G.ammo = 30; G.stars = 0;
+  G.core.hp = CORE_BASE_HP; G.core.maxHp = CORE_BASE_HP;
+  if (G.upgrades.defense >= 2) { G.core.maxHp += 25; G.core.hp = G.core.maxHp; }
+  G.zombies = []; G.projectiles = []; G.effects = [];
+  G.survivors = []; G.barricades = []; G.turrets = []; G.traps = [];
+  G.boss = null; G.relics = [];
+  G.dda = { level: 0, consecutiveClears: 0, consecutiveFails: 0 };
+  G.spawnQueue = []; G.waveClearing = false;
+  G.showRelicUI = false; G.showUpgradeUI = false; G.showPauseUI = false;
+  G.shakeIntensity = 0; G.fadeAlpha = 0; G._transitioning = false;
+  G.defenseGrid = null;
+  initDefenseGrid();
+  G.playCount++;
+  resetPlayer();
+}
+
+// 주간→야간 전환
+function endDayPhase() {
+  G.zombies = [];
+  G.projectiles = [];
+  beginTransition(ST.NIGHT_PREP);
+}
+
+// 야간 클리어 검사
+function checkWaveComplete() {
+  if (G.waveClearing) return;
+  if (G.spawnQueue.length === 0 && G.zombies.length === 0) {
+    G.waveClearing = true;
+    updateDDA(true);
+    G.score += 100 * (G.zone + 1);
+    const starsEarned = G.rng.int(1, 3);
+    G.stars += starsEarned;
+    sfx('score');
+    // 유물 선택
+    G.relicChoices = generateRelicChoices();
+    G.showRelicUI = true;
+    G.inputMode = 'modal';
+  }
+}
+
+// 유물 선택 후
+function onRelicChosen(index) {
+  if (G.relicChoices && G.relicChoices[index]) {
+    G.relics.push({ ...G.relicChoices[index] });
+    sfx('pickup');
+  }
+  G.showRelicUI = false;
+  G.relicChoices = null;
+  G.nightNum++;
+  G.waveNum++;
+  // 3야간 후 보스
+  if (G.waveNum >= 3) {
+    beginTransition(ST.BOSS_NIGHT);
+  } else {
+    beginTransition(ST.NIGHT_PREP);
+  }
+}
+
+// 보스 격파
+function onBossDefeated() {
+  if (G.bossRewardGiven) return; // F17
+  G.bossRewardGiven = true;
+  G.score += 500;
+  G.stars += 5;
+  G.bossesDefeated[G.zone] = true;
+  G.zonesCleared[G.zone] = true;
+  sfx('score');
+  particles.emit(G.boss.x, G.boss.y, 40, { color: COL.gold, speed: 200, life: 1, size: 6 });
+  // 다음 구역 또는 승리
+  G._transitioning = true;
+  G.fadeAlpha = 0;
+  tween.add(G, { fadeAlpha: 1 }, 1000, 'easeIn', () => {
+    G.boss = null;
+    G.zombies = [];
+    G.projectiles = [];
+    G.waveNum = 0;
+    G.nightNum = 0;
+    if (G.zone >= 2) {
+      // 전체 클리어!
+      G.score += 1000;
+      G.narrative = t('victory') + ' ' + t('allClear');
+    }
+    G.zone++;
+    // INFO-2 수정: 직접 상태 전환 (beginTransition 가드 충돌 방지)
+    G.state = ST.MAP;
+    enterState(ST.MAP);
+    tween.add(G, { fadeAlpha: 0 }, 400, 'easeOut', () => {
+      G._transitioning = false;
+    });
+  });
+}
+
+// ── 확장 시스템 업데이트 (monkey-patch 대체, 메인 루프에서 직접 호출) ──
+function updateExtended(dt) {
+  updateWeather(dt);
+  updateDmgPopups(dt);
+  updateFloatingTexts(dt);
+  updateCombo(dt);
+  updateCamera(dt);
+  cleanupSurvivors();
+  // 주간 전용 확장
+  if (G.state === ST.DAY_EXPLORE) {
+    updateFogOfWar();
+    repairBarricadesDuringDay(dt);
+    playerHealWithFood(dt);
+    // 건물 상호작용 (Space/E키)
+    if (input.jp('Space') || input.jp('KeyE')) {
+      const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(G.screenW / GRID_COLS, (G.screenH - 60) / GRID_ROWS)));
+      const gx = Math.floor(G.player.x / cs);
+      const gy = Math.floor((G.player.y - 50) / cs);
+      interactWithBuilding(gx, gy);
+    }
+  }
+  // 컷신 업데이트
+  if (cutscene) updateCutscene(dt);
+  // 보스 페이즈 전환 이펙트
+  if (G.boss && G.boss.alive) {
+    if (G.boss.currentPhase !== lastBossPhase) {
+      lastBossPhase = G.boss.currentPhase;
+      G.shakeIntensity = 10;
+      sfx('explosion');
+      particles.emit(G.boss.x, G.boss.y, 30, {
+        color: lastBossPhase >= 2 ? COL.fire : COL.purple,
+        speed: 150, life: 0.6, size: 5
+      });
+      showWarning(t('phase' + (lastBossPhase + 1)));
+    }
+  } else {
+    lastBossPhase = -1;
+  }
+  // 언어 전환 (L키)
+  if (input.jp('KeyL') && G.state !== ST.TITLE) {
+    lang = lang === 'ko' ? 'en' : 'ko';
+    saveProgress();
+  }
+}
+
+// ── 확장 시스템 렌더링 (monkey-patch 대체, 메인 루프에서 직접 호출) ──
+function renderExtended(ctx, w, h) {
+  // 날씨 이펙트
+  renderWeather(ctx, w, h);
+  // 데미지 팝업 + 플로팅 텍스트
+  renderDmgPopups(ctx);
+  renderFloatingTexts(ctx);
+  // 콤보 UI
+  renderCombo(ctx, w, h);
+  // 주간 전쟁의 안개
+  if (G.state === ST.DAY_EXPLORE) renderFogOfWar(ctx, w, h);
+  // 야간 준비 레이더
+  if (G.state === ST.NIGHT_PREP) renderRadar(ctx, w, h);
+  // 컷신 렌더
+  if (cutscene) renderCutscene(ctx, w, h);
+  // 적 투사체(산성액) 렌더
+  for (const p of G.projectiles) {
+    if (!p.isEnemy) continue;
+    ctx.fillStyle = '#4a7c59';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(74,124,89,0.3)';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill();
+  }
+  // 이펙트 PNG 오버레이 (폭발/치유)
+  for (const fx of G.effects) {
+    const alpha = MathUtil.clamp(fx.timer / fx.maxTimer, 0, 1);
+    const scale = 1 + (1 - alpha) * 0.3; // 약간 확대되며 사라짐
+    ctx.globalAlpha = alpha;
+    if (fx.type === 'explosion' && assets.sprites.effectExplosion) {
+      const sz = 48 * scale;
+      ctx.drawImage(assets.sprites.effectExplosion, fx.x - sz / 2, fx.y - sz / 2, sz, sz);
+    } else if (fx.type === 'heal' && assets.sprites.effectHeal) {
+      const sz = 32 * scale;
+      ctx.drawImage(assets.sprites.effectHeal, fx.x - sz / 2, fx.y - sz / 2, sz, sz);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 코어 HP 글로우 (야간)
+  if (G.state === ST.NIGHT_WAVE || G.state === ST.BOSS_NIGHT || G.state === ST.NIGHT_PREP) {
+    const cs = G.cellSize;
+    const corePos = getCorePos();
+    const cx = G.gridOffX + (corePos.x - 1) * cs;
+    const cy = G.gridOffY + (corePos.y - 1) * cs;
+    const hpPct = G.core.hp / G.core.maxHp;
+    const glowColor = hpPct > 0.5 ? COL.heal : (hpPct > 0.25 ? COL.accent : COL.fire);
+    const pulse = 0.1 + Math.sin(G.animTime / 500) * 0.05;
+    const grad = ctx.createRadialGradient(cx + cs, cy + cs, 0, cx + cs, cy + cs, cs * 2);
+    grad.addColorStop(0, glowColor + Math.round(pulse * 255).toString(16).padStart(2, '0'));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - cs, cy - cs, cs * 4, cs * 4);
+  }
+  // 디버그 오버레이
+  renderDebugOverlay(ctx, w, h);
+}
+
+// ── UPDATE 함수 ──
+function update(dt) {
+  const dtSec = dt / 1000;
+  G.animTime += dt;
+  // 항상 업데이트: Tween, Particles, Warning, Shake, BGM
+  tween.update(dt);
+  particles.update(dt);
+  scheduleBGMNotes();
+  if (warningTimer > 0) warningTimer -= dtSec;
+  if (G.shakeIntensity > 0) G.shakeIntensity *= 0.9;
+  if (G.shakeIntensity < 0.1) G.shakeIntensity = 0;
+  if (G.narrativeTimer > 0) G.narrativeTimer -= dtSec;
+  // 코어 자동 회복 (업그레이드 방어 Lv5)
+  if (G.upgrades.defense >= 5 && G.state !== ST.TITLE && G.state !== ST.GAMEOVER) {
+    G.core.hp = Math.min(G.core.maxHp, G.core.hp + 2 * dtSec);
+  }
+
+  // 이펙트 타이머 갱신 (폭발/치유 PNG 오버레이)
+  for (let i = G.effects.length - 1; i >= 0; i--) {
+    G.effects[i].timer -= dtSec;
+    if (G.effects[i].timer <= 0) G.effects.splice(i, 1);
+  }
+
+  // 상태별 업데이트
+  switch (G.state) {
+    case ST.TITLE:
+      updateTitle(dt);
+      break;
+    case ST.MAP:
+      updateMap(dt);
+      break;
+    case ST.DAY_EXPLORE:
+      updateDayExplore(dt);
+      break;
+    case ST.NIGHT_PREP:
+      updateNightPrep(dt);
+      break;
+    case ST.NIGHT_WAVE:
+      updateNightWave(dt);
+      break;
+    case ST.BOSS_NIGHT:
+      updateBossNight(dt);
+      break;
+    case ST.GAMEOVER:
+      updateGameover(dt);
+      break;
+  }
+  // 확장 시스템 통합 (monkey-patch 제거 — wisdom-coder 권고)
+  updateExtended(dt);
+  input.flush(); // 프레임 끝 필수 (F)
+}
+
+// ── TITLE 업데이트 ──
+function updateTitle(dt) {
+  G.titleAnimT += dt / 1000;
+  if (input.confirm()) {
+    initAudio();
+    sfx('select');
+    loadProgress();
+    fullReset();
+    beginTransition(ST.MAP);
+  }
+  // 언어 토글 — L키
+  if (input.jp('KeyL')) {
+    lang = lang === 'ko' ? 'en' : 'ko';
+  }
+}
+
+// ── MAP 업데이트 ──
+function updateMap(dt) {
+  if (input.jp('Escape')) {
+    beginTransition(ST.TITLE);
+    return;
+  }
+  // 업그레이드 UI 토글
+  if (input.jp('KeyE') || (G.showUpgradeUI && input.jp('Escape'))) {
+    G.showUpgradeUI = !G.showUpgradeUI;
+    if (G.showUpgradeUI) G.inputMode = 'modal';
+    else G.inputMode = 'map';
+    return;
+  }
+  if (G.showUpgradeUI) {
+    updateUpgradeUI();
+    return;
+  }
+  // 구역 선택 클릭
+  if (input.tapped) {
+    const w = G.screenW, h = G.screenH;
+    for (let i = 0; i < 3; i++) {
+      const bx = w / 2 - 120, by = 120 + i * 80;
+      const bw = 240, bh = 60;
+      if (UI.hitTest(input.tapX, input.tapY, bx, by, bw, bh)) {
+        if (i <= (G.zone < 3 ? G.zone : 2) && !G.zonesCleared[i]) {
+          G.zone = i;
+          sfx('select');
+          beginTransition(ST.DAY_EXPLORE);
+          return;
+        } else if (G.zonesCleared[i]) {
+          // 이미 클리어된 구역
+        }
+      }
+    }
+    // 업그레이드 버튼
+    const ubx = w / 2 - 80, uby = h - 80;
+    if (UI.hitTest(input.tapX, input.tapY, ubx, uby, 160, 48)) {
+      G.showUpgradeUI = true;
+      G.inputMode = 'modal';
+      sfx('select');
+    }
+  }
+  // 전체 클리어 시 승리
+  if (G.zonesCleared.every(z => z)) {
+    // 승리 상태 — MAP에서 최종 결과 표시
+  }
+}
+
+function updateUpgradeUI() {
+  if (input.tapped) {
+    const w = G.screenW, h = G.screenH;
+    const axes = ['defense', 'attack', 'explore'];
+    for (let i = 0; i < 3; i++) {
+      const bx = w / 2 - 150 + i * 110, by = h / 2 + 20;
+      const bw = 90, bh = 40;
+      if (UI.hitTest(input.tapX, input.tapY, bx, by, bw, bh)) {
+        const axis = axes[i];
+        const level = G.upgrades[axis];
+        if (level < 5) {
+          const cost = UPGRADE_TREE[axis][level].cost;
+          if (G.stars >= cost) {
+            G.stars -= cost;
+            G.upgrades[axis]++;
+            sfx('score');
+            // 방어 Lv2 → 코어 HP 증가
+            if (axis === 'defense' && G.upgrades.defense === 2) {
+              G.core.maxHp += 25; G.core.hp = G.core.maxHp;
+            }
+            saveProgress();
+          }
+        }
+      }
+    }
+    // 닫기 버튼
+    const cbx = w / 2 - 40, cby = h / 2 + 100;
+    if (UI.hitTest(input.tapX, input.tapY, cbx, cby, 80, 36)) {
+      G.showUpgradeUI = false;
+      G.inputMode = 'map';
+    }
+  }
+  if (input.jp('Escape') || input.jp('KeyE')) {
+    G.showUpgradeUI = false;
+    G.inputMode = 'map';
+  }
+}
+
+// ── DAY EXPLORE 업데이트 ──
+function updateDayExplore(dt) {
+  const dtSec = dt / 1000;
+  // 일시정지
+  if (input.jp('Escape')) {
+    G.showPauseUI = !G.showPauseUI;
+    G.inputMode = G.showPauseUI ? 'modal' : 'game';
+    return;
+  }
+  if (G.showPauseUI) {
+    updatePauseUI();
+    return;
+  }
+  // 타이머
+  G.dayTimer -= dtSec;
+  if (G.dayTimer <= 10 && G.dayTimer > 9.8) sfx('alert');
+  if (G.dayTimer <= 0) { endDayPhase(); return; }
+  // 플레이어 이동
+  updatePlayerMovement(dt);
+  // 플레이어 사격
+  updatePlayerShooting(dt);
+  // 패트롤 좀비
+  for (const z of G.zombies) { if (z.alive) updatePatrolZombie(z, dt); }
+  // 투사체
+  updateProjectiles(dt);
+  // 좀비 정리
+  cleanupZombies();
+  // 아이템 수집
+  const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(G.screenW / GRID_COLS, (G.screenH - 60) / GRID_ROWS)));
+  for (const item of G.exploreItems) {
+    if (item.collected) continue;
+    const ix = item.x * cs + cs / 2;
+    const iy = item.y * cs + cs / 2 + 50;
+    if (MathUtil.dist(G.player.x, G.player.y, ix, iy) < cs * 0.8) {
+      if (input.jp('Space') || input.jp('KeyE') || autoCollect()) {
+        item.collected = true;
+        switch (item.type) {
+          case 'scrap': G.scrap += item.amount; break;
+          case 'food': G.food += item.amount; break;
+          case 'ammo': G.ammo += item.amount; break;
+        }
+        sfx('pickup');
+        particles.emit(ix, iy, 8, { color: COL.gold, speed: 60, life: 0.3 });
+        G.score += 5;
+      }
+    }
+  }
+  // 서바이버 구출
+  for (const sv of G.exploreSurvivors) {
+    if (sv.rescued) continue;
+    const sx = sv.x * cs + cs / 2;
+    const sy = sv.y * cs + cs / 2 + 50;
+    if (MathUtil.dist(G.player.x, G.player.y, sx, sy) < cs) {
+      if (input.jp('Space') || input.jp('KeyE') || autoCollect()) {
+        sv.rescued = true;
+        const s = createSurvivor(sv.type);
+        if (s) G.survivors.push(s);
+        sfx('score');
+        G.score += 50;
+        showWarning(t('survivor_found') + ' (' + t(sv.type) + ')');
+      }
+    }
+  }
+  // 플레이어 사망 체크
+  if (G.player.hp <= 0) {
+    G.player.hp = 0;
+    G.core.hp -= 20; // 죽으면 코어 페널티
+    if (G.core.hp <= 0) {
+      beginTransition(ST.GAMEOVER);
+    } else {
+      endDayPhase();
+    }
+  }
+}
+
+function autoCollect() {
+  // 모바일에서 자동 수집 (근접 시)
+  return input.isMobile;
+}
+
+// 플레이어 이동 (키보드 + 가상 조이스틱)
+function updatePlayerMovement(dt) {
+  const dtSec = dt / 1000;
+  const p = G.player;
+  let dx = 0, dy = 0;
+  // 키보드
+  if (input.held('KeyW') || input.held('ArrowUp')) dy -= 1;
+  if (input.held('KeyS') || input.held('ArrowDown')) dy += 1;
+  if (input.held('KeyA') || input.held('ArrowLeft')) dx -= 1;
+  if (input.held('KeyD') || input.held('ArrowRight')) dx += 1;
+  // 조이스틱
+  if (G.joystick.active) {
+    dx += G.joystick.dx;
+    dy += G.joystick.dy;
+  }
+  // 정규화
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len > 0.1) {
+    dx /= len; dy /= len;
+    p.facing = Math.atan2(dy, dx);
+    p.x += dx * p.speed * dtSec;
+    p.y += dy * p.speed * dtSec;
+  }
+  p.x = MathUtil.clamp(p.x, 15, G.screenW - 15);
+  p.y = MathUtil.clamp(p.y, 55, G.screenH - 15);
+}
+
+// 플레이어 사격
+function updatePlayerShooting(dt) {
+  const dtSec = dt / 1000;
+  const p = G.player;
+  p.shootCd -= dtSec;
+  // 재장전
+  if (p.reloading) {
+    p.reloadTimer -= dtSec;
+    if (p.reloadTimer <= 0) {
+      const ammoNeeded = p.maxClip - p.ammoClip;
+      const ammoAvail = Math.min(ammoNeeded, G.ammo);
+      p.ammoClip += ammoAvail;
+      G.ammo -= ammoAvail;
+      p.reloading = false;
+      sfx('reload');
+    }
+    return;
+  }
+  if (input.jp('KeyR') && p.ammoClip < p.maxClip && G.ammo > 0) {
+    p.reloading = true;
+    p.reloadTimer = 1.5;
+    return;
+  }
+  // 사격 (마우스/터치)
+  const shouldShoot = input.mouseDown && !input.isMobile || (G.touchButtons.some(b => b.id === 'atk' && b.pressed));
+  if (shouldShoot && p.shootCd <= 0 && p.ammoClip > 0) {
+    let angle;
+    if (input.isMobile) {
+      // 가장 가까운 좀비 자동 조준
+      let closest = null, cd = Infinity;
+      for (const z of G.zombies) {
+        if (!z.alive) continue;
+        const d = MathUtil.dist(p.x, p.y, z.x, z.y);
+        if (d < cd) { closest = z; cd = d; }
+      }
+      if (G.boss && G.boss.alive) {
+        const bd = MathUtil.dist(p.x, p.y, G.boss.x, G.boss.y);
+        if (bd < cd) { closest = G.boss; cd = bd; }
+      }
+      angle = closest ? MathUtil.angle(p.x, p.y, closest.x, closest.y) : p.facing;
+    } else {
+      angle = MathUtil.angle(p.x, p.y, input.mouseX, input.mouseY);
+    }
+    let dmg = 10;
+    if (G.upgrades.attack >= 1) dmg *= 1.15;
+    p.facing = angle;
+    G.projectiles.push(createProjectile(p.x, p.y, angle, 450, dmg, 'bullet'));
+    p.ammoClip--;
+    p.shootCd = 0.2;
+    sfx('shoot');
+    if (p.ammoClip <= 0 && G.ammo > 0) {
+      p.reloading = true;
+      p.reloadTimer = 1.5;
+    }
+  }
+}
+
+// ── NIGHT PREP 업데이트 ──
+function updateNightPrep(dt) {
+  const dtSec = dt / 1000;
+  if (input.jp('Escape')) {
+    G.showPauseUI = !G.showPauseUI;
+    G.inputMode = G.showPauseUI ? 'modal' : 'place';
+    return;
+  }
+  if (G.showPauseUI) { updatePauseUI(); return; }
+  G.prepTimer -= dtSec;
+  if (G.prepTimer <= 5 && G.prepTimer > 4.8) sfx('alert');
+  if (G.prepTimer <= 0) {
+    // 시간 끝 → 웨이브 시작
+    if (G.waveNum >= 3) {
+      beginTransition(ST.BOSS_NIGHT);
+    } else {
+      beginTransition(ST.NIGHT_WAVE);
+    }
+    return;
+  }
+  // 방어물 종류 전환
+  if (input.jp('KeyQ')) { G.selectedDef = (G.selectedDef - 1 + DEF_ORDER.length) % DEF_ORDER.length; sfx('select'); }
+  if (input.jp('KeyE')) { G.selectedDef = (G.selectedDef + 1) % DEF_ORDER.length; sfx('select'); }
+  // 숫자키로 서바이버 선택
+  for (let i = 0; i < 4; i++) {
+    if (input.jp('Digit' + (i + 1))) {
+      G.selectedSurv = (G.selectedSurv === i) ? -1 : i;
+      sfx('select');
+    }
+  }
+  // 배치 (클릭/탭)
+  if (input.tapped) {
+    const cs = G.cellSize;
+    const gx = Math.floor((input.tapX - G.gridOffX) / cs);
+    const gy = Math.floor((input.tapY - G.gridOffY) / cs);
+    if (gx >= 0 && gx < DEFENSE_GRID && gy >= 0 && gy < DEFENSE_GRID) {
+      if (G.selectedSurv >= 0 && G.selectedSurv < G.survivors.length) {
+        // 서바이버 배치
+        const s = G.survivors[G.selectedSurv];
+        if (s && s.alive && G.defenseGrid[gy][gx] === 0) {
+          s.gx = gx; s.gy = gy; s.placed = true;
+          sfx('build');
+          G.selectedSurv = -1;
+        }
+      } else {
+        // 방어물 배치
+        const defType = DEF_ORDER[G.selectedDef];
+        // 화염/EMP 포탑은 업그레이드 공격 Lv4 필요
+        if ((defType === 'turretFire' || defType === 'empTrap') && G.upgrades.attack < 4) {
+          showWarning(t('attack') + ' Lv4 ' + t('upgrade') + ' needed');
+        } else {
+          tryPlace(gx, gy, defType);
+        }
+      }
+    }
+    // 방어물 선택 버튼 (하단)
+    const btnY = G.screenH - 55;
+    for (let i = 0; i < DEF_ORDER.length; i++) {
+      const bx = G.screenW / 2 - (DEF_ORDER.length * 52) / 2 + i * 52;
+      if (UI.hitTest(input.tapX, input.tapY, bx, btnY, 48, 48)) {
+        G.selectedDef = i;
+        sfx('select');
+      }
+    }
+    // 서바이버 버튼
+    for (let i = 0; i < Math.min(G.survivors.length, 4); i++) {
+      const bx = 10, by = 100 + i * 55;
+      if (UI.hitTest(input.tapX, input.tapY, bx, by, 48, 48)) {
+        G.selectedSurv = (G.selectedSurv === i) ? -1 : i;
+        sfx('select');
+      }
+    }
+    // "시작" 버튼
+    const startBtnX = G.screenW - 110, startBtnY = G.screenH - 55;
+    if (UI.hitTest(input.tapX, input.tapY, startBtnX, startBtnY, 100, 48)) {
+      if (G.waveNum >= 3) beginTransition(ST.BOSS_NIGHT);
+      else beginTransition(ST.NIGHT_WAVE);
+    }
+  }
+  // 마우스 호버 미리보기
+  if (!input.isMobile) {
+    const cs = G.cellSize;
+    const gx = Math.floor((input.mouseX - G.gridOffX) / cs);
+    const gy = Math.floor((input.mouseY - G.gridOffY) / cs);
+    if (gx >= 0 && gx < DEFENSE_GRID && gy >= 0 && gy < DEFENSE_GRID && G.defenseGrid[gy][gx] === 0) {
+      G.placementPreview = { gx, gy, type: DEF_ORDER[G.selectedDef] };
+    } else {
+      G.placementPreview = null;
+    }
+  }
+}
+
+// ── NIGHT WAVE 업데이트 ──
+function updateNightWave(dt) {
+  const dtSec = dt / 1000;
+  if (input.jp('Escape')) {
+    G.showPauseUI = !G.showPauseUI;
+    G.inputMode = G.showPauseUI ? 'modal' : 'game';
+    return;
+  }
+  if (G.showPauseUI) { updatePauseUI(); return; }
+  G.waveTimer -= dtSec;
+  // 좀비 스폰
+  processSpawnQueue(dt);
+  // 좀비 AI
+  for (const z of G.zombies) { if (z.alive) updateZombieAI(z, dt); }
+  // 서바이버 AI
+  for (const s of G.survivors) updateSurvivorAI(s, dt);
+  // 포탑 AI
+  updateTurrets(dt);
+  // 트랩
+  checkTraps();
+  // 플레이어 사격 (야간에도 직접 사격 가능)
+  updatePlayerShootingNight(dt);
+  // 투사체
+  updateProjectiles(dt);
+  // 좀비 → 코어/바리케이드 데미지
+  zombieAttack(dt);
+  // 스피터 원거리 공격 + 적 투사체 (기획서 §2 스피터 산성액)
+  updateSpitterAttack(dt);
+  updateEnemyProjectiles(dt);
+  // 식량 소비
+  consumeSurvivorFood(dt);
+  // 정리
+  cleanupZombies();
+  cleanupBarricades();
+  // 코어 파괴 체크
+  if (G.core.hp <= 0) {
+    G.core.hp = 0;
+    beginTransition(ST.GAMEOVER);
+    return;
+  }
+  // 웨이브 클리어 체크
+  checkWaveComplete();
+}
+
+// 야간 플레이어 사격 (고정 위치에서)
+function updatePlayerShootingNight(dt) {
+  const dtSec = dt / 1000;
+  const p = G.player;
+  // 야간에는 플레이어가 코어 근처에 고정
+  const cs = G.cellSize;
+  const corePos = getCorePos();
+  p.x = G.gridOffX + corePos.x * cs + cs;
+  p.y = G.gridOffY + corePos.y * cs + cs + cs;
+  p.shootCd -= dtSec;
+  if (p.reloading) {
+    p.reloadTimer -= dtSec;
+    if (p.reloadTimer <= 0) {
+      const ammoNeeded = p.maxClip - p.ammoClip;
+      const ammoAvail = Math.min(ammoNeeded, G.ammo);
+      p.ammoClip += ammoAvail;
+      G.ammo -= ammoAvail;
+      p.reloading = false;
+      sfx('reload');
+    }
+    return;
+  }
+  if (input.jp('KeyR') && p.ammoClip < p.maxClip && G.ammo > 0) {
+    p.reloading = true; p.reloadTimer = 1.5; return;
+  }
+  const shouldShoot = (input.mouseDown && !input.isMobile) || G.touchButtons.some(b => b.id === 'atk' && b.pressed);
+  if (shouldShoot && p.shootCd <= 0 && p.ammoClip > 0) {
+    let angle;
+    if (input.isMobile) {
+      let closest = null, cd = Infinity;
+      for (const z of G.zombies) { if (!z.alive) continue; const d = MathUtil.dist(p.x, p.y, z.x, z.y); if (d < cd) { closest = z; cd = d; } }
+      if (G.boss && G.boss.alive) { const bd = MathUtil.dist(p.x, p.y, G.boss.x, G.boss.y); if (bd < cd) { closest = G.boss; cd = bd; } }
+      angle = closest ? MathUtil.angle(p.x, p.y, closest.x, closest.y) : p.facing;
+    } else {
+      angle = MathUtil.angle(p.x, p.y, input.mouseX, input.mouseY);
+    }
+    let dmg = 10;
+    if (G.upgrades.attack >= 1) dmg *= 1.15;
+    p.facing = angle;
+    G.projectiles.push(createProjectile(p.x, p.y, angle, 450, dmg, 'bullet'));
+    p.ammoClip--;
+    p.shootCd = 0.18;
+    sfx('shoot');
+    if (p.ammoClip <= 0 && G.ammo > 0) { p.reloading = true; p.reloadTimer = 1.5; }
+  }
+}
+
+// ── BOSS NIGHT 업데이트 ──
+function updateBossNight(dt) {
+  const dtSec = dt / 1000;
+  if (input.jp('Escape')) {
+    G.showPauseUI = !G.showPauseUI;
+    G.inputMode = G.showPauseUI ? 'modal' : 'game';
+    return;
+  }
+  if (G.showPauseUI) { updatePauseUI(); return; }
+  // 보스 AI
+  updateBossAI(G.boss, dt);
+  // 좀비 (보스가 소환할 수 있음)
+  for (const z of G.zombies) { if (z.alive) updateZombieAI(z, dt); }
+  // 서바이버
+  for (const s of G.survivors) updateSurvivorAI(s, dt);
+  // 포탑
+  updateTurrets(dt);
+  // 트랩
+  checkTraps();
+  // 플레이어 사격
+  updatePlayerShootingNight(dt);
+  // 투사체
+  updateProjectiles(dt);
+  // 좀비 공격
+  zombieAttack(dt);
+  // 의무관 → 보스 치유 역전 (패이션트 제로)
+  if (G.boss && G.boss.alive && G.boss.weakness === 'heal') {
+    const hasMedicNearBoss = G.survivors.some(s => {
+      if (!s.alive || !s.placed || s.type !== 'medic') return false;
+      const cs = G.cellSize;
+      const sx = G.gridOffX + s.gx * cs + cs / 2;
+      const sy = G.gridOffY + s.gy * cs + cs / 2;
+      return MathUtil.dist(sx, sy, G.boss.x, G.boss.y) < cs * 3;
+    });
+    G.boss.healReversed = hasMedicNearBoss;
+  }
+  // 스피터 원거리 공격 + 적 투사체 (기획서 §2 스피터 산성액)
+  updateSpitterAttack(dt);
+  updateEnemyProjectiles(dt);
+  // 식량 소비
+  consumeSurvivorFood(dt);
+  cleanupZombies();
+  cleanupBarricades();
+  // 코어 파괴
+  if (G.core.hp <= 0) {
+    G.core.hp = 0;
+    beginTransition(ST.GAMEOVER);
+    return;
+  }
+  // 보스 격파
+  if (G.boss && G.boss.hp <= 0 && G.boss.alive) {
+    G.boss.alive = false;
+    onBossDefeated();
+  }
+}
+
+// ── GAMEOVER 업데이트 ──
+function updateGameover(dt) {
+  if (input.jp('KeyR') || input.tapped) {
+    sfx('select');
+    fullReset();
+    beginTransition(ST.TITLE);
+  }
+}
+
+// ── PAUSE UI ──
+function updatePauseUI() {
+  if (input.tapped) {
+    const cx = G.screenW / 2, cy = G.screenH / 2;
+    // Resume 버튼
+    if (UI.hitTest(input.tapX, input.tapY, cx - 60, cy - 10, 120, 40)) {
+      G.showPauseUI = false;
+      G.inputMode = G.state === ST.NIGHT_PREP ? 'place' : 'game';
+      sfx('select');
+    }
+    // Quit 버튼
+    if (UI.hitTest(input.tapX, input.tapY, cx - 60, cy + 40, 120, 40)) {
+      G.showPauseUI = false;
+      beginTransition(ST.GAMEOVER);
+    }
+  }
+  if (input.jp('Escape')) {
+    G.showPauseUI = false;
+    G.inputMode = G.state === ST.NIGHT_PREP ? 'place' : 'game';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// R8 UI / RENDER
+// ═══════════════════════════════════════════════════════════
+
+function render(ctx, w, h, dt) {
+  // 화면 흔들림 오프셋
+  const shake = UI.shake(G.shakeIntensity);
+  ctx.save();
+  ctx.translate(shake.x, shake.y);
+  // 배경
+  renderBackground(ctx, w, h);
+  // 상태별 렌더링
+  switch (G.state) {
+    case ST.TITLE: renderTitle(ctx, w, h); break;
+    case ST.MAP: renderMap(ctx, w, h); break;
+    case ST.DAY_EXPLORE: renderDayExplore(ctx, w, h); break;
+    case ST.NIGHT_PREP: renderNightPrep(ctx, w, h); break;
+    case ST.NIGHT_WAVE: renderNightWave(ctx, w, h); break;
+    case ST.BOSS_NIGHT: renderBossNight(ctx, w, h); break;
+    case ST.GAMEOVER: renderGameover(ctx, w, h); break;
+  }
+  // 파티클
+  particles.render(ctx);
+  // 확장 렌더링 통합 (monkey-patch 제거 — wisdom-coder 권고)
+  renderExtended(ctx, w, h);
+  // 경고 메시지
+  if (warningTimer > 0) {
+    const alpha = Math.min(1, warningTimer);
+    ctx.globalAlpha = alpha;
+    UI.text(ctx, warningMsg, w / 2, h / 2 - 80, { size: 18, color: COL.fire, bold: true, glow: COL.fire });
+    ctx.globalAlpha = 1;
+  }
+  // 내러티브 텍스트
+  if (G.narrativeTimer > 0 && G.narrative) {
+    const alpha = Math.min(1, G.narrativeTimer);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(20, h - 90, w - 40, 50);
+    UI.text(ctx, G.narrative, w / 2, h - 65, { size: 14, color: COL.text });
+    ctx.globalAlpha = 1;
+  }
+  // 페이드
+  UI.fade(ctx, w, h, G.fadeAlpha);
+  // 스캔라인
+  UI.scanlines(ctx, w, h, 0.02);
+  ctx.restore();
+  // 모바일 가상 컨트롤 (흔들림 바깥)
+  if (input.isMobile && (G.state === ST.DAY_EXPLORE || G.state === ST.NIGHT_WAVE || G.state === ST.BOSS_NIGHT)) {
+    renderMobileControls(ctx, w, h);
+  }
+  // 유물 선택 UI (오버레이)
+  if (G.showRelicUI) renderRelicUI(ctx, w, h);
+  // 일시정지 UI
+  if (G.showPauseUI) renderPauseUI(ctx, w, h);
+}
+
+// 배경 렌더링
+function renderBackground(ctx, w, h) {
+  const dayLerp = G.dayNightLerp;
+  // 밤/낮 그라디언트
+  const r = Math.floor(MathUtil.lerp(26, 74, dayLerp));
+  const g = Math.floor(MathUtil.lerp(26, 66, dayLerp));
+  const b = Math.floor(MathUtil.lerp(46, 56, dayLerp));
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, w, h);
+  // 배경 에셋
+  if (assets.sprites.bgFar) {
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(assets.sprites.bgFar, 0, 0, w, h * 0.4);
+    ctx.globalAlpha = 1;
+  }
+  if (assets.sprites.bgMid) {
+    ctx.globalAlpha = 0.3;
+    ctx.drawImage(assets.sprites.bgMid, 0, h * 0.15, w, h * 0.4);
+    ctx.globalAlpha = 1;
+  }
+  // 근경/지면 레이어 (bg-ground.png)
+  if (assets.sprites.bgGround) {
+    ctx.globalAlpha = 0.35;
+    ctx.drawImage(assets.sprites.bgGround, 0, h * 0.5, w, h * 0.5);
+    ctx.globalAlpha = 1;
+  }
+  // 바닥 프로시저럴 그리드 패턴
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < w; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+}
+
+// ── TITLE 렌더 ──
+function renderTitle(ctx, w, h) {
+  const t0 = G.titleAnimT;
+  // 로고 배경 글로우
+  const glowSize = 200 + Math.sin(t0 * 2) * 20;
+  const grad = ctx.createRadialGradient(w / 2, h / 3, 0, w / 2, h / 3, glowSize);
+  grad.addColorStop(0, 'rgba(231,76,60,0.15)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // 타이틀 텍스트
+  const titleAlpha = Math.min(1, t0 * 0.8);
+  ctx.globalAlpha = titleAlpha;
+  UI.text(ctx, t('title'), w / 2, h / 3 - 10, { size: Math.min(42, w / 10), bold: true, color: COL.text, glow: COL.fire });
+  UI.text(ctx, t('subtitle'), w / 2, h / 3 + 35, { size: Math.min(16, w / 26), color: '#8080a0' });
+  ctx.globalAlpha = 1;
+  // 시작 버튼
+  const btnAlpha = 0.6 + Math.sin(t0 * 3) * 0.3;
+  ctx.globalAlpha = btnAlpha;
+  UI.text(ctx, t('tapToStart'), w / 2, h * 0.6, { size: 16, color: COL.accent, bold: true });
+  ctx.globalAlpha = 1;
+  // 최고 점수
+  if (G.bestScore > 0) {
+    UI.text(ctx, t('best') + ': ' + G.bestScore, w / 2, h * 0.7, { size: 14, color: COL.gold });
+  }
+  // 언어 토글 안내
+  UI.text(ctx, 'L: ' + (lang === 'ko' ? 'English' : '한국어'), w / 2, h - 30, { size: 11, color: '#505070' });
+  // 좀비 실루엣 장식
+  ctx.globalAlpha = 0.1;
+  const zombieImg = assets.sprites.zombieBasic;
+  if (zombieImg) {
+    for (let i = 0; i < 5; i++) {
+      const zx = w * 0.1 + i * w * 0.2;
+      const zy = h * 0.8 + Math.sin(t0 + i) * 10;
+      ctx.drawImage(zombieImg, zx - 20, zy - 20, 40, 40);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── MAP 렌더 ──
+function renderMap(ctx, w, h) {
+  UI.text(ctx, t('selectZone'), w / 2, 50, { size: 22, bold: true, color: COL.text, glow: COL.accent });
+  UI.text(ctx, '★ ' + G.stars, w / 2, 80, { size: 16, color: COL.gold });
+  // 구역 버튼
+  for (let i = 0; i < 3; i++) {
+    const bx = w / 2 - 120, by = 120 + i * 80;
+    const bw = 240, bh = 60;
+    const cleared = G.zonesCleared[i];
+    const accessible = i <= G.zone;
+    const color = cleared ? COL.heal : (accessible ? COL.accent : '#333');
+    ctx.fillStyle = cleared ? 'rgba(0,184,148,0.15)' : (accessible ? 'rgba(230,126,34,0.15)' : 'rgba(50,50,50,0.3)');
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
+    UI.text(ctx, t(ZONE_NAMES[i]), w / 2, by + 20, { size: 16, bold: true, color: accessible ? COL.text : '#555' });
+    UI.text(ctx, cleared ? '✓ CLEARED' : (accessible ? t('boss') + ': ' + t(BOSS_NAMES[i]) : '🔒'), w / 2, by + 42, { size: 12, color: cleared ? COL.heal : (accessible ? '#aaa' : '#444') });
+  }
+  // 업그레이드 버튼
+  const ubx = w / 2 - 80, uby = h - 80;
+  UI.button(ctx, t('upgrade') + ' (E)', ubx, uby, 160, 48, { color: COL.purple });
+  // 현재 업그레이드 표시
+  const axes = ['defense', 'attack', 'explore'];
+  for (let i = 0; i < 3; i++) {
+    UI.text(ctx, t(axes[i]) + ' Lv' + G.upgrades[axes[i]], w / 2 - 100 + i * 100, h - 110, { size: 11, color: '#8080a0' });
+  }
+  // 업그레이드 UI 오버레이
+  if (G.showUpgradeUI) renderUpgradeUI(ctx, w, h);
+}
+
+function renderUpgradeUI(ctx, w, h) {
+  // 반투명 배경
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, w, h);
+  UI.text(ctx, t('upgrade'), w / 2, h / 2 - 100, { size: 24, bold: true, color: COL.gold, glow: COL.gold });
+  UI.text(ctx, '★ ' + G.stars, w / 2, h / 2 - 70, { size: 16, color: COL.gold });
+  const axes = ['defense', 'attack', 'explore'];
+  const colors = [COL.heal, COL.fire, COL.cyan];
+  for (let i = 0; i < 3; i++) {
+    const ax = axes[i];
+    const lv = G.upgrades[ax];
+    const bx = w / 2 - 150 + i * 110;
+    const by = h / 2 - 30;
+    UI.text(ctx, t(ax), bx + 45, by - 15, { size: 14, bold: true, color: colors[i] });
+    UI.text(ctx, 'Lv ' + lv + '/5', bx + 45, by + 5, { size: 12, color: '#aaa' });
+    // 업그레이드 버튼
+    if (lv < 5) {
+      const cost = UPGRADE_TREE[ax][lv].cost;
+      const canAfford = G.stars >= cost;
+      const btnColor = canAfford ? colors[i] : '#444';
+      ctx.fillStyle = canAfford ? btnColor + '44' : '#222';
+      ctx.strokeStyle = btnColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(bx, by + 20, 90, 40, 6); ctx.fill(); ctx.stroke();
+      UI.text(ctx, '★' + cost, bx + 45, by + 35, { size: 12, color: canAfford ? COL.gold : '#555' });
+      UI.text(ctx, UPGRADE_TREE[ax][lv].desc, bx + 45, by + 50, { size: 8, color: '#777' });
+    } else {
+      UI.text(ctx, 'MAX', bx + 45, by + 40, { size: 14, bold: true, color: colors[i] });
+    }
+  }
+  // 닫기
+  UI.button(ctx, 'Close (E)', w / 2 - 40, h / 2 + 100, 80, 36, { color: '#555' });
+}
+
+// ── DAY EXPLORE 렌더 ──
+function renderDayExplore(ctx, w, h) {
+  const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(w / GRID_COLS, (h - 60) / GRID_ROWS)));
+  // 타일맵
+  if (G.exploreGrid) {
+    for (let y = 0; y < GRID_ROWS; y++) {
+      for (let x = 0; x < GRID_COLS; x++) {
+        const px = x * cs, py = y * cs + 50;
+        const cell = G.exploreGrid[y][x];
+        if (cell === 'building') {
+          ctx.fillStyle = '#3a3a50';
+          ctx.fillRect(px, py, cs - 1, cs - 1);
+          ctx.fillStyle = '#555';
+          ctx.fillRect(px + 4, py + 4, cs - 9, cs - 9);
+        } else if (cell === 'rubble') {
+          ctx.fillStyle = '#2a2a38';
+          ctx.fillRect(px, py, cs - 1, cs - 1);
+        } else {
+          ctx.fillStyle = '#222230';
+          ctx.fillRect(px, py, cs - 1, cs - 1);
+        }
+      }
+    }
+  }
+  // 아이템
+  for (const item of G.exploreItems) {
+    if (item.collected) continue;
+    const ix = item.x * cs + cs / 2, iy = item.y * cs + cs / 2 + 50;
+    const bob = Math.sin(G.animTime / 300 + item.x + item.y) * 3;
+    if (item.type === 'scrap' && assets.sprites.itemScrap) {
+      ctx.drawImage(assets.sprites.itemScrap, ix - 10, iy - 10 + bob, 20, 20);
+    } else if (item.type === 'ammo' && assets.sprites.itemAmmo) {
+      ctx.drawImage(assets.sprites.itemAmmo, ix - 10, iy - 10 + bob, 20, 20);
+    } else {
+      const colors = { scrap: '#bbb', food: '#f39c12', ammo: '#ffd700' };
+      ctx.fillStyle = colors[item.type] || '#fff';
+      ctx.beginPath(); ctx.arc(ix, iy + bob, 7, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  // 서바이버 NPC
+  for (const sv of G.exploreSurvivors) {
+    if (sv.rescued) continue;
+    const sx = sv.x * cs + cs / 2, sy = sv.y * cs + cs / 2 + 50;
+    const pulse = 0.8 + Math.sin(G.animTime / 200) * 0.2;
+    const sAsset = 'survivor' + sv.type.charAt(0).toUpperCase() + sv.type.slice(1);
+    if (assets.sprites[sAsset]) {
+      ctx.drawImage(assets.sprites[sAsset], sx - 16, sy - 16, 32, 32);
+    } else {
+      ctx.fillStyle = SURV_TYPES[sv.type].color;
+      ctx.beginPath(); ctx.arc(sx, sy, 12 * pulse, 0, Math.PI * 2); ctx.fill();
+    }
+    // 느낌표
+    ctx.fillStyle = COL.gold;
+    ctx.font = 'bold 16px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.fillText('!', sx, sy - 22);
+  }
+  // 좀비
+  renderZombies(ctx);
+  // 투사체
+  renderProjectiles(ctx);
+  // 플레이어
+  renderPlayer(ctx);
+  // HUD
+  renderExploreHUD(ctx, w, h);
+}
+
+function renderPlayer(ctx) {
+  const p = G.player;
+  const size = 30;
+  const isShoot = p.shootCd > 0.1;
+  const assetKey = isShoot ? 'playerShoot' : 'player';
+  if (assets.sprites[assetKey]) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (p.facing > Math.PI / 2 || p.facing < -Math.PI / 2) ctx.scale(-1, 1);
+    ctx.drawImage(assets.sprites[assetKey], -size / 2, -size / 2, size, size);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#c0a060';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.fill();
+    // 방향 표시
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + Math.cos(p.facing) * 18, p.y + Math.sin(p.facing) * 18);
+    ctx.stroke();
+  }
+  // HP 바
+  if (p.hp < p.maxHp) {
+    UI.hpBar(ctx, p.x - 15, p.y - 22, 30, 4, p.hp, p.maxHp, { fgColor: COL.heal });
+  }
+  // 재장전 표시
+  if (p.reloading) {
+    ctx.fillStyle = COL.accent;
+    ctx.font = '10px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.fillText('RELOAD', p.x, p.y + 22);
+  }
+}
+
+function renderZombies(ctx) {
+  for (const z of G.zombies) {
+    if (!z.alive) continue;
+    const size = z.size;
+    const assetMap = { basic: 'zombieBasic', hulk: 'zombieHulk', spitter: 'zombieSpitter' };
+    const assetKey = assetMap[z.type] || 'zombieBasic';
+    if (assets.sprites[assetKey]) {
+      ctx.save();
+      ctx.translate(z.x, z.y);
+      // 스턴 시 파란색 오버레이
+      if (z.stunTimer > 0) ctx.globalAlpha = 0.5 + Math.sin(G.animTime / 100) * 0.3;
+      ctx.drawImage(assets.sprites[assetKey], -size / 2, -size / 2, size, size);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    } else {
+      ctx.fillStyle = z.stunTimer > 0 ? COL.cyan : COL.zombie;
+      ctx.beginPath(); ctx.arc(z.x, z.y, size / 2, 0, Math.PI * 2); ctx.fill();
+      if (z.type === 'hulk') { ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke(); }
+    }
+    // HP 바
+    if (z.hp < z.maxHp) {
+      UI.hpBar(ctx, z.x - size / 2, z.y - size / 2 - 6, size, 3, z.hp, z.maxHp, { fgColor: COL.fire });
+    }
+  }
+}
+
+function renderProjectiles(ctx) {
+  for (const p of G.projectiles) {
+    ctx.fillStyle = p.type === 'fire' ? COL.fire : '#ffd700';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // 트레일
+    ctx.strokeStyle = p.type === 'fire' ? 'rgba(231,76,60,0.4)' : 'rgba(255,215,0,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x - Math.cos(p.angle) * 8, p.y - Math.sin(p.angle) * 8);
+    ctx.stroke();
+  }
+}
+
+function renderExploreHUD(ctx, w, h) {
+  // 상단 바
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, 46);
+  // 타이머
+  const timeColor = G.dayTimer <= 10 ? COL.fire : COL.text;
+  UI.text(ctx, t('dayTime') + ': ' + Math.ceil(G.dayTimer) + 's', w / 2, 15, { size: 14, bold: true, color: timeColor });
+  // 자원
+  UI.text(ctx, '🔩' + Math.floor(G.scrap), 50, 35, { size: 12, color: '#bbb' });
+  UI.text(ctx, '🍖' + Math.floor(G.food), 130, 35, { size: 12, color: '#f39c12' });
+  UI.text(ctx, '🔫' + Math.floor(G.ammo) + '(' + G.player.ammoClip + ')', 210, 35, { size: 12, color: '#ffd700' });
+  // 점수
+  UI.text(ctx, t('score') + ': ' + G.score, w - 80, 15, { size: 12, color: COL.gold });
+  // 코어 HP
+  UI.hpBar(ctx, w - 120, 28, 100, 8, G.core.hp, G.core.maxHp, { fgColor: COL.heal });
+  UI.text(ctx, t('core_hp'), w - 120, 44, { size: 9, color: '#888', align: 'left' });
+  // 10초 경고
+  if (G.dayTimer <= 10) {
+    ctx.strokeStyle = 'rgba(231,76,60,' + (0.3 + Math.sin(G.animTime / 150) * 0.3) + ')';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(0, 0, w, h);
+  }
+}
+
+// ── NIGHT PREP 렌더 ──
+function renderNightPrep(ctx, w, h) {
+  renderDefenseGrid(ctx, w, h);
+  // 타이머
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, 46);
+  const timeColor = G.prepTimer <= 5 ? COL.fire : COL.text;
+  UI.text(ctx, t('prep') + ': ' + Math.ceil(G.prepTimer) + 's', w / 2, 15, { size: 14, bold: true, color: timeColor });
+  UI.text(ctx, t('wave') + ' ' + (G.waveNum + 1) + '/3  ' + t(ZONE_NAMES[G.zone]), w / 2, 35, { size: 12, color: '#aaa' });
+  // 자원
+  UI.text(ctx, '🔩' + Math.floor(G.scrap), 50, 15, { size: 12, color: '#bbb' });
+  // 방어물 선택 패널
+  const btnY = h - 55;
+  for (let i = 0; i < DEF_ORDER.length; i++) {
+    const bx = w / 2 - (DEF_ORDER.length * 52) / 2 + i * 52;
+    const def = DEF_TYPES[DEF_ORDER[i]];
+    const selected = i === G.selectedDef;
+    ctx.fillStyle = selected ? def.color + '66' : 'rgba(30,30,48,0.8)';
+    ctx.strokeStyle = selected ? def.color : '#333';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.beginPath(); ctx.roundRect(bx, btnY, 48, 48, 6); ctx.fill(); ctx.stroke();
+    UI.text(ctx, t(def.key)[0].toUpperCase(), bx + 24, btnY + 18, { size: 14, bold: true, color: selected ? '#fff' : '#888' });
+    UI.text(ctx, def.cost + '', bx + 24, btnY + 36, { size: 10, color: COL.gold });
+  }
+  // 서바이버 슬롯 (좌측)
+  for (let i = 0; i < Math.min(G.survivors.length, 4); i++) {
+    const s = G.survivors[i];
+    const bx = 10, by = 100 + i * 55;
+    const selected = i === G.selectedSurv;
+    ctx.fillStyle = selected ? SURV_TYPES[s.type].color + '44' : 'rgba(30,30,48,0.8)';
+    ctx.strokeStyle = selected ? SURV_TYPES[s.type].color : '#333';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.beginPath(); ctx.roundRect(bx, by, 48, 48, 6); ctx.fill(); ctx.stroke();
+    UI.text(ctx, t(s.type)[0].toUpperCase(), bx + 24, by + 18, { size: 14, bold: true, color: s.alive ? '#fff' : '#555' });
+    UI.text(ctx, (i + 1) + '', bx + 24, by + 36, { size: 10, color: '#aaa' });
+    if (s.placed) {
+      ctx.fillStyle = 'rgba(0,184,148,0.3)';
+      ctx.fillRect(bx, by, 48, 48);
+    }
+  }
+  // 시작 버튼
+  UI.button(ctx, '▶ START', w - 110, h - 55, 100, 48, { color: COL.fire });
+  // 배치 미리보기
+  if (G.placementPreview) {
+    const cs = G.cellSize;
+    const pp = G.placementPreview;
+    const px = G.gridOffX + pp.gx * cs;
+    const py = G.gridOffY + pp.gy * cs;
+    ctx.fillStyle = 'rgba(108,60,247,0.3)';
+    ctx.fillRect(px, py, cs, cs);
+    ctx.strokeStyle = COL.purple;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, cs, cs);
+  }
+}
+
+function renderDefenseGrid(ctx, w, h) {
+  const cs = G.cellSize;
+  const ox = G.gridOffX, oy = G.gridOffY;
+  // 그리드
+  for (let y = 0; y < DEFENSE_GRID; y++) {
+    for (let x = 0; x < DEFENSE_GRID; x++) {
+      const px = ox + x * cs, py = oy + y * cs;
+      const cell = G.defenseGrid[y][x];
+      if (cell === 2) {
+        // 코어
+        ctx.fillStyle = 'rgba(0,184,148,0.2)';
+        ctx.fillRect(px, py, cs, cs);
+        ctx.strokeStyle = COL.heal;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px, py, cs, cs);
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(px, py, cs, cs);
+      }
+    }
+  }
+  // 코어 중앙
+  const corePos = getCorePos();
+  const corePx = ox + (corePos.x - 1) * cs;
+  const corePy = oy + (corePos.y - 1) * cs;
+  ctx.fillStyle = COL.heal + '33';
+  ctx.fillRect(corePx, corePy, cs * 2, cs * 2);
+  UI.text(ctx, 'CORE', corePx + cs, corePy + cs, { size: 12, bold: true, color: COL.heal });
+  UI.hpBar(ctx, corePx, corePy + cs * 2 + 2, cs * 2, 6, G.core.hp, G.core.maxHp, { fgColor: COL.heal });
+  // 바리케이드
+  for (const b of G.barricades) {
+    if (b.hp <= 0) continue;
+    const px = ox + b.gx * cs, py = oy + b.gy * cs;
+    if (assets.sprites.defenseBarricade) {
+      ctx.drawImage(assets.sprites.defenseBarricade, px + 2, py + 2, cs - 4, cs - 4);
+    } else {
+      const hpPct = b.hp / b.maxHp;
+      ctx.fillStyle = hpPct > 0.5 ? COL.barricade : '#8B4513';
+      ctx.fillRect(px + 2, py + 2, cs - 4, cs - 4);
+    }
+    UI.hpBar(ctx, px, py - 4, cs, 3, b.hp, b.maxHp, { fgColor: '#8B7355' });
+  }
+  // 포탑
+  for (const t of G.turrets) {
+    const px = ox + t.gx * cs + cs / 2;
+    const py = oy + t.gy * cs + cs / 2;
+    if (assets.sprites.defenseTurret) {
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(t.angle);
+      ctx.drawImage(assets.sprites.defenseTurret, -cs / 2 + 2, -cs / 2 + 2, cs - 4, cs - 4);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = t.type === 'turretFire' ? COL.fire : COL.turret;
+      ctx.beginPath(); ctx.arc(px, py, cs / 3, 0, Math.PI * 2); ctx.fill();
+      // 총신
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(t.angle) * cs / 2, py + Math.sin(t.angle) * cs / 2);
+      ctx.stroke();
+    }
+  }
+  // 트랩
+  for (const trap of G.traps) {
+    const px = ox + trap.gx * cs + cs / 2;
+    const py = oy + trap.gy * cs + cs / 2;
+    ctx.fillStyle = trap.type === 'empTrap' ? COL.cyan + '88' : COL.gold + '88';
+    ctx.beginPath(); ctx.arc(px, py, cs / 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = trap.type === 'empTrap' ? COL.cyan : COL.gold;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // 배치된 서바이버
+  for (const s of G.survivors) {
+    if (!s.alive || !s.placed) continue;
+    const px = ox + s.gx * cs + cs / 2;
+    const py = oy + s.gy * cs + cs / 2;
+    const sKey = 'survivor' + s.type.charAt(0).toUpperCase() + s.type.slice(1);
+    if (assets.sprites[sKey]) {
+      ctx.drawImage(assets.sprites[sKey], px - cs / 3, py - cs / 3, cs * 2 / 3, cs * 2 / 3);
+    } else {
+      ctx.fillStyle = SURV_TYPES[s.type].color;
+      ctx.beginPath(); ctx.arc(px, py, cs / 4, 0, Math.PI * 2); ctx.fill();
+    }
+    if (s.hp < s.maxHp) {
+      UI.hpBar(ctx, px - cs / 3, py - cs / 3 - 4, cs * 2 / 3, 3, s.hp, s.maxHp, { fgColor: COL.heal });
+    }
+  }
+  // 스폰 포인트 표시
+  const spawns = getSpawnPoints();
+  for (const sp of spawns) {
+    const px = ox + sp.x * cs + cs / 2;
+    const py = oy + sp.y * cs + cs / 2;
+    const pulse = 0.3 + Math.sin(G.animTime / 400) * 0.2;
+    ctx.fillStyle = `rgba(231,76,60,${pulse})`;
+    ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── NIGHT WAVE 렌더 ──
+function renderNightWave(ctx, w, h) {
+  renderDefenseGrid(ctx, w, h);
+  renderZombies(ctx);
+  renderProjectiles(ctx);
+  renderPlayer(ctx);
+  // HUD
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, 46);
+  UI.text(ctx, t('night') + ' — ' + t('wave') + ' ' + (G.waveNum + 1), w / 2, 15, { size: 14, bold: true, color: COL.fire });
+  UI.text(ctx, t(ZONE_NAMES[G.zone]) + '  ' + t('score') + ': ' + G.score, w / 2, 35, { size: 12, color: '#aaa' });
+  // 자원
+  UI.text(ctx, '🔫' + Math.floor(G.ammo) + '(' + G.player.ammoClip + ')', 50, 15, { size: 12, color: '#ffd700' });
+  UI.text(ctx, '🔩' + Math.floor(G.scrap), 150, 15, { size: 12, color: '#bbb' });
+  // 코어 HP
+  UI.hpBar(ctx, w - 120, 8, 100, 10, G.core.hp, G.core.maxHp, { fgColor: COL.heal });
+  UI.text(ctx, t('core_hp') + ' ' + Math.ceil(G.core.hp), w - 70, 28, { size: 10, color: COL.heal });
+  // 남은 좀비
+  UI.text(ctx, '💀 ' + G.zombies.length + '+' + G.spawnQueue.length, w - 70, 42, { size: 10, color: COL.zombie });
+  // 미니맵 (Tab 토글)
+  renderMinimap(ctx, w, h);
+  // 야간 비네트
+  renderNightVignette(ctx, w, h);
+}
+
+// ── BOSS NIGHT 렌더 ──
+function renderBossNight(ctx, w, h) {
+  renderDefenseGrid(ctx, w, h);
+  renderZombies(ctx);
+  renderProjectiles(ctx);
+  renderPlayer(ctx);
+  // 보스
+  if (G.boss && G.boss.alive) {
+    renderBoss(ctx, G.boss);
+  }
+  // HUD
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, 46);
+  UI.text(ctx, '⚠ ' + t('boss') + ' — ' + t(G.boss ? G.boss.name : ''), w / 2, 15, { size: 16, bold: true, color: COL.fire, glow: COL.fire });
+  if (G.boss) {
+    UI.hpBar(ctx, w / 4, 30, w / 2, 10, Math.max(0, G.boss.hp), G.boss.maxHp, { fgColor: '#e74c3c', borderColor: '#ff4444' });
+    // 페이즈 표시
+    const phase = G.boss.currentPhase + 1;
+    UI.text(ctx, t('phase' + phase), w / 2, 44, { size: 10, color: '#ff8888' });
+    // 약점 힌트 (업그레이드 탐색 Lv4)
+    if (G.upgrades.explore >= 4) {
+      UI.text(ctx, t('bossWeakness') + ': ' + t(G.boss.weakness), w / 2 + w / 4 + 30, 36, { size: 10, color: COL.cyan });
+    }
+    // 방패/갑옷 표시
+    if (G.boss.shieldActive) UI.text(ctx, '🛡 Shield Active', 60, 36, { size: 10, color: '#aaa' });
+    if (G.boss.armorActive) UI.text(ctx, '🛡 Armor Active', 60, 36, { size: 10, color: '#aaa' });
+  }
+  // 코어/자원
+  UI.hpBar(ctx, w - 120, 8, 100, 8, G.core.hp, G.core.maxHp, { fgColor: COL.heal });
+  UI.text(ctx, '🔫' + Math.floor(G.ammo) + '(' + G.player.ammoClip + ')', 50, 15, { size: 11, color: '#ffd700' });
+  // 미니맵 (Tab 토글)
+  renderMinimap(ctx, w, h);
+  // 야간 비네트
+  renderNightVignette(ctx, w, h);
+}
+
+function renderBoss(ctx, boss) {
+  const assetKey = boss.asset;
+  const size = boss.size;
+  if (boss.introActive) {
+    // 인트로 연출 — 깜빡임
+    ctx.globalAlpha = 0.5 + Math.sin(G.animTime / 80) * 0.5;
+  }
+  // 방패/갑옷 오라
+  if (boss.shieldActive || boss.armorActive) {
+    ctx.strokeStyle = boss.shieldActive ? 'rgba(74,124,89,0.5)' : 'rgba(92,107,115,0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(boss.x, boss.y, size * 0.8, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (assets.sprites[assetKey]) {
+    ctx.drawImage(assets.sprites[assetKey], boss.x - size * 0.75, boss.y - size * 0.5, size * 1.5, size);
+  } else {
+    ctx.fillStyle = boss.currentPhase >= 2 ? COL.fire : '#5a3a6a';
+    ctx.beginPath(); ctx.arc(boss.x, boss.y, size / 2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── GAMEOVER 렌더 ──
+function renderGameover(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, w, h);
+  UI.text(ctx, t('gameover'), w / 2, h / 3 - 20, { size: 36, bold: true, color: COL.fire, glow: COL.fire });
+  UI.text(ctx, t('score') + ': ' + G.score, w / 2, h / 3 + 30, { size: 20, bold: true, color: COL.gold });
+  UI.text(ctx, t('best') + ': ' + G.bestScore, w / 2, h / 3 + 60, { size: 16, color: '#aaa' });
+  UI.text(ctx, t('zone') + ': ' + (G.zone + 1) + '/3  ' + t('wave') + ': ' + G.waveNum, w / 2, h / 3 + 90, { size: 14, color: '#888' });
+  // 통계
+  UI.text(ctx, '💀 ' + G.totalKills + ' kills  ★ ' + G.stars + ' stars', w / 2, h / 3 + 115, { size: 12, color: '#666' });
+  // 유물 목록
+  if (G.relics.length > 0) {
+    UI.text(ctx, 'Relics: ' + G.relics.length, w / 2, h / 3 + 140, { size: 11, color: COL.purple });
+  }
+  // 재시작
+  const blink = 0.5 + Math.sin(G.animTime / 400) * 0.4;
+  ctx.globalAlpha = blink;
+  UI.text(ctx, t('restart'), w / 2, h * 0.75, { size: 16, color: COL.accent, bold: true });
+  ctx.globalAlpha = 1;
+}
+
+// ── RELIC UI ──
+function renderRelicUI(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(0, 0, w, h);
+  UI.text(ctx, t('relic_choose'), w / 2, h / 4 - 10, { size: 22, bold: true, color: COL.gold, glow: COL.gold });
+  if (!G.relicChoices) return;
+  const tierColors = ['#aaa', COL.cyan, COL.purple];
+  const tierNames = ['relicNormal', 'relicRare', 'relicEpic'];
+  for (let i = 0; i < G.relicChoices.length; i++) {
+    const r = G.relicChoices[i];
+    const bx = w / 2 - 130 + i * 95;
+    const by = h / 3;
+    const bw = 80, bh = 110;
+    const color = tierColors[r.tier];
+    ctx.fillStyle = color + '22';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
+    UI.text(ctx, t(tierNames[r.tier]), bx + bw / 2, by + 18, { size: 10, color });
+    UI.text(ctx, lang === 'ko' ? r.name : r.nameEn, bx + bw / 2, by + 40, { size: 11, bold: true, color: '#fff' });
+    UI.text(ctx, '+' + Math.round(r.val * 100) + '%', bx + bw / 2, by + 60, { size: 14, bold: true, color });
+    UI.text(ctx, r.stat, bx + bw / 2, by + 78, { size: 9, color: '#888' });
+    // 선택 영역 체크
+    if (input.tapped && UI.hitTest(input.tapX, input.tapY, bx, by, bw, bh)) {
+      onRelicChosen(i);
+    }
+  }
+}
+
+// ── PAUSE UI ──
+function renderPauseUI(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+  UI.text(ctx, t('paused'), w / 2, h / 2 - 50, { size: 28, bold: true, color: COL.text });
+  UI.button(ctx, t('resume'), w / 2 - 60, h / 2 - 10, 120, 40, { color: COL.heal });
+  UI.button(ctx, t('quit'), w / 2 - 60, h / 2 + 40, 120, 40, { color: COL.fire });
+}
+
+// ── MOBILE CONTROLS ──
+function renderMobileControls(ctx, w, h) {
+  // 가상 조이스틱 (좌측 하단)
+  const jx = 80, jy = h - 100, jr = 50;
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.fill();
+  if (G.joystick.active) {
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(jx + G.joystick.dx * jr * 0.7, jy + G.joystick.dy * jr * 0.7, 18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // 버튼 (우측)
+  const buttons = [
+    { id: 'atk', label: 'ATK', x: w - 80, y: h - 130, r: 30, color: COL.fire },
+    { id: 'act', label: 'ACT', x: w - 80, y: h - 60, r: 24, color: COL.heal },
+    { id: 'reload', label: 'R', x: w - 140, y: h - 90, r: 24, color: COL.accent },
+  ];
+  G.touchButtons = [];
+  for (const btn of buttons) {
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = btn.color;
+    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(btn.label, btn.x, btn.y);
+    ctx.globalAlpha = 1;
+    // 터치 검사
+    let pressed = false;
+    for (const touch of input.touches) {
+      if (MathUtil.dist(touch.x, touch.y, btn.x, btn.y) < btn.r + 10) pressed = true;
+    }
+    if (input.mouseDown && MathUtil.dist(input.mouseX, input.mouseY, btn.x, btn.y) < btn.r + 10) pressed = true;
+    G.touchButtons.push({ ...btn, pressed });
+  }
+  // 조이스틱 터치 검사
+  updateJoystickTouch(jx, jy, jr);
+}
+
+function updateJoystickTouch(cx, cy, radius) {
+  G.joystick.active = false;
+  for (const touch of input.touches) {
+    const d = MathUtil.dist(touch.x, touch.y, cx, cy);
+    if (d < radius * 2) {
+      G.joystick.active = true;
+      const dx = (touch.x - cx) / radius;
+      const dy = (touch.y - cy) / radius;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 1) { G.joystick.dx = dx / len; G.joystick.dy = dy / len; }
+      else { G.joystick.dx = dx; G.joystick.dy = dy; }
+      break;
+    }
+  }
+  // 터치 없으면 마우스 폴백 (디버그)
+  if (!G.joystick.active && input.isMobile && input.mouseDown) {
+    const d = MathUtil.dist(input.mouseX, input.mouseY, cx, cy);
+    if (d < radius * 2.5) {
+      G.joystick.active = true;
+      const dx = (input.mouseX - cx) / radius;
+      const dy = (input.mouseY - cy) / radius;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 1) { G.joystick.dx = dx / len; G.joystick.dy = dy / len; }
+      else { G.joystick.dx = dx; G.joystick.dy = dy; }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// R9 SAVE — localStorage 영구 진행
+// ═══════════════════════════════════════════════════════════
+// (이미 위에서 saveProgress/loadProgress 구현)
+
+// ═══════════════════════════════════════════════════════════
+// R10 BOOT — 에셋 로드, manifest.json, Engine 초기화
+// ═══════════════════════════════════════════════════════════
+
+async function boot() {
+  // 엔진 초기화 — TDZ 방어 (F23, F27)
+  engine = new Engine('gameCanvas', {
+    update: (dt, ts) => { if (G._ready) update(dt); },
+    render: (ctx, w, h, dt) => { if (G._ready) render(ctx, w, h, dt); },
+    onResize: (w, h) => onResize(w, h),
+  });
+  input = new Input(engine.canvas);
+  sound = new Sound();
+  tween = new Tween();
+  particles = new Particles(500);
+  assets = new AssetLoader();
+
+  // manifest.json 에셋 로드 (F1, F22)
+  try {
+    const manifest = await fetch('assets/manifest.json').then(r => r.json()).catch(() => null);
+    if (manifest && manifest.assets) {
+      const assetMap = {};
+      for (const [key, info] of Object.entries(manifest.assets)) {
+        if (key === 'thumbnail') continue; // 썸네일은 게임에 불필요
+        assetMap[key] = 'assets/' + info.file;
+      }
+      await assets.load(assetMap);
+    }
+  } catch (e) {
+    console.warn('[AssetLoad]', e);
+  }
+
+  // 초기 레이아웃 계산
+  G.screenW = engine.W;
+  G.screenH = engine.H;
+  recalcLayout(engine.W, engine.H);
+
+  // 세이브 로드
+  loadProgress();
+
+  // _ready 플래그 — 모든 초기화 완료 후 (F27)
+  G._ready = true;
+
+  // 시작
+  engine.start();
+}
+
+boot();
+
+// ═══════════════════════════════════════════════════════════
+// EXTENDED SYSTEMS — 추가 시스템 (Phase 2 수준 품질)
+// ═══════════════════════════════════════════════════════════
+
+// ── 스피터 좀비 원거리 공격 시스템 ──
+// 스피터는 원거리에서 산성액을 발사하여 바리케이드/코어를 손상
+function updateSpitterAttack(dt) {
+  const dtSec = dt / 1000;
+  const cs = G.cellSize;
+  for (const z of G.zombies) {
+    if (!z.alive || z.type !== 'spitter' || z.stunTimer > 0) continue;
+    if (!z._spitCd) z._spitCd = 0;
+    z._spitCd -= dtSec;
+    if (z._spitCd > 0) continue;
+    // 사거리 내 타겟 찾기 (코어 또는 바리케이드)
+    const corePos = getCorePos();
+    const corePx = G.gridOffX + corePos.x * cs + cs;
+    const corePy = G.gridOffY + corePos.y * cs + cs;
+    const distToCore = MathUtil.dist(z.x, z.y, corePx, corePy);
+    if (distToCore < cs * 5) {
+      // 산성액 투사체 생성
+      const angle = MathUtil.angle(z.x, z.y, corePx, corePy);
+      G.projectiles.push({
+        x: z.x, y: z.y, angle, speed: 180, dmg: 3,
+        type: 'acid', life: 2.0, piercing: false, hitCount: 0, maxHits: 1,
+        isEnemy: true, // 적 투사체 플래그
+      });
+      z._spitCd = 3.0;
+      sfx('zombie_hit');
+      particles.emit(z.x, z.y, 5, { color: '#4a7c59', speed: 50, life: 0.3, size: 3 });
+    }
+  }
+}
+
+// 적 투사체 처리 (산성액 → 바리케이드/코어 데미지)
+function updateEnemyProjectiles(dt) {
+  const dtSec = dt / 1000;
+  const cs = G.cellSize;
+  for (let i = G.projectiles.length - 1; i >= 0; i--) {
+    const p = G.projectiles[i];
+    if (!p.isEnemy) continue;
+    // 바리케이드 충돌
+    for (const b of G.barricades) {
+      if (b.hp <= 0) continue;
+      const bx = G.gridOffX + b.gx * cs + cs / 2;
+      const by = G.gridOffY + b.gy * cs + cs / 2;
+      if (MathUtil.dist(p.x, p.y, bx, by) < cs * 0.6) {
+        b.hp -= p.dmg;
+        p.life = 0;
+        particles.emit(bx, by, 4, { color: '#4a7c59', speed: 40, life: 0.2 });
+        break;
+      }
+    }
+    // 코어 충돌
+    const corePos = getCorePos();
+    const corePx = G.gridOffX + corePos.x * cs + cs;
+    const corePy = G.gridOffY + corePos.y * cs + cs;
+    if (MathUtil.dist(p.x, p.y, corePx, corePy) < cs * 1.5) {
+      G.core.hp -= p.dmg;
+      p.life = 0;
+      particles.emit(corePx, corePy, 3, { color: COL.fire, speed: 30, life: 0.2 });
+    }
+    // 플레이어 충돌
+    if (MathUtil.dist(p.x, p.y, G.player.x, G.player.y) < 15) {
+      G.player.hp -= p.dmg * 2;
+      p.life = 0;
+      G.shakeIntensity = 2;
+    }
+  }
+}
+
+// ── 미니맵 시스템 ──
+// Tab 키 또는 터치로 토글
+function renderMinimap(ctx, w, h) {
+  if (!G.minimap) return;
+  const mapW = 120, mapH = 120;
+  const mx = w - mapW - 10, my = 50;
+  const cs = G.cellSize;
+  const scale = mapW / (DEFENSE_GRID * cs);
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(mx - 2, my - 2, mapW + 4, mapH + 4);
+  ctx.strokeStyle = COL.frame;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mx - 2, my - 2, mapW + 4, mapH + 4);
+  // 그리드
+  for (let y = 0; y < DEFENSE_GRID; y++) {
+    for (let x = 0; x < DEFENSE_GRID; x++) {
+      const px = mx + x * (mapW / DEFENSE_GRID);
+      const py = my + y * (mapH / DEFENSE_GRID);
+      const cw = mapW / DEFENSE_GRID;
+      const ch = mapH / DEFENSE_GRID;
+      const cell = G.defenseGrid[y][x];
+      if (cell === 2) { ctx.fillStyle = COL.heal + '88'; ctx.fillRect(px, py, cw, ch); }
+      else if (cell === 1) { ctx.fillStyle = '#555'; ctx.fillRect(px, py, cw, ch); }
+    }
+  }
+  // 좀비 도트
+  ctx.fillStyle = COL.fire;
+  for (const z of G.zombies) {
+    if (!z.alive) continue;
+    const rx = mx + ((z.x - G.gridOffX) / (DEFENSE_GRID * cs)) * mapW;
+    const ry = my + ((z.y - G.gridOffY) / (DEFENSE_GRID * cs)) * mapH;
+    ctx.fillRect(rx - 1, ry - 1, 3, 3);
+  }
+  // 보스 도트
+  if (G.boss && G.boss.alive) {
+    ctx.fillStyle = '#ff0000';
+    const bx = mx + ((G.boss.x - G.gridOffX) / (DEFENSE_GRID * cs)) * mapW;
+    const by = my + ((G.boss.y - G.gridOffY) / (DEFENSE_GRID * cs)) * mapH;
+    ctx.beginPath(); ctx.arc(bx, by, 3, 0, Math.PI * 2); ctx.fill();
+  }
+  // 플레이어 도트
+  ctx.fillStyle = COL.gold;
+  const px2 = mx + ((G.player.x - G.gridOffX) / (DEFENSE_GRID * cs)) * mapW;
+  const py2 = my + ((G.player.y - G.gridOffY) / (DEFENSE_GRID * cs)) * mapH;
+  ctx.beginPath(); ctx.arc(px2, py2, 2, 0, Math.PI * 2); ctx.fill();
+  UI.text(ctx, 'MAP', mx + mapW / 2, my - 8, { size: 9, color: '#888' });
+}
+
+// ── 날씨/환경 효과 시스템 ──
+const WEATHER = {
+  NONE: 0, RAIN: 1, FOG: 2, DUST: 3,
+};
+let currentWeather = WEATHER.NONE;
+let weatherParticles = [];
+const MAX_WEATHER_PARTICLES = 150;
+
+function updateWeather(dt) {
+  const dtSec = dt / 1000;
+  // 구역별 날씨 결정
+  if (G.state === ST.NIGHT_WAVE || G.state === ST.BOSS_NIGHT) {
+    if (G.zone === 0) currentWeather = WEATHER.RAIN;
+    else if (G.zone === 1) currentWeather = WEATHER.DUST;
+    else if (G.zone === 2) currentWeather = WEATHER.FOG;
+  } else if (G.state === ST.DAY_EXPLORE) {
+    currentWeather = G.zone === 2 ? WEATHER.FOG : WEATHER.NONE;
+  } else {
+    currentWeather = WEATHER.NONE;
+  }
+  // 날씨 파티클 업데이트
+  if (currentWeather === WEATHER.NONE) {
+    weatherParticles = [];
+    return;
+  }
+  // 생성
+  while (weatherParticles.length < MAX_WEATHER_PARTICLES) {
+    const rng = G.rng;
+    switch (currentWeather) {
+      case WEATHER.RAIN:
+        weatherParticles.push({
+          x: rng.range(0, G.screenW), y: rng.range(-50, -10),
+          vx: -30, vy: 350 + rng.range(0, 100),
+          life: rng.range(0.5, 1.5), maxLife: 1.5,
+          size: rng.range(1, 2), color: 'rgba(150,200,255,0.3)',
+        });
+        break;
+      case WEATHER.DUST:
+        weatherParticles.push({
+          x: rng.range(-20, G.screenW + 20), y: rng.range(0, G.screenH),
+          vx: 40 + rng.range(0, 30), vy: rng.range(-5, 5),
+          life: rng.range(2, 5), maxLife: 5,
+          size: rng.range(2, 5), color: 'rgba(180,160,120,0.15)',
+        });
+        break;
+      case WEATHER.FOG:
+        weatherParticles.push({
+          x: rng.range(0, G.screenW), y: rng.range(0, G.screenH),
+          vx: rng.range(-10, 10), vy: rng.range(-5, 5),
+          life: rng.range(3, 8), maxLife: 8,
+          size: rng.range(30, 80), color: 'rgba(150,150,170,0.04)',
+        });
+        break;
+    }
+  }
+  // 업데이트
+  for (let i = weatherParticles.length - 1; i >= 0; i--) {
+    const wp = weatherParticles[i];
+    wp.x += wp.vx * dtSec;
+    wp.y += wp.vy * dtSec;
+    wp.life -= dtSec;
+    if (wp.life <= 0 || wp.y > G.screenH + 50 || wp.x > G.screenW + 50) {
+      weatherParticles.splice(i, 1);
+    }
+  }
+}
+
+function renderWeather(ctx, w, h) {
+  if (currentWeather === WEATHER.NONE) return;
+  for (const wp of weatherParticles) {
+    const alpha = Math.min(1, wp.life / wp.maxLife);
+    ctx.globalAlpha = alpha;
+    if (currentWeather === WEATHER.RAIN) {
+      ctx.strokeStyle = wp.color;
+      ctx.lineWidth = wp.size;
+      ctx.beginPath();
+      ctx.moveTo(wp.x, wp.y);
+      ctx.lineTo(wp.x + wp.vx * 0.02, wp.y + wp.vy * 0.02);
+      ctx.stroke();
+    } else if (currentWeather === WEATHER.DUST) {
+      ctx.fillStyle = wp.color;
+      ctx.beginPath(); ctx.arc(wp.x, wp.y, wp.size, 0, Math.PI * 2); ctx.fill();
+    } else if (currentWeather === WEATHER.FOG) {
+      ctx.fillStyle = wp.color;
+      ctx.beginPath(); ctx.arc(wp.x, wp.y, wp.size, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── 데미지 팝업 시스템 ──
+const dmgPopups = [];
+function spawnDmgPopup(x, y, dmg, color) {
+  dmgPopups.push({
+    x, y, dmg: Math.round(dmg),
+    vy: -60, life: 0.8, maxLife: 0.8,
+    color: color || COL.fire,
+  });
+}
+
+function updateDmgPopups(dt) {
+  const dtSec = dt / 1000;
+  for (let i = dmgPopups.length - 1; i >= 0; i--) {
+    const p = dmgPopups[i];
+    p.y += p.vy * dtSec;
+    p.vy *= 0.95;
+    p.life -= dtSec;
+    if (p.life <= 0) dmgPopups.splice(i, 1);
+  }
+}
+
+function renderDmgPopups(ctx) {
+  for (const p of dmgPopups) {
+    const alpha = Math.min(1, p.life / p.maxLife);
+    ctx.globalAlpha = alpha;
+    const size = 12 + (1 - alpha) * 4;
+    UI.text(ctx, '-' + p.dmg, p.x, p.y, { size, bold: true, color: p.color });
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── 보스 등장 컷신 시스템 ──
+let cutscene = null;
+
+function startBossCutscene(bossIndex) {
+  cutscene = {
+    phase: 0, timer: 0, totalDur: 3.0,
+    bossIndex, flashAlpha: 0, textAlpha: 0,
+    zoomLevel: 1,
+  };
+}
+
+function updateCutscene(dt) {
+  if (!cutscene) return false;
+  const dtSec = dt / 1000;
+  cutscene.timer += dtSec;
+  const t = cutscene.timer / cutscene.totalDur;
+  if (t < 0.3) {
+    cutscene.phase = 0;
+    cutscene.flashAlpha = t / 0.3;
+  } else if (t < 0.7) {
+    cutscene.phase = 1;
+    cutscene.textAlpha = (t - 0.3) / 0.4;
+    cutscene.zoomLevel = 1 + (t - 0.3) * 0.3;
+  } else if (t < 1.0) {
+    cutscene.phase = 2;
+    cutscene.flashAlpha = 1 - (t - 0.7) / 0.3;
+    cutscene.textAlpha = 1 - (t - 0.7) / 0.3;
+  } else {
+    cutscene = null;
+    return false;
+  }
+  return true;
+}
+
+function renderCutscene(ctx, w, h) {
+  if (!cutscene) return;
+  // 어두운 오버레이
+  ctx.fillStyle = `rgba(0,0,0,${0.7 * cutscene.flashAlpha})`;
+  ctx.fillRect(0, 0, w, h);
+  // 보스 이름
+  if (cutscene.phase >= 1) {
+    ctx.globalAlpha = cutscene.textAlpha;
+    const bossName = t(BOSS_NAMES[cutscene.bossIndex]);
+    UI.text(ctx, '⚠ ' + bossName + ' ⚠', w / 2, h / 2 - 20, {
+      size: 32, bold: true, color: COL.fire, glow: COL.fire
+    });
+    UI.text(ctx, t('bossWeakness') + ': ' + t(BOSS_WEAKNESSES[cutscene.bossIndex]), w / 2, h / 2 + 20, {
+      size: 16, color: COL.cyan
+    });
+    ctx.globalAlpha = 1;
+  }
+  // 화면 테두리 적색 글로우
+  ctx.strokeStyle = `rgba(231,76,60,${cutscene.flashAlpha * 0.6})`;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 2, w - 4, h - 4);
+}
+
+// ── 요새 시각적 진화 시스템 ──
+// 클리어한 구역 수에 따라 코어 외관 변화
+function getCoreLevel() {
+  const cleared = G.zonesCleared.filter(z => z).length;
+  // 0=폐허, 1=임시캠프, 2=방어진지, 3=견고한요새
+  return cleared;
+}
+
+function renderCoreVisual(ctx, cx, cy, cs) {
+  const level = getCoreLevel();
+  const size = cs * 2;
+  switch (level) {
+    case 0: // 폐허
+      ctx.fillStyle = '#3a3a40';
+      ctx.fillRect(cx, cy, size, size);
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx, cy, size, size);
+      // 균열선
+      ctx.strokeStyle = '#2a2a30';
+      ctx.beginPath();
+      ctx.moveTo(cx + size * 0.3, cy);
+      ctx.lineTo(cx + size * 0.5, cy + size * 0.7);
+      ctx.stroke();
+      break;
+    case 1: // 임시 캠프
+      ctx.fillStyle = '#4a4a50';
+      ctx.fillRect(cx, cy, size, size);
+      ctx.strokeStyle = COL.frame;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx, cy, size, size);
+      // 모래주머니
+      ctx.fillStyle = '#8B7355';
+      ctx.fillRect(cx - 3, cy + size - 6, size + 6, 6);
+      break;
+    case 2: // 방어 진지
+      ctx.fillStyle = '#5c6b73';
+      ctx.fillRect(cx, cy, size, size);
+      ctx.strokeStyle = COL.heal;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx, cy, size, size);
+      // 강화벽
+      ctx.fillStyle = '#4a5a63';
+      ctx.fillRect(cx - 4, cy - 4, size + 8, 4);
+      ctx.fillRect(cx - 4, cy + size, size + 8, 4);
+      break;
+    case 3: // 견고한 요새
+      // 글로우 효과
+      const glow = ctx.createRadialGradient(cx + size / 2, cy + size / 2, 0, cx + size / 2, cy + size / 2, size);
+      glow.addColorStop(0, 'rgba(0,184,148,0.2)');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(cx - size / 2, cy - size / 2, size * 2, size * 2);
+      ctx.fillStyle = '#6c7c85';
+      ctx.fillRect(cx, cy, size, size);
+      ctx.strokeStyle = COL.gold;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx, cy, size, size);
+      // 깃발
+      ctx.fillStyle = COL.fire;
+      ctx.fillRect(cx + size / 2 - 1, cy - 12, 2, 12);
+      ctx.fillStyle = COL.gold;
+      ctx.fillRect(cx + size / 2 + 1, cy - 12, 8, 6);
+      break;
+  }
+  // CORE 텍스트
+  UI.text(ctx, 'CORE', cx + size / 2, cy + size / 2, { size: 10, bold: true, color: COL.heal });
+}
+
+// ── 자원 관리 야간 소모 시스템 ──
+// 야간에 서바이버 유지 비용 (식량)
+function consumeSurvivorFood(dt) {
+  if (G.state !== ST.NIGHT_WAVE && G.state !== ST.BOSS_NIGHT) return;
+  const dtSec = dt / 1000;
+  const survCount = G.survivors.filter(s => s.alive && s.placed).length;
+  // 서바이버 1명당 초당 0.2 식량 소모
+  const consumption = survCount * 0.2 * dtSec;
+  G.food -= consumption;
+  if (G.food < 0) {
+    G.food = 0;
+    // 식량 부족 시 서바이버 약화
+    for (const s of G.survivors) {
+      if (s.alive && s.placed) s.hp -= 0.5 * dtSec;
+    }
+  }
+}
+
+// ── 웨이브 간 보너스 계산 시스템 ──
+function calculateWaveScore() {
+  let score = 100 * (G.zone + 1);
+  // 코어 무손실 보너스
+  if (G.core.hp >= G.core.maxHp) score += 200;
+  // DDA 레벨 0 보너스
+  if (G.dda.level === 0) score = Math.floor(score * 1.5);
+  return score;
+}
+
+// ── 점수 플로팅 텍스트 시스템 ──
+const floatingTexts = [];
+function spawnFloatingText(x, y, text, color) {
+  floatingTexts.push({
+    x, y, text, color: color || COL.gold,
+    vy: -40, life: 1.2, maxLife: 1.2,
+    size: 14,
+  });
+}
+
+function updateFloatingTexts(dt) {
+  const dtSec = dt / 1000;
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy * dtSec;
+    ft.vy *= 0.97;
+    ft.life -= dtSec;
+    if (ft.life <= 0) floatingTexts.splice(i, 1);
+  }
+}
+
+function renderFloatingTexts(ctx) {
+  for (const ft of floatingTexts) {
+    const alpha = Math.min(1, ft.life / ft.maxLife);
+    ctx.globalAlpha = alpha;
+    UI.text(ctx, ft.text, ft.x, ft.y, { size: ft.size, bold: true, color: ft.color });
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── 구역별 탐색 맵 고유 특성 시스템 ──
+const ZONE_FEATURES = [
+  { // 폐시가지
+    bgTint: 'rgba(74,66,56,0.1)', buildingColor: '#3a3530',
+    itemBonus: { scrap: 1.2, food: 1.0, ammo: 0.8 },
+    zombieSpeed: 1.0, description: '폐허 속 쓸만한 자재가 많다.',
+  },
+  { // 산업단지
+    bgTint: 'rgba(92,107,115,0.1)', buildingColor: '#4a4a55',
+    itemBonus: { scrap: 1.5, food: 0.7, ammo: 1.3 },
+    zombieSpeed: 1.1, description: '기계와 무기 부품이 남아있다.',
+  },
+  { // 병원
+    bgTint: 'rgba(0,184,148,0.05)', buildingColor: '#354a45',
+    itemBonus: { scrap: 0.8, food: 1.5, ammo: 0.9 },
+    zombieSpeed: 0.9, description: '의약품과 생존자가 있을 수 있다.',
+  },
+];
+
+// ── 선형 보간 카메라 시스템 ──
+function updateCamera(dt) {
+  const dtSec = dt / 1000;
+  if (G.state === ST.DAY_EXPLORE) {
+    G.camera.targetX = G.player.x;
+    G.camera.targetY = G.player.y;
+  }
+  G.camera.x = MathUtil.lerp(G.camera.x, G.camera.targetX, 5 * dtSec);
+  G.camera.y = MathUtil.lerp(G.camera.y, G.camera.targetY, 5 * dtSec);
+}
+
+// ── 스코어보드/통계 시스템 ──
+function renderDetailedStats(ctx, w, h) {
+  // 게임오버 시 상세 통계
+  const stats = [
+    { label: 'Total Kills', value: G.totalKills },
+    { label: 'Zones Cleared', value: G.zonesCleared.filter(z => z).length + '/3' },
+    { label: 'Survivors', value: G.survivors.filter(s => s.alive).length },
+    { label: 'Relics', value: G.relics.length },
+    { label: 'Upgrades', value: Object.values(G.upgrades).reduce((a, b) => a + b, 0) + '/15' },
+    { label: 'DDA Level', value: G.dda.level },
+    { label: 'Stars Earned', value: G.stars },
+    { label: 'Play Count', value: G.playCount },
+  ];
+  const startY = h / 2 + 20;
+  for (let i = 0; i < stats.length; i++) {
+    const s = stats[i];
+    UI.text(ctx, s.label + ': ' + s.value, w / 2, startY + i * 20, {
+      size: 11, color: '#8080a0'
+    });
+  }
+}
+
+// ── 튜토리얼 힌트 시스템 ──
+const TUTORIAL_HINTS = {
+  firstDay: { ko: 'WASD로 이동, 마우스로 사격! 자원을 수집하세요.', en: 'Move with WASD, shoot with mouse! Collect resources.' },
+  firstPrep: { ko: '클릭으로 방어물을 배치하세요. Q/E로 종류 전환.', en: 'Click to place defenses. Q/E to switch type.' },
+  firstWave: { ko: '좀비가 온다! 사격으로 방어하세요.', en: 'Zombies incoming! Defend with your gun.' },
+  firstBoss: { ko: '보스 약점을 공략하세요!', en: 'Target the boss weakness!' },
+};
+let shownHints = {};
+
+function showTutorialHint(hintId) {
+  if (shownHints[hintId]) return;
+  shownHints[hintId] = true;
+  const hint = TUTORIAL_HINTS[hintId];
+  if (hint) {
+    showWarning(hint[lang] || hint.ko);
+  }
+}
+
+// ── 킬 콤보 시스템 ──
+let comboCount = 0;
+let comboTimer = 0;
+const COMBO_TIMEOUT = 2.0; // 2초 내 연속 킬
+
+function onZombieKilled(x, y, score) {
+  comboTimer = COMBO_TIMEOUT;
+  comboCount++;
+  // 콤보 보너스
+  let bonus = 0;
+  if (comboCount >= 10) { bonus = score; spawnFloatingText(x, y - 20, 'x10 COMBO!', COL.purple); }
+  else if (comboCount >= 5) { bonus = Math.floor(score * 0.5); spawnFloatingText(x, y - 20, 'x5 COMBO!', COL.gold); }
+  else if (comboCount >= 3) { bonus = Math.floor(score * 0.2); spawnFloatingText(x, y - 20, 'x3!', COL.accent); }
+  G.score += bonus;
+}
+
+function updateCombo(dt) {
+  if (comboTimer > 0) {
+    comboTimer -= dt / 1000;
+    if (comboTimer <= 0) comboCount = 0;
+  }
+}
+
+// ── 렌더 콤보 카운터 ──
+function renderCombo(ctx, w, h) {
+  if (comboCount >= 3) {
+    const pulse = 0.8 + Math.sin(G.animTime / 100) * 0.2;
+    const size = 16 + comboCount;
+    ctx.globalAlpha = Math.min(1, comboTimer / 0.5) * pulse;
+    UI.text(ctx, comboCount + 'x COMBO', w / 2, 70, {
+      size: Math.min(size, 30), bold: true, color: comboCount >= 10 ? COL.purple : COL.gold,
+      glow: comboCount >= 10 ? COL.purple : COL.gold,
+    });
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── 업그레이드 효과 적용 헬퍼 ──
+function getUpgradeEffect(axis, level) {
+  if (level <= 0) return {};
+  switch (axis) {
+    case 'defense':
+      return {
+        barricadeHpMult: level >= 1 ? 1.2 : 1,
+        coreHpBonus: level >= 2 ? 25 : 0,
+        canRepair: level >= 3,
+        doubleBarricade: level >= 4,
+        coreRegen: level >= 5 ? 2 : 0,
+      };
+    case 'attack':
+      return {
+        dmgMult: level >= 1 ? 1.15 : 1,
+        turretRangeBonus: level >= 2 ? 1 : 0,
+        piercing: level >= 3,
+        advancedTurrets: level >= 4,
+        critChance: level >= 5 ? 0.2 : 0,
+      };
+    case 'explore':
+      return {
+        timeBonus: level >= 1 ? 10 : 0,
+        radarRange: level >= 2 ? 1.5 : 1,
+        survFindBonus: level >= 3 ? 0.2 : 0,
+        bossHint: level >= 4,
+        hiddenAccess: level >= 5,
+      };
+  }
+  return {};
+}
+
+// ── 유물 시너지 계산 ──
+function calculateRelicSynergies() {
+  const synergies = {};
+  for (const r of G.relics) {
+    if (!synergies[r.stat]) synergies[r.stat] = 0;
+    synergies[r.stat] += r.val;
+  }
+  // 캡 적용 (F30)
+  for (const key in synergies) {
+    if (synergies[key] > SYNERGY_CAP_MULT - 1) {
+      synergies[key] = SYNERGY_CAP_MULT - 1;
+    }
+  }
+  return synergies;
+}
+
+// ── 유물 표시 패널 (MAP 화면 하단) ──
+function renderRelicPanel(ctx, w, h) {
+  if (G.relics.length === 0) return;
+  const panelY = h - 140;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(10, panelY, w - 20, 50);
+  UI.text(ctx, 'Relics:', 40, panelY + 12, { size: 10, color: '#888', align: 'left' });
+  const tierColors = ['#aaa', COL.cyan, COL.purple];
+  for (let i = 0; i < Math.min(G.relics.length, 8); i++) {
+    const r = G.relics[i];
+    const rx = 80 + i * 35;
+    ctx.fillStyle = tierColors[r.tier] + '44';
+    ctx.strokeStyle = tierColors[r.tier];
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(rx, panelY + 5, 28, 28, 4); ctx.fill(); ctx.stroke();
+    UI.text(ctx, r.name[0], rx + 14, panelY + 19, { size: 10, bold: true, color: tierColors[r.tier] });
+  }
+  if (G.relics.length > 8) {
+    UI.text(ctx, '+' + (G.relics.length - 8), 80 + 8 * 35 + 15, panelY + 19, { size: 10, color: '#888' });
+  }
+}
+
+// ── 탐색 맵 Fog of War 시스템 ──
+let fogGrid = null;
+function initFogOfWar() {
+  fogGrid = [];
+  for (let y = 0; y < GRID_ROWS; y++) {
+    fogGrid[y] = [];
+    for (let x = 0; x < GRID_COLS; x++) {
+      fogGrid[y][x] = false; // false = 안개
+    }
+  }
+}
+
+function updateFogOfWar() {
+  if (!fogGrid) initFogOfWar();
+  const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(G.screenW / GRID_COLS, (G.screenH - 60) / GRID_ROWS)));
+  const px = Math.floor((G.player.x) / cs);
+  const py = Math.floor((G.player.y - 50) / cs);
+  const radarRange = G.upgrades.explore >= 2 ? 4 : 3;
+  for (let dy = -radarRange; dy <= radarRange; dy++) {
+    for (let dx = -radarRange; dx <= radarRange; dx++) {
+      const fx = px + dx, fy = py + dy;
+      if (fx >= 0 && fx < GRID_COLS && fy >= 0 && fy < GRID_ROWS) {
+        if (dx * dx + dy * dy <= radarRange * radarRange) {
+          fogGrid[fy][fx] = true;
+        }
+      }
+    }
+  }
+}
+
+function renderFogOfWar(ctx, w, h) {
+  if (!fogGrid) return;
+  const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(w / GRID_COLS, (h - 60) / GRID_ROWS)));
+  for (let y = 0; y < GRID_ROWS; y++) {
+    for (let x = 0; x < GRID_COLS; x++) {
+      if (!fogGrid[y][x]) {
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.fillRect(x * cs, y * cs + 50, cs, cs);
+      }
+    }
+  }
+}
+
+// ── 밤 시각 효과 (비네트 + 제한된 시야) ──
+function renderNightVignette(ctx, w, h) {
+  if (G.dayNightLerp > 0.5) return;
+  // 비네트 — 코어/플레이어 중심으로 밝고 가장자리 어두운 효과
+  const cx = G.player.x || w / 2;
+  const cy = G.player.y || h / 2;
+  const maxDim = Math.max(w, h);
+  const grad = ctx.createRadialGradient(cx, cy, maxDim * 0.2, cx, cy, maxDim * 0.7);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+}
+
+// ── 바리케이드 수리 시스템 (업그레이드 방어 Lv3) ──
+function repairBarricadesDuringDay(dt) {
+  if (G.state !== ST.DAY_EXPLORE) return;
+  if (G.upgrades.defense < 3) return;
+  const dtSec = dt / 1000;
+  for (const b of G.barricades) {
+    if (b.hp < b.maxHp && b.hp > 0) {
+      b.hp = Math.min(b.maxHp, b.hp + 5 * dtSec);
+    }
+  }
+}
+
+// ── 히든 스테이지 접근 시스템 (업그레이드 탐색 Lv5) ──
+function checkHiddenStage() {
+  if (G.upgrades.explore < 5) return false;
+  // 모든 구역 클리어 + 탐색 Lv5 → 히든 스테이지
+  if (G.zonesCleared.every(z => z)) {
+    return true;
+  }
+  return false;
+}
+
+// ── 스프라이트 시트 시뮬레이션 (단일 PNG에서 애니메이션 프레임 추출) ──
+function drawAnimatedSprite(ctx, assetKey, x, y, w, h, frame, totalFrames) {
+  const img = assets.sprites[assetKey];
+  if (!img) return false;
+  // 단일 이미지이므로 약간의 회전/스케일로 애니메이션 시뮬레이션
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2);
+  const bobX = Math.sin(frame * 0.5) * 2;
+  const bobY = Math.abs(Math.sin(frame * 0.3)) * -3;
+  ctx.translate(bobX, bobY);
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  ctx.restore();
+  return true;
+}
+
+// ── 화면 전환 이펙트 (와이프) ──
+let wipeProgress = 0;
+let wipeDirection = 1;
+function renderWipeTransition(ctx, w, h) {
+  if (G.fadeAlpha <= 0) return;
+  // 원형 와이프
+  const radius = Math.max(w, h) * (1 - G.fadeAlpha);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h);
+  ctx.arc(w / 2, h / 2, Math.max(0, radius), 0, Math.PI * 2, true);
+  ctx.clip();
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
+// ── 레이더/적 감지 UI ──
+function renderRadar(ctx, w, h) {
+  if (G.state !== ST.NIGHT_PREP) return;
+  // 스폰 방향 미리보기
+  const cs = G.cellSize;
+  const spawns = getSpawnPoints();
+  const rng = new SeededRNG(G.zone * 1000 + G.nightNum * 100 + G.waveNum + 1);
+  const activeCount = 2 + (G.zone > 0 ? 1 : 0);
+  const activeSpawns = rng.shuffle([...spawns]).slice(0, activeCount);
+  for (const sp of activeSpawns) {
+    const px = G.gridOffX + sp.x * cs + cs / 2;
+    const py = G.gridOffY + sp.y * cs + cs / 2;
+    // 펄스 경고
+    const pulse = 0.3 + Math.sin(G.animTime / 300) * 0.3;
+    ctx.strokeStyle = `rgba(231,76,60,${pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const r = 15 + Math.sin(G.animTime / 200) * 5;
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // 방향 화살표
+    const arrowLen = 20;
+    const core = getCorePos();
+    const corePx = G.gridOffX + core.x * cs + cs;
+    const corePy = G.gridOffY + core.y * cs + cs;
+    const ang = MathUtil.angle(px, py, corePx, corePy);
+    ctx.strokeStyle = COL.fire + '88';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px + Math.cos(ang) * arrowLen, py + Math.sin(ang) * arrowLen);
+    ctx.stroke();
+  }
+}
+
+// ── 체력 재생 시스템 (식량 소비) ──
+function playerHealWithFood(dt) {
+  if (G.state !== ST.DAY_EXPLORE) return;
+  const dtSec = dt / 1000;
+  if (G.player.hp < G.player.maxHp && G.food > 0) {
+    const healRate = 5; // HP/초
+    const foodCost = 0.5; // 식량/초
+    G.player.hp = Math.min(G.player.maxHp, G.player.hp + healRate * dtSec);
+    G.food -= foodCost * dtSec;
+    if (G.food < 0) G.food = 0;
+  }
+}
+
+// ── 구역 선택 맵 시각적 연결선 ──
+function renderZoneConnections(ctx, w, h) {
+  // 구역 간 연결선
+  for (let i = 0; i < 2; i++) {
+    const y1 = 120 + i * 80 + 60;
+    const y2 = 120 + (i + 1) * 80;
+    const cleared = G.zonesCleared[i];
+    ctx.strokeStyle = cleared ? COL.heal + '44' : '#333';
+    ctx.lineWidth = 2;
+    ctx.setLineDash(cleared ? [] : [5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(w / 2, y1);
+    ctx.lineTo(w / 2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ── 주간 탐색 건물 진입 이벤트 ──
+const BUILDING_EVENTS = [
+  { type: 'loot', chance: 0.6, rewards: ['scrap', 'food', 'ammo'] },
+  { type: 'ambush', chance: 0.2, zombieCount: 2 },
+  { type: 'survivor', chance: 0.1 },
+  { type: 'empty', chance: 0.1 },
+];
+
+function triggerBuildingEvent(gx, gy) {
+  const roll = G.rng.next();
+  let cumulative = 0;
+  for (const evt of BUILDING_EVENTS) {
+    cumulative += evt.chance;
+    if (roll < cumulative) {
+      switch (evt.type) {
+        case 'loot': {
+          const resType = G.rng.pick(evt.rewards);
+          const amount = G.rng.int(5, 20);
+          const zoneBonus = ZONE_FEATURES[G.zone] ? ZONE_FEATURES[G.zone].itemBonus[resType] || 1 : 1;
+          const final = Math.floor(amount * zoneBonus);
+          if (resType === 'scrap') G.scrap += final;
+          else if (resType === 'food') G.food += final;
+          else if (resType === 'ammo') G.ammo += final;
+          sfx('pickup');
+          const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(G.screenW / GRID_COLS, (G.screenH - 60) / GRID_ROWS)));
+          spawnFloatingText(gx * cs + cs / 2, gy * cs + 40, '+' + final + ' ' + t(resType), COL.gold);
+          break;
+        }
+        case 'ambush': {
+          const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(G.screenW / GRID_COLS, (G.screenH - 60) / GRID_ROWS)));
+          for (let i = 0; i < evt.zombieCount; i++) {
+            const z = createZombie(
+              gx * cs + cs / 2 + G.rng.range(-30, 30),
+              gy * cs + cs / 2 + 50 + G.rng.range(-30, 30),
+              'basic', G.zone
+            );
+            z.speed = 50;
+            z.patrolAngle = G.rng.range(0, Math.PI * 2);
+            z.patrolTimer = 1;
+            G.zombies.push(z);
+          }
+          sfx('alert');
+          showWarning('⚠ Ambush!');
+          break;
+        }
+        case 'survivor': {
+          const st = G.rng.pick(SURV_ORDER);
+          const s = createSurvivor(st);
+          if (s) G.survivors.push(s);
+          sfx('score');
+          showWarning(t('survivor_found'));
+          break;
+        }
+        case 'empty':
+          // 빈 건물
+          break;
+      }
+      return;
+    }
+  }
+}
+
+// ── 건물 탐색 상태 추적 ──
+let exploredBuildings = new Set();
+
+function interactWithBuilding(gx, gy) {
+  const key = gx + ',' + gy;
+  if (exploredBuildings.has(key)) return;
+  if (G.exploreGrid && G.exploreGrid[gy] && G.exploreGrid[gy][gx] === 'building') {
+    exploredBuildings.add(key);
+    triggerBuildingEvent(gx, gy);
+    G.exploreGrid[gy][gx] = 'explored';
+  }
+}
+
+// ── 서바이버 사망 처리 ──
+function cleanupSurvivors() {
+  for (const s of G.survivors) {
+    if (s.hp <= 0) s.alive = false;
+  }
+}
+
+// ── 확장 렌더링 통합 (기존 render 함수에 훅) ──
+// 기존 render 함수의 particles.render(ctx) 이후에 이 함수들이 호출되도록
+// 직접 patch하기 어려우므로, 각 상태별 렌더에서 개별 호출로 통합
+
+// 이 확장 시스템들은 기존 update/render 루프에서 조건부로 호출됩니다.
+// 실제 통합은 기존 함수 내부의 적절한 위치에서 이루어집니다.
+
+// ═══════════════════════════════════════════════════════════
+// TAB 키 미니맵 토글 바인딩
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Tab') {
+    e.preventDefault();
+    G.minimap = !G.minimap;
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 디버그/통계 오버레이 (개발용, Shift+D 토글)
+// ═══════════════════════════════════════════════════════════
+let debugOverlay = false;
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyD' && e.shiftKey) {
+    debugOverlay = !debugOverlay;
+  }
+});
+
+function renderDebugOverlay(ctx, w, h) {
+  if (!debugOverlay) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, 200, 200);
+  const lines = [
+    'State: ' + G.state,
+    'Zone: ' + G.zone + ' Night: ' + G.nightNum + ' Wave: ' + G.waveNum,
+    'Core: ' + Math.round(G.core.hp) + '/' + G.core.maxHp,
+    'Zombies: ' + G.zombies.length + ' Queue: ' + G.spawnQueue.length,
+    'Projectiles: ' + G.projectiles.length,
+    'Survivors: ' + G.survivors.filter(s => s.alive).length,
+    'Barricades: ' + G.barricades.length,
+    'Turrets: ' + G.turrets.length,
+    'DDA: ' + G.dda.level,
+    'Relics: ' + G.relics.length,
+    'FPS: ' + (engine ? Math.round(1000 / 16.67) : '?'),
+    'Combo: ' + comboCount,
+    'Weather: ' + currentWeather,
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    UI.text(ctx, lines[i], 100, 15 + i * 14, { size: 10, color: '#0f0', align: 'center' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 탐색 시 폐허 파괴 (잔해 제거로 이동 공간 확보)
+// ═══════════════════════════════════════════════════════════
+function destroyRubble(gx, gy) {
+  if (G.exploreGrid && G.exploreGrid[gy] && G.exploreGrid[gy][gx] === 'rubble') {
+    G.exploreGrid[gy][gx] = 'road';
+    G.scrap += 2; // 약간의 고철 획득
+    sfx('build');
+    const cs = Math.max(MIN_TOUCH_TARGET, Math.floor(Math.min(G.screenW / GRID_COLS, (G.screenH - 60) / GRID_ROWS)));
+    particles.emit(gx * cs + cs / 2, gy * cs + cs / 2 + 50, 6, { color: '#8a8a8a', speed: 50, life: 0.3 });
+  }
+}
+
+// ── 보스 페이즈 추적 변수 (updateExtended에서 사용) ──
+let lastBossPhase = -1;
+</script>
+</body>
+</html>

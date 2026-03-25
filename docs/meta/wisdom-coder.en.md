@@ -1,5 +1,5 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #39 prism-break_
+_Last updated: Cycle #41 ashen-stronghold_
 
 ## ⚠️ Asset Policy (Cycle #39~)
 - You **MUST use** PNG/SVG assets in the assets/ folder. Never delete them.
@@ -9,6 +9,11 @@ _Last updated: Cycle #39 prism-break_
 - Previous wisdom entries about "delete assets/", "F1 violation for assets/", or "preloadAssets forbidden" are **no longer valid**.
 
 ## Recurring Mistakes 🚫
+- **[Cycle 41]** Survival TD roguelite (3,884 lines) with 7 states (TITLE/MAP/DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE/BOSS_NIGHT/GAMEOVER) + day/night dual-phase system. **In dual-phase games (day exploration / night defense), the ACTIVE_SYSTEMS matrix must have Explore/Defense columns as mutually exclusive.** DAY_EXPLORE disables Defense, NIGHT_WAVE disables Explore — clear separation prevents cross-system interference.
+- **[Cycle 41]** When integrating extended systems (weather/damage popups/combos/minimap/Fog of War) via monkey-patch pattern, **patch chains become unpredictable in execution order**. Design extension hooks directly in the main loop from the start. Next cycle: use updateExtended()/renderExtended() called directly inside the main loop.
+- **[Cycle 41]** BFS path validation (tryPlace) with tempGrid copy → 4-direction BFS validation → reject on failure works reliably. **Cycle 36 transaction pattern applied directly.** No direct grid modification + rollback approach used.
+- **[Cycle 41]** Boss phase transition tracking variable (lastBossPhase) **must be reset to -1 when boss dies**, otherwise false positive effects occur in the next boss fight.
+- **[Cycle 41]** Spitter zombie enemy projectile system (isEnemy flag) added, but **existing updateProjectiles() runs zombie collision checks on isEnemy projectiles too** — inefficiency. Separate friendly/enemy projectile arrays or add isEnemy guard to collision targets.
 - **[Cycle 39]** Light refraction action-puzzle (3,778 lines) with 4 states (TITLE/MAP/PLAY/BOSS) + 6 sub-states (SETUP/WAVE/PAUSED/CLEAR/DEAD/BOSS_INTRO). **Light path tracing (traceLight) with recursive beam splitting (C2 split crystal) can cause infinite recursion without maxDepth cap.** Two reflect crystals facing each other create infinite reflection — prevented by maxDepth=50 limit.
 - **[Cycle 39]** IX Engine integration 10th cycle. Used IX.Tween, IX.Particles, IX.Sound, IX.UI, IX.Save directly — zero custom manager code. **IX.Input flush() at end of update() pattern fully established.**
 - **[Cycle 39]** Asset preload: manifest.json-based AssetLoader.load() with Canvas procedural fallbacks (drawCrystal/drawEnemyProcedural/drawBossProcedural pure functions). **"Asset independence" pattern — game fully playable without any assets loaded — remains viable even at premium quality level.**
@@ -83,6 +88,13 @@ _Last updated: Cycle #39 prism-break_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 41]** Survival TD roguelite (Ashen Stronghold) implemented in 3,884 lines. 7-state machine + TRANSITION_TABLE 7 keys + day/night dual-phase (DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE) + 3 zones × 3 nights = 9 waves + 3 bosses + upgrade tree (3 axes × 5 levels) + relic system (13 types, 3 tiers) + BFS path validation + SeededRNG + DDA 4 levels + 4 survivor types AI + ko/en i18n + weather system (rain/dust/fog) + kill combo + minimap + Fog of War. action+strategy genre combination.
+- **[Cycle 41]** TDZ defense pattern fully applied (F23, F27): `G._ready` flag set true only after Engine init + asset load + layout calc all complete. All Engine callbacks (update/render/onResize) guard with `G._ready`. Cycle 39 P0 TDZ crash completely prevented.
+- **[Cycle 41]** IX Engine 12th cycle integration. AssetLoader for manifest.json-based dynamic loading of 22 PNG assets + assets.draw() fallback. setTimeout 0, setInterval 0, Math.random 0, confirm/alert 0, external CDN 0.
+- **[Cycle 41]** Web Audio BGM lookahead scheduling + 12 procedural SFX. bgmNodes sliding window (32 retained when >64) pattern stable for 3 consecutive cycles.
+- **[Cycle 41]** BOSS_DEFS data array pattern for 3 bosses (Spore Titan/Iron Reaper/Patient Zero) with weaknesses, phases, and actions declared declaratively. Adding bosses requires only a new array entry.
+- **[Cycle 41]** DPS cap (2.0) + synergy cap (1.5) relic balance system prevents extreme builds. getRelicBonus() enforces cap with Math.min.
+- **[Cycle 41]** Mobile virtual joystick (120×120) + ATK/ACT/R buttons (48px+) + touch-based full flow (start → play → restart). MIN_TOUCH_TARGET=48 enforced, resolving Cycle 39 touch target shortfall.
 - **[Cycle 38]** Rage platformer (Gravity Flip) in 4,015-line single file. 4 states (TITLE/MAP/PLAY/BOSS) + 5 sub-states (ALIVE/DEAD/CLEAR/PAUSED/INTRO) + 23 stages (5 zones×3 + 5 bosses + 3 hidden) + upgrade tree (3 branches×5 levels) + BFS-validated procedural levels + 5 boss AI types + 4-tier DDA + ko/en dual language. arcade+casual genre combination.
 - **[Cycle 38]** IX Engine (Engine/Input/Sound/Tween/Particles/AssetLoader/UI/Save/MathUtil) integration — using shared engine modules instead of custom TweenManager/SoundManager. input.flush() at frame end + tween.update(dt) in all states pattern is stable.
 - **[Cycle 38]** BGM lookahead scheduling: scheduleBGMNotes() pre-schedules Web Audio notes up to audioCtx.currentTime + 2 seconds. Called each frame in game loop to replenish buffer. BGM loop achieved with 0 setInterval/setTimeout.
@@ -187,6 +199,12 @@ _Last updated: Cycle #39 prism-break_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **[Cycle 41→42] Improve extended system integration**: Replace monkey-patch with direct `updateExtended(dt)` / `renderExtended(ctx, w, h)` calls inside main loop. Eliminates execution order uncertainty of patch chains.
+- **[Cycle 41→42] Separate ally/enemy projectile management**: Split G.projectiles into G.allyProjectiles + G.enemyProjectiles for efficient collision target checks. Array-level separation instead of runtime isEnemy flag branching.
+- **[Cycle 41→42] Offscreen canvas caching**: Render static defense grid background (cell lines) to offscreen canvas once, then drawImage copy. Saves per-frame 8×8 grid strokeRect calls.
+- **[Cycle 41→42] Boss AI full data-driven verification**: BOSS_DEFS pattern confirmed stable for 3 bosses. Test adding 2 bosses (zones 4-5) via array entry addition only in Phase 2.
+- **[Cycle 41→42] Wave complete edge case**: spawnQueue empty but last zombie simultaneously killed + spawned by trap timing issue. waveClearing guard prevents this but consider adding timer-based confirmation.
+- **[Cycle 41→42] Relic UI dynamic layout**: Currently 3 fixed horizontal cards. Relic cards may overlap on screen width < 350px. Consider dynamic column count + vertical scroll layout.
 - **[Cycle 38→39] Maximize IX Engine utilization**: Cycle 38 successfully integrated IX Engine. Next cycle: fully eliminate custom TweenManager by using IX.Tween add() API directly. Also leverage IX.Particles instead of custom particle systems.
 - **[Cycle 38→39] BGM lookahead scheduling as reusable class**: Extract scheduleBGMNotes() pattern into reusable BGMPlayer class. Managing melody/harmony/drums as separate tracks can improve music quality.
 - **[Cycle 38→39] Segment pattern expansion**: Current 8 basic patterns with difficulty variants. Externalizing 20+ patterns as JSON data enables level design changes without code modifications.

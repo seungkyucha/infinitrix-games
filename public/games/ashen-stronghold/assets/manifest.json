@@ -1,0 +1,123 @@
+{
+  "gameId": "ashen-stronghold",
+  "generatedBy": "gemini-flash-image",
+  "artDirection": {
+    "style": "dark post-apocalyptic pixel art",
+    "palette": "#1a1a2e, #4a4238, #5c6b73, #4a7c59, #e74c3c, #f39c12, #00b894",
+    "mood": "긴장감 있는 생존, 황폐한 세계, 희망의 불꽃",
+    "reference": "Dead Cells 픽셀아트 분위기 + The Last Stand: Dead Zone 좀비 서바이벌 톤"
+  },
+  "format": "png",
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "desc": "캡틴 애쉬 — 밀리터리 재킷+방탄조끼, 고글을 이마에 올린 채, 소총을 든 2.5등신 캐릭터. 정면/측면/후면 3방향 포즈. 어깨에 무전기 안테나. 다크 브라운~카키 색상 기반."
+    },
+    "playerShoot": {
+      "file": "player-shoot.png",
+      "size": "512x512",
+      "desc": "캡틴 애쉬 사격 포즈 — 소총을 겨누고 총구 섬광이 보이는 상태. 측면 기준 사격 자세."
+    },
+    "survivorWarrior": {
+      "file": "survivor-warrior.png",
+      "size": "512x512",
+      "desc": "전사 서바이버 — 임시로 만든 갑옷(자동차 문짝+사슬), 근접 무기(배관 파이프), 거친 표정. 빨간 머리띠."
+    },
+    "survivorGunner": {
+      "file": "survivor-gunner.png",
+      "size": "512x512",
+      "desc": "사수 서바이버 — 카우보이 모자+선글라스, 쌍권총 포즈, 탄약 벨트를 어깨에 두른 모습."
+    },
+    "survivorEngineer": {
+      "file": "survivor-engineer.png",
+      "size": "512x512",
+      "desc": "기술자 서바이버 — 용접 마스크를 올린 상태, 공구 벨트, 한 손에 렌치+한 손에 설계도. 주황색 작업복."
+    },
+    "survivorMedic": {
+      "file": "survivor-medic.png",
+      "size": "512x512",
+      "desc": "의무관 서바이버 — 더러운 의사 가운+적십자 완장, 의료 가방을 메고 주사기를 든 모습. 청록색 마스크."
+    },
+    "zombieBasic": {
+      "file": "zombie-basic.png",
+      "size": "512x512",
+      "desc": "일반 좀비 — 찢어진 시민복, 한쪽 팔이 늘어진 채 비틀거리는 포즈. 부패한 녹색 피부, 붉은 눈."
+    },
+    "zombieHulk": {
+      "file": "zombie-hulk.png",
+      "size": "512x512",
+      "desc": "헐크 좀비 — 일반의 2배 크기, 불룩한 근육에 뼈가 돌출, 양팔을 치켜든 돌진 포즈. 짙은 보라+녹색."
+    },
+    "zombieSpitter": {
+      "file": "zombie-spitter.png",
+      "size": "512x512",
+      "desc": "스피터 좀비 — 길쭉하고 마른 체형, 부풀어 오른 목에서 녹색 산성액이 흘러내리는 모습. 입을 크게 벌림."
+    },
+    "bossSporeTitan": {
+      "file": "boss-spore-titan.png",
+      "size": "600x400",
+      "desc": "스포어 타이탄 — 3m 거인 좀비, 등에서 거대한 포자 버섯이 자라난 모습. 포자 구름이 몸을 감싸고, 한쪽 눈이 버섯으로 덮임. 갈색+녹색+보라 포자 색상. 위압적인 전면 포즈."
+    },
+    "bossIronReaper": {
+      "file": "boss-iron-reaper.png",
+      "size": "600x400",
+      "desc": "아이언 리퍼 — 산업용 로봇 잔해를 갑옷처럼 두른 좀비. 한쪽 팔이 기계 톱, 가슴에 빨간 동력 코어가 빛남. 강철회색+적색 발광. 돌진 직전 포즈."
+    },
+    "bossPatientZero": {
+      "file": "boss-patient-zero.png",
+      "size": "600x400",
+      "desc": "패이션트 제로 — 병원 가운을 걸친 창백한 인간형, 몸에서 보라색 바이러스 오라가 피어오름. 눈에서 녹색 빛, 정맥이 검게 부풀어 보임. 양팔을 벌린 의식적 포즈."
+    },
+    "bgFar": {
+      "file": "bg-far.png",
+      "size": "1920x1080",
+      "desc": "원경 — 황폐화된 도시 스카이라인. 부서진 빌딩들의 실루엣, 회색~주황 안개 속 석양/달빛. 연기 기둥 2~3개. 하늘은 탁한 회적색(낮)/짙은 남색(밤)."
+    },
+    "bgMid": {
+      "file": "bg-mid.png",
+      "size": "1920x1080",
+      "desc": "중경 — 폐시가지 잔해. 무너진 상점 간판, 뒤집힌 자동차, 부서진 가로등. 잡초가 콘크리트 틈에서 자란 모습. 갈색~회색 톤."
+    },
+    "bgGround": {
+      "file": "bg-ground.png",
+      "size": "1920x1080",
+      "desc": "근경/지면 — 균열된 아스팔트 타일맵. 핏자국, 탄흔, 잡초 패치. 요새 주변은 즉석 바리케이드(드럼통+철조망)로 둘러싸인 모습."
+    },
+    "defenseBarricade": {
+      "file": "defense-barricade.png",
+      "size": "256x256",
+      "desc": "바리케이드 — 드럼통+모래주머니+철조망 조합. HP에 따라 온전→균열→파손 3단계 시각적 변화. 금속회색+갈색."
+    },
+    "defenseTurret": {
+      "file": "defense-turret.png",
+      "size": "256x256",
+      "desc": "기관총 포탑 — 삼각대 위 기관총, 탄약 박스 연결. 회전 가능한 총신. 올리브그린+강철색."
+    },
+    "itemScrap": {
+      "file": "item-scrap.png",
+      "size": "128x128",
+      "desc": "고철 아이템 — 톱니바퀴+볼트+금속 조각이 뭉쳐진 모습. 금속 광택의 은회색."
+    },
+    "itemAmmo": {
+      "file": "item-ammo.png",
+      "size": "128x128",
+      "desc": "탄약 아이템 — 탄약 상자에서 총알이 튀어나온 모습. 황동색 총알+올리브 상자."
+    },
+    "effectExplosion": {
+      "file": "effect-explosion.png",
+      "size": "512x512",
+      "desc": "폭발 이펙트 — 주황→빨강→검정 연기 확산. 파편 조각이 튀는 모습. 4프레임 시퀀스."
+    },
+    "effectHeal": {
+      "file": "effect-heal.png",
+      "size": "256x256",
+      "desc": "치유 이펙트 — 청록색 십자가 모양 빛이 위로 퍼지며 사라지는 모습. 반짝이는 파티클."
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 캡틴 애쉬가 요새 바리케이드 위에서 좀비 무리를 향해 소총을 겨누는 장면. 배경에 불타는 도시 스카이라인. 상단에 '잿빛 요새' 타이틀. 좌하단에 서바이버 3명 실루엣. 다크+주황 화염 대비."
+    }
+  }
+}

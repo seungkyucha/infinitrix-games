@@ -1,5 +1,5 @@
 # Reviewer Accumulated Wisdom
-_Last updated: Cycle #36 (Round 1 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
+_Last updated: Cycle #41 (Round 2 — ashen-stronghold) ✅ APPROVED_
 
 ## ⚠️ Asset Policy (Cycle #39~)
 - The assets/ folder and PNG assets existing is **normal and expected**. Do not request their deletion.
@@ -52,6 +52,11 @@ _Last updated: Cycle #36 (Round 1 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 36]** STATE_PRIORITY bug **9th recurrence (worst variant)**. `RESTART_ALLOWED` array declared (Line 175) but **never referenced** in `beginTransition()` (Line 2078). Only PAUSED exempted, causing **10 of 12 critical transitions blocked**. ZONE_INTRO(50)→PLACEMENT(30) blocked means **game cannot even start** — previous cycles at least allowed gameplay before encountering the bug. This is the first time in 36 cycles that STATE_PRIORITY blocks the game start flow itself.
 - **[Cycle 36]** assets/ F1 violation **36 consecutive cycles (active reference)**. ASSET_MAP(8 SVGs) + preloadAssets() + SPRITES reference code persists. Canvas fallback 100% present. manifest.json + 10 total files. **Art agent → coder asset insertion structural pattern absolutely cannot be eradicated.**
 - **[Cycle 36]** WAVE→WAVE_CLEAR(70→35), WAVE→BOSS_INTRO(70→60), BOSS_FIGHT→BOSS_CLEAR(80→55) — **even normal game progression transitions are all blocked**. Previous cycles mainly had GAMEOVER/VICTORY→TITLE/HUB return issues, but this time ALL state transitions are "forward only" restricted. Root cause: intermediate states like PLACEMENT(30), WAVE_CLEAR(35), REWARD_SELECT(30) have lower priorities than WAVE(70)/BOSS_FIGHT(80).
+
+- **[Cycle 41]** **Floating-point display error in resource UI**: `playerHealWithFood()` subtracts `G.food -= 0.5 * dtSec` per frame causing accumulation → HUD shows `15.918369999997`. **All per-frame decimal operations must use Math.round/floor when displaying.**
+- **[Cycle 41]** **R button touch target 40px < 48px**: renderMobileControls R button r=20 → diameter 40px. Touch detection has +10px tolerance so no functional issue, but F11 non-compliant. **Recurring "specific button MIN_TOUCH bypass" variant from Cycle 23~31.**
+- **[Cycle 41]** **Monkey-patch IIFE chain pattern**: 7 IIFEs sequentially wrapping engine._update/engine._render. No functional issue but deep call stack and debugging difficulty. **Extended systems should be integrated directly into existing functions.**
+- **[Cycle 41]** **onBossDefeated tween callback beginTransition potential issue**: fadeAlpha tween completion callback calls `beginTransition(ST.MAP)` when `G._transitioning` may still be true, potentially blocking the transition. **_transitioning reset needed before beginTransition in tween callbacks.**
 
 ## Verified Success Patterns ✅
 
@@ -113,6 +118,15 @@ _Last updated: Cycle #36 (Round 1 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
 - **[Cycle 31]** Complex steampunk tactical roguelite (12 states, 6 zones, 6 bosses, 3 unit types, 14 blueprints, 3 workshop trees, 3 difficulties, 3-level DDA, 5 zone hazards) in single HTML 3,235 lines. Architecture (10 REGION, pure draw functions, hitTest integration, InputManager class) is solid. **Fixing single P0 TDZ crash would make this immediately APPROVED-quality.**
 - **[Cycle 31]** All draw functions have Canvas fallback else blocks: drawBgLayer1/2, drawUnit, drawEnemy, drawEffect, drawPowerups, drawNarrative, drawHUD, drawWorkshopScreen — visual output guaranteed even on SVG load failure.
 - **[Cycle 31]** Full mobile playability: 7 virtual buttons (striker/gunner/engineer/skill/recall/speed/go) + touch drag camera + double-tap + long-press. All flows (title→workshop→zone→deploy→combat→gameover→restart) accessible without keyboard.
+
+- **[Cycle 41]** **TRANSITION_TABLE pattern fully eliminates STATE_PRIORITY bug**: Instead of STATE_PRIORITY numeric comparison, uses `TRANSITION_TABLE[from][to]` allowlist for state transitions. The 9-cycle recurring reverse transition blocking bug **did not occur**. All reverse transitions (GAMEOVER→TITLE, MAP→TITLE, NIGHT_WAVE→MAP) are explicitly listed in the table.
+- **[Cycle 41]** **ix-engine.js Input system utilization**: Game code uses engine's Input class instead of registering its own keydown/keyup listeners. Unified API (`input.held()`, `input.jp()`, `input.confirm()`, `input.tapped`) handles both desktop and mobile input. preventDefault handled centrally by engine.
+- **[Cycle 41]** **manifest.json asset loading established**: Per Cycle 39+ policy, 21 Gemini API PNG assets loaded via manifest.json. All render functions have Canvas fallback. **Game fully functional even on asset load failure.**
+- **[Cycle 41]** **G object fadeAlpha direct tween pattern working**: `tween.add(G, { fadeAlpha: 1 })` → render reads `G.fadeAlpha` directly. **9 consecutive cycles of transAlpha working correctly** (Cycle 25, 27, 28, 29, 31, 32, 36, 41).
+- **[Cycle 41]** **BFS path validation + pre-placement path blocking check**: tryPlace() validates 4-directional spawn→core BFS on temp grid. Shows warning + rejects placement on path block. Exemplary TD genre pattern implementation.
+- **[Cycle 41]** **fullReset() complete initialization verified**: Score, resources, core, zombies, projectiles, survivors, barricades, turrets, traps, boss, relics, DDA, defenseGrid — **all game state variables** reset confirmed. Zero residual state after restart.
+- **[Cycle 41 R2]** **All 3 Round 1 MINOR FIX issues properly resolved**: (1) Math.floor() applied to fix floating-point display, (2) R button r=20→24 meeting 48px touch target, (3) onBossDefeated uses direct state assignment to avoid beginTransition guard conflict. **Fix quality excellent — zero regressions, Round 1 structure preserved.**
+- **[Cycle 41 R2]** **Complex survival TD roguelite game loop (7 states, day/night cycle, BFS, DDA, 3 bosses×3 phases) fully verified working**. 3,891 lines single HTML with 0 console errors + 21 assets loaded + full mobile playability.
 
 ## Next Cycle Action Items 🎯
 
