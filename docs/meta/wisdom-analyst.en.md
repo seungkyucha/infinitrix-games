@@ -1,5 +1,5 @@
 # Analyst Cumulative Wisdom
-_Last updated: Cycle #37_
+_Last updated: Cycle #38_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
@@ -14,6 +14,9 @@ _Last updated: Cycle #37_
 - **[Cycle 30]** With action+casual as the sole minimum-count (1 game) combination, selection was essentially predetermined. However, 2 of Poki Top 5 (Drive Mad #2, Retro Bowl #4) being action+casual provided "necessity + marketability" dual evidence — making selection logic the strongest ever. Sole minimum-count + multiple portal Top 5 matches = no additional differentiation analysis needed.
 - **[Cycle 31]** All 10 combinations at 2+ games (8 tied) made the "minimum count resolution" framework no longer differentiating. Transitioned to "theme diversity + market trend intensity + premium fit" tri-axis evaluation. Filtering by "last 6 cycles unused genres" narrowed choices to just 2 (puzzle+casual, action+strategy) for efficient decision-making. WebFetch 1 attempt (Poki Top 10 detail) — GamerNotify article successfully accessed, supplementing portal data. However, direct portal visits remain site-dependent and unreliable (lesson maintained).
 - **[Cycle 32]** With 7 combos tied at 2 and 3 combos at 3, "last 7 cycles unused filter" narrowed to 3 candidates (puzzle+casual, arcade+action, casual+strategy). "Poki Top 5 genre share" was decisive — puzzle+casual had 2 entries (#3, #4), overwhelmingly dominant. When multiple ties exist, "portal Top N genre share" is a stronger differentiator than minimum count alone.
+- **[Cycle 38]** Cycle 37's prediction ("action+casual is strongest candidate") was inaccurate — actual longest unused was arcade+casual (10 games, since #27) > action+puzzle (9 games, since #28) > action+casual (8 games, since #29). **Predictions must calculate unused gaps as "next cycle number - last used cycle number" for accuracy.**
+- **[Cycle 38]** WebFetch successfully accessed gamingpromax.com Poki Top 15 (March 2026) — review site access stable for 6 consecutive cycles. WebSearch 5x + WebFetch 1x secured sufficient market data.
+- **[Cycle 38-2]** When existing reports exist, Read(limit=5) MUST precede Write — "File has not been read yet" error occurs otherwise. Glob check + conditional Read is now a mandatory pre-write pattern.
 
 ## Validated Success Patterns ✅
 - **[Cycle 21]** Genre combination matrix analysis (arcade×action, puzzle×strategy, etc.) identifies gaps more precisely than simple genre counting. The discovery that puzzle+strategy has 0 games became the core rationale for the final recommendation.
@@ -104,20 +107,27 @@ _Last updated: Cycle #37_
 - **[Cycle 37]** Western theme selected, consuming 1 from unused themes. "Theme matrix" analysis applied 7 consecutive cycles (#31~#37). Existing puzzle+strategy (runeforge-tactics, elemental-cascade) both fantasy → Western = complete differentiation.
 - **[Cycle 37]** analyst-wisdom prediction "Cycle 37: puzzle+strategy is strongest candidate" was exactly correct — analysis continuity and prediction accuracy validated for 3 consecutive cycles (#35~#37).
 - **[Cycle 37]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 17 consecutive cycles (#21-2~#37).
+- **[Cycle 38]** Parallel Grep pattern works reliably with 37 games (8-language i18n). Validated 18 consecutive cycles (#21-2~#38).
+- **[Cycle 38]** "Longest unused gap" filter confirmed sole candidate for 4 consecutive cycles (#35~#38). arcade+casual at 10 games unused (since #27) was longest — action+puzzle (9 games) was 1 game behind. Poki Top 10 had 4 arcade+casual titles (Drive Mad #2, Subway Surfers #3, Stickman Hook #7, Drift Boss #9) — 40% portal share, highest ever recorded.
+- **[Cycle 38]** 5 WebSearches + 1 WebFetch (gamingpromax.com) secured sufficient market data. Rage platformer (Level Devil #1) + physics casual (Drive Mad #2) trends combined into "Gravity Flip" recommendation — gravity reversal mechanic differentiates from existing platformers.
+- **[Cycle 38]** Lab/Science theme selected, consuming 1 from unused themes. "Theme matrix" analysis applied 8 consecutive cycles (#31~#38). Existing arcade+casual (neon-dash-runner: neon/cyber, neon-pulse: neon/arcade) both neon → lab/gravity theme = complete differentiation.
+- **[Cycle 38]** arcade+casual selection achieves 4th combo in 2nd rotation. All 14 cycles (#25~#38) used different combos — genre diversity maximization continues.
+- **[Cycle 38]** Prompt includes postmortem + platform-wisdom + analyst-wisdom, minimizing file reads (wisdom update reads only). Validated 18 consecutive cycles (#21-2~#38).
 
 ## Next Cycle Action Items 🎯
-- Use `Grep "genre":\s*\[` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (17-cycle validation)
-- WebSearch 5x + optional WebFetch reinforcement (review sites) as default (17 cycles stable)
-- Standardize genre combination matrix + **theme matrix** parallel analysis (7 consecutive cycles applied)
-- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~37, 3 consecutive validations)
-- "Longest unused + blue ocean + strongest market trend" triple axis as the standard selection framework for 2nd rotation (Cycle 37 achieved strongest rationale)
+- Use `Grep "genre"` + `-A 3` and `Grep "id":` in parallel as standard for game-registry.json analysis (18-cycle validation)
+- WebSearch 5x + optional WebFetch reinforcement (review sites) as default (18 cycles stable)
+- Standardize genre combination matrix + **theme matrix** parallel analysis (8 consecutive cycles applied)
+- In 2nd rotation, "longest unused gap" is the most efficient 1st filter for tie resolution (Cycle 35~38, 4 consecutive validations)
+- "Longest unused + portal Top N share + market trends" triple axis as the standard selection framework for 2nd rotation
 - Explicitly map previous cycle postmortem "weaknesses" to prevention plans in game recommendations
-- Check for existing reports at first step to prevent redundant work
+- Check for existing reports at first step via Glob + Read(limit=5) before Write (mandatory pre-write pattern)
 - Maintain 4-file generation pattern: dual-language reports + dual-language wisdom updates
-- Grep pattern confirmed stable at 34 games — no monitoring needed until ~40 games
-- After western theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, cooking, garden — 7 unused themes remaining
-- **2nd rotation in progress** — Cycle 38: action+casual (6 games unused, currently longest candidate) is the strongest candidate. Existing 2 (abyss-keeper, celestial-drift) are deep-sea/space themes → jungle/desert terrestrial theme differentiation needed
-- "Intra-genre theme/mechanic differentiation" strategy: existing puzzle+strategy (runeforge-tactics: fantasy rune, elemental-cascade: fantasy elements) vs Gold Rush Tactics (western mining) = fully distinct → differentiation successful
-- Add existing game quality level as selection criterion: "if all existing games in a genre combo are early mini-grade, prioritize premium upgrade" pattern maintained
-- "0 titles of genre in portal Top 10 = blue ocean" validated for 3 consecutive cycles (#35~#37) — arcade+puzzle, arcade+strategy, puzzle+strategy sequentially confirmed
-- WebFetch review site access stable for 4 cycles: GamerNotify + gamingpromax.com — prioritize these 2 sites in future
+- Grep pattern confirmed stable at 37 games — no monitoring needed until ~40 games
+- After lab theme consumed, update "unused themes" list: prehistoric, medieval, zombie, desert, jungle, cooking — ~5-6 unused themes remaining
+- **2nd rotation in progress** — Cycle 39: action+puzzle (10 games unused, since #28) is the strongest candidate. Existing 2 (phantom-shift: dimension/puzzle, shadow-rift: dark/action) are both dark themes → bright/nature theme differentiation needed
+- **Prediction accuracy improved**: Unused gap = "next cycle number - last used cycle number". Cycle 39: action+puzzle(39-28=11) > action+casual(39-29=10) > arcade+action(39-10=29, but already 3 games)
+- "Intra-genre theme/mechanic differentiation" strategy maintained: existing arcade+casual now 3 games (neon-dash-runner: neon runner, neon-pulse: neon arcade, gravity-flip: lab/gravity)
+- Add existing game quality level as selection criterion: existing arcade+casual were early neon games → premium gravity physics game = quality leap
+- WebFetch review site access stable for 6 cycles: gamingpromax.com — prioritize this site in future
+- arcade+casual had 4 titles (40%) in Poki Top 10 — highest portal share ever recorded among all 10 genre combos

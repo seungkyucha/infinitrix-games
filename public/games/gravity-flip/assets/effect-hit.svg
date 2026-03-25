@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="hitCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="20%" stop-color="#FFF9C4"/>
+      <stop offset="50%" stop-color="#FF9800"/>
+      <stop offset="100%" stop-color="#FF5722" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hitRing1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFEB3B" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF5722" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hitRing2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FF8A80" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#D50000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hitOuter" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#4FC3F7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0288D1" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="hitGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hitBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- Layer 7: Outermost gravity distortion -->
+  <circle cx="64" cy="64" r="60" fill="url(#hitOuter)" opacity="0.2"/>
+
+  <!-- Layer 6: Shockwave ring outer -->
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#4FC3F7" stroke-width="2" opacity="0.2"/>
+  <circle cx="64" cy="64" r="48" fill="url(#hitRing2)" opacity="0.25"/>
+
+  <!-- Layer 5: Gravity crack lines -->
+  <g opacity="0.35" stroke="#FF8A80" stroke-width="1.5" stroke-linecap="round">
+    <line x1="64" y1="64" x2="20" y2="30"/>
+    <line x1="64" y1="64" x2="108" y2="28"/>
+    <line x1="64" y1="64" x2="110" y2="90"/>
+    <line x1="64" y1="64" x2="18" y2="95"/>
+    <line x1="64" y1="64" x2="64" y2="10"/>
+    <line x1="64" y1="64" x2="64" y2="118"/>
+    <line x1="64" y1="64" x2="12" y2="64"/>
+    <line x1="64" y1="64" x2="116" y2="64"/>
+  </g>
+
+  <!-- Layer 4: Mid shockwave -->
+  <circle cx="64" cy="64" r="36" fill="url(#hitRing1)" opacity="0.4"/>
+
+  <!-- Layer 3: Inner ring -->
+  <circle cx="64" cy="64" r="24" fill="none" stroke="#FFEB3B" stroke-width="2.5" opacity="0.5" filter="url(#hitGlow)"/>
+
+  <!-- Layer 2: Hot core -->
+  <circle cx="64" cy="64" r="18" fill="url(#hitCore)" filter="url(#hitGlow)"/>
+
+  <!-- Layer 1: White flash center -->
+  <circle cx="64" cy="64" r="8" fill="#FFFFFF" opacity="0.95" filter="url(#hitGlow)"/>
+
+  <!-- Debris particles -->
+  <g opacity="0.6">
+    <rect x="30" y="26" width="4" height="4" rx="1" fill="#FFD600" transform="rotate(30 32 28)"/>
+    <rect x="88" y="34" width="3" height="5" rx="0.5" fill="#FF9800" transform="rotate(-20 90 37)"/>
+    <rect x="40" y="90" width="5" height="3" rx="0.5" fill="#FFAB40" transform="rotate(45 42 92)"/>
+    <rect x="82" y="86" width="4" height="4" rx="1" fill="#FFD600" transform="rotate(-15 84 88)"/>
+    <rect x="26" y="58" width="3" height="3" rx="0.5" fill="#FF8A80" transform="rotate(60 28 60)"/>
+    <rect x="96" y="60" width="3" height="3" rx="0.5" fill="#FF8A80" transform="rotate(-40 98 62)"/>
+  </g>
+
+  <!-- Spark points -->
+  <g fill="#FFFFFF" opacity="0.8">
+    <path d="M38 20 L40 16 L42 20 L40 24Z"/>
+    <path d="M90 22 L92 18 L94 22 L92 26Z"/>
+    <path d="M22 72 L24 68 L26 72 L24 76Z"/>
+    <path d="M100 76 L102 72 L104 76 L102 80Z"/>
+    <path d="M50 100 L52 96 L54 100 L52 104Z"/>
+    <path d="M76 104 L78 100 L80 104 L78 108Z"/>
+  </g>
+
+  <!-- Gravity flip indicators (theme) -->
+  <g opacity="0.3">
+    <path d="M64 4 L60 12 L68 12Z" fill="#4FC3F7"/>
+    <path d="M64 124 L60 116 L68 116Z" fill="#4FC3F7"/>
+  </g>
+
+  <!-- Additional shockwave rings -->
+  <circle cx="64" cy="64" r="44" fill="none" stroke="#FFAB40" stroke-width="1.5" opacity="0.2"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#FF8A80" stroke-width="1" opacity="0.15"/>
+
+  <!-- Energy wisps radiating outward -->
+  <g opacity="0.35" stroke-linecap="round" fill="none">
+    <path d="M64 64 Q50 40 35 28" stroke="#FFEB3B" stroke-width="1.2"/>
+    <path d="M64 64 Q80 40 95 25" stroke="#FFEB3B" stroke-width="1.2"/>
+    <path d="M64 64 Q80 85 98 100" stroke="#FF9800" stroke-width="1"/>
+    <path d="M64 64 Q48 85 30 102" stroke="#FF9800" stroke-width="1"/>
+    <path d="M64 64 Q40 60 18 55" stroke="#FFAB40" stroke-width="0.8"/>
+    <path d="M64 64 Q88 60 110 55" stroke="#FFAB40" stroke-width="0.8"/>
+    <path d="M64 64 Q60 88 55 112" stroke="#FF8A80" stroke-width="0.8"/>
+    <path d="M64 64 Q68 40 72 16" stroke="#FF8A80" stroke-width="0.8"/>
+  </g>
+
+  <!-- Additional debris -->
+  <g opacity="0.5">
+    <rect x="18" y="40" width="3" height="5" rx="0.5" fill="#FFAB40" transform="rotate(50 19 42)"/>
+    <rect x="100" y="44" width="4" height="3" rx="0.5" fill="#FFD600" transform="rotate(-35 102 45)"/>
+    <rect x="44" y="102" width="5" height="3" rx="0.5" fill="#FF9800" transform="rotate(25 46 103)"/>
+    <rect x="86" y="98" width="3" height="4" rx="0.5" fill="#FFAB40" transform="rotate(-50 87 100)"/>
+    <rect x="28" y="80" width="4" height="4" rx="0.5" fill="#FFD600" transform="rotate(70 30 82)"/>
+    <rect x="98" y="78" width="3" height="5" rx="0.5" fill="#FF9800" transform="rotate(-65 99 80)"/>
+  </g>
+
+  <!-- Micro spark dots -->
+  <g fill="#FFFFFF" opacity="0.6">
+    <circle cx="42" cy="32" r="1"/><circle cx="86" cy="34" r="1"/>
+    <circle cx="30" cy="52" r="0.8"/><circle cx="98" cy="50" r="0.8"/>
+    <circle cx="36" cy="92" r="1"/><circle cx="92" cy="90" r="1"/>
+    <circle cx="46" cy="108" r="0.8"/><circle cx="82" cy="106" r="0.8"/>
+  </g>
+
+  <!-- Gravity distortion crack pattern -->
+  <g opacity="0.2" stroke="#4FC3F7" stroke-width="0.8" fill="none">
+    <path d="M64 64 L55 48 L48 30"/>
+    <path d="M64 64 L73 48 L80 30"/>
+    <path d="M64 64 L55 80 L48 98"/>
+    <path d="M64 64 L73 80 L80 98"/>
+  </g>
+</svg>

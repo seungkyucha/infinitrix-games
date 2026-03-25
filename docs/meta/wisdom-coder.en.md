@@ -1,7 +1,11 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #37 gold-rush-tactics_
+_Last updated: Cycle #38 gravity-flip_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 38]** Rage platformer (4,015 lines) with 4 states (TITLE/MAP/PLAY/BOSS), further simplified from Cycle 37's 5 states. **Not separating GAMEOVER as a top-level state, instead handling it as PLAY sub-states (PS_DEAD/PS_CLEAR/PS_PAUSED), minimizes TRANSITION_TABLE to 4 entries and nearly eliminates transition bugs.** Separating state machine depth (sub-states) from width (top-level states) is an effective pattern.
+- **[Cycle 38]** Using setInterval for BGM playback causes code hygiene FAIL. **Web Audio API lookahead scheduling pattern (scheduleBGMNotes) with audioCtx.currentTime-based 2-second ahead reservation enables BGM loop with 0 setInterval calls.** Call scheduleBGMNotes() each frame in update to replenish the buffer.
+- **[Cycle 38]** In procedural level generation BFS reachability check, gravity-flip games require "gravity direction flip" state in the BFS movement model. **Must search (x, y, gravDir) 3D state space instead of simple 4-directional BFS** to reflect actual player movement. Cap state space explosion with maxSteps.
+- **[Cycle 38]** User instruction (asset preload) > spec F1 (no assets/) applied 9th time. **Fully established — maintain record only.**
 - **[Cycle 37]** Puzzle+strategy hybrid (3,858 lines) reduced states to just 5 (TITLE/PUZZLE/MAP/SHOP/GAMEOVER), eliminating the STATE_PRIORITY 8th recurrence. **TRANSITION_TABLE as single source of truth + beginTransition() only referencing that table is very stable with 5 states.** Minimizing state count exponentially reduces transition matrix omission risk.
 - **[Cycle 37]** Block puzzle (Block Blast style) row/col clear check: obstacles (rock/water/gas) must count as "filled" for line completion. **Define clear condition as "all cells non-empty" but obstacles remain after clear.** Checking only CELL_PLACED means rows with obstacles can never clear — a critical bug.
 - **[Cycle 37]** In clearLines(), only converting CELL_PLACED→CELL_EMPTY while preserving obstacles matches spec. But **resource calculation (calculateClearReward) must reference pre-placement cell types (affectedCells.prevType)** since post-placement all become CELL_PLACED. Separate tracking of original ore types is essential.
@@ -67,6 +71,13 @@ _Last updated: Cycle #37 gold-rush-tactics_
 - **[Cycle 21 runeforge]** With a 12-state machine (TITLE~ENDING), coding without a state transition matrix inevitably leads to "system not running in certain states" bugs. Use includes() arrays in update() to explicitly declare which systems run in which states.
 
 ## Proven Success Patterns ✅
+- **[Cycle 38]** Rage platformer (Gravity Flip) in 4,015-line single file. 4 states (TITLE/MAP/PLAY/BOSS) + 5 sub-states (ALIVE/DEAD/CLEAR/PAUSED/INTRO) + 23 stages (5 zones×3 + 5 bosses + 3 hidden) + upgrade tree (3 branches×5 levels) + BFS-validated procedural levels + 5 boss AI types + 4-tier DDA + ko/en dual language. arcade+casual genre combination.
+- **[Cycle 38]** IX Engine (Engine/Input/Sound/Tween/Particles/AssetLoader/UI/Save/MathUtil) integration — using shared engine modules instead of custom TweenManager/SoundManager. input.flush() at frame end + tween.update(dt) in all states pattern is stable.
+- **[Cycle 38]** BGM lookahead scheduling: scheduleBGMNotes() pre-schedules Web Audio notes up to audioCtx.currentTime + 2 seconds. Called each frame in game loop to replenish buffer. BGM loop achieved with 0 setInterval/setTimeout.
+- **[Cycle 38]** Sub-state pattern eliminates GAMEOVER state: PLAY internally manages PS_DEAD (instant death→respawn), PS_CLEAR (clear modal), PS_PAUSED (pause modal). Top-level state count of 4 minimizes TRANSITION_TABLE.
+- **[Cycle 38]** tweenClearImmediate() helper for immediate cleanup of in-progress tweens on restart/state transitions [F13].
+- **[Cycle 38]** 8 SVG assets loaded via IX.AssetLoader + Canvas shape fallback. Dual structure pattern successful 20 cycles running.
+- **[Cycle 38]** SeededRNG exclusive (0 Math.random), 0 setTimeout/setInterval, 0 confirm/alert, 0 fetch/new Image/new Audio, 0 external CDN — full platform code hygiene compliance.
 - **[Cycle 34]** Pirate port management + naval strategy roguelite (Corsair Tides) in 3,611-line single file. 20-state machine (INIT~SETTINGS) + port management (6 facilities ×5 levels) + naval combat (4 cannon types ×3 formations) + 5 bosses (phase transitions) + ship unlock tree + 8-branch crew skills + 8 voyage event types + 5 weather types + 6 trade goods + 7 treasure map pieces. casual+strategy genre combination.
 - **[Cycle 34]** ACTIVE_SYSTEMS matrix generated programmatically via IIFE — portStates/battleStates arrays guarantee economy/AI system mutual exclusivity at data level. Matrix pattern 18 cycles in a row.
 - **[Cycle 34]** SVG asset preload + Canvas fallback dual structure for nautical theme: bgLayer1/2 parallax ocean, player/enemy ships, uiHeart/uiStar HUD, effectHit explosions. Full rendering with Canvas shapes when assets unavailable.
@@ -164,6 +175,11 @@ _Last updated: Cycle #37 gold-rush-tactics_
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
 ## Next Cycle Action Items 🎯
+- **[Cycle 38→39] Maximize IX Engine utilization**: Cycle 38 successfully integrated IX Engine. Next cycle: fully eliminate custom TweenManager by using IX.Tween add() API directly. Also leverage IX.Particles instead of custom particle systems.
+- **[Cycle 38→39] BGM lookahead scheduling as reusable class**: Extract scheduleBGMNotes() pattern into reusable BGMPlayer class. Managing melody/harmony/drums as separate tracks can improve music quality.
+- **[Cycle 38→39] Segment pattern expansion**: Current 8 basic patterns with difficulty variants. Externalizing 20+ patterns as JSON data enables level design changes without code modifications.
+- **[Cycle 38→39] Boss AI data array conversion**: 5 boss types written as individual updateBoss0~4 functions. Converting attack patterns/timing to [{phase, pattern, duration, window}] data arrays enables boss addition via data only.
+- **[Cycle 38→39] CCD (Continuous Collision Detection)**: Dash high-speed movement risks overshoot. Need prevX/prevY interpolation or rayCast pattern.
 - **[Cycle 34→35] Boss AI pattern full data-driven**: Current boss attacks use switch(bossType) hardcoding. Convert to [{type:'tentacle',count:3,hp:80}, {type:'cannon',cd:2,dmg:50}] per-boss pattern arrays for data-only boss additions.
 - **[Cycle 34→35] Voyage map BFS reachability validation**: Current generateVoyageRoute() generates linear routes (always reachable), but branching paths require BFS validation. validateRoute() pattern exists in spec for immediate application.
 - **[Cycle 34→35] Offscreen canvas caching**: Port buildings and battle backgrounds drawn with individual fillRect every frame. One-time offscreen render + drawImage copy can reduce rendering cost 50%+.

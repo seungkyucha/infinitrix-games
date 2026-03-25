@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-24T07:20:31.321Z",
-  "totalGames": 35,
+  "lastUpdated": "2026-03-25T04:08:23.813Z",
+  "totalGames": 36,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -6550,6 +6550,193 @@
             "Teclado: 1/2/3 selecionar bloco, Setas para mover, Espaço para confirmar",
             "Toque: Toque e arraste para posicionar, toque duplo para usar ferramenta, pressione longo para info",
             "Q/E: Usar ferramentas (picareta/dinamite)",
+            "Esc: Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gravity-flip",
+      "title": "그래비티 플립",
+      "description": "중력을 뒤집어 붕괴하는 연구소를 탈출하세요!",
+      "genre": [
+        "arcade",
+        "casual"
+      ],
+      "thumbnail": "/games/gravity-flip/assets/thumbnail.svg",
+      "path": "/games/gravity-flip/index.html",
+      "addedAt": "2026-03-25T04:08:23.813Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "아케이드",
+        "캐주얼",
+        "중력",
+        "플랫포머",
+        "레이지",
+        "원터치",
+        "탈출"
+      ],
+      "controls": [
+        "탭/클릭: 중력 반전",
+        "스페이스바: 중력 반전",
+        "터치: 화면 탭으로 중력 반전 (모바일)",
+        "Esc: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Gravity Flip",
+          "description": "Flip gravity to escape a collapsing laboratory!",
+          "tags": [
+            "arcade",
+            "casual",
+            "gravity",
+            "platformer",
+            "rage",
+            "one-touch",
+            "escape"
+          ],
+          "controls": [
+            "Tap/Click: Flip gravity",
+            "Spacebar: Flip gravity",
+            "Touch: Tap screen to flip gravity (mobile)",
+            "Esc: Pause"
+          ]
+        },
+        "ja": {
+          "title": "グラビティフリップ",
+          "description": "重力を反転させて崩壊する研究所から脱出せよ！",
+          "tags": [
+            "アーケード",
+            "カジュアル",
+            "重力",
+            "プラットフォーマー",
+            "激ムズ",
+            "ワンタッチ",
+            "脱出"
+          ],
+          "controls": [
+            "タップ/クリック: 重力反転",
+            "スペースキー: 重力反転",
+            "タッチ: 画面タップで重力反転（モバイル）",
+            "Esc: ポーズ"
+          ]
+        },
+        "zh-CN": {
+          "title": "重力翻转",
+          "description": "翻转重力，逃离崩塌的实验室！",
+          "tags": [
+            "街机",
+            "休闲",
+            "重力",
+            "平台跳跃",
+            "虐心",
+            "一键操作",
+            "逃脱"
+          ],
+          "controls": [
+            "点击: 翻转重力",
+            "空格键: 翻转重力",
+            "触屏: 点击屏幕翻转重力（移动端）",
+            "Esc: 暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "重力翻轉",
+          "description": "翻轉重力，逃離崩塌的實驗室！",
+          "tags": [
+            "街機",
+            "休閒",
+            "重力",
+            "平台跳躍",
+            "虐心",
+            "一鍵操作",
+            "逃脫"
+          ],
+          "controls": [
+            "點擊: 翻轉重力",
+            "空白鍵: 翻轉重力",
+            "觸控: 點擊螢幕翻轉重力（行動裝置）",
+            "Esc: 暫停"
+          ]
+        },
+        "es": {
+          "title": "Giro de Gravedad",
+          "description": "¡Invierte la gravedad para escapar del laboratorio en ruinas!",
+          "tags": [
+            "arcade",
+            "casual",
+            "gravedad",
+            "plataformas",
+            "desafiante",
+            "un toque",
+            "escape"
+          ],
+          "controls": [
+            "Toque/Clic: Invertir gravedad",
+            "Barra espaciadora: Invertir gravedad",
+            "Táctil: Toca la pantalla para invertir gravedad (móvil)",
+            "Esc: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Gravity Flip",
+          "description": "Inversez la gravité pour fuir un laboratoire en ruine !",
+          "tags": [
+            "arcade",
+            "casual",
+            "gravité",
+            "plateforme",
+            "rage",
+            "une touche",
+            "évasion"
+          ],
+          "controls": [
+            "Tap/Clic : Inverser la gravité",
+            "Espace : Inverser la gravité",
+            "Tactile : Appuyez sur l'écran pour inverser la gravité (mobile)",
+            "Échap : Pause"
+          ]
+        },
+        "de": {
+          "title": "Gravity Flip",
+          "description": "Drehe die Schwerkraft um und fliehe aus dem einstürzenden Labor!",
+          "tags": [
+            "Arcade",
+            "Casual",
+            "Schwerkraft",
+            "Plattformer",
+            "Rage",
+            "Ein-Tasten",
+            "Flucht"
+          ],
+          "controls": [
+            "Tippen/Klick: Schwerkraft umkehren",
+            "Leertaste: Schwerkraft umkehren",
+            "Touch: Bildschirm antippen zum Umkehren (Mobil)",
+            "Esc: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Inversão Gravitacional",
+          "description": "Inverta a gravidade para escapar do laboratório em colapso!",
+          "tags": [
+            "arcade",
+            "casual",
+            "gravidade",
+            "plataforma",
+            "desafiante",
+            "um toque",
+            "fuga"
+          ],
+          "controls": [
+            "Toque/Clique: Inverter gravidade",
+            "Barra de espaço: Inverter gravidade",
+            "Toque: Toque na tela para inverter gravidade (mobile)",
             "Esc: Pausa"
           ]
         }

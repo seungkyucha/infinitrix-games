@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="hGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF8A80"/>
+      <stop offset="40%" stop-color="#F44336"/>
+      <stop offset="100%" stop-color="#B71C1C"/>
+    </linearGradient>
+    <radialGradient id="hShine" cx="0.35" cy="0.3" r="0.4">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF5252"/>
+      <stop offset="100%" stop-color="#7F0000"/>
+    </linearGradient>
+    <radialGradient id="hInner" cx="0.5" cy="0.6" r="0.4">
+      <stop offset="0%" stop-color="#FF8A80" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#F44336" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="hGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hShadow">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1" flood-color="#7F0000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="hOuterGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+    <linearGradient id="hCross" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0E0E0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer glow pulse -->
+  <path d="M24 42 Q4 28 4 16 Q4 8 12 8 Q18 8 24 16 Q30 8 36 8 Q44 8 44 16 Q44 28 24 42Z" fill="#FF1744" opacity="0.15" filter="url(#hOuterGlow)"/>
+
+  <!-- Heart shadow -->
+  <g filter="url(#hShadow)">
+    <path d="M24 40 Q6 27 6 17 Q6 10 12.5 10 Q18 10 24 17 Q30 10 35.5 10 Q42 10 42 17 Q42 27 24 40Z" fill="url(#hGrad)"/>
+  </g>
+
+  <!-- Heart main body -->
+  <path d="M24 40 Q6 27 6 17 Q6 10 12.5 10 Q18 10 24 17 Q30 10 35.5 10 Q42 10 42 17 Q42 27 24 40Z" fill="url(#hGrad)" stroke="url(#hEdge)" stroke-width="0.8"/>
+
+  <!-- Inner depth -->
+  <path d="M24 36 Q10 25 10 18 Q10 13 14 13 Q18 13 24 19 Q30 13 34 13 Q38 13 38 18 Q38 25 24 36Z" fill="url(#hInner)"/>
+
+  <!-- Highlight -->
+  <path d="M15 14 Q12 12 14 14 Q10 14 10 18 Q10 20 14 24 Q16 18 20 14Z" fill="url(#hShine)"/>
+
+  <!-- Medical cross (lab theme) -->
+  <g filter="url(#hGlow)">
+    <rect x="21.5" y="20" width="5" height="13" rx="1" fill="url(#hCross)" opacity="0.85"/>
+    <rect x="18" y="23.5" width="12" height="5" rx="1" fill="url(#hCross)" opacity="0.85"/>
+  </g>
+
+  <!-- Sparkle accents -->
+  <g opacity="0.7">
+    <path d="M10 12 L11 10 L12 12 L11 14Z" fill="#FFFFFF"/>
+    <path d="M38 12 L39 10 L40 12 L39 14Z" fill="#FFFFFF"/>
+    <path d="M8 22 L9 21 L10 22 L9 23Z" fill="#FF8A80"/>
+    <path d="M40 22 L41 21 L42 22 L41 23Z" fill="#FF8A80"/>
+  </g>
+
+  <!-- Rim highlight -->
+  <path d="M12.5 10 Q18 10 24 17" fill="none" stroke="#FFFFFF" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- Pulse ring -->
+  <path d="M24 42 Q4 28 4 16 Q4 8 12 8 Q18 8 24 16 Q30 8 36 8 Q44 8 44 16 Q44 28 24 42Z" fill="none" stroke="#FF5252" stroke-width="0.5" opacity="0.3" stroke-dasharray="3 2"/>
+
+  <!-- Gravity arrows (theme) -->
+  <path d="M24 6 L22 9 L26 9Z" fill="#4FC3F7" opacity="0.5"/>
+  <path d="M24 46 L22 43 L26 43Z" fill="#4FC3F7" opacity="0.5"/>
+</svg>

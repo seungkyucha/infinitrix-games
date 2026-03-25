@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="sGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF176"/>
+      <stop offset="40%" stop-color="#FFD600"/>
+      <stop offset="100%" stop-color="#FF8F00"/>
+    </linearGradient>
+    <radialGradient id="sCenter" cx="0.5" cy="0.45" r="0.35">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#FFF9C4"/>
+      <stop offset="100%" stop-color="#FFD600" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE082"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </linearGradient>
+    <radialGradient id="sAura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFD600" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FFD600" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="sShadow">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#E65100" flood-opacity="0.4"/>
+    </filter>
+    <filter id="sOuterGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+    </filter>
+    <linearGradient id="sCoinRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFECB3"/>
+      <stop offset="100%" stop-color="#FF6F00"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer glow -->
+  <circle cx="24" cy="24" r="20" fill="url(#sAura)" filter="url(#sOuterGlow)"/>
+
+  <!-- Coin base -->
+  <g filter="url(#sShadow)">
+    <circle cx="24" cy="24" r="16" fill="url(#sGrad)" stroke="url(#sEdge)" stroke-width="1.2"/>
+  </g>
+
+  <!-- Inner ring -->
+  <circle cx="24" cy="24" r="13" fill="none" stroke="url(#sCoinRim)" stroke-width="0.8"/>
+
+  <!-- Star shape on coin -->
+  <g filter="url(#sGlow)">
+    <path d="M24 11 L27 19 L35 19 L29 24 L31 32 L24 28 L17 32 L19 24 L13 19 L21 19Z" fill="url(#sGrad)" stroke="#FF8F00" stroke-width="0.5"/>
+  </g>
+
+  <!-- Center glow -->
+  <circle cx="24" cy="22" r="6" fill="url(#sCenter)"/>
+
+  <!-- Highlight arc -->
+  <path d="M14 16 Q18 10 28 12" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.6" stroke-linecap="round"/>
+
+  <!-- Edge notches (coin detail) -->
+  <g opacity="0.3" stroke="#E65100" stroke-width="0.8">
+    <line x1="24" y1="8" x2="24" y2="10"/>
+    <line x1="24" y1="38" x2="24" y2="40"/>
+    <line x1="8" y1="24" x2="10" y2="24"/>
+    <line x1="38" y1="24" x2="40" y2="24"/>
+    <line x1="12" y1="12" x2="13.5" y2="13.5"/>
+    <line x1="34.5" y1="34.5" x2="36" y2="36"/>
+    <line x1="36" y1="12" x2="34.5" y2="13.5"/>
+    <line x1="13.5" y1="34.5" x2="12" y2="36"/>
+  </g>
+
+  <!-- Sparkle rays -->
+  <g opacity="0.5">
+    <path d="M24 3 L24.5 6 L24 5 L23.5 6Z" fill="#FFFFFF"/>
+    <path d="M24 42 L24.5 45 L24 44 L23.5 45Z" fill="#FFFFFF"/>
+    <path d="M3 24 L6 24.5 L5 24 L6 23.5Z" fill="#FFFFFF"/>
+    <path d="M42 24 L45 24.5 L44 24 L45 23.5Z" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Gravity theme micro arrows -->
+  <path d="M6 18 L5 16 L7 16Z" fill="#4FC3F7" opacity="0.4"/>
+  <path d="M42 30 L41 32 L43 32Z" fill="#4FC3F7" opacity="0.4"/>
+
+  <!-- ₩ symbol (currency) -->
+  <g opacity="0.25">
+    <text x="24" y="27" text-anchor="middle" font-size="8" font-weight="bold" fill="#E65100" font-family="Arial">G</text>
+  </g>
+</svg>

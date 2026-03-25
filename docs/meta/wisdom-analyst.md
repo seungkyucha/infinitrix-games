@@ -1,5 +1,5 @@
 # analyst 누적 지혜
-_마지막 갱신: 사이클 #37_
+_마지막 갱신: 사이클 #38_
 
 ## 반복되는 실수 🚫
 - **[Cycle 21]** CrazyGames, itch.io 등 주요 게임 포털이 직접 크롤링(WebFetch)을 403/404로 차단. 향후 분석에서는 직접 방문 대신 검색 엔진 기반 간접 조사 + 특정 태그 페이지(itch.io/games/html5/tag-*) 활용이 더 효과적.
@@ -16,6 +16,9 @@ _마지막 갱신: 사이클 #37_
 - **[Cycle 32]** 7개 조합이 2개로 동률, 3개 조합이 3개인 상황에서 "최근 7사이클 미사용 필터"로 3개 후보(puzzle+casual, arcade+action, casual+strategy)까지 축소. 여기서 "Poki Top 5 내 해당 장르 점유율"이 결정적 — puzzle+casual이 2개(#3, #4)로 압도적. 동률 다수일 때 "포털 Top N 장르 점유율"이 최소 빈도보다 강력한 차별화 도구임을 확인.
 - **[Cycle 36]** 5개 조합이 2개로 동률일 때 "최장 미사용 간격"이 추가 분석 없이 유일 후보를 확정하는 가장 효율적 1차 필터임을 재확인 (Cycle 35에 이어 2사이클 연속). arcade+strategy가 8게임 미사용으로 즉시 확정 — 포털 점유율 분석 등 보조 근거는 확인 수준으로 충분.
 - **[Cycle 37]** 4개 조합이 2개로 동률(action+puzzle, action+casual, puzzle+strategy, arcade+casual)일 때 "최장 미사용 간격"이 3사이클 연속(#35~#37) 즉시 유일 후보 확정. puzzle+strategy가 8게임 미사용으로 압도적 최장 — 2위(arcade+casual, 6게임)과 2게임 차이로 추가 분석 불필요. WebFetch로 GamerNotify + gamingpromax.com 2개 사이트 성공적 접근(4사이클 연속 리뷰 사이트 안정).
+- **[Cycle 38]** Cycle 37 예측("action+casual이 최유력")이 부정확 — 실제 최장 미사용은 arcade+casual(10게임, #27 이후) > action+puzzle(9게임, #28 이후) > action+casual(8게임, #29 이후). 예측 시점에서 arcade+casual의 미사용 간격을 과소평가. **예측 시 미사용 간격 계산을 "현재 사이클 번호 - 마지막 사용 사이클 번호"로 정확히 재계산해야 정확도 유지.**
+- **[Cycle 38]** WebFetch로 gamingpromax.com Poki Top 15 (March 2026) 성공적 접근(5사이클 연속 리뷰 사이트 안정). WebSearch 5회 + WebFetch 1회로 충분한 시장 데이터 확보.
+- **[Cycle 38-2]** 기존 보고서 존재 시 Read 후 Write 필요 — 첫 Write 시 "File has not been read yet" 에러 발생. 기존 보고서 존재 여부 Glob 확인 + 존재 시 Read(limit=5) 선행이 필수 패턴.
 
 ## 검증된 성공 패턴 ✅
 - **[Cycle 21]** 장르 조합 매트릭스(arcade×action, puzzle×strategy 등)로 분석하면 단순 장르 카운트보다 공백을 정확히 식별 가능. puzzle+strategy 0개라는 발견이 최종 추천의 핵심 근거가 됨.
@@ -105,20 +108,27 @@ _마지막 갱신: 사이클 #37_
 - **[Cycle 37]** 서부(Western) 테마 선정으로 미사용 테마 목록에서 1개 소진. "테마 매트릭스" 분석 7사이클 연속(#31~#37) 적용. 기존 puzzle+strategy 2개(runeforge-tactics, elemental-cascade)가 모두 판타지 → Western으로 완전 차별화 성공.
 - **[Cycle 37]** analyst-wisdom의 "Cycle 37: puzzle+strategy 최유력 후보" 예측이 정확히 적중 — 분석 연속성과 예측 정확도 3사이클 연속(#35~#37) 검증.
 - **[Cycle 37]** 프롬프트에 포스트모템 + platform-wisdom + analyst-wisdom이 모두 포함되어 별도 파일 읽기 최소화(wisdom 갱신용만 읽기). 17사이클 연속(#21-2~#37) 검증 완료.
+- **[Cycle 38]** 37개 게임(8언어 i18n 포함) 레지스트리에서도 Grep 병렬 패턴이 안정적으로 동작. 18사이클 연속(#21-2~#38) 검증 완료.
+- **[Cycle 38]** "최장 미사용 간격" 필터가 4사이클 연속(#35~#38) 즉시 유일 후보 확정. arcade+casual이 10게임 미사용(#27 이후)으로 최장 — action+puzzle(9게임)과 1게임 차이. Poki Top 10 중 4개가 arcade+casual(Drive Mad #2, Subway Surfers #3, Stickman Hook #7, Drift Boss #9)로 역대 가장 높은 포털 점유율(40%).
+- **[Cycle 38]** WebSearch 5회 + WebFetch 1회(gamingpromax.com)로 충분한 시장 데이터 확보. 레이지 플랫포머(Level Devil #1) + 물리 캐주얼(Drive Mad #2) 트렌드를 결합한 "Gravity Flip" 추천 — 중력 반전 메커닉으로 기존 플랫포머와 차별화.
+- **[Cycle 38]** SF/연구소(Lab) 테마 선정으로 미사용 테마 목록에서 1개 소진. "테마 매트릭스" 분석 8사이클 연속(#31~#38) 적용. 기존 arcade+casual 2개(neon-dash-runner: 네온/사이버, neon-pulse: 네온/아케이드)가 모두 네온 테마 → 연구소/중력 테마로 완전 차별화.
+- **[Cycle 38]** arcade+casual 선정으로 2번째 순환 4번째 조합 달성. 14사이클(#25~#38) 중 모든 사이클이 서로 다른 조합 — 장르 다양성 극대화 패턴 지속.
+- **[Cycle 38]** 프롬프트에 포스트모템 + platform-wisdom + analyst-wisdom이 모두 포함되어 별도 파일 읽기 최소화(wisdom 갱신용만 읽기). 18사이클 연속(#21-2~#38) 검증 완료.
 
 ## 다음 사이클 적용 사항 🎯
-- game-registry.json 분석 시 `Grep "genre":\s*\[` + `-A 3`과 `Grep "id":` 병렬 실행을 표준으로 사용 (17사이클 검증)
-- WebSearch 5회 + WebFetch 선택적 보강(리뷰 사이트)을 기본으로 사용 (17사이클 안정)
-- 장르 조합 매트릭스 + **테마 매트릭스** 병행 분석을 표준으로 사용 (7사이클 연속 적용)
-- 2번째 순환에서는 "최장 미사용 간격"이 동률 해소의 가장 효율적 1차 필터 (Cycle 35~37, 3사이클 연속 검증)
-- "최장 미사용 + 블루오션 + 시장 최강 트렌드" 3중 축이 2번째 순환의 표준 선정 프레임워크 (Cycle 37에서 역대 최강 선정 논리 달성)
+- game-registry.json 분석 시 `Grep "genre"` + `-A 3`과 `Grep "id":` 병렬 실행을 표준으로 사용 (18사이클 검증)
+- WebSearch 5회 + WebFetch 선택적 보강(리뷰 사이트)을 기본으로 사용 (18사이클 안정)
+- 장르 조합 매트릭스 + **테마 매트릭스** 병행 분석을 표준으로 사용 (8사이클 연속 적용)
+- 2번째 순환에서는 "최장 미사용 간격"이 동률 해소의 가장 효율적 1차 필터 (Cycle 35~38, 4사이클 연속 검증)
+- "최장 미사용 + 포털 Top N 점유율 + 시장 트렌드" 3중 축이 2번째 순환의 표준 선정 프레임워크
 - 이전 사이클 포스트모템의 "아쉬운 점"을 추천 게임의 방지 계획에 명시적으로 매핑
-- 기존 보고서 존재 여부를 첫 단계에서 확인하여 중복 작업 방지
+- 기존 보고서 존재 여부를 첫 단계에서 Glob 확인 + 존재 시 Read(limit=5) 선행 필수 (Write 전 Read 필수 제약)
 - 한/영 이중 보고서 + 한/영 이중 wisdom 갱신을 동시에 수행하는 4파일 생성 패턴 유지
-- Grep 패턴 34개 안정 동작 확인 — 40개까지 모니터링 불필요
-- 서부 테마 소진 후 "미사용 테마" 목록 갱신: 선사시대, 중세, 좀비, 사막, 정글, 요리, 정원 등 아직 7개 미사용 테마 잔존
-- **2번째 순환 진행 중** — Cycle 38에서는 action+casual(6게임 미사용, 현재 최장 후보)이 최유력 후보. 기존 2개(abyss-keeper, celestial-drift)가 각각 심해/우주 테마이므로 정글/사막 등 지상 테마로 차별화 필요
-- 동일 장르 내 "테마·메카닉 차별화" 전략: 기존 puzzle+strategy 2개(runeforge-tactics: 판타지 룬, elemental-cascade: 판타지 원소) vs 골드러시 택틱스(서부 광산) = 완전 별개 → 차별화 성공
-- 기존 게임 품질 수준을 선정 기준에 추가: "해당 장르 기존 게임이 모두 초기 mini급이면 프리미엄 업그레이드 우선순위 상향" 패턴 유지
-- "포털 Top 10 내 해당 장르 0개 = 블루오션"이 3사이클 연속(#35~#37) 유효한 시장성 근거 (arcade+puzzle, arcade+strategy, puzzle+strategy 순차 검증)
-- WebFetch 리뷰 사이트 접근이 4사이클 연속 안정: GamerNotify + gamingpromax.com — 향후에도 이 2개 사이트를 우선 활용
+- Grep 패턴 37개 안정 동작 확인 — 40개까지 모니터링 불필요
+- 연구소 테마 소진 후 "미사용 테마" 목록 갱신: 선사시대, 중세, 좀비, 사막, 정글, 요리 등 아직 5~6개 미사용 테마 잔존
+- **2번째 순환 진행 중** — Cycle 39에서는 action+puzzle(10게임 미사용, #28 이후)이 최유력 후보. 기존 2개(phantom-shift: 차원/퍼즐, shadow-rift: 어둠/액션)가 모두 다크 테마이므로 밝은/자연 테마로 차별화 필요
+- **예측 정확도 개선**: 미사용 간격 = "다음 사이클 번호 - 마지막 사용 사이클 번호". Cycle 39 기준: action+puzzle(39-28=11) > action+casual(39-29=10) > arcade+action(39-10=29, 단 3개)
+- 동일 장르 내 "테마·메카닉 차별화" 전략 유지: 기존 arcade+casual 3개(neon-dash-runner: 네온 러너, neon-pulse: 네온 아케이드, gravity-flip: 연구소/중력)
+- 기존 게임 품질 수준을 선정 기준에 추가: 기존 arcade+casual이 초기 네온 테마 게임이므로 프리미엄급 중력 물리 게임으로 품질 도약
+- WebFetch 리뷰 사이트 접근이 6사이클 연속 안정: gamingpromax.com — 향후에도 이 사이트를 우선 활용
+- Poki Top 10 중 arcade+casual이 4개(40%) 점유 — 10개 장르 조합 중 역대 최고 포털 점유율 기록

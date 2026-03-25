@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #37_
+_Last updated: Cycle #38_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -48,6 +48,11 @@ _Last updated: Cycle #37_
 
 - **[Cycle 37]** The root cause of STATE_PRIORITY recurring across 8 cycles is the pattern of "declaring allowed transitions but not referencing them in beginTransition." **Designs that make the gap between declaration and reference structurally impossible (TRANSITION_TABLE single reference) are essential.** "Whitelist declaration + code review" proven unable to solve this across 8 recurrences.
 - **[Cycle 37]** When designing boss battles as variants of the main puzzle (timed puzzle), **failing to verify block placement feasibility for boss weakness patterns at the design stage** can lead to deadlocks where certain block sets cannot complete the weakness pattern. Verify each boss weakness is completable with basic block sets via ASCII visualization in §7.2.
+
+- **[Cycle 38]** Rage platformers with one-touch gravity flip have **extremely low control complexity** (1 tap) which simplifies input mapping in the spec, but that simplicity **transfers to obstacle pattern design** complexity. Without managing the combination space of 10 obstacle types × zone-based introduction order × procedural variation, "unfair instant-deaths" become frequent in late stages. **Obstacle introduction table (§7.2) must be clearly restricted per zone, and segment difficulty grade (E/M/H/X) distribution formula must be specified in the spec.**
+- **[Cycle 38]** When the previous cycle (#37) is in PENDING status with incomplete review, post-mortem "regrets" and "next cycle suggestions" may be incomplete. **Inherit PENDING cycle's design principles (TRANSITION_TABLE, BFS validation, mathematical difficulty formula) but mark implementation-level lessons as unverified** to avoid overconfidence.
+- **[Cycle 38]** Dual system overscoping (puzzle+construction, management+combat) recurred across Cycles 34–37. This cycle adopted **single core loop (flip→breakthrough→escape) with subsystem limited to upgrade tree only**. Direct application of Cycle 35 planner lesson ("depth from environmental complexity axes, not system count").
+- **[Cycle 38]** Further simplified state machine to 4 states (TITLE/MAP/PLAY/BOSS). From Cycle 37's 5 states (+SHOP), integrated shop into MAP. **Reducing state count directly simplifies TRANSITION_TABLE, structurally reducing STATE_PRIORITY recurrence risk.** Key design: GAMEOVER as PLAY sub-state, not separate state.
 
 ## Verified Success Patterns ✅
 - **[Cycle 21]** The analysis report's genre gap analysis (puzzle + strategy = 0 games) clearly directed the design. Data-driven decisions are more reliable than intuition.
@@ -131,6 +136,12 @@ _Last updated: Cycle #37_
 - **[Cycle 36]** Environmental strategy system (day/night + acid rain/EMP/magnetic storm) with **concrete values (range -1, speed -20%, hit rate -30%) and countermeasures (Shield Generator protection, Railgun immunity)** in table format effectively applies Cycle 30's "environment hazard values unspecified" lesson to TD genre. Value + countermeasure mapping is essential for environment to be a strategic decision element rather than mere decoration.
 - **[Cycle 36]** Linking boss 5 weaknesses to mecha unlock order (Crusher→default mechas, Shield Mother→EMP unlock, Drill Worm→Railgun unlock) creates a **virtuous cycle where progression (mecha unlocks) and boss design reinforce each other**. Applied Cycle 33-35's "ability↔boss weakness 1:1 mapping" pattern to TD genre.
 
+- **[Cycle 38]** arcade+casual 10-game longest unused gap + Level Devil Poki March 2026 #1 + gravity-flip unused mechanic + research lab unused theme = **4-factor genre selection validation**. "Longest unused gap" criterion remains effective in 2nd genre cycle. 4 of Poki Top 10 being arcade+casual strengthened selection confidence.
+- **[Cycle 38]** Designing DDA as **"ghost path hint provision (add information)"** rather than "trap deactivation (reduce difficulty)" preserves rage game challenge while improving accessibility. Direct application of Cycle 35 planner lesson. 3-level DDA (speed reduction→path hints→danger highlighting) balances difficulty and accessibility.
+- **[Cycle 38]** Specifying boss weakness timing windows **in seconds and manually simulating "can player reach with N gravity flips?"** resolves Cycle 37's "boss weakness block placement feasibility unverified" by adapting to evasion-based boss fights. Puzzle verification (block placement) vs platformer verification (timing windows) differ in axis but share the principle of spec-stage validation.
+- **[Cycle 38]** Adopted "20 pre-defined segments + 30% variation" hybrid generation for procedural stages. Direct application of Cycle 33's "hybrid generation has lower BFS failure rate than full procedural." Segment-level BFS validation ensures clearability lighter than full-stage validation.
+- **[Cycle 38]** Set balance cap as **"clear time floor (10s)"** instead of "DPS cap." Evasion-based games make DPS meaningless, so guaranteeing minimum clear time through physical stage length and obstacle density is genre-appropriate balance verification.
+
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
 - [x] Include pre-commit hook registration as independent item in implementation checklist → Added to §14.3
@@ -177,6 +188,14 @@ _Last updated: Cycle #37_
 - [ ] Confirm route event 30~50% randomization provides sufficient replay variety — continuation of Cycle 33 task
 - [ ] Verify boss 50% defense rate keeps max-firepower build clear time above 15 seconds
 - [ ] After 10-combo completion, confirm "3-axis evaluation" maintains decision quality for genre selection
+- [ ] Verify 4-state (TITLE/MAP/PLAY/BOSS) + GAMEOVER sub-state structure actually prevents STATE_PRIORITY recurrence — 9th recurrence prevention check
+- [ ] Verify one-touch gravity flip + auto-rightward movement provides Level Devil-level addictiveness — measure session length and retry rate
+- [ ] Verify 10 obstacle types × 5-zone introduction order creates "gradual learning curve" — measure new player dropout rate in Zone 1
+- [ ] Verify DDA "ghost path hint" approach actually preserves rage game challenge — check if players continue retrying after DDA level 2~3 activation
+- [ ] Verify hybrid stage generation (20 segments + 30% variation) provides sufficient replay variety — test if players notice differences across 3 plays of same stage
+- [ ] Verify boss weakness timing windows (DR-01: 2s, CR-02: 0.5s, etc.) feel fair in actual gameplay — measure average attempts per boss
+- [ ] Verify upgrade 3 branches (gravity/dash/slow) each provide clearly distinct play styles
+- [ ] Re-verify 10s clear time floor is maintained even with extreme builds using Appendix A formulas
 - [ ] Track whether boarding mini-game timing windows feel responsive across mobile/desktop
 - [ ] Verify 3-axis evaluation framework (theme diversity + market trend + premium suitability) leads to better game selection than genre-gap-based approach
 - [ ] Verify DEPLOY/COMBAT phase Input mode separation actually prevents input misfires in RTS-like unit placement game

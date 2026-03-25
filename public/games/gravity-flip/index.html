@@ -1,0 +1,4336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Gravity Flip</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 1: CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+const GAME_ID = 'gravity-flip';
+
+// Game states (4-state machine) [F6, F21, F23]
+const S_TITLE = 0;
+const S_MAP   = 1;
+const S_PLAY  = 2;
+const S_BOSS  = 3;
+
+// Sub-states for PLAY/BOSS
+const PS_ALIVE   = 0;
+const PS_DEAD    = 1;
+const PS_CLEAR   = 2;
+const PS_PAUSED  = 3;
+const PS_INTRO   = 4;
+
+// Transition table: from -> [allowed targets] [F23, F27]
+const TRANSITION_TABLE = {
+  [S_TITLE]: [S_MAP],
+  [S_MAP]:   [S_PLAY, S_BOSS, S_TITLE],
+  [S_PLAY]:  [S_MAP, S_BOSS],
+  [S_BOSS]:  [S_MAP]
+};
+
+// Physics [F10]
+const PLAYER_SIZE     = 24;
+const BASE_SPEED      = 120;
+const SLOW_SPEED      = 60;
+const FAST_SPEED      = 180;
+const GRAVITY         = 600;
+const FLIP_DURATION   = 150;   // ms
+const RESPAWN_DELAY   = 300;   // ms
+const JUMP_VEL        = -280;
+const MAX_FALL_SPEED  = 500;
+const TILE_SIZE       = 30;
+const GAME_H          = 360;   // virtual game height
+const STAGE_SEGMENTS  = 8;
+const SEGMENT_WIDTH   = 300;   // px
+const STAGE_LENGTH    = STAGE_SEGMENTS * SEGMENT_WIDTH;
+const TILES_PER_SEG_X = 10;    // 300 / 30
+const TILES_Y         = 12;    // 360 / 30
+
+// DDA thresholds [F10]
+const DDA_THRESHOLD_1 = 5;
+const DDA_THRESHOLD_2 = 10;
+const DDA_THRESHOLD_3 = 20;
+
+// Touch
+const MIN_TOUCH = 48;   // [F11]
+
+// Boss settings [F10]
+const BOSS1_WINDOW = 2000;
+const BOSS2_WINDOW = 500;
+
+// Upgrade costs: 50 * level^1.5
+const UPGRADE_COSTS = [0, 50, 141, 259, 400, 559];
+
+// Tile types
+const T_EMPTY    = 0;
+const T_SOLID    = 1;
+const T_SPIKE    = 2;
+const T_COIN     = 3;
+const T_PORTAL   = 4;
+const T_VANISH   = 5;
+const T_CRUSHER  = 6;
+const T_LASER    = 7;
+const T_GRAV_ZONE = 8;
+const T_MAGNET   = 9;
+const T_FLAME    = 10;
+
+// Zone colors
+const ZONE_COLORS = [
+  { bg: '#0a0e17', bg2: '#141e30', danger: '#ff3333', safe: '#33ff88', portal: '#00ccff' },
+  { bg: '#0d1117', bg2: '#1a2332', danger: '#ff6633', safe: '#33ff88', portal: '#00ccff' },
+  { bg: '#170a0a', bg2: '#2d1414', danger: '#ff3366', safe: '#33ffcc', portal: '#00ccff' },
+  { bg: '#0a0a17', bg2: '#1a1a2d', danger: '#cc33ff', safe: '#33ff88', portal: '#ffcc00' },
+  { bg: '#000000', bg2: '#0d0d0d', danger: '#ffffff', safe: '#33ff88', portal: '#ffcc00' }
+];
+
+const PLAYER_COLOR = '#00eeff';
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 2: UTILITY
+// ═══════════════════════════════════════════════════════════════
+
+// SeededRNG [F18] — Math.random() 0건
+class SeededRNG {
+  constructor(seed) { this.s = seed | 0; }
+  next() {
+    this.s = (this.s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (this.s >>> 0) / 0xFFFFFFFF;
+  }
+  range(min, max) { return min + this.next() * (max - min); }
+  int(min, max) { return Math.floor(this.range(min, max + 1)); }
+  pick(arr) { return arr[this.int(0, arr.length - 1)]; }
+  chance(p) { return this.next() < p; }
+  shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = this.int(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+}
+
+// Extended Tween helper (clearImmediate) [F13]
+function tweenClearImmediate(tw) {
+  tw._tweens.length = 0;
+  tw._pending.length = 0;
+}
+
+// Simple easing functions
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function easeOutElastic(t) {
+  if (t === 0 || t === 1) return t;
+  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+}
+
+// Clamp helper
+function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 3: ASSET LOADING (preloadAssets via IX.AssetLoader)
+// ═══════════════════════════════════════════════════════════════
+
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil } = IX;
+
+const engine = new Engine('gameCanvas', { update: gameUpdate, render: gameRender, onResize: onGameResize });
+const input  = new Input(engine.canvas);
+const sound  = new Sound();
+const tween  = new Tween();
+const particles = new Particles(500);
+const assets = new AssetLoader();
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 4: STATE MACHINE [F6, F21, F23]
+// ═══════════════════════════════════════════════════════════════
+
+// Game state object — INIT_EMPTY pattern [F12]
+let G = null;
+
+function createGameState() {
+  return {
+    state: S_TITLE,
+    playState: PS_ALIVE,
+    transitioning: false,
+    transAlpha: 0,
+    _transProxy: { alpha: 0 },
+
+    // Player
+    px: 60, py: 150,
+    pvx: BASE_SPEED, pvy: 0,
+    gravDir: 1,       // 1 = down, -1 = up
+    flipping: false,
+    flipTimer: 0,
+    pose: 0,           // 0=normal, 1=flipped, 2=dash, 3=dead
+    playerAlpha: 1,
+    dashCooldown: 0,
+    dashActive: false,
+    dashTimer: 0,
+    slowCharge: 0,
+    slowActive: false,
+    slowTimer: 0,
+    grounded: false,
+    speedMult: 1,
+
+    // Stage
+    currentZone: 0,    // 0-4
+    currentStage: 0,   // 0-2
+    stageIndex: 0,     // 0-22
+    tiles: [],
+    stageW: STAGE_LENGTH,
+    stageH: GAME_H,
+
+    // Enemies/Traps
+    crushers: [],
+    lasers: [],
+    movingPlatforms: [],
+    vanishFloors: [],
+    gravZones: [],
+    magnets: [],
+    flames: [],
+    chainCollapse: null,
+
+    // Coins
+    coins: [],
+    collectedCoins: 0,
+    totalCoins: 0,
+
+    // Portal
+    portalX: 0, portalY: 0,
+    portalActive: false,
+
+    // Score / Progress
+    score: 0,
+    totalScore: 0,
+    deaths: 0,
+    stageDeaths: 0,
+    stageTime: 0,
+    stageStartTime: 0,
+    consecutiveDeaths: 0,
+    ddaLevel: 0,
+
+    // Boss
+    boss: null,
+    bossHP: 0,
+    bossMaxHP: 0,
+    bossPhase: 0,
+    bossTimer: 0,
+    bossRewardGiven: false,   // [F17]
+
+    // Camera
+    camX: 0, camY: 0,
+    camZoom: 1,
+    camTargetZoom: 1,
+    camShake: 0,
+
+    // Map
+    mapSelection: 0,
+    mapScroll: 0,
+    showUpgrades: false,
+    upgradeSelection: 0,
+
+    // Upgrades (3 branches × 5 levels)
+    upgrades: [0, 0, 0],  // [gravity, dash, slow]
+
+    // Progress
+    stageStars: new Array(23).fill(0), // 0-3 stars per stage
+    stageUnlocked: new Array(23).fill(false),
+    bossDefeated: [false, false, false, false, false],
+    hiddenUnlocked: [false, false, false],
+    totalCoinsCollected: 0,
+
+    // Respawn
+    respawnTimer: 0,
+    checkpointX: 60,
+    checkpointY: 150,
+
+    // Title anim
+    titleAlpha: 0,
+    titlePulse: 0,
+    titleParticleTimer: 0,
+
+    // Briefing text
+    briefingText: '',
+    briefingAlpha: 0,
+
+    // Time
+    playTime: 0,
+
+    // Language
+    lang: 'ko',
+
+    // Sound initialized
+    soundInit: false,
+
+    // Pause modal
+    pauseSelection: 0,
+
+    // Clear modal
+    clearStars: 0,
+    clearScore: 0,
+    newRecord: false,
+
+    // Intro sequence
+    introTimer: 0,
+    introText: '',
+
+    // Ghost path (DDA hint)
+    ghostPath: [],
+
+    // Global seed
+    masterSeed: 42
+  };
+}
+
+// beginTransition — only allows TRANSITION_TABLE routes [F6]
+function beginTransition(from, to, callback) {
+  if (G.transitioning) return false;
+  const allowed = TRANSITION_TABLE[from];
+  if (!allowed || !allowed.includes(to)) {
+    console.warn(`[STATE] Transition ${from}->${to} not in TRANSITION_TABLE`);
+    return false;
+  }
+  G.transitioning = true;  // Guard flag [F5]
+  G._transProxy = { alpha: 0 };
+  tween.add(G._transProxy, { alpha: 1 }, 300, 'easeIn', () => {
+    G.transAlpha = 1;
+    enterState(to);
+    if (callback) callback();
+    // New proxy for fade-in [Cycle 34/35 pattern]
+    const proxy2 = { alpha: 1 };
+    G._transProxy = proxy2;
+    tween.add(proxy2, { alpha: 0 }, 300, 'easeOut', () => {
+      G.transitioning = false;
+      G.transAlpha = 0;
+    });
+  });
+  return true;
+}
+
+// enterState — only called by beginTransition [F6]
+function enterState(newState) {
+  const prevState = G.state;
+  G.state = newState;
+
+  switch (newState) {
+    case S_TITLE:
+      G.titleAlpha = 0;
+      G.titlePulse = 0;
+      tween.add(G, { titleAlpha: 1 }, 500, 'easeOut');
+      playBGM('title');
+      break;
+
+    case S_MAP:
+      G.showUpgrades = false;
+      G.upgradeSelection = 0;
+      G.mapSelection = findNextUnlockedStage();
+      saveProgress();
+      playBGM('map');
+      break;
+
+    case S_PLAY:
+      initStage(G.stageIndex);
+      G.playState = PS_INTRO;
+      G.introTimer = 2000;
+      G.introText = getZoneBriefing(G.currentZone);
+      playBGM('play');
+      break;
+
+    case S_BOSS:
+      initBoss(G.currentZone);
+      G.playState = PS_INTRO;
+      G.introTimer = 2500;
+      G.introText = getBossBriefing(G.currentZone);
+      G.bossRewardGiven = false;  // [F17]
+      playBGM('boss');
+      break;
+  }
+}
+
+function findNextUnlockedStage() {
+  for (let i = 0; i < 23; i++) {
+    if (G.stageUnlocked[i] && G.stageStars[i] === 0) return i;
+  }
+  return 0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 5: LEVEL GENERATOR (Procedural + BFS) [F25]
+// ═══════════════════════════════════════════════════════════════
+
+// Difficulty curve formulas [F26]
+function getDifficulty(stageNum) {
+  const n = stageNum + 1; // 1-based
+  return {
+    obstacleDensity: 0.3 + 0.05 * n,
+    obstacleSpeed: 80 + 8 * n,
+    safeInterval: Math.max(1.0, 3.0 - 0.13 * n),
+    coinCount: 5 + Math.floor(n * 0.8),
+    baseTime: 30 + n * 4,
+    segDifficulties: getSegmentDifficulties(n)
+  };
+}
+
+function getSegmentDifficulties(n) {
+  // Returns array of 8 difficulty chars
+  if (n <= 3) return ['E','E','E','M','M','M','E','E'];
+  if (n <= 6) return ['E','E','M','M','M','H','M','E'];
+  if (n <= 9) return ['E','M','M','H','M','H','H','E'];
+  if (n <= 12) return ['M','M','H','H','H','H','X','E'];
+  return ['M','H','H','H','X','H','X','E'];
+}
+
+// 20 predefined segment patterns (each is TILES_PER_SEG_X × TILES_Y)
+function getSegmentPattern(rng, difficulty, zoneId, trapTypes) {
+  const grid = [];
+  for (let y = 0; y < TILES_Y; y++) {
+    grid[y] = new Array(TILES_PER_SEG_X).fill(T_EMPTY);
+  }
+
+  // Floor and ceiling
+  for (let x = 0; x < TILES_PER_SEG_X; x++) {
+    grid[0][x] = T_SOLID;
+    grid[TILES_Y - 1][x] = T_SOLID;
+  }
+
+  const d = { 'E': 0, 'M': 1, 'H': 2, 'X': 3 }[difficulty] || 0;
+
+  // Pattern generation — extended range includes flame(8) & magnet(9) when traps available
+  let maxPattern = 4 + d;
+  if (trapTypes.includes(T_FLAME)) maxPattern = Math.max(maxPattern, 8);
+  if (trapTypes.includes(T_MAGNET)) maxPattern = Math.max(maxPattern, 9);
+  const patternType = rng.int(0, maxPattern);
+
+  switch (patternType) {
+    case 0: // Simple gap
+      placeGap(grid, rng, 3 + rng.int(0, 2), d);
+      break;
+    case 1: // Spike corridor
+      placeSpikeCorridor(grid, rng, d, trapTypes);
+      break;
+    case 2: // Platform climb
+      placePlatformClimb(grid, rng, d);
+      break;
+    case 3: // Narrow passage
+      placeNarrowPassage(grid, rng, d);
+      break;
+    case 4: // Crusher zone
+      if (trapTypes.includes(T_CRUSHER)) {
+        placeCrusherZone(grid, rng, d);
+      } else {
+        placeSpikeCorridor(grid, rng, d, trapTypes);
+      }
+      break;
+    case 5: // Laser grid
+      if (trapTypes.includes(T_LASER)) {
+        placeLaserGrid(grid, rng, d);
+      } else {
+        placeNarrowPassage(grid, rng, d);
+      }
+      break;
+    case 6: // Gravity zone
+      if (trapTypes.includes(T_GRAV_ZONE)) {
+        placeGravityZone(grid, rng, d);
+      } else {
+        placePlatformClimb(grid, rng, d);
+      }
+      break;
+    case 7: // Mixed
+      placeMixed(grid, rng, d, trapTypes);
+      break;
+    case 8: // Flame zone [§7.2 T6]
+      if (trapTypes.includes(T_FLAME)) {
+        placeFlameZone(grid, rng, d);
+      } else {
+        placeSpikeCorridor(grid, rng, d, trapTypes);
+      }
+      break;
+    case 9: // Magnet zone [§7.2 T8]
+      if (trapTypes.includes(T_MAGNET)) {
+        placeMagnetZone(grid, rng, d);
+      } else {
+        placeNarrowPassage(grid, rng, d);
+      }
+      break;
+  }
+
+  // Apply ±2 tile variation [F18]
+  if (rng.chance(0.3)) {
+    applyVariation(grid, rng);
+  }
+
+  return grid;
+}
+
+function placeGap(grid, rng, gapWidth, d) {
+  const gapStart = rng.int(2, TILES_PER_SEG_X - gapWidth - 2);
+  for (let x = gapStart; x < gapStart + gapWidth; x++) {
+    grid[TILES_Y - 1][x] = T_EMPTY;
+  }
+  // Add spikes on harder difficulties
+  if (d >= 1) {
+    for (let x = gapStart; x < gapStart + gapWidth; x++) {
+      if (rng.chance(0.4)) grid[TILES_Y - 2][x] = T_SPIKE;
+    }
+  }
+  if (d >= 2) {
+    grid[0][gapStart + 1] = T_SPIKE;
+  }
+}
+
+function placeSpikeCorridor(grid, rng, d, trapTypes) {
+  const spikeCount = 2 + d;
+  for (let i = 0; i < spikeCount; i++) {
+    const x = rng.int(1, TILES_PER_SEG_X - 2);
+    const fromTop = rng.chance(0.5);
+    if (fromTop) {
+      grid[1][x] = T_SPIKE;
+      if (d >= 2) grid[2][x] = T_SPIKE;
+    } else {
+      grid[TILES_Y - 2][x] = T_SPIKE;
+      if (d >= 2) grid[TILES_Y - 3][x] = T_SPIKE;
+    }
+  }
+  // Add walls for harder difficulty
+  if (d >= 2) {
+    const wallX = rng.int(3, 7);
+    for (let y = 2; y < TILES_Y - 4; y++) {
+      grid[y][wallX] = T_SOLID;
+    }
+    // Gap in wall
+    const gapY = rng.int(3, TILES_Y - 5);
+    grid[gapY][wallX] = T_EMPTY;
+    grid[gapY + 1][wallX] = T_EMPTY;
+  }
+}
+
+function placePlatformClimb(grid, rng, d) {
+  // Remove most of the floor
+  for (let x = 2; x < TILES_PER_SEG_X - 2; x++) {
+    grid[TILES_Y - 1][x] = T_EMPTY;
+  }
+  // Add floating platforms
+  const platCount = 3 + d;
+  for (let i = 0; i < platCount; i++) {
+    const px = rng.int(1, TILES_PER_SEG_X - 3);
+    const py = rng.int(3, TILES_Y - 3);
+    const pw = rng.int(2, 3);
+    for (let x = px; x < px + pw && x < TILES_PER_SEG_X; x++) {
+      grid[py][x] = T_SOLID;
+    }
+  }
+  // Add spikes below platforms on harder
+  if (d >= 1) {
+    for (let x = 2; x < TILES_PER_SEG_X - 2; x++) {
+      if (rng.chance(0.2 * d)) grid[TILES_Y - 2][x] = T_SPIKE;
+    }
+  }
+}
+
+function placeNarrowPassage(grid, rng, d) {
+  // Create walls from top and bottom meeting in center with a gap
+  const gapY = rng.int(4, TILES_Y - 5);
+  const gapH = Math.max(2, 4 - d);
+  for (let x = 2; x < TILES_PER_SEG_X - 2; x++) {
+    for (let y = 1; y < gapY; y++) {
+      if (rng.chance(0.3 + d * 0.1)) grid[y][x] = T_SOLID;
+    }
+    for (let y = gapY + gapH; y < TILES_Y - 1; y++) {
+      if (rng.chance(0.3 + d * 0.1)) grid[y][x] = T_SOLID;
+    }
+  }
+  // Add spikes at passage edges
+  if (d >= 1) {
+    for (let x = 3; x < TILES_PER_SEG_X - 3; x += 2) {
+      if (rng.chance(0.5)) grid[gapY][x] = T_SPIKE;
+      if (rng.chance(0.5)) grid[gapY + gapH - 1][x] = T_SPIKE;
+    }
+  }
+}
+
+function placeCrusherZone(grid, rng, d) {
+  const count = 1 + d;
+  for (let i = 0; i < count; i++) {
+    const cx = rng.int(2, TILES_PER_SEG_X - 3);
+    grid[1][cx] = T_CRUSHER;
+    grid[1][cx + 1] = T_CRUSHER;
+  }
+}
+
+function placeLaserGrid(grid, rng, d) {
+  const count = 1 + d;
+  for (let i = 0; i < count; i++) {
+    const ly = rng.int(3, TILES_Y - 4);
+    grid[ly][rng.int(1, 4)] = T_LASER;
+  }
+}
+
+function placeGravityZone(grid, rng, d) {
+  const zx = rng.int(2, 5);
+  const zy = rng.int(3, 7);
+  const zw = rng.int(2, 4);
+  const zh = rng.int(2, 3);
+  for (let y = zy; y < zy + zh && y < TILES_Y - 1; y++) {
+    for (let x = zx; x < zx + zw && x < TILES_PER_SEG_X; x++) {
+      grid[y][x] = T_GRAV_ZONE;
+    }
+  }
+  // Add spikes around
+  if (d >= 1) {
+    for (let x = zx; x < zx + zw && x < TILES_PER_SEG_X; x++) {
+      if (rng.chance(0.4)) grid[zy - 1][x] = T_SPIKE;
+    }
+  }
+}
+
+// T6 화염 분사 — 벽면 노즐에서 방향성 짧은 버스트 [§7.2]
+function placeFlameZone(grid, rng, d) {
+  const count = 1 + d;
+  for (let i = 0; i < count; i++) {
+    const fx = rng.int(2, TILES_PER_SEG_X - 3);
+    const fromTop = rng.chance(0.5);
+    if (fromTop) {
+      grid[1][fx] = T_FLAME; // Nozzle on ceiling
+    } else {
+      grid[TILES_Y - 2][fx] = T_FLAME; // Nozzle on floor
+    }
+  }
+  // Add spikes around flames on harder difficulties
+  if (d >= 1) {
+    const sx = rng.int(1, TILES_PER_SEG_X - 2);
+    grid[rng.chance(0.5) ? 1 : TILES_Y - 2][sx] = T_SPIKE;
+  }
+}
+
+// T8 자기장 — 캐릭터 이동 속도 변화 + 파란 파동 표시 [§7.2]
+function placeMagnetZone(grid, rng, d) {
+  const mx = rng.int(2, 6);
+  const my = rng.int(3, 7);
+  const mw = rng.int(2, 3 + d);
+  const mh = rng.int(2, 3);
+  for (let y = my; y < my + mh && y < TILES_Y - 1; y++) {
+    for (let x = mx; x < mx + mw && x < TILES_PER_SEG_X; x++) {
+      grid[y][x] = T_MAGNET;
+    }
+  }
+}
+
+function placeMixed(grid, rng, d, trapTypes) {
+  placeSpikeCorridor(grid, rng, Math.max(0, d - 1), trapTypes);
+  if (rng.chance(0.5) && trapTypes.includes(T_CRUSHER)) {
+    placeCrusherZone(grid, rng, Math.max(0, d - 1));
+  }
+  if (rng.chance(0.5) && trapTypes.includes(T_FLAME)) {
+    placeFlameZone(grid, rng, Math.max(0, d - 1));
+  }
+  if (rng.chance(0.5)) {
+    placeGap(grid, rng, 2, d);
+  }
+}
+
+function applyVariation(grid, rng) {
+  // Move some tiles ±1 position
+  for (let y = 2; y < TILES_Y - 2; y++) {
+    for (let x = 2; x < TILES_PER_SEG_X - 2; x++) {
+      if (grid[y][x] === T_SPIKE && rng.chance(0.3)) {
+        const ny = y + rng.int(-1, 1);
+        if (ny > 0 && ny < TILES_Y - 1 && grid[ny][x] === T_EMPTY) {
+          grid[ny][x] = T_SPIKE;
+          grid[y][x] = T_EMPTY;
+        }
+      }
+    }
+  }
+}
+
+// Available traps per zone
+function getZoneTraps(zoneId) {
+  const traps = [T_SPIKE, T_SOLID]; // Always available
+  if (zoneId >= 1) traps.push(T_VANISH, T_CRUSHER);
+  if (zoneId >= 2) traps.push(T_LASER, T_FLAME);  // T6 화염 분사 §7.2
+  if (zoneId >= 3) traps.push(T_GRAV_ZONE, T_MAGNET); // T8 자기장 §7.2
+  return traps;
+}
+
+// Generate full stage
+function generateStage(zoneId, stageId, seed) {
+  const rng = new SeededRNG(seed);
+  const diff = getDifficulty(zoneId * 3 + stageId);
+  const trapTypes = getZoneTraps(zoneId);
+
+  // Upgrade difficulty compensation [§8.3]
+  const totalUpgradeLvl = G.upgrades.reduce((a, b) => a + b, 0);
+  const compensatedDensity = diff.obstacleDensity * (1 + 0.02 * totalUpgradeLvl);
+
+  // Generate segments
+  const fullTiles = [];
+  for (let y = 0; y < TILES_Y; y++) {
+    fullTiles[y] = [];
+  }
+
+  for (let seg = 0; seg < STAGE_SEGMENTS; seg++) {
+    const segDiff = diff.segDifficulties[seg];
+    let grid;
+
+    if (seg === STAGE_SEGMENTS - 1) {
+      // Last segment: safe zone with portal
+      grid = createSafeSegment(rng);
+    } else if (seg === 0) {
+      // First segment: easy entry
+      grid = createEntrySegment(rng);
+    } else {
+      grid = getSegmentPattern(rng, segDiff, zoneId, trapTypes);
+    }
+
+    // Apply DDA modifications
+    if (G.ddaLevel >= 1) {
+      reduceDifficulty(grid, rng, G.ddaLevel);
+    }
+
+    // Merge into full tiles
+    for (let y = 0; y < TILES_Y; y++) {
+      for (let x = 0; x < TILES_PER_SEG_X; x++) {
+        fullTiles[y][seg * TILES_PER_SEG_X + x] = grid[y][x];
+      }
+    }
+  }
+
+  // Place coins
+  const coinPositions = [];
+  const coinCount = diff.coinCount;
+  let placed = 0;
+  let attempts = 0;
+  while (placed < coinCount && attempts < 200) {
+    const cx = rng.int(5, STAGE_SEGMENTS * TILES_PER_SEG_X - 5);
+    const cy = rng.int(2, TILES_Y - 3);
+    if (fullTiles[cy][cx] === T_EMPTY) {
+      fullTiles[cy][cx] = T_COIN;
+      coinPositions.push({ x: cx * TILE_SIZE + TILE_SIZE / 2, y: cy * TILE_SIZE + TILE_SIZE / 2 });
+      placed++;
+    }
+    attempts++;
+  }
+
+  // Place portal in last segment
+  const portalX = (STAGE_SEGMENTS * TILES_PER_SEG_X - 3) * TILE_SIZE;
+  const portalY = (TILES_Y / 2) * TILE_SIZE;
+  fullTiles[Math.floor(TILES_Y / 2)][(STAGE_SEGMENTS * TILES_PER_SEG_X - 3)] = T_PORTAL;
+
+  // Extract dynamic objects
+  const crushers = [];
+  const lasers = [];
+  const vanishFloors = [];
+  const gravZones = [];
+  const movingPlatforms = [];
+  const flames = [];
+  const magnets = [];
+
+  for (let y = 0; y < TILES_Y; y++) {
+    for (let x = 0; x < fullTiles[y].length; x++) {
+      const t = fullTiles[y][x];
+      if (t === T_CRUSHER) {
+        crushers.push({
+          x: x * TILE_SIZE, y: y * TILE_SIZE,
+          w: TILE_SIZE, h: TILE_SIZE,
+          baseY: y * TILE_SIZE,
+          targetY: (TILES_Y - 2) * TILE_SIZE,
+          timer: rng.range(0, 4000),
+          period: 3000 + rng.int(0, 2000),
+          state: 'waiting',
+          warning: false
+        });
+        fullTiles[y][x] = T_EMPTY;
+      }
+      if (t === T_LASER) {
+        lasers.push({
+          x: x * TILE_SIZE, y: y * TILE_SIZE,
+          w: TILE_SIZE * 6, h: 4,
+          timer: rng.range(0, 3000),
+          onDuration: 2000, offDuration: 1000,
+          active: true,
+          charging: false
+        });
+        fullTiles[y][x] = T_EMPTY;
+      }
+      if (t === T_VANISH) {
+        vanishFloors.push({
+          x: x * TILE_SIZE, y: y * TILE_SIZE,
+          w: TILE_SIZE, h: TILE_SIZE,
+          timer: 0, touchTimer: 0,
+          visible: true, cracking: false
+        });
+        fullTiles[y][x] = T_EMPTY;
+      }
+      if (t === T_GRAV_ZONE) {
+        gravZones.push({
+          x: x * TILE_SIZE, y: y * TILE_SIZE,
+          w: TILE_SIZE, h: TILE_SIZE
+        });
+        fullTiles[y][x] = T_EMPTY;
+      }
+      // T6 화염 분사 [§7.2]
+      if (t === T_FLAME) {
+        const dir = y <= 2 ? 'down' : 'up'; // Nozzle direction
+        flames.push({
+          x: x * TILE_SIZE, y: y * TILE_SIZE,
+          w: TILE_SIZE, h: TILE_SIZE * 4,
+          dir: dir,
+          timer: rng.range(0, 4000),
+          period: 2500 + rng.int(0, 1500),
+          burstDuration: 800,
+          warningDuration: 500,
+          active: false,
+          warning: false
+        });
+        fullTiles[y][x] = T_EMPTY;
+      }
+      // T8 자기장 [§7.2]
+      if (t === T_MAGNET) {
+        magnets.push({
+          x: x * TILE_SIZE, y: y * TILE_SIZE,
+          w: TILE_SIZE, h: TILE_SIZE,
+          speedMult: rng.chance(0.5) ? 0.4 : 1.8, // Slow or fast
+          wavePhase: rng.range(0, Math.PI * 2)
+        });
+        fullTiles[y][x] = T_EMPTY;
+      }
+    }
+  }
+
+  // Add some moving platforms for variety
+  if (zoneId >= 0) {
+    const mpCount = rng.int(1, 3);
+    for (let i = 0; i < mpCount; i++) {
+      const mx = rng.int(3, STAGE_SEGMENTS * TILES_PER_SEG_X - 6) * TILE_SIZE;
+      const my = rng.int(3, TILES_Y - 4) * TILE_SIZE;
+      movingPlatforms.push({
+        x: mx, y: my,
+        w: TILE_SIZE * 3, h: TILE_SIZE * 0.4,
+        baseX: mx, baseY: my,
+        rangeX: rng.int(0, 2) * TILE_SIZE * 2,
+        rangeY: rng.int(0, 2) * TILE_SIZE * 2,
+        speed: 0.5 + rng.next() * 0.5,
+        timer: rng.range(0, 6283)
+      });
+    }
+  }
+
+  // BFS reachability check [F25]
+  const reachable = bfsCheck(fullTiles, 2, Math.floor(TILES_Y / 2));
+  if (!reachable) {
+    // Retry with next seed (max 10 attempts)
+    if (seed < G.masterSeed + 1000) {
+      return generateStage(zoneId, stageId, seed + 1);
+    }
+  }
+
+  return {
+    tiles: fullTiles,
+    coins: coinPositions.map(c => ({ ...c, collected: false, bobTimer: 0 })),
+    crushers,
+    lasers,
+    vanishFloors,
+    gravZones,
+    movingPlatforms,
+    flames,
+    magnets,
+    portalX,
+    portalY,
+    difficulty: diff
+  };
+}
+
+function createSafeSegment(rng) {
+  const grid = [];
+  for (let y = 0; y < TILES_Y; y++) {
+    grid[y] = new Array(TILES_PER_SEG_X).fill(T_EMPTY);
+    grid[y][0] = T_EMPTY;
+  }
+  // Floor and ceiling
+  for (let x = 0; x < TILES_PER_SEG_X; x++) {
+    grid[0][x] = T_SOLID;
+    grid[TILES_Y - 1][x] = T_SOLID;
+  }
+  return grid;
+}
+
+function createEntrySegment(rng) {
+  const grid = [];
+  for (let y = 0; y < TILES_Y; y++) {
+    grid[y] = new Array(TILES_PER_SEG_X).fill(T_EMPTY);
+  }
+  for (let x = 0; x < TILES_PER_SEG_X; x++) {
+    grid[0][x] = T_SOLID;
+    grid[TILES_Y - 1][x] = T_SOLID;
+  }
+  // Small platforms
+  if (rng.chance(0.5)) {
+    const py = rng.int(4, 8);
+    for (let x = 3; x < 6; x++) grid[py][x] = T_SOLID;
+  }
+  return grid;
+}
+
+// BFS check: can player reach the right side of the stage?
+function bfsCheck(tiles, startX, startY) {
+  const totalX = tiles[0].length;
+  const visited = new Set();
+  const queue = [{ x: startX, y: startY, grav: 1 }];
+  const targetX = totalX - 5;
+
+  const key = (x, y, g) => `${x},${y},${g}`;
+  visited.add(key(startX, startY, 1));
+
+  let steps = 0;
+  const maxSteps = 5000;
+
+  while (queue.length > 0 && steps < maxSteps) {
+    steps++;
+    const cur = queue.shift();
+
+    if (cur.x >= targetX) return true;
+
+    // Possible moves: right, right+gravity, right+flip
+    const moves = [
+      { x: cur.x + 1, y: cur.y, grav: cur.grav },
+      { x: cur.x + 1, y: cur.y + cur.grav, grav: cur.grav },
+      { x: cur.x, y: cur.y + cur.grav, grav: cur.grav },
+      { x: cur.x + 1, y: cur.y - cur.grav, grav: -cur.grav }, // flip
+      { x: cur.x, y: cur.y - cur.grav, grav: -cur.grav },     // flip in place
+    ];
+
+    for (const m of moves) {
+      if (m.x < 0 || m.x >= totalX || m.y < 1 || m.y >= TILES_Y - 1) continue;
+      const tile = tiles[m.y][m.x];
+      if (tile === T_SOLID) continue;
+      // Skip spikes for BFS (player can sometimes dodge)
+      const k = key(m.x, m.y, m.grav);
+      if (visited.has(k)) continue;
+      visited.add(k);
+      queue.push(m);
+    }
+  }
+
+  return false;
+}
+
+// DDA difficulty reduction
+function reduceDifficulty(grid, rng, level) {
+  // Level 1: Remove 15% of spikes
+  if (level >= 1) {
+    for (let y = 0; y < TILES_Y; y++) {
+      for (let x = 0; x < TILES_PER_SEG_X; x++) {
+        if (grid[y][x] === T_SPIKE && rng.chance(0.15)) {
+          grid[y][x] = T_EMPTY;
+        }
+      }
+    }
+  }
+  // Level 2+: Widen passages
+  if (level >= 2) {
+    for (let y = 2; y < TILES_Y - 2; y++) {
+      for (let x = 1; x < TILES_PER_SEG_X - 1; x++) {
+        if (grid[y][x] === T_SOLID && rng.chance(0.1)) {
+          grid[y][x] = T_EMPTY;
+        }
+      }
+    }
+  }
+}
+
+// Init stage
+function initStage(stageIndex) {
+  // Use unified stageToZoneInfo mapping [Fix: Issue #5 mapping inconsistency]
+  const info = stageToZoneInfo(stageIndex);
+  const zone = info.zone;
+  const stageNum = info.stage;
+
+  G.currentZone = Math.min(zone, 4);
+  G.currentStage = stageNum;
+  G.stageIndex = stageIndex;
+
+  const seed = G.masterSeed + stageIndex * 1000;
+  const stage = generateStage(G.currentZone, stageNum, seed);
+
+  G.tiles = stage.tiles;
+  G.coins = stage.coins;
+  G.crushers = stage.crushers;
+  G.lasers = stage.lasers;
+  G.vanishFloors = stage.vanishFloors;
+  G.gravZones = stage.gravZones;
+  G.movingPlatforms = stage.movingPlatforms;
+  G.flames = stage.flames || [];
+  G.magnets = stage.magnets || [];
+  G.portalX = stage.portalX;
+  G.portalY = stage.portalY;
+  G.portalActive = true;
+  G.totalCoins = stage.coins.length;
+  G.collectedCoins = 0;
+  G.stageDeaths = 0;
+  G.stageTime = 0;
+  G.playState = PS_ALIVE;
+  G.chainCollapse = null;
+
+  // Reset player
+  G.px = 60;
+  G.py = GAME_H / 2;
+  G.pvx = BASE_SPEED;
+  G.pvy = 0;
+  G.gravDir = 1;
+  G.flipping = false;
+  G.flipTimer = 0;
+  G.dashActive = false;
+  G.dashTimer = 0;
+  G.dashCooldown = 0;
+  G.slowActive = false;
+  G.slowTimer = 0;
+  G.playerAlpha = 1;
+  G.grounded = false;
+  G.speedMult = 1;
+  G.checkpointX = 60;
+  G.checkpointY = GAME_H / 2;
+  G.respawnTimer = 0;
+
+  // Camera
+  G.camX = 0;
+  G.camY = 0;
+  G.camZoom = 1;
+  G.camTargetZoom = 1;
+  G.camShake = 0;
+
+  // Ghost path for DDA level 2+
+  if (G.ddaLevel >= 2) {
+    generateGhostPath(stage.tiles);
+  } else {
+    G.ghostPath = [];
+  }
+
+  // Zone 5: chain collapse mechanic
+  if (G.currentZone === 4 && stageNum >= 1) {
+    G.chainCollapse = {
+      x: -TILE_SIZE * 3,
+      speed: 40 + stageNum * 15,
+      active: true
+    };
+  }
+}
+
+// Generate ghost path (DDA hint)
+function generateGhostPath(tiles) {
+  G.ghostPath = [];
+  let gx = 2, gy = Math.floor(TILES_Y / 2), grav = 1;
+  const rng = new SeededRNG(G.masterSeed + 9999);
+  for (let step = 0; step < 200; step++) {
+    G.ghostPath.push({ x: gx * TILE_SIZE, y: gy * TILE_SIZE });
+    gx++;
+    if (gx >= tiles[0].length - 2) break;
+    // Simple pathfinding
+    const nextY = gy + grav;
+    if (nextY >= 1 && nextY < TILES_Y - 1 && tiles[nextY][gx] !== T_SOLID && tiles[nextY][gx] !== T_SPIKE) {
+      gy = nextY;
+    } else if (tiles[gy][gx] === T_SPIKE || tiles[gy][gx] === T_SOLID) {
+      grav = -grav;
+      gy = gy + grav;
+    }
+    gy = clamp(gy, 1, TILES_Y - 2);
+  }
+}
+
+// Stage to zone/stage mapping
+function stageToZoneInfo(stageIndex) {
+  // 0-14: main stages (5 zones × 3)
+  // 15-19: bosses (zones 0-4)
+  // 20-22: hidden stages
+  if (stageIndex < 15) {
+    return { zone: Math.floor(stageIndex / 3), stage: stageIndex % 3, type: 'stage' };
+  } else if (stageIndex < 20) {
+    return { zone: stageIndex - 15, stage: 0, type: 'boss' };
+  } else {
+    return { zone: stageIndex - 20, stage: 0, type: 'hidden' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 6: PHYSICS
+// ═══════════════════════════════════════════════════════════════
+
+function updatePhysics(dt) {
+  const dtSec = dt / 1000;
+
+  if (G.playState !== PS_ALIVE) return;
+
+  // Gravity
+  const gravAccel = GRAVITY * G.gravDir;
+  G.pvy += gravAccel * dtSec;
+  G.pvy = clamp(G.pvy, -MAX_FALL_SPEED, MAX_FALL_SPEED);
+
+  // Flip transition [F14]
+  if (G.flipping) {
+    G.flipTimer -= dt;
+    if (G.flipTimer <= 0) {
+      G.flipping = false;
+    }
+  }
+
+  // Horizontal speed
+  let targetSpeed = BASE_SPEED;
+  if (input.held('KeyA') || input.held('ArrowLeft') || isHoldingLeft()) {
+    targetSpeed = SLOW_SPEED;
+  } else if (input.held('KeyD') || input.held('ArrowRight') || isHoldingRight()) {
+    targetSpeed = FAST_SPEED;
+  }
+
+  // Apply upgrade bonuses
+  if (G.upgrades[0] >= 1) {
+    // Gravity control: faster flip
+  }
+  if (G.dashActive) {
+    targetSpeed = FAST_SPEED * 1.5;
+  }
+  if (G.slowActive) {
+    G.speedMult = 0.4;
+  } else {
+    G.speedMult = 1;
+  }
+
+  G.pvx = lerp(G.pvx, targetSpeed, 0.1);
+
+  // Move player
+  G.px += G.pvx * dtSec * G.speedMult;
+  G.py += G.pvy * dtSec * G.speedMult;
+
+  // Collision with tiles
+  G.grounded = false;
+  resolveCollisions();
+
+  // Dash
+  if (G.dashActive) {
+    G.dashTimer -= dt;
+    if (G.dashTimer <= 0) {
+      G.dashActive = false;
+      // Dash Lv4: afterimage explosion
+      if (G.upgrades[1] >= 4) {
+        particles.emit(G.px, G.py, 20, { color: '#ff8800', speed: 200, life: 0.5, size: 4 });
+      }
+    }
+  }
+  if (G.dashCooldown > 0) G.dashCooldown -= dt;
+
+  // Slow
+  if (G.slowActive) {
+    G.slowTimer -= dt;
+    if (G.slowTimer <= 0) {
+      G.slowActive = false;
+      // Slow Lv4: speed boost on end
+      if (G.upgrades[2] >= 4) {
+        G.pvx = FAST_SPEED * 1.5;
+      }
+    }
+  }
+  if (G.slowCharge < 3000) G.slowCharge += dt * (1 + (G.upgrades[2] >= 2 ? 0.3 : 0));
+
+  // Update stage time
+  G.stageTime += dt * G.speedMult;
+}
+
+function resolveCollisions() {
+  const hs = PLAYER_SIZE / 2;
+  const px = G.px, py = G.py;
+
+  // Get tile at player corners
+  const left   = Math.floor((px - hs) / TILE_SIZE);
+  const right  = Math.floor((px + hs) / TILE_SIZE);
+  const top    = Math.floor((py - hs) / TILE_SIZE);
+  const bottom = Math.floor((py + hs) / TILE_SIZE);
+
+  const totalX = G.tiles[0] ? G.tiles[0].length : 0;
+
+  for (let ty = top; ty <= bottom; ty++) {
+    for (let tx = left; tx <= right; tx++) {
+      if (ty < 0 || ty >= TILES_Y || tx < 0 || tx >= totalX) {
+        // Out of bounds = death
+        if (ty < 0 || ty >= TILES_Y) killPlayer();
+        continue;
+      }
+
+      const tile = G.tiles[ty][tx];
+
+      if (tile === T_SOLID) {
+        // AABB resolution
+        const tileLeft   = tx * TILE_SIZE;
+        const tileTop    = ty * TILE_SIZE;
+        const tileRight  = tileLeft + TILE_SIZE;
+        const tileBottom = tileTop + TILE_SIZE;
+
+        const overlapX = Math.min(px + hs - tileLeft, tileRight - (px - hs));
+        const overlapY = Math.min(py + hs - tileTop, tileBottom - (py - hs));
+
+        if (overlapX > 0 && overlapY > 0) {
+          if (overlapX < overlapY) {
+            // Push horizontally
+            if (px < tileLeft + TILE_SIZE / 2) {
+              G.px -= overlapX;
+            } else {
+              G.px += overlapX;
+            }
+            // Don't zero pvx for auto-runner
+          } else {
+            // Push vertically
+            if (py < tileTop + TILE_SIZE / 2) {
+              G.py -= overlapY;
+              if (G.gravDir === 1) { G.grounded = true; G.pvy = 0; }
+            } else {
+              G.py += overlapY;
+              if (G.gravDir === -1) { G.grounded = true; G.pvy = 0; }
+            }
+          }
+        }
+      }
+
+      if (tile === T_SPIKE) {
+        // Check precise overlap
+        const tileLeft = tx * TILE_SIZE + 4;
+        const tileTop = ty * TILE_SIZE + 4;
+        const tw = TILE_SIZE - 8;
+        const th = TILE_SIZE - 8;
+        if (px + hs > tileLeft && px - hs < tileLeft + tw &&
+            py + hs > tileTop && py - hs < tileTop + th) {
+          if (!isInvincible()) killPlayer();
+        }
+      }
+
+      if (tile === T_COIN) {
+        const cx = tx * TILE_SIZE + TILE_SIZE / 2;
+        const cy = ty * TILE_SIZE + TILE_SIZE / 2;
+        if (MathUtil.dist(px, py, cx, cy) < PLAYER_SIZE) {
+          collectCoin(tx, ty);
+        }
+      }
+
+      if (tile === T_PORTAL) {
+        if (G.portalActive && MathUtil.dist(px, py, G.portalX, G.portalY) < TILE_SIZE * 1.5) {
+          stageCleared();
+        }
+      }
+    }
+  }
+
+  // Collision with dynamic objects
+  checkDynamicCollisions();
+}
+
+function isInvincible() {
+  // Upgrade: gravity Lv4 = invincible during flip
+  if (G.upgrades[0] >= 4 && G.flipping) return true;
+  // Upgrade: dash Lv3 = invincible during dash
+  if (G.upgrades[1] >= 3 && G.dashActive) return true;
+  return false;
+}
+
+function checkDynamicCollisions() {
+  const hs = PLAYER_SIZE / 2;
+
+  // Crushers
+  for (const c of G.crushers) {
+    if (c.state === 'crushing' || c.state === 'holding') {
+      if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                               c.x, c.y, c.w, c.h)) {
+        if (!isInvincible()) killPlayer();
+      }
+    }
+  }
+
+  // Lasers
+  for (const l of G.lasers) {
+    if (l.active) {
+      if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                               l.x, l.y, l.w, l.h)) {
+        if (!isInvincible()) killPlayer();
+      }
+    }
+  }
+
+  // Moving platforms (as solid)
+  for (const mp of G.movingPlatforms) {
+    if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                             mp.x, mp.y, mp.w, mp.h)) {
+      // Push player on top
+      if (G.gravDir === 1 && G.pvy > 0) {
+        G.py = mp.y - hs;
+        G.pvy = 0;
+        G.grounded = true;
+      } else if (G.gravDir === -1 && G.pvy < 0) {
+        G.py = mp.y + mp.h + hs;
+        G.pvy = 0;
+        G.grounded = true;
+      }
+    }
+  }
+
+  // Vanish floors
+  for (const vf of G.vanishFloors) {
+    if (!vf.visible) continue;
+    if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                             vf.x, vf.y, vf.w, vf.h)) {
+      // Act as solid
+      if (G.gravDir === 1 && G.pvy > 0 && G.py < vf.y) {
+        G.py = vf.y - hs;
+        G.pvy = 0;
+        G.grounded = true;
+      }
+      // Start vanish timer
+      if (!vf.cracking) {
+        vf.cracking = true;
+        vf.touchTimer = 1000;
+      }
+    }
+  }
+
+  // Gravity zones
+  for (const gz of G.gravZones) {
+    if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                             gz.x, gz.y, gz.w, gz.h)) {
+      // Auto-flip gravity
+      if (G.gravDir === 1) flipGravity();
+    }
+  }
+
+  // Flames [T6 §7.2]
+  for (const fl of G.flames) {
+    if (fl.active) {
+      const flameX = fl.x;
+      const flameY = fl.dir === 'down' ? fl.y : fl.y - fl.h + TILE_SIZE;
+      if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                               flameX, flameY, fl.w, fl.h)) {
+        if (!isInvincible()) killPlayer();
+      }
+    }
+  }
+
+  // Magnets [T8 §7.2] — speed change effect
+  let magnetActive = false;
+  for (const mg of G.magnets) {
+    if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                             mg.x, mg.y, mg.w, mg.h)) {
+      G.speedMult = mg.speedMult;
+      magnetActive = true;
+    }
+  }
+  // Reset speed if not in magnet zone (and not slow-active)
+  if (!magnetActive && !G.slowActive) {
+    G.speedMult = 1;
+  }
+
+  // Chain collapse (zone 5)
+  if (G.chainCollapse && G.chainCollapse.active) {
+    if (G.px < G.chainCollapse.x) {
+      if (!isInvincible()) killPlayer();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 7: PLAYER
+// ═══════════════════════════════════════════════════════════════
+
+function flipGravity() {
+  if (G.flipping && G.upgrades[0] < 3) return; // Can't double-flip without upgrade
+
+  const flipSpeed = G.upgrades[0] >= 1 ? FLIP_DURATION * 0.85 : FLIP_DURATION;
+  G.gravDir *= -1;
+  G.flipping = true;
+  G.flipTimer = flipSpeed;
+  G.pvy = JUMP_VEL * G.gravDir * -1; // Impulse in new direction
+
+  // Upgrade: gravity Lv2 = brief float
+  if (G.upgrades[0] >= 2) {
+    G.pvy *= 0.5; // Softer impulse
+  }
+
+  playSFX('flip');
+  particles.emit(G.px, G.py, 8, {
+    color: PLAYER_COLOR,
+    speed: 80,
+    life: 0.3,
+    size: 3,
+    angle: G.gravDir === 1 ? -Math.PI / 2 : Math.PI / 2,
+    spread: Math.PI / 3
+  });
+}
+
+function activateDash() {
+  if (G.dashCooldown > 0) return;
+  if (G.dashActive) {
+    // Upgrade: dash Lv5 = triple dash
+    if (G.upgrades[1] >= 5) {
+      // Allow re-dash
+    } else {
+      return;
+    }
+  }
+
+  G.dashActive = true;
+  const baseDuration = 200;
+  const dashDist = G.upgrades[1] >= 1 ? 1.2 : 1.0;
+  G.dashTimer = baseDuration * dashDist;
+  const baseCooldown = 3000;
+  G.dashCooldown = G.upgrades[1] >= 2 ? baseCooldown * 0.8 : baseCooldown;
+
+  playSFX('dash');
+  particles.emit(G.px, G.py, 12, { color: '#ff8800', speed: 120, life: 0.4, size: 3 });
+}
+
+function activateSlow() {
+  if (G.slowCharge < 1000) return;
+  if (G.slowActive) return;
+
+  G.slowActive = true;
+  const baseDuration = G.upgrades[2] >= 1 ? 1500 : 1000;
+  G.slowTimer = baseDuration;
+  G.slowCharge = 0;
+
+  playSFX('ui_select');
+}
+
+function killPlayer() {
+  if (G.playState !== PS_ALIVE) return;
+  if (G.respawnTimer > 0) return;
+
+  G.playState = PS_DEAD;
+  G.pose = 3;
+  G.deaths++;
+  G.stageDeaths++;
+  G.consecutiveDeaths++;
+
+  // Update DDA
+  if (G.consecutiveDeaths >= DDA_THRESHOLD_3) G.ddaLevel = 3;
+  else if (G.consecutiveDeaths >= DDA_THRESHOLD_2) G.ddaLevel = 2;
+  else if (G.consecutiveDeaths >= DDA_THRESHOLD_1) G.ddaLevel = 1;
+
+  playSFX('die');
+
+  // Screen shake
+  G.camShake = 8;
+
+  // Death particles
+  particles.emit(G.px, G.py, 25, {
+    color: '#ff3333',
+    speed: 200,
+    life: 0.6,
+    size: 4
+  });
+  particles.emit(G.px, G.py, 15, {
+    color: PLAYER_COLOR,
+    speed: 150,
+    life: 0.4,
+    size: 2
+  });
+
+  // Respawn via tween [F4] — no setTimeout
+  G.respawnTimer = RESPAWN_DELAY;
+  const respawnProxy = { t: 0 };
+  tween.add(respawnProxy, { t: 1 }, RESPAWN_DELAY, 'easeOut', () => {
+    respawnPlayer();
+  });
+}
+
+function respawnPlayer() {
+  G.px = G.checkpointX;
+  G.py = G.checkpointY;
+  G.pvy = 0;
+  G.pvx = BASE_SPEED;
+  G.gravDir = 1;
+  G.flipping = false;
+  G.dashActive = false;
+  G.slowActive = false;
+  G.playerAlpha = 1;
+  G.playState = PS_ALIVE;
+  G.respawnTimer = 0;
+  G.pose = 0;
+
+  // Brief invincibility flash
+  const flashProxy = { alpha: 0.3 };
+  tween.add(flashProxy, { alpha: 1 }, 500, 'linear', () => {
+    G.playerAlpha = 1;
+  });
+}
+
+function stageCleared() {
+  if (G.playState !== PS_ALIVE) return;
+  G.playState = PS_CLEAR;
+  G.consecutiveDeaths = 0; // Reset DDA counter on clear
+
+  // Calculate score [F8] — judge first, save later
+  const diff = getDifficulty(G.stageIndex);
+  const baseScore = 100 * (G.currentZone + 1);
+  const coinBonus = G.collectedCoins * 10;
+  const timeBonus = Math.max(0, Math.floor((diff.baseTime * 1000 - G.stageTime) / 1000)) * 5;
+  const deathlessBonus = G.stageDeaths === 0 ? 500 : 0;
+  G.clearScore = baseScore + coinBonus + timeBonus + deathlessBonus;
+
+  // Stars [§7.4]
+  let stars = 1;
+  const timeSec = G.stageTime / 1000;
+  if (G.stageDeaths <= 3 && G.collectedCoins >= G.totalCoins * 0.6 && timeSec <= diff.baseTime * 1.2) stars = 2;
+  if (G.stageDeaths === 0 && G.collectedCoins >= G.totalCoins && timeSec <= diff.baseTime * 0.8) stars = 3;
+  G.clearStars = stars;
+
+  // Check new record [F8]
+  const prevStars = G.stageStars[G.stageIndex];
+  G.newRecord = stars > prevStars;
+  if (stars > prevStars) G.stageStars[G.stageIndex] = stars;
+
+  G.totalScore += G.clearScore;
+  G.totalCoinsCollected += G.collectedCoins;
+
+  // Unlock next stage
+  unlockNextStages(G.stageIndex);
+
+  // Save [F8] — save after judgment
+  saveProgress();
+  Save.setHighScore(GAME_ID, G.totalScore);
+
+  // Effects
+  playSFX('clear');
+  G.camTargetZoom = 1.3;
+  particles.emit(G.portalX, G.portalY, 40, {
+    color: ZONE_COLORS[G.currentZone].portal,
+    speed: 200,
+    life: 1,
+    size: 5
+  });
+}
+
+function collectCoin(tx, ty) {
+  G.tiles[ty][tx] = T_EMPTY;
+  G.collectedCoins++;
+  // Mark in coins array
+  for (const c of G.coins) {
+    const cx = Math.floor(c.x / TILE_SIZE);
+    const cy = Math.floor(c.y / TILE_SIZE);
+    if (cx === tx && cy === ty) {
+      c.collected = true;
+      break;
+    }
+  }
+  playSFX('coin');
+  // Slow Lv3: double coins
+  if (G.slowActive && G.upgrades[2] >= 3) {
+    G.collectedCoins++;
+  }
+  particles.emit(tx * TILE_SIZE + TILE_SIZE / 2, ty * TILE_SIZE + TILE_SIZE / 2, 8, {
+    color: '#ffd700',
+    speed: 100,
+    life: 0.4,
+    size: 3
+  });
+}
+
+function unlockNextStages(clearedIdx) {
+  const info = stageToZoneInfo(clearedIdx);
+  if (info.type === 'stage') {
+    // Unlock next stage in zone
+    const nextInZone = clearedIdx + 1;
+    if (nextInZone < 15 && Math.floor(nextInZone / 3) === info.zone) {
+      G.stageUnlocked[nextInZone] = true;
+    }
+    // If all 3 stages in zone cleared, unlock boss
+    const zoneStart = info.zone * 3;
+    if (G.stageStars[zoneStart] > 0 && G.stageStars[zoneStart + 1] > 0 && G.stageStars[zoneStart + 2] > 0) {
+      G.stageUnlocked[15 + info.zone] = true; // Boss stage
+    }
+    // H1 해금: 구역 2 스테이지 2 (stageIndex 4) 천장 비밀 통과 ≈ ★3 클리어 [§10.3]
+    if (clearedIdx === 4 && G.clearStars >= 3) {
+      G.hiddenUnlocked[0] = true;
+    }
+  } else if (info.type === 'boss') {
+    G.bossDefeated[info.zone] = true;
+    // Unlock next zone's first stage
+    if (info.zone < 4) {
+      G.stageUnlocked[(info.zone + 1) * 3] = true;
+    }
+    // H2 해금: 구역 4 보스(zone index 3) 무사망 클리어 [§10.3]
+    if (info.zone === 3 && G.stageDeaths === 0) G.hiddenUnlocked[1] = true;
+  }
+
+  // Hidden 3: all stars 3
+  let allThreeStars = true;
+  for (let i = 0; i < 20; i++) {
+    if (G.stageStars[i] < 3) { allThreeStars = false; break; }
+  }
+  if (allThreeStars) G.hiddenUnlocked[2] = true;
+
+  // Set unlocked flags for hidden stages
+  for (let i = 0; i < 3; i++) {
+    if (G.hiddenUnlocked[i]) G.stageUnlocked[20 + i] = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 8: ENEMIES & TRAPS
+// ═══════════════════════════════════════════════════════════════
+
+function updateTraps(dt) {
+  const dtSec = dt / 1000;
+
+  // Crushers
+  for (const c of G.crushers) {
+    c.timer += dt;
+    switch (c.state) {
+      case 'waiting':
+        c.warning = false;
+        if (c.timer >= c.period - 1000) {
+          c.warning = true;
+        }
+        if (c.timer >= c.period) {
+          c.state = 'crushing';
+          c.timer = 0;
+        }
+        break;
+      case 'crushing':
+        c.y = lerp(c.baseY, c.targetY, Math.min(c.timer / 300, 1));
+        if (c.timer >= 300) {
+          c.state = 'holding';
+          c.timer = 0;
+          G.camShake = Math.max(G.camShake, 3);
+        }
+        break;
+      case 'holding':
+        if (c.timer >= 500) {
+          c.state = 'returning';
+          c.timer = 0;
+        }
+        break;
+      case 'returning':
+        c.y = lerp(c.targetY, c.baseY, Math.min(c.timer / 800, 1));
+        if (c.timer >= 800) {
+          c.y = c.baseY;
+          c.state = 'waiting';
+          c.timer = 0;
+        }
+        break;
+    }
+  }
+
+  // Lasers
+  for (const l of G.lasers) {
+    l.timer += dt;
+    const totalCycle = l.onDuration + l.offDuration;
+    const phase = l.timer % totalCycle;
+
+    if (phase < l.onDuration) {
+      l.active = true;
+      l.charging = false;
+    } else if (phase < l.onDuration + 200) {
+      l.active = false;
+      l.charging = true; // About to turn off → charging for next on
+    } else {
+      l.active = false;
+      l.charging = phase > totalCycle - 300; // Charging before next on
+    }
+  }
+
+  // Moving platforms
+  for (const mp of G.movingPlatforms) {
+    mp.timer += dt * mp.speed * 0.001;
+    mp.x = mp.baseX + Math.sin(mp.timer) * mp.rangeX;
+    mp.y = mp.baseY + Math.cos(mp.timer * 0.7) * mp.rangeY;
+  }
+
+  // Vanish floors
+  for (const vf of G.vanishFloors) {
+    if (vf.cracking) {
+      vf.touchTimer -= dt;
+      if (vf.touchTimer <= 0) {
+        vf.visible = false;
+        vf.cracking = false;
+        // Restore after 3 seconds
+        const restoreProxy = { t: 0 };
+        tween.add(restoreProxy, { t: 1 }, 3000, 'linear', () => {
+          vf.visible = true;
+        });
+      }
+    }
+  }
+
+  // Flames [T6 §7.2] — periodic directional bursts
+  for (const fl of G.flames) {
+    fl.timer += dt;
+    const phase = fl.timer % fl.period;
+    if (phase < fl.warningDuration) {
+      fl.warning = true;
+      fl.active = false;
+    } else if (phase < fl.warningDuration + fl.burstDuration) {
+      fl.warning = false;
+      fl.active = true;
+    } else {
+      fl.warning = false;
+      fl.active = false;
+    }
+  }
+
+  // Magnets [T8 §7.2] — wave phase animation
+  for (const mg of G.magnets) {
+    mg.wavePhase += dt * 0.003;
+  }
+
+  // Chain collapse (zone 5)
+  if (G.chainCollapse && G.chainCollapse.active) {
+    const speedMult = G.slowActive ? 0.4 : 1;
+    G.chainCollapse.x += G.chainCollapse.speed * dtSec * speedMult;
+    // Screen shake when close
+    if (G.px - G.chainCollapse.x < 200) {
+      G.camShake = Math.max(G.camShake, 2);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 9: BOSS (5 types)
+// ═══════════════════════════════════════════════════════════════
+
+function initBoss(zoneId) {
+  const bossData = [
+    { name: 'DR-01', maxHP: 3, pattern: 'sweep', sweepPeriod: 5000, windowDuration: BOSS1_WINDOW },
+    { name: 'CR-02', maxHP: 3, pattern: 'crush', cycleDuration: 5000, windowDuration: BOSS2_WINDOW },
+    { name: 'RX-03', maxHP: 3, pattern: 'laser_grid', cycleDuration: 4000, windowDuration: 1500 },
+    { name: 'GV-04', maxHP: 4, pattern: 'gravity_chaos', cycleDuration: 6000, windowDuration: 3000 },
+    { name: 'NX-05', maxHP: 5, pattern: 'all_traps', cycleDuration: 5000, windowDuration: 800 }
+  ];
+
+  const bd = bossData[zoneId];
+  G.boss = {
+    type: zoneId,
+    name: bd.name,
+    x: engine.W * 0.7,
+    y: GAME_H / 2,
+    w: 64,
+    h: 64,
+    phase: 0,
+    timer: 0,
+    vulnerable: false,
+    windowTimer: 0,
+    attackTimer: 0,
+    sweepY: GAME_H / 4,
+    sweepDir: 1,
+    crushTop: false,
+    laserPattern: 0,
+    gravDir: 1,
+    collapseWaves: 0,
+    hitFlash: 0,
+    deathTimer: 0,
+    alive: true
+  };
+  G.bossHP = bd.maxHP;
+  G.bossMaxHP = bd.maxHP;
+  G.bossPhase = 0;
+  G.bossTimer = 0;
+  G.bossRewardGiven = false;
+
+  // Boss arena setup
+  G.tiles = [];
+  for (let y = 0; y < TILES_Y; y++) {
+    G.tiles[y] = new Array(30).fill(T_EMPTY);
+    G.tiles[y][0] = T_SOLID;
+    G.tiles[y][29] = T_SOLID;
+  }
+  for (let x = 0; x < 30; x++) {
+    G.tiles[0][x] = T_SOLID;
+    G.tiles[TILES_Y - 1][x] = T_SOLID;
+  }
+
+  G.px = 60;
+  G.py = GAME_H / 2;
+  G.pvx = 0;
+  G.pvy = 0;
+  G.gravDir = 1;
+  G.camX = 0;
+  G.camZoom = 1;
+  G.camTargetZoom = 0.85;
+
+  // Boss arena objects
+  G.crushers = [];
+  G.lasers = [];
+  G.movingPlatforms = [];
+  G.vanishFloors = [];
+  G.gravZones = [];
+  G.coins = [];
+  G.flames = [];
+  G.magnets = [];
+  G.chainCollapse = null;
+  G.stageDeaths = 0;
+  G.stageTime = 0;
+  G.collectedCoins = 0;
+  G.totalCoins = 0;
+}
+
+function updateBoss(dt) {
+  if (!G.boss || !G.boss.alive) return;
+  if (G.playState !== PS_ALIVE) return;
+
+  const dtSec = dt / 1000;
+  const b = G.boss;
+  b.timer += dt;
+
+  if (b.hitFlash > 0) b.hitFlash -= dt;
+
+  const bossPatterns = [updateBoss0, updateBoss1, updateBoss2, updateBoss3, updateBoss4];
+  bossPatterns[b.type](b, dt, dtSec);
+
+  // Check if player hits vulnerable boss
+  if (b.vulnerable) {
+    const hs = PLAYER_SIZE / 2;
+    if (MathUtil.rectCollide(G.px - hs, G.py - hs, PLAYER_SIZE, PLAYER_SIZE,
+                             b.x - b.w / 2, b.y - b.h / 2, b.w, b.h)) {
+      hitBoss();
+    }
+  }
+
+  // Boss attacks hit player
+  checkBossAttacks(b);
+}
+
+// Boss 0: DR-01 (Surveillance Drone) — horizontal laser sweep
+function updateBoss0(b, dt, dtSec) {
+  const period = 5000;
+  const sweepTime = 3000;
+  const windowTime = 2000;
+
+  const phase = b.timer % period;
+
+  if (phase < sweepTime) {
+    // Sweeping: laser goes up and down
+    b.vulnerable = false;
+    b.sweepY += b.sweepDir * 150 * dtSec;
+    if (b.sweepY > GAME_H - 60) { b.sweepDir = -1; }
+    if (b.sweepY < 60) { b.sweepDir = 1; }
+    // Move boss
+    b.y = lerp(b.y, b.sweepY, 0.05);
+  } else {
+    // Stopped: vulnerable
+    b.vulnerable = true;
+    b.windowTimer = windowTime - (phase - sweepTime);
+    // Boss stays at top — player must flip to reach
+    b.y = lerp(b.y, 60, 0.03);
+  }
+}
+
+// Boss 1: CR-02 (Crusher Robot) — alternating floor/ceiling crush
+function updateBoss1(b, dt, dtSec) {
+  const cycleTime = 5000;
+  const phase = b.timer % cycleTime;
+
+  if (phase < 2000) {
+    // Bottom crush
+    b.crushTop = false;
+    b.vulnerable = false;
+    b.y = lerp(b.y, GAME_H - 40, 0.05);
+  } else if (phase < 2500) {
+    // Transition — vulnerable
+    b.vulnerable = true;
+    b.x = engine.W * 0.7;
+    b.y = GAME_H / 2;
+  } else if (phase < 4500) {
+    // Top crush
+    b.crushTop = true;
+    b.vulnerable = false;
+    b.y = lerp(b.y, 40, 0.05);
+  } else {
+    // Transition — vulnerable
+    b.vulnerable = true;
+    b.y = GAME_H / 2;
+  }
+}
+
+// Boss 2: RX-03 (Reactor Core) — laser grid pattern
+function updateBoss2(b, dt, dtSec) {
+  const cycleTime = 4000;
+  const phase = b.timer % cycleTime;
+
+  if (phase < 1500) {
+    // Cross pattern
+    b.laserPattern = 0;
+    b.vulnerable = false;
+  } else if (phase < 3000) {
+    // Transition safe zone + vulnerable
+    b.vulnerable = true;
+    b.laserPattern = -1;
+  } else {
+    // X pattern
+    b.laserPattern = 1;
+    b.vulnerable = false;
+  }
+  // Boss stays center
+  b.x = engine.W * 0.5;
+  b.y = GAME_H / 2;
+}
+
+// Boss 3: GV-04 (Gravity Master) — random gravity + magnetic push
+function updateBoss3(b, dt, dtSec) {
+  const cycleTime = 6000;
+  const phase = b.timer % cycleTime;
+
+  if (phase < 3000) {
+    // Gravity chaos
+    b.vulnerable = false;
+    // Periodically flip gravity
+    if (Math.floor(phase / 500) !== Math.floor((phase - dt) / 500)) {
+      const rng = new SeededRNG(G.masterSeed + Math.floor(b.timer));
+      if (rng.chance(0.5)) {
+        G.gravDir *= -1;
+        G.pvy *= -0.5;
+      }
+    }
+    // Magnetic push
+    const dx = G.px - b.x;
+    const dy = G.py - b.y;
+    const dist = Math.max(50, MathUtil.dist(G.px, G.py, b.x, b.y));
+    G.px += (dx / dist) * 50 * dtSec;
+    G.py += (dy / dist) * 50 * dtSec;
+  } else {
+    // Gravity stabilized — vulnerable
+    b.vulnerable = true;
+    G.gravDir = 1; // Stabilize
+  }
+  b.x = engine.W * 0.6;
+  b.y = GAME_H / 2 + Math.sin(b.timer * 0.001) * 50;
+}
+
+// Boss 4: NX-05 (Core AI) — all traps + chain collapse
+function updateBoss4(b, dt, dtSec) {
+  const cycleTime = 5000;
+  const phase = b.timer % cycleTime;
+
+  if (phase < 1500) {
+    // Collapse wave 1
+    b.vulnerable = false;
+    b.collapseWaves = 1;
+    G.camShake = Math.max(G.camShake, 4);
+  } else if (phase < 1800) {
+    // Brief stop — vulnerable
+    b.vulnerable = true;
+    b.collapseWaves = 0;
+  } else if (phase < 3300) {
+    // Collapse wave 2
+    b.vulnerable = false;
+    b.collapseWaves = 2;
+    G.camShake = Math.max(G.camShake, 5);
+  } else if (phase < 3600) {
+    // Brief stop — vulnerable
+    b.vulnerable = true;
+    b.collapseWaves = 0;
+  } else if (phase < 4800) {
+    // Collapse wave 3
+    b.vulnerable = false;
+    b.collapseWaves = 3;
+    G.camShake = Math.max(G.camShake, 6);
+  } else {
+    // Brief stop — vulnerable
+    b.vulnerable = true;
+    b.collapseWaves = 0;
+  }
+  b.x = engine.W * 0.5;
+  b.y = GAME_H / 2 + Math.sin(b.timer * 0.002) * 30;
+}
+
+function checkBossAttacks(b) {
+  const hs = PLAYER_SIZE / 2;
+
+  switch (b.type) {
+    case 0: // DR-01: laser at sweepY height
+      if (!b.vulnerable) {
+        if (Math.abs(G.py - b.sweepY) < 15) {
+          if (!isInvincible()) killPlayer();
+        }
+      }
+      break;
+    case 1: // CR-02: crush zones
+      if (!b.vulnerable) {
+        if (b.crushTop && G.py < 80) {
+          if (!isInvincible()) killPlayer();
+        }
+        if (!b.crushTop && G.py > GAME_H - 80) {
+          if (!isInvincible()) killPlayer();
+        }
+      }
+      break;
+    case 2: // RX-03: laser grid
+      if (b.laserPattern === 0) {
+        // Cross: horizontal + vertical center lines
+        if (Math.abs(G.px - engine.W / 2) < 10 || Math.abs(G.py - GAME_H / 2) < 10) {
+          if (!isInvincible()) killPlayer();
+        }
+      } else if (b.laserPattern === 1) {
+        // X: diagonal lines
+        const cx = engine.W / 2, cy = GAME_H / 2;
+        const dx = G.px - cx, dy = G.py - cy;
+        if (Math.abs(dx - dy) < 15 || Math.abs(dx + dy) < 15) {
+          if (!isInvincible()) killPlayer();
+        }
+      }
+      break;
+    case 3: // GV-04: magnetic damage near boss
+      if (!b.vulnerable) {
+        if (MathUtil.dist(G.px, G.py, b.x, b.y) < 50) {
+          if (!isInvincible()) killPlayer();
+        }
+      }
+      break;
+    case 4: // NX-05: collapse waves
+      if (b.collapseWaves > 0) {
+        // Dangerous zones based on collapse wave
+        const waveX = b.collapseWaves * 100;
+        if (G.px < waveX || G.py < 40 || G.py > GAME_H - 40) {
+          if (!isInvincible()) killPlayer();
+        }
+      }
+      break;
+  }
+}
+
+function hitBoss() {
+  if (!G.boss.vulnerable) return;
+  G.boss.vulnerable = false;
+  G.bossHP--;
+  G.boss.hitFlash = 300;
+
+  playSFX('boss_hit');
+  G.camShake = 10;
+  particles.emit(G.boss.x, G.boss.y, 30, { color: '#ff3333', speed: 250, life: 0.6, size: 5 });
+
+  if (G.bossHP <= 0) {
+    bossDied();
+  } else {
+    // Phase up
+    G.bossPhase++;
+    G.boss.timer = 0;
+  }
+}
+
+function bossDied() {
+  G.boss.alive = false;
+  G.boss.deathTimer = 2000;
+  G.playState = PS_CLEAR;
+
+  if (!G.bossRewardGiven) {  // [F17]
+    G.bossRewardGiven = true;
+    G.clearScore = 1000 * (G.boss.type + 1);
+    G.totalScore += G.clearScore;
+    G.clearStars = G.stageDeaths === 0 ? 3 : (G.stageDeaths <= 3 ? 2 : 1);
+
+    const bossIdx = 15 + G.boss.type;
+    if (G.clearStars > G.stageStars[bossIdx]) G.stageStars[bossIdx] = G.clearStars;
+    unlockNextStages(bossIdx);
+    saveProgress();
+    Save.setHighScore(GAME_ID, G.totalScore);
+  }
+
+  playSFX('boss_die');
+  G.camShake = 15;
+
+  // Explosion particles
+  for (let i = 0; i < 5; i++) {
+    const delay = { t: 0 };
+    tween.add(delay, { t: 1 }, 200 * i, 'linear', () => {
+      if (G.boss) {
+        particles.emit(G.boss.x + (i - 2) * 20, G.boss.y + (i - 2) * 15, 20, {
+          color: i % 2 === 0 ? '#ff3333' : '#ffd700',
+          speed: 300,
+          life: 0.8,
+          size: 6
+        });
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 10: UI & HUD
+// ═══════════════════════════════════════════════════════════════
+
+function isHoldingLeft() {
+  if (!input.isMobile) return false;
+  for (const t of input.touches) {
+    if (t.x < engine.W / 3) return true;
+  }
+  return false;
+}
+
+function isHoldingRight() {
+  if (!input.isMobile) return false;
+  for (const t of input.touches) {
+    if (t.x > engine.W * 2 / 3) return true;
+  }
+  return false;
+}
+
+// Render title screen
+function renderTitle(ctx, w, h) {
+  const zc = ZONE_COLORS[0];
+
+  // Background
+  ctx.fillStyle = zc.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Starfield background
+  drawStarfield(ctx, w, h, G.titlePulse);
+
+  // Background layer
+  if (assets.sprites.bgLayer1) {
+    ctx.globalAlpha = 0.3;
+    ctx.drawImage(assets.sprites.bgLayer1, 0, 0, w, h);
+    ctx.globalAlpha = 1;
+  }
+
+  // Title text with glow
+  const titleY = h * 0.3;
+  ctx.save();
+  const pulse = 0.8 + Math.sin(G.titlePulse * 0.003) * 0.2;
+
+  // Title shadow
+  UI.text(ctx, getText('title'), w / 2, titleY, {
+    size: Math.min(48, w * 0.1), bold: true, color: PLAYER_COLOR, glow: PLAYER_COLOR
+  });
+
+  // Subtitle
+  UI.text(ctx, getText('subtitle'), w / 2, titleY + 50, {
+    size: Math.min(18, w * 0.04), color: '#8080a0'
+  });
+
+  ctx.restore();
+
+  // Gravity flip animation
+  const arrowY = titleY - 80 + Math.sin(G.titlePulse * 0.005) * 20;
+  drawGravityArrows(ctx, w / 2, arrowY, 40, G.titlePulse);
+
+  // Player character preview
+  if (assets.sprites.player) {
+    const px = w / 2 - 32;
+    const py = h * 0.5 - 32;
+    const bobY = Math.sin(G.titlePulse * 0.003) * 10;
+    ctx.save();
+    ctx.globalAlpha = G.titleAlpha;
+    ctx.drawImage(assets.sprites.player, px, py + bobY, 64, 64);
+    ctx.restore();
+  } else {
+    drawPlayerShape(ctx, w / 2, h * 0.5, PLAYER_SIZE * 2, 1, 0, 1);
+  }
+
+  // Start prompt
+  const promptAlpha = 0.5 + Math.sin(G.titlePulse * 0.005) * 0.5;
+  ctx.globalAlpha = promptAlpha * G.titleAlpha;
+  const promptText = input.isMobile ? getText('tapToStart') : getText('pressToStart');
+  UI.text(ctx, promptText, w / 2, h * 0.75, {
+    size: Math.min(20, w * 0.04), color: '#e0e0f0'
+  });
+  ctx.globalAlpha = 1;
+
+  // Version
+  UI.text(ctx, 'v1.0', w - 40, h - 20, { size: 10, color: '#505070' });
+}
+
+// Render map screen
+function renderMap(ctx, w, h) {
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+
+  if (G.showUpgrades) {
+    renderUpgradeShop(ctx, w, h);
+    return;
+  }
+
+  // Title
+  UI.text(ctx, getText('stageSelect'), w / 2, 30, { size: 22, bold: true, color: '#e0e0f0' });
+
+  // Total score
+  UI.text(ctx, `${getText('totalScore')}: ${G.totalScore}`, w / 2, 55, {
+    size: 14, color: '#ffd700'
+  });
+
+  // Zone tabs
+  const tabW = Math.min(80, (w - 20) / 5);
+  const tabY = 75;
+  for (let z = 0; z < 5; z++) {
+    const tx = 10 + z * tabW;
+    const active = G.mapSelection >= z * 3 && G.mapSelection < (z + 1) * 3 + 2;
+    const zc = ZONE_COLORS[z];
+    ctx.fillStyle = active ? zc.bg2 : '#12121e';
+    ctx.fillRect(tx, tabY, tabW - 4, 28);
+    ctx.strokeStyle = active ? zc.portal : '#1e1e30';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tx, tabY, tabW - 4, 28);
+    UI.text(ctx, getText('zone' + (z + 1)), tx + (tabW - 4) / 2, tabY + 14, {
+      size: 10, color: active ? '#e0e0f0' : '#505070'
+    });
+  }
+
+  // Stage nodes
+  const nodeStartY = 120;
+  const nodeSpacingY = 50;
+  const nodeSize = Math.max(MIN_TOUCH, 40);
+
+  // Main stages (15)
+  for (let i = 0; i < 15; i++) {
+    const zone = Math.floor(i / 3);
+    const local = i % 3;
+    const nx = w * 0.2 + local * (w * 0.25);
+    const ny = nodeStartY + zone * nodeSpacingY;
+    const unlocked = G.stageUnlocked[i];
+    const selected = G.mapSelection === i;
+    const stars = G.stageStars[i];
+    const zc = ZONE_COLORS[zone];
+
+    drawStageNode(ctx, nx, ny, nodeSize, unlocked, selected, stars, zc, `${zone + 1}-${local + 1}`);
+  }
+
+  // Boss stages (5)
+  for (let i = 0; i < 5; i++) {
+    const idx = 15 + i;
+    const nx = w * 0.85;
+    const ny = nodeStartY + i * nodeSpacingY;
+    const unlocked = G.stageUnlocked[idx];
+    const selected = G.mapSelection === idx;
+    const stars = G.stageStars[idx];
+    const zc = ZONE_COLORS[i];
+
+    drawStageNode(ctx, nx, ny, nodeSize, unlocked, selected, stars, zc, getText('boss'));
+  }
+
+  // Hidden stages (3)
+  const hiddenY = nodeStartY + 5 * nodeSpacingY + 20;
+  for (let i = 0; i < 3; i++) {
+    const idx = 20 + i;
+    const nx = w * 0.25 + i * (w * 0.25);
+    const ny = hiddenY;
+    const unlocked = G.stageUnlocked[idx];
+    const selected = G.mapSelection === idx;
+    const stars = G.stageStars[idx];
+
+    drawStageNode(ctx, nx, ny, nodeSize, unlocked, selected, stars, ZONE_COLORS[2], unlocked ? 'H' + (i + 1) : '?');
+  }
+
+  // Bottom buttons
+  const btnW = Math.max(MIN_TOUCH * 2, 120);
+  const btnH = Math.max(MIN_TOUCH, 40);
+  const btnY = h - btnH - 15;
+
+  // Upgrade button
+  UI.button(ctx, getText('upgrade'), 15, btnY, btnW, btnH, { color: '#6c3cf7' });
+
+  // Coins display
+  if (assets.sprites.uiStar) {
+    ctx.drawImage(assets.sprites.uiStar, w / 2 - 40, btnY + 5, 30, 30);
+  }
+  UI.text(ctx, `${G.totalCoinsCollected}`, w / 2 + 10, btnY + btnH / 2, {
+    size: 16, color: '#ffd700', align: 'left'
+  });
+
+  // Back button
+  UI.button(ctx, getText('back'), w - btnW - 15, btnY, btnW, btnH, { color: '#333' });
+
+  // Selected stage info
+  if (G.mapSelection >= 0 && G.mapSelection < 23) {
+    const info = stageToZoneInfo(G.mapSelection);
+    const infoY = h - 80;
+    if (G.stageUnlocked[G.mapSelection]) {
+      UI.text(ctx, getText('pressToPlay'), w / 2, infoY, { size: 14, color: '#8080a0' });
+    } else {
+      UI.text(ctx, getText('locked'), w / 2, infoY, { size: 14, color: '#505070' });
+    }
+  }
+}
+
+function drawStageNode(ctx, x, y, size, unlocked, selected, stars, zc, label) {
+  const s = size * 0.5;
+  ctx.save();
+
+  if (selected) {
+    ctx.shadowColor = zc.portal;
+    ctx.shadowBlur = 15;
+  }
+
+  ctx.fillStyle = unlocked ? (selected ? zc.bg2 : '#1a1a2e') : '#0a0a0f';
+  ctx.strokeStyle = unlocked ? (selected ? zc.portal : zc.danger + '66') : '#1e1e30';
+  ctx.lineWidth = selected ? 2 : 1;
+
+  ctx.beginPath();
+  ctx.roundRect(x - s, y - s, size, size, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+
+  // Label
+  UI.text(ctx, label, x, y - 4, {
+    size: 11, color: unlocked ? '#e0e0f0' : '#505070', bold: selected
+  });
+
+  // Stars
+  if (stars > 0) {
+    const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    UI.text(ctx, starStr, x, y + 12, { size: 8, color: '#ffd700' });
+  }
+
+  ctx.restore();
+}
+
+function renderUpgradeShop(ctx, w, h) {
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, getText('upgrade'), w / 2, 30, { size: 24, bold: true, color: '#6c3cf7', glow: '#6c3cf7' });
+
+  const branches = [
+    { name: getText('gravity'), color: '#00eeff', icon: '↕' },
+    { name: getText('dash'), color: '#ff8800', icon: '→' },
+    { name: getText('slow'), color: '#cc33ff', icon: '◎' }
+  ];
+
+  const colW = Math.min(200, (w - 40) / 3);
+  const startX = (w - colW * 3) / 2;
+  const startY = 70;
+
+  for (let b = 0; b < 3; b++) {
+    const bx = startX + b * colW + colW / 2;
+    const selected = G.upgradeSelection === b;
+
+    // Branch header
+    UI.text(ctx, branches[b].icon + ' ' + branches[b].name, bx, startY, {
+      size: 14, bold: true, color: selected ? branches[b].color : '#8080a0'
+    });
+
+    // Level dots
+    for (let lv = 0; lv < 5; lv++) {
+      const ly = startY + 30 + lv * 45;
+      const filled = G.upgrades[b] >= lv + 1;
+      const canAfford = G.totalCoinsCollected >= UPGRADE_COSTS[lv + 1];
+
+      ctx.fillStyle = filled ? branches[b].color : (canAfford ? '#333' : '#1a1a1a');
+      ctx.strokeStyle = selected && G.upgrades[b] === lv ? '#fff' : branches[b].color + '44';
+      ctx.lineWidth = selected && G.upgrades[b] === lv ? 2 : 1;
+
+      ctx.beginPath();
+      ctx.arc(bx, ly, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      UI.text(ctx, `Lv${lv + 1}`, bx, ly, { size: 9, color: filled ? '#000' : '#666' });
+
+      if (!filled && G.upgrades[b] === lv) {
+        UI.text(ctx, `${UPGRADE_COSTS[lv + 1]}`, bx, ly + 20, {
+          size: 9, color: canAfford ? '#ffd700' : '#666'
+        });
+      }
+    }
+  }
+
+  // Coins
+  UI.text(ctx, `${getText('coins')}: ${G.totalCoinsCollected}`, w / 2, h - 60, {
+    size: 16, color: '#ffd700'
+  });
+
+  // Back button
+  const btnW = Math.max(MIN_TOUCH * 2, 120);
+  const btnH = Math.max(MIN_TOUCH, 40);
+  UI.button(ctx, getText('back'), w / 2 - btnW / 2, h - 45, btnW, btnH, { color: '#333' });
+}
+
+// Render HUD during gameplay
+function renderHUD(ctx, w, h) {
+  const pad = 10;
+  const iconSize = 24;
+
+  // Coins
+  if (assets.sprites.uiStar) {
+    ctx.drawImage(assets.sprites.uiStar, pad, pad, iconSize, iconSize);
+  }
+  UI.text(ctx, `${G.collectedCoins}/${G.totalCoins}`, pad + iconSize + 5, pad + iconSize / 2, {
+    size: 14, color: '#ffd700', align: 'left'
+  });
+
+  // Deaths
+  if (assets.sprites.uiHeart) {
+    ctx.drawImage(assets.sprites.uiHeart, pad, pad + 30, iconSize, iconSize);
+  }
+  UI.text(ctx, `${getText('deaths')}: ${G.stageDeaths}`, pad + iconSize + 5, pad + 30 + iconSize / 2, {
+    size: 12, color: '#ff5555', align: 'left'
+  });
+
+  // Time
+  const timeSec = Math.floor(G.stageTime / 1000);
+  UI.text(ctx, `${Math.floor(timeSec / 60)}:${(timeSec % 60).toString().padStart(2, '0')}`, w - pad, pad + 12, {
+    size: 14, color: '#e0e0f0', align: 'right'
+  });
+
+  // Zone name
+  const info = stageToZoneInfo(G.stageIndex);
+  UI.text(ctx, `${getText('zone' + (G.currentZone + 1))} ${info.stage + 1}`, w / 2, pad + 12, {
+    size: 12, color: '#8080a0'
+  });
+
+  // Pause button (top right) — Canvas-drawn icon [Fix: Issues #11,#12]
+  const pauseBtnSize = Math.max(MIN_TOUCH, 36);
+  const pbx = w - pauseBtnSize - pad;
+  const pby = pad + 28;
+  ctx.fillStyle = '#1a1a2e99';
+  ctx.strokeStyle = '#8080a066';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(pbx, pby, pauseBtnSize, pauseBtnSize, 6);
+  ctx.fill();
+  ctx.stroke();
+  // Draw pause icon (two vertical bars)
+  const pcx = pbx + pauseBtnSize / 2;
+  const pcy = pby + pauseBtnSize / 2;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.fillRect(pcx - 6, pcy - 7, 4, 14);
+  ctx.fillRect(pcx + 2, pcy - 7, 4, 14);
+
+  // Restart button (top right below pause) — Canvas-drawn icon
+  const rbx = pbx;
+  const rby = pby + pauseBtnSize + 5;
+  ctx.fillStyle = '#1a1a2e99';
+  ctx.strokeStyle = '#8080a066';
+  ctx.beginPath();
+  ctx.roundRect(rbx, rby, pauseBtnSize, pauseBtnSize, 6);
+  ctx.fill();
+  ctx.stroke();
+  // Draw restart icon (circular arrow)
+  const rcx = rbx + pauseBtnSize / 2;
+  const rcy = rby + pauseBtnSize / 2;
+  ctx.strokeStyle = '#e0e0f0';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(rcx, rcy, 8, -Math.PI * 0.8, Math.PI * 0.6);
+  ctx.stroke();
+  // Arrowhead
+  const arrowAngle = Math.PI * 0.6;
+  const arrowTipX = rcx + Math.cos(arrowAngle) * 8;
+  const arrowTipY = rcy + Math.sin(arrowAngle) * 8;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.beginPath();
+  ctx.moveTo(arrowTipX + 4, arrowTipY - 2);
+  ctx.lineTo(arrowTipX - 2, arrowTipY - 4);
+  ctx.lineTo(arrowTipX, arrowTipY + 3);
+  ctx.closePath();
+  ctx.fill();
+
+  // DDA hint
+  if (G.ddaLevel >= 3) {
+    UI.text(ctx, getText('dda_hint'), w / 2, h - 20, { size: 10, color: '#555' });
+  }
+
+  // Dash/Slow cooldowns
+  if (G.upgrades[1] > 0) {
+    const dashReady = G.dashCooldown <= 0 && !G.dashActive;
+    drawCooldownIndicator(ctx, w - 60, h - 50, 18, G.dashCooldown, 3000, '#ff8800', dashReady, 'D');
+  }
+  if (G.upgrades[2] > 0) {
+    const slowReady = G.slowCharge >= 1000 && !G.slowActive;
+    drawCooldownIndicator(ctx, w - 30, h - 50, 18, 3000 - G.slowCharge, 3000, '#cc33ff', slowReady, 'S');
+  }
+
+  // Boss HP bar
+  if (G.state === S_BOSS && G.boss) {
+    const barW = Math.min(300, w * 0.6);
+    const barH = 12;
+    const barX = (w - barW) / 2;
+    const barY = h - 30;
+    UI.hpBar(ctx, barX, barY, barW, barH, G.bossHP, G.bossMaxHP, { fgColor: '#ff3333' });
+    UI.text(ctx, G.boss.name, w / 2, barY - 10, { size: 12, color: '#ff3333', bold: true });
+  }
+}
+
+function drawCooldownIndicator(ctx, x, y, r, current, max, color, ready, label) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = ready ? color + '44' : '#222';
+  ctx.fill();
+  ctx.strokeStyle = ready ? color : '#444';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  if (!ready) {
+    // Draw arc for cooldown
+    const progress = 1 - clamp(current / max, 0, 1);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+    ctx.closePath();
+    ctx.fillStyle = color + '66';
+    ctx.fill();
+  }
+
+  UI.text(ctx, label, x, y, { size: 10, color: ready ? '#fff' : '#888' });
+  ctx.restore();
+}
+
+// Pause modal [F3]
+function renderPauseModal(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  const mw = Math.min(300, w * 0.8);
+  const mh = 200;
+  const mx = (w - mw) / 2;
+  const my = (h - mh) / 2;
+
+  ctx.fillStyle = '#12121e';
+  ctx.strokeStyle = '#6c3cf7';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(mx, my, mw, mh, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  UI.text(ctx, getText('pause'), w / 2, my + 30, { size: 24, bold: true, color: '#e0e0f0' });
+
+  const options = [getText('resume'), getText('restart'), getText('quit')];
+  const btnW = mw - 40;
+  const btnH = Math.max(MIN_TOUCH, 36);
+
+  for (let i = 0; i < options.length; i++) {
+    const by = my + 60 + i * (btnH + 10);
+    const selected = G.pauseSelection === i;
+    UI.button(ctx, options[i], mx + 20, by, btnW, btnH, {
+      color: selected ? '#6c3cf7' : '#333',
+      hover: selected
+    });
+  }
+}
+
+// Clear screen
+function renderClearScreen(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  const cy = h * 0.3;
+  UI.text(ctx, getText('clear'), w / 2, cy, {
+    size: 40, bold: true, color: '#ffd700', glow: '#ffd700'
+  });
+
+  // Stars
+  const starStr = '★'.repeat(G.clearStars) + '☆'.repeat(3 - G.clearStars);
+  UI.text(ctx, starStr, w / 2, cy + 50, { size: 30, color: '#ffd700' });
+
+  // Score
+  UI.text(ctx, `${getText('score')}: ${G.clearScore}`, w / 2, cy + 90, {
+    size: 18, color: '#e0e0f0'
+  });
+
+  if (G.newRecord) {
+    UI.text(ctx, getText('newRecord'), w / 2, cy + 115, {
+      size: 16, color: '#ff3333', glow: '#ff3333'
+    });
+  }
+
+  // Stats
+  UI.text(ctx, `${getText('deaths')}: ${G.stageDeaths}  |  ${getText('coins')}: ${G.collectedCoins}/${G.totalCoins}`, w / 2, cy + 140, {
+    size: 13, color: '#8080a0'
+  });
+
+  // Continue prompt
+  const promptAlpha = 0.5 + Math.sin(G.titlePulse * 0.005) * 0.5;
+  ctx.globalAlpha = promptAlpha;
+  UI.text(ctx, getText('tapToContinue'), w / 2, h * 0.8, {
+    size: 14, color: '#e0e0f0'
+  });
+  ctx.globalAlpha = 1;
+}
+
+// Death screen (within PLAY state) — enhanced with effect-hit overlay [Fix: Issue #8]
+function renderDeathOverlay(ctx, w, h) {
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = '#ff0000';
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalAlpha = 1;
+
+  // Show effect-hit.svg at player position if available
+  if (assets.sprites.effectHit && G.respawnTimer > RESPAWN_DELAY * 0.3) {
+    const scale = h / GAME_H;
+    const px = G.px * scale - G.camX * scale;
+    const py = G.py * scale;
+    const effectSize = 80 * scale;
+    const flashAlpha = clamp(G.respawnTimer / RESPAWN_DELAY, 0, 1);
+    ctx.globalAlpha = flashAlpha * 0.8;
+    ctx.drawImage(assets.sprites.effectHit, px - effectSize / 2, py - effectSize / 2, effectSize, effectSize);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 11: RENDERING (Pure functions) [F9]
+// ═══════════════════════════════════════════════════════════════
+
+function drawPlayerShape(ctx, x, y, size, gravDir, pose, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+
+  if (gravDir === -1) ctx.scale(1, -1);
+
+  const hs = size / 2;
+
+  // Body (rounded square)
+  ctx.fillStyle = PLAYER_COLOR;
+  ctx.beginPath();
+  ctx.roundRect(-hs, -hs, size, size, size * 0.25);
+  ctx.fill();
+
+  // Eyes
+  const eyeSize = size * 0.15;
+  const eyeY = -size * 0.1;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-hs * 0.5 - eyeSize / 2, eyeY - eyeSize / 2, eyeSize, eyeSize);
+  ctx.fillRect(hs * 0.5 - eyeSize / 2, eyeY - eyeSize / 2, eyeSize, eyeSize);
+
+  // Pupils
+  ctx.fillStyle = '#000';
+  const pupilSize = eyeSize * 0.5;
+  ctx.fillRect(-hs * 0.5 - pupilSize / 2 + 1, eyeY - pupilSize / 2, pupilSize, pupilSize);
+  ctx.fillRect(hs * 0.5 - pupilSize / 2 + 1, eyeY - pupilSize / 2, pupilSize, pupilSize);
+
+  // Gravity direction arrow
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  const arrowY = hs * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(0, arrowY - 4);
+  ctx.lineTo(0, arrowY + 4);
+  ctx.moveTo(-3, arrowY + 1);
+  ctx.lineTo(0, arrowY + 4);
+  ctx.lineTo(3, arrowY + 1);
+  ctx.stroke();
+
+  // Death pose — enhanced with rotation, cracks, and effect-hit overlay [Fix: Issue #10]
+  if (pose === 3) {
+    // Crack lines radiating from center
+    ctx.strokeStyle = '#ff3333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-hs, -hs); ctx.lineTo(hs, hs);
+    ctx.moveTo(hs, -hs); ctx.lineTo(-hs, hs);
+    ctx.moveTo(0, -hs); ctx.lineTo(0, hs);
+    ctx.moveTo(-hs, 0); ctx.lineTo(hs, 0);
+    ctx.stroke();
+
+    // Red overlay flash
+    ctx.fillStyle = '#ff333366';
+    ctx.beginPath();
+    ctx.roundRect(-hs, -hs, size, size, size * 0.25);
+    ctx.fill();
+
+    // Shatter fragments
+    ctx.fillStyle = PLAYER_COLOR + '88';
+    ctx.fillRect(-hs * 0.8, -hs * 0.3, size * 0.2, size * 0.15);
+    ctx.fillRect(hs * 0.2, hs * 0.1, size * 0.15, size * 0.2);
+    ctx.fillRect(-hs * 0.3, hs * 0.3, size * 0.25, size * 0.1);
+
+    // effect-hit overlay if available
+    if (assets.sprites.effectHit) {
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(assets.sprites.effectHit, -hs * 1.5, -hs * 1.5, size * 1.5, size * 1.5);
+      ctx.globalAlpha = alpha;
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawSpike(ctx, x, y, tileSize, direction, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.translate(x + tileSize / 2, y + tileSize / 2);
+
+  switch (direction) {
+    case 'up':
+      ctx.beginPath();
+      ctx.moveTo(0, -tileSize / 2);
+      ctx.lineTo(tileSize / 2, tileSize / 2);
+      ctx.lineTo(-tileSize / 2, tileSize / 2);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case 'down':
+      ctx.beginPath();
+      ctx.moveTo(0, tileSize / 2);
+      ctx.lineTo(tileSize / 2, -tileSize / 2);
+      ctx.lineTo(-tileSize / 2, -tileSize / 2);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    default: // bottom spikes
+      ctx.beginPath();
+      ctx.moveTo(0, -tileSize / 2);
+      ctx.lineTo(tileSize / 2, tileSize / 2);
+      ctx.lineTo(-tileSize / 2, tileSize / 2);
+      ctx.closePath();
+      ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawPortal(ctx, x, y, size, time) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Outer glow
+  const glowSize = size * (1.2 + Math.sin(time * 0.005) * 0.2);
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = '#00ccff';
+  ctx.beginPath();
+  ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner portal
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = '#00eeff';
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.7, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rotating ring
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  const rot = time * 0.003;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size, size * 0.6, rot, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Center bright spot
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawCoin(ctx, x, y, size, time) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const bobY = Math.sin(time * 0.005 + x * 0.01) * 3;
+  ctx.translate(0, bobY);
+
+  // Coin body
+  const scale = 0.7 + Math.abs(Math.sin(time * 0.004)) * 0.3;
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * scale, size, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Highlight
+  ctx.fillStyle = '#ffee88';
+  ctx.beginPath();
+  ctx.ellipse(-size * 0.2, -size * 0.2, size * 0.3 * scale, size * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawGravityArrows(ctx, x, y, size, time) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const bounce = Math.sin(time * 0.004) * 10;
+
+  // Up arrow
+  ctx.fillStyle = '#00eeff';
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(0, -size / 2 + bounce);
+  ctx.lineTo(size / 3, -size / 6 + bounce);
+  ctx.lineTo(-size / 3, -size / 6 + bounce);
+  ctx.closePath();
+  ctx.fill();
+
+  // Down arrow
+  ctx.beginPath();
+  ctx.moveTo(0, size / 2 - bounce);
+  ctx.lineTo(size / 3, size / 6 - bounce);
+  ctx.lineTo(-size / 3, size / 6 - bounce);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawStarfield(ctx, w, h, time) {
+  const rng = new SeededRNG(12345);
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 80; i++) {
+    const sx = rng.range(0, w);
+    const sy = rng.range(0, h);
+    const ss = rng.range(0.5, 2);
+    const twinkle = 0.3 + Math.sin(time * 0.002 + i * 0.5) * 0.3;
+    ctx.globalAlpha = twinkle;
+    ctx.fillRect(sx, sy, ss, ss);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBossShape(ctx, boss, time, zoneColors) {
+  if (!boss || !boss.alive) return;
+
+  ctx.save();
+  ctx.translate(boss.x, boss.y);
+
+  const flash = boss.hitFlash > 0 && Math.floor(boss.hitFlash / 50) % 2 === 0;
+
+  // Use enemy sprite if available
+  if (assets.sprites.enemy && !flash) {
+    ctx.drawImage(assets.sprites.enemy, -boss.w / 2, -boss.h / 2, boss.w, boss.h);
+  } else {
+    // Enhanced fallback shape — hexagonal armored drone [Fix: Issue #9]
+    const r = boss.w / 2;
+
+    // Outer shell glow
+    ctx.shadowColor = flash ? '#fff' : zoneColors.danger;
+    ctx.shadowBlur = 12;
+
+    // Hexagonal body
+    ctx.fillStyle = flash ? '#ffffff' : '#1a1a2e';
+    ctx.strokeStyle = flash ? '#ffffff' : zoneColors.danger;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Inner core
+    ctx.fillStyle = flash ? '#ff0000' : zoneColors.danger + '88';
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Main eye — menacing single red eye
+    ctx.fillStyle = flash ? '#ff0000' : '#ffff00';
+    ctx.beginPath();
+    ctx.ellipse(0, -4, r * 0.22, r * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Pupil
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(2, -4, r * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    // Eye glow
+    ctx.fillStyle = '#ff000044';
+    ctx.beginPath();
+    ctx.arc(0, -4, r * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rotating spikes (8 triangular protrusions)
+    ctx.fillStyle = zoneColors.danger;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + time * 0.002;
+      const r1 = r;
+      const r2 = r + 12;
+      const spread = 0.15;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - spread) * r1, Math.sin(a - spread) * r1);
+      ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+      ctx.lineTo(Math.cos(a + spread) * r1, Math.sin(a + spread) * r1);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Warning symbol on body
+    ctx.strokeStyle = flash ? '#fff' : '#ffff0088';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 6); ctx.lineTo(-6, 16); ctx.lineTo(6, 16); ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = '#ffff00';
+    ctx.fillRect(-1, 9, 2, 4);
+    ctx.fillRect(-1, 14, 2, 2);
+  }
+
+  // Vulnerability indicator
+  if (boss.vulnerable) {
+    ctx.strokeStyle = '#33ff88';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.5 + Math.sin(time * 0.01) * 0.3;
+    ctx.beginPath();
+    ctx.arc(0, 0, boss.w / 2 + 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+// Render boss attacks
+function renderBossAttacks(ctx, boss, w, h, time) {
+  if (!boss || !boss.alive) return;
+
+  const zc = ZONE_COLORS[boss.type];
+
+  switch (boss.type) {
+    case 0: // DR-01: laser sweep line
+      if (!boss.vulnerable) {
+        ctx.fillStyle = '#ff333388';
+        ctx.fillRect(0, boss.sweepY - 8, w, 16);
+        ctx.fillStyle = '#ff3333';
+        ctx.fillRect(0, boss.sweepY - 2, w, 4);
+      }
+      break;
+
+    case 1: // CR-02: crush zones
+      if (!boss.vulnerable) {
+        const crushH = 80;
+        ctx.fillStyle = '#ff333344';
+        if (boss.crushTop) {
+          ctx.fillRect(0, 0, w, crushH);
+          // Warning stripes
+          drawDangerStripes(ctx, 0, crushH - 10, w, 10, time);
+        } else {
+          ctx.fillRect(0, h - crushH, w, crushH);
+          drawDangerStripes(ctx, 0, h - crushH, w, 10, time);
+        }
+      }
+      break;
+
+    case 2: // RX-03: laser grid
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.6;
+      if (boss.laserPattern === 0) {
+        // Cross
+        ctx.strokeStyle = '#ff3366';
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+        ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+        ctx.stroke();
+      } else if (boss.laserPattern === 1) {
+        // X
+        ctx.strokeStyle = '#ff3366';
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(w, h);
+        ctx.moveTo(w, 0); ctx.lineTo(0, h);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      break;
+
+    case 3: // GV-04: magnetic field visualization
+      if (!boss.vulnerable) {
+        ctx.strokeStyle = '#cc33ff44';
+        ctx.lineWidth = 1;
+        for (let r = 50; r < 200; r += 30) {
+          ctx.beginPath();
+          ctx.arc(boss.x, boss.y, r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      break;
+
+    case 4: // NX-05: collapse visualization
+      if (boss.collapseWaves > 0) {
+        const waveX = boss.collapseWaves * 100;
+        ctx.fillStyle = `rgba(255,0,0,${0.1 * boss.collapseWaves})`;
+        ctx.fillRect(0, 0, waveX, h);
+        // Danger zone indicators
+        ctx.fillStyle = '#ff000044';
+        ctx.fillRect(0, 0, w, 40);
+        ctx.fillRect(0, h - 40, w, 40);
+      }
+      break;
+  }
+}
+
+function drawDangerStripes(ctx, x, y, w, h, time) {
+  ctx.save();
+  ctx.fillStyle = '#ff3333';
+  const stripeW = 20;
+  const offset = (time * 0.05) % stripeW;
+  for (let sx = x - stripeW + offset; sx < x + w; sx += stripeW) {
+    ctx.beginPath();
+    ctx.moveTo(sx, y);
+    ctx.lineTo(sx + stripeW / 2, y);
+    ctx.lineTo(sx + stripeW, y + h);
+    ctx.lineTo(sx + stripeW / 2, y + h);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Main stage render
+function renderStage(ctx, w, h, time) {
+  const scale = h / GAME_H;
+  const zc = ZONE_COLORS[G.currentZone];
+
+  ctx.save();
+
+  // Camera shake
+  const shake = UI.shake(G.camShake);
+  ctx.translate(shake.x, shake.y);
+
+  // Camera zoom
+  const zoom = G.camZoom;
+  if (zoom !== 1) {
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-w / 2, -h / 2);
+  }
+
+  // Camera scroll
+  const camOffsetX = G.camX * scale;
+  ctx.translate(-camOffsetX, 0);
+
+  // Background layers
+  drawBackground(ctx, w, h, G.camX, time, zc);
+
+  // Ghost path (DDA)
+  if (G.ddaLevel >= 2 && G.ghostPath.length > 0) {
+    ctx.strokeStyle = '#33ff8833';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    for (let i = 0; i < G.ghostPath.length; i++) {
+      const gp = G.ghostPath[i];
+      const sx = gp.x * scale;
+      const sy = gp.y * scale;
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Tiles
+  const startTileX = Math.max(0, Math.floor(G.camX / TILE_SIZE) - 2);
+  const endTileX = Math.min(G.tiles[0] ? G.tiles[0].length : 0, startTileX + Math.ceil(w / (TILE_SIZE * scale)) + 4);
+
+  for (let ty = 0; ty < TILES_Y; ty++) {
+    for (let tx = startTileX; tx < endTileX; tx++) {
+      if (!G.tiles[ty] || G.tiles[ty][tx] === undefined) continue;
+      const tile = G.tiles[ty][tx];
+      const sx = tx * TILE_SIZE * scale;
+      const sy = ty * TILE_SIZE * scale;
+      const ts = TILE_SIZE * scale;
+
+      switch (tile) {
+        case T_SOLID:
+          ctx.fillStyle = zc.bg2;
+          ctx.fillRect(sx, sy, ts, ts);
+          ctx.strokeStyle = zc.danger + '33';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(sx, sy, ts, ts);
+          break;
+        case T_SPIKE:
+          drawSpike(ctx, sx, sy, ts, ty <= 1 ? 'down' : 'up', zc.danger);
+          break;
+        case T_COIN:
+          // Skip if collected (handled in coins array)
+          break;
+        case T_PORTAL:
+          drawPortal(ctx, sx + ts / 2, sy + ts / 2, ts / 2, time);
+          break;
+      }
+    }
+  }
+
+  // Moving platforms
+  for (const mp of G.movingPlatforms) {
+    ctx.fillStyle = zc.safe;
+    ctx.fillRect(mp.x * scale, mp.y * scale, mp.w * scale, mp.h * scale);
+    // Path indicator
+    ctx.strokeStyle = zc.safe + '33';
+    ctx.setLineDash([3, 3]);
+    ctx.strokeRect(
+      (mp.baseX - mp.rangeX) * scale,
+      (mp.baseY - mp.rangeY) * scale,
+      (mp.rangeX * 2 + mp.w) * scale,
+      (mp.rangeY * 2 + mp.h) * scale
+    );
+    ctx.setLineDash([]);
+  }
+
+  // Crushers
+  for (const c of G.crushers) {
+    // Warning
+    if (c.warning) {
+      ctx.fillStyle = '#ff333344';
+      ctx.fillRect(c.x * scale, c.baseY * scale, c.w * scale, (c.targetY - c.baseY) * scale);
+    }
+    // Crusher body
+    ctx.fillStyle = zc.danger;
+    ctx.fillRect(c.x * scale, c.y * scale, c.w * scale, c.h * scale);
+    // Danger stripes
+    ctx.fillStyle = '#000';
+    const stripeH = c.h * scale * 0.3;
+    ctx.fillRect(c.x * scale, (c.y + c.h) * scale - stripeH, c.w * scale, stripeH);
+  }
+
+  // Lasers
+  for (const l of G.lasers) {
+    if (l.active) {
+      ctx.fillStyle = zc.danger;
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(l.x * scale, l.y * scale, l.w * scale, l.h * scale);
+      // Glow
+      ctx.fillStyle = zc.danger;
+      ctx.globalAlpha = 0.2;
+      ctx.fillRect(l.x * scale, (l.y - 6) * scale, l.w * scale, (l.h + 12) * scale);
+      ctx.globalAlpha = 1;
+    } else if (l.charging) {
+      ctx.strokeStyle = zc.danger + '66';
+      ctx.setLineDash([3, 5]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(l.x * scale, (l.y + l.h / 2) * scale);
+      ctx.lineTo((l.x + l.w) * scale, (l.y + l.h / 2) * scale);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Vanish floors
+  for (const vf of G.vanishFloors) {
+    if (!vf.visible) continue;
+    ctx.globalAlpha = vf.cracking ? (0.3 + Math.sin(time * 0.02) * 0.3) : 0.8;
+    ctx.fillStyle = zc.safe;
+    ctx.fillRect(vf.x * scale, vf.y * scale, vf.w * scale, vf.h * scale);
+    if (vf.cracking) {
+      // Crack lines
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo((vf.x + 5) * scale, vf.y * scale);
+      ctx.lineTo((vf.x + vf.w / 2) * scale, (vf.y + vf.h) * scale);
+      ctx.moveTo((vf.x + vf.w - 5) * scale, vf.y * scale);
+      ctx.lineTo((vf.x + vf.w / 2) * scale, (vf.y + vf.h) * scale);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Gravity zones — use powerup.svg if available [Fix: Issue #7]
+  for (const gz of G.gravZones) {
+    ctx.fillStyle = '#cc33ff22';
+    ctx.fillRect(gz.x * scale, gz.y * scale, gz.w * scale, gz.h * scale);
+    ctx.strokeStyle = '#cc33ff66';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(gz.x * scale, gz.y * scale, gz.w * scale, gz.h * scale);
+    const cx = (gz.x + gz.w / 2) * scale;
+    const cy = (gz.y + gz.h / 2) * scale;
+    if (assets.sprites.powerup) {
+      const pSize = TILE_SIZE * scale * 0.8;
+      ctx.globalAlpha = 0.7 + Math.sin(time * 0.005 + gz.x) * 0.2;
+      ctx.drawImage(assets.sprites.powerup, cx - pSize / 2, cy - pSize / 2, pSize, pSize);
+      ctx.globalAlpha = 1;
+    } else {
+      drawGravityArrows(ctx, cx, cy, 15, time);
+    }
+  }
+
+  // Flames [T6 §7.2] — directional burst rendering
+  for (const fl of G.flames) {
+    const fx = fl.x * scale;
+    const fy = fl.y * scale;
+    const fw = fl.w * scale;
+    const fh = fl.h * scale;
+
+    // Nozzle base
+    ctx.fillStyle = '#666';
+    ctx.fillRect(fx, fy, fw, TILE_SIZE * scale);
+
+    if (fl.warning) {
+      // Warning glow — nozzle turns orange
+      ctx.fillStyle = '#ff880088';
+      ctx.fillRect(fx + 2, fy + 2, fw - 4, TILE_SIZE * scale - 4);
+    }
+    if (fl.active) {
+      // Flame burst
+      const burstY = fl.dir === 'down' ? fy + TILE_SIZE * scale : fy - fh + TILE_SIZE * scale;
+      const grad = ctx.createLinearGradient(fx, burstY, fx, burstY + fh);
+      if (fl.dir === 'down') {
+        grad.addColorStop(0, '#ff6600cc');
+        grad.addColorStop(0.4, '#ff3300aa');
+        grad.addColorStop(1, '#ff000022');
+      } else {
+        grad.addColorStop(0, '#ff000022');
+        grad.addColorStop(0.6, '#ff3300aa');
+        grad.addColorStop(1, '#ff6600cc');
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(fx + 2, burstY, fw - 4, fh);
+      // Inner bright core
+      ctx.fillStyle = '#ffcc0066';
+      ctx.fillRect(fx + fw * 0.3, burstY + fh * 0.1, fw * 0.4, fh * 0.5);
+    }
+  }
+
+  // Magnets [T8 §7.2] — blue wave zones
+  for (const mg of G.magnets) {
+    const mx = mg.x * scale;
+    const my = mg.y * scale;
+    const mw = mg.w * scale;
+    const mh = mg.h * scale;
+    // Blue tinted zone
+    const waveAlpha = 0.15 + Math.sin(mg.wavePhase) * 0.1;
+    ctx.fillStyle = mg.speedMult < 1 ? `rgba(0,100,255,${waveAlpha})` : `rgba(255,100,0,${waveAlpha})`;
+    ctx.fillRect(mx, my, mw, mh);
+    // Wave rings
+    ctx.strokeStyle = mg.speedMult < 1 ? '#4488ff44' : '#ff884444';
+    ctx.lineWidth = 1;
+    const wcx = mx + mw / 2;
+    const wcy = my + mh / 2;
+    for (let r = 5; r < mw / 2; r += 8) {
+      ctx.globalAlpha = 0.3 + Math.sin(mg.wavePhase + r * 0.3) * 0.2;
+      ctx.beginPath();
+      ctx.arc(wcx, wcy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // Speed indicator arrow
+    const arrowDir = mg.speedMult < 1 ? '<<' : '>>';
+    UI.text(ctx, arrowDir, wcx, wcy, { size: 8, color: mg.speedMult < 1 ? '#4488ff' : '#ff8844' });
+  }
+
+  // Chain collapse
+  if (G.chainCollapse && G.chainCollapse.active) {
+    const colX = G.chainCollapse.x * scale;
+    // Destruction wall
+    const grad = ctx.createLinearGradient(colX - 100, 0, colX, 0);
+    grad.addColorStop(0, 'rgba(255,0,0,0)');
+    grad.addColorStop(0.7, 'rgba(255,50,0,0.3)');
+    grad.addColorStop(1, 'rgba(255,100,0,0.8)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(colX - 100, 0, 100, h);
+    // Solid wall
+    ctx.fillStyle = '#ff3300';
+    ctx.fillRect(0, 0, colX, h);
+  }
+
+  // Coins (not collected)
+  for (const c of G.coins) {
+    if (c.collected) continue;
+    drawCoin(ctx, c.x * scale, c.y * scale, 8 * scale, time);
+  }
+
+  // Player
+  const px = G.px * scale;
+  const py = G.py * scale;
+  const ps = PLAYER_SIZE * scale;
+
+  if (G.playState !== PS_DEAD || G.respawnTimer > RESPAWN_DELAY * 0.5) {
+    if (assets.sprites.player && G.pose !== 3) {
+      ctx.save();
+      ctx.globalAlpha = G.playerAlpha;
+      ctx.translate(px, py);
+      if (G.gravDir === -1) ctx.scale(1, -1);
+      ctx.drawImage(assets.sprites.player, -ps / 2, -ps / 2, ps, ps);
+      ctx.restore();
+    } else {
+      drawPlayerShape(ctx, px, py, ps, G.gravDir, G.pose, G.playerAlpha);
+    }
+
+    // Dash afterimage
+    if (G.dashActive) {
+      ctx.globalAlpha = 0.3;
+      drawPlayerShape(ctx, px - 15 * scale, py, ps * 0.8, G.gravDir, 2, 0.3);
+      drawPlayerShape(ctx, px - 30 * scale, py, ps * 0.6, G.gravDir, 2, 0.15);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Powerup sprite (if available and relevant)
+  // (Powerups would spawn here in future expansion)
+
+  ctx.restore();
+}
+
+function drawBackground(ctx, w, h, camX, time, zc) {
+  // Base gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, zc.bg);
+  grad.addColorStop(1, zc.bg2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(camX * (h / GAME_H), 0, w + 100, h);
+
+  // Background layer 1 (parallax far)
+  if (assets.sprites.bgLayer1) {
+    ctx.globalAlpha = 0.15;
+    const bgW = 1200;
+    const parallax1 = -(camX * 0.1) % bgW;
+    ctx.drawImage(assets.sprites.bgLayer1, parallax1, 0, bgW, h);
+    ctx.drawImage(assets.sprites.bgLayer1, parallax1 + bgW, 0, bgW, h);
+    ctx.globalAlpha = 1;
+  }
+
+  // Background layer 2 (parallax near)
+  if (assets.sprites.bgLayer2) {
+    ctx.globalAlpha = 0.25;
+    const bgW = 1200;
+    const parallax2 = -(camX * 0.3) % bgW;
+    ctx.drawImage(assets.sprites.bgLayer2, parallax2, 0, bgW, h);
+    ctx.drawImage(assets.sprites.bgLayer2, parallax2 + bgW, 0, bgW, h);
+    ctx.globalAlpha = 1;
+  }
+
+  // Grid pattern (subtle)
+  ctx.strokeStyle = zc.danger + '0a';
+  ctx.lineWidth = 0.5;
+  const gridSize = 40;
+  const offsetX = -(camX * 0.5) % gridSize;
+  for (let x = offsetX; x < w + gridSize; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w + 100, y);
+    ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 12: AUDIO (BGM + SFX) [F19]
+// ═══════════════════════════════════════════════════════════════
+
+let audioCtx = null;
+let bgmGain = null;
+let currentBGM = '';
+let bgmScheduledUntil = 0;
+let bgmNoteIndex = 0;
+let bgmData = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    bgmGain = audioCtx.createGain();
+    bgmGain.gain.value = 0.15;
+    bgmGain.connect(audioCtx.destination);
+  } catch (e) {
+    console.warn('[Audio] Failed to init');
+  }
+}
+
+// BGM data definitions
+const BGM_DATA = {
+  title:  { bpm: 90,  notes: [261, 329, 392, 329, 261, 220, 261, 329], type: 'sine',     vol: 0.1 },
+  map:    { bpm: 100, notes: [392, 440, 523, 587, 523, 440, 392, 349], type: 'triangle',  vol: 0.08 },
+  play:   { bpm: 130, notes: [130, 164, 196, 164, 130, 98, 130, 164],  type: 'square',    vol: 0.06 },
+  boss:   { bpm: 150, notes: [98, 116, 130, 164, 196, 164, 130, 98],   type: 'sawtooth',  vol: 0.05 }
+};
+
+function playBGM(name) {
+  if (!audioCtx) return;
+  stopBGM();
+  currentBGM = name;
+  bgmData = BGM_DATA[name];
+  if (!bgmData) return;
+  bgmNoteIndex = 0;
+  bgmScheduledUntil = audioCtx.currentTime;
+  // Schedule first batch immediately
+  scheduleBGMNotes();
+}
+
+// Schedule notes ahead using audioCtx.currentTime — no setInterval [F4, §12.4]
+function scheduleBGMNotes() {
+  if (!audioCtx || !bgmData || !currentBGM) return;
+
+  const lookaheadSec = 2.0; // Schedule 2 seconds ahead
+  const noteDuration = (60 / bgmData.bpm) / 2; // 8th note duration in seconds
+  const now = audioCtx.currentTime;
+
+  while (bgmScheduledUntil < now + lookaheadSec) {
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = bgmData.type;
+      osc.frequency.value = bgmData.notes[bgmNoteIndex % bgmData.notes.length];
+      gain.gain.setValueAtTime(bgmData.vol, bgmScheduledUntil);
+      gain.gain.exponentialRampToValueAtTime(0.001, bgmScheduledUntil + noteDuration * 0.8);
+      osc.connect(gain);
+      gain.connect(bgmGain);
+      osc.start(bgmScheduledUntil);
+      osc.stop(bgmScheduledUntil + noteDuration);
+      bgmScheduledUntil += noteDuration;
+      bgmNoteIndex++;
+    } catch (e) { break; }
+  }
+}
+
+function stopBGM() {
+  currentBGM = '';
+  bgmData = null;
+  bgmNoteIndex = 0;
+  bgmScheduledUntil = 0;
+}
+
+function playSFX(name) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  try {
+    switch (name) {
+      case 'flip': {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, t);
+        osc.frequency.linearRampToValueAtTime(G.gravDir === 1 ? 600 : 150, t + 0.1);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.1);
+        break;
+      }
+      case 'land': {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 80;
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.05);
+        break;
+      }
+      case 'die': {
+        // Noise burst + descending tone
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, t);
+        osc.frequency.exponentialRampToValueAtTime(50, t + 0.3);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.3);
+        // Noise burst
+        const bufferSize = audioCtx.sampleRate * 0.15;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        const noiseRng = new SeededRNG(42);
+        for (let i = 0; i < bufferSize; i++) data[i] = noiseRng.range(-1, 1);
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const nGain = audioCtx.createGain();
+        nGain.gain.setValueAtTime(0.15, t);
+        nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        noise.connect(nGain); nGain.connect(audioCtx.destination);
+        noise.start(t); noise.stop(t + 0.15);
+        break;
+      }
+      case 'coin': {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.value = 880;
+        osc2.type = 'triangle';
+        osc2.frequency.value = 1100;
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(t); osc1.stop(t + 0.07);
+        osc2.start(t + 0.07); osc2.stop(t + 0.15);
+        break;
+      }
+      case 'clear': {
+        // Ascending arpeggio
+        [523, 659, 784, 1047].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.12, t + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.2);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(t + i * 0.12); osc.stop(t + i * 0.12 + 0.2);
+        });
+        break;
+      }
+      case 'boss_hit': {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, t);
+        osc.frequency.exponentialRampToValueAtTime(50, t + 0.2);
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.2);
+        break;
+      }
+      case 'boss_die': {
+        // Explosion + fanfare
+        [100, 200, 300, 400, 523, 659, 784, 1047].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = i < 4 ? 'sawtooth' : 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(i < 4 ? 0.15 : 0.1, t + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.15);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(t + i * 0.1); osc.stop(t + i * 0.1 + 0.15);
+        });
+        break;
+      }
+      case 'ui_select': {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 800;
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.05);
+        break;
+      }
+      case 'dash': {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, t);
+        osc.frequency.linearRampToValueAtTime(600, t + 0.2);
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.2);
+        break;
+      }
+      case 'warning': {
+        for (let i = 0; i < 4; i++) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.value = i % 2 === 0 ? 600 : 400;
+          gain.gain.setValueAtTime(0.08, t + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.08);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(t + i * 0.1); osc.stop(t + i * 0.1 + 0.08);
+        }
+        break;
+      }
+    }
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 13: I18N [F20]
+// ═══════════════════════════════════════════════════════════════
+
+const I18N = {
+  ko: {
+    title: '그래비티 플립',
+    subtitle: '중력 연구소를 탈출하라',
+    play: '시작',
+    continue: '이어하기',
+    zone1: '실험동', zone2: '복도', zone3: '반응로', zone4: '중력실', zone5: '핵심부',
+    deaths: '사망', coins: '코인', time: '시간', best: '최고기록',
+    score: '점수', totalScore: '총점',
+    pause: '일시정지', resume: '계속', restart: '재시작', quit: '나가기',
+    clear: '클리어!', newRecord: '신기록!',
+    upgrade: '업그레이드', gravity: '중력 제어', dash: '대시', slow: '타임 슬로우',
+    boss: '보스', hidden: '히든', locked: '잠김',
+    dda_hint: '유령 경로가 표시됩니다',
+    stageSelect: '스테이지 선택',
+    tapToStart: '탭하여 시작',
+    pressToStart: 'SPACE / ENTER 로 시작',
+    tapToContinue: '탭하여 계속',
+    pressToPlay: 'ENTER로 플레이',
+    back: '뒤로',
+    briefing1: '중력 반전 장치를 찾았다. 여기서 나가야 해.',
+    briefing2: '보안 시스템이 날 막고 있어. 경보를 피해야 해.',
+    briefing3: '반응로가 녹아내리고 있어. 빨리 통과해야 한다!',
+    briefing4: '여기가 모든 것의 시작이야. 중력이... 미쳤어.',
+    briefing5: 'AI가 날 가두려 한다. 이번이 마지막 기회다.',
+    bossBriefing1: '경고: DR-01 감시 드론 접근 중',
+    bossBriefing2: '경고: CR-02 크러셔 로봇 작동 개시',
+    bossBriefing3: '경고: RX-03 반응로 코어 불안정',
+    bossBriefing4: '경고: GV-04 중력 마스터 감지됨',
+    bossBriefing5: '최종 경고: NX-05 핵심 AI 방어 모드'
+  },
+  en: {
+    title: 'Gravity Flip',
+    subtitle: 'Escape the Gravity Lab',
+    play: 'PLAY',
+    continue: 'CONTINUE',
+    zone1: 'Lab Wing', zone2: 'Corridor', zone3: 'Reactor', zone4: 'Gravity Chamber', zone5: 'Core',
+    deaths: 'Deaths', coins: 'Coins', time: 'Time', best: 'Best',
+    score: 'Score', totalScore: 'Total',
+    pause: 'Paused', resume: 'Resume', restart: 'Restart', quit: 'Quit',
+    clear: 'CLEAR!', newRecord: 'NEW RECORD!',
+    upgrade: 'Upgrade', gravity: 'Gravity Control', dash: 'Dash', slow: 'Time Slow',
+    boss: 'BOSS', hidden: 'HIDDEN', locked: 'LOCKED',
+    dda_hint: 'Ghost path hints enabled',
+    stageSelect: 'Stage Select',
+    tapToStart: 'Tap to Start',
+    pressToStart: 'SPACE / ENTER to Start',
+    tapToContinue: 'Tap to Continue',
+    pressToPlay: 'ENTER to Play',
+    back: 'Back',
+    briefing1: 'Found the gravity inverter. Time to get out.',
+    briefing2: 'Security systems are blocking me. Avoid the alarms.',
+    briefing3: 'The reactor is melting down. Move fast!',
+    briefing4: 'This is where it all began. Gravity is... insane.',
+    briefing5: 'The AI is trying to trap me. This is the last chance.',
+    bossBriefing1: 'WARNING: DR-01 Surveillance Drone approaching',
+    bossBriefing2: 'WARNING: CR-02 Crusher Robot activating',
+    bossBriefing3: 'WARNING: RX-03 Reactor Core unstable',
+    bossBriefing4: 'WARNING: GV-04 Gravity Master detected',
+    bossBriefing5: 'FINAL WARNING: NX-05 Core AI defense mode'
+  }
+};
+
+function getText(key) {
+  const lang = G ? G.lang : 'ko';
+  return (I18N[lang] && I18N[lang][key]) || (I18N.en[key]) || key;
+}
+
+function getZoneBriefing(zoneId) {
+  return getText('briefing' + (zoneId + 1));
+}
+
+function getBossBriefing(zoneId) {
+  return getText('bossBriefing' + (zoneId + 1));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 14: SAVE/LOAD [F8]
+// ═══════════════════════════════════════════════════════════════
+
+function saveProgress() {
+  const data = {
+    stageStars: G.stageStars,
+    stageUnlocked: G.stageUnlocked,
+    bossDefeated: G.bossDefeated,
+    hiddenUnlocked: G.hiddenUnlocked,
+    upgrades: G.upgrades,
+    totalScore: G.totalScore,
+    totalCoinsCollected: G.totalCoinsCollected,
+    masterSeed: G.masterSeed,
+    lang: G.lang
+  };
+  Save.set(`${GAME_ID}_progress`, data);
+}
+
+function loadProgress() {
+  const data = Save.get(`${GAME_ID}_progress`);
+  if (data) {
+    G.stageStars = data.stageStars || G.stageStars;
+    G.stageUnlocked = data.stageUnlocked || G.stageUnlocked;
+    G.bossDefeated = data.bossDefeated || G.bossDefeated;
+    G.hiddenUnlocked = data.hiddenUnlocked || G.hiddenUnlocked;
+    G.upgrades = data.upgrades || G.upgrades;
+    G.totalScore = data.totalScore || 0;
+    G.totalCoinsCollected = data.totalCoinsCollected || 0;
+    G.masterSeed = data.masterSeed || 42;
+    G.lang = data.lang || detectLanguage();
+  }
+  // Always unlock first stage
+  G.stageUnlocked[0] = true;
+}
+
+function detectLanguage() {
+  try {
+    return navigator.language.startsWith('ko') ? 'ko' : 'en';
+  } catch (e) {
+    return 'en';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REGION 15: INIT & GAME LOOP
+// ═══════════════════════════════════════════════════════════════
+
+// UPDATE — called every frame by IX Engine [F7]
+function gameUpdate(dt, timestamp) {
+  if (!G) return;
+
+  // Tween ALWAYS updated in ALL states [F7]
+  tween.update(dt);
+
+  // Particles ALWAYS updated
+  particles.update(dt);
+
+  // Update transAlpha from proxy
+  if (G._transProxy) {
+    G.transAlpha = G._transProxy.alpha;
+  }
+
+  // BGM scheduling (lookahead pattern — no setInterval) [§12.4]
+  scheduleBGMNotes();
+
+  // Camera shake decay
+  if (G.camShake > 0) {
+    G.camShake *= 0.92;
+    if (G.camShake < 0.1) G.camShake = 0;
+  }
+
+  // Title pulse timer
+  G.titlePulse += dt;
+
+  // State-specific updates
+  switch (G.state) {
+    case S_TITLE:
+      updateTitleState(dt, timestamp);
+      break;
+    case S_MAP:
+      updateMapState(dt, timestamp);
+      break;
+    case S_PLAY:
+      updatePlayState(dt, timestamp);
+      break;
+    case S_BOSS:
+      updateBossState(dt, timestamp);
+      break;
+  }
+
+  // Camera update
+  updateCamera(dt);
+
+  // Flush input at end of frame [MUST]
+  input.flush();
+}
+
+// === TITLE STATE ===
+function updateTitleState(dt, timestamp) {
+  // Background particles
+  G.titleParticleTimer += dt;
+  if (G.titleParticleTimer > 500) {
+    G.titleParticleTimer = 0;
+    const rng = new SeededRNG(timestamp | 0);
+    particles.emit(rng.range(0, engine.W), rng.range(0, engine.H), 3, {
+      color: PLAYER_COLOR,
+      speed: 30,
+      life: 2,
+      size: 2
+    });
+  }
+
+  // Start game
+  if (input.confirm() || input.jp('Space') || input.jp('Enter')) {
+    if (!G.soundInit) {
+      G.soundInit = true;
+      sound.init();
+      initAudio();
+    }
+    playSFX('ui_select');
+    beginTransition(S_TITLE, S_MAP);
+  }
+}
+
+// === MAP STATE ===
+function updateMapState(dt, timestamp) {
+  const maxStages = 23;
+
+  if (G.showUpgrades) {
+    // Upgrade shop controls
+    if (input.jp('ArrowLeft') || input.jp('KeyA')) {
+      G.upgradeSelection = Math.max(0, G.upgradeSelection - 1);
+      playSFX('ui_select');
+    }
+    if (input.jp('ArrowRight') || input.jp('KeyD')) {
+      G.upgradeSelection = Math.min(2, G.upgradeSelection + 1);
+      playSFX('ui_select');
+    }
+    if (input.jp('Enter') || input.jp('Space')) {
+      tryPurchaseUpgrade(G.upgradeSelection);
+    }
+    if (input.jp('Escape') || input.jp('KeyP')) {
+      G.showUpgrades = false;
+      playSFX('ui_select');
+    }
+
+    // Touch: upgrade purchase
+    if (input.tapped) {
+      const w = engine.W, h = engine.H;
+      const btnW = Math.max(MIN_TOUCH * 2, 120);
+      const btnH = Math.max(MIN_TOUCH, 40);
+      // Back button
+      if (UI.hitTest(input.tapX, input.tapY, w / 2 - btnW / 2, h - 45, btnW, btnH)) {
+        G.showUpgrades = false;
+        playSFX('ui_select');
+      }
+      // Branch selection by tap X position
+      const colW = Math.min(200, (w - 40) / 3);
+      const startX = (w - colW * 3) / 2;
+      for (let b = 0; b < 3; b++) {
+        const bx = startX + b * colW;
+        if (input.tapX >= bx && input.tapX < bx + colW) {
+          G.upgradeSelection = b;
+          tryPurchaseUpgrade(b);
+        }
+      }
+    }
+    return;
+  }
+
+  // Map navigation
+  if (input.jp('ArrowLeft') || input.jp('KeyA')) {
+    G.mapSelection = Math.max(0, G.mapSelection - 1);
+    playSFX('ui_select');
+  }
+  if (input.jp('ArrowRight') || input.jp('KeyD')) {
+    G.mapSelection = Math.min(maxStages - 1, G.mapSelection + 1);
+    playSFX('ui_select');
+  }
+  if (input.jp('ArrowUp') || input.jp('KeyW')) {
+    // Move between rows
+    if (G.mapSelection >= 3) G.mapSelection -= 3;
+    playSFX('ui_select');
+  }
+  if (input.jp('ArrowDown') || input.jp('KeyS')) {
+    if (G.mapSelection + 3 < maxStages) G.mapSelection += 3;
+    playSFX('ui_select');
+  }
+
+  // Select stage
+  if (input.jp('Enter') || input.jp('Space')) {
+    tryStartStage(G.mapSelection);
+  }
+
+  // Back to title
+  if (input.jp('Escape')) {
+    beginTransition(S_MAP, S_TITLE);
+  }
+
+  // Touch: stage selection and buttons
+  if (input.tapped) {
+    const w = engine.W, h = engine.H;
+    const nodeSize = Math.max(MIN_TOUCH, 40);
+    const nodeStartY = 120;
+    const nodeSpacingY = 50;
+
+    // Check main stages
+    for (let i = 0; i < 15; i++) {
+      const zone = Math.floor(i / 3);
+      const local = i % 3;
+      const nx = w * 0.2 + local * (w * 0.25);
+      const ny = nodeStartY + zone * nodeSpacingY;
+      if (UI.hitTest(input.tapX, input.tapY, nx - nodeSize / 2, ny - nodeSize / 2, nodeSize, nodeSize)) {
+        G.mapSelection = i;
+        tryStartStage(i);
+      }
+    }
+
+    // Check boss stages
+    for (let i = 0; i < 5; i++) {
+      const idx = 15 + i;
+      const nx = w * 0.85;
+      const ny = nodeStartY + i * nodeSpacingY;
+      if (UI.hitTest(input.tapX, input.tapY, nx - nodeSize / 2, ny - nodeSize / 2, nodeSize, nodeSize)) {
+        G.mapSelection = idx;
+        tryStartStage(idx);
+      }
+    }
+
+    // Check hidden stages
+    const hiddenY = nodeStartY + 5 * nodeSpacingY + 20;
+    for (let i = 0; i < 3; i++) {
+      const idx = 20 + i;
+      const nx = w * 0.25 + i * (w * 0.25);
+      if (UI.hitTest(input.tapX, input.tapY, nx - nodeSize / 2, hiddenY - nodeSize / 2, nodeSize, nodeSize)) {
+        G.mapSelection = idx;
+        tryStartStage(idx);
+      }
+    }
+
+    // Upgrade button
+    const btnW = Math.max(MIN_TOUCH * 2, 120);
+    const btnH = Math.max(MIN_TOUCH, 40);
+    const btnY = h - btnH - 15;
+    if (UI.hitTest(input.tapX, input.tapY, 15, btnY, btnW, btnH)) {
+      G.showUpgrades = true;
+      playSFX('ui_select');
+    }
+
+    // Back button
+    if (UI.hitTest(input.tapX, input.tapY, w - btnW - 15, btnY, btnW, btnH)) {
+      beginTransition(S_MAP, S_TITLE);
+    }
+  }
+}
+
+function tryStartStage(idx) {
+  if (!G.stageUnlocked[idx]) {
+    playSFX('warning');
+    return;
+  }
+
+  const info = stageToZoneInfo(idx);
+  G.stageIndex = idx;
+
+  if (info.type === 'boss') {
+    G.currentZone = info.zone;
+    beginTransition(S_MAP, S_BOSS);
+  } else {
+    beginTransition(S_MAP, S_PLAY);
+  }
+}
+
+function tryPurchaseUpgrade(branch) {
+  const currentLevel = G.upgrades[branch];
+  if (currentLevel >= 5) return;
+
+  const cost = UPGRADE_COSTS[currentLevel + 1];
+  if (G.totalCoinsCollected >= cost) {
+    G.totalCoinsCollected -= cost;
+    G.upgrades[branch]++;
+    saveProgress();
+    playSFX('coin');
+    particles.emit(engine.W / 2, engine.H / 2, 15, {
+      color: '#ffd700',
+      speed: 150,
+      life: 0.5,
+      size: 4
+    });
+  } else {
+    playSFX('warning');
+  }
+}
+
+// === PLAY STATE ===
+function updatePlayState(dt, timestamp) {
+  switch (G.playState) {
+    case PS_INTRO:
+      G.introTimer -= dt;
+      if (G.introTimer <= 0 || input.confirm()) {
+        G.playState = PS_ALIVE;
+        G.briefingAlpha = 0;
+      }
+      break;
+
+    case PS_ALIVE:
+      // Input processing
+      processPlayInput(dt);
+      updatePhysics(dt);
+      updateTraps(dt);
+      break;
+
+    case PS_DEAD:
+      G.respawnTimer -= dt;
+      // Already handled by tween callback
+      break;
+
+    case PS_CLEAR:
+      G.camZoom = lerp(G.camZoom, G.camTargetZoom, 0.02);
+      if (input.confirm()) {
+        G.camTargetZoom = 1;
+        G.camZoom = 1;
+        beginTransition(S_PLAY, S_MAP);
+      }
+      break;
+
+    case PS_PAUSED:
+      updatePauseMenu(dt);
+      break;
+  }
+}
+
+function processPlayInput(dt) {
+  // Check if tap hit a UI button first [Fix: Issue #6 — UI click causing flip]
+  let tappedUIButton = false;
+  if (input.tapped) {
+    const w = engine.W, h = engine.H;
+    const btnSize = Math.max(MIN_TOUCH, 36);
+    const pad = 10;
+    // Pause button hit test
+    if (UI.hitTest(input.tapX, input.tapY, w - btnSize - pad, pad + 28, btnSize, btnSize)) {
+      G.playState = PS_PAUSED;
+      G.pauseSelection = 0;
+      playSFX('ui_select');
+      tappedUIButton = true;
+    }
+    // Restart button hit test
+    if (UI.hitTest(input.tapX, input.tapY, w - btnSize - pad, pad + 28 + btnSize + 5, btnSize, btnSize)) {
+      restartStage();
+      tappedUIButton = true;
+    }
+  }
+
+  // Gravity flip — only if not tapping a UI button
+  const flipPressed = input.jp('Space') || input.jp('KeyW') || input.jp('ArrowUp');
+  const tappedCenter = input.tapped && !tappedUIButton && !isHoldingLeft() && !isHoldingRight();
+
+  if (flipPressed || tappedCenter) {
+    flipGravity();
+  }
+
+  // Dash (Shift or double-tap right)
+  if (input.jp('ShiftLeft') || input.jp('ShiftRight') || input.jp('KeyE')) {
+    if (G.upgrades[1] > 0) activateDash();
+  }
+
+  // Slow (Q)
+  if (input.jp('KeyQ')) {
+    if (G.upgrades[2] > 0) activateSlow();
+  }
+
+  // Pause
+  if (input.jp('Escape') || input.jp('KeyP')) {
+    G.playState = PS_PAUSED;
+    G.pauseSelection = 0;
+    playSFX('ui_select');
+  }
+
+  // Restart
+  if (input.jp('KeyR')) {
+    restartStage();
+  }
+}
+
+function restartStage() {
+  tweenClearImmediate(tween);  // [F13]
+  initStage(G.stageIndex);
+  G.playState = PS_ALIVE;
+}
+
+function updatePauseMenu(dt) {
+  if (input.jp('ArrowUp') || input.jp('KeyW')) {
+    G.pauseSelection = Math.max(0, G.pauseSelection - 1);
+    playSFX('ui_select');
+  }
+  if (input.jp('ArrowDown') || input.jp('KeyS')) {
+    G.pauseSelection = Math.min(2, G.pauseSelection + 1);
+    playSFX('ui_select');
+  }
+  if (input.jp('Escape') || input.jp('KeyP')) {
+    G.playState = PS_ALIVE;
+    playSFX('ui_select');
+  }
+  if (input.jp('Enter') || input.jp('Space')) {
+    switch (G.pauseSelection) {
+      case 0: // Resume
+        G.playState = PS_ALIVE;
+        break;
+      case 1: // Restart
+        restartStage();
+        break;
+      case 2: // Quit
+        tweenClearImmediate(tween);
+        beginTransition(S_PLAY, S_MAP);
+        break;
+    }
+    playSFX('ui_select');
+  }
+
+  // Touch
+  if (input.tapped) {
+    const w = engine.W, h = engine.H;
+    const mw = Math.min(300, w * 0.8);
+    const mh = 200;
+    const mx = (w - mw) / 2;
+    const my = (h - mh) / 2;
+    const btnW = mw - 40;
+    const btnH = Math.max(MIN_TOUCH, 36);
+
+    for (let i = 0; i < 3; i++) {
+      const by = my + 60 + i * (btnH + 10);
+      if (UI.hitTest(input.tapX, input.tapY, mx + 20, by, btnW, btnH)) {
+        G.pauseSelection = i;
+        switch (i) {
+          case 0: G.playState = PS_ALIVE; break;
+          case 1: restartStage(); break;
+          case 2: tweenClearImmediate(tween); beginTransition(S_PLAY, S_MAP); break;
+        }
+        playSFX('ui_select');
+      }
+    }
+  }
+}
+
+// === BOSS STATE ===
+function updateBossState(dt, timestamp) {
+  switch (G.playState) {
+    case PS_INTRO:
+      G.introTimer -= dt;
+      if (G.introTimer <= 0 || input.confirm()) {
+        G.playState = PS_ALIVE;
+      }
+      break;
+
+    case PS_ALIVE:
+      processPlayInput(dt);
+      // Boss-specific: player moves freely (no auto-run)
+      G.pvx = 0;
+      if (input.held('KeyD') || input.held('ArrowRight') || isHoldingRight()) G.pvx = BASE_SPEED;
+      if (input.held('KeyA') || input.held('ArrowLeft') || isHoldingLeft()) G.pvx = -BASE_SPEED;
+
+      updatePhysics(dt);
+      updateBoss(dt);
+      break;
+
+    case PS_DEAD:
+      G.respawnTimer -= dt;
+      break;
+
+    case PS_CLEAR:
+      // Boss death animation
+      if (G.boss) {
+        G.boss.deathTimer -= dt;
+      }
+      if (input.confirm()) {
+        beginTransition(S_BOSS, S_MAP);
+      }
+      break;
+
+    case PS_PAUSED:
+      updatePauseMenu(dt);
+      break;
+  }
+}
+
+// === CAMERA ===
+function updateCamera(dt) {
+  if (G.state === S_PLAY || G.state === S_BOSS) {
+    // Follow player horizontally (player at left 1/3)
+    const targetCamX = G.px - engine.W / (3 * (engine.H / GAME_H));
+    G.camX = lerp(G.camX, Math.max(0, targetCamX), 0.08);
+
+    // Zoom
+    G.camZoom = lerp(G.camZoom, G.camTargetZoom, 0.05);
+  }
+}
+
+// RENDER — called every frame by IX Engine
+function gameRender(ctx, w, h, dt) {
+  if (!G) return;
+
+  // Clear
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+
+  switch (G.state) {
+    case S_TITLE:
+      renderTitle(ctx, w, h);
+      break;
+
+    case S_MAP:
+      renderMap(ctx, w, h);
+      break;
+
+    case S_PLAY:
+      renderStage(ctx, w, h, G.titlePulse);
+      renderHUD(ctx, w, h);
+      if (G.playState === PS_INTRO) renderIntro(ctx, w, h);
+      if (G.playState === PS_DEAD) renderDeathOverlay(ctx, w, h);
+      if (G.playState === PS_CLEAR) renderClearScreen(ctx, w, h);
+      if (G.playState === PS_PAUSED) renderPauseModal(ctx, w, h);
+      break;
+
+    case S_BOSS:
+      renderBossArena(ctx, w, h, G.titlePulse);
+      renderHUD(ctx, w, h);
+      if (G.playState === PS_INTRO) renderBossIntro(ctx, w, h);
+      if (G.playState === PS_DEAD) renderDeathOverlay(ctx, w, h);
+      if (G.playState === PS_CLEAR) renderClearScreen(ctx, w, h);
+      if (G.playState === PS_PAUSED) renderPauseModal(ctx, w, h);
+      break;
+  }
+
+  // Particles always rendered
+  particles.render(ctx);
+
+  // Transition fade
+  if (G.transAlpha > 0) {
+    UI.fade(ctx, w, h, G.transAlpha);
+  }
+
+  // Scanlines
+  UI.scanlines(ctx, w, h, 0.02);
+}
+
+function renderIntro(ctx, w, h) {
+  const alpha = clamp(G.introTimer / 500, 0, 1);
+  ctx.fillStyle = `rgba(0,0,0,${0.7 * alpha})`;
+  ctx.fillRect(0, 0, w, h);
+
+  const info = stageToZoneInfo(G.stageIndex);
+  UI.text(ctx, `${getText('zone' + (G.currentZone + 1))} - ${info.stage + 1}`, w / 2, h * 0.35, {
+    size: 28, bold: true, color: ZONE_COLORS[G.currentZone].portal, glow: ZONE_COLORS[G.currentZone].portal
+  });
+
+  ctx.globalAlpha = alpha;
+  UI.text(ctx, G.introText, w / 2, h * 0.5, {
+    size: 14, color: '#8080a0'
+  });
+  ctx.globalAlpha = 1;
+}
+
+function renderBossIntro(ctx, w, h) {
+  const alpha = clamp(G.introTimer / 500, 0, 1);
+  ctx.fillStyle = `rgba(0,0,0,${0.8 * alpha})`;
+  ctx.fillRect(0, 0, w, h);
+
+  const zc = ZONE_COLORS[G.currentZone];
+
+  // Boss name with dramatic entrance
+  const shakeX = G.introTimer > 1500 ? (new SeededRNG(G.introTimer | 0)).range(-3, 3) : 0;
+  UI.text(ctx, G.boss ? G.boss.name : '', w / 2 + shakeX, h * 0.35, {
+    size: 36, bold: true, color: zc.danger, glow: zc.danger
+  });
+
+  // Warning text
+  ctx.globalAlpha = alpha;
+  UI.text(ctx, G.introText, w / 2, h * 0.5, {
+    size: 14, color: '#ff5555'
+  });
+  ctx.globalAlpha = 1;
+
+  // Enemy sprite preview
+  if (assets.sprites.enemy) {
+    const scale = 1 + Math.sin(G.introTimer * 0.005) * 0.1;
+    const size = 80 * scale;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.8;
+    ctx.drawImage(assets.sprites.enemy, w / 2 - size / 2, h * 0.6 - size / 2, size, size);
+    ctx.restore();
+  }
+}
+
+function renderBossArena(ctx, w, h, time) {
+  const zc = ZONE_COLORS[G.currentZone];
+
+  ctx.save();
+
+  // Camera shake
+  const shake = UI.shake(G.camShake);
+  ctx.translate(shake.x, shake.y);
+
+  // Camera zoom
+  if (G.camZoom !== 1) {
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(G.camZoom, G.camZoom);
+    ctx.translate(-w / 2, -h / 2);
+  }
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, zc.bg);
+  grad.addColorStop(1, zc.bg2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Background assets
+  if (assets.sprites.bgLayer1) {
+    ctx.globalAlpha = 0.1;
+    ctx.drawImage(assets.sprites.bgLayer1, 0, 0, w, h);
+    ctx.globalAlpha = 1;
+  }
+
+  // Arena walls
+  const scale = h / GAME_H;
+  ctx.fillStyle = zc.bg2;
+  ctx.fillRect(0, 0, w, TILE_SIZE * scale);
+  ctx.fillRect(0, h - TILE_SIZE * scale, w, TILE_SIZE * scale);
+
+  // Boss attacks
+  renderBossAttacks(ctx, G.boss, w, h, time);
+
+  // Boss
+  if (G.boss && G.boss.alive) {
+    drawBossShape(ctx, G.boss, time, zc);
+  } else if (G.boss && !G.boss.alive) {
+    // Death explosion
+    ctx.globalAlpha = Math.max(0, G.boss.deathTimer / 2000);
+    drawBossShape(ctx, G.boss, time, zc);
+    ctx.globalAlpha = 1;
+  }
+
+  // Player
+  const px = G.px * scale;
+  const py = G.py * scale;
+  const ps = PLAYER_SIZE * scale;
+
+  if (G.playState !== PS_DEAD || G.respawnTimer > RESPAWN_DELAY * 0.5) {
+    if (assets.sprites.player && G.pose !== 3) {
+      ctx.save();
+      ctx.globalAlpha = G.playerAlpha;
+      ctx.translate(px, py);
+      if (G.gravDir === -1) ctx.scale(1, -1);
+      ctx.drawImage(assets.sprites.player, -ps / 2, -ps / 2, ps, ps);
+      ctx.restore();
+    } else {
+      drawPlayerShape(ctx, px, py, ps, G.gravDir, G.pose, G.playerAlpha);
+    }
+  }
+
+  ctx.restore();
+}
+
+// Resize handler
+function onGameResize(w, h) {
+  // Nothing specific needed; engine handles DPR
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+async function init() {
+  // Create game state
+  G = createGameState();
+
+  // Detect language
+  G.lang = detectLanguage();
+
+  // Load progress
+  loadProgress();
+
+  // Load assets [preloadAssets pattern — user instruction > F1]
+  await assets.load({
+    player:    'assets/player.svg',
+    enemy:     'assets/enemy.svg',
+    bgLayer1:  'assets/bg-layer1.svg',
+    bgLayer2:  'assets/bg-layer2.svg',
+    uiHeart:   'assets/ui-heart.svg',
+    uiStar:    'assets/ui-star.svg',
+    powerup:   'assets/powerup.svg',
+    effectHit: 'assets/effect-hit.svg'
+  });
+
+  // Enter title state
+  G.state = S_TITLE;
+  G.titleAlpha = 0;
+  tween.add(G, { titleAlpha: 1 }, 1000, 'easeOut');
+
+  // Start engine
+  engine.start();
+}
+
+init();
+
+</script>
+</body>
+</html>

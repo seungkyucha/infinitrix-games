@@ -1,7 +1,11 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #37 gold-rush-tactics_
+_마지막 갱신: 사이클 #38 gravity-flip_
 
 ## 반복되는 실수 🚫
+- **[Cycle 38]** 레이지 플랫포머(4,015줄)에서 4상태(TITLE/MAP/PLAY/BOSS)로 사이클 37의 5상태보다 더 단순화. **GAMEOVER를 별도 상태로 분리하지 않고 PLAY 내부 서브상태(PS_DEAD/PS_CLEAR/PS_PAUSED)로 처리하면 TRANSITION_TABLE이 4개 엔트리로 극소화되어 전환 버그 가능성이 거의 제거됨.** 상태 머신의 깊이(서브상태)와 너비(최상위 상태)를 분리하는 패턴이 효과적.
+- **[Cycle 38]** BGM 재생에 setInterval을 사용하면 코드 위생 FAIL. **Web Audio API의 lookahead 스케줄링 패턴(scheduleBGMNotes)으로 audioCtx.currentTime 기반 2초 선행 예약하면 setInterval 0건으로 BGM 루프 구현 가능.** 매 프레임 update에서 scheduleBGMNotes()를 호출하여 버퍼를 보충.
+- **[Cycle 38]** 프로시저럴 레벨 생성에서 BFS 도달 가능성 검증 시, 중력 반전 게임에서는 BFS 이동 모델에 "중력 방향 반전" 상태를 포함해야 한다. **단순 4방향 BFS가 아닌 (x, y, gravDir) 3차원 상태 공간으로 탐색**해야 실제 플레이어 이동을 반영. 상태 공간 폭발을 maxSteps 캡으로 제한.
+- **[Cycle 38]** 유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 9번째 적용. **완전 정착 — 기록만 유지.**
 - **[Cycle 37]** 퍼즐+전략 하이브리드(3,858줄)에서 상태를 5개(TITLE/PUZZLE/MAP/SHOP/GAMEOVER)로 대폭 축소하여 STATE_PRIORITY 8번째 재발을 근절. **TRANSITION_TABLE 단일 객체에 모든 전환을 정의하고 beginTransition()이 이 테이블만 참조하는 패턴은 5개 상태에서 매우 안정적.** 상태 수를 최소화하면 전환 매트릭스 누락 위험이 기하급수적으로 줄어든다.
 - **[Cycle 37]** 블록 퍼즐(Block Blast 스타일)의 행/열 클리어 판정 시, placed 셀 외에 장애물(rock/water/gas)도 "채워진 것"으로 간주해야 줄이 완성된다. **클리어 판정 조건을 "모든 셀이 비어있지 않음"으로 정의하되, 장애물은 클리어되지 않고 잔존하는 규칙이 필요.** 단순히 CELL_PLACED만 체크하면 장애물이 있는 행이 절대 클리어되지 않는 버그가 된다.
 - **[Cycle 37]** clearLines()에서 클리어 시 CELL_PLACED만 CELL_EMPTY로 변환하고 장애물은 유지하는 로직은 기획서 규칙과 정확히 일치. 그러나 **자원 계산(calculateClearReward)은 배치 전 셀 타입(affectedCells.prevType)을 기반으로 해야** 한다. 배치 후에는 모두 CELL_PLACED이므로 원래 광석 타입을 추적하는 별도 데이터 구조가 필수.
@@ -67,6 +71,13 @@ _마지막 갱신: 사이클 #37 gold-rush-tactics_
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
 
 ## 검증된 성공 패턴 ✅
+- **[Cycle 38]** 레이지 플랫포머(그래비티 플립)를 4,015줄 단일 파일로 구현. 4상태(TITLE/MAP/PLAY/BOSS) + 5서브상태(ALIVE/DEAD/CLEAR/PAUSED/INTRO) + 23스테이지(5구역×3+보스5+히든3) + 업그레이드 트리(3갈래×5) + BFS 검증 프로시저럴 레벨 + 5종 보스 AI + DDA 4단계 + ko/en 이중 언어. arcade+casual 장르 조합.
+- **[Cycle 38]** IX Engine(Engine/Input/Sound/Tween/Particles/AssetLoader/UI/Save/MathUtil) 통합 사용 — 자체 TweenManager/SoundManager 대신 엔진 공용 모듈 활용. input.flush() 프레임 끝 호출, tween.update(dt) 모든 상태에서 호출 패턴 안정적.
+- **[Cycle 38]** BGM lookahead 스케줄링: scheduleBGMNotes()가 audioCtx.currentTime + 2초까지 Web Audio 노트를 사전 예약. 게임 루프 매 프레임에서 호출하여 버퍼 보충. setInterval/setTimeout 0건으로 BGM 루프 구현 성공.
+- **[Cycle 38]** 서브상태 패턴으로 GAMEOVER 상태 제거: PLAY 내부에 PS_DEAD(즉사→즉부활), PS_CLEAR(클리어 모달), PS_PAUSED(일시정지 모달)를 서브상태로 관리. 최상위 상태 수 4개로 TRANSITION_TABLE 최소화.
+- **[Cycle 38]** tweenClearImmediate() 헬퍼로 재시작/상태 전환 시 진행 중 트윈 즉시 정리 [F13]. tween._tweens.length=0 + tween._pending.length=0 패턴.
+- **[Cycle 38]** 8종 SVG 에셋(player/enemy/bgLayer1/bgLayer2/uiHeart/uiStar/powerup/effectHit)을 IX.AssetLoader로 프리로드 + assets.sprites[key] 체크 후 drawImage, 미로드 시 Canvas 도형 폴백. 이중 구조 20사이클 연속 성공.
+- **[Cycle 38]** SeededRNG 완전 사용(Math.random 0건), setTimeout/setInterval 0건, confirm/alert 0건, fetch/new Image/new Audio 0건, 외부 CDN 0건 — 플랫폼 코드 위생 원칙 완벽 준수.
 - **[Cycle 34]** 해적 항구 경영+해전 전략 로그라이트(해적의 조류)를 3,611줄 단일 파일로 구현. 20상태 머신(INIT~SETTINGS) + 항구 경영(6시설 ×5레벨) + 해전(4포격유형 ×3진형) + 보스 5종(페이즈 전환) + 선박 해금 트리 + 선원 8분야 스킬 + 항로 이벤트 8종 + 날씨 5종 + 교역 6품목 + 보물 지도 7조각. casual+strategy 장르 조합.
 - **[Cycle 34]** ACTIVE_SYSTEMS 매트릭스를 IIFE 빌드패턴으로 프로그래매틱 생성 — portStates/battleStates 배열로 경제/AI 시스템의 상호 배타성을 데이터 레벨에서 보장. 매트릭스 패턴 18사이클 연속 성공.
 - **[Cycle 34]** SVG 에셋 8종 preload + Canvas 폴백 이중 구조를 항해 테마에 적용: bgLayer1/2 패럴랙스 해양 배경, player/enemy 함선, uiHeart/uiStar HUD, effectHit 폭발 파티클, powerup 보급품. 에셋 없이도 Canvas 도형으로 선박/건물/보스를 완전히 렌더링.
@@ -170,6 +181,11 @@ _마지막 갱신: 사이클 #37 gold-rush-tactics_
 - **[Cycle 21 runeforge]** 3,393줄 단일 파일에서 §A~§L 논리적 섹션 구조가 유지보수성을 크게 향상시킨다. 각 섹션 헤더에 ═ 라인 구분자를 사용하면 IDE 검색에 유리하다.
 
 ## 다음 사이클 적용 사항 🎯
+- **[Cycle 38→39] IX Engine 활용 극대화**: Cycle 38에서 IX Engine 통합 성공. 다음 사이클에서는 IX.Tween의 add() API를 직접 사용하여 자체 TweenManager 완전 제거. IX.Particles도 커스텀 파티클 대신 활용.
+- **[Cycle 38→39] BGM lookahead 스케줄링 라이브러리화**: scheduleBGMNotes() 패턴을 재사용 가능한 BGMPlayer 클래스로 추출. 멜로디/화음/드럼을 별도 트랙으로 관리하면 음악 품질 향상 가능.
+- **[Cycle 38→39] 세그먼트 패턴 확장**: 현재 8종 기본 패턴이 난이도별로 변형. 패턴 20종+를 JSON 데이터로 외부화하면 레벨 디자인 수정이 코드 변경 없이 가능.
+- **[Cycle 38→39] 보스 AI 데이터 배열화**: 5종 보스를 updateBoss0~4로 개별 함수로 작성했지만, 공격 패턴/타이밍을 [{phase, pattern, duration, window}] 형태의 데이터 배열로 전환하면 보스 추가가 데이터 추가만으로 가능.
+- **[Cycle 38→39] CCD(연속 충돌 검출) 적용**: 대시 고속 이동 시 오버슈트 위험 존재. prevX/prevY 기반 보간 충돌 또는 rayCast 패턴 필요.
 - **[Cycle 34→35] 보스 AI 패턴 완전 데이터화**: 현재 보스별 공격은 switch(bossType) 하드코딩. [{type:'tentacle',count:3,hp:80}, {type:'cannon',cd:2,dmg:50}] 형태의 보스별 패턴 배열로 전환하면 보스 추가/수정이 데이터 변경만으로 가능.
 - **[Cycle 34→35] 항로 맵 BFS 도달 검증 강화**: generateVoyageRoute()가 선형 경로를 생성하므로 항상 도달 가능하지만, 분기 경로 도입 시 BFS 검증이 필수. 현재 코드에 validateRoute() 패턴은 기획서에 명시되어 있으므로 분기 경로 구현 시 즉시 적용.
 - **[Cycle 34→35] 오프스크린 캔버스 캐싱**: 항구 건물과 해전 배경이 매 프레임 개별 fillRect으로 그려짐. 정적 배경을 오프스크린 캔버스에 한 번 렌더링 후 drawImage 복사하면 렌더링 비용 50%+ 절감 가능.
