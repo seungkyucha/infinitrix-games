@@ -124,8 +124,87 @@ difficulty: easy|medium|hard
 5. 핵심 게임 루프 (초당 프레임 기준 로직 흐름)
 6. 난이도 시스템 (시간/점수에 따른 변화)
 7. 점수 시스템
+8. 에셋 요구 사항 (⚠️ 반드시 포함 — 디자이너가 이 목록 기반으로 제작)
+
+## 8. 에셋 요구 사항 (Asset Requirements)
+
+이 섹션은 디자이너(아트 디렉터)에게 전달되는 에셋 제작 지시서입니다.
+게임에 필요한 모든 그래픽 에셋을 구체적으로 정의하세요.
+
+⚠️ 반드시 아래 YAML 블록 형식으로 작성 (파서가 읽습니다):
+
+\`\`\`yaml
+# asset-requirements
+art-style: "이 게임의 비주얼 스타일 (예: 네온 사이버펑크, 수채화 판타지, 픽셀아트 레트로)"
+color-palette: "주요 색상 5~7개 (예: #0a0a1a, #6c3cf7, #00d4ff, #ffd700, #ff4444)"
+mood: "분위기 키워드 (예: 긴장감 있는 어둠, 따뜻한 모험, 미래적 네온)"
+reference: "레퍼런스 게임/스타일 (예: Hollow Knight 분위기 + Dead Cells 액션감)"
+
+assets:
+  - id: player
+    desc: "플레이어 캐릭터 설명 (외형, 장비, 포즈, 특징)"
+    size: "512x512"
+
+  - id: enemy-basic
+    desc: "기본 적 설명"
+    size: "512x512"
+
+  - id: enemy-boss
+    desc: "보스 적 설명 (크기, 위압감, 특수 효과)"
+    size: "512x512"
+
+  - id: bg-far
+    desc: "원경 배경 설명 (하늘, 지평선, 먼 풍경)"
+    size: "1920x1080"
+
+  - id: bg-mid
+    desc: "중경 배경 설명 (건물, 나무, 지형 실루엣)"
+    size: "1920x1080"
+
+  - id: bg-ground
+    desc: "근경/지면 설명 (타일, 플랫폼, 바닥 텍스처)"
+    size: "1920x1080"
+
+  - id: item-coin
+    desc: "수집 아이템 설명"
+    size: "128x128"
+
+  - id: item-powerup
+    desc: "파워업 아이템 설명"
+    size: "256x256"
+
+  - id: effect-hit
+    desc: "충돌/피격 이펙트 설명"
+    size: "512x512"
+
+  - id: effect-explosion
+    desc: "폭발/사망 이펙트 설명"
+    size: "512x512"
+
+  - id: ui-hp
+    desc: "체력 아이콘 설명"
+    size: "128x128"
+
+  - id: ui-score
+    desc: "점수/화폐 아이콘 설명"
+    size: "128x128"
+
+  - id: thumbnail
+    desc: "게임 대표 이미지 — 메인 캐릭터 + 핵심 장면 + 게임 제목 텍스트 포함"
+    size: "800x600"
+\`\`\`
+
+위는 예시입니다. 게임에 맞게 에셋을 추가/수정/제거하세요:
+- 적 종류가 여러 개면 enemy-type1, enemy-type2 등으로 추가
+- 보스가 있으면 boss-phase1, boss-phase2 등
+- NPC가 있으면 npc-merchant, npc-quest 등
+- 환경 오브젝트: obstacle, platform, door, chest 등
+- 게임 고유 아이템: weapon-sword, spell-fireball 등
+- 이펙트: effect-heal, effect-levelup, effect-dash 등
+- UI: ui-button-start, ui-frame-dialog 등
 
 ⚠️ index.html 하나에 구현 가능한 현실적 규모로 기획할 것
+⚠️ 에셋은 최소 8개 ~ 최대 20개 범위로 정의
 
 ---
 ${GAME_PAGE_LAYOUT}
@@ -347,12 +426,16 @@ const particles = new Particles(200);
 const assets = new AssetLoader();
 
 async function init() {
-  await assets.load({
-    player: 'assets/player.png',
-    enemy: 'assets/enemy.png',
-    bgLayer1: 'assets/bg-layer1.png',
-    bgLayer2: 'assets/bg-layer2.png',
-  });
+  // manifest.json에서 에셋 목록을 읽어 동적 로드
+  // (플래너가 정의한 에셋 ID를 그대로 사용)
+  const manifest = await fetch('assets/manifest.json').then(r => r.json()).catch(() => null);
+  if (manifest && manifest.assets) {
+    const assetMap = {};
+    for (const [key, info] of Object.entries(manifest.assets)) {
+      assetMap[key] = 'assets/' + info.file;
+    }
+    await assets.load(assetMap);
+  }
   engine.start();
 }
 init();

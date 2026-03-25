@@ -340,30 +340,27 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     state.status = 'designing'
     startAgent('designer', 3, '그래픽 에셋 제작 (Gemini PNG)', 'Graphic Assets (Gemini PNG)')
 
-    // 3-A: 기획서에서 게임 정보 추출
+    // 3-A: 기획서에서 게임 정보 + 에셋 요구사항 추출
     const specPath = `${PROJECT_ROOT}/docs/game-specs/cycle-${cycleNumber}-spec.md`
-    let gameId = '', gameTitle = '', genre = '', artStyle = ''
+    let gameId = '', gameTitle = '', genre = '', specContent = ''
     if (existsSync(specPath)) {
-      const specRaw = readFileSync(specPath, 'utf-8')
-      const idMatch    = specRaw.match(/game-id:\s*(.+)/)
-      const titleMatch = specRaw.match(/title:\s*(.+)/)
-      const genreMatch = specRaw.match(/genre:\s*(.+)/)
+      specContent = readFileSync(specPath, 'utf-8')
+      const idMatch    = specContent.match(/game-id:\s*(.+)/)
+      const titleMatch = specContent.match(/title:\s*(.+)/)
+      const genreMatch = specContent.match(/genre:\s*(.+)/)
       gameId    = idMatch?.[1]?.trim() ?? ''
       gameTitle = titleMatch?.[1]?.trim() ?? ''
       genre     = genreMatch?.[1]?.trim() ?? ''
-      // 비주얼 스타일 추출 시도
-      const styleMatch = specRaw.match(/(?:시각|visual|style|아트|art)[\s\S]{0,200}?([\w가-힣\s,]+(?:네온|neon|pixel|retro|fantasy|dark|bright|cartoon|realistic|cyberpunk|medieval|sci-fi|cute|minimal)[\w가-힣\s,]*)/i)
-      artStyle = styleMatch?.[1]?.trim() ?? `${genre} game style, polished indie quality`
     }
 
     if (gameId) {
       const assetsDir = `${PROJECT_ROOT}/public/games/${gameId}/assets`
 
-      // 3-B: Gemini로 PNG 에셋 일괄 생성
+      // 3-B: Gemini로 PNG 에셋 생성 (기획서의 asset-requirements 기반)
       if (process.env.GEMINI_API_KEY) {
         console.log(`  🎨 Gemini PNG 생성 시작 (game: ${gameId})`)
         try {
-          const result = await generateGameAssets(gameId, gameTitle, genre, artStyle, assetsDir)
+          const result = await generateGameAssets(gameId, gameTitle, genre, specContent, assetsDir)
           console.log(`  ✅ Gemini 생성 완료: ${result.generated.length}개 성공, ${result.failed.length}개 실패`)
           if (result.failed.length > 0) {
             console.log(`  ⚠️ 실패 에셋: ${result.failed.join(', ')}`)
