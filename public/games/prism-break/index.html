@@ -1,0 +1,3932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>프리즘 브레이크 — Prism Break</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0e2a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// PRISM BREAK — 빛 굴절 액션 퍼즐 (Cycle #39)
+// ═══════════════════════════════════════════════════════════════
+
+const { Engine, Input, Sound, Tween, Particles, UI, Save, MathUtil } = IX;
+
+// ───────────────────────────────────────────────────────────────
+// §1. CONFIG & CONSTANTS
+// ───────────────────────────────────────────────────────────────
+const GAME_ID = 'prism-break';
+const GRID_COLS = 12;
+const GRID_ROWS = 8;
+const INIT_ENERGY = 5;
+const MAX_UPGRADE_LV = 5;
+const MAX_DDA_LV = 3;
+const MIN_TOUCH_SIZE = 48;
+const DPS_CAP = 2.0;
+const SYNERGY_CAP = 1.5;
+const BOSS_COUNT = 3;
+const TOTAL_ZONES = 3;        // Phase 1 MVP
+const STAGES_PER_ZONE = 3;
+
+// States — 4상태 TRANSITION_TABLE (F6, F21, F25)
+const STATE = { TITLE: 'TITLE', MAP: 'MAP', PLAY: 'PLAY', BOSS: 'BOSS' };
+
+// Play sub-states (Cycle 38 패턴: 서브상태로 GAMEOVER 처리)
+const PS = {
+  SETUP: 0,     // 크리스탈 배치 단계
+  WAVE: 1,      // 웨이브 진행 중
+  PAUSED: 2,    // 일시정지
+  CLEAR: 3,     // 스테이지 클리어
+  DEAD: 4,      // 에너지 0 사망
+  BOSS_INTRO: 5 // 보스 등장 연출
+};
+
+// TRANSITION_TABLE 단일 정의 (F6)
+const TRANSITION_TABLE = {
+  TITLE: ['MAP'],
+  MAP:   ['PLAY', 'TITLE', 'BOSS'],
+  PLAY:  ['MAP', 'BOSS', 'PLAY'],
+  BOSS:  ['MAP']
+};
+console.assert(Object.keys(TRANSITION_TABLE).length === 4, '상태 수 불일치');
+
+// Cell types
+const CELL = { EMPTY: 0, WALL: 1, CRYSTAL: 2, CORE: 3, SOURCE: 4, SPAWN: 5 };
+
+// Crystal types
+const CRYSTAL_TYPES = [
+  { id: 'C1', name: 'reflect',   cost: 0, unlockedAt: [1,1] },
+  { id: 'C2', name: 'split',     cost: 0, unlockedAt: [1,3] },
+  { id: 'C3', name: 'focus',     cost: 0, unlockedAt: [2,1] },
+  { id: 'C4', name: 'filterRed', cost: 0, unlockedAt: [2,3] },
+  { id: 'C5', name: 'filterBlue',cost: 0, unlockedAt: [3,1] },
+  { id: 'C6', name: 'timeSlow',  cost: 0, unlockedAt: [3,2] },
+  { id: 'C7', name: 'blast',     cost: 0, unlockedAt: [3,3] }
+];
+
+// Enemy types
+const ENEMY_TYPES = [
+  { id: 'E1', hp: 1, speed: 40, name: 'grunt' },
+  { id: 'E2', hp: 1, speed: 80, name: 'charger' },
+  { id: 'E3', hp: 3, speed: 30, name: 'shield' },
+  { id: 'E4', hp: 2, speed: 35, name: 'splitter' },
+  { id: 'E5', hp: 4, speed: 25, name: 'corruptor' }
+];
+
+// Colors — §4.2 색상 팔레트
+const COL = {
+  BG:       '#0a0e2a',
+  BG2:      '#0f1338',
+  LIGHT:    '#fffbe6',
+  LIGHT_R:  '#ff4466',
+  LIGHT_B:  '#44aaff',
+  LIGHT_P:  '#bb66ff',
+  CRYSTAL:  '#a855f7',
+  PURIFY:   '#34d399',
+  SHADOW:   '#4c1d95',
+  COIN:     '#fbbf24',
+  CYAN:     '#22d3ee',
+  TEXT:     '#e0e0f0',
+  TEXT2:    '#8080a0',
+  TEXT3:    '#505070',
+  WALL:     '#1e1e3a',
+  GRID_LINE:'#1a1a35',
+  ENERGY:   '#ff6b9d',
+  RED:      '#ef4444',
+  GREEN:    '#00ff87'
+};
+
+// Upgrade costs
+const UPGRADE_COSTS = [50, 120, 250, 500, 1000];
+
+// ───────────────────────────────────────────────────────────────
+// §2. SeededRNG (F18: Math.random 0건)
+// ───────────────────────────────────────────────────────────────
+class SeededRNG {
+  constructor(seed) { this.seed = seed % 2147483647; if (this.seed <= 0) this.seed += 2147483646; }
+  next() { this.seed = (this.seed * 16807) % 2147483647; return (this.seed - 1) / 2147483646; }
+  nextInt(min, max) { return Math.floor(this.next() * (max - min + 1)) + min; }
+  nextFloat(min, max) { return min + this.next() * (max - min); }
+  shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = this.nextInt(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §3. I18N (F20: 다국어 지원)
+// ───────────────────────────────────────────────────────────────
+const I18N = {
+  ko: {
+    title: '프리즘 브레이크',
+    subtitle: '빛을 조종하라, 그림자를 소멸시켜라',
+    start: '게임 시작',
+    tapToStart: '탭하여 시작',
+    zone_names: ['수정 동굴', '프리즘 궁전', '무지개 다리', '그림자 요새', '빛의 핵심부'],
+    crystal_names: ['반사', '분산', '집속', '빨강 필터', '파랑 필터', '시간', '폭발'],
+    upgrade_branches: ['빛 강도', '굴절 범위', '크리스탈 마스터리'],
+    energy: '에너지',
+    score: '점수',
+    coins: '코인',
+    wave: '웨이브',
+    pause: '일시정지',
+    retry: '다시 하기',
+    clear: '클리어!',
+    boss_warning: '보스 출현!',
+    game_clear: '왕국이 빛을 되찾았습니다!',
+    back: '뒤로',
+    upgrade: '업그레이드',
+    shop: '상점',
+    stage: '스테이지',
+    highScore: '최고 점수',
+    newBest: '신기록!',
+    startWave: '웨이브 시작',
+    selectCrystal: '크리스탈 선택',
+    placeCrystal: '빈 셀을 탭하여 배치',
+    rotateCrystal: '크리스탈을 탭하여 회전',
+    removeCrystal: '길게 탭하여 회수',
+    tutorial1: '반사 크리스탈을 배치해 빛을 코어로 이끄세요',
+    tutorial2: 'Q/E키 또는 휠로 크리스탈 각도를 조절하세요',
+    failed: '에너지 소진!',
+    continue_: '계속',
+    restartStage: '재도전',
+    lv: 'Lv',
+    max: 'MAX',
+    locked: '잠김',
+    boss1: '그림자 파수꾼',
+    boss2: '프리즘 폭군',
+    boss3: '무지개 뱀',
+    bossDefeat: '보스 격파!',
+    lang: '한/EN'
+  },
+  en: {
+    title: 'Prism Break',
+    subtitle: 'Command the Light, Banish the Shadows',
+    start: 'Start Game',
+    tapToStart: 'Tap to Start',
+    zone_names: ['Crystal Caverns', 'Prism Palace', 'Rainbow Bridge', 'Shadow Fortress', 'Core of Light'],
+    crystal_names: ['Reflect', 'Split', 'Focus', 'Red Filter', 'Blue Filter', 'Time', 'Blast'],
+    upgrade_branches: ['Light Power', 'Refraction Range', 'Crystal Mastery'],
+    energy: 'Energy',
+    score: 'Score',
+    coins: 'Coins',
+    wave: 'Wave',
+    pause: 'Pause',
+    retry: 'Retry',
+    clear: 'Clear!',
+    boss_warning: 'Boss Incoming!',
+    game_clear: 'The Kingdom is Restored!',
+    back: 'Back',
+    upgrade: 'Upgrade',
+    shop: 'Shop',
+    stage: 'Stage',
+    highScore: 'High Score',
+    newBest: 'New Best!',
+    startWave: 'Start Wave',
+    selectCrystal: 'Select Crystal',
+    placeCrystal: 'Tap empty cell to place',
+    rotateCrystal: 'Tap crystal to rotate',
+    removeCrystal: 'Long press to remove',
+    tutorial1: 'Place reflect crystals to guide light to the core',
+    tutorial2: 'Use Q/E or scroll to adjust crystal angle',
+    failed: 'Energy Depleted!',
+    continue_: 'Continue',
+    restartStage: 'Retry Stage',
+    lv: 'Lv',
+    max: 'MAX',
+    locked: 'Locked',
+    boss1: 'Shadow Sentinel',
+    boss2: 'Prism Tyrant',
+    boss3: 'Rainbow Serpent',
+    bossDefeat: 'Boss Defeated!',
+    lang: 'KO/EN'
+  }
+};
+
+// ───────────────────────────────────────────────────────────────
+// §4. GAME STATE — INIT_EMPTY 패턴 (F12: TDZ 방지)
+// ───────────────────────────────────────────────────────────────
+const G = {
+  state: STATE.TITLE,
+  playState: PS.SETUP,
+  grid: null,
+  placedCrystals: [],
+  lightPaths: [],
+  enemies: [],
+  energy: INIT_ENERGY,
+  maxEnergy: INIT_ENERGY,
+  coins: 0,
+  score: 0,
+  totalScore: 0,
+  wave: 0,
+  maxWaves: 1,
+  zone: 1,
+  stage: 1,
+  upgrades: { light: 0, refract: 0, crystal: 0 },
+  selectedCrystal: 0,
+  crystalAngle: 0,
+  lang: 'ko',
+  seed: 1,
+  fadeAlpha: 1,
+  dda: 0,
+  failCount: 0,
+  bossRewardGiven: false,
+  waveClearing: false,
+  stageTimer: 0,
+  comboCount: 0,
+  comboTimer: 0,
+  shakeIntensity: 0,
+  titleTime: 0,
+  mapScroll: 0,
+  cameraX: 0, cameraY: 0, cameraZoom: 1.0,
+  targetZoom: 1.0,
+  showShop: false,
+  inventory: [3, 0, 0, 0, 0, 0, 0],
+  waveEnemiesSpawned: 0,
+  waveEnemiesToSpawn: 0,
+  spawnTimer: 0,
+  spawnInterval: 2,
+  lightSource: { x: 0, y: 3, dir: 0 },
+  cores: [],
+  spawnPoints: [],
+  wallCells: [],
+  stageCleared: {},
+  stageStars: {},
+  waveStarted: false,
+  bossHP: 0,
+  bossMaxHP: 0,
+  bossPhase: 1,
+  bossTimer: 0,
+  bossMoveTimer: 0,
+  bossX: 6, bossY: 3,
+  bossTargetX: 6, bossTargetY: 3,
+  bossWeakSide: 'back',
+  bossVulnerable: false,
+  bossVulnTimer: 0,
+  bossSpawnTimer: 0,
+  bossType: 0,
+  bossShieldDir: 0,
+  bossSegments: [],
+  gameClear: false,
+  introTimer: 0,
+  introPhase: 0,
+  notifications: [],
+  floatingTexts: [],
+  hintCells: [],
+  longPressTimer: 0,
+  longPressCell: null,
+  rightClicked: false,
+  rightClickX: 0,
+  rightClickY: 0,
+  mouseGridX: -1,
+  mouseGridY: -1,
+  tutorialShown: false,
+  windDirection: -1,
+  windTimer: 0,
+  movingWalls: [],
+  bossFacingDir: 0,
+  _twoFingerPauseUsed: false,
+  bgParticles: [],
+  gridOffsetX: 0,
+  gridOffsetY: 0,
+  cellSize: 48,
+  transitionFrom: null,
+  transitionTo: null,
+  transitioning: false,
+  newBestFlag: false,
+  mapButtons: [],
+  shopButtons: [],
+  touchHoldId: -1,
+  touchHoldTime: 0
+};
+
+// ───────────────────────────────────────────────────────────────
+// §5. ENGINE INIT
+// ───────────────────────────────────────────────────────────────
+const engine = new Engine('gameCanvas', { update, render, onResize });
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(500);
+let rng = new SeededRNG(42);
+
+// Right-click handler for crystal removal
+engine.canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const r = engine.canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  G.rightClicked = true;
+  G.rightClickX = (e.clientX - r.left) * (engine.canvas.width / r.width) / dpr;
+  G.rightClickY = (e.clientY - r.top) * (engine.canvas.height / r.height) / dpr;
+});
+
+// Mouse wheel for crystal rotation
+engine.canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (G.state === STATE.PLAY && G.playState === PS.SETUP) {
+    G.crystalAngle = (G.crystalAngle + (e.deltaY > 0 ? 1 : 3)) % 4;
+    sound.sfx('select');
+  }
+}, { passive: false });
+
+// ───────────────────────────────────────────────────────────────
+// §6. HELPERS — 순수 함수 패턴 (F9, F30)
+// ───────────────────────────────────────────────────────────────
+
+/** Get localized text */
+function t(key) { return I18N[G.lang][key] || key; }
+
+/** Clamp value between min and max */
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+/** Linear interpolation */
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+/** Distance between two points */
+function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+
+/** Get grid cell from pixel coordinates */
+function pixelToGrid(px, py, offsetX, offsetY, cellSize) {
+  const gx = Math.floor((px - offsetX) / cellSize);
+  const gy = Math.floor((py - offsetY) / cellSize);
+  return { gx, gy };
+}
+
+/** Get pixel center of grid cell */
+function gridToPixel(gx, gy, offsetX, offsetY, cellSize) {
+  return {
+    px: offsetX + gx * cellSize + cellSize / 2,
+    py: offsetY + gy * cellSize + cellSize / 2
+  };
+}
+
+/** Check if grid coords are valid */
+function inGrid(gx, gy) { return gx >= 0 && gx < GRID_COLS && gy >= 0 && gy < GRID_ROWS; }
+
+/** Check if crystal is unlocked for given zone/stage */
+function isCrystalUnlocked(crystalIdx, zone, stage) {
+  const [uz, us] = CRYSTAL_TYPES[crystalIdx].unlockedAt;
+  return zone > uz || (zone === uz && stage >= us);
+}
+
+/** Get upgrade level with cap */
+function getUpgrade(branch) { return clamp(G.upgrades[branch], 0, MAX_UPGRADE_LV); }
+
+/** Calculate effective damage based on upgrades */
+function calcDamage(lightColor) {
+  let dmg = 1;
+  const lv = getUpgrade('light');
+  if (lv >= 1) dmg = 2;
+  return Math.min(dmg * DPS_CAP, dmg);
+}
+
+/** Calculate beam penetration based on upgrades */
+function canPenetrate() { return getUpgrade('light') >= 2; }
+
+/** Calculate crystal rotation step (90° or 45°) */
+function rotationStep() { return getUpgrade('refract') >= 1 ? 8 : 4; }
+
+/** Max crystal inventory count */
+function maxInventory() { return 3 + (getUpgrade('refract') >= 2 ? 1 : 0); }
+
+/** Get DDA speed multiplier */
+function ddaSpeedMult() {
+  const mults = [1.0, 0.85, 0.75, 0.6];
+  return mults[clamp(G.dda, 0, MAX_DDA_LV)];
+}
+
+/** Get DDA extra energy */
+function ddaExtraEnergy() {
+  const extras = [0, 1, 2, 3];
+  return extras[clamp(G.dda, 0, MAX_DDA_LV)];
+}
+
+/** Get DDA hint count */
+function ddaHintCount() {
+  const hints = [0, 0, 1, 2];
+  return hints[clamp(G.dda, 0, MAX_DDA_LV)];
+}
+
+/** Calculate difficulty values for stage n (1-based) */
+function stageDifficulty(n) {
+  return {
+    enemyCount: 5 + Math.floor(n * 1.5),
+    enemySpeed: 30 + n * 3,
+    emptyCells: Math.max(6, 20 - n),
+    waveCount: 1 + Math.floor(n / 4),
+    coinDrop: Math.floor(n * 0.5) + 1,
+    clearTime: 30 + n * 6
+  };
+}
+
+/** Convert zone+stage to absolute stage number */
+function absStageNum(zone, stage) {
+  return (zone - 1) * STAGES_PER_ZONE + stage;
+}
+
+/** Add floating text notification */
+function addFloatingText(text, x, y, color, size) {
+  G.floatingTexts.push({ text, x, y, color: color || COL.COIN, size: size || 18, alpha: 1, vy: -40, life: 1.2 });
+}
+
+/** Add notification */
+function addNotification(text, duration) {
+  G.notifications.push({ text, alpha: 1, life: duration || 2.0 });
+}
+
+// ───────────────────────────────────────────────────────────────
+// §7. TRANSITION SYSTEM (F6, F21)
+// ───────────────────────────────────────────────────────────────
+
+/** Begin state transition with fade (F4: tween only, no setTimeout) */
+function beginTransition(from, to, onMid, onComplete) {
+  if (G.transitioning) return false;
+  if (!TRANSITION_TABLE[from] || !TRANSITION_TABLE[from].includes(to)) {
+    console.warn('Invalid transition:', from, '→', to);
+    return false;
+  }
+  G.transitioning = true;
+  G.transitionFrom = from;
+  G.transitionTo = to;
+
+  // Phase 1: fade out (F5: guard flag prevents re-entry)
+  const proxy1 = { alpha: 0 };
+  tween.add(proxy1, { alpha: 1 }, 300, 'easeIn', () => {
+    G.fadeAlpha = 1;
+    G.state = to;
+    if (onMid) onMid();
+
+    // Phase 2: fade in — new proxy (Cycle 35 패턴)
+    const proxy2 = { alpha: 1 };
+    tween.add(proxy2, { alpha: 0 }, 300, 'easeOut', () => {
+      G.fadeAlpha = 0;
+      G.transitioning = false;
+      if (onComplete) onComplete();
+    });
+    // Sync fadeAlpha to proxy2 in tween update
+    const syncFade = { _t: 0 };
+    tween.add(syncFade, { _t: 1 }, 300, 'easeOut', null);
+  });
+
+  // Sync fadeAlpha to proxy1
+  const syncOut = { _t: 0 };
+  tween.add(syncOut, { _t: 1 }, 300, 'easeIn', null);
+
+  return true;
+}
+
+// ───────────────────────────────────────────────────────────────
+// §8. SOUND SYSTEM — Procedural BGM + SFX (F19)
+// ───────────────────────────────────────────────────────────────
+const SND = {
+  ctx: null,
+  masterGain: null,
+  bgmGain: null,
+  bgmNodes: [],
+  bgmPlaying: false,
+  currentBGM: null,
+  bgmScheduleTime: 0,
+  bgmBeatIndex: 0,
+  bgmTempo: 120,
+
+  /** Initialize audio context */
+  init() {
+    if (this.ctx) return;
+    sound.init();
+    this.ctx = sound._ctx;
+    if (!this.ctx) return;
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.3;
+    this.masterGain.connect(this.ctx.destination);
+    this.bgmGain = this.ctx.createGain();
+    this.bgmGain.gain.value = 0.15;
+    this.bgmGain.connect(this.masterGain);
+  },
+
+  /** Play SFX by name */
+  sfx(name) {
+    if (!this.ctx) return;
+    const ct = this.ctx.currentTime;
+    const sfxDefs = {
+      place: () => this._playNotes([{ f: 880, d: 0.06, t: 'sine' }, { f: 1320, d: 0.08, t: 'sine', delay: 0.04 }], 0.25),
+      rotate: () => this._playNotes([{ f: 660, d: 0.04, t: 'sine' }, { f: 770, d: 0.04, t: 'sine', delay: 0.03 }], 0.2),
+      light: () => this._playNotes([{ f: 440, d: 0.15, t: 'sine' }, { f: 550, d: 0.2, t: 'sine', delay: 0.05 }], 0.15),
+      hit: () => this._playNotes([{ f: 200, d: 0.1, t: 'sawtooth' }, { f: 100, d: 0.15, t: 'square', delay: 0.03 }], 0.3),
+      combo: () => this._playNotes([{ f: 523, d: 0.06, t: 'sine' }, { f: 659, d: 0.06, t: 'sine', delay: 0.06 }, { f: 784, d: 0.08, t: 'sine', delay: 0.12 }], 0.25),
+      damage: () => this._playNotes([{ f: 120, d: 0.2, t: 'sawtooth' }, { f: 80, d: 0.3, t: 'square', delay: 0.05 }], 0.4),
+      clear: () => this._playNotes([{ f: 523, d: 0.1, t: 'square' }, { f: 659, d: 0.1, t: 'square', delay: 0.1 }, { f: 784, d: 0.15, t: 'square', delay: 0.2 }, { f: 1047, d: 0.25, t: 'sine', delay: 0.3 }], 0.3),
+      bossRoar: () => this._playNotes([{ f: 60, d: 0.5, t: 'sawtooth' }, { f: 80, d: 0.4, t: 'square', delay: 0.1 }, { f: 50, d: 0.6, t: 'sawtooth', delay: 0.2 }], 0.5),
+      upgrade: () => this._playNotes([{ f: 440, d: 0.08, t: 'sine' }, { f: 660, d: 0.08, t: 'sine', delay: 0.06 }, { f: 880, d: 0.12, t: 'sine', delay: 0.12 }], 0.2),
+      coin: () => this._playNotes([{ f: 1200, d: 0.04, t: 'sine' }, { f: 1600, d: 0.06, t: 'sine', delay: 0.03 }], 0.2),
+      select: () => this._playNotes([{ f: 660, d: 0.06, t: 'square' }, { f: 880, d: 0.08, t: 'square', delay: 0.04 }], 0.2),
+      gameover: () => this._playNotes([{ f: 440, d: 0.2, t: 'sawtooth' }, { f: 330, d: 0.25, t: 'sawtooth', delay: 0.15 }, { f: 220, d: 0.4, t: 'sawtooth', delay: 0.3 }], 0.35)
+    };
+    if (sfxDefs[name]) sfxDefs[name]();
+  },
+
+  /** Play note array */
+  _playNotes(notes, vol) {
+    if (!this.ctx) return;
+    const ct = this.ctx.currentTime;
+    for (const n of notes) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = n.t || 'sine';
+      osc.frequency.value = n.f;
+      gain.gain.setValueAtTime(vol * 0.3, ct + (n.delay || 0));
+      gain.gain.exponentialRampToValueAtTime(0.001, ct + (n.delay || 0) + n.d);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(ct + (n.delay || 0));
+      osc.stop(ct + (n.delay || 0) + n.d + 0.05);
+    }
+  },
+
+  /** Start BGM for given state */
+  startBGM(type) {
+    if (this.currentBGM === type) return;
+    this.stopBGM();
+    this.currentBGM = type;
+    this.bgmPlaying = true;
+    this.bgmBeatIndex = 0;
+    if (!this.ctx) return;
+    this.bgmScheduleTime = this.ctx.currentTime + 0.1;
+
+    const tempos = { title: 80, map: 90, play: 110, boss: 140 };
+    this.bgmTempo = tempos[type] || 110;
+  },
+
+  /** Stop BGM */
+  stopBGM() {
+    this.bgmPlaying = false;
+    this.currentBGM = null;
+    for (const n of this.bgmNodes) {
+      try { n.stop(); } catch(e) {}
+    }
+    this.bgmNodes = [];
+  },
+
+  /** Schedule BGM notes — called each frame (Cycle 38: lookahead scheduling) */
+  scheduleBGM() {
+    if (!this.bgmPlaying || !this.ctx) return;
+    const ct = this.ctx.currentTime;
+    const beatDur = 60 / this.bgmTempo;
+    const lookahead = 2.0;
+
+    while (this.bgmScheduleTime < ct + lookahead) {
+      const beat = this.bgmBeatIndex % 16;
+      this._scheduleBeat(beat, this.bgmScheduleTime, beatDur);
+      this.bgmScheduleTime += beatDur;
+      this.bgmBeatIndex++;
+    }
+  },
+
+  /** Schedule a single BGM beat */
+  _scheduleBeat(beat, time, dur) {
+    if (!this.ctx || !this.bgmGain) return;
+    const type = this.currentBGM;
+
+    // Title BGM — dreamy crystal arpeggios in C major
+    if (type === 'title') {
+      const notes = [261, 329, 392, 523, 392, 329, 261, 196,
+                     261, 349, 440, 523, 440, 349, 261, 196];
+      if (beat < notes.length) {
+        this._schedNote(notes[beat], dur * 0.8, 'sine', time, 0.12);
+        if (beat % 4 === 0) this._schedNote(notes[beat] / 2, dur * 1.5, 'triangle', time, 0.08);
+      }
+    }
+    // Map BGM — peaceful harp
+    else if (type === 'map') {
+      const notes = [349, 440, 523, 659, 523, 440, 349, 293,
+                     349, 523, 659, 784, 659, 523, 349, 293];
+      if (beat < notes.length) {
+        this._schedNote(notes[beat], dur * 0.6, 'sine', time, 0.1);
+        if (beat % 8 === 0) this._schedNote(notes[beat] / 4, dur * 2, 'sine', time, 0.06);
+      }
+    }
+    // Play BGM — tense puzzle ambient A minor
+    else if (type === 'play') {
+      const bass = [220, 220, 247, 247, 262, 262, 247, 247,
+                    220, 220, 196, 196, 175, 175, 196, 196];
+      const melody = [0, 440, 0, 523, 0, 659, 0, 523,
+                      0, 440, 0, 392, 0, 349, 0, 392];
+      this._schedNote(bass[beat], dur * 0.9, 'triangle', time, 0.08);
+      if (melody[beat] > 0) this._schedNote(melody[beat], dur * 0.5, 'sine', time, 0.06);
+      if (beat % 4 === 0) this._schedNote(110, dur * 0.1, 'square', time, 0.03);
+    }
+    // Boss BGM — intense battle in D minor
+    else if (type === 'boss') {
+      const bass = [147, 147, 175, 175, 196, 196, 220, 220,
+                    196, 196, 175, 175, 147, 147, 131, 131];
+      const melody = [587, 0, 698, 0, 784, 0, 698, 587,
+                      0, 523, 0, 587, 0, 466, 0, 440];
+      this._schedNote(bass[beat], dur * 0.4, 'sawtooth', time, 0.1);
+      if (melody[beat] > 0) this._schedNote(melody[beat], dur * 0.3, 'square', time, 0.08);
+      if (beat % 2 === 0) this._schedNote(73, dur * 0.15, 'square', time, 0.12);
+      if (beat % 4 === 0) this._schedNote(50, dur * 0.08, 'sawtooth', time, 0.15);
+    }
+  },
+
+  /** Schedule a single note at a specific time */
+  _schedNote(freq, dur, type, time, vol) {
+    if (!this.ctx || !this.bgmGain) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+      osc.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(time);
+      osc.stop(time + dur + 0.05);
+      this.bgmNodes.push(osc);
+      // Clean up old nodes to prevent memory leak
+      if (this.bgmNodes.length > 64) {
+        this.bgmNodes = this.bgmNodes.slice(-32);
+      }
+    } catch(e) {}
+  }
+};
+
+// ───────────────────────────────────────────────────────────────
+// §9. STAGE GENERATION — Procedural (F18, F27)
+// ───────────────────────────────────────────────────────────────
+
+/** Stage templates for each zone */
+const ZONE_TEMPLATES = {
+  1: [ // Crystal Caverns — simple layouts
+    { walls: [[3,2],[3,3],[8,5],[8,6]], cores: [{x:10,y:3,color:'white'}], source: {x:0,y:3} },
+    { walls: [[2,1],[2,2],[5,4],[5,5],[9,2],[9,3]], cores: [{x:10,y:4,color:'white'}], source: {x:0,y:4} },
+    { walls: [[3,1],[3,2],[3,3],[6,4],[6,5],[6,6]], cores: [{x:10,y:2,color:'white'},{x:10,y:6,color:'white'}], source: {x:0,y:4} }
+  ],
+  2: [ // Prism Palace — more complex with color cores
+    { walls: [[2,3],[5,1],[5,6],[8,3]], cores: [{x:10,y:3,color:'white'}], source: {x:0,y:3} },
+    { walls: [[3,2],[3,5],[7,1],[7,6],[5,3],[5,4]], cores: [{x:10,y:2,color:'red'}], source: {x:0,y:4} },
+    { walls: [[2,1],[4,3],[4,4],[6,2],[6,5],[9,1],[9,6]], cores: [{x:10,y:1,color:'white'},{x:10,y:4,color:'red'},{x:10,y:7,color:'red'}], source: {x:0,y:3} }
+  ],
+  3: [ // Rainbow Bridge — wind + multiple colors
+    { walls: [[3,1],[3,6],[6,2],[6,5],[9,3],[9,4]], cores: [{x:10,y:2,color:'blue'}], source: {x:0,y:4} },
+    { walls: [[2,2],[2,5],[5,3],[5,4],[8,1],[8,6]], cores: [{x:10,y:3,color:'white'}], source: {x:0,y:4} },
+    { walls: [[3,0],[3,7],[5,2],[5,5],[7,1],[7,6],[9,3],[9,4]], cores: [{x:10,y:1,color:'white'},{x:10,y:4,color:'red'},{x:10,y:7,color:'blue'}], source: {x:0,y:3} }
+  ]
+};
+
+/** Enemy wave compositions for each stage */
+const WAVE_COMPOSITIONS = {
+  '1-1': [{ E1: 5 }],
+  '1-2': [{ E1: 4 }, { E1: 4 }],
+  '1-3': [{ E1: 5, E2: 1 }, { E1: 5, E2: 2 }],
+  '2-1': [{ E1: 4, E3: 1 }, { E1: 4, E3: 1 }],
+  '2-2': [{ E1: 5, E3: 2 }, { E1: 5, E3: 2 }],
+  '2-3': [{ E1: 4, E2: 2, E3: 1 }, { E1: 4, E2: 2, E3: 2 }, { E1: 4 }],
+  '3-1': [{ E1: 5, E3: 2, E4: 1 }, { E1: 5, E3: 2, E4: 1 }],
+  '3-2': [{ E1: 4, E4: 2, E5: 1 }, { E1: 4, E4: 2, E5: 1 }, { E1: 4, E5: 1 }],
+  '3-3': [{ E1: 3, E2: 2, E3: 2, E4: 1, E5: 1 }, { E1: 3, E2: 2, E3: 2, E4: 2, E5: 1 }, { E1: 4, E4: 2, E5: 2 }]
+};
+
+/** Generate a stage grid */
+function generateStage(zone, stage, seed) {
+  const rng = new SeededRNG(seed);
+  const template = ZONE_TEMPLATES[zone][(stage - 1) % 3];
+
+  // Create empty grid
+  const grid = [];
+  for (let x = 0; x < GRID_COLS; x++) {
+    grid[x] = [];
+    for (let y = 0; y < GRID_ROWS; y++) {
+      grid[x][y] = CELL.EMPTY;
+    }
+  }
+
+  // Place walls with ±1 variation
+  const walls = [];
+  for (const w of template.walls) {
+    let wx = clamp(w[0] + rng.nextInt(-1, 1), 1, GRID_COLS - 2);
+    let wy = clamp(w[1] + rng.nextInt(-1, 1), 0, GRID_ROWS - 1);
+    // Don't place wall on source or core columns
+    if (wx === 0 || wx >= GRID_COLS - 1) wx = clamp(wx, 1, GRID_COLS - 2);
+    grid[wx][wy] = CELL.WALL;
+    walls.push({ x: wx, y: wy });
+  }
+
+  // Place light source
+  const srcY = clamp(template.source.y + rng.nextInt(-1, 1), 0, GRID_ROWS - 1);
+  grid[0][srcY] = CELL.SOURCE;
+  const lightSource = { x: 0, y: srcY, dir: 0 }; // dir 0 = right
+
+  // Place cores
+  const cores = [];
+  for (const c of template.cores) {
+    let cy = clamp(c.y + rng.nextInt(-1, 1), 0, GRID_ROWS - 1);
+    let cx = clamp(c.x, GRID_COLS - 3, GRID_COLS - 1);
+    // Make sure core cell is empty
+    if (grid[cx][cy] !== CELL.EMPTY) cy = clamp(cy + 1, 0, GRID_ROWS - 1);
+    grid[cx][cy] = CELL.CORE;
+    cores.push({ x: cx, y: cy, color: c.color, purified: false });
+  }
+
+  // Place spawn points at edges
+  const spawnPoints = [];
+  const edgeCells = [];
+  for (let y = 0; y < GRID_ROWS; y++) {
+    if (grid[GRID_COLS - 1][y] === CELL.EMPTY) edgeCells.push({ x: GRID_COLS - 1, y });
+    if (grid[0][y] === CELL.EMPTY) edgeCells.push({ x: 0, y });
+  }
+  for (let x = 1; x < GRID_COLS - 1; x++) {
+    if (grid[x][0] === CELL.EMPTY) edgeCells.push({ x, y: 0 });
+    if (grid[x][GRID_ROWS - 1] === CELL.EMPTY) edgeCells.push({ x, y: GRID_ROWS - 1 });
+  }
+  // Pick 4-6 spawn points
+  const shuffled = rng.shuffle(edgeCells);
+  const numSpawns = Math.min(shuffled.length, rng.nextInt(4, 6));
+  for (let i = 0; i < numSpawns; i++) {
+    spawnPoints.push(shuffled[i]);
+  }
+
+  return { grid, walls, lightSource, cores, spawnPoints };
+}
+
+/** BFS light path reachability check (F27) */
+function validateStageReachability(grid, lightSource, cores) {
+  // Simple reachability: check there's a clear path from source to each core
+  for (const core of cores) {
+    const visited = new Set();
+    const queue = [{ x: lightSource.x, y: lightSource.y }];
+    let found = false;
+
+    while (queue.length > 0) {
+      const { x, y } = queue.shift();
+      const key = `${x},${y}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+
+      if (x === core.x && y === core.y) { found = true; break; }
+
+      // 4-direction movement
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (const [dx, dy] of dirs) {
+        const nx = x + dx, ny = y + dy;
+        if (inGrid(nx, ny) && grid[nx][ny] !== CELL.WALL && !visited.has(`${nx},${ny}`)) {
+          queue.push({ x: nx, y: ny });
+        }
+      }
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+/** Generate stage with validation (F27: BFS + retry) */
+function generateValidStage(zone, stage) {
+  let seed = G.seed + zone * 100 + stage * 10;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const result = generateStage(zone, stage, seed + attempt);
+    if (validateStageReachability(result.grid, result.lightSource, result.cores)) {
+      return result;
+    }
+  }
+  // Fallback: use basic template without variation
+  return generateStage(zone, stage, 0);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §10. LIGHT TRACING SYSTEM — Core mechanic
+// ───────────────────────────────────────────────────────────────
+
+/** Check if crystal at gx,gy is darkened by any E5 enemy (R1: darkness field invalidation) */
+function isCrystalDarkened(gx, gy, enemies) {
+  if (!enemies || enemies.length === 0) return false;
+  for (const e of enemies) {
+    if (e.type !== 4 || e.dead || e.spawnAnim > 0) continue;
+    // Convert enemy pixel position to grid cell
+    const egx = Math.floor((e.x - G.gridOffsetX) / G.cellSize);
+    const egy = Math.floor((e.y - G.gridOffsetY) / G.cellSize);
+    // E5 darkness radius = 1 cell (Manhattan distance)
+    if (Math.abs(egx - gx) <= 1 && Math.abs(egy - gy) <= 1) return true;
+  }
+  return false;
+}
+
+/** Direction vectors: 0=right, 1=down, 2=left, 3=up, 4-7=diagonals */
+const DIR_VEC = [
+  { dx: 1, dy: 0 },  // 0: right
+  { dx: 0, dy: 1 },  // 1: down
+  { dx: -1, dy: 0 }, // 2: left
+  { dx: 0, dy: -1 }, // 3: up
+  { dx: 1, dy: 1 },  // 4: down-right
+  { dx: -1, dy: 1 }, // 5: down-left
+  { dx: -1, dy: -1 },// 6: up-left
+  { dx: 1, dy: -1 }  // 7: up-right
+];
+
+/** Trace light from source through crystals — returns path segments */
+function traceLight(grid, lightSource, placedCrystals, maxDepth, enemies) {
+  const paths = [];
+  const maxD = maxDepth || 50;
+
+  function trace(x, y, dir, color, depth, intensity) {
+    if (depth > maxD) return;
+
+    const dv = DIR_VEC[dir % 4]; // Only use cardinal directions for main beams
+    let cx = x, cy = y;
+
+    for (let step = 0; step < GRID_COLS + GRID_ROWS; step++) {
+      const nx = cx + dv.dx;
+      const ny = cy + dv.dy;
+
+      if (!inGrid(nx, ny)) {
+        paths.push({ x1: x, y1: y, x2: cx, y2: cy, color, intensity, dir });
+        return;
+      }
+
+      // Check wall
+      if (grid[nx][ny] === CELL.WALL) {
+        paths.push({ x1: x, y1: y, x2: cx, y2: cy, color, intensity, dir });
+        return;
+      }
+
+      // Check crystal at this position
+      const crystal = placedCrystals.find(c => c.gx === nx && c.gy === ny);
+      if (crystal) {
+        // R1: E5 darkness field invalidates crystal — treat as empty cell, beam passes through
+        if (isCrystalDarkened(nx, ny, enemies)) {
+          cx = nx;
+          cy = ny;
+          continue;
+        }
+        paths.push({ x1: x, y1: y, x2: nx, y2: ny, color, intensity, dir });
+
+        // Process crystal effect
+        const cType = CRYSTAL_TYPES[crystal.type];
+        switch (cType.id) {
+          case 'C1': { // Reflect — 90° reflection based on angle
+            const angles = [0, 1, 2, 3]; // right, down, left, up
+            const newDir = crystal.angle;
+            // Reflect: if coming from left(0), mirror up(3) or down(1) based on angle
+            let reflected = reflectDirection(dir, crystal.angle);
+            if (reflected !== dir) { // Only trace if direction actually changes
+              trace(nx, ny, reflected, color, depth + 1, intensity);
+            }
+            break;
+          }
+          case 'C2': { // Split — 2 beams at ±90° from current direction
+            const d1 = (dir + 1) % 4;
+            const d2 = (dir + 3) % 4;
+            trace(nx, ny, d1, color, depth + 1, intensity * 0.7);
+            trace(nx, ny, d2, color, depth + 1, intensity * 0.7);
+            break;
+          }
+          case 'C3': { // Focus — continue in same direction but stronger
+            trace(nx, ny, dir, color, depth + 1, Math.min(intensity * 1.5, 2.0));
+            break;
+          }
+          case 'C4': { // Red filter
+            trace(nx, ny, dir, 'red', depth + 1, intensity);
+            break;
+          }
+          case 'C5': { // Blue filter
+            trace(nx, ny, dir, 'blue', depth + 1, intensity);
+            break;
+          }
+          case 'C6': { // Time crystal — continue, marks area for slow
+            crystal._active = true;
+            trace(nx, ny, dir, color, depth + 1, intensity);
+            break;
+          }
+          case 'C7': { // Blast crystal — continue, marks for explosion
+            crystal._active = true;
+            trace(nx, ny, dir, color, depth + 1, intensity);
+            break;
+          }
+        }
+        return; // Crystal consumes the beam
+      }
+
+      cx = nx;
+      cy = ny;
+    }
+
+    paths.push({ x1: x, y1: y, x2: cx, y2: cy, color, intensity, dir });
+  }
+
+  // Start tracing from source
+  trace(lightSource.x, lightSource.y, 0, 'white', 0, 1.0);
+  return paths;
+}
+
+/** Calculate reflection direction based on crystal angle */
+function reflectDirection(inDir, crystalAngle) {
+  // crystalAngle: 0 = /, 1 = \, 2 = /, 3 = \  (alternating mirror orientations)
+  // For simplicity: angle 0 & 2 = / mirror, angle 1 & 3 = \ mirror
+  const mirrorType = crystalAngle % 2; // 0 = /, 1 = \
+
+  if (mirrorType === 0) {
+    // / mirror: right→up, down→left, left→down, up→right
+    const reflectMap = { 0: 3, 1: 2, 2: 1, 3: 0 };
+    return reflectMap[inDir];
+  } else {
+    // \ mirror: right→down, up→left, left→up, down→right
+    const reflectMap = { 0: 1, 1: 0, 2: 3, 3: 2 };
+    return reflectMap[inDir];
+  }
+}
+
+/** Check if light path hits a specific grid cell */
+function lightHitsCell(paths, gx, gy) {
+  for (const p of paths) {
+    // Check if cell is along the path
+    const dx = Math.sign(p.x2 - p.x1);
+    const dy = Math.sign(p.y2 - p.y1);
+    let cx = p.x1, cy = p.y1;
+
+    for (let i = 0; i <= GRID_COLS + GRID_ROWS; i++) {
+      if (cx === gx && cy === gy) return { hit: true, color: p.color, intensity: p.intensity };
+      if (cx === p.x2 && cy === p.y2) break;
+      cx += dx;
+      cy += dy;
+    }
+  }
+  return { hit: false };
+}
+
+/** Check shadow enemy hit by light (F8: 판정 먼저) */
+function checkShadowHit(lightPaths, enemies, offsetX, offsetY, cellSize) {
+  const kills = [];
+  const damaged = [];
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (e.dead) continue;
+
+    // Convert enemy pixel position to grid cell
+    const egx = Math.floor((e.x - offsetX) / cellSize);
+    const egy = Math.floor((e.y - offsetY) / cellSize);
+
+    const result = lightHitsCell(lightPaths, egx, egy);
+    if (result.hit) {
+      let dmg = calcDamage(result.color);
+
+      // E3 shield: front resistance
+      if (e.type === 2 && e.facingDir === result.dir) {
+        dmg *= 0.5;
+      }
+
+      e.hp -= dmg * result.intensity;
+
+      if (e.hp <= 0) {
+        e.dead = true;
+        kills.push(e);
+
+        // E4 splitter: spawn 2 grunts on death
+        if (e.type === 3) {
+          for (let j = 0; j < 2; j++) {
+            enemies.push(createEnemy(0, e.x + (j === 0 ? -15 : 15), e.y, offsetX, offsetY, cellSize));
+          }
+        }
+      } else {
+        damaged.push(e);
+      }
+    }
+  }
+
+  return { kills, damaged };
+}
+
+// ───────────────────────────────────────────────────────────────
+// §11. ENEMY SYSTEM
+// ───────────────────────────────────────────────────────────────
+
+/** Create enemy entity */
+function createEnemy(typeIdx, px, py, offsetX, offsetY, cellSize) {
+  const et = ENEMY_TYPES[typeIdx];
+  return {
+    type: typeIdx,
+    x: px,
+    y: py,
+    hp: et.hp,
+    maxHp: et.hp,
+    speed: et.speed * ddaSpeedMult(),
+    dead: false,
+    alpha: 1,
+    facingDir: 2, // facing left (toward source)
+    hitFlash: 0,
+    spawnAnim: 0.5,
+    darknessRadius: typeIdx === 4 ? cellSize : 0 // E5 darkness field
+  };
+}
+
+/** Update all enemies — pure function approach with target reference */
+function updateEnemies(enemies, dt, targetX, targetY, offsetX, offsetY, cellSize) {
+  const dtSec = dt / 1000;
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+
+    // Spawn animation
+    if (e.spawnAnim > 0) {
+      e.spawnAnim -= dtSec;
+      continue;
+    }
+
+    if (e.dead) {
+      e.alpha -= dtSec * 3;
+      if (e.alpha <= 0) enemies.splice(i, 1);
+      continue;
+    }
+
+    // Hit flash decay
+    if (e.hitFlash > 0) e.hitFlash -= dtSec * 5;
+
+    // Move toward light source
+    const dx = targetX - e.x;
+    const dy = targetY - e.y;
+    const d = Math.hypot(dx, dy);
+
+    if (d > 2) {
+      const moveSpeed = e.speed * dtSec;
+
+      // E2 charger: straight line dash
+      if (e.type === 1) {
+        e.x += (dx / d) * moveSpeed * 1.2;
+        e.y += (dy / d) * moveSpeed * 0.3;
+      } else {
+        e.x += (dx / d) * moveSpeed;
+        e.y += (dy / d) * moveSpeed;
+      }
+
+      // Update facing direction
+      if (Math.abs(dx) > Math.abs(dy)) {
+        e.facingDir = dx > 0 ? 0 : 2;
+      } else {
+        e.facingDir = dy > 0 ? 1 : 3;
+      }
+    }
+
+    // Time crystal slow effect
+    const timeSlowRange = (getUpgrade('crystal') >= 3 ? 3 : 2) * cellSize;
+    for (const c of G.placedCrystals) {
+      if (CRYSTAL_TYPES[c.type].id === 'C6' && c._active) {
+        const cp = gridToPixel(c.gx, c.gy, offsetX, offsetY, cellSize);
+        if (dist(e.x, e.y, cp.px, cp.py) < timeSlowRange) {
+          e.speed = ENEMY_TYPES[e.type].speed * ddaSpeedMult() * 0.5;
+        }
+      }
+    }
+  }
+}
+
+/** Check if any enemy reached the light source */
+function checkEnemyReachSource(enemies, sourceX, sourceY, radius) {
+  for (const e of enemies) {
+    if (e.dead || e.spawnAnim > 0) continue;
+    if (dist(e.x, e.y, sourceX, sourceY) < radius) {
+      e.dead = true;
+      e.alpha = 0;
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Spawn enemies for current wave */
+function spawnWaveEnemies(waveData, spawnPoints, offsetX, offsetY, cellSize) {
+  const toSpawn = [];
+  for (const [key, count] of Object.entries(waveData)) {
+    const typeIdx = parseInt(key.substring(1)) - 1;
+    for (let i = 0; i < count; i++) {
+      toSpawn.push(typeIdx);
+    }
+  }
+  return toSpawn;
+}
+
+// ───────────────────────────────────────────────────────────────
+// §12. BOSS SYSTEM
+// ───────────────────────────────────────────────────────────────
+
+/** Boss definitions */
+const BOSS_DEFS = [
+  {
+    id: 'sentinel', hp: 20, name: 'boss1',
+    moveInterval: 5, spawnInterval: 10,
+    weakSide: 'back', phases: [
+      { hpThreshold: 11, moveInterval: 5, spawnType: 0, spawnCount: 2, spawnInterval: 10 },
+      { hpThreshold: 0, moveInterval: 3, spawnType: 2, spawnCount: 1, spawnInterval: 8 }
+    ]
+  },
+  {
+    id: 'tyrant', hp: 30, name: 'boss2',
+    moveInterval: 8, spawnInterval: 8,
+    weakColor: 'red', phases: [
+      { hpThreshold: 16, shieldFaces: 1, spawnType: 0, spawnCount: 2, spawnInterval: 8 },
+      { hpThreshold: 0, shieldFaces: 2, spawnType: 3, spawnCount: 1, spawnInterval: 8 }
+    ]
+  },
+  {
+    id: 'serpent', hp: 40, name: 'boss3',
+    moveInterval: 4, spawnInterval: 12,
+    weakHead: 'blue', weakTail: 'red', phases: [
+      { hpThreshold: 21, segLen: 3, movePattern: 'horizontal', spawnType: 0, spawnCount: 2, spawnInterval: 12 },
+      { hpThreshold: 0, segLen: 5, movePattern: 'swave', spawnType: 4, spawnCount: 1, spawnInterval: 10 }
+    ]
+  }
+];
+
+/** Initialize boss fight */
+function initBoss(bossIdx) {
+  const def = BOSS_DEFS[bossIdx];
+  G.bossType = bossIdx;
+  G.bossHP = def.hp;
+  G.bossMaxHP = def.hp;
+  G.bossPhase = 1;
+  G.bossTimer = 0;
+  G.bossMoveTimer = 0;
+  G.bossX = 7;
+  G.bossY = 3;
+  G.bossTargetX = 7;
+  G.bossTargetY = 3;
+  G.bossVulnerable = false;
+  G.bossVulnTimer = 0;
+  G.bossSpawnTimer = 0;
+  G.bossShieldDir = 0;
+  G.bossRewardGiven = false;
+  G.enemies = [];
+  G.bossSegments = [];
+
+  // Serpent segments
+  if (bossIdx === 2) {
+    for (let i = 0; i < 3; i++) {
+      G.bossSegments.push({ x: 7 - i, y: 3 });
+    }
+  }
+}
+
+/** Update boss logic */
+function updateBoss(dt, offsetX, offsetY, cellSize) {
+  const dtSec = dt / 1000;
+  const def = BOSS_DEFS[G.bossType];
+
+  G.bossTimer += dtSec;
+  G.bossMoveTimer += dtSec;
+  G.bossSpawnTimer += dtSec;
+
+  // Determine phase
+  const phaseIdx = G.bossHP > def.phases[0].hpThreshold ? 0 : 1;
+  const phase = def.phases[phaseIdx];
+
+  // Vulnerability window
+  if (G.bossVulnerable) {
+    G.bossVulnTimer -= dtSec;
+    if (G.bossVulnTimer <= 0) G.bossVulnerable = false;
+  }
+
+  // Boss movement
+  const moveInterval = phase.moveInterval || def.moveInterval;
+  if (G.bossMoveTimer >= moveInterval) {
+    G.bossMoveTimer = 0;
+
+    // Move to random position in center area
+    const rngLocal = new SeededRNG(G.seed + Math.floor(G.bossTimer * 100));
+    const newTargetX = rngLocal.nextInt(4, 9);
+    const newTargetY = rngLocal.nextInt(1, 6);
+
+    // R5: Determine boss facing direction from movement vector
+    const mdx = newTargetX - G.bossX;
+    const mdy = newTargetY - G.bossY;
+    if (Math.abs(mdx) > Math.abs(mdy)) {
+      G.bossFacingDir = mdx > 0 ? 0 : 2; // facing right or left
+    } else {
+      G.bossFacingDir = mdy > 0 ? 1 : 3; // facing down or up
+    }
+
+    G.bossTargetX = newTargetX;
+    G.bossTargetY = newTargetY;
+
+    // Vulnerability after move
+    G.bossVulnerable = true;
+    G.bossVulnTimer = moveInterval * 0.6;
+
+    // Tyrant shield rotation
+    if (G.bossType === 1) {
+      G.bossShieldDir = (G.bossShieldDir + 1) % 4;
+      G.bossVulnTimer = 2.0; // 2 second window
+    }
+
+    // Serpent movement
+    if (G.bossType === 2) {
+      // Add current position to segments
+      G.bossSegments.unshift({ x: G.bossX, y: G.bossY });
+      const maxLen = phaseIdx === 1 ? 5 : 3;
+      while (G.bossSegments.length > maxLen) G.bossSegments.pop();
+    }
+  }
+
+  // Smooth boss movement
+  G.bossX = lerp(G.bossX, G.bossTargetX, dtSec * 2);
+  G.bossY = lerp(G.bossY, G.bossTargetY, dtSec * 2);
+
+  // Enemy spawning
+  if (G.bossSpawnTimer >= (phase.spawnInterval || def.spawnInterval)) {
+    G.bossSpawnTimer = 0;
+    const spawnType = phase.spawnType;
+    const count = phase.spawnCount || 1;
+
+    for (let i = 0; i < count; i++) {
+      const rngS = new SeededRNG(G.seed + Math.floor(G.bossTimer * 1000) + i);
+      const sy = rngS.nextInt(0, GRID_ROWS - 1);
+      const px = offsetX + (GRID_COLS - 1) * cellSize + cellSize / 2;
+      const py = offsetY + sy * cellSize + cellSize / 2;
+      G.enemies.push(createEnemy(spawnType, px, py, offsetX, offsetY, cellSize));
+    }
+  }
+
+  // Check boss damage from light
+  if (G.bossVulnerable && G.lightPaths.length > 0) {
+    const bossGX = Math.round(G.bossX);
+    const bossGY = Math.round(G.bossY);
+
+    // R6: Serpent requires simultaneous head+tail hit — accumulate across all paths
+    if (G.bossType === 2) {
+      let headBlueHit = false;
+      let tailRedHit = false;
+      let bestIntensity = 0;
+
+      for (const path of G.lightPaths) {
+        // Check head (blue required)
+        const hh = lightHitsCell([path], bossGX, bossGY);
+        if (hh.hit && hh.color === 'blue') {
+          headBlueHit = true;
+          bestIntensity = Math.max(bestIntensity, hh.intensity);
+        }
+        // Check tail (red required)
+        if (G.bossSegments.length > 0) {
+          const tail = G.bossSegments[G.bossSegments.length - 1];
+          const th = lightHitsCell([path], Math.round(tail.x), Math.round(tail.y));
+          if (th.hit && th.color === 'red') {
+            tailRedHit = true;
+            bestIntensity = Math.max(bestIntensity, th.intensity);
+          }
+        }
+      }
+
+      // Only damage when BOTH head (blue) and tail (red) are hit simultaneously
+      if (headBlueHit && tailRedHit) {
+        const dmg = calcDamage('blue') * bestIntensity;
+        G.bossHP -= dmg * dtSec * 2;
+        G.shakeIntensity = Math.max(G.shakeIntensity, 3);
+        if (G.bossHP <= 0) { G.bossHP = 0; bossDeath(); return; }
+      }
+    } else {
+      // Sentinel and Tyrant — per-path check
+      for (const path of G.lightPaths) {
+        const hit = lightHitsCell([path], bossGX, bossGY);
+        if (hit.hit) {
+          let canDamage = false;
+
+          // R5: Sentinel — only back side (light must come from behind boss)
+          if (G.bossType === 0) {
+            const backDir = (G.bossFacingDir + 2) % 4; // opposite of facing
+            canDamage = (path.dir === backDir);
+          }
+          // Tyrant: only red light
+          else if (G.bossType === 1) {
+            canDamage = hit.color === 'red';
+          }
+
+          if (canDamage) {
+            const dmg = calcDamage(hit.color) * hit.intensity;
+            G.bossHP -= dmg * dtSec * 2;
+            G.shakeIntensity = Math.max(G.shakeIntensity, 3);
+            if (G.bossHP <= 0) { G.bossHP = 0; bossDeath(); return; }
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Handle boss death */
+function bossDeath() {
+  if (G.bossRewardGiven) return; // F17: guard flag
+  G.bossRewardGiven = true;
+
+  const reward = BOSS_DEFS[G.bossType].hp * 200;
+  const coinReward = 50 + G.bossType * 30;
+
+  // F8: judge first, save later
+  const isNewBest = reward > (Save.get(`ix_${GAME_ID}_boss_${G.bossType}`, 0));
+  G.score += reward;
+  G.coins += coinReward;
+  G.totalScore += reward;
+
+  Save.set(`ix_${GAME_ID}_boss_${G.bossType}`, reward);
+  Save.setHighScore(GAME_ID, G.totalScore);
+
+  // Mark boss stage as cleared
+  const stageKey = `${G.zone}-boss`;
+  G.stageCleared[stageKey] = true;
+  G.stageStars[stageKey] = 3;
+  saveProgress();
+
+  SND.sfx('clear');
+  addNotification(t('bossDefeat'), 3);
+  addFloatingText(`+${reward}`, engine.W / 2, engine.H / 2, COL.COIN, 32);
+
+  G.shakeIntensity = 15;
+  particles.emit(engine.W / 2, engine.H / 2, 50, { color: COL.COIN, speed: 200, life: 1.5, size: 5 });
+
+  // Check game clear (Zone 3 boss = final boss for MVP)
+  if (G.zone >= TOTAL_ZONES) {
+    G.gameClear = true;
+    G.playState = PS.CLEAR;
+
+    tween.add({ _t: 0 }, { _t: 1 }, 3000, 'linear', () => {
+      beginTransition(STATE.BOSS, STATE.MAP, () => {
+        SND.startBGM('map');
+      });
+    });
+  } else {
+    tween.add({ _t: 0 }, { _t: 1 }, 2000, 'linear', () => {
+      beginTransition(STATE.BOSS, STATE.MAP, () => {
+        SND.startBGM('map');
+      });
+    });
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §13. UPGRADE SYSTEM
+// ───────────────────────────────────────────────────────────────
+
+/** Apply upgrade purchase */
+function purchaseUpgrade(branch) {
+  const lv = G.upgrades[branch];
+  if (lv >= MAX_UPGRADE_LV) return false;
+  const cost = UPGRADE_COSTS[lv];
+  if (G.coins < cost) return false;
+
+  G.coins -= cost;
+  G.upgrades[branch] = lv + 1;
+  saveProgress();
+  SND.sfx('upgrade');
+  addNotification(`${t('upgrade')}: ${t('upgrade_branches')?.[['light','refract','crystal'].indexOf(branch)] || branch} Lv${lv + 1}`, 2);
+  return true;
+}
+
+// ───────────────────────────────────────────────────────────────
+// §14. SAVE / LOAD SYSTEM
+// ───────────────────────────────────────────────────────────────
+
+/** Save game progress */
+function saveProgress() {
+  Save.set(`ix_${GAME_ID}_progress`, {
+    coins: G.coins,
+    totalScore: G.totalScore,
+    upgrades: G.upgrades,
+    stageCleared: G.stageCleared,
+    stageStars: G.stageStars,
+    seed: G.seed,
+    lang: G.lang
+  });
+}
+
+/** Load game progress */
+function loadProgress() {
+  const data = Save.get(`ix_${GAME_ID}_progress`, null);
+  if (data) {
+    G.coins = data.coins || 0;
+    G.totalScore = data.totalScore || 0;
+    G.upgrades = data.upgrades || { light: 0, refract: 0, crystal: 0 };
+    G.stageCleared = data.stageCleared || {};
+    G.stageStars = data.stageStars || {};
+    G.seed = data.seed || Date.now() % 10000;
+    G.lang = data.lang || 'ko';
+  } else {
+    G.seed = Date.now() % 10000;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §15. STAGE SETUP
+// ───────────────────────────────────────────────────────────────
+
+/** Initialize a stage for play */
+function setupStage(zone, stage) {
+  G.zone = zone;
+  G.stage = stage;
+  G.playState = PS.SETUP;
+
+  const stageData = generateValidStage(zone, stage);
+  G.grid = stageData.grid;
+  G.wallCells = stageData.walls;
+  G.lightSource = stageData.lightSource;
+  G.cores = stageData.cores;
+  G.spawnPoints = stageData.spawnPoints;
+
+  G.placedCrystals = [];
+  G.lightPaths = [];
+  G.enemies = [];
+  G.energy = INIT_ENERGY + ddaExtraEnergy();
+  G.maxEnergy = G.energy;
+  G.wave = 0;
+  G.maxWaves = (WAVE_COMPOSITIONS[`${zone}-${stage}`] || [{ E1: 5 }]).length;
+  G.stageTimer = 0;
+  G.comboCount = 0;
+  G.comboTimer = 0;
+  G.score = 0;
+  G.waveClearing = false;
+  G.waveStarted = false;
+  G.waveEnemiesSpawned = 0;
+  G.waveEnemiesToSpawn = 0;
+  G.spawnTimer = 0;
+  G.selectedCrystal = 0;
+  G.crystalAngle = 0;
+  G.hintCells = [];
+  G.shakeIntensity = 0;
+  G.notifications = [];
+  G.floatingTexts = [];
+
+  // Set inventory based on zone/stage
+  const n = absStageNum(zone, stage);
+  G.inventory = [3, 0, 0, 0, 0, 0, 0];
+  if (isCrystalUnlocked(1, zone, stage)) G.inventory[1] = 1;
+  if (isCrystalUnlocked(2, zone, stage)) G.inventory[2] = 1;
+  if (isCrystalUnlocked(3, zone, stage)) G.inventory[3] = 1;
+  if (isCrystalUnlocked(4, zone, stage)) G.inventory[4] = 1;
+  if (isCrystalUnlocked(5, zone, stage)) G.inventory[5] = 1;
+  if (isCrystalUnlocked(6, zone, stage)) G.inventory[6] = 1;
+
+  // R3: Zone 2 moving walls (stages 2-1 and 2-2)
+  G.movingWalls = [];
+  if (zone === 2 && stage <= 2) {
+    const mwRng = new SeededRNG(G.seed + zone * 200 + stage * 20);
+    // Pick up to 2 wall cells to make moving
+    const eligibleWalls = G.wallCells.filter(w => {
+      // Must have empty adjacent cell to move to
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      return dirs.some(([dx, dy]) => {
+        const nx = w.x + dx, ny = w.y + dy;
+        return inGrid(nx, ny) && G.grid[nx][ny] === CELL.EMPTY;
+      });
+    });
+    const mwCount = Math.min(stage, eligibleWalls.length);
+    const shuffled = mwRng.shuffle(eligibleWalls);
+    for (let i = 0; i < mwCount; i++) {
+      const w = shuffled[i];
+      // Find a valid alternate position
+      const dirs = mwRng.shuffle([[1,0],[-1,0],[0,1],[0,-1]]);
+      for (const [dx, dy] of dirs) {
+        const nx = w.x + dx, ny = w.y + dy;
+        if (inGrid(nx, ny) && G.grid[nx][ny] === CELL.EMPTY) {
+          G.movingWalls.push({ x: w.x, y: w.y, x2: nx, y2: ny, timer: 0, interval: 3 + mwRng.nextFloat(0, 2) });
+          break;
+        }
+      }
+    }
+  }
+
+  // DDA hint system
+  const hintCount = ddaHintCount();
+  if (hintCount > 0) {
+    generateHints(hintCount);
+  }
+
+  // Calculate grid layout
+  calculateGridLayout();
+
+  // Tutorial for first stage
+  if (zone === 1 && stage === 1 && !G.tutorialShown) {
+    addNotification(t('tutorial1'), 5);
+    G.tutorialShown = true;
+  }
+}
+
+/** Calculate grid layout based on screen size */
+function calculateGridLayout() {
+  const w = engine.W;
+  const h = engine.H;
+  const margin = input.isMobile ? 10 : 20;
+  const topBar = 40;
+  const bottomBar = input.isMobile ? 60 : 52;
+
+  const availW = w - margin * 2;
+  const availH = h - topBar - bottomBar - margin;
+
+  G.cellSize = Math.max(MIN_TOUCH_SIZE / 1.5, Math.min(
+    Math.floor(availW / GRID_COLS),
+    Math.floor(availH / GRID_ROWS)
+  ));
+
+  // Ensure minimum touch target
+  if (input.isMobile) G.cellSize = Math.max(30, G.cellSize);
+
+  const gridW = GRID_COLS * G.cellSize;
+  const gridH = GRID_ROWS * G.cellSize;
+
+  G.gridOffsetX = Math.floor((w - gridW) / 2);
+  G.gridOffsetY = topBar + Math.floor((availH - gridH) / 2);
+}
+
+/** Generate DDA hint cells */
+function generateHints(count) {
+  // Simple hint: suggest positions for crystals
+  G.hintCells = [];
+  const rngHint = new SeededRNG(G.seed + G.zone * 1000 + G.stage * 100);
+  let placed = 0;
+
+  for (let x = 2; x < GRID_COLS - 2 && placed < count; x++) {
+    for (let y = 0; y < GRID_ROWS && placed < count; y++) {
+      if (G.grid[x][y] === CELL.EMPTY && rngHint.next() > 0.7) {
+        G.hintCells.push({ x, y });
+        placed++;
+      }
+    }
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §16. WAVE MANAGEMENT
+// ───────────────────────────────────────────────────────────────
+
+/** R2: Apply wind effect in Zone 3 — shift crystals 1 cell in random direction */
+function applyWindEffect() {
+  const windRng = new SeededRNG(G.seed + G.zone * 1000 + G.stage * 100 + G.wave);
+  G.windDirection = windRng.nextInt(0, 3); // 0=right, 1=down, 2=left, 3=up
+  const dv = DIR_VEC[G.windDirection];
+  const windDirNames = { ko: ['→', '↓', '←', '↑'], en: ['→', '↓', '←', '↑'] };
+
+  addNotification(`💨 ${G.lang === 'ko' ? '바람' : 'Wind'} ${windDirNames[G.lang][G.windDirection]}`, 2);
+
+  // Shift all placed crystals
+  const toMove = [];
+  for (const c of G.placedCrystals) {
+    const ngx = c.gx + dv.dx;
+    const ngy = c.gy + dv.dy;
+    toMove.push({ crystal: c, ngx, ngy, ogx: c.gx, ogy: c.gy });
+  }
+
+  for (const m of toMove) {
+    const { crystal, ngx, ngy, ogx, ogy } = m;
+    // Only move if new position is valid and empty (not wall/core/source/another crystal)
+    if (inGrid(ngx, ngy) && G.grid[ngx][ngy] === CELL.EMPTY) {
+      // Check no other crystal already occupies the target
+      const occupied = G.placedCrystals.some(c => c !== crystal && c.gx === ngx && c.gy === ngy);
+      if (!occupied) {
+        G.grid[ogx][ogy] = CELL.EMPTY;
+        G.grid[ngx][ngy] = CELL.CRYSTAL;
+        crystal.gx = ngx;
+        crystal.gy = ngy;
+      }
+    }
+    // If blocked, crystal stays in place
+  }
+
+  recalcLight();
+  SND.sfx('light');
+}
+
+/** Start a wave */
+function startWave() {
+  if (G.waveStarted) return;
+  G.waveStarted = true;
+  G.wave++;
+  G.playState = PS.WAVE;
+
+  // R2: Zone 3 wind effect — shift crystals 1 cell per wave
+  if (G.zone === 3 && G.placedCrystals.length > 0) {
+    applyWindEffect();
+  }
+
+  const waveKey = `${G.zone}-${G.stage}`;
+  const waves = WAVE_COMPOSITIONS[waveKey] || [{ E1: 5 }];
+  const waveIdx = Math.min(G.wave - 1, waves.length - 1);
+  const waveData = waves[waveIdx];
+
+  // Queue enemies to spawn
+  G.waveEnemiesToSpawn = 0;
+  G._spawnQueue = [];
+  for (const [key, count] of Object.entries(waveData)) {
+    const typeIdx = parseInt(key.substring(1)) - 1;
+    for (let i = 0; i < count; i++) {
+      G._spawnQueue.push(typeIdx);
+      G.waveEnemiesToSpawn++;
+    }
+  }
+  G.waveEnemiesSpawned = 0;
+  G.spawnTimer = 0;
+  G.spawnInterval = Math.max(0.8, 2.5 - absStageNum(G.zone, G.stage) * 0.1);
+
+  SND.sfx('light');
+}
+
+/** Check if wave/stage is complete */
+function checkWaveComplete() {
+  if (G.waveClearing) return; // F5: guard flag
+
+  const allCoresPurified = G.cores.every(c => c.purified);
+
+  // R4: Alternative clear — survival time exceeded + cores purified
+  const diff = stageDifficulty(absStageNum(G.zone, G.stage));
+  const allSpawnedAndDead = G.waveEnemiesSpawned >= G.waveEnemiesToSpawn &&
+      G.enemies.filter(e => !e.dead).length === 0;
+  const survivalTimeMet = G.stageTimer >= diff.clearTime && allCoresPurified;
+
+  if (allSpawnedAndDead && allCoresPurified || survivalTimeMet) {
+    G.waveClearing = true; // F5: set guard
+
+    // If clearing by survival time, kill remaining enemies
+    if (survivalTimeMet && !allSpawnedAndDead) {
+      G.enemies.forEach(e => { e.dead = true; e.alpha = 0; });
+    }
+
+    if (G.wave >= G.maxWaves) {
+      stageComplete();
+    } else {
+      // More waves — back to setup
+      G.waveStarted = false;
+      G.waveClearing = false;
+      G.playState = PS.SETUP;
+      addNotification(`${t('wave')} ${G.wave} ${t('clear')}`, 2);
+      SND.sfx('clear');
+    }
+  }
+}
+
+/** Handle core purification check */
+function checkCorePurification() {
+  for (const core of G.cores) {
+    if (core.purified) continue;
+
+    const hit = lightHitsCell(G.lightPaths, core.x, core.y);
+    if (hit.hit) {
+      // Check color match
+      let colorMatch = false;
+      if (core.color === 'white' && (hit.color === 'white' || hit.color === 'red' || hit.color === 'blue')) {
+        colorMatch = true;
+      } else if (core.color === hit.color) {
+        colorMatch = true;
+      }
+
+      if (colorMatch) {
+        core.purified = true;
+        const cp = gridToPixel(core.x, core.y, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+        particles.emit(cp.px, cp.py, 20, { color: COL.PURIFY, speed: 100, life: 1.0, size: 4 });
+        addFloatingText(t('clear'), cp.px, cp.py - 20, COL.PURIFY, 20);
+        SND.sfx('combo');
+      }
+    }
+  }
+}
+
+/** Handle stage completion */
+function stageComplete() {
+  G.playState = PS.CLEAR;
+  const n = absStageNum(G.zone, G.stage);
+  const diff = stageDifficulty(n);
+
+  // Calculate score (F8: judge first)
+  const baseScore = G.enemies.length * 100;
+  const timeBonus = Math.max(0, (diff.clearTime - G.stageTimer) * 10);
+  const noDamage = G.energy === G.maxEnergy ? 500 : 0;
+  const stageScore = Math.floor(baseScore + timeBonus + noDamage);
+
+  const stageKey = `${G.zone}-${G.stage}`;
+  const prevBest = Save.get(`ix_${GAME_ID}_stage_${stageKey}`, 0);
+  G.newBestFlag = stageScore > prevBest;
+
+  // Stars
+  let stars = 1;
+  if (timeBonus > 0) stars = 2;
+  if (noDamage > 0) stars = 3;
+
+  G.score = stageScore;
+  G.totalScore += stageScore;
+  G.coins += diff.coinDrop * 3;
+
+  // Save (F8: save after judge)
+  Save.set(`ix_${GAME_ID}_stage_${stageKey}`, Math.max(stageScore, prevBest));
+  G.stageCleared[stageKey] = true;
+  G.stageStars[stageKey] = Math.max(stars, G.stageStars[stageKey] || 0);
+  Save.setHighScore(GAME_ID, G.totalScore);
+  saveProgress();
+
+  SND.sfx('clear');
+  G.shakeIntensity = 5;
+  particles.emit(engine.W / 2, engine.H / 3, 30, { color: COL.COIN, speed: 150, life: 1.0 });
+
+  if (G.newBestFlag) addNotification(t('newBest'), 3);
+  addNotification(`${t('score')}: ${stageScore}`, 3);
+
+  // Reset DDA on success
+  G.failCount = 0;
+  G.dda = 0;
+}
+
+/** Handle stage failure */
+function stageFail() {
+  G.playState = PS.DEAD;
+  G.failCount++;
+  G.dda = clamp(Math.floor(G.failCount / 2), 0, MAX_DDA_LV);
+  G.shakeIntensity = 10;
+  SND.sfx('gameover');
+
+  particles.emit(engine.W / 2, engine.H / 2, 20, { color: COL.RED, speed: 100, life: 0.8 });
+}
+
+// ───────────────────────────────────────────────────────────────
+// §17. BLAST CRYSTAL SYSTEM
+// ───────────────────────────────────────────────────────────────
+
+/** Check and execute blast crystal explosions */
+function checkBlastCrystals(dt) {
+  for (const c of G.placedCrystals) {
+    if (CRYSTAL_TYPES[c.type].id !== 'C7') continue;
+    if (!c._active) continue;
+
+    if (!c._cooldown) c._cooldown = 0;
+    c._cooldown -= dt / 1000;
+
+    if (c._cooldown <= 0) {
+      const blastRange = 3 * G.cellSize;
+      const cp = gridToPixel(c.gx, c.gy, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+      let blasted = false;
+
+      for (const e of G.enemies) {
+        if (e.dead) continue;
+        if (dist(e.x, e.y, cp.px, cp.py) < blastRange) {
+          e.hp = 0;
+          e.dead = true;
+          blasted = true;
+        }
+      }
+
+      if (blasted) {
+        const cooldown = getUpgrade('crystal') >= 4 ? 3 : 5;
+        c._cooldown = cooldown;
+        particles.emit(cp.px, cp.py, 30, { color: COL.LIGHT, speed: 200, life: 0.6, size: 5 });
+        SND.sfx('hit');
+      }
+    }
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §18. INPUT HANDLING
+// ───────────────────────────────────────────────────────────────
+
+/** Handle input for PLAY state */
+function handlePlayInput(dt) {
+  const dtSec = dt / 1000;
+
+  // Crystal rotation (Q/E keys)
+  if (input.jp('KeyQ')) {
+    G.crystalAngle = (G.crystalAngle + 3) % 4;
+    SND.sfx('rotate');
+  }
+  if (input.jp('KeyE')) {
+    G.crystalAngle = (G.crystalAngle + 1) % 4;
+    SND.sfx('rotate');
+  }
+
+  // Crystal selection (1-7 keys)
+  for (let i = 0; i < 7; i++) {
+    if (input.jp(`Digit${i + 1}`) && isCrystalUnlocked(i, G.zone, G.stage) && G.inventory[i] > 0) {
+      G.selectedCrystal = i;
+      SND.sfx('select');
+    }
+  }
+
+  // Pause
+  if (input.jp('KeyP') || input.jp('Escape')) {
+    if (G.playState === PS.WAVE || G.playState === PS.SETUP) {
+      G.playState = PS.PAUSED;
+      SND.sfx('select');
+    } else if (G.playState === PS.PAUSED) {
+      G.playState = G.waveStarted ? PS.WAVE : PS.SETUP;
+      SND.sfx('select');
+    }
+  }
+
+  // C3: Two-finger tap pause (mobile)
+  if (input.touches.length >= 2) {
+    if (!G._twoFingerPauseUsed) {
+      G._twoFingerPauseUsed = true;
+      if (G.playState === PS.WAVE || G.playState === PS.SETUP) {
+        G.playState = PS.PAUSED;
+        SND.sfx('select');
+      } else if (G.playState === PS.PAUSED) {
+        G.playState = G.waveStarted ? PS.WAVE : PS.SETUP;
+        SND.sfx('select');
+      }
+    }
+  } else {
+    G._twoFingerPauseUsed = false;
+  }
+
+  // Restart (R key)
+  if (input.jp('KeyR')) {
+    if (G.playState === PS.DEAD || G.playState === PS.CLEAR) {
+      if (G.playState === PS.DEAD) {
+        setupStage(G.zone, G.stage);
+      } else {
+        // Return to map after clear
+        beginTransition(STATE.PLAY, STATE.MAP, () => { SND.startBGM('map'); });
+      }
+    }
+  }
+
+  // Space — start wave or pause
+  if (input.jp('Space')) {
+    if (G.playState === PS.SETUP && !G.waveStarted) {
+      startWave();
+    } else if (G.playState === PS.WAVE) {
+      G.playState = PS.PAUSED;
+    } else if (G.playState === PS.PAUSED) {
+      G.playState = G.waveStarted ? PS.WAVE : PS.SETUP;
+    }
+  }
+
+  // Mouse hover — track grid position
+  const gp = pixelToGrid(input.mouseX, input.mouseY, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+  G.mouseGridX = gp.gx;
+  G.mouseGridY = gp.gy;
+
+  // Right-click — remove crystal
+  if (G.rightClicked && G.playState === PS.SETUP) {
+    const rgp = pixelToGrid(G.rightClickX, G.rightClickY, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+    removeCrystalAt(rgp.gx, rgp.gy);
+    G.rightClicked = false;
+  }
+
+  // Touch/click handling
+  if (input.tapped) {
+    const tapGP = pixelToGrid(input.tapX, input.tapY, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+    if (G.playState === PS.SETUP) {
+      handleSetupTap(tapGP.gx, tapGP.gy, input.tapX, input.tapY);
+    } else if (G.playState === PS.WAVE) {
+      handleWaveTap(tapGP.gx, tapGP.gy, input.tapX, input.tapY);
+    } else if (G.playState === PS.DEAD) {
+      handleDeadTap(input.tapX, input.tapY);
+    } else if (G.playState === PS.CLEAR) {
+      handleClearTap(input.tapX, input.tapY);
+    } else if (G.playState === PS.PAUSED) {
+      handlePauseTap(input.tapX, input.tapY);
+    }
+  }
+
+  // Long press detection for crystal removal (mobile)
+  if (input.mouseDown && G.playState === PS.SETUP) {
+    const lpGP = pixelToGrid(input.mouseX, input.mouseY, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+    if (G.longPressCell && G.longPressCell.gx === lpGP.gx && G.longPressCell.gy === lpGP.gy) {
+      G.longPressTimer += dtSec;
+      if (G.longPressTimer >= 0.5) {
+        removeCrystalAt(lpGP.gx, lpGP.gy);
+        G.longPressTimer = 0;
+        G.longPressCell = null;
+      }
+    } else {
+      G.longPressCell = { gx: lpGP.gx, gy: lpGP.gy };
+      G.longPressTimer = 0;
+    }
+  } else {
+    G.longPressTimer = 0;
+    G.longPressCell = null;
+  }
+
+  G.rightClicked = false;
+}
+
+/** Handle tap during setup phase */
+function handleSetupTap(gx, gy, tapX, tapY) {
+  const w = engine.W;
+  const h = engine.H;
+
+  // Check bottom bar buttons first
+  const bottomY = h - (input.isMobile ? 58 : 50);
+  const btnH = Math.max(MIN_TOUCH_SIZE, 40);
+
+  // Start wave button
+  const startBtnW = 100;
+  const startBtnX = w - startBtnW - 15;
+  if (UI.hitTest(tapX, tapY, startBtnX, bottomY, startBtnW, btnH)) {
+    startWave();
+    return;
+  }
+
+  // Crystal selection buttons
+  const crystalBarX = 10;
+  const crystalBtnSize = Math.max(MIN_TOUCH_SIZE, 42);
+  for (let i = 0; i < 7; i++) {
+    if (!isCrystalUnlocked(i, G.zone, G.stage)) continue;
+    const bx = crystalBarX + i * (crystalBtnSize + 4);
+    if (UI.hitTest(tapX, tapY, bx, bottomY, crystalBtnSize, btnH)) {
+      G.selectedCrystal = i;
+      SND.sfx('select');
+      return;
+    }
+  }
+
+  // Grid interaction
+  if (!inGrid(gx, gy)) return;
+
+  // Check if there's already a crystal here
+  const existingCrystal = G.placedCrystals.find(c => c.gx === gx && c.gy === gy);
+  if (existingCrystal) {
+    // Tap to rotate
+    existingCrystal.angle = (existingCrystal.angle + 1) % 4;
+    SND.sfx('rotate');
+    recalcLight();
+    return;
+  }
+
+  // Place crystal on empty cell
+  if (G.grid[gx][gy] === CELL.EMPTY && G.inventory[G.selectedCrystal] > 0) {
+    placeCrystalAt(gx, gy, G.selectedCrystal, G.crystalAngle);
+  }
+}
+
+/** Handle tap during wave phase */
+function handleWaveTap(gx, gy, tapX, tapY) {
+  // During wave, can only rotate existing crystals (if upgrade)
+  if (getUpgrade('refract') >= 3 && inGrid(gx, gy)) {
+    const crystal = G.placedCrystals.find(c => c.gx === gx && c.gy === gy);
+    if (crystal) {
+      crystal.angle = (crystal.angle + 1) % 4;
+      SND.sfx('rotate');
+      recalcLight();
+    }
+  }
+}
+
+/** Handle tap during dead state */
+function handleDeadTap(tapX, tapY) {
+  const w = engine.W, h = engine.H;
+  const btnW = 160, btnH = 48;
+  const btnX = (w - btnW) / 2;
+
+  // Retry button
+  if (UI.hitTest(tapX, tapY, btnX, h / 2 + 30, btnW, btnH)) {
+    setupStage(G.zone, G.stage);
+    return;
+  }
+
+  // Back to map button
+  if (UI.hitTest(tapX, tapY, btnX, h / 2 + 90, btnW, btnH)) {
+    beginTransition(STATE.PLAY, STATE.MAP, () => { SND.startBGM('map'); });
+  }
+}
+
+/** Handle tap during clear state */
+function handleClearTap(tapX, tapY) {
+  const w = engine.W, h = engine.H;
+  const btnW = 160, btnH = 48;
+  const btnX = (w - btnW) / 2;
+
+  if (UI.hitTest(tapX, tapY, btnX, h / 2 + 50, btnW, btnH)) {
+    beginTransition(STATE.PLAY, STATE.MAP, () => { SND.startBGM('map'); });
+  }
+}
+
+/** Handle tap during paused state */
+function handlePauseTap(tapX, tapY) {
+  const w = engine.W, h = engine.H;
+  const btnW = 160, btnH = 48;
+  const btnX = (w - btnW) / 2;
+
+  // Resume
+  if (UI.hitTest(tapX, tapY, btnX, h / 2 - 10, btnW, btnH)) {
+    G.playState = G.waveStarted ? PS.WAVE : PS.SETUP;
+    return;
+  }
+
+  // Restart
+  if (UI.hitTest(tapX, tapY, btnX, h / 2 + 50, btnW, btnH)) {
+    setupStage(G.zone, G.stage);
+    return;
+  }
+
+  // Back to map
+  if (UI.hitTest(tapX, tapY, btnX, h / 2 + 110, btnW, btnH)) {
+    beginTransition(STATE.PLAY, STATE.MAP, () => { SND.startBGM('map'); });
+  }
+}
+
+/** Place crystal on grid */
+function placeCrystalAt(gx, gy, typeIdx, angle) {
+  G.placedCrystals.push({
+    gx, gy,
+    type: typeIdx,
+    angle: angle,
+    _active: false,
+    _cooldown: 0
+  });
+  G.grid[gx][gy] = CELL.CRYSTAL;
+  G.inventory[typeIdx]--;
+  SND.sfx('place');
+
+  const cp = gridToPixel(gx, gy, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+  particles.emit(cp.px, cp.py, 8, { color: COL.CRYSTAL, speed: 60, life: 0.4, size: 3 });
+
+  recalcLight();
+}
+
+/** Remove crystal from grid */
+function removeCrystalAt(gx, gy) {
+  const idx = G.placedCrystals.findIndex(c => c.gx === gx && c.gy === gy);
+  if (idx === -1) return;
+
+  const crystal = G.placedCrystals[idx];
+  G.inventory[crystal.type]++;
+  G.grid[gx][gy] = CELL.EMPTY;
+  G.placedCrystals.splice(idx, 1);
+  SND.sfx('rotate');
+
+  recalcLight();
+}
+
+/** Recalculate light paths */
+function recalcLight() {
+  // Reset active states
+  for (const c of G.placedCrystals) c._active = false;
+
+  G.lightPaths = traceLight(G.grid, G.lightSource, G.placedCrystals, 50, G.enemies);
+
+  // Check core purification
+  checkCorePurification();
+}
+
+// ───────────────────────────────────────────────────────────────
+// §19. MAP STATE HANDLING
+// ───────────────────────────────────────────────────────────────
+
+/** Handle MAP state input */
+function handleMapInput() {
+  if (input.jp('Escape')) {
+    beginTransition(STATE.MAP, STATE.TITLE, () => { SND.startBGM('title'); });
+    return;
+  }
+
+  // Toggle language
+  if (input.jp('KeyP')) {
+    G.lang = G.lang === 'ko' ? 'en' : 'ko';
+    saveProgress();
+    SND.sfx('select');
+  }
+
+  // Toggle shop
+  if (input.jp('KeyS')) {
+    G.showShop = !G.showShop;
+    SND.sfx('select');
+  }
+
+  if (!input.tapped) return;
+
+  const w = engine.W, h = engine.H;
+
+  // Language toggle button (top-right)
+  if (UI.hitTest(input.tapX, input.tapY, w - 70, 8, 60, 30)) {
+    G.lang = G.lang === 'ko' ? 'en' : 'ko';
+    saveProgress();
+    SND.sfx('select');
+    return;
+  }
+
+  // Shop button
+  if (UI.hitTest(input.tapX, input.tapY, w - 140, 8, 60, 30)) {
+    G.showShop = !G.showShop;
+    SND.sfx('select');
+    return;
+  }
+
+  // If shop is open, handle shop taps
+  if (G.showShop) {
+    handleShopTap(input.tapX, input.tapY);
+    return;
+  }
+
+  // Stage selection
+  handleStageSelection(input.tapX, input.tapY);
+}
+
+/** Handle stage selection on map */
+function handleStageSelection(tapX, tapY) {
+  const w = engine.W, h = engine.H;
+  const startY = 80;
+  const nodeSize = Math.max(MIN_TOUCH_SIZE, 50);
+  const spacing = Math.min(110, (w - 60) / 4);
+
+  for (let z = 1; z <= TOTAL_ZONES; z++) {
+    const zoneY = startY + (z - 1) * 120;
+
+    for (let s = 1; s <= STAGES_PER_ZONE; s++) {
+      const nodeX = 50 + (s - 1) * spacing;
+      const nodeY = zoneY + 30;
+      const stageKey = `${z}-${s}`;
+
+      if (UI.hitTest(tapX, tapY, nodeX - nodeSize / 2, nodeY - nodeSize / 2, nodeSize, nodeSize)) {
+        // Check if stage is accessible
+        if (isStageAccessible(z, s)) {
+          SND.sfx('select');
+          beginTransition(STATE.MAP, STATE.PLAY, () => {
+            setupStage(z, s);
+            SND.startBGM('play');
+          });
+        }
+        return;
+      }
+    }
+
+    // Boss node
+    const bossX = 50 + STAGES_PER_ZONE * spacing;
+    const bossY = zoneY + 30;
+    const bossKey = `${z}-boss`;
+
+    if (UI.hitTest(tapX, tapY, bossX - nodeSize / 2, bossY - nodeSize / 2, nodeSize, nodeSize)) {
+      // Boss accessible only if all 3 stages cleared
+      const allCleared = [1, 2, 3].every(s => G.stageCleared[`${z}-${s}`]);
+      if (allCleared && !G.stageCleared[bossKey]) {
+        SND.sfx('select');
+        beginTransition(STATE.MAP, STATE.BOSS, () => {
+          initBoss(z - 1);
+          setupBossStage();
+          SND.startBGM('boss');
+        });
+      } else if (G.stageCleared[bossKey]) {
+        addNotification(t('bossDefeat'), 1.5);
+      }
+      return;
+    }
+  }
+}
+
+/** Check if a stage is accessible */
+function isStageAccessible(zone, stage) {
+  if (zone === 1 && stage === 1) return true;
+  // Previous stage in same zone must be cleared
+  if (stage > 1) return !!G.stageCleared[`${zone}-${stage - 1}`];
+  // First stage of new zone: previous zone boss must be cleared
+  return !!G.stageCleared[`${zone - 1}-boss`];
+}
+
+/** Handle shop tap */
+function handleShopTap(tapX, tapY) {
+  const w = engine.W, h = engine.H;
+  const shopW = Math.min(350, w - 40);
+  const shopX = (w - shopW) / 2;
+  const shopY = 80;
+  const btnH = 48;
+  const branches = ['light', 'refract', 'crystal'];
+
+  for (let i = 0; i < 3; i++) {
+    const by = shopY + 40 + i * (btnH + 16);
+    const bx = shopX + shopW - 100;
+    if (UI.hitTest(tapX, tapY, bx, by, 90, btnH)) {
+      purchaseUpgrade(branches[i]);
+      return;
+    }
+  }
+
+  // Close button
+  if (UI.hitTest(tapX, tapY, shopX + shopW - 40, shopY - 5, 35, 35)) {
+    G.showShop = false;
+    SND.sfx('select');
+  }
+}
+
+/** Setup grid for boss fight */
+function setupBossStage() {
+  // Simple grid for boss arena
+  G.grid = [];
+  for (let x = 0; x < GRID_COLS; x++) {
+    G.grid[x] = [];
+    for (let y = 0; y < GRID_ROWS; y++) {
+      G.grid[x][y] = CELL.EMPTY;
+    }
+  }
+
+  G.lightSource = { x: 0, y: 3, dir: 0 };
+  G.grid[0][3] = CELL.SOURCE;
+  G.cores = [];
+  G.placedCrystals = [];
+  G.lightPaths = [];
+  G.enemies = [];
+  G.energy = INIT_ENERGY + 3;
+  G.maxEnergy = G.energy;
+  G.playState = PS.BOSS_INTRO;
+  G.introTimer = 3;
+  G.introPhase = 0;
+  G.spawnPoints = [{ x: 11, y: 2 }, { x: 11, y: 5 }];
+  G.waveStarted = true;
+  G.stageTimer = 0;
+  G.shakeIntensity = 0;
+
+  // Boss gets more crystals
+  G.inventory = [4, 2, 1, 2, 2, 1, 1];
+  if (G.bossType === 0) G.inventory = [4, 1, 0, 0, 0, 0, 0];
+  if (G.bossType === 1) G.inventory = [3, 1, 1, 3, 0, 0, 0];
+  if (G.bossType === 2) G.inventory = [3, 2, 1, 2, 2, 1, 0];
+
+  G.selectedCrystal = 0;
+  G.crystalAngle = 0;
+
+  calculateGridLayout();
+}
+
+// ───────────────────────────────────────────────────────────────
+// §20. BACKGROUND PARTICLES
+// ───────────────────────────────────────────────────────────────
+
+/** Initialize background particles for visual flair */
+function initBgParticles(count) {
+  G.bgParticles = [];
+  const localRng = new SeededRNG(G.seed + 777);
+  for (let i = 0; i < count; i++) {
+    G.bgParticles.push({
+      x: localRng.next() * engine.W,
+      y: localRng.next() * engine.H,
+      size: localRng.nextFloat(1, 3),
+      speed: localRng.nextFloat(5, 20),
+      alpha: localRng.nextFloat(0.1, 0.5),
+      color: [COL.CRYSTAL, COL.LIGHT, COL.CYAN, COL.COIN][localRng.nextInt(0, 3)],
+      phase: localRng.next() * Math.PI * 2
+    });
+  }
+}
+
+/** Update background particles */
+function updateBgParticles(dt, w, h) {
+  const dtSec = dt / 1000;
+  for (const p of G.bgParticles) {
+    p.y -= p.speed * dtSec;
+    p.x += Math.sin(p.phase + p.y * 0.01) * dtSec * 10;
+    p.phase += dtSec;
+    if (p.y < -10) { p.y = h + 10; p.x = rng.next() * w; }
+    if (p.x < -10) p.x = w + 10;
+    if (p.x > w + 10) p.x = -10;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §21. MAIN UPDATE LOOP
+// ───────────────────────────────────────────────────────────────
+
+function update(dt, timestamp) {
+  // Global systems — always update (F7: 상태×시스템 매트릭스)
+  tween.update(dt);
+  particles.update(dt);
+  SND.scheduleBGM();
+
+  // Shake decay
+  if (G.shakeIntensity > 0) G.shakeIntensity *= 0.9;
+  if (G.shakeIntensity < 0.1) G.shakeIntensity = 0;
+
+  // Update floating texts
+  updateFloatingTexts(dt);
+
+  // Update notifications
+  updateNotifications(dt);
+
+  // Update background particles
+  updateBgParticles(dt, engine.W, engine.H);
+
+  // State-specific updates
+  switch (G.state) {
+    case STATE.TITLE:
+      updateTitle(dt);
+      break;
+    case STATE.MAP:
+      updateMap(dt);
+      break;
+    case STATE.PLAY:
+      updatePlay(dt);
+      break;
+    case STATE.BOSS:
+      updateBossState(dt);
+      break;
+  }
+
+  input.flush(); // ⚠️ 필수: 프레임 끝에 flush
+}
+
+/** Update title state */
+function updateTitle(dt) {
+  G.titleTime += dt / 1000;
+
+  if (input.confirm()) {
+    SND.init();
+    SND.sfx('select');
+    beginTransition(STATE.TITLE, STATE.MAP, () => {
+      loadProgress();
+      SND.startBGM('map');
+    });
+  }
+}
+
+/** Update map state */
+function updateMap(dt) {
+  handleMapInput();
+}
+
+/** Update play state */
+function updatePlay(dt) {
+  const dtSec = dt / 1000;
+
+  handlePlayInput(dt);
+
+  if (G.playState === PS.PAUSED || G.playState === PS.DEAD || G.playState === PS.CLEAR) {
+    return;
+  }
+
+  G.stageTimer += dtSec;
+
+  // R3: Update moving walls (Zone 2)
+  if (G.movingWalls.length > 0) {
+    let wallMoved = false;
+    for (const mw of G.movingWalls) {
+      mw.timer += dtSec;
+      if (mw.timer >= mw.interval) {
+        mw.timer = 0;
+        // Check target position is still empty (no crystal placed there)
+        if (G.grid[mw.x2][mw.y2] === CELL.EMPTY) {
+          G.grid[mw.x][mw.y] = CELL.EMPTY;
+          G.grid[mw.x2][mw.y2] = CELL.WALL;
+          // Swap positions
+          const tmpX = mw.x, tmpY = mw.y;
+          mw.x = mw.x2; mw.y = mw.y2;
+          mw.x2 = tmpX; mw.y2 = tmpY;
+          wallMoved = true;
+        }
+      }
+    }
+    if (wallMoved) recalcLight();
+  }
+
+  // Recalculate light paths continuously
+  recalcLight();
+
+  if (G.playState === PS.WAVE) {
+    // Spawn enemies
+    G.spawnTimer += dtSec;
+    if (G.spawnTimer >= G.spawnInterval && G.waveEnemiesSpawned < G.waveEnemiesToSpawn) {
+      G.spawnTimer = 0;
+      const typeIdx = G._spawnQueue[G.waveEnemiesSpawned];
+      const spawnIdx = G.waveEnemiesSpawned % G.spawnPoints.length;
+      const sp = G.spawnPoints[spawnIdx];
+      const spPx = gridToPixel(sp.x, sp.y, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+      G.enemies.push(createEnemy(typeIdx, spPx.px, spPx.py, G.gridOffsetX, G.gridOffsetY, G.cellSize));
+      G.waveEnemiesSpawned++;
+    }
+
+    // Update enemies
+    const srcPx = gridToPixel(G.lightSource.x, G.lightSource.y, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+    updateEnemies(G.enemies, dt, srcPx.px, srcPx.py, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+    // Check enemy hits by light (F8: judge first)
+    const hitResult = checkShadowHit(G.lightPaths, G.enemies, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+    // Process kills
+    for (const killed of hitResult.kills) {
+      const coinDrop = stageDifficulty(absStageNum(G.zone, G.stage)).coinDrop;
+      G.coins += coinDrop;
+      G.comboCount++;
+      G.comboTimer = 1.5;
+      G.score += 100 * G.comboCount;
+
+      addFloatingText(`+${100 * G.comboCount}`, killed.x, killed.y - 15, COL.COIN);
+      particles.emit(killed.x, killed.y, 12, { color: COL.SHADOW, speed: 80, life: 0.6 });
+
+      if (G.comboCount >= 3) {
+        SND.sfx('combo');
+        addFloatingText(`COMBO ×${G.comboCount}!`, killed.x, killed.y - 35, COL.CYAN, 22);
+      } else {
+        SND.sfx('hit');
+      }
+    }
+
+    // Combo timer
+    if (G.comboTimer > 0) {
+      G.comboTimer -= dtSec;
+      if (G.comboTimer <= 0) G.comboCount = 0;
+    }
+
+    // Check blast crystals
+    checkBlastCrystals(dt);
+
+    // Check enemy reaching source
+    if (checkEnemyReachSource(G.enemies, srcPx.px, srcPx.py, G.cellSize * 0.8)) {
+      G.energy--;
+      G.shakeIntensity = 8;
+      SND.sfx('damage');
+      addFloatingText(`-1 ${t('energy')}`, srcPx.px, srcPx.py - 20, COL.RED, 20);
+
+      if (G.energy <= 0) {
+        stageFail();
+        return;
+      }
+    }
+
+    // Check wave completion
+    checkWaveComplete();
+  }
+}
+
+/** Update boss state */
+function updateBossState(dt) {
+  const dtSec = dt / 1000;
+
+  // Boss intro
+  if (G.playState === PS.BOSS_INTRO) {
+    G.introTimer -= dtSec;
+    if (G.introTimer <= 0) {
+      G.playState = PS.SETUP;
+      addNotification(t('boss_warning'), 2);
+    }
+    return;
+  }
+
+  handlePlayInput(dt);
+
+  if (G.playState === PS.PAUSED) return;
+
+  G.stageTimer += dtSec;
+  recalcLight();
+
+  // Boss AI + enemies
+  updateBoss(dt, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  const srcPx = gridToPixel(G.lightSource.x, G.lightSource.y, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+  updateEnemies(G.enemies, dt, srcPx.px, srcPx.py, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Enemy hits
+  const hitResult = checkShadowHit(G.lightPaths, G.enemies, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+  for (const killed of hitResult.kills) {
+    G.score += 100;
+    particles.emit(killed.x, killed.y, 10, { color: COL.SHADOW, speed: 80, life: 0.5 });
+    SND.sfx('hit');
+  }
+
+  // Enemy reaching source
+  if (checkEnemyReachSource(G.enemies, srcPx.px, srcPx.py, G.cellSize * 0.8)) {
+    G.energy--;
+    G.shakeIntensity = 8;
+    SND.sfx('damage');
+
+    if (G.energy <= 0) {
+      stageFail();
+    }
+  }
+
+  // Camera zoom for boss
+  G.targetZoom = 0.85;
+  G.cameraZoom = lerp(G.cameraZoom, G.targetZoom, dtSec * 2);
+}
+
+/** Update floating texts */
+function updateFloatingTexts(dt) {
+  const dtSec = dt / 1000;
+  for (let i = G.floatingTexts.length - 1; i >= 0; i--) {
+    const ft = G.floatingTexts[i];
+    ft.y += ft.vy * dtSec;
+    ft.life -= dtSec;
+    ft.alpha = Math.max(0, ft.life / 1.2);
+    if (ft.life <= 0) G.floatingTexts.splice(i, 1);
+  }
+}
+
+/** Update notifications */
+function updateNotifications(dt) {
+  const dtSec = dt / 1000;
+  for (let i = G.notifications.length - 1; i >= 0; i--) {
+    const n = G.notifications[i];
+    n.life -= dtSec;
+    n.alpha = Math.min(1, n.life);
+    if (n.life <= 0) G.notifications.splice(i, 1);
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §22. RENDER FUNCTIONS — All pure (F9)
+// ───────────────────────────────────────────────────────────────
+
+function render(ctx, w, h, dt) {
+  const shake = UI.shake(G.shakeIntensity);
+  ctx.save();
+  ctx.translate(shake.x, shake.y);
+
+  // Background
+  ctx.fillStyle = COL.BG;
+  ctx.fillRect(-10, -10, w + 20, h + 20);
+
+  // Background particles
+  renderBgParticles(ctx, w, h);
+
+  // State-specific render
+  switch (G.state) {
+    case STATE.TITLE: renderTitle(ctx, w, h); break;
+    case STATE.MAP:   renderMap(ctx, w, h); break;
+    case STATE.PLAY:  renderPlay(ctx, w, h); break;
+    case STATE.BOSS:  renderBossState(ctx, w, h); break;
+  }
+
+  // Floating texts
+  renderFloatingTexts(ctx);
+
+  // Notifications
+  renderNotifications(ctx, w, h);
+
+  // Particles (engine)
+  particles.render(ctx);
+
+  // Fade overlay
+  if (G.fadeAlpha > 0.01 || G.transitioning) {
+    const alpha = G.transitioning ? G.fadeAlpha : 0;
+    UI.fade(ctx, w, h, alpha);
+  }
+
+  ctx.restore();
+}
+
+/** Render background particles */
+function renderBgParticles(ctx, w, h) {
+  for (const p of G.bgParticles) {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ───────────────────────────────────────────────────────────────
+// §23. TITLE SCREEN RENDER
+// ───────────────────────────────────────────────────────────────
+
+function renderTitle(ctx, w, h) {
+  // Animated background gradient
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#0a0e2a');
+  grad.addColorStop(0.5, '#0f1338');
+  grad.addColorStop(1, '#0a0e2a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Prism light effect
+  const centerX = w / 2;
+  const centerY = h * 0.35;
+  const time = G.titleTime;
+
+  // Draw prism
+  ctx.save();
+  ctx.translate(centerX, centerY);
+
+  // Rainbow beams from prism
+  const beamColors = ['#ff4466', '#ff8844', '#ffcc44', '#44ff88', '#44aaff', '#8844ff'];
+  for (let i = 0; i < beamColors.length; i++) {
+    const angle = -0.5 + i * 0.2 + Math.sin(time * 0.5 + i) * 0.05;
+    ctx.strokeStyle = beamColors[i];
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6 + Math.sin(time * 2 + i) * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * 300, Math.sin(angle) * 300);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Prism triangle
+  ctx.fillStyle = COL.CRYSTAL + '88';
+  ctx.strokeStyle = COL.CRYSTAL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -35);
+  ctx.lineTo(30, 20);
+  ctx.lineTo(-30, 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Input beam
+  ctx.strokeStyle = COL.LIGHT;
+  ctx.lineWidth = 4;
+  ctx.shadowColor = COL.LIGHT;
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.moveTo(-300, 0);
+  ctx.lineTo(-30, 0);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+
+  // Title text
+  const titleY = h * 0.58;
+  ctx.save();
+  ctx.shadowColor = COL.CRYSTAL;
+  ctx.shadowBlur = 20;
+  UI.text(ctx, t('title'), centerX, titleY, { size: Math.min(48, w / 10), bold: true, color: COL.TEXT, glow: COL.CRYSTAL });
+  ctx.restore();
+
+  // Subtitle
+  UI.text(ctx, t('subtitle'), centerX, titleY + 40, { size: Math.min(16, w / 28), color: COL.TEXT2 });
+
+  // Start prompt — pulsing
+  const pulse = 0.5 + Math.sin(time * 3) * 0.5;
+  ctx.globalAlpha = pulse;
+  UI.text(ctx, input.isMobile ? t('tapToStart') : `[SPACE] ${t('start')}`, centerX, h * 0.78, { size: 18, color: COL.CYAN });
+  ctx.globalAlpha = 1;
+
+  // High score
+  const hi = Save.getHighScore(GAME_ID);
+  if (hi > 0) {
+    UI.text(ctx, `${t('highScore')}: ${hi}`, centerX, h * 0.88, { size: 14, color: COL.COIN });
+  }
+
+  // Version
+  UI.text(ctx, 'Cycle #39 v1.0', w - 60, h - 15, { size: 10, color: COL.TEXT3, align: 'right' });
+
+  // Scanlines
+  UI.scanlines(ctx, w, h, 0.02);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §24. MAP SCREEN RENDER
+// ───────────────────────────────────────────────────────────────
+
+function renderMap(ctx, w, h) {
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#0a0e2a');
+  grad.addColorStop(1, '#0f1338');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Header
+  UI.text(ctx, t('title'), w / 2, 25, { size: 20, bold: true, color: COL.TEXT, glow: COL.CRYSTAL });
+
+  // Coins display
+  UI.text(ctx, `🔮 ${G.coins}`, 80, 22, { size: 14, color: COL.COIN, align: 'left' });
+
+  // Total score
+  UI.text(ctx, `⭐ ${G.totalScore}`, 10, 22, { size: 14, color: COL.TEXT2, align: 'left' });
+
+  // Language toggle
+  UI.button(ctx, t('lang'), w - 70, 8, 60, 28, { color: COL.TEXT3 });
+
+  // Shop button
+  UI.button(ctx, t('shop'), w - 140, 8, 60, 28, { color: COL.COIN });
+
+  // Draw zones and stages
+  const startY = 70;
+  const nodeSize = Math.max(MIN_TOUCH_SIZE, 44);
+  const spacing = Math.min(110, (w - 80) / 4);
+
+  for (let z = 1; z <= TOTAL_ZONES; z++) {
+    const zoneY = startY + (z - 1) * 120;
+    const zoneName = t('zone_names')[z - 1];
+
+    // Zone label
+    UI.text(ctx, `${z}. ${zoneName}`, w / 2, zoneY, { size: 16, bold: true, color: COL.TEXT });
+
+    // Draw connecting line
+    ctx.strokeStyle = COL.GRID_LINE;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(50, zoneY + 30);
+    ctx.lineTo(50 + (STAGES_PER_ZONE + 0.5) * spacing, zoneY + 30);
+    ctx.stroke();
+
+    // Stage nodes
+    for (let s = 1; s <= STAGES_PER_ZONE; s++) {
+      const nodeX = 50 + (s - 1) * spacing;
+      const nodeY = zoneY + 30;
+      const stageKey = `${z}-${s}`;
+      const cleared = G.stageCleared[stageKey];
+      const accessible = isStageAccessible(z, s);
+      const stars = G.stageStars[stageKey] || 0;
+
+      // Node circle
+      ctx.beginPath();
+      ctx.arc(nodeX, nodeY, nodeSize / 2 - 4, 0, Math.PI * 2);
+      if (cleared) {
+        ctx.fillStyle = COL.PURIFY + '44';
+        ctx.strokeStyle = COL.PURIFY;
+      } else if (accessible) {
+        ctx.fillStyle = COL.CRYSTAL + '44';
+        ctx.strokeStyle = COL.CRYSTAL;
+      } else {
+        ctx.fillStyle = COL.WALL + '44';
+        ctx.strokeStyle = COL.TEXT3;
+      }
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+
+      // Stage number
+      UI.text(ctx, `${s}`, nodeX, nodeY - 3, {
+        size: 16, bold: true,
+        color: accessible ? COL.TEXT : COL.TEXT3
+      });
+
+      // Stars
+      if (stars > 0) {
+        const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+        UI.text(ctx, starStr, nodeX, nodeY + 16, { size: 9, color: COL.COIN });
+      }
+    }
+
+    // Boss node
+    const bossX = 50 + STAGES_PER_ZONE * spacing;
+    const bossY = zoneY + 30;
+    const bossKey = `${z}-boss`;
+    const bossCleared = G.stageCleared[bossKey];
+    const allStagesCleared = [1, 2, 3].every(s => G.stageCleared[`${z}-${s}`]);
+
+    ctx.beginPath();
+    ctx.arc(bossX, bossY, nodeSize / 2 - 2, 0, Math.PI * 2);
+    if (bossCleared) {
+      ctx.fillStyle = COL.COIN + '44';
+      ctx.strokeStyle = COL.COIN;
+    } else if (allStagesCleared) {
+      ctx.fillStyle = COL.RED + '44';
+      ctx.strokeStyle = COL.RED;
+    } else {
+      ctx.fillStyle = COL.WALL + '44';
+      ctx.strokeStyle = COL.TEXT3;
+    }
+    ctx.lineWidth = 3;
+    ctx.fill();
+    ctx.stroke();
+
+    // Boss label
+    UI.text(ctx, 'BOSS', bossX, bossY - 3, {
+      size: 11, bold: true,
+      color: allStagesCleared ? COL.RED : COL.TEXT3
+    });
+
+    if (bossCleared) {
+      UI.text(ctx, '★★★', bossX, bossY + 16, { size: 9, color: COL.COIN });
+    }
+  }
+
+  // Game clear message
+  if (G.gameClear) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, h - 60, w, 50);
+    UI.text(ctx, t('game_clear'), w / 2, h - 35, { size: 18, bold: true, color: COL.COIN, glow: COL.COIN });
+  }
+
+  // Shop overlay
+  if (G.showShop) {
+    renderShop(ctx, w, h);
+  }
+
+  UI.scanlines(ctx, w, h, 0.015);
+}
+
+/** Render shop overlay */
+function renderShop(ctx, w, h) {
+  // Dimmed background
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  const shopW = Math.min(350, w - 40);
+  const shopX = (w - shopW) / 2;
+  const shopY = 70;
+  const shopH = 280;
+
+  // Shop panel
+  ctx.fillStyle = '#12121e';
+  ctx.strokeStyle = COL.CRYSTAL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(shopX, shopY, shopW, shopH, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  // Title
+  UI.text(ctx, `${t('upgrade')} — 🔮 ${G.coins}`, shopX + shopW / 2, shopY + 22, {
+    size: 18, bold: true, color: COL.COIN
+  });
+
+  // Close button
+  UI.button(ctx, '✕', shopX + shopW - 40, shopY - 5, 35, 35, { color: COL.RED });
+
+  // Upgrade branches
+  const branches = ['light', 'refract', 'crystal'];
+  const branchNames = t('upgrade_branches') || ['Light', 'Refract', 'Crystal'];
+  const icons = ['💡', '🔮', '💎'];
+  const btnH = 48;
+
+  for (let i = 0; i < 3; i++) {
+    const by = shopY + 50 + i * (btnH + 16);
+    const lv = G.upgrades[branches[i]];
+    const isMax = lv >= MAX_UPGRADE_LV;
+    const cost = isMax ? 0 : UPGRADE_COSTS[lv];
+    const canBuy = !isMax && G.coins >= cost;
+
+    // Branch info
+    UI.text(ctx, `${icons[i]} ${branchNames[i]}`, shopX + 20, by + 12, {
+      size: 14, bold: true, color: COL.TEXT, align: 'left'
+    });
+
+    // Level bar
+    for (let j = 0; j < MAX_UPGRADE_LV; j++) {
+      const bx = shopX + 20 + j * 22;
+      ctx.fillStyle = j < lv ? COL.CRYSTAL : COL.WALL;
+      ctx.fillRect(bx, by + 26, 18, 8);
+    }
+
+    // Buy button
+    const btnX = shopX + shopW - 100;
+    if (isMax) {
+      UI.button(ctx, t('max'), btnX, by, 90, btnH, { color: COL.TEXT3 });
+    } else {
+      UI.button(ctx, `${cost} 🔮`, btnX, by, 90, btnH, {
+        color: canBuy ? COL.PURIFY : COL.TEXT3,
+        hover: canBuy
+      });
+    }
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §25. PLAY STATE RENDER
+// ───────────────────────────────────────────────────────────────
+
+function renderPlay(ctx, w, h) {
+  // Background based on zone
+  renderZoneBackground(ctx, w, h, G.zone);
+
+  // Grid
+  renderGrid(ctx, G.grid, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Placed crystals
+  renderCrystals(ctx, G.placedCrystals, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Light paths
+  renderLightPaths(ctx, G.lightPaths, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Enemies
+  renderEnemies(ctx, G.enemies, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Light source
+  renderLightSource(ctx, G.lightSource, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Cores
+  renderCores(ctx, G.cores, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Hint cells (DDA)
+  renderHints(ctx, G.hintCells, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Ghost preview (selected crystal placement)
+  if (G.playState === PS.SETUP && inGrid(G.mouseGridX, G.mouseGridY)) {
+    renderGhostCrystal(ctx, G.mouseGridX, G.mouseGridY, G.selectedCrystal, G.crystalAngle,
+      G.gridOffsetX, G.gridOffsetY, G.cellSize);
+  }
+
+  // HUD
+  renderPlayHUD(ctx, w, h);
+
+  // Bottom bar (crystal selection + start button)
+  renderBottomBar(ctx, w, h);
+
+  // Sub-state overlays
+  if (G.playState === PS.PAUSED) renderPauseOverlay(ctx, w, h);
+  if (G.playState === PS.DEAD) renderDeadOverlay(ctx, w, h);
+  if (G.playState === PS.CLEAR) renderClearOverlay(ctx, w, h);
+}
+
+/** Render zone-specific background (procedural — F1/F24: no assets) */
+function renderZoneBackground(ctx, w, h, zone) {
+  const colors = [
+    ['#0a0e2a', '#1a103a'], // Zone 1: Crystal Cavern
+    ['#0a0e2a', '#1a1040'], // Zone 2: Prism Palace
+    ['#0a1a30', '#0a1040']  // Zone 3: Rainbow Bridge
+  ];
+  const [c1, c2] = colors[(zone - 1) % 3];
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(1, c2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/** Render the game grid */
+function renderGrid(ctx, grid, ox, oy, cs) {
+  if (!grid) return;
+
+  // Grid background
+  ctx.fillStyle = 'rgba(10, 14, 42, 0.7)';
+  ctx.fillRect(ox - 2, oy - 2, GRID_COLS * cs + 4, GRID_ROWS * cs + 4);
+
+  // Grid lines
+  ctx.strokeStyle = COL.GRID_LINE;
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= GRID_COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(ox + x * cs, oy);
+    ctx.lineTo(ox + x * cs, oy + GRID_ROWS * cs);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= GRID_ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(ox, oy + y * cs);
+    ctx.lineTo(ox + GRID_COLS * cs, oy + y * cs);
+    ctx.stroke();
+  }
+
+  // Draw walls
+  for (let x = 0; x < GRID_COLS; x++) {
+    for (let y = 0; y < GRID_ROWS; y++) {
+      if (grid[x][y] === CELL.WALL) {
+        drawWall(ctx, ox + x * cs, oy + y * cs, cs);
+      }
+    }
+  }
+
+  // R3: Highlight moving walls with pulsing border
+  if (G.movingWalls && G.movingWalls.length > 0) {
+    const time = performance.now() / 1000;
+    const pulse = 0.4 + Math.sin(time * 3) * 0.3;
+    ctx.strokeStyle = COL.CYAN;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = pulse;
+    for (const mw of G.movingWalls) {
+      ctx.strokeRect(ox + mw.x * cs + 2, oy + mw.y * cs + 2, cs - 4, cs - 4);
+      // Also show target position as ghost
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(ox + mw.x2 * cs + 2, oy + mw.y2 * cs + 2, cs - 4, cs - 4);
+      ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Draw a wall cell */
+function drawWall(ctx, x, y, size) {
+  ctx.fillStyle = COL.WALL;
+  ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+
+  // Brick pattern
+  ctx.strokeStyle = '#2a2a4a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 3, y + 3, size / 2 - 3, size / 2 - 3);
+  ctx.strokeRect(x + size / 2 + 1, y + 3, size / 2 - 4, size / 2 - 3);
+  ctx.strokeRect(x + 3, y + size / 2 + 1, size - 6, size / 2 - 3);
+}
+
+/** Render light source */
+function renderLightSource(ctx, source, ox, oy, cs) {
+  const px = ox + source.x * cs + cs / 2;
+  const py = oy + source.y * cs + cs / 2;
+  const r = cs * 0.4;
+
+  // Glow
+  ctx.save();
+  ctx.shadowColor = COL.LIGHT;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = COL.LIGHT;
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Inner
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px, py, r * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Direction arrow
+  ctx.strokeStyle = COL.LIGHT;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px + r, py);
+  ctx.lineTo(px + r + 10, py);
+  ctx.lineTo(px + r + 6, py - 4);
+  ctx.moveTo(px + r + 10, py);
+  ctx.lineTo(px + r + 6, py + 4);
+  ctx.stroke();
+}
+
+/** Render cores */
+function renderCores(ctx, cores, ox, oy, cs) {
+  for (const core of cores) {
+    const px = ox + core.x * cs + cs / 2;
+    const py = oy + core.y * cs + cs / 2;
+    const r = cs * 0.35;
+    const time = performance.now() / 1000;
+
+    // Core glow
+    const glowColor = core.purified ? COL.PURIFY :
+      core.color === 'red' ? COL.LIGHT_R :
+      core.color === 'blue' ? COL.LIGHT_B : COL.CRYSTAL;
+
+    ctx.save();
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = core.purified ? 25 : 10 + Math.sin(time * 3) * 5;
+
+    // Outer ring
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, r + 3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Core fill
+    ctx.fillStyle = core.purified ? COL.PURIFY + '88' : glowColor + '44';
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner diamond
+    ctx.fillStyle = glowColor;
+    ctx.beginPath();
+    ctx.moveTo(px, py - r * 0.5);
+    ctx.lineTo(px + r * 0.5, py);
+    ctx.lineTo(px, py + r * 0.5);
+    ctx.lineTo(px - r * 0.5, py);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+
+    // Color label
+    if (!core.purified && core.color !== 'white') {
+      const label = core.color === 'red' ? 'R' : 'B';
+      UI.text(ctx, label, px, py, { size: 12, bold: true, color: '#fff' });
+    }
+
+    // Purified check
+    if (core.purified) {
+      UI.text(ctx, '✓', px, py, { size: 16, bold: true, color: '#fff' });
+    }
+  }
+}
+
+/** Render placed crystals */
+function renderCrystals(ctx, crystals, ox, oy, cs) {
+  for (const c of crystals) {
+    const px = ox + c.gx * cs + cs / 2;
+    const py = oy + c.gy * cs + cs / 2;
+    const r = cs * 0.35;
+
+    // R1: Dim crystals darkened by E5 enemies
+    const darkened = isCrystalDarkened(c.gx, c.gy, G.enemies);
+    if (darkened) ctx.globalAlpha = 0.3;
+    drawCrystal(ctx, px, py, r, c.type, c.angle, c._active);
+    if (darkened) {
+      // Draw "disabled" X mark
+      ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = COL.RED;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px - r * 0.6, py - r * 0.6);
+      ctx.lineTo(px + r * 0.6, py + r * 0.6);
+      ctx.moveTo(px + r * 0.6, py - r * 0.6);
+      ctx.lineTo(px - r * 0.6, py + r * 0.6);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+/** Draw a single crystal — pure function (F9) */
+function drawCrystal(ctx, x, y, size, typeIdx, angle, active) {
+  const type = CRYSTAL_TYPES[typeIdx];
+  const colors = {
+    'C1': COL.TEXT,       // reflect: white
+    'C2': COL.CRYSTAL,    // split: purple
+    'C3': COL.COIN,       // focus: gold
+    'C4': COL.LIGHT_R,    // red filter
+    'C5': COL.LIGHT_B,    // blue filter
+    'C6': COL.CYAN,       // time: cyan
+    'C7': COL.RED         // blast: red
+  };
+  const color = colors[type.id] || COL.CRYSTAL;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Active glow
+  if (active) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 15;
+  }
+
+  // Crystal body — shape based on type
+  ctx.fillStyle = color + '88';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+
+  switch (type.id) {
+    case 'C1': // Reflect — diamond with mirror line
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(-size, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Mirror line showing angle
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      const mirrorAngle = angle % 2 === 0 ? -Math.PI / 4 : Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(mirrorAngle) * size * 0.8, Math.sin(mirrorAngle) * size * 0.8);
+      ctx.lineTo(-Math.cos(mirrorAngle) * size * 0.8, -Math.sin(mirrorAngle) * size * 0.8);
+      ctx.stroke();
+      break;
+
+    case 'C2': // Split — triangle prism
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size * 0.87, size * 0.5);
+      ctx.lineTo(-size * 0.87, size * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+
+    case 'C3': // Focus — lens shape
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.4, size, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+
+    case 'C4': // Red filter — hexagon
+    case 'C5': // Blue filter — hexagon
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 3 * i - Math.PI / 6;
+        const method = i === 0 ? 'moveTo' : 'lineTo';
+        ctx[method](Math.cos(a) * size, Math.sin(a) * size);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+
+    case 'C6': // Time — clock-like circle
+      ctx.beginPath();
+      ctx.arc(0, 0, size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Clock hands
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -size * 0.6);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(size * 0.4, 0);
+      ctx.stroke();
+      break;
+
+    case 'C7': // Blast — star shape
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = Math.PI / 4 * i;
+        const r = i % 2 === 0 ? size : size * 0.5;
+        const method = i === 0 ? 'moveTo' : 'lineTo';
+        ctx[method](Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+  }
+
+  ctx.restore();
+}
+
+/** Render ghost crystal preview + C2: light path preview on hover */
+function renderGhostCrystal(ctx, gx, gy, typeIdx, angle, ox, oy, cs) {
+  if (!G.grid || G.grid[gx]?.[gy] !== CELL.EMPTY) return;
+  if (G.inventory[typeIdx] <= 0) return;
+
+  const px = ox + gx * cs + cs / 2;
+  const py = oy + gy * cs + cs / 2;
+
+  ctx.globalAlpha = 0.4;
+  drawCrystal(ctx, px, py, cs * 0.35, typeIdx, angle, false);
+
+  // C2: Light path preview — simulate placement and trace
+  const virtualCrystal = { gx, gy, type: typeIdx, angle, _active: false, _cooldown: 0 };
+  const tempCrystals = [...G.placedCrystals, virtualCrystal];
+  // Temporarily mark cell as crystal for tracing
+  const prevCell = G.grid[gx][gy];
+  G.grid[gx][gy] = CELL.CRYSTAL;
+  const previewPaths = traceLight(G.grid, G.lightSource, tempCrystals, 50, G.enemies);
+  G.grid[gx][gy] = prevCell; // Restore
+  ctx.globalAlpha = 0.2;
+  renderLightPaths(ctx, previewPaths, ox, oy, cs);
+  ctx.globalAlpha = 1;
+}
+
+/** Render light path beams */
+function renderLightPaths(ctx, paths, ox, oy, cs) {
+  for (const p of paths) {
+    const x1 = ox + p.x1 * cs + cs / 2;
+    const y1 = oy + p.y1 * cs + cs / 2;
+    const x2 = ox + p.x2 * cs + cs / 2;
+    const y2 = oy + p.y2 * cs + cs / 2;
+
+    const color = p.color === 'red' ? COL.LIGHT_R :
+                  p.color === 'blue' ? COL.LIGHT_B :
+                  p.color === 'purple' ? COL.LIGHT_P : COL.LIGHT;
+
+    // Glow effect
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3 * p.intensity;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Inner bright line
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.6 * p.intensity;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Render enemies */
+function renderEnemies(ctx, enemies, ox, oy, cs) {
+  for (const e of enemies) {
+    if (e.alpha <= 0) continue;
+
+    ctx.save();
+    ctx.globalAlpha = e.alpha * (e.spawnAnim > 0 ? (1 - e.spawnAnim / 0.5) : 1);
+    ctx.translate(e.x, e.y);
+
+    const r = cs * 0.35;
+
+    // Hit flash
+    if (e.hitFlash > 0) {
+      ctx.shadowColor = '#fff';
+      ctx.shadowBlur = 20;
+    }
+
+    // Procedural enemy rendering (all assets removed per F1/F24)
+    drawEnemyProcedural(ctx, 0, 0, r, e.type, e.facingDir);
+
+    // HP bar for multi-HP enemies
+    if (e.maxHp > 1 && !e.dead) {
+      UI.hpBar(ctx, -r, -r - 6, r * 2, 4, e.hp, e.maxHp, {
+        bgColor: '#333', fgColor: COL.RED
+      });
+    }
+
+    // E5 darkness field
+    if (e.type === 4 && !e.dead) {
+      ctx.fillStyle = 'rgba(76, 29, 149, 0.3)';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.darknessRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+/** Draw enemy procedurally — pure function (F9) */
+function drawEnemyProcedural(ctx, x, y, size, type, facing) {
+  const colors = [COL.SHADOW, '#993366', '#4a4a8a', '#663399', '#330066'];
+  ctx.fillStyle = colors[type] || COL.SHADOW;
+
+  switch (type) {
+    case 0: // Grunt — blob
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.25, y - size * 0.15, size * 0.12, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.25, y - size * 0.15, size * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 1: // Charger — triangle
+      ctx.beginPath();
+      const angle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][facing] || 0;
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.moveTo(size, 0);
+      ctx.lineTo(-size * 0.7, -size * 0.7);
+      ctx.lineTo(-size * 0.7, size * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(size * 0.2, 0, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      break;
+
+    case 2: // Shield — square with shield
+      ctx.fillRect(x - size, y - size, size * 2, size * 2);
+      // Shield on facing side
+      ctx.fillStyle = '#6666aa';
+      const sx = facing === 0 ? size : facing === 2 ? -size * 1.2 : x - size;
+      const sy = facing === 1 ? size : facing === 3 ? -size * 1.2 : y - size;
+      if (facing === 0 || facing === 2) {
+        ctx.fillRect(sx, y - size, size * 0.3, size * 2);
+      } else {
+        ctx.fillRect(x - size, sy, size * 2, size * 0.3);
+      }
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 3: // Splitter — double blob
+      ctx.beginPath();
+      ctx.arc(x - size * 0.3, y, size * 0.7, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.3, y, size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.3, y - size * 0.1, size * 0.1, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.3, y - size * 0.1, size * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 4: // Corruptor — irregular
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = Math.PI / 4 * i;
+        const r = size * (0.7 + (i % 2) * 0.3);
+        if (i === 0) ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+        else ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+  }
+}
+
+/** Render DDA hint cells */
+function renderHints(ctx, hintCells, ox, oy, cs) {
+  if (hintCells.length === 0) return;
+
+  const time = performance.now() / 1000;
+  ctx.globalAlpha = 0.3 + Math.sin(time * 2) * 0.15;
+  ctx.strokeStyle = COL.CYAN;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
+
+  for (const h of hintCells) {
+    ctx.strokeRect(ox + h.x * cs + 4, oy + h.y * cs + 4, cs - 8, cs - 8);
+  }
+
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+}
+
+/** Render play HUD (top bar) */
+function renderPlayHUD(ctx, w, h) {
+  // Top bar background
+  ctx.fillStyle = 'rgba(10, 14, 42, 0.85)';
+  ctx.fillRect(0, 0, w, 36);
+
+  const y = 18;
+
+  // Energy hearts (procedural — F1/F24: no assets)
+  for (let i = 0; i < G.maxEnergy; i++) {
+    const hx = 12 + i * 22;
+    ctx.fillStyle = i < G.energy ? COL.ENERGY : COL.WALL;
+    ctx.font = '16px sans-serif';
+    ctx.fillText('♥', hx, y + 2);
+  }
+
+  // Score
+  UI.text(ctx, `⭐ ${G.score}`, w / 2 - 50, y, { size: 13, color: COL.COIN, align: 'left' });
+
+  // Coins
+  UI.text(ctx, `🔮 ${G.coins}`, w / 2 + 30, y, { size: 13, color: COL.COIN, align: 'left' });
+
+  // Wave info
+  if (G.waveStarted) {
+    UI.text(ctx, `${t('wave')} ${G.wave}/${G.maxWaves}`, w - 80, y, { size: 13, color: COL.CYAN, align: 'left' });
+  }
+
+  // Zone-Stage info
+  UI.text(ctx, `${G.zone}-${G.stage}`, w - 20, y, { size: 13, color: COL.TEXT2, align: 'right' });
+
+  // Combo display
+  if (G.comboCount >= 2) {
+    UI.text(ctx, `COMBO ×${G.comboCount}`, w / 2, 50, {
+      size: 22, bold: true, color: COL.CYAN, glow: COL.CYAN
+    });
+  }
+}
+
+/** Render bottom bar (crystal selection + controls) */
+function renderBottomBar(ctx, w, h) {
+  const barH = input.isMobile ? 58 : 50;
+  const barY = h - barH;
+
+  // Bar background
+  ctx.fillStyle = 'rgba(10, 14, 42, 0.9)';
+  ctx.fillRect(0, barY, w, barH);
+  ctx.strokeStyle = COL.GRID_LINE;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, barY);
+  ctx.lineTo(w, barY);
+  ctx.stroke();
+
+  // Crystal buttons
+  const btnSize = Math.max(MIN_TOUCH_SIZE, 42);
+  const crystalNames = t('crystal_names');
+
+  for (let i = 0; i < 7; i++) {
+    if (!isCrystalUnlocked(i, G.zone, G.stage)) continue;
+
+    const bx = 10 + i * (btnSize + 4);
+    const by = barY + (barH - btnSize) / 2;
+    const selected = G.selectedCrystal === i;
+    const hasStock = G.inventory[i] > 0;
+
+    // Button background
+    ctx.fillStyle = selected ? COL.CRYSTAL + '66' : 'rgba(30,30,58,0.8)';
+    ctx.strokeStyle = selected ? COL.CRYSTAL : (hasStock ? COL.TEXT3 : '#333');
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, btnSize, btnSize, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Crystal mini icon
+    drawCrystal(ctx, bx + btnSize / 2, by + btnSize / 2 - 4, btnSize * 0.25, i, G.crystalAngle, false);
+
+    // Inventory count
+    ctx.globalAlpha = hasStock ? 1 : 0.4;
+    UI.text(ctx, `${G.inventory[i]}`, bx + btnSize / 2, by + btnSize - 6, {
+      size: 10, color: hasStock ? COL.TEXT : COL.TEXT3
+    });
+    ctx.globalAlpha = 1;
+
+    // Hotkey hint (PC)
+    if (!input.isMobile) {
+      UI.text(ctx, `${i + 1}`, bx + 8, by + 8, { size: 8, color: COL.TEXT3, align: 'left' });
+    }
+  }
+
+  // Start wave button (only in SETUP)
+  if (G.playState === PS.SETUP && !G.waveStarted) {
+    const startBtnW = Math.max(80, w * 0.15);
+    const startBtnH = Math.max(MIN_TOUCH_SIZE, 38);
+    const startBtnX = w - startBtnW - 15;
+    const startBtnY = barY + (barH - startBtnH) / 2;
+
+    UI.button(ctx, input.isMobile ? '▶' : `[SPACE] ${t('startWave')}`,
+      startBtnX, startBtnY, startBtnW, startBtnH, {
+        color: COL.PURIFY,
+        hover: true
+      });
+  }
+
+  // Rotation hint
+  if (G.playState === PS.SETUP && !input.isMobile) {
+    UI.text(ctx, 'Q/E: ' + t('rotateCrystal'), w - 15, barY - 12, {
+      size: 10, color: COL.TEXT3, align: 'right'
+    });
+  }
+}
+
+/** Render pause overlay */
+function renderPauseOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('pause'), w / 2, h / 2 - 60, { size: 32, bold: true, color: COL.TEXT, glow: COL.CRYSTAL });
+
+  const btnW = 160, btnH = 48;
+  const btnX = (w - btnW) / 2;
+  UI.button(ctx, t('continue_'), btnX, h / 2 - 10, btnW, btnH, { color: COL.PURIFY });
+  UI.button(ctx, t('restartStage'), btnX, h / 2 + 50, btnW, btnH, { color: COL.CRYSTAL });
+  UI.button(ctx, t('back'), btnX, h / 2 + 110, btnW, btnH, { color: COL.TEXT3 });
+}
+
+/** Render dead overlay */
+function renderDeadOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('failed'), w / 2, h / 2 - 40, { size: 28, bold: true, color: COL.RED, glow: COL.RED });
+  UI.text(ctx, `${t('score')}: ${G.score}`, w / 2, h / 2, { size: 16, color: COL.TEXT2 });
+
+  const btnW = 160, btnH = 48;
+  const btnX = (w - btnW) / 2;
+  UI.button(ctx, input.isMobile ? t('retry') : `[R] ${t('retry')}`, btnX, h / 2 + 30, btnW, btnH, { color: COL.CRYSTAL });
+  UI.button(ctx, t('back'), btnX, h / 2 + 90, btnW, btnH, { color: COL.TEXT3 });
+}
+
+/** Render clear overlay */
+function renderClearOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('clear'), w / 2, h / 2 - 60, { size: 36, bold: true, color: COL.PURIFY, glow: COL.PURIFY });
+  UI.text(ctx, `${t('score')}: ${G.score}`, w / 2, h / 2 - 20, { size: 20, color: COL.COIN });
+
+  if (G.newBestFlag) {
+    UI.text(ctx, t('newBest'), w / 2, h / 2 + 10, { size: 18, bold: true, color: COL.COIN, glow: COL.COIN });
+  }
+
+  // Stars
+  const stars = G.stageStars[`${G.zone}-${G.stage}`] || 1;
+  const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  UI.text(ctx, starStr, w / 2, h / 2 + 35, { size: 24, color: COL.COIN });
+
+  const btnW = 160, btnH = 48;
+  const btnX = (w - btnW) / 2;
+  UI.button(ctx, input.isMobile ? t('continue_') : `[R] ${t('continue_')}`, btnX, h / 2 + 55, btnW, btnH, { color: COL.PURIFY });
+}
+
+// ───────────────────────────────────────────────────────────────
+// §26. BOSS STATE RENDER
+// ───────────────────────────────────────────────────────────────
+
+function renderBossState(ctx, w, h) {
+  // Save transform for camera zoom
+  ctx.save();
+  if (G.cameraZoom !== 1.0) {
+    const cx = w / 2, cy = h / 2;
+    ctx.translate(cx, cy);
+    ctx.scale(G.cameraZoom, G.cameraZoom);
+    ctx.translate(-cx, -cy);
+  }
+
+  // Zone background
+  renderZoneBackground(ctx, w, h, G.zone);
+
+  // Grid
+  renderGrid(ctx, G.grid, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Crystals
+  renderCrystals(ctx, G.placedCrystals, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Light paths
+  renderLightPaths(ctx, G.lightPaths, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Enemies
+  renderEnemies(ctx, G.enemies, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Light source
+  renderLightSource(ctx, G.lightSource, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  // Boss
+  renderBoss(ctx, G.gridOffsetX, G.gridOffsetY, G.cellSize);
+
+  ctx.restore();
+
+  // Boss intro
+  if (G.playState === PS.BOSS_INTRO) {
+    renderBossIntro(ctx, w, h);
+    return;
+  }
+
+  // HUD
+  renderPlayHUD(ctx, w, h);
+  renderBottomBar(ctx, w, h);
+
+  // Boss HP bar
+  renderBossHPBar(ctx, w, h);
+
+  // Sub-state overlays
+  if (G.playState === PS.PAUSED) renderPauseOverlay(ctx, w, h);
+  if (G.playState === PS.DEAD) renderDeadOverlay(ctx, w, h);
+  if (G.playState === PS.CLEAR) renderBossClearOverlay(ctx, w, h);
+}
+
+/** Render boss entity */
+function renderBoss(ctx, ox, oy, cs) {
+  const bpx = ox + G.bossX * cs + cs / 2;
+  const bpy = oy + G.bossY * cs + cs / 2;
+  const bossSize = cs * 1.5;
+  const def = BOSS_DEFS[G.bossType];
+
+  if (G.bossType === 2) {
+    // Serpent: draw segments
+    for (let i = G.bossSegments.length - 1; i >= 0; i--) {
+      const seg = G.bossSegments[i];
+      const sx = ox + seg.x * cs + cs / 2;
+      const sy = oy + seg.y * cs + cs / 2;
+      const segSize = cs * 0.8;
+
+      // Segment body
+      const hue = i / G.bossSegments.length;
+      ctx.fillStyle = `hsl(${hue * 300}, 70%, 40%)`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, segSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `hsl(${hue * 300}, 70%, 60%)`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Tail (red weakness)
+    if (G.bossSegments.length > 0) {
+      const tail = G.bossSegments[G.bossSegments.length - 1];
+      const tx = ox + tail.x * cs + cs / 2;
+      const ty = oy + tail.y * cs + cs / 2;
+      ctx.save();
+      if (G.bossVulnerable) {
+        ctx.shadowColor = COL.LIGHT_R;
+        ctx.shadowBlur = 15;
+      }
+      ctx.fillStyle = COL.LIGHT_R + '88';
+      ctx.strokeStyle = COL.LIGHT_R;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(tx, ty, cs * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      UI.text(ctx, 'R', tx, ty, { size: 10, bold: true, color: '#fff' });
+      ctx.restore();
+    }
+  }
+
+  ctx.save();
+  ctx.translate(bpx, bpy);
+
+  // Vulnerability glow
+  if (G.bossVulnerable) {
+    ctx.shadowColor = '#ffaa00';
+    ctx.shadowBlur = 25;
+  }
+
+  // Procedural boss rendering (F1/F24: no assets)
+  drawBossProcedural(ctx, 0, 0, bossSize, G.bossType, G.bossVulnerable, G.bossShieldDir);
+
+  // Head weakness (Serpent: blue)
+  if (G.bossType === 2 && G.bossVulnerable) {
+    ctx.fillStyle = COL.LIGHT_B + '88';
+    ctx.strokeStyle = COL.LIGHT_B;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -bossSize * 0.3, cs * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    UI.text(ctx, 'B', 0, -bossSize * 0.3, { size: 10, bold: true, color: '#fff' });
+  }
+
+  ctx.restore();
+}
+
+/** Draw boss procedurally — pure function (F9) */
+function drawBossProcedural(ctx, x, y, size, type, vulnerable, shieldDir) {
+  const time = performance.now() / 1000;
+
+  switch (type) {
+    case 0: // Sentinel — armored knight
+      ctx.fillStyle = vulnerable ? '#663399' : '#4c1d95';
+      // Body
+      ctx.fillRect(x - size * 0.6, y - size * 0.5, size * 1.2, size);
+      // Helmet
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.5, size * 0.5, Math.PI, 0);
+      ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#ff4444';
+      ctx.fillRect(x - size * 0.25, y - size * 0.35, size * 0.15, size * 0.1);
+      ctx.fillRect(x + size * 0.1, y - size * 0.35, size * 0.15, size * 0.1);
+      // Weakness core (back)
+      if (vulnerable) {
+        ctx.fillStyle = COL.LIGHT + '88';
+        ctx.beginPath();
+        ctx.arc(x, y + size * 0.3, size * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+
+    case 1: // Tyrant — crowned shadow lord
+      ctx.fillStyle = vulnerable ? '#663399' : '#4c1d95';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      // Crown
+      ctx.fillStyle = COL.COIN;
+      ctx.beginPath();
+      ctx.moveTo(x - size * 0.4, y - size * 0.5);
+      ctx.lineTo(x - size * 0.3, y - size * 0.8);
+      ctx.lineTo(x - size * 0.1, y - size * 0.6);
+      ctx.lineTo(x + size * 0.1, y - size * 0.8);
+      ctx.lineTo(x + size * 0.3, y - size * 0.6);
+      ctx.lineTo(x + size * 0.4, y - size * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      // Shield (purple barrier)
+      ctx.strokeStyle = '#9966cc';
+      ctx.lineWidth = 4;
+      const shieldAngle = shieldDir * Math.PI / 2;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(shieldAngle) * size * 0.5, y + Math.sin(shieldAngle) * size * 0.5,
+        size * 0.3, shieldAngle - 0.8, shieldAngle + 0.8);
+      ctx.stroke();
+      // Red weakness indicator
+      if (vulnerable) {
+        ctx.fillStyle = COL.LIGHT_R + '66';
+        ctx.beginPath();
+        ctx.arc(x, y, size * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+
+    case 2: // Serpent — head
+      ctx.fillStyle = '#2244aa';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.15, y - size * 0.1, size * 0.1, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.15, y - size * 0.1, size * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(x - size * 0.15, y - size * 0.1, size * 0.05, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.15, y - size * 0.1, size * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+  }
+}
+
+/** Render boss HP bar */
+function renderBossHPBar(ctx, w, h) {
+  if (G.bossHP <= 0) return;
+
+  const def = BOSS_DEFS[G.bossType];
+  const barW = Math.min(300, w * 0.6);
+  const barH = 16;
+  const barX = (w - barW) / 2;
+  const barY = 42;
+
+  // Background
+  ctx.fillStyle = 'rgba(10,14,42,0.9)';
+  ctx.fillRect(barX - 5, barY - 5, barW + 10, barH + 22);
+
+  // Boss name
+  UI.text(ctx, t(def.name), w / 2, barY + 3, { size: 10, color: COL.RED });
+
+  // HP bar
+  UI.hpBar(ctx, barX, barY + 12, barW, barH, G.bossHP, G.bossMaxHP, {
+    bgColor: '#1a1a30', fgColor: COL.RED, borderColor: '#4c1d95'
+  });
+
+  // HP text
+  UI.text(ctx, `${Math.ceil(G.bossHP)} / ${G.bossMaxHP}`, w / 2, barY + 20, {
+    size: 10, color: COL.TEXT
+  });
+
+  // Vulnerable indicator
+  if (G.bossVulnerable) {
+    const pulse = Math.sin(performance.now() / 200) > 0;
+    if (pulse) {
+      UI.text(ctx, '⚠ VULNERABLE', w / 2, barY + 38, { size: 12, bold: true, color: COL.COIN });
+    }
+  }
+}
+
+/** Render boss intro */
+function renderBossIntro(ctx, w, h) {
+  ctx.fillStyle = `rgba(0,0,0,${0.6 * Math.min(1, G.introTimer)})`;
+  ctx.fillRect(0, 0, w, h);
+
+  const def = BOSS_DEFS[G.bossType];
+  const phase = Math.floor((3 - G.introTimer) / 1);
+
+  if (phase >= 0) {
+    // Warning text
+    const warningAlpha = Math.min(1, (3 - G.introTimer) / 0.5);
+    ctx.globalAlpha = warningAlpha;
+    UI.text(ctx, '⚠ ' + t('boss_warning') + ' ⚠', w / 2, h / 2 - 30, {
+      size: 28, bold: true, color: COL.RED, glow: COL.RED
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  if (phase >= 1) {
+    // Boss name
+    const nameAlpha = Math.min(1, (2 - G.introTimer) / 0.5);
+    ctx.globalAlpha = nameAlpha;
+    UI.text(ctx, t(def.name), w / 2, h / 2 + 20, {
+      size: 22, bold: true, color: COL.CRYSTAL, glow: COL.CRYSTAL
+    });
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Render boss clear overlay */
+function renderBossClearOverlay(ctx, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  if (G.gameClear) {
+    UI.text(ctx, t('game_clear'), w / 2, h / 2 - 30, {
+      size: 24, bold: true, color: COL.COIN, glow: COL.COIN
+    });
+    UI.text(ctx, `${t('score')}: ${G.totalScore}`, w / 2, h / 2 + 15, {
+      size: 18, color: COL.TEXT
+    });
+  } else {
+    UI.text(ctx, t('bossDefeat'), w / 2, h / 2 - 20, {
+      size: 28, bold: true, color: COL.PURIFY, glow: COL.PURIFY
+    });
+  }
+}
+
+/** Render floating texts */
+function renderFloatingTexts(ctx) {
+  for (const ft of G.floatingTexts) {
+    ctx.globalAlpha = ft.alpha;
+    UI.text(ctx, ft.text, ft.x, ft.y, { size: ft.size, bold: true, color: ft.color });
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Render notifications (top center) */
+function renderNotifications(ctx, w, h) {
+  for (let i = 0; i < G.notifications.length; i++) {
+    const n = G.notifications[i];
+    ctx.globalAlpha = n.alpha;
+    const ny = 60 + i * 28;
+    UI.text(ctx, n.text, w / 2, ny, { size: 14, color: COL.CYAN, glow: COL.CYAN });
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ───────────────────────────────────────────────────────────────
+// §27. RESIZE HANDLER
+// ───────────────────────────────────────────────────────────────
+
+function onResize(w, h) {
+  if (G.state === STATE.PLAY || G.state === STATE.BOSS) {
+    calculateGridLayout();
+  }
+  // Reinitialize background particles for new size
+  initBgParticles(40);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §28. INIT
+// ───────────────────────────────────────────────────────────────
+
+function init() {
+  // Load saved progress
+  loadProgress();
+
+  // Initialize background particles
+  initBgParticles(40);
+
+  // Start engine (F1/F24: no asset loading — all rendering is procedural)
+  engine.start();
+}
+
+init();
+
+</script>
+</body>
+</html>

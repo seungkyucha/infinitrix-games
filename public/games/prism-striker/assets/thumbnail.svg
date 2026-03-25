@@ -1,0 +1,450 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <!-- 배경 그라디언트 -->
+    <linearGradient id="tBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#020118"/>
+      <stop offset="40%" stop-color="#0a0a2e"/>
+      <stop offset="100%" stop-color="#1a1055"/>
+    </linearGradient>
+    <!-- 무지개 광선 -->
+    <linearGradient id="tRainbow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff3366"/>
+      <stop offset="25%" stop-color="#ffd700"/>
+      <stop offset="50%" stop-color="#33ff99"/>
+      <stop offset="75%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#6c3cf7"/>
+    </linearGradient>
+    <!-- 프리즘 -->
+    <linearGradient id="tPrism" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#3366ff"/>
+    </linearGradient>
+    <!-- 갑옷 -->
+    <linearGradient id="tArmor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c0d8f0"/>
+      <stop offset="50%" stop-color="#8ba8c8"/>
+      <stop offset="100%" stop-color="#4a6a8a"/>
+    </linearGradient>
+    <!-- 코어 발광 -->
+    <radialGradient id="tCore" cx="0.5" cy="0.4" r="0.5">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#3366ff"/>
+    </radialGradient>
+    <!-- 골렘 -->
+    <linearGradient id="tGolem" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a2a6a"/>
+      <stop offset="50%" stop-color="#2a1a5a"/>
+      <stop offset="100%" stop-color="#1a0a3a"/>
+    </linearGradient>
+    <!-- 골렘 코어 -->
+    <radialGradient id="tGolemCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ff3366"/>
+      <stop offset="50%" stop-color="#cc1144"/>
+      <stop offset="100%" stop-color="#880033"/>
+    </radialGradient>
+    <!-- 성운 -->
+    <radialGradient id="tNebula1" cx="0.3" cy="0.4" r="0.5">
+      <stop offset="0%" stop-color="#6c3cf7" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a0a2e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tNebula2" cx="0.7" cy="0.3" r="0.4">
+      <stop offset="0%" stop-color="#ff3366" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#0a0a2e" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 날개 -->
+    <radialGradient id="tWing" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#3366ff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#6c3cf7" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 텍스트 그라디언트 -->
+    <linearGradient id="tText" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#00d4ff"/>
+      <stop offset="60%" stop-color="#33ff99"/>
+      <stop offset="100%" stop-color="#ffd700"/>
+    </linearGradient>
+    <!-- 텍스트 글로우 -->
+    <linearGradient id="tTextStroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff3366"/>
+      <stop offset="50%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+    <filter id="tGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tSoftGlow">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tBigGlow">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tTextGlow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tShadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <!-- 골드 트림 -->
+    <linearGradient id="tGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#cc8800"/>
+    </linearGradient>
+    <!-- 빛줄기 -->
+    <linearGradient id="tBeam" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 산 그라디언트 -->
+    <linearGradient id="tMtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a5a"/>
+      <stop offset="100%" stop-color="#0a0a2e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="400" height="300" fill="url(#tBg)"/>
+
+  <!-- 성운 -->
+  <ellipse cx="120" cy="120" rx="150" ry="100" fill="url(#tNebula1)"/>
+  <ellipse cx="300" cy="90" rx="120" ry="80" fill="url(#tNebula2)"/>
+
+  <!-- 별 40+ -->
+  <g fill="#ffffff">
+    <circle cx="15" cy="20" r="0.8" opacity="0.8"/><circle cx="40" cy="50" r="0.5" opacity="0.5"/>
+    <circle cx="70" cy="30" r="0.7" opacity="0.7"/><circle cx="100" cy="60" r="0.4" opacity="0.4"/>
+    <circle cx="130" cy="25" r="0.9" opacity="0.9"/><circle cx="160" cy="55" r="0.5" opacity="0.5"/>
+    <circle cx="190" cy="35" r="0.7" opacity="0.7"/><circle cx="220" cy="15" r="0.6" opacity="0.6"/>
+    <circle cx="250" cy="45" r="0.8" opacity="0.8"/><circle cx="280" cy="25" r="0.5" opacity="0.5"/>
+    <circle cx="310" cy="55" r="0.7" opacity="0.7"/><circle cx="340" cy="30" r="0.6" opacity="0.6"/>
+    <circle cx="370" cy="50" r="0.9" opacity="0.9"/><circle cx="390" cy="20" r="0.5" opacity="0.5"/>
+    <circle cx="25" cy="80" r="0.6" opacity="0.5"/><circle cx="55" cy="100" r="0.4" opacity="0.4"/>
+    <circle cx="85" cy="85" r="0.7" opacity="0.6"/><circle cx="115" cy="105" r="0.5" opacity="0.4"/>
+    <circle cx="175" cy="80" r="0.6" opacity="0.5"/><circle cx="235" cy="70" r="0.5" opacity="0.4"/>
+    <circle cx="295" cy="80" r="0.7" opacity="0.6"/><circle cx="355" cy="75" r="0.4" opacity="0.4"/>
+    <circle cx="385" cy="90" r="0.6" opacity="0.5"/><circle cx="45" cy="130" r="0.5" opacity="0.3"/>
+    <circle cx="145" cy="140" r="0.4" opacity="0.3"/><circle cx="260" cy="100" r="0.6" opacity="0.5"/>
+    <circle cx="325" cy="105" r="0.5" opacity="0.4"/><circle cx="375" cy="120" r="0.4" opacity="0.3"/>
+    <circle cx="10" cy="150" r="0.5" opacity="0.3"/><circle cx="200" cy="95" r="0.6" opacity="0.4"/>
+    <circle cx="350" cy="140" r="0.5" opacity="0.3"/><circle cx="60" cy="170" r="0.4" opacity="0.2"/>
+    <circle cx="150" cy="110" r="0.7" opacity="0.5"/><circle cx="270" cy="115" r="0.4" opacity="0.3"/>
+    <circle cx="390" cy="150" r="0.5" opacity="0.3"/>
+  </g>
+
+  <!-- 밝은 별 -->
+  <g filter="url(#tGlow)">
+    <circle cx="50" cy="40" r="1.5" fill="#00d4ff" opacity="0.7"/>
+    <circle cx="320" cy="35" r="1.8" fill="#ffd700" opacity="0.6"/>
+    <circle cx="380" cy="70" r="1.2" fill="#33ff99" opacity="0.5"/>
+  </g>
+
+  <!-- 빛줄기 -->
+  <polygon points="120,0 130,200 110,200" fill="url(#tBeam)" opacity="0.3"/>
+  <polygon points="280,0 288,180 272,180" fill="url(#tBeam)" opacity="0.2"/>
+
+  <!-- 먼 산맥 -->
+  <path d="M0 220 L40 180 L80 200 L120 165 L160 185 L200 155 L240 175 L280 150 L320 170 L360 145 L400 165 L400 300 L0 300Z" fill="url(#tMtn)" opacity="0.5"/>
+  <!-- 크리스탈 산 꼭대기 -->
+  <path d="M120 165 L124 145 L128 165" fill="#00d4ff" opacity="0.3"/>
+  <path d="M280 150 L284 130 L288 150" fill="#6c3cf7" opacity="0.3"/>
+  <path d="M360 145 L363 128 L366 145" fill="#ffd700" opacity="0.25"/>
+
+  <!-- 중경 동굴 아치 (좌측) -->
+  <path d="M0 200 C20 170, 50 160, 70 180 L70 300 L0 300Z" fill="#15103a" opacity="0.8"/>
+  <path d="M0 300 L0 210 L10 230 L20 215 L30 235 L40 220 L50 240 L60 225 L70 250 L70 300Z" fill="#1a1055" opacity="0.6"/>
+
+  <!-- 중경 동굴 아치 (우측) -->
+  <path d="M400 200 C380 165, 350 155, 330 175 L330 300 L400 300Z" fill="#15103a" opacity="0.8"/>
+  <path d="M400 300 L400 210 L390 225 L380 210 L370 230 L360 215 L350 235 L340 220 L330 245 L330 300Z" fill="#1a1055" opacity="0.6"/>
+
+  <!-- 종유석 (좌) -->
+  <path d="M20 170 L24 210 L28 170" fill="#1a1055" opacity="0.6"/>
+  <path d="M50 165 L54 200 L58 165" fill="#15103a" opacity="0.7"/>
+  <!-- 종유석 (우) -->
+  <path d="M365 160 L368 195 L371 160" fill="#1a1055" opacity="0.6"/>
+  <path d="M345 155 L349 195 L353 155" fill="#15103a" opacity="0.7"/>
+
+  <!-- 크리스탈 클러스터 (좌측 벽) -->
+  <g filter="url(#tGlow)">
+    <path d="M10 230 L14 200 L18 230" fill="#00d4ff" opacity="0.6"/>
+    <path d="M4 235 L8 210 L12 235" fill="#00d4ff" opacity="0.4"/>
+    <path d="M16 232 L22 212 L28 232" fill="#33ff99" opacity="0.4"/>
+  </g>
+  <!-- 크리스탈 클러스터 (우측 벽) -->
+  <g filter="url(#tGlow)">
+    <path d="M380 225 L384 195 L388 225" fill="#6c3cf7" opacity="0.6"/>
+    <path d="M386 228 L392 205 L398 228" fill="#ff3366" opacity="0.4"/>
+  </g>
+
+  <!-- 바닥 석순 -->
+  <path d="M0 280 C30 270, 60 285, 100 275 C140 285, 170 270, 200 278 C230 268, 260 282, 300 272 C340 280, 370 268, 400 275 L400 300 L0 300Z" fill="#0d0d3a"/>
+  <path d="M80 280 L85 260 L90 280" fill="#1a1055" opacity="0.7"/>
+  <path d="M150 278 L155 255 L160 278" fill="#15103a" opacity="0.8"/>
+  <path d="M240 275 L244 258 L248 275" fill="#1a1055" opacity="0.7"/>
+  <path d="M310 276 L315 252 L320 276" fill="#15103a" opacity="0.8"/>
+
+  <!-- 바닥 크리스탈 -->
+  <g filter="url(#tGlow)">
+    <path d="M83 268 L86 248 L89 268" fill="#ffd700" opacity="0.6"/>
+    <path d="M153 262 L156 242 L159 262" fill="#00d4ff" opacity="0.5"/>
+    <path d="M313 258 L316 240 L319 258" fill="#33ff99" opacity="0.5"/>
+  </g>
+
+  <!-- ====== 크리스탈 골렘 (우측) ====== -->
+  <g id="golem" filter="url(#tShadow)" transform="translate(295, 135)">
+    <!-- 몸체 -->
+    <path d="M20 30 L10 60 L0 100 L20 110 L50 115 L80 110 L100 100 L90 60 L80 30 L60 20 L40 20Z" fill="url(#tGolem)"/>
+    <!-- 크리스탈 면 -->
+    <path d="M30 35 L40 25 L50 35 L40 50Z" fill="#3a2a6a" opacity="0.7"/>
+    <path d="M55 30 L65 22 L75 35 L65 45Z" fill="#2a1a5a" opacity="0.7"/>
+    <!-- 코어 (가슴) -->
+    <circle cx="50" cy="60" r="10" fill="url(#tGolemCore)" filter="url(#tGlow)"/>
+    <circle cx="50" cy="58" r="5" fill="#ff6688" opacity="0.7"/>
+    <circle cx="50" cy="57" r="2" fill="#ffffff" opacity="0.8"/>
+    <!-- 눈 -->
+    <circle cx="38" cy="38" r="3" fill="#ff3366" filter="url(#tGlow)"/>
+    <circle cx="62" cy="38" r="3" fill="#ff3366" filter="url(#tGlow)"/>
+    <circle cx="38" cy="37" r="1" fill="#ffffff" opacity="0.8"/>
+    <circle cx="62" cy="37" r="1" fill="#ffffff" opacity="0.8"/>
+    <!-- 왼팔 (거울 방패) -->
+    <path d="M10 60 L-10 50 L-20 70 L-10 90 L10 85Z" fill="#4a3a7a"/>
+    <path d="M-15 55 L-18 70 L-8 85 L-5 65Z" fill="#8888cc" opacity="0.4"/>
+    <!-- 오른팔 -->
+    <path d="M90 60 L105 55 L112 75 L105 90 L88 85Z" fill="#3a2a6a"/>
+    <!-- 균열 -->
+    <path d="M40 50 L38 65 M60 50 L62 65 M45 75 L50 90 L55 75" stroke="#ff3366" stroke-width="0.5" fill="none" opacity="0.4"/>
+    <!-- 크리스탈 돌기 -->
+    <path d="M25 25 L28 15 L31 25" fill="#6c3cf7" opacity="0.5"/>
+    <path d="M70 25 L73 14 L76 25" fill="#6c3cf7" opacity="0.5"/>
+  </g>
+
+  <!-- ====== 프리즘 기사 루멘 (중앙~좌) ====== -->
+  <g id="lumen" filter="url(#tShadow)" transform="translate(140, 130)">
+    <!-- 빛의 날개 -->
+    <g filter="url(#tSoftGlow)" opacity="0.7">
+      <path d="M20 40 C10 25, -5 30, 0 42 C5 35, 12 33, 20 40Z" fill="url(#tWing)"/>
+      <path d="M20 44 C5 35, -8 42, -2 50 C3 44, 14 40, 20 44Z" fill="url(#tWing)" opacity="0.5"/>
+      <path d="M60 40 C70 25, 85 30, 80 42 C75 35, 68 33, 60 40Z" fill="url(#tWing)"/>
+      <path d="M60 44 C75 35, 88 42, 82 50 C77 44, 66 40, 60 44Z" fill="url(#tWing)" opacity="0.5"/>
+    </g>
+
+    <!-- 망토 -->
+    <path d="M25 50 C23 65, 20 85, 22 100 L40 95 L58 100 C60 85, 57 65, 55 50Z" fill="#1a1a4a" opacity="0.7"/>
+
+    <!-- 다리 -->
+    <path d="M30 82 L28 100 L34 102 L36 84Z" fill="url(#tArmor)"/>
+    <path d="M48 82 L50 100 L44 102 L42 84Z" fill="url(#tArmor)"/>
+    <ellipse cx="31" cy="92" rx="3" ry="2" fill="url(#tGold)"/>
+    <ellipse cx="47" ry="2" cy="92" rx="3" fill="url(#tGold)"/>
+
+    <!-- 몸통 -->
+    <path d="M25 42 C24 45, 24 60, 26 80 L40 82 L54 80 C56 60, 56 45, 55 42 L40 38Z" fill="url(#tArmor)"/>
+    <!-- 코어 -->
+    <path d="M36 48 L40 43 L44 48 L40 55Z" fill="url(#tCore)" filter="url(#tGlow)"/>
+    <path d="M37 48 L40 44 L43 48 L40 53Z" fill="#ffffff" opacity="0.3"/>
+    <!-- 벨트 -->
+    <path d="M27 74 C30 72, 50 72, 53 74 C50 76, 30 76, 27 74Z" fill="url(#tGold)"/>
+    <circle cx="40" cy="74" r="1.5" fill="#ff3366" filter="url(#tGlow)"/>
+
+    <!-- 어깨 -->
+    <path d="M23 42 C22 39, 23 36, 27 37 L30 41" fill="url(#tArmor)"/>
+    <path d="M57 42 C58 39, 57 36, 53 37 L50 41" fill="url(#tArmor)"/>
+
+    <!-- 머리 (투구) -->
+    <path d="M30 18 C28 22, 28 32, 30 36 L40 38 L50 36 C52 32, 52 22, 50 18 C48 14, 32 14, 30 18Z" fill="#9ab8d4"/>
+    <path d="M32 24 C33 23, 47 23, 48 24 L47 32 C46 33, 34 33, 33 32Z" fill="#1a1a3a" opacity="0.9"/>
+    <!-- 눈 -->
+    <ellipse cx="37" cy="28" rx="2" ry="1.5" fill="#00d4ff" filter="url(#tGlow)"/>
+    <ellipse cx="43" cy="28" rx="2" ry="1.5" fill="#00d4ff" filter="url(#tGlow)"/>
+    <circle cx="37" cy="27" r="0.8" fill="#ffffff" opacity="0.8"/>
+    <circle cx="43" cy="27" r="0.8" fill="#ffffff" opacity="0.8"/>
+    <!-- 이마 프리즘 -->
+    <path d="M37 16 L40 10 L43 16Z" fill="url(#tCore)" filter="url(#tGlow)"/>
+    <path d="M40 10 C39 7, 38 5, 40 3 C42 5, 41 7, 40 10Z" fill="url(#tGold)"/>
+    <!-- 골드 트림 -->
+    <path d="M30 18 C32 14, 48 14, 50 18" stroke="url(#tGold)" stroke-width="1" fill="none"/>
+
+    <!-- 오른팔 + 프리즘 -->
+    <path d="M55 42 C60 46, 64 55, 62 62" fill="url(#tArmor)" stroke="url(#tArmor)" stroke-width="3"/>
+  </g>
+
+  <!-- 프리즘 (루멘의 손에 들린) -->
+  <g filter="url(#tBigGlow)" transform="translate(195, 182)">
+    <path d="M0 0 L10 -15 L20 0 L10 15Z" fill="url(#tPrism)" opacity="0.9"/>
+    <path d="M2 0 L10 -12 L18 0" fill="#ffffff" opacity="0.4"/>
+    <path d="M10 -15 L20 0 L10 15" fill="#00d4ff" opacity="0.3"/>
+  </g>
+
+  <!-- ====== 무지개 광선 (프리즘에서 골렘으로) ====== -->
+  <g filter="url(#tGlow)" opacity="0.8">
+    <!-- 백색 입사 광선 -->
+    <line x1="140" y1="170" x2="200" y2="182" stroke="#ffffff" stroke-width="2.5" opacity="0.7"/>
+    <!-- 분산된 무지개 -->
+    <line x1="215" y1="178" x2="305" y2="170" stroke="#ff3366" stroke-width="2" opacity="0.7"/>
+    <line x1="215" y1="182" x2="310" y2="180" stroke="#ffd700" stroke-width="2" opacity="0.6"/>
+    <line x1="215" y1="186" x2="310" y2="190" stroke="#33ff99" stroke-width="2" opacity="0.7"/>
+    <line x1="215" y1="190" x2="305" y2="200" stroke="#00d4ff" stroke-width="1.8" opacity="0.6"/>
+    <line x1="215" y1="194" x2="300" y2="210" stroke="#3366ff" stroke-width="1.5" opacity="0.5"/>
+    <line x1="215" y1="198" x2="295" y2="218" stroke="#6c3cf7" stroke-width="1.5" opacity="0.4"/>
+  </g>
+
+  <!-- 광선 충돌 이펙트 (골렘 코어) -->
+  <g filter="url(#tBigGlow)">
+    <circle cx="345" cy="195" r="12" fill="#ffffff" opacity="0.3"/>
+    <circle cx="345" cy="195" r="8" fill="#ff3366" opacity="0.4"/>
+    <circle cx="345" cy="195" r="4" fill="#ffffff" opacity="0.6"/>
+  </g>
+
+  <!-- 떠다니는 크리스탈 파편 -->
+  <g filter="url(#tGlow)" opacity="0.5">
+    <path d="M100 90 L104 80 L108 90 L104 95Z" fill="#00d4ff"/>
+    <path d="M250 100 L253 92 L256 100 L253 105Z" fill="#ffd700"/>
+    <path d="M180 240 L183 233 L186 240 L183 244Z" fill="#33ff99"/>
+    <path d="M300 260 L303 252 L306 260 L303 265Z" fill="#6c3cf7"/>
+    <path d="M50 200 L53 192 L56 200Z" fill="#ff3366"/>
+    <path d="M350 120 L353 114 L356 120Z" fill="#00d4ff"/>
+  </g>
+
+  <!-- 반딧불이 -->
+  <g filter="url(#tGlow)" opacity="0.4">
+    <circle cx="30" cy="250" r="1.5" fill="#33ff99"/>
+    <circle cx="90" cy="260" r="1" fill="#00d4ff"/>
+    <circle cx="370" cy="255" r="1.2" fill="#ffd700"/>
+    <circle cx="120" cy="230" r="1" fill="#6c3cf7"/>
+    <circle cx="280" cy="245" r="1.2" fill="#ff3366"/>
+  </g>
+
+  <!-- 안개 -->
+  <rect x="0" y="230" width="400" height="70" fill="url(#tBeam)" opacity="0.15"/>
+
+  <!-- ====== 타이틀 텍스트 ====== -->
+  <g filter="url(#tTextGlow)">
+    <!-- 그림자 -->
+    <text x="200" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="bold" fill="#000000" opacity="0.5" text-anchor="middle" letter-spacing="3">PRISM STRIKER</text>
+    <!-- 메인 텍스트 -->
+    <text x="200" y="36" font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="bold" fill="url(#tText)" text-anchor="middle" letter-spacing="3">PRISM STRIKER</text>
+    <!-- 스트로크 -->
+    <text x="200" y="36" font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="bold" fill="none" stroke="url(#tTextStroke)" stroke-width="0.5" text-anchor="middle" letter-spacing="3" opacity="0.6">PRISM STRIKER</text>
+  </g>
+
+  <!-- 서브타이틀 -->
+  <text x="200" y="54" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#00d4ff" text-anchor="middle" letter-spacing="5" opacity="0.7">LIGHT THE DARKNESS</text>
+
+  <!-- 하단 장식선 -->
+  <line x1="120" y1="60" x2="280" y2="60" stroke="url(#tRainbow)" stroke-width="1" opacity="0.5"/>
+
+  <!-- 비네트 (테두리 어둡게) -->
+  <rect width="400" height="300" fill="none" stroke="#0a0a2e" stroke-width="20" opacity="0.3"/>
+
+  <!-- HUD 오버레이 (좌상단) -->
+  <g opacity="0.4" transform="translate(15, 280)">
+    <path d="M0 0 C-2 -4, -6 -6, -6 -10 C-6 -12, -4 -14, -2 -14 C-1 -14, 0 -13, 0 -12 C0 -13, 1 -14, 2 -14 C4 -14, 6 -12, 6 -10 C6 -6, 2 -4, 0 0Z" fill="#ff3366" transform="scale(0.6)"/>
+    <text x="8" y="-2" font-family="sans-serif" font-size="6" fill="#ffffff">×5</text>
+  </g>
+
+  <!-- 스코어 오버레이 (우상단) -->
+  <g opacity="0.4" transform="translate(360, 280)">
+    <path d="M0 -8 L2 -3 L7 -3 L3 0 L5 5 L0 2 L-5 5 L-3 0 L-7 -3 L-2 -3Z" fill="#ffd700" transform="scale(0.5)"/>
+    <text x="6" y="-1" font-family="sans-serif" font-size="6" fill="#ffffff">2450</text>
+  </g>
+
+  <!-- 추가 환경 디테일: 크리스탈 기둥 (좌측) -->
+  <g opacity="0.3">
+    <path d="M70 180 L74 140 L78 180" fill="#00d4ff" opacity="0.5"/>
+    <path d="M74 180 L76 150 L78 180" fill="#ffffff" opacity="0.15"/>
+    <path d="M85 190 L88 165 L91 190" fill="#6c3cf7" opacity="0.4"/>
+  </g>
+
+  <!-- 추가 크리스탈 기둥 (우측) -->
+  <g opacity="0.3">
+    <path d="M320 185 L323 155 L326 185" fill="#ffd700" opacity="0.5"/>
+    <path d="M335 190 L338 168 L341 190" fill="#33ff99" opacity="0.4"/>
+  </g>
+
+  <!-- 떠다니는 프리즘 파편 (추가) -->
+  <g filter="url(#tGlow)" opacity="0.4">
+    <path d="M30 140 L33 132 L36 140 L33 145Z" fill="#00d4ff"/>
+    <path d="M375 160 L378 153 L381 160 L378 164Z" fill="#ff3366"/>
+    <path d="M220 85 L222 78 L224 85Z" fill="#ffd700"/>
+    <path d="M160 260 L163 252 L166 260 L163 265Z" fill="#33ff99"/>
+    <path d="M80 230 L82 224 L84 230Z" fill="#6c3cf7"/>
+    <path d="M340 230 L342 224 L344 230Z" fill="#00d4ff"/>
+  </g>
+
+  <!-- 광선 잔상 (추가 무지개 트레일) -->
+  <g opacity="0.15">
+    <path d="M100 175 Q140 168 180 172" stroke="#ff3366" stroke-width="1" fill="none"/>
+    <path d="M102 178 Q142 172 182 175" stroke="#33ff99" stroke-width="0.8" fill="none"/>
+    <path d="M104 181 Q144 176 184 178" stroke="#3366ff" stroke-width="0.8" fill="none"/>
+  </g>
+
+  <!-- 어둠 파티클 (골렘 주변) -->
+  <g opacity="0.2">
+    <circle cx="310" cy="160" r="2" fill="#3a1a5a"/>
+    <circle cx="360" cy="175" r="1.5" fill="#4a2a6a"/>
+    <circle cx="330" cy="230" r="2.5" fill="#2a1a4a"/>
+    <circle cx="370" cy="215" r="1.8" fill="#3a1a5a"/>
+    <circle cx="290" cy="220" r="2" fill="#4a2a6a"/>
+    <path d="M350 150 C355 145, 360 148, 358 155" stroke="#6c3cf7" stroke-width="0.5" fill="none" opacity="0.4"/>
+    <path d="M375 195 C380 190, 385 193, 382 200" stroke="#6c3cf7" stroke-width="0.5" fill="none" opacity="0.4"/>
+  </g>
+
+  <!-- 빗줄기 효과 (동굴 물방울) -->
+  <g opacity="0.08" stroke="#00d4ff" stroke-width="0.5">
+    <line x1="100" y1="120" x2="102" y2="140"/>
+    <line x1="180" y1="100" x2="181" y2="118"/>
+    <line x1="260" y1="110" x2="261" y2="128"/>
+    <line x1="340" y1="105" x2="341" y2="122"/>
+    <line x1="50" y1="130" x2="51" y2="145"/>
+    <line x1="220" y1="95" x2="221" y2="112"/>
+    <line x1="300" y1="115" x2="301" y2="132"/>
+    <line x1="380" y1="120" x2="381" y2="135"/>
+    <line x1="130" y1="108" x2="131" y2="125"/>
+    <line x1="200" y1="130" x2="201" y2="148"/>
+  </g>
+
+  <!-- 추가 반딧불이 -->
+  <g filter="url(#tGlow)" opacity="0.3">
+    <circle cx="45" cy="190" r="1" fill="#00d4ff"/>
+    <circle cx="110" cy="210" r="0.8" fill="#33ff99"/>
+    <circle cx="200" cy="250" r="1.2" fill="#ffd700"/>
+    <circle cx="330" cy="268" r="0.8" fill="#6c3cf7"/>
+    <circle cx="380" cy="240" r="1" fill="#ff3366"/>
+    <circle cx="15" cy="220" r="0.8" fill="#00d4ff"/>
+    <circle cx="260" cy="260" r="1" fill="#33ff99"/>
+  </g>
+
+  <!-- 프리즘 로고 워터마크 -->
+  <g opacity="0.06" transform="translate(200, 150)">
+    <path d="M0 -30 L26 15 L-26 15Z" fill="none" stroke="#ffffff" stroke-width="1"/>
+    <path d="M0 -20 L17 10 L-17 10Z" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+  </g>
+
+  <!-- 그레인 텍스처 (미세한 노이즈) -->
+  <g opacity="0.03">
+    <circle cx="30" cy="45" r="0.5" fill="#ffffff"/>
+    <circle cx="80" cy="120" r="0.3" fill="#ffffff"/>
+    <circle cx="150" cy="80" r="0.4" fill="#ffffff"/>
+    <circle cx="220" cy="150" r="0.3" fill="#ffffff"/>
+    <circle cx="290" cy="60" r="0.5" fill="#ffffff"/>
+    <circle cx="350" cy="180" r="0.3" fill="#ffffff"/>
+    <circle cx="60" cy="220" r="0.4" fill="#ffffff"/>
+    <circle cx="180" cy="270" r="0.3" fill="#ffffff"/>
+    <circle cx="320" cy="240" r="0.5" fill="#ffffff"/>
+    <circle cx="100" cy="180" r="0.3" fill="#ffffff"/>
+    <circle cx="250" cy="200" r="0.4" fill="#ffffff"/>
+    <circle cx="370" cy="130" r="0.3" fill="#ffffff"/>
+    <circle cx="20" cy="100" r="0.4" fill="#ffffff"/>
+    <circle cx="140" cy="230" r="0.3" fill="#ffffff"/>
+    <circle cx="270" cy="280" r="0.5" fill="#ffffff"/>
+    <circle cx="380" cy="50" r="0.3" fill="#ffffff"/>
+    <circle cx="50" cy="160" r="0.4" fill="#ffffff"/>
+    <circle cx="310" cy="140" r="0.3" fill="#ffffff"/>
+  </g>
+</svg>

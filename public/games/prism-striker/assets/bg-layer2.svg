@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <!-- 동굴벽 그라디언트 -->
+    <linearGradient id="caveWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1055"/>
+      <stop offset="100%" stop-color="#0a0a2e"/>
+    </linearGradient>
+    <!-- 크리스탈 그라디언트들 -->
+    <linearGradient id="crystalCyan" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#66ffff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#00d4ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0066aa" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="crystalPurple" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#aa88ff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#6c3cf7" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#3a1a8a" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="crystalGold" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffee88" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ffd700" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#aa7700" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="crystalPink" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ff88aa" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ff3366" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#aa1144" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="crystalGreen" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#88ffbb" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#33ff99" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#118855" stop-opacity="0.4"/>
+    </linearGradient>
+    <!-- 안개 -->
+    <linearGradient id="caveFog" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1055" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#2a1a6a" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0a0a2e" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="cGlow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="cSoft">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <!-- 바위 텍스처 그라디언트 -->
+    <linearGradient id="rockGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a2055"/>
+      <stop offset="100%" stop-color="#15103a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 동굴 천장 (상단 종유석) -->
+  <g>
+    <!-- 천장 암벽 -->
+    <path d="M0 0 L0 120 C50 100, 100 130, 150 90 C200 110, 250 80, 300 100 C350 70, 400 110, 450 85 C500 100, 550 70, 600 95 C650 80, 700 105, 750 75 C800 95, 850 65, 900 90 C950 80, 1000 100, 1050 70 C1100 90, 1150 80, 1200 100 L1200 0Z" fill="url(#caveWall)"/>
+
+    <!-- 종유석들 -->
+    <path d="M80 120 L90 200 L100 120" fill="#1a1055" opacity="0.8"/>
+    <path d="M85 120 L90 190 L95 120" fill="#2a1a6a" opacity="0.5"/>
+    <path d="M200 100 L210 170 L220 100" fill="#1a1055" opacity="0.7"/>
+    <path d="M350 110 L358 210 L366 110" fill="#15103a" opacity="0.9"/>
+    <path d="M354 110 L358 200 L362 110" fill="#2a1a6a" opacity="0.5"/>
+    <path d="M500 90 L508 180 L516 90" fill="#1a1055" opacity="0.8"/>
+    <path d="M650 100 L660 220 L670 100" fill="#15103a" opacity="0.85"/>
+    <path d="M655 100 L660 210 L665 100" fill="#2a1a6a" opacity="0.5"/>
+    <path d="M800 85 L806 160 L812 85" fill="#1a1055" opacity="0.7"/>
+    <path d="M950 95 L960 200 L970 95" fill="#15103a" opacity="0.85"/>
+    <path d="M1100 80 L1108 170 L1116 80" fill="#1a1055" opacity="0.8"/>
+    <!-- 작은 종유석 -->
+    <path d="M140 105 L144 140 L148 105" fill="#1a1055" opacity="0.6"/>
+    <path d="M270 90 L273 120 L276 90" fill="#15103a" opacity="0.5"/>
+    <path d="M430 95 L434 130 L438 95" fill="#1a1055" opacity="0.6"/>
+    <path d="M570 80 L574 115 L578 80" fill="#15103a" opacity="0.5"/>
+    <path d="M730 90 L733 120 L736 90" fill="#1a1055" opacity="0.6"/>
+    <path d="M880 75 L883 110 L886 75" fill="#15103a" opacity="0.5"/>
+    <path d="M1030 85 L1034 120 L1038 85" fill="#1a1055" opacity="0.6"/>
+  </g>
+
+  <!-- 동굴 바닥 (석순) -->
+  <g>
+    <path d="M0 700 C40 680, 80 710, 120 690 C160 700, 200 680, 250 695 C300 680, 340 700, 380 685 C420 700, 460 680, 500 690 C540 700, 580 680, 620 695 C660 680, 700 700, 740 685 C780 700, 820 680, 860 690 C900 700, 940 680, 980 695 C1020 680, 1060 700, 1100 685 C1140 700, 1180 690, 1200 700 L1200 800 L0 800Z" fill="url(#caveWall)"/>
+
+    <!-- 석순 클러스터들 -->
+    <path d="M60 700 L70 620 L80 700" fill="#1a1055" opacity="0.8"/>
+    <path d="M65 700 L70 630 L75 700" fill="#2a1a6a" opacity="0.5"/>
+    <path d="M180 690 L192 580 L204 690" fill="#15103a" opacity="0.9"/>
+    <path d="M185 690 L192 595 L199 690" fill="#2a1a6a" opacity="0.5"/>
+    <path d="M320 695 L330 630 L340 695" fill="#1a1055" opacity="0.7"/>
+    <path d="M460 685 L470 590 L480 685" fill="#15103a" opacity="0.85"/>
+    <path d="M600 695 L610 610 L620 695" fill="#1a1055" opacity="0.8"/>
+    <path d="M740 688 L752 580 L764 688" fill="#15103a" opacity="0.9"/>
+    <path d="M745 688 L752 595 L759 688" fill="#2a1a6a" opacity="0.5"/>
+    <path d="M880 692 L888 620 L896 692" fill="#1a1055" opacity="0.8"/>
+    <path d="M1020 690 L1032 600 L1044 690" fill="#15103a" opacity="0.85"/>
+    <path d="M1140 695 L1148 640 L1156 695" fill="#1a1055" opacity="0.7"/>
+  </g>
+
+  <!-- 크리스탈 클러스터 (천장) -->
+  <g filter="url(#cGlow)">
+    <!-- 클러스터 1 (시안) -->
+    <path d="M88 190 L92 140 L96 190" fill="url(#crystalCyan)"/>
+    <path d="M82 195 L86 155 L90 195" fill="url(#crystalCyan)" opacity="0.7"/>
+    <path d="M94 192 L99 160 L104 192" fill="url(#crystalCyan)" opacity="0.6"/>
+
+    <!-- 클러스터 2 (퍼플) -->
+    <path d="M356 200 L360 130 L364 200" fill="url(#crystalPurple)"/>
+    <path d="M348 205 L353 155 L358 205" fill="url(#crystalPurple)" opacity="0.7"/>
+    <path d="M362 202 L368 160 L374 202" fill="url(#crystalPurple)" opacity="0.6"/>
+
+    <!-- 클러스터 3 (골드) -->
+    <path d="M658 210 L662 140 L666 210" fill="url(#crystalGold)"/>
+    <path d="M650 215 L654 165 L658 215" fill="url(#crystalGold)" opacity="0.7"/>
+
+    <!-- 클러스터 4 (핑크) -->
+    <path d="M955 190 L960 120 L965 190" fill="url(#crystalPink)"/>
+    <path d="M947 195 L952 150 L957 195" fill="url(#crystalPink)" opacity="0.7"/>
+  </g>
+
+  <!-- 크리스탈 클러스터 (바닥) -->
+  <g filter="url(#cGlow)">
+    <!-- 바닥 클러스터 1 -->
+    <path d="M68 630 L72 560 L76 630" fill="url(#crystalCyan)"/>
+    <path d="M60 635 L64 580 L68 635" fill="url(#crystalCyan)" opacity="0.7"/>
+    <path d="M74 632 L80 590 L86 632" fill="url(#crystalCyan)" opacity="0.6"/>
+    <path d="M54 638 L58 600 L62 638" fill="url(#crystalCyan)" opacity="0.5"/>
+
+    <!-- 바닥 클러스터 2 -->
+    <path d="M190 590 L194 510 L198 590" fill="url(#crystalPurple)"/>
+    <path d="M182 595 L187 540 L192 595" fill="url(#crystalPurple)" opacity="0.7"/>
+    <path d="M196 592 L202 550 L208 592" fill="url(#crystalPurple)" opacity="0.6"/>
+
+    <!-- 바닥 클러스터 3 -->
+    <path d="M466 600 L470 520 L474 600" fill="url(#crystalGreen)"/>
+    <path d="M458 605 L462 555 L466 605" fill="url(#crystalGreen)" opacity="0.7"/>
+    <path d="M472 602 L478 560 L484 602" fill="url(#crystalGreen)" opacity="0.6"/>
+
+    <!-- 바닥 클러스터 4 -->
+    <path d="M750 590 L754 510 L758 590" fill="url(#crystalGold)"/>
+    <path d="M742 595 L746 545 L750 595" fill="url(#crystalGold)" opacity="0.7"/>
+    <path d="M756 592 L762 550 L768 592" fill="url(#crystalGold)" opacity="0.6"/>
+    <path d="M736 598 L740 570 L744 598" fill="url(#crystalGold)" opacity="0.5"/>
+
+    <!-- 바닥 클러스터 5 -->
+    <path d="M1030 608 L1035 530 L1040 608" fill="url(#crystalPink)"/>
+    <path d="M1022 612 L1027 560 L1032 612" fill="url(#crystalPink)" opacity="0.7"/>
+    <path d="M1038 610 L1044 570 L1050 610" fill="url(#crystalPink)" opacity="0.6"/>
+  </g>
+
+  <!-- 바위 더미 -->
+  <g>
+    <ellipse cx="140" cy="705" rx="30" ry="15" fill="url(#rockGrad)" opacity="0.7"/>
+    <ellipse cx="400" cy="700" rx="25" ry="12" fill="url(#rockGrad)" opacity="0.6"/>
+    <ellipse cx="560" cy="708" rx="35" ry="14" fill="url(#rockGrad)" opacity="0.7"/>
+    <ellipse cx="840" cy="702" rx="28" ry="13" fill="url(#rockGrad)" opacity="0.65"/>
+    <ellipse cx="1080" cy="705" rx="32" ry="14" fill="url(#rockGrad)" opacity="0.7"/>
+  </g>
+
+  <!-- 안개 층 (깊이감) -->
+  <rect x="0" y="250" width="1200" height="120" fill="url(#caveFog)" opacity="0.4"/>
+  <rect x="0" y="400" width="1200" height="100" fill="url(#caveFog)" opacity="0.5"/>
+  <rect x="0" y="550" width="1200" height="80" fill="url(#caveFog)" opacity="0.35"/>
+  <ellipse cx="300" cy="500" rx="200" ry="50" fill="#2a1a6a" opacity="0.1"/>
+  <ellipse cx="800" cy="480" rx="180" ry="40" fill="#1a1055" opacity="0.1"/>
+
+  <!-- 반딧불이 / 빛 입자 -->
+  <g filter="url(#cGlow)" opacity="0.6">
+    <circle cx="100" cy="350" r="2" fill="#00d4ff"/>
+    <circle cx="250" cy="400" r="1.5" fill="#33ff99"/>
+    <circle cx="400" cy="320" r="2" fill="#ffd700"/>
+    <circle cx="550" cy="380" r="1.5" fill="#6c3cf7"/>
+    <circle cx="700" cy="350" r="2" fill="#ff3366"/>
+    <circle cx="850" cy="400" r="1.5" fill="#00d4ff"/>
+    <circle cx="1000" cy="340" r="2" fill="#33ff99"/>
+    <circle cx="1150" cy="380" r="1.5" fill="#ffd700"/>
+    <circle cx="180" cy="500" r="1.2" fill="#00d4ff" opacity="0.4"/>
+    <circle cx="350" cy="550" r="1" fill="#6c3cf7" opacity="0.4"/>
+    <circle cx="520" cy="480" r="1.5" fill="#33ff99" opacity="0.4"/>
+    <circle cx="670" cy="520" r="1.2" fill="#ff3366" opacity="0.4"/>
+    <circle cx="820" cy="490" r="1" fill="#ffd700" opacity="0.4"/>
+    <circle cx="980" cy="530" r="1.5" fill="#00d4ff" opacity="0.4"/>
+  </g>
+
+  <!-- 광선 반사 (벽면) -->
+  <g opacity="0.15">
+    <line x1="90" y1="150" x2="150" y2="300" stroke="#00d4ff" stroke-width="1"/>
+    <line x1="360" y1="140" x2="300" y2="350" stroke="#6c3cf7" stroke-width="1"/>
+    <line x1="660" y1="150" x2="700" y2="330" stroke="#ffd700" stroke-width="0.8"/>
+    <line x1="960" y1="130" x2="920" y2="300" stroke="#ff3366" stroke-width="1"/>
+    <line x1="470" y1="530" x2="520" y2="400" stroke="#33ff99" stroke-width="0.8"/>
+    <line x1="752" y1="520" x2="790" y2="380" stroke="#ffd700" stroke-width="0.8"/>
+  </g>
+
+  <!-- 룬 심볼 (벽면) -->
+  <g opacity="0.15" font-family="serif" font-size="14">
+    <text x="160" cy="300" fill="#00d4ff">◆</text>
+    <text x="420" cy="350" fill="#6c3cf7">◇</text>
+    <text x="680" cy="280" fill="#ffd700">✦</text>
+    <text x="940" cy="320" fill="#ff3366">◈</text>
+  </g>
+</svg>

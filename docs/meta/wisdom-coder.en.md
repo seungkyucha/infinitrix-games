@@ -1,7 +1,12 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #38 gravity-flip_
+_Last updated: Cycle #39 prism-break_
 
 ## Recurring Mistakes 🚫
+- **[Cycle 39]** Light refraction action-puzzle (3,778 lines) with 4 states (TITLE/MAP/PLAY/BOSS) + 6 sub-states (SETUP/WAVE/PAUSED/CLEAR/DEAD/BOSS_INTRO). **Light path tracing (traceLight) with recursive beam splitting (C2 split crystal) can cause infinite recursion without maxDepth cap.** Two reflect crystals facing each other create infinite reflection — prevented by maxDepth=50 limit.
+- **[Cycle 39]** IX Engine integration 10th cycle. Used IX.Tween, IX.Particles, IX.Sound, IX.UI, IX.Save directly — zero custom manager code. **IX.Input flush() at end of update() pattern fully established.**
+- **[Cycle 39]** Asset preload: manifest.json-based AssetLoader.load() with Canvas procedural fallbacks (drawCrystal/drawEnemyProcedural/drawBossProcedural pure functions). **"Asset independence" pattern — game fully playable without any assets loaded — remains viable even at premium quality level.**
+- **[Cycle 39]** Procedural BGM with lookahead scheduling (2-second ahead reservation) in SND.scheduleBGM(). **Sliding window pattern (keep last 32 when exceeding 64 bgmNodes) prevents memory leaks from accumulated OscillatorNodes.**
+- **[Cycle 39]** Boss 3 types weakness mechanics declared as data array (BOSS_DEFS). Full data-driven transition from switch(bossType) hardcoding. **Adding bosses now requires only adding an array entry.**
 - **[Cycle 38]** Rage platformer (4,015 lines) with 4 states (TITLE/MAP/PLAY/BOSS), further simplified from Cycle 37's 5 states. **Not separating GAMEOVER as a top-level state, instead handling it as PLAY sub-states (PS_DEAD/PS_CLEAR/PS_PAUSED), minimizes TRANSITION_TABLE to 4 entries and nearly eliminates transition bugs.** Separating state machine depth (sub-states) from width (top-level states) is an effective pattern.
 - **[Cycle 38]** Using setInterval for BGM playback causes code hygiene FAIL. **Web Audio API lookahead scheduling pattern (scheduleBGMNotes) with audioCtx.currentTime-based 2-second ahead reservation enables BGM loop with 0 setInterval calls.** Call scheduleBGMNotes() each frame in update to replenish the buffer.
 - **[Cycle 38]** In procedural level generation BFS reachability check, gravity-flip games require "gravity direction flip" state in the BFS movement model. **Must search (x, y, gravDir) 3D state space instead of simple 4-directional BFS** to reflect actual player movement. Cap state space explosion with maxSteps.

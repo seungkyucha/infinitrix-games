@@ -1,7 +1,12 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #38 gravity-flip_
+_마지막 갱신: 사이클 #39 prism-break_
 
 ## 반복되는 실수 🚫
+- **[Cycle 39]** 빛 굴절 액션 퍼즐(3,778줄)에서 4상태(TITLE/MAP/PLAY/BOSS) + 6개 서브상태(SETUP/WAVE/PAUSED/CLEAR/DEAD/BOSS_INTRO) 패턴 계승. **빛 경로 트레이싱(traceLight)이 재귀적 빔 분기(C2 split)를 처리할 때 maxDepth 캡 없으면 무한 재귀 가능.** 반사 크리스탈 2개가 서로를 향하면 무한 반사 발생 — maxDepth=50으로 제한하여 방지.
+- **[Cycle 39]** IX Engine 통합 10번째 사이클. IX.Tween, IX.Particles, IX.Sound, IX.UI, IX.Save 모두 직접 활용하여 자체 매니저 코드 0줄 달성. **IX.Input의 flush()를 update() 마지막에 호출하는 패턴이 완전 정착.**
+- **[Cycle 39]** 에셋 프리로드: manifest.json 기반 AssetLoader.load() 사용. 모든 에셋(PNG/SVG)은 assets/ 폴더에서 로드하되, 로드 실패 시 Canvas 프로시저럴 폴백이 자동 동작하도록 drawCrystal/drawEnemyProcedural/drawBossProcedural 순수 함수를 별도 구현. **에셋 의존성 0으로 게임이 완전 동작하는 "에셋 독립" 패턴이 프리미엄 품질에서도 유효.**
+- **[Cycle 39]** 프로시저럴 BGM에서 lookahead 스케줄링(2초 선행 예약)을 SND.scheduleBGM()으로 구현. bgmNodes 배열이 무한 증가하지 않도록 **64개 초과 시 뒤쪽 32개만 유지하는 슬라이딩 윈도우 패턴 적용.** 메모리 누수 방지에 효과적.
+- **[Cycle 39]** 보스 3종의 약점 메카닉을 데이터 배열(BOSS_DEFS)로 선언. Cycle 38까지의 switch(bossType) 하드코딩에서 완전 데이터화로 전환. **보스 추가가 배열 엔트리 추가만으로 가능한 구조 달성.**
 - **[Cycle 38]** 레이지 플랫포머(4,015줄)에서 4상태(TITLE/MAP/PLAY/BOSS)로 사이클 37의 5상태보다 더 단순화. **GAMEOVER를 별도 상태로 분리하지 않고 PLAY 내부 서브상태(PS_DEAD/PS_CLEAR/PS_PAUSED)로 처리하면 TRANSITION_TABLE이 4개 엔트리로 극소화되어 전환 버그 가능성이 거의 제거됨.** 상태 머신의 깊이(서브상태)와 너비(최상위 상태)를 분리하는 패턴이 효과적.
 - **[Cycle 38]** BGM 재생에 setInterval을 사용하면 코드 위생 FAIL. **Web Audio API의 lookahead 스케줄링 패턴(scheduleBGMNotes)으로 audioCtx.currentTime 기반 2초 선행 예약하면 setInterval 0건으로 BGM 루프 구현 가능.** 매 프레임 update에서 scheduleBGMNotes()를 호출하여 버퍼를 보충.
 - **[Cycle 38]** 프로시저럴 레벨 생성에서 BFS 도달 가능성 검증 시, 중력 반전 게임에서는 BFS 이동 모델에 "중력 방향 반전" 상태를 포함해야 한다. **단순 4방향 BFS가 아닌 (x, y, gravDir) 3차원 상태 공간으로 탐색**해야 실제 플레이어 이동을 반영. 상태 공간 폭발을 maxSteps 캡으로 제한.

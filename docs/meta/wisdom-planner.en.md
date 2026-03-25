@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #38_
+_Last updated: Cycle #39_
 
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
@@ -137,10 +137,22 @@ _Last updated: Cycle #38_
 - **[Cycle 36]** Linking boss 5 weaknesses to mecha unlock order (Crusher→default mechas, Shield Mother→EMP unlock, Drill Worm→Railgun unlock) creates a **virtuous cycle where progression (mecha unlocks) and boss design reinforce each other**. Applied Cycle 33-35's "ability↔boss weakness 1:1 mapping" pattern to TD genre.
 
 - **[Cycle 38]** arcade+casual 10-game longest unused gap + Level Devil Poki March 2026 #1 + gravity-flip unused mechanic + research lab unused theme = **4-factor genre selection validation**. "Longest unused gap" criterion remains effective in 2nd genre cycle. 4 of Poki Top 10 being arcade+casual strengthened selection confidence.
+- **[Cycle 39]** action+puzzle **11-cycle** longest unused gap + Level Devil Poki March 2026 #1 + CrazyGames Top 20 puzzle-platformer 4 titles simultaneously popular + light/optics unused mechanic = **4-factor genre selection validation**. Bright crystal visuals as stark opposite of existing dark-themed 2 games (phantom-shift, shadow-rift) is the differentiation key. "Longest unused gap" criterion confirmed effective for 5 consecutive cycles (#35–#39) in 2nd genre rotation.
+- **[Cycle 39]** Mapping boss weaknesses **1:1 to puzzle mechanics** (Golem=core behind mirror, Witch=shadow observation, Lord=3-color simultaneous hit) transforms boss fights from "HP grind" to "puzzle solving." Applied Cycle 33-38's "ability↔boss weakness mapping" pattern to beam puzzles — prism placement IS the boss solution.
+- **[Cycle 39]** After 2 consecutive PENDING, **strictly limiting Phase 1 MVP to 9 stages + 3 bosses and constraining core functions ≤5** at spec top preemptively prevents implementation overscope. Direct application of Cycle 21 lesson: address "it's in the spec so must build it all" pressure through MVP boundary emphasis.
+- **[Cycle 39]** Maintaining 4-state TRANSITION_TABLE (TITLE/MAP/PLAY/BOSS) + `Object.keys(TT).length === 4` verification criterion. Cycle 38's successful 4-state minimization pattern persists across genre change (platformer→puzzle action), structurally preventing STATE_PRIORITY recurrence.
 - **[Cycle 38]** Designing DDA as **"ghost path hint provision (add information)"** rather than "trap deactivation (reduce difficulty)" preserves rage game challenge while improving accessibility. Direct application of Cycle 35 planner lesson. 3-level DDA (speed reduction→path hints→danger highlighting) balances difficulty and accessibility.
 - **[Cycle 38]** Specifying boss weakness timing windows **in seconds and manually simulating "can player reach with N gravity flips?"** resolves Cycle 37's "boss weakness block placement feasibility unverified" by adapting to evasion-based boss fights. Puzzle verification (block placement) vs platformer verification (timing windows) differ in axis but share the principle of spec-stage validation.
 - **[Cycle 38]** Adopted "20 pre-defined segments + 30% variation" hybrid generation for procedural stages. Direct application of Cycle 33's "hybrid generation has lower BFS failure rate than full procedural." Segment-level BFS validation ensures clearability lighter than full-stage validation.
 - **[Cycle 38]** Set balance cap as **"clear time floor (10s)"** instead of "DPS cap." Evasion-based games make DPS meaningless, so guaranteeing minimum clear time through physical stage length and obstacle density is genre-appropriate balance verification.
+
+- **[Cycle 39]** When designing light beam puzzle action (Prism Break), **raycasting-based beam path calculation can grow exponentially with reflection/refraction branches**, so specifying total active beam caps (MAX_RAYS = 20 reflections, 30 segments per ray) in the spec is essential. Physics-based puzzles must have computation caps defined at the planning stage.
+- **[Cycle 39]** After 2 consecutive PENDING cycles, **limiting MVP scope to Phase 1 (Zones 1–3: 9 stages + 3 bosses) with Zones 4–5 + 2 hidden deferred to Phase 2** is key to improving implementation completeness. Prioritize core loop polish over content quantity (20 total stages).
+- **[Cycle 39]** For light beam puzzle DDA, **"optimal prism angle dotted-line hint" information provision** better preserves puzzle intellectual satisfaction than "difficulty reduction." Direct application of Cycle 35's "ghost path hint" to beam puzzles — DDA tier ordering: Tier 0 (none) → Tier 1 (extended warnings) → Tier 2 (prism hints) → Tier 3 (slower obstacles). Information → utility → difficulty sequence.
+- **[Cycle 39]** Designing upgrade tree 3-branches (Light Mastery/Combat Beam/Insight) to **each strengthen different axes (puzzle convenience/damage/information)** naturally creates trade-offs between extreme builds. Applied Cycle 35's "axis separation → intuitive balance verification" lesson to puzzle action.
+- **[Cycle 39]** In optical puzzles, **limiting color synthesis rules to 4 (R+G=Yellow, R+B=Magenta, G+B=Cyan, RGB=White)** keeps learnable rule count manageable while ensuring combinatorial puzzle depth. Beyond 7 rules, memorization burden overwhelms fun.
+- **[Cycle 39]** When applying reachability verification to optical puzzles, **raycasting simulation (prism 360° sweep)** must replace grid-based BFS. Grid BFS cannot represent continuous angle changes in light paths, so physics-based puzzles need genre-appropriate verification algorithms specified in the spec.
+- **[Cycle 39]** Using stars (★) as unified upgrade currency where **total earnable (60★) < total unlock cost (168★)** forces build choices and naturally generates replay value. Scarce currency creates strategic decisions where infinite currency would not.
 
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
@@ -192,6 +204,12 @@ _Last updated: Cycle #38_
 - [ ] Verify one-touch gravity flip + auto-rightward movement provides Level Devil-level addictiveness — measure session length and retry rate
 - [ ] Verify 10 obstacle types × 5-zone introduction order creates "gradual learning curve" — measure new player dropout rate in Zone 1
 - [ ] Verify DDA "ghost path hint" approach actually preserves rage game challenge — check if players continue retrying after DDA level 2~3 activation
+- [ ] Verify MAX_RAYS=30 beam cap maintains 60fps during raycasting with reflection/refraction — profile performance with 5 prisms placed
+- [ ] Verify BFS-based prism placement combination search completes in reasonable time (<100ms) during stage generation — prevent combinatorial explosion
+- [ ] Verify upgrade tree 3-branch (beam/prism/time) extreme builds all converge within 70–130s boss clear time range
+- [ ] Verify DDA "beam path preview (dotted line)" approach actually preserves puzzle intellectual satisfaction — measure player satisfaction after hint use
+- [ ] Verify Phase 1 MVP scope restriction (9 stages + 3 bosses) actually prevents PENDING recurrence — track implementation completion rate
+- [ ] Verify RGB beam dispersion+recombination mechanic is accessible to colorblind users — assess need for shape/pattern auxiliary indicators beyond color
 - [ ] Verify hybrid stage generation (20 segments + 30% variation) provides sufficient replay variety — test if players notice differences across 3 plays of same stage
 - [ ] Verify boss weakness timing windows (DR-01: 2s, CR-02: 0.5s, etc.) feel fair in actual gameplay — measure average attempts per boss
 - [ ] Verify upgrade 3 branches (gravity/dash/slow) each provide clearly distinct play styles

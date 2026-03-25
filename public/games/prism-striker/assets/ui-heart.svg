@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <!-- 크리스탈 하트 그라디언트 -->
+    <linearGradient id="heartMain" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8aab"/>
+      <stop offset="40%" stop-color="#ff3366"/>
+      <stop offset="80%" stop-color="#cc1144"/>
+      <stop offset="100%" stop-color="#880033"/>
+    </linearGradient>
+    <linearGradient id="heartHighlight" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="heartGlow" cx="0.5" cy="0.4" r="0.6">
+      <stop offset="0%" stop-color="#ff6b8a" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="heartFacetL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6688"/>
+      <stop offset="100%" stop-color="#dd2255"/>
+    </linearGradient>
+    <linearGradient id="heartFacetR" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff4477"/>
+      <stop offset="100%" stop-color="#aa1144"/>
+    </linearGradient>
+    <linearGradient id="heartFacetBot" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#cc2255"/>
+      <stop offset="100%" stop-color="#880033"/>
+    </linearGradient>
+    <filter id="hGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#880033" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- 아우라 글로우 -->
+  <circle cx="24" cy="22" r="20" fill="url(#heartGlow)" filter="url(#hGlow)"/>
+
+  <!-- 하트 크리스탈 본체 (다면체 스타일) -->
+  <g filter="url(#hShadow)">
+    <!-- 메인 하트 형태 -->
+    <path d="M24 40 C16 32, 4 24, 4 16 C4 10, 8 6, 14 6 C18 6, 22 9, 24 14 C26 9, 30 6, 34 6 C40 6, 44 10, 44 16 C44 24, 32 32, 24 40Z" fill="url(#heartMain)"/>
+
+    <!-- 크리스탈 패싯 - 왼쪽 면 -->
+    <path d="M24 14 L14 8 L6 16 L18 28Z" fill="url(#heartFacetL)" opacity="0.6"/>
+    <!-- 크리스탈 패싯 - 오른쪽 면 -->
+    <path d="M24 14 L34 8 L42 16 L30 28Z" fill="url(#heartFacetR)" opacity="0.6"/>
+    <!-- 크리스탈 패싯 - 하단 -->
+    <path d="M18 28 L24 40 L30 28 L24 22Z" fill="url(#heartFacetBot)" opacity="0.5"/>
+
+    <!-- 패싯 엣지 라인 -->
+    <path d="M24 14 L18 28 M24 14 L30 28 M18 28 L24 40 M30 28 L24 40 M24 14 L24 22 L18 28 M24 22 L30 28" stroke="#ffaacc" stroke-width="0.5" fill="none" opacity="0.4"/>
+
+    <!-- 하이라이트 (왼쪽 상단) -->
+    <path d="M12 10 C14 8, 18 7, 20 10 C18 12, 14 14, 12 10Z" fill="url(#heartHighlight)" opacity="0.8"/>
+    <circle cx="14" cy="11" r="2" fill="#ffffff" opacity="0.6"/>
+    <circle cx="16" cy="9" r="1" fill="#ffffff" opacity="0.9"/>
+
+    <!-- 내부 빛 반사 -->
+    <path d="M28 14 C30 12, 34 10, 36 12 C34 14, 30 16, 28 14Z" fill="#ffffff" opacity="0.3"/>
+    <path d="M20 24 C22 22, 24 22, 26 24" stroke="#ffccdd" stroke-width="0.5" fill="none" opacity="0.3"/>
+  </g>
+
+  <!-- 반짝임 -->
+  <g filter="url(#hGlow)">
+    <path d="M10 8 L11 6 L12 8 L11 10Z" fill="#ffffff" opacity="0.7"/>
+    <path d="M36 10 L37 8 L38 10 L37 12Z" fill="#ffffff" opacity="0.6"/>
+    <path d="M8 20 L9 18 L10 20 L9 22Z" fill="#ffaacc" opacity="0.5"/>
+    <circle cx="40" cy="14" r="0.8" fill="#ffffff" opacity="0.5"/>
+    <circle cx="6" cy="12" r="0.6" fill="#ff6b8a" opacity="0.6"/>
+  </g>
+
+  <!-- 크리스탈 균열 텍스처 -->
+  <path d="M20 18 L22 22 L19 26" stroke="#ffddee" stroke-width="0.3" fill="none" opacity="0.3"/>
+  <path d="M28 16 L26 20 L29 24" stroke="#ffddee" stroke-width="0.3" fill="none" opacity="0.3"/>
+  <path d="M16 14 L18 18" stroke="#ffddee" stroke-width="0.2" fill="none" opacity="0.2"/>
+  <path d="M32 14 L30 18" stroke="#ffddee" stroke-width="0.2" fill="none" opacity="0.2"/>
+
+  <!-- 프리즘 빛 반사 (무지개) -->
+  <line x1="12" y1="12" x2="10" y2="10" stroke="#ff3366" stroke-width="0.5" opacity="0.3"/>
+  <line x1="11" y1="13" x2="8" y2="12" stroke="#33ff99" stroke-width="0.5" opacity="0.3"/>
+  <line x1="11" y1="14" x2="8" y2="14" stroke="#3366ff" stroke-width="0.5" opacity="0.3"/>
+</svg>

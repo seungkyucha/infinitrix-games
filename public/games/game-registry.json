@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-25T04:08:23.813Z",
-  "totalGames": 36,
+  "lastUpdated": "2026-03-25T07:58:12.847Z",
+  "totalGames": 37,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -6738,6 +6738,192 @@
             "Barra de espaço: Inverter gravidade",
             "Toque: Toque na tela para inverter gravidade (mobile)",
             "Esc: Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "prism-break",
+      "title": "프리즘 브레이크",
+      "description": "크리스탈로 빛을 굴절시켜 그림자 적을 소멸하세요!",
+      "genre": [
+        "action",
+        "puzzle"
+      ],
+      "thumbnail": "/games/prism-break/assets/thumbnail.svg",
+      "path": "/games/prism-break/index.html",
+      "addedAt": "2026-03-25T07:58:12.847Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "액션",
+        "퍼즐",
+        "빛",
+        "크리스탈",
+        "굴절",
+        "그림자",
+        "전략"
+      ],
+      "controls": [
+        "마우스 클릭: 크리스탈 배치",
+        "마우스 우클릭/R키: 크리스탈 회전",
+        "터치: 크리스탈 배치 및 회전 (모바일)",
+        "ESC: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Prism Break",
+          "description": "Refract light with crystals to destroy shadow enemies!",
+          "tags": [
+            "action",
+            "puzzle",
+            "light",
+            "crystal",
+            "refraction",
+            "shadow",
+            "strategy"
+          ],
+          "controls": [
+            "Click: Place crystal",
+            "Right-click/R: Rotate crystal",
+            "Touch: Place and rotate crystals (mobile)",
+            "ESC: Pause"
+          ]
+        },
+        "ja": {
+          "title": "プリズムブレイク",
+          "description": "クリスタルで光を屈折させ、影の敵を消滅させよう！",
+          "tags": [
+            "アクション",
+            "パズル",
+            "光",
+            "クリスタル",
+            "屈折",
+            "シャドウ",
+            "戦略"
+          ],
+          "controls": [
+            "クリック: クリスタル配置",
+            "右クリック/R: クリスタル回転",
+            "タッチ: クリスタルの配置と回転（モバイル）",
+            "ESC: ポーズ"
+          ]
+        },
+        "zh-CN": {
+          "title": "棱镜破晓",
+          "description": "用水晶折射光线，消灭暗影敌人！",
+          "tags": [
+            "动作",
+            "益智",
+            "光线",
+            "水晶",
+            "折射",
+            "暗影",
+            "策略"
+          ],
+          "controls": [
+            "点击：放置水晶",
+            "右键/R：旋转水晶",
+            "触控：放置和旋转水晶（移动端）",
+            "ESC：暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "稜鏡破曉",
+          "description": "用水晶折射光線，消滅暗影敵人！",
+          "tags": [
+            "動作",
+            "益智",
+            "光線",
+            "水晶",
+            "折射",
+            "暗影",
+            "策略"
+          ],
+          "controls": [
+            "點擊：放置水晶",
+            "右鍵/R：旋轉水晶",
+            "觸控：放置和旋轉水晶（行動裝置）",
+            "ESC：暫停"
+          ]
+        },
+        "es": {
+          "title": "Quiebre de Prisma",
+          "description": "¡Refracta la luz con cristales para destruir enemigos de sombra!",
+          "tags": [
+            "acción",
+            "puzle",
+            "luz",
+            "cristal",
+            "refracción",
+            "sombra",
+            "estrategia"
+          ],
+          "controls": [
+            "Clic: Colocar cristal",
+            "Clic derecho/R: Rotar cristal",
+            "Toque: Colocar y rotar cristales (móvil)",
+            "ESC: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Briseur de Prisme",
+          "description": "Réfractez la lumière avec des cristaux pour anéantir les ennemis d'ombre !",
+          "tags": [
+            "action",
+            "puzzle",
+            "lumière",
+            "cristal",
+            "réfraction",
+            "ombre",
+            "stratégie"
+          ],
+          "controls": [
+            "Clic : Placer un cristal",
+            "Clic droit/R : Tourner le cristal",
+            "Tactile : Placer et tourner les cristaux (mobile)",
+            "Échap : Pause"
+          ]
+        },
+        "de": {
+          "title": "Prismenbruch",
+          "description": "Breche Licht mit Kristallen und vernichte Schattenfeinde!",
+          "tags": [
+            "Action",
+            "Puzzle",
+            "Licht",
+            "Kristall",
+            "Brechung",
+            "Schatten",
+            "Strategie"
+          ],
+          "controls": [
+            "Klick: Kristall platzieren",
+            "Rechtsklick/R: Kristall drehen",
+            "Touch: Kristalle platzieren und drehen (Mobil)",
+            "ESC: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Quebra de Prisma",
+          "description": "Refrate a luz com cristais para destruir inimigos das sombras!",
+          "tags": [
+            "ação",
+            "puzzle",
+            "luz",
+            "cristal",
+            "refração",
+            "sombra",
+            "estratégia"
+          ],
+          "controls": [
+            "Clique: Colocar cristal",
+            "Clique direito/R: Girar cristal",
+            "Toque: Colocar e girar cristais (mobile)",
+            "ESC: Pausa"
           ]
         }
       }
