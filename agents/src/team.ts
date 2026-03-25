@@ -348,10 +348,10 @@ const assets = new AssetLoader();
 
 async function init() {
   await assets.load({
-    player: 'assets/player.svg',
-    enemy: 'assets/enemy.svg',
-    bgLayer1: 'assets/bg-layer1.svg',
-    bgLayer2: 'assets/bg-layer2.svg',
+    player: 'assets/player.png',
+    enemy: 'assets/enemy.png',
+    bgLayer1: 'assets/bg-layer1.png',
+    bgLayer2: 'assets/bg-layer2.png',
   });
   engine.start();
 }

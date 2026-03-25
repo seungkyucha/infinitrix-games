@@ -10,6 +10,7 @@ import {
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs'
+import { generateGameAssets } from './gemini-image.js'
 
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
@@ -334,33 +335,79 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     `)
     completeAgent('planner')
 
-    // ── 3단계: 그래픽 에셋 제작 ──────────────────────────────
-    console.log(`\n🎨 [3/7] 디자이너 — SVG 그래픽 에셋 제작`)
+    // ── 3단계: 그래픽 에셋 제작 (Gemini PNG + Claude 아트 디렉션) ──
+    console.log(`\n🎨 [3/7] 디자이너 — Gemini PNG 에셋 생성`)
     state.status = 'designing'
-    startAgent('designer', 3, '그래픽 에셋 제작', 'Graphic Asset Creation')
-    await runAgent('designer', `
-      docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
-      기획서의 game-id를 정확히 읽어 폴더명으로 사용해줘.
+    startAgent('designer', 3, '그래픽 에셋 제작 (Gemini PNG)', 'Graphic Assets (Gemini PNG)')
 
-      ⚠️ 중요: 반드시 public/games/[game-id]/assets/ 폴더를 먼저 생성(mkdir -p)한 후
-      해당 폴더 안에 모든 에셋 파일을 저장할 것. assets/ 폴더 바깥에 저장하지 마세요.
+    // 3-A: 기획서에서 게임 정보 추출
+    const specPath = `${PROJECT_ROOT}/docs/game-specs/cycle-${cycleNumber}-spec.md`
+    let gameId = '', gameTitle = '', genre = '', artStyle = ''
+    if (existsSync(specPath)) {
+      const specRaw = readFileSync(specPath, 'utf-8')
+      const idMatch    = specRaw.match(/game-id:\s*(.+)/)
+      const titleMatch = specRaw.match(/title:\s*(.+)/)
+      const genreMatch = specRaw.match(/genre:\s*(.+)/)
+      gameId    = idMatch?.[1]?.trim() ?? ''
+      gameTitle = titleMatch?.[1]?.trim() ?? ''
+      genre     = genreMatch?.[1]?.trim() ?? ''
+      // 비주얼 스타일 추출 시도
+      const styleMatch = specRaw.match(/(?:시각|visual|style|아트|art)[\s\S]{0,200}?([\w가-힣\s,]+(?:네온|neon|pixel|retro|fantasy|dark|bright|cartoon|realistic|cyberpunk|medieval|sci-fi|cute|minimal)[\w가-힣\s,]*)/i)
+      artStyle = styleMatch?.[1]?.trim() ?? `${genre} game style, polished indie quality`
+    }
 
-      생성할 파일 목록 (모두 public/games/[game-id]/assets/ 안에):
-      - player.svg, enemy.svg
-      - bg-layer1.svg, bg-layer2.svg
-      - ui-heart.svg, ui-star.svg
-      - powerup.svg, effect-hit.svg
-      - thumbnail.svg (⚠️ 필수! 플랫폼 게임 목록에 표시되는 대표 이미지)
-        → 반드시 width="400" height="300" viewBox="0 0 400 300" 포함
-        → 게임의 핵심 장면을 표현하는 매력적인 이미지여야 함
-        → 게임 제목 텍스트를 하단에 포함할 것
-      - manifest.json (에셋 목록)
+    if (gameId) {
+      const assetsDir = `${PROJECT_ROOT}/public/games/${gameId}/assets`
 
-      ⚠️ thumbnail.svg가 누락되면 게임 목록에서 빈 화면이 표시됩니다. 반드시 생성하세요.
-      ${growthDirective}
-      ${feedbackBlock}
-      ${agentWisdomBlock('designer', cycleNumber)}
-    `)
+      // 3-B: Gemini로 PNG 에셋 일괄 생성
+      if (process.env.GEMINI_API_KEY) {
+        console.log(`  🎨 Gemini PNG 생성 시작 (game: ${gameId})`)
+        try {
+          const result = await generateGameAssets(gameId, gameTitle, genre, artStyle, assetsDir)
+          console.log(`  ✅ Gemini 생성 완료: ${result.generated.length}개 성공, ${result.failed.length}개 실패`)
+          if (result.failed.length > 0) {
+            console.log(`  ⚠️ 실패 에셋: ${result.failed.join(', ')}`)
+          }
+        } catch (err) {
+          console.error(`  ❌ Gemini 에셋 생성 실패:`, err)
+        }
+      } else {
+        console.log(`  ⚠️ GEMINI_API_KEY 없음 — Claude 디자이너로 SVG 폴백`)
+      }
+
+      // 3-C: Claude 디자이너로 보완 (누락 에셋 SVG 생성 + 아트 디렉션)
+      await runAgent('designer', `
+        docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
+        public/games/${gameId}/assets/ 폴더를 확인해줘.
+
+        ⚠️ Gemini API가 PNG 에셋을 이미 생성했을 수 있습니다.
+        먼저 assets/ 폴더에 어떤 파일이 있는지 확인(ls)한 후:
+
+        1. PNG 파일이 있으면 → manifest.json만 갱신 (PNG 에셋 포함)
+        2. 누락된 에셋이 있으면 → SVG로 보완 생성
+        3. thumbnail.png가 없으면 → thumbnail.svg를 반드시 생성
+           (width="400" height="300" viewBox="0 0 400 300")
+
+        manifest.json 형식:
+        {
+          "gameId": "${gameId}",
+          "format": "png",
+          "assets": {
+            "player":    { "file": "player.png 또는 player.svg", "desc": "..." },
+            "enemy":     { "file": "enemy.png 또는 enemy.svg", "desc": "..." },
+            ...
+          }
+        }
+
+        ${agentWisdomBlock('designer', cycleNumber)}
+      `)
+    } else {
+      // gameId를 못 읽으면 기존 방식으로 폴백
+      await runAgent('designer', `
+        docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고 에셋을 제작해줘.
+        ${agentWisdomBlock('designer', cycleNumber)}
+      `)
+    }
     completeAgent('designer')
 
     // ── 4단계: 게임 코딩 ─────────────────────────────────────
@@ -677,7 +724,8 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
 
       1. public/games/game-registry.json에 새 게임을 추가해줘
-         ⚠️ thumbnail 경로는 반드시 "/games/[game-id]/assets/thumbnail.svg" 형식으로 등록할 것
+         ⚠️ thumbnail 경로: assets 폴더를 확인하여 thumbnail.png가 있으면
+         "/games/[game-id]/assets/thumbnail.png", 없으면 "/games/[game-id]/assets/thumbnail.svg"
          (assets/ 폴더 포함 — 빠뜨리면 썸네일이 표시되지 않음)
          ⚠️ addedAt은 반드시 new Date().toISOString() 으로 현재 시각을 사용할 것!
          (임의 시간 입력 금지 — 최신순 정렬에 영향)
