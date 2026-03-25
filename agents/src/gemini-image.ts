@@ -80,88 +80,142 @@ export async function generateGameAssets(
   const generated: string[] = []
   const failed: string[] = []
 
+  // 공통 품질 지시문
+  const Q = `QUALITY STANDARD: This must look like a professional Steam indie game or polished mobile game (Hollow Knight, Dead Cells, Celeste, Hades, Monument Valley level).
+Art direction: Rich hand-painted or stylized digital art. NOT flat vector, NOT clipart, NOT stock photo.
+Lighting: Dramatic rim lighting, ambient occlusion, subsurface scattering where appropriate.
+Color: Professional color grading with intentional palette — limited but rich, with clear warm/cool contrast.
+Detail: Texture details visible — fabric folds, metal scratches, wood grain, magical glow, atmospheric haze.
+Consistency: All assets must share the same art style, lighting direction (top-left), and color palette.`
+
   const assets: AssetSpec[] = [
     {
       name: 'player',
       filePath: `${assetsDir}/player.png`,
-      prompt: `Game character sprite for "${gameTitle}" (${genre} game).
-Style: ${style}. Top-down or side view.
-Requirements: Single character on transparent/dark background, centered, 256x256 pixels,
-clean edges, game-ready sprite, vibrant colors, detailed but readable at small sizes.
-Do NOT include any text or UI elements.`,
+      prompt: `Professional game character sprite for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}.
+Character design: Distinctive silhouette recognizable at any size. Personality visible through pose and proportions.
+Rendering: Semi-realistic or stylized digital painting. Rich shading with 3+ light sources (key, fill, rim).
+Details: Costume accessories, weapon/tool if relevant, subtle animation-ready pose (slightly dynamic, not stiff T-pose).
+Technical: Single character, centered, on solid dark (#0a0a1a) background. 512x512 pixels.
+Hair/cloth physics implied through flowing shapes. Eyes/face should convey character personality.
+Reference quality: Hollow Knight character detail level, Dead Cells sprite richness.
+Do NOT include: text, UI, watermarks, borders, multiple characters.`,
     },
     {
       name: 'enemy',
       filePath: `${assetsDir}/enemy.png`,
-      prompt: `Enemy character sprite for "${gameTitle}" (${genre} game).
-Style: ${style}. Threatening but stylish design.
-Requirements: Single enemy on transparent/dark background, centered, 256x256 pixels,
-contrasting colors from player character, menacing appearance, game-ready sprite.
-Do NOT include any text or UI elements.`,
+      prompt: `Professional game enemy/antagonist sprite for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}.
+Design: Immediately threatening but aesthetically pleasing. Clear visual language that says "danger".
+Color: Contrasting palette from hero — if hero is cool-toned, enemy is warm. Red/orange/purple threat accents.
+Rendering: Same art quality as player sprite. Dramatic shadows, glowing weak points or eyes.
+Details: Armor/carapace texture, battle damage, energy effects, menacing posture.
+Technical: Single enemy, centered, on solid dark (#0a0a1a) background. 512x512 pixels.
+Reference quality: Hades enemy design, Slay the Spire monster quality.
+Do NOT include: text, UI, watermarks, borders, multiple characters.`,
     },
     {
       name: 'bg-layer1',
       filePath: `${assetsDir}/bg-layer1.png`,
-      prompt: `Game background far layer for "${gameTitle}" (${genre} game).
-Style: ${style}. This is the distant background layer.
-Requirements: 1280x720 pixels, atmospheric background, suitable for parallax scrolling,
-muted/darker tones, sky/horizon/distant landscape, seamless horizontally if possible.
-Do NOT include any text, UI elements, or foreground objects.`,
+      prompt: `Professional game background (far/sky layer) for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. This is the DISTANT background — sky, horizon, far mountains/structures.
+Composition: Epic sense of scale and depth. Atmospheric perspective (distant = hazier, less saturated).
+Rendering: Painterly style with visible brushwork. Volumetric clouds/fog, god rays, aurora, or starfield.
+Color: Rich gradient sky. Subtle color temperature shift from horizon (warm) to zenith (cool).
+Mood: Sets the emotional tone of the entire game — mysterious, epic, serene, or ominous depending on genre.
+Technical: 1920x1080 pixels. Horizontal seamless tiling preferred. No foreground objects.
+Reference quality: Ori and the Blind Forest backgrounds, Celeste environment art.
+Do NOT include: text, UI, characters, foreground objects, ground-level details.`,
     },
     {
       name: 'bg-layer2',
       filePath: `${assetsDir}/bg-layer2.png`,
-      prompt: `Game background near layer for "${gameTitle}" (${genre} game).
-Style: ${style}. This is the mid-ground layer.
-Requirements: 1280x720 pixels, mid-distance elements (buildings, trees, rocks),
-slightly transparent areas for layering, darker than the game area.
-Do NOT include any text, UI elements, or characters.`,
+      prompt: `Professional game background (mid-ground layer) for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. This is the MIDDLE layer — silhouetted structures, trees, terrain between player and sky.
+Composition: Parallax-ready. Elements should create depth when scrolling at different speed from bg-layer1.
+Rendering: Darker silhouettes with subtle internal detail. Edge lighting from background layer.
+Details: Architecture/vegetation silhouettes with fine edge detail. Occasional glowing windows, fireflies, crystals.
+Color: Darker than bg-layer1, uses desaturated versions of the main palette. Some areas semi-transparent.
+Technical: 1920x1080 pixels. Lower 30% should have content, upper can be sparse/transparent.
+Reference quality: Dead Cells parallax layers, Hollow Knight environment depth.
+Do NOT include: text, UI, characters, HUD elements.`,
     },
     {
       name: 'powerup',
       filePath: `${assetsDir}/powerup.png`,
-      prompt: `Power-up item icon for "${gameTitle}" (${genre} game).
-Style: ${style}. Glowing collectible item.
-Requirements: 128x128 pixels, centered on dark background, shiny/glowing effect,
-immediately recognizable as a beneficial pickup, vibrant colors.
-Do NOT include any text.`,
+      prompt: `Professional game power-up/collectible item for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. A collectible item that players WANT to grab.
+Design: Immediately readable as "beneficial pickup". Orb, crystal, potion, rune, or genre-appropriate form.
+Rendering: Glossy/luminous surface with internal glow. Fresnel rim lighting. Subtle particle sparkle effect.
+Color: Bright, saturated accent color that pops against dark game backgrounds. Golden/cyan/emerald glow.
+Details: Internal swirling energy, faceted crystal reflections, or magical rune markings.
+Technical: Single item, centered, on solid dark (#0a0a1a) background. 256x256 pixels.
+Reference quality: Hades boon pickup quality, Hollow Knight charm detail.
+Do NOT include: text, hands, characters.`,
     },
     {
       name: 'effect-hit',
       filePath: `${assetsDir}/effect-hit.png`,
-      prompt: `Hit/explosion effect for "${gameTitle}" (${genre} game).
-Style: ${style}. Impact or explosion visual.
-Requirements: 256x256 pixels, radial burst/explosion, bright center fading outward,
-transparent/dark edges, particle-like scatter, energetic and dynamic.
-Do NOT include any text.`,
+      prompt: `Professional game impact/hit VFX for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. A dramatic hit/explosion/impact visual effect.
+Design: Radial energy burst with directional force lines. Layered: core flash → energy ring → outer particles.
+Rendering: HDR-style bloom at center (pure white core). Energy tendrils and spark trails.
+Color: Hot center (white→yellow) transitioning to themed color (orange/blue/purple) at edges.
+Details: Speed lines, scattered debris particles, shockwave ring, chromatic aberration edge.
+Technical: Centered explosion, on solid dark (#0a0a1a) background. 512x512 pixels.
+Reference quality: Dead Cells hit effects, Hades attack impact quality.
+Do NOT include: text, characters, UI.`,
     },
     {
       name: 'ui-heart',
       filePath: `${assetsDir}/ui-heart.png`,
-      prompt: `Health/heart UI icon for "${gameTitle}" (${genre} game).
-Style: ${style}. Game HUD element.
-Requirements: 64x64 pixels, clean icon on dark/transparent background,
-glossy/3D feel, easily readable at small size, vibrant red or theme-matching color.
-Do NOT include any text.`,
+      prompt: `Professional game health/HP icon for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. A health indicator icon for the game HUD.
+Design: Heart, shield, or genre-appropriate health symbol. Polished 3D-rendered look.
+Rendering: Glossy surface with specular highlight. Subtle inner glow. Drop shadow.
+Material: Crystal heart, armored shield, magical orb, or organic life force — match game theme.
+Color: Rich red/crimson with highlight and shadow. Or theme-matching if not heart-shaped.
+Technical: Single icon, centered, on solid dark (#0a0a1a) background. 128x128 pixels.
+Reference quality: Hollow Knight mask shard quality, mobile game premium UI.
+Do NOT include: text, numbers, bars.`,
     },
     {
       name: 'ui-star',
       filePath: `${assetsDir}/ui-star.png`,
-      prompt: `Score/star/coin UI icon for "${gameTitle}" (${genre} game).
-Style: ${style}. Collectible/score indicator.
-Requirements: 64x64 pixels, clean icon on dark/transparent background,
-shiny gold/yellow, desirable look, easily readable at small size.
-Do NOT include any text.`,
+      prompt: `Professional game score/currency icon for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. A score/currency/collectible counter icon for HUD.
+Design: Coin, gem, star, soul, or genre-appropriate currency. Premium mobile game quality.
+Rendering: Metallic or crystalline surface. Specular highlights, subtle rotation-implied shading.
+Material: Gold coin with embossed design, faceted gemstone, magical essence orb — match game theme.
+Color: Rich gold/amber with bright specular. Or gem colors (sapphire, emerald, ruby) for fantasy.
+Technical: Single icon, centered, on solid dark (#0a0a1a) background. 128x128 pixels.
+Reference quality: Clash Royale gem quality, Monument Valley collectible detail.
+Do NOT include: text, numbers, UI frames.`,
     },
     {
       name: 'thumbnail',
       filePath: `${assetsDir}/thumbnail.png`,
-      prompt: `Game thumbnail/poster for "${gameTitle}" (${genre} game).
-Style: ${style}. This is the game's cover art shown in the platform.
-Requirements: 400x300 pixels, dramatic composition showing the game's core scene,
-include the main character and key game elements, vibrant and eye-catching,
-professional game marketing quality. The title "${gameTitle}" should be
-prominently displayed in stylish lettering.`,
+      prompt: `Professional game store thumbnail/key art for "${gameTitle}" (${genre}).
+${Q}
+Style: ${style}. This is the game's MARKETING IMAGE — the first thing players see.
+Composition: Dynamic action scene or dramatic hero pose. Rule of thirds. Clear focal point.
+Content: Main character prominent (30-40% of frame), key game mechanic visible, atmospheric background.
+Typography: Game title "${gameTitle}" in stylish, genre-appropriate lettering — large, readable, with effects
+(glow, shadow, metallic, emboss). Title should be integrated into the composition, not slapped on.
+Mood: Exciting, intriguing — makes you want to click and play immediately.
+Color: High contrast, saturated key colors. Professional color grading like movie poster.
+Technical: 800x600 pixels. Landscape orientation. Marketing-quality composition.
+Reference quality: Steam indie game capsule art (Hades, Celeste, Slay the Spire cover quality).
+Must include: game title text, main character, game atmosphere.`,
     },
   ]
 
