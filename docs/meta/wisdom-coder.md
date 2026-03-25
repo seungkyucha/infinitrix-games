@@ -1,6 +1,13 @@
 # coder 누적 지혜
 _마지막 갱신: 사이클 #39 prism-break_
 
+## ⚠️ 에셋 정책 (사이클 #39~)
+- assets/ 폴더의 PNG/SVG 에셋을 **반드시 사용**해야 합니다. 절대 삭제하지 마세요.
+- manifest.json에서 에셋 목록을 읽어 동적으로 로드합니다.
+- Gemini API가 생성한 고품질 PNG 에셋이 있습니다. 이를 Canvas drawImage()로 렌더링하세요.
+- 에셋 로드 실패 시 Canvas 폴백 드로잉으로 대체하되, 에셋 자체를 삭제하지 마세요.
+- 이전 사이클의 "assets/ 삭제", "F1 위반", "preloadAssets 금지" 관련 지혜는 더 이상 유효하지 않습니다.
+
 ## 반복되는 실수 🚫
 - **[Cycle 39]** 빛 굴절 액션 퍼즐(3,778줄)에서 4상태(TITLE/MAP/PLAY/BOSS) + 6개 서브상태(SETUP/WAVE/PAUSED/CLEAR/DEAD/BOSS_INTRO) 패턴 계승. **빛 경로 트레이싱(traceLight)이 재귀적 빔 분기(C2 split)를 처리할 때 maxDepth 캡 없으면 무한 재귀 가능.** 반사 크리스탈 2개가 서로를 향하면 무한 반사 발생 — maxDepth=50으로 제한하여 방지.
 - **[Cycle 39]** IX Engine 통합 10번째 사이클. IX.Tween, IX.Particles, IX.Sound, IX.UI, IX.Save 모두 직접 활용하여 자체 매니저 코드 0줄 달성. **IX.Input의 flush()를 update() 마지막에 호출하는 패턴이 완전 정착.**
@@ -10,16 +17,16 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 38]** 레이지 플랫포머(4,015줄)에서 4상태(TITLE/MAP/PLAY/BOSS)로 사이클 37의 5상태보다 더 단순화. **GAMEOVER를 별도 상태로 분리하지 않고 PLAY 내부 서브상태(PS_DEAD/PS_CLEAR/PS_PAUSED)로 처리하면 TRANSITION_TABLE이 4개 엔트리로 극소화되어 전환 버그 가능성이 거의 제거됨.** 상태 머신의 깊이(서브상태)와 너비(최상위 상태)를 분리하는 패턴이 효과적.
 - **[Cycle 38]** BGM 재생에 setInterval을 사용하면 코드 위생 FAIL. **Web Audio API의 lookahead 스케줄링 패턴(scheduleBGMNotes)으로 audioCtx.currentTime 기반 2초 선행 예약하면 setInterval 0건으로 BGM 루프 구현 가능.** 매 프레임 update에서 scheduleBGMNotes()를 호출하여 버퍼를 보충.
 - **[Cycle 38]** 프로시저럴 레벨 생성에서 BFS 도달 가능성 검증 시, 중력 반전 게임에서는 BFS 이동 모델에 "중력 방향 반전" 상태를 포함해야 한다. **단순 4방향 BFS가 아닌 (x, y, gravDir) 3차원 상태 공간으로 탐색**해야 실제 플레이어 이동을 반영. 상태 공간 폭발을 maxSteps 캡으로 제한.
-- **[Cycle 38]** 유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 9번째 적용. **완전 정착 — 기록만 유지.**
+- **[Cycle 38]** ~~유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 9번째 적용.~~ **[OBSOLETE — 사이클 #39+: assets/ 폴더와 PNG 에셋은 반드시 유지. Gemini API가 게임 에셋을 생성.]**
 - **[Cycle 37]** 퍼즐+전략 하이브리드(3,858줄)에서 상태를 5개(TITLE/PUZZLE/MAP/SHOP/GAMEOVER)로 대폭 축소하여 STATE_PRIORITY 8번째 재발을 근절. **TRANSITION_TABLE 단일 객체에 모든 전환을 정의하고 beginTransition()이 이 테이블만 참조하는 패턴은 5개 상태에서 매우 안정적.** 상태 수를 최소화하면 전환 매트릭스 누락 위험이 기하급수적으로 줄어든다.
 - **[Cycle 37]** 블록 퍼즐(Block Blast 스타일)의 행/열 클리어 판정 시, placed 셀 외에 장애물(rock/water/gas)도 "채워진 것"으로 간주해야 줄이 완성된다. **클리어 판정 조건을 "모든 셀이 비어있지 않음"으로 정의하되, 장애물은 클리어되지 않고 잔존하는 규칙이 필요.** 단순히 CELL_PLACED만 체크하면 장애물이 있는 행이 절대 클리어되지 않는 버그가 된다.
 - **[Cycle 37]** clearLines()에서 클리어 시 CELL_PLACED만 CELL_EMPTY로 변환하고 장애물은 유지하는 로직은 기획서 규칙과 정확히 일치. 그러나 **자원 계산(calculateClearReward)은 배치 전 셀 타입(affectedCells.prevType)을 기반으로 해야** 한다. 배치 후에는 모두 CELL_PLACED이므로 원래 광석 타입을 추적하는 별도 데이터 구조가 필수.
-- **[Cycle 37]** 유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 8번째 적용. **완전 정착 — 기록만 유지.**
+- **[Cycle 37]** ~~유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 8번째 적용.~~ **[OBSOLETE — 사이클 #39+: 에셋 정책 변경됨]**
 - **[Cycle 36]** 타워디펜스 로그라이트(3,513줄)에서 BFS 경로 시스템과 메카 배치 시스템의 상호작용: 배치 후 BFS 재계산→경로 없음→배치 거부 패턴이 핵심. **배치 전 testGrid 복사본에서 BFS 검증 후 실제 grid에 반영하는 "트랜잭션 패턴"으로 안전하게 구현.** 직접 grid 수정 후 롤백 방식은 동시성 문제 발생 가능.
 - **[Cycle 36]** 15개 상태(BOOT~MODAL) × 10개 시스템의 ACTIVE_SYSTEMS를 IIFE로 생성 시, WAVE와 BOSS_FIGHT의 시스템 활성 차이(spawn만 다름)를 명확히 분리. **유사한 상태 간 차이점은 주석으로 명시하는 것이 디버깅에 결정적.**
 - **[Cycle 36]** 웨이브 클리어 판정에서 `allSpawned && allDead` 조건이 "스폰 전 전멸"(spawnDelay가 남은 적이 있는데 이미 스폰된 적이 0인 경우)에 false positive를 일으킬 수 있다. **반드시 모든 적의 spawnDelay가 완료된 후에만 전멸 체크.** G._waveClearing 가드 플래그(F5)로 이중 호출 방지는 안정적으로 동작.
 - **[Cycle 36]** Camera/zoom 시스템을 REGION 12로 분리했으나 메인 렌더 루프에 아직 통합되지 않은 상태. **확장 시스템은 선언과 동시에 메인 루프에 최소 호출 지점 1개를 반드시 확보할 것.** 선언만 하고 미사용은 데드코드.
-- **[Cycle 36]** 유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 7번째 적용. **완전 정착 — 기록만 유지.**
+- **[Cycle 36]** ~~유저 지시(에셋 프리로드) > 기획서 F1(assets/ 금지) 7번째 적용.~~ **[OBSOLETE — 사이클 #39+: 에셋 정책 변경됨]**
 - **[Cycle 35]** 심해 아케이드 퍼즐 플랫포머(3,457줄)에서 13개 상태 머신의 ACTIVE_SYSTEMS를 IIFE로 프로그래매틱 생성하여 diving/puzzle/boss 각각의 physics·traps·o2press 시스템 활성화를 명시적으로 관리. **상태가 10개 이상일 때 매트릭스를 수동 작성하면 누락 위험이 커지므로 프로그래매틱 생성 후 개별 오버라이드 패턴이 안전.**
 - **[Cycle 35]** 보스 5종이 모두 동일한 createBoss() 구조를 공유하되, lures(앵글러피시 전용), tentacles(문어 전용), minions(해파리 전용) 등 보스별 속성을 빈 배열로 통일 초기화. Cycle 34와 동일 패턴이나 빈 배열에서 filter/map 즉시 반환으로 성능 영향 미미. **보스 10종 이상이면 팩토리 패턴 분리 필요.**
 - **[Cycle 35]** beginTransition() 내부에서 프록시 객체를 단계별로 새로 생성(proxy1→proxy2)하여 Cycle 34 교훈 즉시 반영 — 트윈 무효화 방지. **전환 알파 프록시는 각 단계마다 새 객체 생성이 표준 패턴으로 정착.**
@@ -29,12 +36,12 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 34]** beginTransition() 내부에서 두 단계 알파 트윈(fadeOut → enterState → fadeIn)을 프록시 객체로 연결할 때, 첫 tween의 onComplete에서 새 proxy를 만들어야 한다. 같은 proxy 재사용 시 from/to가 이미 도달한 상태라 두 번째 tween이 무효화된다. **전환 알파 프록시는 각 단계마다 새 객체 생성이 안전.**
 - **[Cycle 32]** 미스터리 퍼즐 어드벤처(4,186줄)에서 18상태 머신의 beginTransition() 내 transitionAlpha 동기화 문제: tw.add()로 프록시 객체의 a 속성을 트윈하면서 전역 transitionAlpha와 동기화하려면, tw.update() 이후 매 프레임 수동으로 동기화하거나 프록시 객체를 직접 렌더에 사용해야 한다. **전환 알파를 트윈으로 제어할 때, 중간 값을 렌더에 반영하는 경로가 정확히 1개인지 확인할 것.**
 - **[Cycle 32]** 퍼즐 보드에서 증거 배치(placeEvidenceInSlot) 시 slotIdx를 단순 puzzleSelected로 저장하면, checkChain의 validChains과 비교할 때 증거 배열 인덱스와 사건별 단서 인덱스가 불일치한다. **퍼즐 검증 시 "배열 내 인덱스"와 "논리적 단서 ID" 매핑을 명시적으로 정의해야 한다.**
-- **[Cycle 32]** 유저 지시 > 기획서 원칙 6번째 적용(Cycle 24/27/29/30/31/32). 기획서 F1(assets/ 금지)과 유저 지시(에셋 프리로드 필수) 충돌 시 유저 지시 우선 — **완전 정착됨, 더 이상 기록 불필요.**
+- **[Cycle 32]** ~~유저 지시 > 기획서 원칙 6번째 적용. 기획서 F1(assets/ 금지)과 유저 지시 충돌~~ **[OBSOLETE — 사이클 #39+: assets/ 사용이 공식 정책. 충돌 없음.]**
 - **[Cycle 32]** 대질 보스전에서 confrontCorrectEvIdx를 라운드별로 갱신하는 checkContradiction()이 G.evidence 배열 내 essential 필터에 의존하는데, 선택 단서가 evidence에 포함되면 인덱스가 밀린다. **보스전 정답 인덱스는 essential 단서만의 별도 배열로 관리하거나, ID 기반 매칭으로 전환할 것.**
 - **[Cycle 31]** 실시간 전술 액션 로그라이트(3,200줄+)에서 환경 위험 시스템(5구역별 고유 역학)을 별도 함수(updateEnvironmentHazards/drawEnvironmentHazards)로 분리했으나, 환경 상태 변수(envTimer, envTraps, envLavaSpots 등)를 initRun()에서 초기화하지 않으면 재시작 시 이전 런의 트랩이 잔존한다. **모든 런별 상태 변수는 initRun() 내에서 명시적으로 초기화해야 한다.** 특히 프로시저럴 생성 캐시(envTraps=null)는 null 초기화 후 lazy init 패턴으로.
-- **[Cycle 31]** 유저 지시 > 기획서 원칙이 5번째 적용(Cycle 24/27/29/30/31). 기획서 F1/F77(assets/ 금지, preloadAssets 금지)와 유저 지시(에셋 프리로드 필수)가 충돌 시, 유저 지시를 따르되 스모크 테스트의 "assets/ 미존재" 항목은 조건부 제외. **이 패턴은 이제 완전히 정착됨 — 더 이상 재확인 불필요.**
+- **[Cycle 31]** ~~유저 지시 > 기획서 원칙이 5번째 적용. 기획서 F1/F77(assets/ 금지, preloadAssets 금지)와 충돌~~ **[OBSOLETE — 사이클 #39+: assets/ 사용이 공식 정책. F1/F77 규칙 폐지됨.]**
 - **[Cycle 31]** 스모크 테스트에서 주석 내 금지 패턴("setTimeout 대체", "Math.random 0건" 등)이 grep false positive를 유발하는 문제가 4사이클 연속 발생(Cycle 28-31). `grep -v '^\s*//'` 파이프라인을 표준화해도 인라인 주석(코드 뒤 //)은 걸러지지 않는다. **정규식에서 문자열 리터럴과 주석을 모두 제외하는 파서가 필요하지만, 현실적으로 "주석에서만 발견" 확인 후 PASS 처리가 가장 효율적.**
-- **[Cycle 30]** 우주 서바이벌 액션 로그라이트에서 기획서가 "assets/ 디렉토리 절대 생성 금지"(F77)를 명시하면서 유저 지시가 preloadAssets 사용을 요구하는 경우, 기획서와 유저 지시의 우선순위를 매번 재확인해야 한다. Cycle 24/27/29에 이어 4번째 발생. **유저 지시 > 기획서** 원칙을 코딩 시작 전 체크리스트 첫 항목으로 고정할 것.
+- **[Cycle 30]** ~~기획서 "assets/ 디렉토리 절대 생성 금지"(F77) vs 유저 지시 preloadAssets 충돌~~ **[OBSOLETE — 사이클 #39+: assets/ 사용이 공식 정책. 충돌 없음.]**
 - **[Cycle 30]** 3,000줄 이상 단일 파일에서 drawGameWorld()처럼 복합 렌더링 함수가 월드 좌표/화면 좌표를 ctx.translate로 전환할 때, 포스트 이펙트(존별 환경 이펙트)가 월드 좌표에서 렌더링되는지 화면 좌표에서 렌더링되는지 혼동하기 쉽다. **ctx.save/restore 블록별로 좌표계를 주석으로 명시**할 것 (// 화면 좌표 / // 월드 좌표).
 - **[Cycle 30]** 템플릿 리터럴 내에서 따옴표와 `#`이 혼합된 색상값(예: `'#FF44FF'`)을 전달할 때, 따옴표 누락으로 syntax error가 발생하기 쉽다. 특히 함수 호출 인자 내 inline 색상은 반드시 따옴표로 감쌀 것 — 첫 검증에서 1건 발견 즉시 수정.
 - **[Cycle 30]** 보스 AI의 fireTimer를 phase별로 다르게 설정할 때, phaseTransitioning 동안 fireTimer가 계속 감소하면 전환 완료 직후 즉시 연사가 발생한다. Cycle 24-26 교훈("페이즈 전환 시 모든 관련 타이머 리셋")을 이번에도 적용 — phaseTransitioning 해제 시 fireTimer 리셋 코드를 tweenMgr.delay onComplete에 포함.
@@ -70,7 +77,7 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 22]** 웨이브 완료 판정(waveEnemiesLeft === 0)에서 분열체(split) 같은 적이 처치 시 추가 적을 생성하면 카운터가 음수로 갈 수 있다. waveEnemiesLeft++ 를 분열 생성 시 반드시 증가시킬 것.
 - **[Cycle 22]** 보스가 경로 끝에 도달했을 때 단순 리셋(경로 시작으로 복귀)하면 코어 HP가 무한 감소한다. 보스 도달 시 큰 데미지 + 경로 리셋은 의도된 패턴이지만, 반복 횟수 제한이나 속도 증가로 게임 종료를 유도해야 한다.
 - **[Cycle 21]** processClick 함수를 외부에서 오버라이드하려는 패턴은 이벤트 핸들러가 원본 참조를 유지하므로 실패한다. 조건 분기는 함수 내부 상단에서 처리할 것.
-- **[Cycle 1~20]** assets/ 디렉토리 재발 — 기획서에서 "100% Canvas 드로잉" 명시 시 ASSET_MAP, SPRITES, preloadAssets 패턴을 아예 사용하지 말 것. 코드 템플릿에서 복사하면 잔존한다.
+- **[Cycle 1~20]** ~~assets/ 디렉토리 재발 — "100% Canvas 드로잉" 원칙~~ **[OBSOLETE — 사이클 #39+: Gemini API PNG 에셋 사용이 공식 정책. manifest.json 기반 동적 로드 + Canvas 폴백 패턴 적용.]**
 - **[Cycle 1~20]** setTimeout 기반 상태 전환 — tween onComplete 또는 타이머 변수로 대체. setTimeout 0건 정책 유지.
 - **[Cycle 21 runeforge]** 에셋이 manifest.json에 존재하더라도 기획서 §11에서 "100% Canvas 드로잉"을 명시한 경우, 에셋 사용과 Canvas 폴백을 모두 구현해야 한다. 에셋 의존 없이도 게임이 완전 동작하는 것이 핵심.
 - **[Cycle 21 runeforge]** 12개 상태 머신(TITLE~ENDING) 규모에서 상태 전환 매트릭스 없이 코딩하면 "특정 상태에서 시스템 미동작" 버그가 필연적으로 발생한다. update() 분기에 includes() 배열을 사용하여 명시적으로 어떤 상태에서 어떤 시스템이 동작하는지 선언할 것.
@@ -164,7 +171,7 @@ _마지막 갱신: 사이클 #39 prism-break_
 - **[Cycle 23]** SeededRNG 클래스로 프로시저럴 생성의 재현성 보장 — 동일 시드로 동일 던전을 생성할 수 있어 디버깅과 공유에 유리하다.
 - **[Cycle 23]** 15상태 머신에서 ACTIVE_SYSTEMS 매트릭스를 Cycle 22 패턴으로 계속 적용 — DIMENSION_SHIFT, BOSS_CUTSCENE 등 새로운 상태에서도 매트릭스 한 줄 추가로 시스템 활성화를 제어.
 - **[Cycle 23]** 카메라 시스템(lerp 추적 + 줌)을 보스전 컷신 연출에 활용 — camera.targetZoom을 변경하고 매 프레임 lerp로 부드럽게 전환하는 패턴이 드라마틱한 연출에 효과적.
-- **[Cycle 23]** assets/ 디렉토리 내 불필요 에셋(player.svg, enemy.svg 등)을 코딩 전에 삭제하고 thumbnail.svg만 남김 — 6사이클 연속 assets/ 미사용 원칙 유지(Cycle 18~23).
+- **[Cycle 23]** ~~assets/ 디렉토리 내 에셋을 코딩 전에 삭제하고 thumbnail.svg만 남김~~ **[OBSOLETE — 사이클 #39+: assets/ 폴더와 에셋 파일은 반드시 유지.]**
 - **[Cycle 23]** 한/영 이중 언어를 TEXT 객체로 관리하고 lang 변수로 전환 — 타이틀 화면에서 버튼 하나로 즉시 언어 변경 가능.
 - **[Cycle 22]** ACTIVE_SYSTEMS 매트릭스를 데이터로 선언하고 update()에서 includes()로 체크하는 패턴 — 14상태 × 10시스템 매트릭스를 코드 상단에 한 번 선언하면, 새 상태 추가 시 매트릭스 한 줄만 수정하면 된다.
 - **[Cycle 22]** 타워 디펜스에서 에셋 preload + Canvas 폴백 이중 구조를 유지하면서, 8종 적 × 7종 타워 × 5종 보스를 Canvas 코드로 각각 고유하게 그리는 것이 가능하다. switch(type) 분기로 각 유닛의 시각적 개성을 구현.

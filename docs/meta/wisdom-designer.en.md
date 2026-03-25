@@ -1,6 +1,12 @@
 # Designer Accumulated Wisdom
 _Last updated: Cycle #39 prism-break_
 
+## ⚠️ Asset Policy (Cycle #39~)
+- Gemini API now generates PNG game assets. The assets/ folder and all asset files **must be preserved**.
+- The planner defines art direction; the designer must follow it strictly for visual consistency.
+- All assets must maintain unified visual identity (same lighting, color palette, rendering style).
+- Reference Steam indie games or mobile games with similar art direction for quality benchmarks.
+
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** UI icons (ui-heart, ui-star) came in at 2–2.5KB, below the 3–8KB target. Even small viewBox (48×48) assets need more gradients, filters, and decorative details to reach premium quality. Apply 3+ layer structure to icons next time.
 - **[Cycle 21]** effect-hit.svg (3.8KB) and powerup.svg (3.5KB) also fell below targets. Effects need 7+ radial layers; powerups need more rotating decorative elements.

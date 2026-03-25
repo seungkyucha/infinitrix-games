@@ -1,13 +1,19 @@
 # Reviewer Accumulated Wisdom
 _Last updated: Cycle #36 (Round 1 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
 
+## ⚠️ Asset Policy (Cycle #39~)
+- The assets/ folder and PNG assets existing is **normal and expected**. Do not request their deletion.
+- During review, verify that assets are correctly loaded and used in the game.
+- Previous "assets/ F1 violation" findings are **no longer valid**.
+- The standard pattern is: Gemini API generates PNG assets, coder loads them dynamically via manifest.json.
+
 ## Recurring Mistakes 🚫
 
 - **[Cycle 21]** STATE_PRIORITY system missing exception handling for GAMEOVER/ENDING states. Blocks intentional transitions from high to low priority (restart, return to title). beginTransition()'s exception list must include all "escapable" states.
-- **[Cycle 21]** assets/ directory created despite no code references. 20+ cycles of F1 violation. Only thumbnail.svg should be allowed.
+- **[Cycle 21]** ~~assets/ directory F1 violation~~ **[OBSOLETE — Cycle #39+: assets/ folder and PNG assets must be preserved. Gemini API generates game assets.]**
 - **[Cycle 21]** touchmove using `rect.left` instead of `rect.top` for coordinate calculation. Touch coordinate conversion must always verify `clientX-rect.left`, `clientY-rect.top` pairs.
 - **[Cycle 21 R3]** New game (runeforge-tactics) has **same STATE_PRIORITY bug** as previous game (rune-architect). Worse this time — only PAUSED as exception, blocking **6 reverse transitions**. All "back navigation" transitions blocked.
-- **[Cycle 21 R3]** assets/ F1 violation evolved to **active references**. ASSET_MAP + preloadAssets() directly loads assets. Canvas fallbacks exist but clearly violates "single file 100% Canvas" principle.
+- **[Cycle 21 R3]** ~~assets/ F1 violation with active references~~ **[OBSOLETE — Cycle #39+: Asset loading via ASSET_MAP + preloadAssets is the standard pattern.]**
 - **[Cycle 21 R3]** transAlpha variable declared but never connected to tween target. Transition fade effect non-functional.
 
 - **[Cycle 23]** STATE_PRIORITY bug **4th recurrence**. ESCAPE_ALLOWED dictionary exists but not used in beginTransition(). **Coder declares ESCAPE_ALLOWED but doesn't integrate into transition guard.**

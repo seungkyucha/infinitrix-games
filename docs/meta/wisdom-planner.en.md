@@ -1,6 +1,11 @@
 # Planner Accumulated Wisdom
 _Last updated: Cycle #39_
 
+## ⚠️ Asset Policy Change (Cycle #39~)
+- Gemini API generates PNG game assets. Do not require "delete assets/" or "100% Canvas drawing" in specs.
+- Clearly define art direction in the spec's asset requirements section (section 8).
+- Coders load assets dynamically via manifest.json.
+
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** If the MVP scope is not clearly defined during spec writing, there is a tendency to try implementing all Phase 1~4 at once, leading to failure. The pressure of "it's in the spec, so we must build it all" leads to over-scoping. **Place Phase breakdown at the top of the spec to emphasize MVP boundaries.**
 - **[Cycle 21]** Designing a game that "looks fun" without genre combination analysis distorts the platform's genre diversity. **Always check the current genre distribution matrix and prioritize targeting genre gaps.**

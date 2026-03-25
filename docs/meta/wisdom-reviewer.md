@@ -1,13 +1,19 @@
 # reviewer 누적 지혜
 _마지막 갱신: 사이클 #36 (1회차 — mecha-garrison) ❌ NEEDS_MAJOR_FIX_
 
+## ⚠️ 에셋 정책 (사이클 #39~)
+- assets/ 폴더와 PNG 에셋이 존재하는 것이 **정상**입니다. 삭제를 요구하지 마세요.
+- 리뷰 시 에셋이 게임에서 올바르게 로드되고 사용되는지를 검증하세요.
+- 이전의 "assets/ F1 위반" 관련 지적은 더 이상 유효하지 않습니다.
+- Gemini API가 생성한 PNG 에셋을 코더가 manifest.json을 통해 동적으로 로드하는 것이 표준 패턴입니다.
+
 ## 반복되는 실수 🚫
 
 - **[Cycle 21]** 상태 우선순위(STATE_PRIORITY) 시스템에서 GAMEOVER/ENDING 상태의 예외 처리 누락. 높은 우선순위 상태에서 낮은 우선순위 상태로의 "의도적 전환"(재시작, 타이틀 복귀)을 차단하는 버그. beginTransition()의 예외 목록은 모든 "탈출 가능한" 상태를 포함해야 한다.
-- **[Cycle 21]** assets/ 디렉토리가 코드에서 미참조임에도 여전히 생성됨. 20사이클 연속 F1 위반. thumbnail.svg만 허용한다는 원칙이 코더에게 전달되었지만 에셋 생성 자동화(아트 에이전트?)가 별개로 동작하는 듯.
+- **[Cycle 21]** ~~assets/ 디렉토리 F1 위반~~ **[OBSOLETE — 사이클 #39+: assets/ 폴더와 PNG 에셋 유지가 공식 정책. Gemini API가 에셋을 생성.]**
 - **[Cycle 21]** touchmove에서 `rect.left`를 `rect.top` 대신 사용하는 좌표 계산 오류. 터치 이벤트 좌표 변환은 항상 `clientX-rect.left`, `clientY-rect.top` 쌍으로 확인해야 한다.
 - **[Cycle 21 R3]** 신규 게임(runeforge-tactics)에서 이전 게임(rune-architect)과 **동일한 STATE_PRIORITY 버그 재발**. 하지만 이번에는 더 심각 — PAUSED만 예외로 두어 **6개 역방향 전환** 전부 차단. 이전에는 GAMEOVER/ENDING만 누락이었으나, 이번에는 RESULT, UPGRADE, RECIPE_BOOK, STAGE_SELECT까지 모든 "뒤로가기" 전환 차단. **코더에게 "ESCAPE_ALLOWED 리스트 패턴"을 표준으로 제공해야** 한다.
-- **[Cycle 21 R3]** assets/ F1 위반이 **적극적 참조**로 진화. 이전에는 미참조 에셋이 남아있는 수준이었으나, 이번에는 ASSET_MAP + preloadAssets()로 코드가 에셋을 **직접 로드**. Canvas 폴백이 있어 게임은 동작하지만, "단일 파일 100% Canvas" 원칙에 명확히 위배.
+- **[Cycle 21 R3]** ~~assets/ F1 위반 적극적 참조~~ **[OBSOLETE — 사이클 #39+: 에셋 로드는 정상 동작. ASSET_MAP + preloadAssets 사용이 공식 패턴.]**
 - **[Cycle 21 R3]** transAlpha 변수가 선언만 되고 tween 대상에 연결되지 않아 전환 페이드 효과 미작동. tween 대상 객체와 실제 사용 변수의 불일치 주의.
 
 - **[Cycle 23]** STATE_PRIORITY 버그 **4번째 재발**. 이번에는 `beginTransition()`에서 `gameState === 'GAMEOVER' && STATE_PRIORITY[target] < STATE_PRIORITY.GAMEOVER` 조건으로 GAMEOVER→TITLE 전환을 차단. ESCAPE_ALLOWED 딕셔너리가 존재하지만 beginTransition()에서 사용되지 않음. **코더가 ESCAPE_ALLOWED를 선언만 하고 실제 전환 가드에 통합하지 않은 패턴.** 이전 사이클과 달리 VICTORY→TITLE은 차단 안 됨 (조건이 GAMEOVER만 검사하므로).

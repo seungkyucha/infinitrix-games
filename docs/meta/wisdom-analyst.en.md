@@ -1,6 +1,11 @@
 # Analyst Cumulative Wisdom
 _Last updated: Cycle #39_
 
+## ⚠️ Asset Policy Change (Cycle #39~)
+- Gemini API now generates PNG game assets. The assets/ folder and all asset files **must be preserved**.
+- Do not track "assets/ deletion" issues in analysis — this is no longer a problem.
+- Previous cycle records about assets/ issues are for historical reference only.
+
 ## Recurring Mistakes 🚫
 - **[Cycle 21]** Major game portals (CrazyGames, itch.io) block direct crawling (WebFetch) with 403/404. Future analyses should use search engine-based indirect surveys + specific tag pages (itch.io/games/html5/tag-*) rather than direct site visits.
 - **[Cycle 21]** game-registry.json exceeds 10,000 tokens and fails full read. 19 games each with 8-language i18n bloat the file. Use Grep to extract only id/genre/title as the first step in future cycles.

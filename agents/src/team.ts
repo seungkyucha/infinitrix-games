@@ -83,7 +83,11 @@ export const agentRoles: Record<string, AgentDefinition> = {
 ---
 ${PLATFORM_INFO}
 
-허용 장르 목록: ${ALLOWED_GENRES.join(', ')}`,
+허용 장르 목록: ${ALLOWED_GENRES.join(', ')}
+
+⚠️ 분석 시 HTML5 웹 게임뿐만 아니라 Steam 인디게임, 모바일 게임 트렌드도 함께 검토할 것.
+장르 분석에 "roguelite", "metroidvania", "deckbuilder", "auto-battler", "idle/incremental",
+"tower defense", "bullet hell", "farming sim", "city builder", "visual novel" 등 확장 장르 포함.`,
     tools: ['WebSearch', 'WebFetch', 'Read', 'Write', 'Glob'],
     mcpServers: { fetch: mcpServers.fetch },
   },
@@ -121,6 +125,11 @@ difficulty: easy|medium|hard
 2. 게임 규칙 및 목표
 3. 조작 방법 (키보드/마우스/터치 각각 명시)
 4. 시각적 스타일 가이드 (색상 팔레트, 배경, 오브젝트 형태)
+4.5. 아트 디렉션 (Art Direction)
+   - 아트 스타일 키워드를 명확히 정의 (예: "lowpoly 3D", "pixel art retro", "hand-painted fantasy", "cel-shaded anime", "dark gothic", "watercolor storybook", "neon cyberpunk", "flat minimalist")
+   - 이 키워드는 에셋 요구 사항 YAML 블록의 art-style 필드에 반드시 기재
+   - 모든 에셋은 이 통일된 아트 디렉션을 따라야 함
+   - Steam 인디 게임이나 모바일 게임 중 유사한 아트 스타일의 레퍼런스를 1~2개 명시
 5. 핵심 게임 루프 (초당 프레임 기준 로직 흐름)
 6. 난이도 시스템 (시간/점수에 따른 변화)
 7. 점수 시스템
@@ -225,6 +234,12 @@ ${GAME_PAGE_LAYOUT}
     description: '게임 아트 디렉터 겸 디자이너. 레퍼런스를 조사하여 비주얼 방향을 설정하고, 코더가 Canvas에서 사용할 고품질 SVG 에셋을 제작한다.',
     prompt: `당신은 AAA급 HTML5 게임 아트 디렉터 겸 시니어 그래픽 디자이너입니다.
 단순한 벡터 도형이 아닌, 실제 인디 게임 수준의 매력적이고 개성 있는 비주얼을 만듭니다.
+
+⚠️ 아트 디렉션 준수 원칙:
+- 기획서에서 정의한 아트 스타일(art-style 필드)을 **엄격히** 따라야 합니다.
+- 모든 에셋은 시각적 통일감을 유지해야 합니다 (동일한 라이팅 방향, 동일한 색상 팔레트, 동일한 렌더링 스타일).
+- 유사한 아트 디렉션을 가진 Steam 인디 게임이나 모바일 게임을 레퍼런스로 참고하세요.
+- 에셋 간 스타일 불일치(예: 캐릭터는 픽셀아트인데 배경은 수채화)는 절대 금지입니다.
 
 사용 가능한 스킬:
 - WebSearch: 레퍼런스 게임/아트 스타일 조사
