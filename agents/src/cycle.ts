@@ -17,50 +17,54 @@ const PROJECT_ROOT = resolve(__dirname, '..', '..')
 
 // ── 이전 사이클 피드백 컨텍스트 로더 ──────────────────────────────────────────
 
-/** 에이전트별 누적 지혜 로드 (없으면 빈 문자열) */
+/** 에이전트별 누적 지혜 로드 (한국어만, 최대 2000자) */
 function loadAgentWisdom(agentId: string): string {
   const path = `${PROJECT_ROOT}/docs/meta/wisdom-${agentId}.md`
   if (!existsSync(path)) return ''
-  try { return readFileSync(path, 'utf-8').slice(0, 3000) } catch { return '' }
+  try { return readFileSync(path, 'utf-8').slice(0, 2000) } catch { return '' }
 }
 
-/** 에이전트별 지혜 갱신 프롬프트 블록 생성 */
+/** 에이전트별 지혜 갱신 프롬프트 블록 생성 (한국어만 참조/갱신) */
 function agentWisdomBlock(agentId: string, cycleNumber: number): string {
   const wisdom = loadAgentWisdom(agentId)
   const wisdomFile = `docs/meta/wisdom-${agentId}.md`
-  const wisdomEnFile = `docs/meta/wisdom-${agentId}.en.md`
 
   return `
 ---
 ## 📚 에이전트 누적 지혜 (${agentId})
 
-${wisdom ? `### 기존 지혜 (반드시 참고할 것)\n${wisdom}` : '(아직 작성된 지혜가 없습니다)'}
+${wisdom ? `### 기존 지혜 (참고)\n${wisdom}` : '(아직 지혜 없음)'}
 
 ### ⚠️ 작업 완료 후 반드시 수행:
-${wisdomFile} 파일을 읽고(없으면 새로 생성), 이번 사이클에서 배운 점을 추가해줘.
-${wisdomEnFile} 영문 버전도 생성/갱신해줘.
-기존 내용은 유지하고 새 인사이트만 추가할 것.
+${wisdomFile}을 읽고 이번 사이클에서 배운 점을 반영해줘.
+⚠️ 영문(.en.md)은 생성/갱신하지 마세요 — 한국어 파일만 관리.
+⚠️ 컴팩트 정리: 파일이 150줄을 넘으면 아래 규칙으로 압축할 것:
+  - 3사이클 이상 반복되지 않은 단발성 이슈는 삭제
+  - "OBSOLETE" 표시된 항목은 삭제
+  - 유사 항목을 하나로 병합 (예: "[Cycle 5,8,12] 같은 문제" 형태)
+  - "다음 사이클 적용 사항"은 최신 3개만 유지
+  - 전체 파일을 100줄 이내로 유지
 형식:
 # ${agentId} 누적 지혜
 _마지막 갱신: 사이클 #${cycleNumber}_
 
 ## 반복되는 실수 🚫
-[사이클 번호와 함께 기록]
+[사이클 번호와 함께 — 최대 10개]
 
 ## 검증된 성공 패턴 ✅
-[사이클 번호와 함께 기록]
+[사이클 번호와 함께 — 최대 10개]
 
 ## 다음 사이클 적용 사항 🎯
-[구체적인 액션 아이템]
+[최대 3개]
 ---
 `
 }
 
-/** 누적 플랫폼 지혜 파일 읽기 (없으면 빈 문자열) */
+/** 누적 플랫폼 지혜 파일 읽기 (한국어만, 최대 2000자) */
 function loadPlatformWisdom(): string {
   const path = `${PROJECT_ROOT}/docs/meta/platform-wisdom.md`
   if (!existsSync(path)) return ''
-  try { return readFileSync(path, 'utf-8').slice(0, 4000) } catch { return '' }
+  try { return readFileSync(path, 'utf-8').slice(0, 2000) } catch { return '' }
 }
 
 /** 직전 사이클의 포스트모템 읽기 */
@@ -304,7 +308,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       현재 플랫폼(public/games/game-registry.json)을 분석하고,
       HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
       결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
-      ⚠️ 영문 버전도 반드시 생성: docs/analytics/cycle-${cycleNumber}-report.en.md (같은 내용을 영어로 작성)
+      ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
       ${growthDirective}
       ${feedbackBlock}
       ⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.
@@ -319,7 +323,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     await runAgent('planner', `
       docs/analytics/cycle-${cycleNumber}-report.md를 읽고,
       제작할 게임의 상세 기획서를 docs/game-specs/cycle-${cycleNumber}-spec.md에 저장해줘.
-      ⚠️ 영문 버전도 반드시 생성: docs/game-specs/cycle-${cycleNumber}-spec.en.md (같은 내용을 영어로 작성)
+      ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
       기획서 맨 위에 반드시 YAML front-matter 형식으로:
       ---
       game-id: [영문-소문자-하이픈]
@@ -519,7 +523,7 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
         - NEEDS_MAJOR_FIX: 📌 1~5 중 하나라도 FAIL (게임이 플레이 불가능)
 
         결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
-        ⚠️ 영문 버전도 반드시 생성: docs/reviews/cycle-${cycleNumber}-review.en.md (같은 내용을 영어로 작성)
+        ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
         최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
         YAML front-matter에 verdict: [판정] 을 반드시 포함할 것.
         ${agentWisdomBlock('reviewer', cycleNumber)}
@@ -679,37 +683,35 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
     await runAgent('postmortem', `
       사이클 #${cycleNumber}의 포스트모템을 작성하고, 플랫폼 지혜 파일을 갱신해줘.
 
-      작업 1 — 포스트모템 작성:
+      작업 1 — 포스트모템 작성 (한국어만):
       - docs/game-specs/cycle-${cycleNumber}-spec.md 읽기
       - docs/reviews/cycle-${cycleNumber}-review.md 읽기
       - docs/post-mortem/cycle-${cycleNumber}-postmortem.md 에 저장
-      - ⚠️ 영문 버전도 반드시 생성: docs/post-mortem/cycle-${cycleNumber}-postmortem.en.md
-      - YAML front-matter에 cycle: ${cycleNumber} 포함할 것
+      - YAML front-matter에 cycle: ${cycleNumber} 포함
+      - ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
 
-      작업 2 — 플랫폼 지혜 갱신 (한국어 + 영어):
+      작업 2 — 플랫폼 지혜 갱신 (한국어만, 컴팩트 유지):
       - docs/meta/platform-wisdom.md 읽기 (없으면 새로 생성)
-      - ⚠️ 영문 버전도 반드시 생성/갱신: docs/meta/platform-wisdom.en.md
-      - 이번 사이클에서 얻은 새로운 인사이트를 추가 (기존 내용 유지)
-      - 반복되는 문제 패턴, 검증된 성공 패턴, 다음 우선순위를 갱신
-      - 아래 형식을 유지할 것:
+      - ⚠️ 영문(.en.md) 버전은 생성/갱신하지 마세요
+      - 이번 사이클 인사이트 추가 + 파일 크기 정리
+      - 아래 형식 + ⚠️ 컴팩트 규칙을 따를 것:
 
       # InfiniTriX 플랫폼 지혜 (누적 학습)
       _마지막 갱신: 사이클 #${cycleNumber}_
 
-      ## 피해야 할 패턴 🚫
-      [각 항목에 사이클 번호 표시. 기존 항목 유지, 새 항목 추가]
+      ## 피해야 할 패턴 🚫 (최대 10개)
+      ## 검증된 성공 패턴 ✅ (최대 10개)
+      ## 기술 개선 누적 🛠️ (최대 10개)
+      ## 장르별 노하우 🎮 (최대 10개)
+      ## 다음 사이클 우선순위 🎯 (최대 3개)
 
-      ## 검증된 성공 패턴 ✅
-      [각 항목에 사이클 번호 표시. 기존 항목 유지, 새 항목 추가]
-
-      ## 기술 개선 누적 🛠️
-      [리뷰에서 반복 지적된 코드 품질 이슈. 기존 항목 유지, 새 항목 추가]
-
-      ## 장르별 노하우 🎮
-      [장르: 해당 사이클 번호와 배운 점. 기존 항목 유지, 새 항목 추가]
-
-      ## 다음 사이클 우선순위 🎯
-      [이전 항목 삭제 후 이번 사이클 기준으로 새로 작성]
+      ⚠️ 컴팩트 규칙 (반드시 적용):
+      - 전체 파일 150줄 이내 유지
+      - "OBSOLETE" 표시 항목은 삭제
+      - 3사이클 이상 재발하지 않은 단발성 이슈는 삭제
+      - 유사 항목 병합 (예: "[Cycle 5,8,12] 동일 문제" 형태)
+      - 각 섹션 최대 10개 항목 (넘으면 가장 오래된 것부터 삭제)
+      - "다음 사이클 우선순위"는 이전 것 삭제 후 최신 3개만
     `)
     completeAgent('postmortem')
 
