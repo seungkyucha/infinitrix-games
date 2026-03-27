@@ -298,6 +298,7 @@ Keep the EXACT SAME character: same outfit, same colors, same proportions, same 
 - Output: ${w}x${h} pixels.
 - ${BG}
 - Exactly 1 character, centered, with 15% padding margin.
+- Output: EXACTLY ${w}x${h} pixels — same size as the reference image.
 - NO text, NO UI, NO borders, NO watermarks.`, transparent: needsTransparent }
   }
 
@@ -306,6 +307,7 @@ Keep the EXACT SAME character: same outfit, same colors, same proportions, same 
     const frameCount = asset.frames || 4
     const frameW = Math.round(w / frameCount)
     const frameH = h
+    const framePositions = Array.from({length: frameCount}, (_, i) => `Frame ${i+1}: x=${i * frameW}~${(i+1) * frameW - 1}`).join(', ')
 
     if (isGemSheet) {
       return { prompt: `[TASK] Create a gem/jewel shimmer animation sprite sheet for "${gameTitle}" (${genre}).
@@ -325,7 +327,8 @@ ${ART_DIR}
 
 [STRICT RULES]
 - ALL ${frameCount} frames must show the SAME gem from the SAME angle — only the light/sparkle changes.
-- Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH} of the strip.
+- Clear frame boundaries — each frame occupies EXACTLY ${frameW}x${frameH} pixels.
+- Frame pixel positions: ${framePositions}.
 - Gem must be CENTERED within each frame with consistent padding.
 - ${BG}
 - Rich faceted crystal with visible refraction, specular highlights, and internal glow.
@@ -357,7 +360,9 @@ ${ART_DIR}
 - In-game, green/black areas become invisible. Bright parts = visible effect.
 - HDR-style bloom: pure white core → themed color → fading edges.
 - Progressive size increase across frames: small spark → large burst → fade.
-- Output: ${w}x${h} pixels. NO text, NO characters.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Displayed at 64-256px in-game as overlay effect.
+- Effect core should be at exact center (${w}/2, ${h}/2) of the image.
+- NO text, NO characters.`, transparent: needsTransparent }
     }
 
     return { prompt: `[TASK] Create an animation sprite sheet for "${gameTitle}" (${genre}).
@@ -374,7 +379,8 @@ ${ART_DIR}
 
 [STRICT RULES]
 - ALL ${frameCount} frames must show the SAME object/character — only pose/state changes between frames.
-- Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH} of the strip.
+- Clear frame boundaries — each frame occupies EXACTLY ${frameW}x${frameH} pixels.
+- Frame pixel positions: ${framePositions}.
 - Object/character must be CENTERED within each frame with consistent positioning.
 - Consistent art style, colors, proportions, and lighting across ALL frames.
 - ${BG}
@@ -402,7 +408,8 @@ ${ART_DIR}
 - Circular or near-circular shape for versatile rotation.
 - Rich color: saturated core with desaturated edges, subtle color shift from center to edge.
 - Output: ${w}x${h} pixels. NO text, NO borders, NO watermarks.
-- HIGH DETAIL even at small size — this texture will be rendered hundreds of times per frame.`, transparent: needsTransparent }
+- HIGH DETAIL even at small size — this texture will be rendered hundreds of times per frame.
+- Output: EXACTLY ${w}x${h} pixels. Displayed at 4-32px in-game. The ENTIRE canvas must be used.`, transparent: needsTransparent }
   }
 
   // ─── Tileable Texture ───
@@ -479,7 +486,8 @@ ${isBoss ? '- BOSS character: 2x more imposing, dramatic aura/glow, complex armo
 - Rich shading: key light (top-left 45°), fill light (subtle right), rim light (back edge).
 - Visible material textures: fabric weave, metal reflections, skin detail, armor rivets.
 - Silhouette must be recognizable even at 64x64 pixels.
-- Output: ${w}x${h} pixels.
+- Output: EXACTLY ${w}x${h} pixels. The game displays this at 64-128px on screen via drawImage().
+- Subject must occupy 70-85% of the frame (not tiny in a huge canvas, not cropped at edges).
 - NO text, NO UI elements, NO borders, NO watermarks, NO ground shadow.`, transparent: needsTransparent }
   }
 
@@ -504,7 +512,8 @@ ${layer.includes('MID') ? '- Medium-detail silhouettes: buildings, trees, rocks.
 ${layer.includes('NEAR') ? '- High-detail ground elements: platforms, foliage, terrain texture.' : ''}
 - Painterly digital art with visible brushwork and atmospheric perspective.
 - Consider horizontal tiling (left-right edge continuity).
-- Output: ${w}x${h} pixels.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Used as full-screen background via drawImage(0, 0, canvasW, canvasH).
+- The ENTIRE ${w}x${h} canvas must be painted — no black borders, no empty areas.`, transparent: needsTransparent }
   }
 
   // ─── Effect/VFX ───
@@ -527,7 +536,9 @@ ${asset.id.includes('hit') ? '- IMPACT effect: short burst, directional speed li
 ${asset.id.includes('explosion') ? '- EXPLOSION: large radial burst, fire/smoke layers, flying debris.' : ''}
 ${asset.id.includes('heal') ? '- HEALING: upward-floating particles, soft green/white glow, gentle sparkles.' : ''}
 ${asset.id.includes('dash') ? '- DASH/SPEED: horizontal motion blur, afterimage trail, wind lines.' : ''}
-- Output: ${w}x${h} pixels. NO text, NO characters.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Displayed at 64-256px in-game as overlay effect.
+- Effect core should be at exact center (${w}/2, ${h}/2) of the image.
+- NO text, NO characters.`, transparent: needsTransparent }
   }
 
   // ─── UI Icon ───
@@ -550,7 +561,9 @@ ${asset.id.includes('score') || asset.id.includes('coin') || asset.id.includes('
 ${asset.id.includes('mana') || asset.id.includes('energy') ?
   '- MANA/ENERGY icon: blue/purple crystal orb, magical sparkle, internal glow.' : ''}
 - Drop shadow for floating appearance. Material matches game theme.
-- Output: ${w}x${h} pixels. NO text, NO numbers, NO frames.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Displayed at 32-48px in-game as HUD element.
+- Icon must occupy 70-90% of the frame, perfectly centered.
+- NO text, NO numbers, NO frames.`, transparent: needsTransparent }
   }
 
   // ─── Thumbnail / Key Art ───
@@ -571,7 +584,8 @@ ${ART_DIR}
 - Dynamic composition: rule of thirds, action pose, movement/drama.
 - High contrast, saturated accent colors for thumbnail grid visibility.
 - Professional color grading: movie poster / Steam capsule art quality.
-- Output: ${w}x${h} pixels. Landscape orientation.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Landscape orientation.
+- This is displayed as-is in the game platform — pixel-perfect composition required.`, transparent: needsTransparent }
   }
 
   // ─── Item / Collectible ───
@@ -590,7 +604,9 @@ ${ART_DIR}
 - NO character hands holding the item — item floats alone.
 - Luminous surface with internal glow or magical aura. Fresnel rim lighting.
 - Subtle sparkle/particle effects suggesting value or power.
-- Output: ${w}x${h} pixels. NO text, NO UI, NO hands.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Displayed at 32-64px in-game via drawImage().
+- Subject must occupy 60-80% of the frame, well-centered.
+- NO text, NO UI, NO hands.`, transparent: needsTransparent }
   }
 
   // ─── Tile / Platform ───
@@ -607,7 +623,8 @@ ${ART_DIR}
 - Edges designed for tiling — left matches right, top matches bottom.
 - Visible material texture: stone cracks, wood grain, metal rivets, crystal facets.
 - Consistent lighting direction (top-left).
-- Output: ${w}x${h} pixels. Single tile.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. Tiled in-game using drawImage() in a grid pattern.
+- Every pixel of the ${w}x${h} canvas must be part of the tile — no wasted space.`, transparent: needsTransparent }
   }
 
   // ─── Generic fallback ───
@@ -621,7 +638,9 @@ ${ART_DIR}
 - EXACTLY 1 object/element, CENTERED in frame.
 - ${BG}
 - Game-ready: clean edges, consistent lighting, readable at display size.
-- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`, transparent: needsTransparent }
+- Output: EXACTLY ${w}x${h} pixels. The game engine uses this at this exact resolution.
+- Subject must be well-centered and occupy 60-85% of the canvas.
+- NO text, NO UI, NO watermarks.`, transparent: needsTransparent }
 }
 
 // ═══════════════════════════════════════════════════════════
