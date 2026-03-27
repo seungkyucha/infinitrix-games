@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-27T11:30:00.000Z",
-  "totalGames": 39,
+  "lastUpdated": "2026-03-27T16:20:22.575Z",
+  "totalGames": 40,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -7290,6 +7290,182 @@
             "fantasia",
             "gemas",
             "castelo"
+          ],
+          "controls": [
+            "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
+            "Arrastar: Arraste uma gema para trocar",
+            "Toque: Toque e deslize para trocar",
+            "Teclado: Setas para mover cursor, Espaço para selecionar/trocar"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gem-siege",
+      "title": "젬 시즈",
+      "description": "보석을 매칭하여 5종 보스를 격파하고 왕국을 수호하세요!",
+      "genre": [
+        "puzzle"
+      ],
+      "thumbnail": "/games/gem-siege/assets/thumbnail.png",
+      "path": "/games/gem-siege/index.html",
+      "addedAt": "2026-03-27T16:20:22.575Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "매치3",
+        "퍼즐",
+        "보스배틀",
+        "판타지",
+        "보석",
+        "전략"
+      ],
+      "controls": [
+        "마우스: 보석 클릭 후 인접 보석 클릭으로 스왑",
+        "마우스 드래그: 보석을 드래그하여 스왑",
+        "터치: 탭 후 스와이프로 스왑",
+        "키보드: 방향키로 커서 이동, Space로 선택/스왑"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Gem Siege",
+          "description": "Match gems to defeat 5 bosses and defend your kingdom!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "boss-battle",
+            "fantasy",
+            "gems",
+            "strategy"
+          ],
+          "controls": [
+            "Mouse: Click a gem then click an adjacent gem to swap",
+            "Mouse drag: Drag a gem to swap",
+            "Touch: Tap and swipe to swap",
+            "Keyboard: Arrow keys to move cursor, Space to select/swap"
+          ]
+        },
+        "ja": {
+          "title": "ジェムシージ",
+          "description": "宝石をマッチして5体のボスを倒し、王国を守れ！",
+          "tags": [
+            "マッチ3",
+            "パズル",
+            "ボスバトル",
+            "ファンタジー",
+            "宝石",
+            "戦略"
+          ],
+          "controls": [
+            "マウス: 宝石をクリックして隣の宝石をクリックでスワップ",
+            "マウスドラッグ: 宝石をドラッグしてスワップ",
+            "タッチ: タップしてスワイプでスワップ",
+            "キーボード: 矢印キーでカーソル移動、スペースで選択/スワップ"
+          ]
+        },
+        "zh-CN": {
+          "title": "宝石攻城战",
+          "description": "匹配宝石击败5个Boss，守护你的王国！",
+          "tags": [
+            "三消",
+            "益智",
+            "Boss战",
+            "奇幻",
+            "宝石",
+            "策略"
+          ],
+          "controls": [
+            "鼠标：点击宝石后点击相邻宝石交换",
+            "鼠标拖拽：拖动宝石交换",
+            "触屏：点击后滑动交换",
+            "键盘：方向键移动光标，空格选择/交换"
+          ]
+        },
+        "zh-TW": {
+          "title": "寶石攻城戰",
+          "description": "配對寶石擊敗5個Boss，守護你的王國！",
+          "tags": [
+            "三消",
+            "益智",
+            "Boss戰",
+            "奇幻",
+            "寶石",
+            "策略"
+          ],
+          "controls": [
+            "滑鼠：點擊寶石後點擊相鄰寶石交換",
+            "滑鼠拖曳：拖動寶石交換",
+            "觸控：點擊後滑動交換",
+            "鍵盤：方向鍵移動游標，空白鍵選擇/交換"
+          ]
+        },
+        "es": {
+          "title": "Asedio de Gemas",
+          "description": "¡Combina gemas para derrotar a 5 jefes y defender tu reino!",
+          "tags": [
+            "match-3",
+            "puzle",
+            "batalla de jefes",
+            "fantasía",
+            "gemas",
+            "estrategia"
+          ],
+          "controls": [
+            "Ratón: Haz clic en una gema y luego en una adyacente para intercambiar",
+            "Arrastrar: Arrastra una gema para intercambiar",
+            "Táctil: Toca y desliza para intercambiar",
+            "Teclado: Flechas para mover cursor, Espacio para seleccionar/intercambiar"
+          ]
+        },
+        "fr": {
+          "title": "Siège de Gemmes",
+          "description": "Associez les gemmes pour vaincre 5 boss et défendre votre royaume !",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "combat de boss",
+            "fantaisie",
+            "gemmes",
+            "stratégie"
+          ],
+          "controls": [
+            "Souris : Cliquez sur une gemme puis sur une adjacente pour échanger",
+            "Glisser : Faites glisser une gemme pour échanger",
+            "Tactile : Appuyez et balayez pour échanger",
+            "Clavier : Flèches pour déplacer le curseur, Espace pour sélectionner/échanger"
+          ]
+        },
+        "de": {
+          "title": "Edelstein-Belagerung",
+          "description": "Kombiniere Edelsteine, um 5 Bosse zu besiegen und dein Königreich zu verteidigen!",
+          "tags": [
+            "Match-3",
+            "Puzzle",
+            "Bosskampf",
+            "Fantasy",
+            "Edelsteine",
+            "Strategie"
+          ],
+          "controls": [
+            "Maus: Klicke auf einen Edelstein, dann auf einen benachbarten zum Tauschen",
+            "Maus ziehen: Ziehe einen Edelstein zum Tauschen",
+            "Touch: Tippen und wischen zum Tauschen",
+            "Tastatur: Pfeiltasten zum Bewegen, Leertaste zum Auswählen/Tauschen"
+          ]
+        },
+        "pt": {
+          "title": "Cerco das Gemas",
+          "description": "Combine gemas para derrotar 5 chefes e defender seu reino!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "batalha de chefes",
+            "fantasia",
+            "gemas",
+            "estratégia"
           ],
           "controls": [
             "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
