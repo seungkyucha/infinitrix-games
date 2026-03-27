@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-27T12:04:49.336Z",
+  "lastUpdated": "2026-03-27T11:30:00.000Z",
   "totalGames": 39,
   "games": [
     {
@@ -7131,7 +7131,7 @@
       "genre": [
         "puzzle"
       ],
-      "thumbnail": "/games/royal-gem-chronicle/assets/thumbnail.png",
+      "thumbnail": "/games/royal-gem-chronicle/thumbnail.svg",
       "path": "/games/royal-gem-chronicle/index.html",
       "addedAt": "2026-03-27T12:04:49.336Z",
       "featured": false,
