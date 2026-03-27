@@ -492,8 +492,14 @@ const MathUtil = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Genre — 장르별 모듈 마운트 포인트
+// 각 장르 모듈은 /engine/genres/{genre}.js에서 IX.Genre.{Name}에 등록
+// ═══════════════════════════════════════════════════════════
+const Genre = {};
+
+// ═══════════════════════════════════════════════════════════
 // Export
 // ═══════════════════════════════════════════════════════════
-return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil };
+return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Genre };
 
 })();

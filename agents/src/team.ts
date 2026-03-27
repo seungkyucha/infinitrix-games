@@ -603,6 +603,44 @@ init();
 - 새 모듈은 독립적으로 동작해야 함 (다른 IX 모듈에 의존 최소화)
 - 주석으로 용도와 사용법을 간단히 기록
 
+═══════════════════════════════════════════════════
+## 장르별 공통 모듈 (IX.Genre)
+═══════════════════════════════════════════════════
+
+장르 특화 코드는 /engine/genres/{장르}.js에 추가하여 같은 장르의 다음 게임에서 재사용.
+
+### 사용법:
+\`\`\`html
+<script src="/engine/ix-engine.js"></script>
+<script src="/engine/genres/platformer.js"></script>
+<script>
+  const { PlatformPhysics, CoyoteJump } = IX.Genre.Platformer;
+  const physics = new PlatformPhysics({ gravity: 980, jumpForce: -400 });
+</script>
+\`\`\`
+
+### 장르 모듈 목록 (/engine/genres/ 확인 후 존재하면 사용):
+- **platformer.js** — 중력, 점프, 벽점프, 코요테타임, 1방향 플랫폼
+- **shooter.js** — 탄막 패턴, 무기 시스템, 탄환 풀링
+- **tower-defense.js** — 그리드 배치, 타워 타겟팅, 웨이브 매니저
+- **roguelite.js** — 절차적 맵, 룸 시스템, 아이템 드롭
+- **puzzle.js** — 그리드 매칭, 블록 물리, 콤보 체인
+- **idle.js** — 오프라인 진행, 프레스티지, 큰 수 포맷
+- **card.js** — 덱 관리, 카드 드로우, 턴 시스템
+- **racing.js** — 드리프트 물리, 체크포인트, AI 라이벌
+
+### 기여 방법:
+1. 게임 개발 중 장르 특화 범용 코드 발견
+2. /engine/genres/ 폴더 확인 — 해당 장르 파일이 있으면 Read로 읽기
+3. 없으면 새 파일 생성, 있으면 기존 파일에 추가
+4. 패턴: \`IX.Genre.{장르명} = (() => { ... return { 클래스들 }; })();\`
+5. 게임에서 해당 장르 모듈 <script>로 로드하여 사용
+
+### 기여 기준:
+- 같은 장르의 다른 게임에서도 쓸 수 있는 범용 로직
+- 게임별 수치(체력, 속도 등)는 생성자 옵션으로 커스터마이즈 가능하게
+- 게임 상태에 직접 의존하지 않는 독립적 유틸리티
+
 ---
 ${IFRAME_CONTEXT}
 
