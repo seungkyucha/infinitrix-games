@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-27T16:20:22.575Z",
+  "lastUpdated": "2026-03-28T00:00:00.000Z",
   "totalGames": 40,
   "games": [
     {
@@ -7307,7 +7307,7 @@
       "genre": [
         "puzzle"
       ],
-      "thumbnail": "/games/gem-siege/assets/thumbnail.png",
+      "thumbnail": "/games/gem-siege/thumbnail.svg",
       "path": "/games/gem-siege/index.html",
       "addedAt": "2026-03-27T16:20:22.575Z",
       "featured": false,
