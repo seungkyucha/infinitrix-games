@@ -721,6 +721,17 @@ async function runPipeline(
 
   if (!existsSync(assetsDir)) mkdirSync(assetsDir, { recursive: true })
 
+  // Limit total assets to prevent timeout (max 20)
+  const MAX_ASSETS = 20
+  if (art.assets.length > MAX_ASSETS) {
+    console.log(`  ⚠️ [Gemini] ${art.assets.length} assets requested, trimming to ${MAX_ASSETS} (prioritizing base assets + thumbnail)`)
+    // Keep thumbnail, then base assets, then variations
+    const thumbnail = art.assets.filter(a => a.id === 'thumbnail')
+    const bases = art.assets.filter(a => !a.ref && a.id !== 'thumbnail')
+    const variations = art.assets.filter(a => !!a.ref)
+    art.assets = [...thumbnail, ...bases, ...variations].slice(0, MAX_ASSETS)
+  }
+
   // Phase 1: Generate base assets (no reference needed)
   const baseAssets = art.assets.filter(a => !a.ref)
   const variationAssets = art.assets.filter(a => !!a.ref)
