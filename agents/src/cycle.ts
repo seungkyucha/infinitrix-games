@@ -289,6 +289,65 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   const growthDirective = buildGrowthDirective(cycleNumber)
   console.log(`  📈 성장 목표: ${cycleNumber <= 5 ? '기본' : cycleNumber <= 10 ? '중급' : cycleNumber <= 20 ? '고급' : '프리미엄'} 단계`)
 
+  // ── 매치3 집중 모드 (사이클 44~53) ──────────────────────────
+  const MATCH3_START = 44
+  const MATCH3_END   = 53
+  const isMatch3Mode = cycleNumber >= MATCH3_START && cycleNumber <= MATCH3_END
+  const match3Round  = isMatch3Mode ? cycleNumber - MATCH3_START + 1 : 0
+  const match3Directive = isMatch3Mode ? `
+═══════════════════════════════════════════════════════════
+⚠️ 매치3 집중 모드 (${match3Round}/10 라운드)
+═══════════════════════════════════════════════════════════
+
+이번 싸이클은 **매치3 퍼즐 게임**만 제작합니다.
+목표: 로얄 매치(Royal Match) 급 프리미엄 매치3 게임
+
+### 라운드별 진화 방향:
+${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
+- 3매치/4매치/5매치 + L/T자 매칭 시스템
+- 보석 스왑 애니메이션 (트윈 보간, 바운스 이징)
+- 매칭 → 제거 → 낙하 → 연쇄 반응 (cascade) 루프
+- 기본 보석 5~6색 + 스페셜 보석 (줄 파괴, 폭탄, 무지개)
+- 화려한 매칭 이펙트: 파티클 폭발, 빛줄기, 화면 쉐이크
+- 콤보 카운터 + 점수 팝업 애니메이션`
+: match3Round <= 6 ? `[중기 ${match3Round - 3}/3] 레벨/목표 시스템 + 비주얼 향상
+- 다양한 레벨 목표: 점수 달성, 특정 보석 N개 제거, 장애물 파괴, 젤리 제거
+- 장애물 시스템: 얼음(1~3겹), 체인, 나무 상자, 독 퍼짐
+- 부스터/파워업: 망치, 셔플, 추가 턴, 색상 폭탄
+- 레벨 맵 (10~20 레벨)
+- 로얄 매치급 비주얼: 보석 반짝임, 스페셜 생성 연출, 레벨 클리어 축하 애니메이션
+- 매칭 시 보석별 고유 파티클 색상/패턴`
+: `[후기 ${match3Round - 6}/4] 프리미엄 완성 + 메타 시스템
+- 완성된 매치3 + 이전 라운드 최고 코드 기반으로 발전
+- 스토리/테마 (왕국 건설, 정원 꾸미기, 탐험 등)
+- 스타 수집 → 건설/장식 메타 게임
+- 일일 챌린지 / 이벤트 레벨 시스템
+- 난이도 동적 조절 (DDA) — 연속 실패 시 쉬워짐
+- 프리미엄급 UI: 부드러운 전환, 리치 애니메이션, 주스(juice) 이펙트 극대화
+- 사운드 디자인: 매칭 음, 콤보 음, 스페셜 생성 음, 레벨 클리어 팡파레`}
+
+### 이전 매치3 게임 개선:
+- 이전 라운드 게임의 코드를 반드시 참고하여 문제점 개선
+- 같은 실수 반복 금지 — 이전 리뷰의 지적 사항 반영
+- 매 라운드마다 비주얼 퀄리티와 게임성이 눈에 띄게 향상되어야 함
+
+### 에셋 특별 요구사항:
+- 보석(gem) 에셋: 6색 이상, 각각 고유한 형태 + 빛 반사 + 내부 광택
+- 스페셜 보석: 줄 파괴(가로/세로 화살표), 폭탄(3x3), 무지개(전색 제거)
+- 이펙트: 매칭 폭발, 콤보 텍스트 팝업, 줄 파괴 레이저, 폭탄 충격파
+- 배경: 판타지 왕국/정원/성 등 로얄 매치 분위기
+- UI: 레벨 목표 패널, 부스터 버튼, 턴 수 표시, 점수바
+
+### 아트 스타일:
+- 로얄 매치/캔디 크러시 급 — 밝고 화려한 3D 느낌의 2D 보석
+- 부드러운 그라디언트, 글로시 반사, 보석 내부 빛 산란
+- 배경은 따뜻한 판타지 동화 스타일
+═══════════════════════════════════════════════════════════
+` : ''
+  if (isMatch3Mode) {
+    console.log(`  💎 매치3 집중 모드 (${match3Round}/10 라운드)`)
+  }
+
   const state: CycleState = {
     cycleNumber,
     gameId:     '',
@@ -309,9 +368,10 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
       결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
       ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
+      ${match3Directive}
       ${growthDirective}
       ${feedbackBlock}
-      ⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.
+      ${isMatch3Mode ? '⚠️ 이번 싸이클은 매치3 퍼즐 게임만 분석/추천하세요. 다른 장르는 추천하지 마세요.' : '⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.'}
       ${agentWisdomBlock('analyst', cycleNumber)}
     `)
     completeAgent('analyst')
@@ -332,9 +392,10 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
       difficulty: [easy/medium/hard]
       ---
       형태로 메타데이터를 포함해줘.
+      ${match3Directive}
       ${growthDirective}
       ${feedbackBlock}
-      ⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.
+      ${isMatch3Mode ? '⚠️ 반드시 매치3 퍼즐 게임을 기획하세요. 다른 장르는 기획하지 마세요. 이전 매치3 게임의 리뷰를 참고하여 개선하세요.' : '⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.'}
       ${agentWisdomBlock('planner', cycleNumber)}
     `)
     completeAgent('planner')

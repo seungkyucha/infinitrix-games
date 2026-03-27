@@ -163,6 +163,17 @@ async function main() {
       // 성공 또는 일반 에러: 리트라이 카운터 초기화
       retryCount = 0
 
+      // 매치3 집중 모드 종료 체크 (사이클 53 완료 시)
+      const MATCH3_END_CYCLE = 53
+      const currentCycle = getCurrentCycle() - 1 // 방금 완료한 사이클
+      if (currentCycle >= MATCH3_END_CYCLE) {
+        console.log(`\n💎 ═══════════════════════════════════════════════`)
+        console.log(`💎 매치3 집중 모드 10라운드 완료! (사이클 44~${currentCycle})`)
+        console.log(`💎 프로세스를 종료합니다.`)
+        console.log(`💎 ═══════════════════════════════════════════════\n`)
+        process.exit(0)
+      }
+
       console.log(`\n⏳ 다음 사이클까지 ${interval / 60000}분 대기...\n`)
       await new Promise(r => setTimeout(r, interval))
     }
