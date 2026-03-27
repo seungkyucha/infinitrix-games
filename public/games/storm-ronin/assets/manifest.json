@@ -1,0 +1,108 @@
+{
+  "gameId": "storm-ronin",
+  "generatedBy": "gemini-flash-image",
+  "artDirection": {
+    "style": "Sengoku Ink Wash — 전통 일본 수묵화 기반 다크톤 + 네온 참격 이펙트",
+    "palette": "#0a0a1a, #ffb7c5, #cc2222, #ffd700, #6c3cf7, #00d4ff, #ff6b35",
+    "mood": "긴장감 넘치는 어둠 속 화려한 검섬광, 전국시대의 비장함과 요괴의 신비로움",
+    "reference": "Katana ZERO 어두운 톤 + Shogun Showdown 사무라이 양식화 + Sekiro 참격 쾌감"
+  },
+  "format": "png",
+  "assets": {
+    "playerIdle": {
+      "file": "player-idle.png",
+      "size": "512x512",
+      "desc": "로닌 카제 — 정면 대기 포즈. 해진 검은 기모노, 한 손에 카타나, 바람에 휘날리는 머리카락. 수묵화 윤곽 + 차가운 파란 눈. 단호한 표정."
+    },
+    "playerSlash": {
+      "file": "player-slash.png",
+      "size": "512x512",
+      "desc": "로닌 카제 — 참격 포즈. 카타나를 전방으로 크게 휘두르는 동작. 검 궤적에 붉은 잔상(선혈 빨강 #cc2222). 역동적 자세."
+    },
+    "playerDash": {
+      "file": "player-dash.png",
+      "size": "512x512",
+      "desc": "로닌 카제 — 대시 포즈. 저자세 돌진, 잔상이 청록(#00d4ff) 빛으로 남는 순간. 몸이 약간 투명해지는 느낌."
+    },
+    "enemyZako": {
+      "file": "enemy-zako.png",
+      "size": "512x512",
+      "desc": "잡귀(雑鬼) — 작고 동글한 외눈 요괴. 보라색(#6c3cf7) 몸체, 한 개의 큰 노란 눈, 작은 뿔. 수묵화 스타일 윤곽."
+    },
+    "enemyFire": {
+      "file": "enemy-fire.png",
+      "size": "512x512",
+      "desc": "화염귀(火炎鬼) — 불꽃으로 이루어진 중형 요괴. 주황-빨강(#ff6b35) 몸체, 화산암 갑옷 파편, 이글거리는 눈. 수묵 윤곽."
+    },
+    "enemyIce": {
+      "file": "enemy-ice.png",
+      "size": "512x512",
+      "desc": "빙결귀(氷結鬼) — 얼음 결정 형태의 요괴. 파란(#66ccff) 투명 몸체, 날카로운 얼음 가시, 차가운 안개가 피어오름."
+    },
+    "bossOni": {
+      "file": "boss-oni.png",
+      "size": "800x600",
+      "desc": "오니 대장 — 거대한 붉은 오니(도깨비). 근육질 몸체, 두 개의 큰 뿔, 거대한 철퇴, 이글거리는 금색 눈. 화산 용암 배경. 위압적이고 분노에 찬 표정. 보스 등장 컷신용 대형 이미지."
+    },
+    "bossFox": {
+      "file": "boss-fox.png",
+      "size": "800x600",
+      "desc": "여우 요괴(구미호) — 9개의 꼬리를 가진 은빛 여우 요괴. 우아하고 신비로운 자태, 보라 빛나는 눈, 주변에 환술의 보라색 불꽃. 폭포와 달빛 배경."
+    },
+    "bgField": {
+      "file": "bg-field.png",
+      "size": "1920x1080",
+      "desc": "풍림성 배경 — 바람에 흔들리는 초원, 벚꽃잎이 날리는 전국시대 들판. 먼 산 실루엣, 일본식 성곽 그림자. 수묵화 톤의 은은한 색감."
+    },
+    "bgVolcano": {
+      "file": "bg-volcano.png",
+      "size": "1920x1080",
+      "desc": "화산성 배경 — 용암이 흐르는 화산 내부. 붉은-주황 조명, 암석 기둥, 연기와 화산재. 어둡고 위험한 분위기."
+    },
+    "bgWaterfall": {
+      "file": "bg-waterfall.png",
+      "size": "1920x1080",
+      "desc": "수령성 배경 — 거대한 폭포 앞 얼음 동굴. 파란-청록 조명, 고드름, 안개. 신비롭고 차가운 분위기."
+    },
+    "effectSlash": {
+      "file": "effect-slash.png",
+      "size": "512x512",
+      "desc": "참격 이펙트 — 카타나 궤적의 붉은-흰 호(arc) 형태 이펙트. 수묵 붓 터치 스타일. 중앙이 밝고 가장자리가 어두운 그라데이션."
+    },
+    "effectPerfect": {
+      "file": "effect-perfect.png",
+      "size": "512x512",
+      "desc": "Perfect 반사 이펙트 — 금색(#ffd700) 원형 충격파 + 벚꽃잎 파티클. 눈부신 섬광. 중앙에 한자 '斬' 실루엣."
+    },
+    "effectCombo": {
+      "file": "effect-combo.png",
+      "size": "512x512",
+      "desc": "콤보 달성 이펙트 — 불꽃과 바람이 소용돌이치는 원형 오라. 10콤보=청록, 25콤보=금색, 50콤보=무지개."
+    },
+    "itemRelic": {
+      "file": "item-relic.png",
+      "size": "256x256",
+      "desc": "유물 아이콘 — 빛나는 고대 일본 유물 (부적/인장/구슬). 금색 테두리, 신비로운 보라 빛. 둥근 프레임."
+    },
+    "uiHp": {
+      "file": "ui-hp.png",
+      "size": "128x128",
+      "desc": "체력 아이콘 — 일본식 사쿠라(벚꽃) 형태의 하트. 분홍(#ffb7c5). 꽃잎이 줄어들며 HP 감소 표현."
+    },
+    "uiCombo": {
+      "file": "ui-combo.png",
+      "size": "256x256",
+      "desc": "콤보 카운터 프레임 — 먹으로 쓴 숫자를 감싸는 원형 프레임. 금색 테두리. 일본 전통 문양 장식."
+    },
+    "uiGauge": {
+      "file": "ui-gauge.png",
+      "size": "128x512",
+      "desc": "필살기 게이지 — 세로 카타나 형태의 게이지 바. 빈 상태=회색, 충전=빨강에서 금색으로 그라데이션."
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 로닌 카제가 카타나를 휘두르며 적탄을 반사하는 역동적 장면. 배경에 벚꽃과 일본 성곽 실루엣. 화면을 가로지르는 붉은 참격선. 상단에 '스톰 로닌' 먹 글씨 타이틀. 수묵화+네온 하이브리드 스타일."
+    }
+  }
+}

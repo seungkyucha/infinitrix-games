@@ -1,0 +1,113 @@
+{
+  "gameId": "dune-chronicle",
+  "generatedBy": "gemini-flash-image",
+  "artDirection": {
+    "style": "Ancient Desert Civilization — Warm Watercolor meets Low-Poly Geometry (수채화 사막 문명 + 기하학적 장식)",
+    "palette": "#0a0a2e, #d4a853, #f0d68a, #00b4a0, #ff6b35, #0099dd, #ffd700",
+    "mood": "신비로운 고대 사막, 따뜻한 황금빛 모험, 고대 문명의 경이로움",
+    "reference": "Monument Valley 기하학적 건축 미학 + Alto's Odyssey 사막 그라데이션 분위기"
+  },
+  "format": "png",
+  "assets": {
+    "playerZara": {
+      "file": "player-zara.png",
+      "size": "512x512",
+      "desc": "주인공 자라(Zara) — 사막 유목민 후예. 터번과 모래색 망토, 허리에 고대 나침반, 손에 빛나는 오라. 정면 3/4 포즈. 따뜻한 갈색 피부, 금색 눈. 양식화된 비율(머리 약간 큰 스타일)."
+    },
+    "enemyScarab": {
+      "file": "enemy-scarab.png",
+      "size": "512x512",
+      "desc": "사막 딱정벌레 전사 — 금속성 광택의 등껍질, 붉은 눈, 작은 집게발. 기본 적 유닛. 사막 모래색 바탕에 청동 광택."
+    },
+    "enemySandwraith": {
+      "file": "enemy-sandwraith.png",
+      "size": "512x512",
+      "desc": "모래 망령 — 모래로 이루어진 유령 형태. 반투명한 모래빛 몸체, 빛나는 황금색 눈, 흩날리는 모래 입자. 중급 적."
+    },
+    "enemyGuardian": {
+      "file": "enemy-guardian.png",
+      "size": "512x512",
+      "desc": "피라미드 수호자 — 고대 석재 갑옷을 입은 인간형. 이집트 풍 투구, 금색 장식, 석재 방패와 창. 상급 적."
+    },
+    "bossScorpionQueen": {
+      "file": "boss-scorpion-queen.png",
+      "size": "640x480",
+      "desc": "전갈 여왕 — 거대한 사막 전갈. 자주색 갑각, 독이 뚝뚝 떨어지는 꼬리 침, 황금색 왕관. 위압적 포즈. 보스급 대형 에셋."
+    },
+    "bossSandGolem": {
+      "file": "boss-sand-golem.png",
+      "size": "640x480",
+      "desc": "모래 골렘 — 거대한 모래+석재 구조물이 인간형으로 합쳐진 형태. 피라미드 돌 조각이 갑옷처럼 부착, 내부에서 금빛 에너지 발광. 보스급 대형 에셋."
+    },
+    "tileFire": {
+      "file": "tile-fire.png",
+      "size": "128x128",
+      "desc": "불 원소 타일 — 팔각형 프레임 안에 주황-빨강 화염 문양. 이집트 태양신 상징. 밝고 따뜻한 톤."
+    },
+    "tileWater": {
+      "file": "tile-water.png",
+      "size": "128x128",
+      "desc": "물 원소 타일 — 팔각형 프레임 안에 파란 물결 문양. 나일강 상징. 맑고 시원한 톤."
+    },
+    "tileWind": {
+      "file": "tile-wind.png",
+      "size": "128x128",
+      "desc": "바람 원소 타일 — 팔각형 프레임 안에 민트녹색 소용돌이 문양. 사막 바람 상징. 신선한 톤."
+    },
+    "tileSand": {
+      "file": "tile-sand.png",
+      "size": "128x128",
+      "desc": "모래 원소 타일 — 팔각형 프레임 안에 황토색 모래시계 문양. 시간의 모래 상징. 따뜻한 황갈색 톤."
+    },
+    "bgDesertFar": {
+      "file": "bg-desert-far.png",
+      "size": "1920x1080",
+      "desc": "원경 배경 — 사막 지평선. 넓은 모래 언덕, 먼 피라미드 실루엣, 주황-보라 그라데이션 하늘. 수채화 느낌의 부드러운 경계."
+    },
+    "bgDesertMid": {
+      "file": "bg-desert-mid.png",
+      "size": "1920x1080",
+      "desc": "중경 배경 — 사막 건축 폐허. 무너진 오벨리스크, 반쯤 묻힌 석상 기둥, 사막 식물(선인장). 따뜻한 모래색 톤."
+    },
+    "bgOasis": {
+      "file": "bg-oasis.png",
+      "size": "1920x1080",
+      "desc": "오아시스 마을 배경 — 야자수 군락, 맑은 연못, 천막 시장, 낙타. 청록+황금 톤. 1구역 전용."
+    },
+    "bgPyramid": {
+      "file": "bg-pyramid.png",
+      "size": "1920x1080",
+      "desc": "피라미드 내부 배경 — 석재 벽면, 상형문자, 횃불 조명, 금색 장식. 어두운 갈색+금색. 3구역 전용."
+    },
+    "effectMatch": {
+      "file": "effect-match.png",
+      "size": "256x256",
+      "desc": "매치 이펙트 — 보석 파편이 사방으로 흩어지는 폭발 효과. 원소별 색상 변형 가능하도록 밝은 백색 기반 + 금색 반짝임."
+    },
+    "effectCascade": {
+      "file": "effect-cascade.png",
+      "size": "512x256",
+      "desc": "캐스케이드/콤보 이펙트 — 연쇄 매치 시 화면 가장자리에 금빛 파동이 퍼지는 효과. 'COMBO x3' 같은 텍스트 영역 포함."
+    },
+    "uiHpFrame": {
+      "file": "ui-hp-frame.png",
+      "size": "512x64",
+      "desc": "HP 바 프레임 — 고대 석재 테두리 + 금색 장식. 내부에 빨간(적) 또는 초록(아군) 게이지가 들어갈 수 있는 가로형 프레임."
+    },
+    "uiRelicFrame": {
+      "file": "ui-relic-frame.png",
+      "size": "128x128",
+      "desc": "유물 아이콘 프레임 — 팔각형 금색 테두리. 내부에 유물 이미지가 들어감. 일반/희귀/에픽 등급별 테두리 색상 변형."
+    },
+    "itemScroll": {
+      "file": "item-scroll.png",
+      "size": "128x128",
+      "desc": "예언의 서 조각 — 낡은 파피루스 스크롤, 상형문자 빛남, 금색 인장. 수집 아이템."
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 자라(Zara)가 피라미드를 배경으로 서 있고, 앞에 매치-3 보드가 빛나며, '듄 크로니클' 제목 텍스트(금색 고대 서체). 사막 석양 분위기."
+    }
+  }
+}

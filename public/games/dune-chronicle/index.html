@@ -1,0 +1,2827 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>듄 크로니클 — Dune Chronicle</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a2e;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// §0. IX Engine Destructure
+// ═══════════════════════════════════════════════════════════
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil } = IX;
+
+// ═══════════════════════════════════════════════════════════
+// §1. CONFIG & CONSTANTS (§14.1 수치 정합성)
+// ═══════════════════════════════════════════════════════════
+const GAME_ID = 'dune-chronicle';
+const BOARD_SIZE = 6;
+const ELEMENT_COUNT = 4;
+const ELEMENTS = ['fire','water','wind','sand'];
+const ELEM_COLORS = { fire:'#ff6b35', water:'#0099dd', wind:'#88ddaa', sand:'#c8a050' };
+const ELEM_ICONS = { fire:'🔥', water:'💧', wind:'🌪️', sand:'⏳' };
+const MIN_TOUCH = 48;
+
+// 3-match base values
+const DMG_FIRE_3 = 15;
+const SHIELD_WATER_3 = 10;
+const HEAL_SAND_3 = 12;
+const COMBO_WIND_3 = 1;
+
+// 4-match multiplier
+const MATCH4_MULT = 1.5;
+// 5-match multiplier
+const MATCH5_MULT = 2.0;
+
+// Combo cap
+const COMBO_CAP = 3.0;
+// DPS & synergy caps (F27)
+const DPS_CAP = 2.0;
+const SYNERGY_CAP = 1.5;
+
+// Boss HP (F10)
+const BOSS_SCORPION_HP = 200;
+const BOSS_GOLEM_HP = 300;
+const BOSS_PHARAOH_HP = 500;
+
+// Colors
+const COL_BG = '#0a0a2e';
+const COL_SAND = '#d4a853';
+const COL_SAND_LIGHT = '#f0d68a';
+const COL_OASIS = '#00b4a0';
+const COL_GOLD = '#ffd700';
+const COL_DANGER = '#cc3333';
+const COL_STONE = '#8b7355';
+const COL_TEXT = '#e0e0f0';
+const COL_TEXT2 = '#8080a0';
+const COL_TEXT3 = '#505070';
+
+// ═══════════════════════════════════════════════════════════
+// §2. SeededRNG (F18 — Math.random 0건)
+// ═══════════════════════════════════════════════════════════
+class SeededRNG {
+  constructor(seed) { this.seed = seed || Date.now(); this.s = this.seed; }
+  next() { this.s = (this.s * 1664525 + 1013904223) & 0xFFFFFFFF; return (this.s >>> 0) / 0xFFFFFFFF; }
+  nextInt(min, max) { return min + Math.floor(this.next() * (max - min + 1)); }
+  nextFloat(min, max) { return min + this.next() * (max - min); }
+  pick(arr) { return arr[this.nextInt(0, arr.length - 1)]; }
+  shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = this.nextInt(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  reset() { this.s = this.seed; }
+}
+const rng = new SeededRNG(Date.now());
+
+// ═══════════════════════════════════════════════════════════
+// §3. EventBus (F28 — monkey-patch 0건)
+// ═══════════════════════════════════════════════════════════
+const bus = {
+  _handlers: {},
+  on(event, fn) { (this._handlers[event] ||= []).push(fn); },
+  off(event, fn) {
+    const h = this._handlers[event];
+    if (h) { const i = h.indexOf(fn); if (i >= 0) h.splice(i, 1); }
+  },
+  emit(event, data) { (this._handlers[event] || []).forEach(fn => fn(data)); },
+  clear() { this._handlers = {}; }
+};
+
+// ═══════════════════════════════════════════════════════════
+// §4. Internationalization (F20 — ko/en)
+// ═══════════════════════════════════════════════════════════
+let lang = 'ko';
+const L = {
+  ko: {
+    title: '듄 크로니클', subtitle: '고대 사막 왕국의 예언',
+    start: '모험 시작', continue_: '계속하기', settings: '설정',
+    fire: '불', water: '물', wind: '바람', sand: '모래',
+    score: '점수', combo: '콤보', turn: '턴', hp: 'HP', shield: '쉴드',
+    gold: '골드', scrolls: '스크롤', crystals: '결정',
+    yourTurn: '당신의 턴', enemyTurn: '적의 턴',
+    victory: '승리!', defeat: '패배...', gameover: '게임 오버',
+    newBest: '신기록!', bestScore: '최고 점수',
+    restart: '다시 시작', backToTitle: '타이틀로',
+    zone1: '오아시스 마을', zone2: '모래폭풍 지대', zone3: '고대 피라미드',
+    zone4: '용암 협곡', zone5: '미라 왕의 무덤',
+    battle: '전투', event_: '이벤트', shop: '상점', boss: '보스',
+    pause: '일시정지', resume: '계속', quit: '포기',
+    upgrade: '업그레이드', relics: '유물', map: '지도',
+    selectTile: '타일을 선택하세요', swapTile: '인접 타일로 스왑',
+    noMatch: '매치 없음!', cascade: '캐스케이드!',
+    bossAppear: '보스 출현!', bossDefeated: '보스 처치!',
+    scrollObtained: '예언의 서 조각 획득!',
+    sandstorm: '모래폭풍', desertHeat: '사막 열기',
+    upgMastery: '원소 마스터리', upgExplore: '탐험 장비', upgAncient: '고대 지식',
+    reward: '보상 선택', chooseRelic: '유물을 선택하세요',
+    narrativeZone1: '"오래전 이 오아시스는 아크나르의 정원이었다..."',
+    narrativeZone2: '"전갈 여왕이 모래폭풍을 일으킨 건... 왕국의 독 무기에 대한 복수였다."',
+    narrativeZone3: '"왕들의 욕심이 수호자들의 폭주를 불렀다."',
+    narrativeIntro: '"자라, 예언의 서를 찾아야 한다. 아크나르의 저주를 풀 수 있는 건 그것뿐이다."',
+    press: '아무 키나 누르세요', langToggle: 'L: 언어', muteToggle: 'M: 음소거',
+    hintAvail: '힌트 사용 가능 (H)',
+    poisonTile: '독 타일', petrifyTile: '석화 타일',
+    relicDesertRose: '사막 장미', relicOasisFlask: '오아시스 물병',
+    relicWindFeather: '바람의 깃털', relicHourglassShard: '모래시계 파편',
+    relicSunstoneRing: '태양석 반지', relicScorpionSting: '전갈 독침',
+    relicNileTears: '나일의 눈물', relicStormCore: '사막 폭풍의 핵',
+    relicAncientCompass: '고대 나침반',
+    allCleared: '모든 구역 클리어!', runComplete: '런 완주!',
+    controls: '방향키/WASD: 이동 | Space: 선택 | E: 유물 | Esc: 일시정지',
+    touchControls: '탭: 선택 | 스와이프: 스왑 | 하단 버튼: 유물/일시정지',
+  },
+  en: {
+    title: 'Dune Chronicle', subtitle: 'Prophecy of the Ancient Desert Kingdom',
+    start: 'Start Adventure', continue_: 'Continue', settings: 'Settings',
+    fire: 'Fire', water: 'Water', wind: 'Wind', sand: 'Sand',
+    score: 'Score', combo: 'Combo', turn: 'Turn', hp: 'HP', shield: 'Shield',
+    gold: 'Gold', scrolls: 'Scrolls', crystals: 'Crystals',
+    yourTurn: 'Your Turn', enemyTurn: 'Enemy Turn',
+    victory: 'Victory!', defeat: 'Defeat...', gameover: 'Game Over',
+    newBest: 'New Best!', bestScore: 'Best Score',
+    restart: 'Restart', backToTitle: 'Back to Title',
+    zone1: 'Oasis Village', zone2: 'Sandstorm Wastes', zone3: 'Ancient Pyramid',
+    zone4: 'Lava Canyon', zone5: 'Mummy King\'s Tomb',
+    battle: 'Battle', event_: 'Event', shop: 'Shop', boss: 'Boss',
+    pause: 'Paused', resume: 'Resume', quit: 'Quit',
+    upgrade: 'Upgrade', relics: 'Relics', map: 'Map',
+    selectTile: 'Select a tile', swapTile: 'Swap with adjacent tile',
+    noMatch: 'No match!', cascade: 'Cascade!',
+    bossAppear: 'Boss Appears!', bossDefeated: 'Boss Defeated!',
+    scrollObtained: 'Prophecy Scroll Obtained!',
+    sandstorm: 'Sandstorm', desertHeat: 'Desert Heat',
+    upgMastery: 'Elemental Mastery', upgExplore: 'Explorer Gear', upgAncient: 'Ancient Knowledge',
+    reward: 'Choose Reward', chooseRelic: 'Choose a Relic',
+    narrativeZone1: '"Long ago, this oasis was the garden of Arknar..."',
+    narrativeZone2: '"The Scorpion Queen\'s sandstorm was revenge for the kingdom\'s poison weapons."',
+    narrativeZone3: '"The kings\' greed drove the guardians to madness."',
+    narrativeIntro: '"Zara, you must find the Codex. It\'s the only way to break Arknar\'s curse."',
+    press: 'Press any key', langToggle: 'L: Language', muteToggle: 'M: Mute',
+    hintAvail: 'Hint available (H)',
+    poisonTile: 'Poison Tile', petrifyTile: 'Petrified Tile',
+    relicDesertRose: 'Desert Rose', relicOasisFlask: 'Oasis Flask',
+    relicWindFeather: 'Wind Feather', relicHourglassShard: 'Hourglass Shard',
+    relicSunstoneRing: 'Sunstone Ring', relicScorpionSting: 'Scorpion Sting',
+    relicNileTears: 'Nile Tears', relicStormCore: 'Storm Core',
+    relicAncientCompass: 'Ancient Compass',
+    allCleared: 'All Zones Cleared!', runComplete: 'Run Complete!',
+    controls: 'Arrows/WASD: Move | Space: Select | E: Relic | Esc: Pause',
+    touchControls: 'Tap: Select | Swipe: Swap | Bottom buttons: Relic/Pause',
+  }
+};
+function t(key) { return L[lang][key] || L['en'][key] || key; }
+
+// ═══════════════════════════════════════════════════════════
+// §5. STATE MACHINE (F6, F21)
+// ═══════════════════════════════════════════════════════════
+const S = {
+  TITLE: 0, MAP: 1, PRE_BATTLE: 2, BATTLE: 3, POST_BATTLE: 4,
+  UPGRADE: 5, BOSS: 6, GAMEOVER: 7, VICTORY: 8, PAUSED: 9
+};
+const S_NAMES = ['TITLE','MAP','PRE_BATTLE','BATTLE','POST_BATTLE','UPGRADE','BOSS','GAMEOVER','VICTORY','PAUSED'];
+
+// TRANSITION_TABLE (F6) with priority (F29)
+const TRANSITION_TABLE = {
+  [S.TITLE]:       { targets: [S.MAP], priority: 0 },
+  [S.MAP]:         { targets: [S.PRE_BATTLE, S.UPGRADE, S.BOSS, S.TITLE], priority: 1 },
+  [S.PRE_BATTLE]:  { targets: [S.BATTLE, S.BOSS], priority: 2 },
+  [S.BATTLE]:      { targets: [S.POST_BATTLE, S.GAMEOVER], priority: 3 },
+  [S.POST_BATTLE]: { targets: [S.MAP, S.UPGRADE], priority: 2 },
+  [S.UPGRADE]:     { targets: [S.MAP], priority: 1 },
+  [S.BOSS]:        { targets: [S.POST_BATTLE, S.GAMEOVER], priority: 4 },
+  [S.GAMEOVER]:    { targets: [S.TITLE], priority: 10 },
+  [S.VICTORY]:     { targets: [S.TITLE], priority: 10 },
+  [S.PAUSED]:      { targets: [-1], priority: 5 }, // -1 = previous state
+};
+
+let state = S.TITLE;
+let prevState = S.TITLE;
+let _transitioning = false;
+let _transAlpha = 0;
+let _transTarget = -1;
+let _ready = false;
+
+// beginTransition — single definition (F21)
+function beginTransition(to) {
+  // GAMEOVER/VICTORY can be reached from any state (F29)
+  if (to !== S.GAMEOVER && to !== S.VICTORY) {
+    const entry = TRANSITION_TABLE[state];
+    if (!entry || !entry.targets.includes(to)) return false;
+  }
+  if (_transitioning) return false;
+  _transitioning = true;
+  _transTarget = to;
+  _transAlpha = 0;
+  tween.add({ v: 0 }, { v: 1 }, 300, 'easeIn', () => {
+    _transAlpha = 1;
+    enterState(to);
+    tween.add({ v: 1 }, { v: 0 }, 300, 'easeOut', () => {
+      _transAlpha = 0;
+      _transitioning = false;
+    });
+  });
+  // Bind alpha updates
+  const fadeObj = { alpha: 0 };
+  tween.add(fadeObj, { alpha: 1 }, 300, 'easeIn', () => {
+    tween.add(fadeObj, { alpha: 0 }, 300, 'easeOut');
+  });
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+// §6. GAME STATE
+// ═══════════════════════════════════════════════════════════
+let score = 0;
+let highScore = Save.getHighScore(GAME_ID);
+let isNewBest = false;
+
+// Player state
+let player = {
+  hp: 100, maxHp: 100, shield: 0,
+  gold: 0, scrolls: 0, crystals: 0,
+  relics: [], activeRelic: -1,
+  upgrades: { mastery: 0, explore: 0, ancient: 0 },
+  consecutiveLosses: 0, battleResults: [], // last 5 for DDA
+};
+
+// Board state
+let board = [];
+let boardAnim = []; // Animation states per cell
+let selectedTile = null; // {r, c}
+let cursorR = 0, cursorC = 0;
+let turnPhase = 'PLAYER'; // PLAYER, ANIMATING, ENEMY, CASCADE
+let comboCount = 0;
+let turnCount = 0;
+let matchQueue = [];
+let cascadeTimer = 0;
+let swapAnim = null; // { r1,c1, r2,c2, t, dur, revert }
+let fallAnims = []; // cells falling
+let matchAnims = []; // cells being matched
+let boardLocked = false;
+
+// Enemy state
+let enemy = null; // { name, hp, maxHp, atk, special, turnCounter, ... }
+
+// Map state
+let mapNodes = [];
+let currentNode = -1;
+let currentZone = 0; // 0-based
+let zoneProgress = []; // which nodes cleared per zone
+let mapScrollY = 0;
+
+// Boss state
+let bossRewardGiven = false; // F17
+
+// Weather
+let currentWeather = null; // 'sandstorm' or 'desertHeat'
+
+// DDA
+let ddaLevel = 1; // 0=Easy, 1=Normal, 2=Hard, 3=Nightmare
+
+// Narrative
+let narrativeText = '';
+let narrativeTimer = 0;
+let showNarrative = false;
+
+// UI state
+let fadeAlpha = 1;
+let titleAnim = 0;
+let shakeIntensity = 0;
+let damagePopups = [];
+let bgmMuted = false;
+let hintTile = null; // {r1,c1,r2,c2}
+let showRelicPanel = false;
+let pauseMenuIdx = 0;
+let rewardChoices = [];
+let rewardSelected = -1;
+let upgradeTab = 0;
+
+// Touch swipe tracking
+let touchStartX = -1, touchStartY = -1;
+let touchStartR = -1, touchStartC = -1;
+
+// BGM scheduling
+let bgmScheduled = false;
+let bgmInterval = null;
+let bgmPattern = [];
+let bgmBeat = 0;
+let bgmCtx = null;
+
+// ═══════════════════════════════════════════════════════════
+// §7. RELIC DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+const RELIC_DEFS = [
+  { id:'desertRose', nameKey:'relicDesertRose', rarity:'common', effect:'fireDmg', value:0.15, desc:'+15% fire dmg' },
+  { id:'oasisFlask', nameKey:'relicOasisFlask', rarity:'common', effect:'healBonus', value:0.20, desc:'+20% heal' },
+  { id:'windFeather', nameKey:'relicWindFeather', rarity:'common', effect:'comboBonus', value:0.2, desc:'+0.2x combo' },
+  { id:'hourglassShard', nameKey:'relicHourglassShard', rarity:'common', effect:'transform', value:3, desc:'Every 3 turns transform 1 tile' },
+  { id:'sunstoneRing', nameKey:'relicSunstoneRing', rarity:'common', effect:'firWindBonus', value:5, desc:'Fire+Wind match +5 dmg' },
+  { id:'scorpionSting', nameKey:'relicScorpionSting', rarity:'rare', effect:'poison', value:3, desc:'Fire match: 3-turn poison (3dmg/turn)' },
+  { id:'nileTears', nameKey:'relicNileTears', rarity:'rare', effect:'shieldOverheal', value:0.3, desc:'Shield overflow→30% HP' },
+  { id:'stormCore', nameKey:'relicStormCore', rarity:'rare', effect:'match5Bonus', value:10, desc:'5-match +10 dmg' },
+  { id:'ancientCompass', nameKey:'relicAncientCompass', rarity:'rare', effect:'hint', value:1, desc:'Turn start: best match hint' },
+];
+
+// ═══════════════════════════════════════════════════════════
+// §8. UPGRADE DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+const UPGRADE_DEFS = {
+  mastery: [
+    { cost:50, desc:'Fire dmg +10%', effect:{fireDmgMult:0.10} },
+    { cost:120, desc:'Water shield +15%', effect:{waterShieldMult:0.15} },
+    { cost:250, desc:'Wind combo +0.3x', effect:{windComboBonus:0.3} },
+  ],
+  explore: [
+    { cost:50, desc:'Resources +15%', effect:{resourceMult:0.15} },
+    { cost:120, desc:'Shop -10%', effect:{shopDiscount:0.10} },
+    { cost:250, desc:'Event reward +20%', effect:{eventRewardMult:0.20} },
+  ],
+  ancient: [
+    { cost:50, desc:'Hint system', effect:{hintEnabled:true} },
+    { cost:120, desc:'Free shuffle at battle start', effect:{freeShuffle:true} },
+    { cost:250, desc:'4 relic choices (was 3)', effect:{relicChoices:4} },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// §9. ENEMY DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+const ENEMY_DEFS = {
+  scarab: { name:'Scarab', nameKo:'사막 딱정벌레', hp:50, atk:6, assetKey:'enemyScarab', zone:0 },
+  sandwraith: { name:'Sand Wraith', nameKo:'모래 망령', hp:80, atk:10, assetKey:'enemySandwraith', zone:1 },
+  guardian: { name:'Pyramid Guardian', nameKo:'피라미드 수호자', hp:120, atk:15, assetKey:'enemyGuardian', zone:2 },
+};
+
+const BOSS_DEFS = [
+  {
+    id:'scorpionQueen', name:'Scorpion Queen', nameKo:'전갈 여왕',
+    hp: BOSS_SCORPION_HP, atk:12, assetKey:'bossScorpionQueen', zone:1,
+    specialInterval:2, specialType:'poison', specialCount:2,
+    weakness:'water', scrollReward:1
+  },
+  {
+    id:'sandGolem', name:'Sand Golem', nameKo:'모래 골렘',
+    hp: BOSS_GOLEM_HP, atk:18, assetKey:'bossSandGolem', zone:2,
+    specialInterval:3, specialType:'petrify', specialCount:3,
+    weakness:'wind', scrollReward:1
+  },
+];
+
+// ═══════════════════════════════════════════════════════════
+// §10. ZONE DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+const ZONE_DEFS = [
+  { name:'zone1', enemies:['scarab'], weather:null, turnLimit:0, bgKey:'bgOasis' },
+  { name:'zone2', enemies:['scarab','sandwraith'], weather:'sandstorm', turnLimit:0, bgKey:'bgDesertFar' },
+  { name:'zone3', enemies:['sandwraith','guardian'], weather:'desertHeat', turnLimit:30, bgKey:'bgPyramid' },
+];
+
+// ═══════════════════════════════════════════════════════════
+// §11. DDA SYSTEM (§9.1)
+// ═══════════════════════════════════════════════════════════
+function calcDDA() {
+  const results = player.battleResults.slice(-5);
+  if (results.length < 2) { ddaLevel = 1; return; }
+  const wins = results.filter(r => r).length;
+  const rate = wins / results.length;
+  if (rate < 0.4) ddaLevel = 0;
+  else if (rate <= 0.7) ddaLevel = 1;
+  else if (rate <= 0.9) ddaLevel = 2;
+  else ddaLevel = 3;
+}
+const DDA_HP_MULT = [0.7, 1.0, 1.3, 1.6];
+const DDA_SPECIAL_MULT = [0.75, 1.0, 1.25, 1.5];
+const DDA_REWARD_MULT = [1.3, 1.0, 1.2, 1.5];
+
+// ═══════════════════════════════════════════════════════════
+// §12. IX ENGINE INIT
+// ═══════════════════════════════════════════════════════════
+const engine = new Engine('gameCanvas', {
+  update: (dt, timestamp) => { if (_ready) gameUpdate(dt, timestamp); },
+  render: (ctx, w, h, dt) => { if (_ready) gameRender(ctx, w, h, dt); },
+  onResize: (w, h) => { if (_ready) onGameResize(w, h); }
+});
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(500);
+const assets = new AssetLoader();
+
+// ═══════════════════════════════════════════════════════════
+// §13. BOARD LOGIC — Match-3 Engine
+// ═══════════════════════════════════════════════════════════
+
+// Generate initial board with no 3-matches (F26)
+function generateBoard() {
+  board = [];
+  boardAnim = [];
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    board[r] = [];
+    boardAnim[r] = [];
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      board[r][c] = { elem: pickElement(r, c), special: null };
+      boardAnim[r][c] = { scale: 1, alpha: 1, offY: 0, glow: 0 };
+    }
+  }
+  // Validate: ensure at least 1 valid swap exists (F32)
+  let attempts = 0;
+  while (!hasValidSwap() && attempts < 50) {
+    for (let r = 0; r < BOARD_SIZE; r++)
+      for (let c = 0; c < BOARD_SIZE; c++)
+        board[r][c].elem = rng.pick(ELEMENTS);
+    removeInitial3Matches();
+    attempts++;
+  }
+}
+
+// Pick element avoiding immediate 3-match
+function pickElement(r, c) {
+  const avoid = new Set();
+  if (r >= 2 && board[r-1][c].elem === board[r-2][c].elem)
+    avoid.add(board[r-1][c].elem);
+  if (c >= 2 && board[r][c-1].elem === board[r][c-2].elem)
+    avoid.add(board[r][c-1].elem);
+  const choices = ELEMENTS.filter(e => !avoid.has(e));
+  return choices.length > 0 ? rng.pick(choices) : rng.pick(ELEMENTS);
+}
+
+// Remove any initial 3-matches
+function removeInitial3Matches() {
+  let changed = true;
+  let iter = 0;
+  while (changed && iter < 100) {
+    changed = false; iter++;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        // Check horizontal
+        if (c <= BOARD_SIZE - 3 && board[r][c].elem === board[r][c+1].elem && board[r][c].elem === board[r][c+2].elem) {
+          board[r][c+2].elem = pickElement(r, c+2); changed = true;
+        }
+        // Check vertical
+        if (r <= BOARD_SIZE - 3 && board[r][c].elem === board[r+1][c].elem && board[r][c].elem === board[r+2][c].elem) {
+          board[r+2][c].elem = pickElement(r+2, c); changed = true;
+        }
+      }
+    }
+  }
+}
+
+// Check if at least one valid swap exists
+function hasValidSwap() {
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      // Try swap right
+      if (c < BOARD_SIZE - 1) {
+        swapCells(r, c, r, c+1);
+        if (findMatches().length > 0) { swapCells(r, c, r, c+1); return true; }
+        swapCells(r, c, r, c+1);
+      }
+      // Try swap down
+      if (r < BOARD_SIZE - 1) {
+        swapCells(r, c, r+1, c);
+        if (findMatches().length > 0) { swapCells(r, c, r+1, c); return true; }
+        swapCells(r, c, r+1, c);
+      }
+    }
+  }
+  return false;
+}
+
+// Swap two cells in-place
+function swapCells(r1, c1, r2, c2) {
+  const tmp = board[r1][c1];
+  board[r1][c1] = board[r2][c2];
+  board[r2][c2] = tmp;
+}
+
+// Find all matches (F25 priority: 5→T→L→4→3)
+function findMatches() {
+  const used = Array.from({length:BOARD_SIZE}, () => Array(BOARD_SIZE).fill(false));
+  const matches = [];
+
+  // Collect horizontal runs
+  const hRuns = [];
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    let c = 0;
+    while (c < BOARD_SIZE) {
+      let end = c;
+      while (end < BOARD_SIZE - 1 && board[r][end+1].elem === board[r][c].elem
+             && !board[r][c].special) end++;
+      if (end - c >= 2) hRuns.push({ r, c, len: end-c+1, dir:'h', elem: board[r][c].elem });
+      c = end + 1;
+    }
+  }
+  // Collect vertical runs
+  const vRuns = [];
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    let r = 0;
+    while (r < BOARD_SIZE) {
+      let end = r;
+      while (end < BOARD_SIZE - 1 && board[end+1][c].elem === board[r][c].elem
+             && !board[r][c].special) end++;
+      if (end - r >= 2) vRuns.push({ r, c, len: end-r+1, dir:'v', elem: board[r][c].elem });
+      r = end + 1;
+    }
+  }
+
+  // Check for T/L patterns (intersections)
+  for (const h of hRuns) {
+    for (const v of vRuns) {
+      if (h.elem !== v.elem) continue;
+      // Check intersection
+      if (v.c >= h.c && v.c < h.c + h.len && h.r >= v.r && h.r < v.r + v.len) {
+        const cells = new Set();
+        for (let i = 0; i < h.len; i++) cells.add(`${h.r},${h.c+i}`);
+        for (let i = 0; i < v.len; i++) cells.add(`${v.r+i},${v.c}`);
+        if (cells.size >= 5) {
+          const cellArr = [...cells].map(s => { const [r,c] = s.split(',').map(Number); return {r,c}; });
+          const allFree = cellArr.every(({r,c}) => !used[r][c]);
+          if (allFree) {
+            matches.push({ type: cells.size >= 6 ? '5+' : (h.len>=3 && v.len>=3 ? 'TL' : '4'), cells: cellArr, elem: h.elem });
+            cellArr.forEach(({r,c}) => used[r][c] = true);
+          }
+        }
+      }
+    }
+  }
+
+  // Sort remaining runs by length (descending)
+  const allRuns = [...hRuns, ...vRuns].sort((a,b) => b.len - a.len);
+  for (const run of allRuns) {
+    const cells = [];
+    for (let i = 0; i < run.len; i++) {
+      const r = run.dir === 'h' ? run.r : run.r + i;
+      const c = run.dir === 'h' ? run.c + i : run.c;
+      if (!used[r][c]) cells.push({r, c});
+    }
+    if (cells.length >= 3) {
+      let type = '3';
+      if (cells.length >= 5) type = '5';
+      else if (cells.length === 4) type = '4';
+      matches.push({ type, cells, elem: run.elem });
+      cells.forEach(({r,c}) => used[r][c] = true);
+    }
+  }
+
+  return matches;
+}
+
+// Find hint: first valid swap (for hint system)
+function findHint() {
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (c < BOARD_SIZE - 1) {
+        swapCells(r, c, r, c+1);
+        const m = findMatches();
+        swapCells(r, c, r, c+1);
+        if (m.length > 0) return { r1:r, c1:c, r2:r, c2:c+1 };
+      }
+      if (r < BOARD_SIZE - 1) {
+        swapCells(r, c, r+1, c);
+        const m = findMatches();
+        swapCells(r, c, r+1, c);
+        if (m.length > 0) return { r1:r, c1:c, r2:r+1, c2:c };
+      }
+    }
+  }
+  return null;
+}
+
+// Apply gravity — fill empty cells from above
+function applyGravity() {
+  const falls = [];
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    let writeRow = BOARD_SIZE - 1;
+    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+      if (board[r][c]) {
+        if (r !== writeRow) {
+          board[writeRow][c] = board[r][c];
+          board[r][c] = null;
+          falls.push({ r: writeRow, c, fromR: r });
+          boardAnim[writeRow][c] = { scale:1, alpha:1, offY: (r-writeRow)*getCellSize(), glow:0 };
+        }
+        writeRow--;
+      }
+    }
+    // Fill empty cells at top
+    for (let r = writeRow; r >= 0; r--) {
+      board[r][c] = { elem: rng.pick(ELEMENTS), special: null };
+      boardAnim[r][c] = { scale:1, alpha:1, offY: (r-writeRow-1)*getCellSize(), glow:0 };
+      falls.push({ r, c, fromR: r-writeRow-1 });
+    }
+  }
+  return falls;
+}
+
+// Get cell size based on screen
+function getCellSize() {
+  const w = engine.W;
+  const h = engine.H;
+  const boardArea = Math.min(w * 0.85, h * 0.55);
+  return Math.max(MIN_TOUCH, Math.floor(boardArea / BOARD_SIZE));
+}
+
+// Get board position (top-left)
+function getBoardPos() {
+  const cell = getCellSize();
+  const bw = cell * BOARD_SIZE;
+  const bh = cell * BOARD_SIZE;
+  const x = (engine.W - bw) / 2;
+  const y = engine.H * 0.22;
+  return { x, y, bw, bh, cell };
+}
+
+// ═══════════════════════════════════════════════════════════
+// §14. COMBAT SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+// Calculate match effect with upgrades and relics
+function calcMatchEffect(elem, count, matchType) {
+  let baseDmg = 0, baseShield = 0, baseHeal = 0, baseCombo = 0;
+  let mult = 1;
+  if (matchType === '4' || count === 4) mult = MATCH4_MULT;
+  if (matchType === '5' || matchType === '5+' || matchType === 'TL' || count >= 5) mult = MATCH5_MULT;
+
+  // Upgrade bonuses
+  let fireMult = 1 + (player.upgrades.mastery >= 1 ? 0.10 : 0);
+  let waterMult = 1 + (player.upgrades.mastery >= 2 ? 0.15 : 0);
+  let windBonus = player.upgrades.mastery >= 3 ? 0.3 : 0;
+  let healMult = 1;
+
+  // Relic bonuses (F27 — DPS cap)
+  let totalDpsBonus = 0;
+  for (const relic of player.relics) {
+    const def = RELIC_DEFS.find(d => d.id === relic);
+    if (!def) continue;
+    if (def.effect === 'fireDmg' && elem === 'fire') totalDpsBonus += def.value;
+    if (def.effect === 'healBonus' && elem === 'sand') healMult += def.value;
+    if (def.effect === 'comboBonus') windBonus += def.value;
+    if (def.effect === 'match5Bonus' && count >= 5) baseDmg += def.value;
+    if (def.effect === 'firWindBonus' && (elem === 'fire' || elem === 'wind')) baseDmg += def.value;
+  }
+  // Apply DPS cap
+  totalDpsBonus = Math.min(totalDpsBonus, DPS_CAP - 1);
+  fireMult += totalDpsBonus;
+
+  if (elem === 'fire') baseDmg += DMG_FIRE_3 * mult * fireMult;
+  if (elem === 'water') baseShield += SHIELD_WATER_3 * mult * waterMult;
+  if (elem === 'wind') baseCombo += COMBO_WIND_3;
+  if (elem === 'sand') baseHeal += HEAL_SAND_3 * mult * healMult;
+
+  return { dmg: Math.floor(baseDmg), shield: Math.floor(baseShield), heal: Math.floor(baseHeal), combo: baseCombo + windBonus };
+}
+
+// Apply match effects to combat state
+function applyMatchEffects(matchList) {
+  let totalDmg = 0, totalShield = 0, totalHeal = 0, extraCombo = 0;
+
+  for (const match of matchList) {
+    const eff = calcMatchEffect(match.elem, match.cells.length, match.type);
+
+    // Combo multiplier
+    const comboMult = Math.min(1 + comboCount * 0.5, COMBO_CAP);
+
+    totalDmg += Math.floor(eff.dmg * comboMult);
+    totalShield += Math.floor(eff.shield * comboMult);
+    totalHeal += Math.floor(eff.heal * comboMult);
+    extraCombo += eff.combo;
+
+    // Score
+    let matchScore = 100;
+    if (match.type === '4') matchScore = 250;
+    if (match.type === '5' || match.type === '5+') matchScore = 500;
+    if (match.type === 'TL') matchScore = 400;
+    score += Math.floor(matchScore * comboMult);
+
+    // SFX
+    if (match.cells.length >= 5) sound.sfx('powerup');
+    else if (match.cells.length === 4) sound.sfx('score');
+    else sound.sfx('select');
+
+    // Particles for each match
+    const bp = getBoardPos();
+    for (const cell of match.cells) {
+      const cx = bp.x + cell.c * bp.cell + bp.cell/2;
+      const cy = bp.y + cell.r * bp.cell + bp.cell/2;
+      particles.emit(cx, cy, 8, { color: ELEM_COLORS[match.elem], speed:120, life:0.4, size:4 });
+    }
+
+    // Relic: Scorpion Sting poison
+    if (match.elem === 'fire' && player.relics.includes('scorpionSting') && enemy) {
+      enemy.poison = (enemy.poison || 0) + 3;
+    }
+
+    // Bus event
+    bus.emit('match', { elem: match.elem, count: match.cells.length, type: match.type });
+  }
+
+  // Apply damage to enemy
+  if (enemy && totalDmg > 0) {
+    // Weather bonuses
+    if (currentWeather === 'desertHeat') {
+      const fireMatches = matchList.filter(m => m.elem === 'fire');
+      if (fireMatches.length > 0) totalDmg = Math.floor(totalDmg * 1.25);
+    }
+    if (currentWeather === 'sandstorm') {
+      const windMatches = matchList.filter(m => m.elem === 'wind');
+      if (windMatches.length > 0) totalDmg = Math.floor(totalDmg * 1.20);
+    }
+
+    enemy.hp -= totalDmg;
+    addDamagePopup(engine.W * 0.7, engine.H * 0.15, `-${totalDmg}`, COL_DANGER);
+    shakeIntensity = Math.min(totalDmg * 0.3, 10);
+    sound.sfx('hit');
+  }
+
+  // Apply shield
+  if (totalShield > 0) {
+    const newShield = player.shield + totalShield;
+    // Relic: Nile Tears — overflow shield → HP
+    if (player.relics.includes('nileTears')) {
+      const overflow = Math.max(0, newShield - player.maxHp * 0.5);
+      if (overflow > 0) {
+        const healFromOverflow = Math.floor(overflow * 0.3);
+        player.hp = Math.min(player.hp + healFromOverflow, player.maxHp);
+        player.shield = Math.min(newShield - overflow, player.maxHp * 0.5);
+        addDamagePopup(engine.W * 0.3, engine.H * 0.12, `+${healFromOverflow}`, COL_OASIS);
+      } else {
+        player.shield = newShield;
+      }
+    } else {
+      player.shield = Math.min(newShield, player.maxHp * 0.5);
+    }
+    addDamagePopup(engine.W * 0.3, engine.H * 0.08, `+${totalShield}🛡️`, '#0099dd');
+  }
+
+  // Apply heal
+  if (totalHeal > 0) {
+    player.hp = Math.min(player.hp + totalHeal, player.maxHp);
+    addDamagePopup(engine.W * 0.3, engine.H * 0.15, `+${totalHeal}`, COL_OASIS);
+  }
+
+  comboCount += extraCombo > 0 ? 1 : 0;
+  return matchList.length > 0;
+}
+
+// Enemy turn
+function doEnemyTurn() {
+  if (!enemy || enemy.hp <= 0) return;
+
+  // Poison tick
+  if (enemy.poison && enemy.poison > 0) {
+    enemy.hp -= 3;
+    enemy.poison--;
+    addDamagePopup(engine.W * 0.7, engine.H * 0.18, '-3🧪', '#88ff44');
+  }
+
+  // Boss special ability
+  let doSpecial = false;
+  if (enemy.specialInterval) {
+    enemy.turnCounter = (enemy.turnCounter || 0) + 1;
+    if (enemy.turnCounter % enemy.specialInterval === 0) doSpecial = true;
+  }
+
+  if (doSpecial && enemy.specialType) {
+    const count = Math.floor((enemy.specialCount || 1) * DDA_SPECIAL_MULT[ddaLevel]);
+    if (enemy.specialType === 'poison') {
+      // Place poison tiles on random board positions
+      for (let i = 0; i < count; i++) {
+        const r = rng.nextInt(0, BOARD_SIZE-1);
+        const c = rng.nextInt(0, BOARD_SIZE-1);
+        if (!board[r][c].special) {
+          board[r][c].special = 'poison';
+          boardAnim[r][c].glow = 1;
+        }
+      }
+      addDamagePopup(engine.W/2, engine.H*0.5, t('poisonTile')+'!', '#88ff44');
+      sound.sfx('dash');
+    } else if (enemy.specialType === 'petrify') {
+      for (let i = 0; i < count; i++) {
+        const r = rng.nextInt(0, BOARD_SIZE-1);
+        const c = rng.nextInt(0, BOARD_SIZE-1);
+        if (!board[r][c].special) {
+          board[r][c].special = 'petrify';
+          boardAnim[r][c].glow = 1;
+        }
+      }
+      addDamagePopup(engine.W/2, engine.H*0.5, t('petrifyTile')+'!', '#888888');
+      sound.sfx('explosion');
+    }
+  }
+
+  // Normal attack
+  let dmg = Math.floor(enemy.atk * (0.8 + rng.next() * 0.4));
+
+  // Weather: desert heat global damage
+  if (currentWeather === 'desertHeat' && turnCount > 0 && turnCount % 5 === 0) {
+    dmg += 2;
+  }
+
+  // Apply damage with shield
+  if (player.shield > 0) {
+    const absorbed = Math.min(player.shield, dmg);
+    player.shield -= absorbed;
+    dmg -= absorbed;
+    if (absorbed > 0) addDamagePopup(engine.W * 0.15, engine.H * 0.08, `-${absorbed}🛡️`, '#0099dd');
+  }
+  if (dmg > 0) {
+    player.hp -= dmg;
+    addDamagePopup(engine.W * 0.15, engine.H * 0.15, `-${dmg}`, COL_DANGER);
+    shakeIntensity = Math.min(dmg * 0.5, 8);
+    sound.sfx('hit');
+  }
+
+  turnCount++;
+
+  // Check player death
+  if (player.hp <= 0) {
+    player.hp = 0;
+    player.consecutiveLosses++;
+    player.battleResults.push(false);
+    calcDDA();
+    // Preserve 50% resources
+    player.gold = Math.floor(player.gold * 0.5);
+    beginTransition(S.GAMEOVER);
+  }
+
+  // Check turn limit
+  if (ZONE_DEFS[currentZone] && ZONE_DEFS[currentZone].turnLimit > 0 && turnCount >= ZONE_DEFS[currentZone].turnLimit) {
+    player.hp = 0;
+    player.consecutiveLosses++;
+    player.battleResults.push(false);
+    beginTransition(S.GAMEOVER);
+  }
+}
+
+// Damage popup system
+function addDamagePopup(x, y, text, color) {
+  damagePopups.push({ x, y, text, color, life: 1.2, maxLife: 1.2, vy: -40 });
+}
+
+function updateDamagePopups(dt) {
+  const dtSec = dt / 1000;
+  for (let i = damagePopups.length - 1; i >= 0; i--) {
+    const p = damagePopups[i];
+    p.y += p.vy * dtSec;
+    p.life -= dtSec;
+    if (p.life <= 0) damagePopups.splice(i, 1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// §15. MAP GENERATION
+// ═══════════════════════════════════════════════════════════
+function generateMap(zone) {
+  const nodes = [];
+  const rows = 4;
+  const cols = 3;
+  const types = ['battle','battle','battle','event_','shop','battle'];
+
+  for (let row = 0; row < rows; row++) {
+    const numNodes = row === 0 ? 1 : (row === rows - 1 ? 1 : rng.nextInt(2, cols));
+    for (let i = 0; i < numNodes; i++) {
+      let type;
+      if (row === 0) type = 'start';
+      else if (row === rows - 1) {
+        type = (zone === 1 || zone === 2) ? 'boss' : 'battle';
+      } else {
+        type = rng.pick(types);
+      }
+      nodes.push({
+        id: nodes.length, row, col: i, x: 0, y: 0,
+        type, cleared: false, connections: [], zone,
+        enemyType: type === 'battle' ? getZoneEnemy(zone) : null,
+      });
+    }
+  }
+
+  // Connect nodes to next row
+  for (let row = 0; row < rows - 1; row++) {
+    const currentRow = nodes.filter(n => n.row === row);
+    const nextRow = nodes.filter(n => n.row === row + 1);
+    for (const node of currentRow) {
+      // Connect to at least 1 node in next row
+      const target = rng.pick(nextRow);
+      node.connections.push(target.id);
+      // Maybe add another connection
+      if (nextRow.length > 1 && rng.next() > 0.5) {
+        const other = nextRow.find(n => n.id !== target.id);
+        if (other) node.connections.push(other.id);
+      }
+    }
+    // Ensure all next-row nodes have at least 1 incoming
+    for (const nxt of nextRow) {
+      const hasIncoming = currentRow.some(n => n.connections.includes(nxt.id));
+      if (!hasIncoming) {
+        rng.pick(currentRow).connections.push(nxt.id);
+      }
+    }
+  }
+
+  // Position nodes
+  const W = engine.W;
+  const H = engine.H;
+  for (const node of nodes) {
+    const rowNodes = nodes.filter(n => n.row === node.row);
+    const idx = rowNodes.indexOf(node);
+    const spacing = W / (rowNodes.length + 1);
+    node.x = spacing * (idx + 1);
+    node.y = 80 + node.row * 110;
+  }
+
+  return nodes;
+}
+
+function getZoneEnemy(zone) {
+  const enemies = ZONE_DEFS[zone] ? ZONE_DEFS[zone].enemies : ['scarab'];
+  return rng.pick(enemies);
+}
+
+// ═══════════════════════════════════════════════════════════
+// §16. RELIC REWARD GENERATION
+// ═══════════════════════════════════════════════════════════
+function generateRewardChoices(count) {
+  const available = RELIC_DEFS.filter(r => !player.relics.includes(r.id));
+  if (available.length === 0) return [];
+  const shuffled = rng.shuffle(available);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+// ═══════════════════════════════════════════════════════════
+// §17. STATE ENTRY
+// ═══════════════════════════════════════════════════════════
+function enterState(newState) {
+  prevState = state;
+  state = newState;
+  bus.emit('stateChange', { from: prevState, to: newState });
+
+  switch (newState) {
+    case S.TITLE:
+      resetRun();
+      titleAnim = 0;
+      fadeAlpha = 0;
+      break;
+
+    case S.MAP:
+      if (!mapNodes.length || mapNodes[0].zone !== currentZone) {
+        mapNodes = generateMap(currentZone);
+        currentNode = mapNodes.find(n => n.row === 0).id;
+        mapNodes.find(n => n.id === currentNode).cleared = true;
+      }
+      // Show zone narrative
+      const narratives = [t('narrativeZone1'), t('narrativeZone2'), t('narrativeZone3')];
+      if (currentZone < narratives.length && !zoneProgress[currentZone]) {
+        narrativeText = narratives[currentZone];
+        narrativeTimer = 4;
+        showNarrative = true;
+        zoneProgress[currentZone] = true;
+      }
+      // Set weather
+      currentWeather = ZONE_DEFS[currentZone] ? ZONE_DEFS[currentZone].weather : null;
+      break;
+
+    case S.PRE_BATTLE: {
+      const node = mapNodes.find(n => n.id === currentNode);
+      if (!node) break;
+      if (node.type === 'boss') {
+        // Find boss for this zone
+        const bossDef = BOSS_DEFS.find(b => b.zone === currentZone);
+        if (bossDef) {
+          enemy = {
+            ...bossDef,
+            hp: Math.floor(bossDef.hp * DDA_HP_MULT[ddaLevel]),
+            maxHp: Math.floor(bossDef.hp * DDA_HP_MULT[ddaLevel]),
+            turnCounter: 0, poison: 0, isBoss: true,
+          };
+          bossRewardGiven = false;
+          narrativeText = t('bossAppear') + '\n' + (lang === 'ko' ? bossDef.nameKo : bossDef.name);
+          narrativeTimer = 2.5;
+          showNarrative = true;
+          // Transition to BOSS instead
+          setTimeout(() => {}, 0); // no setTimeout — use tween
+          tween.add({ v:0 }, { v:1 }, 2500, 'linear', () => {
+            if (state === S.PRE_BATTLE) {
+              state = S.BOSS;
+              initBattle();
+            }
+          });
+          return;
+        }
+      }
+      // Normal enemy
+      const eDef = ENEMY_DEFS[node.enemyType || 'scarab'];
+      const zoneScale = 1 + currentZone * 0.4;
+      enemy = {
+        name: eDef.name, nameKo: eDef.nameKo,
+        hp: Math.floor(eDef.hp * zoneScale * DDA_HP_MULT[ddaLevel]),
+        maxHp: Math.floor(eDef.hp * zoneScale * DDA_HP_MULT[ddaLevel]),
+        atk: Math.floor(eDef.atk * zoneScale * DDA_HP_MULT[ddaLevel]),
+        assetKey: eDef.assetKey, turnCounter: 0, poison: 0, isBoss: false,
+      };
+      // Brief pre-battle pause then enter battle
+      tween.add({ v:0 }, { v:1 }, 1000, 'linear', () => {
+        if (state === S.PRE_BATTLE) {
+          state = S.BATTLE;
+          initBattle();
+        }
+      });
+      break;
+    }
+
+    case S.BATTLE:
+    case S.BOSS:
+      // Board already init in PRE_BATTLE transition
+      break;
+
+    case S.POST_BATTLE: {
+      // Reward calculation
+      const rewardMult = DDA_REWARD_MULT[ddaLevel];
+      const exploreMult = 1 + (player.upgrades.explore >= 1 ? 0.15 : 0);
+      const goldReward = Math.floor((20 + currentZone * 15) * rewardMult * exploreMult);
+      const crystalReward = Math.floor((10 + currentZone * 5) * rewardMult * exploreMult);
+      player.gold += goldReward;
+      player.crystals += crystalReward;
+
+      // Generate relic choices
+      const numChoices = player.upgrades.ancient >= 3 ? 4 : 3;
+      rewardChoices = generateRewardChoices(numChoices);
+      rewardSelected = -1;
+
+      addDamagePopup(engine.W/2, engine.H*0.4, `+${goldReward}💰 +${crystalReward}💎`, COL_GOLD);
+      sound.sfx('score');
+      break;
+    }
+
+    case S.UPGRADE:
+      upgradeTab = 0;
+      break;
+
+    case S.GAMEOVER: {
+      // F8: judge first, save second
+      isNewBest = score > highScore;
+      Save.setHighScore(GAME_ID, score);
+      if (isNewBest) highScore = score;
+      sound.sfx('gameover');
+      break;
+    }
+
+    case S.VICTORY: {
+      isNewBest = score > highScore;
+      Save.setHighScore(GAME_ID, score);
+      if (isNewBest) highScore = score;
+      sound.sfx('powerup');
+      break;
+    }
+
+    case S.PAUSED:
+      pauseMenuIdx = 0;
+      break;
+  }
+}
+
+function initBattle() {
+  generateBoard();
+  turnPhase = 'PLAYER';
+  comboCount = 0;
+  turnCount = 0;
+  selectedTile = null;
+  cursorR = cursorC = 0;
+  boardLocked = false;
+  swapAnim = null;
+  matchAnims = [];
+  fallAnims = [];
+  hintTile = null;
+
+  // Relic: Ancient compass hint
+  if (player.relics.includes('ancientCompass') || player.upgrades.ancient >= 1) {
+    hintTile = findHint();
+  }
+
+  // Upgrade: free shuffle
+  if (player.upgrades.ancient >= 2) {
+    // Shuffle board once
+    const allElems = [];
+    for (let r = 0; r < BOARD_SIZE; r++)
+      for (let c = 0; c < BOARD_SIZE; c++)
+        allElems.push(board[r][c].elem);
+    const shuffled = rng.shuffle(allElems);
+    let idx = 0;
+    for (let r = 0; r < BOARD_SIZE; r++)
+      for (let c = 0; c < BOARD_SIZE; c++)
+        board[r][c].elem = shuffled[idx++];
+    removeInitial3Matches();
+  }
+
+  // Apply weather visual
+  if (currentWeather === 'sandstorm') {
+    // Top 2 rows have reduced visibility (handled in render)
+  }
+}
+
+function resetRun() {
+  score = 0;
+  isNewBest = false;
+  player = {
+    hp: 100, maxHp: 100, shield: 0,
+    gold: 0, scrolls: 0, crystals: 0,
+    relics: [], activeRelic: -1,
+    upgrades: { mastery: 0, explore: 0, ancient: 0 },
+    consecutiveLosses: 0, battleResults: [],
+  };
+  currentZone = 0;
+  currentNode = -1;
+  mapNodes = [];
+  zoneProgress = [];
+  enemy = null;
+  currentWeather = null;
+  ddaLevel = 1;
+  damagePopups = [];
+  narrativeText = '';
+  showNarrative = false;
+  bossRewardGiven = false;
+  showRelicPanel = false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// §18. SOUND SYSTEM — Procedural BGM
+// ═══════════════════════════════════════════════════════════
+const BGM_SCALES = {
+  title: [293.66, 329.63, 349.23, 392.00, 440.00], // D minor pentatonic
+  map: [440, 523.25, 587.33, 659.26, 783.99], // A minor
+  battle: [329.63, 349.23, 369.99, 415.30, 493.88], // E Phrygian
+  boss: [277.18, 311.13, 329.63, 369.99, 415.30], // C# Locrian-ish
+  victory: [293.66, 329.63, 369.99, 440, 523.25], // D major-ish
+};
+
+let bgmPlaying = false;
+let bgmType = '';
+let bgmNextBeat = 0;
+let bgmTempo = 0;
+
+function startBGM(type) {
+  if (bgmMuted) return;
+  bgmType = type;
+  bgmPlaying = true;
+  bgmTempo = type === 'battle' ? 180 : (type === 'boss' ? 200 : 120);
+  bgmNextBeat = 0;
+  bgmBeat = 0;
+}
+
+function stopBGM() {
+  bgmPlaying = false;
+}
+
+function updateBGM(dt) {
+  if (!bgmPlaying || bgmMuted || !sound._ctx) return;
+  bgmNextBeat -= dt;
+  if (bgmNextBeat <= 0) {
+    const beatMs = 60000 / bgmTempo;
+    bgmNextBeat = beatMs;
+    const scale = BGM_SCALES[bgmType] || BGM_SCALES.title;
+    const note = scale[bgmBeat % scale.length];
+    const octave = bgmBeat % 8 < 4 ? 1 : 0.5;
+    sound.tone(note * octave, 0.15, 'sine', 0.08);
+    // Bass on every 4th beat
+    if (bgmBeat % 4 === 0) {
+      sound.tone(note * 0.25, 0.3, 'triangle', 0.06);
+    }
+    // Rhythm on every 2nd beat
+    if (bgmBeat % 2 === 0) {
+      sound.tone(80, 0.05, 'square', 0.03);
+    }
+    bgmBeat++;
+  }
+}
+
+// Custom SFX
+function playSfx(name) {
+  if (!sound._ctx) return;
+  switch (name) {
+    case 'match3': sound.tone(523, 0.06, 'sine'); sound.tone(659, 0.08, 'sine'); break;
+    case 'match4': sound.tone(220, 0.1, 'triangle'); sound.tone(440, 0.12, 'sine'); break;
+    case 'match5': sound.tone(440, 0.15, 'sine'); sound.tone(660, 0.15, 'sine'); sound.tone(880, 0.2, 'sine'); break;
+    case 'combo': {
+      const freq = 400 + comboCount * 100;
+      sound.tone(freq, 0.1, 'square');
+      break;
+    }
+    case 'bossIntro': sound.tone(110, 0.5, 'sawtooth', 0.3); sound.tone(82, 0.8, 'sawtooth', 0.2); break;
+    case 'bossDefeat': sound.tone(440, 0.15, 'sine'); sound.tone(554, 0.15, 'sine'); sound.tone(659, 0.2, 'sine'); sound.tone(880, 0.3, 'sine'); break;
+    case 'item': sound.tone(880, 0.08, 'sine'); sound.tone(1100, 0.1, 'sine'); sound.tone(1320, 0.12, 'sine'); break;
+    case 'uiClick': sound.tone(600, 0.04, 'square', 0.15); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// §19. GAME UPDATE — Main loop
+// ═══════════════════════════════════════════════════════════
+function gameUpdate(dt, timestamp) {
+  // Always update these systems (F7 — state×system matrix)
+  tween.update(dt);
+  particles.update(dt);
+  updateDamagePopups(dt);
+  updateBGM(dt);
+
+  // Shake decay
+  if (shakeIntensity > 0) shakeIntensity *= 0.9;
+  if (shakeIntensity < 0.1) shakeIntensity = 0;
+
+  // Narrative timer
+  if (showNarrative) {
+    narrativeTimer -= dt / 1000;
+    if (narrativeTimer <= 0 || input.confirm()) {
+      showNarrative = false;
+    }
+  }
+
+  // Language toggle (L key) — available in all states
+  if (input.jp('KeyL')) {
+    lang = lang === 'ko' ? 'en' : 'ko';
+    playSfx('uiClick');
+  }
+  // Mute toggle (M key)
+  if (input.jp('KeyM')) {
+    bgmMuted = !bgmMuted;
+    if (bgmMuted) stopBGM();
+    playSfx('uiClick');
+  }
+
+  // State-specific update
+  switch (state) {
+    case S.TITLE: updateTitle(dt); break;
+    case S.MAP: updateMap(dt); break;
+    case S.PRE_BATTLE: updatePreBattle(dt); break;
+    case S.BATTLE: updateBattle(dt); break;
+    case S.BOSS: updateBattle(dt); break; // Boss uses same battle logic
+    case S.POST_BATTLE: updatePostBattle(dt); break;
+    case S.UPGRADE: updateUpgrade(dt); break;
+    case S.GAMEOVER: updateGameOver(dt); break;
+    case S.VICTORY: updateVictory(dt); break;
+    case S.PAUSED: updatePaused(dt); break;
+  }
+
+  // Flush input at end of frame (F — input.flush() 필수)
+  input.flush();
+}
+
+// ═══════════════════════════════════════════════════════════
+// §20. STATE UPDATE FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+function updateTitle(dt) {
+  titleAnim += dt / 1000;
+  if (!bgmPlaying || bgmType !== 'title') {
+    if (sound._ctx) startBGM('title');
+  }
+  if (input.confirm()) {
+    sound.init();
+    sound.resume();
+    startBGM('title');
+    playSfx('uiClick');
+    narrativeText = t('narrativeIntro');
+    narrativeTimer = 3;
+    showNarrative = true;
+    beginTransition(S.MAP);
+  }
+}
+
+function updateMap(dt) {
+  if (!bgmPlaying || bgmType !== 'map') startBGM('map');
+  if (_transitioning) return;
+
+  // Keyboard: navigate between connected nodes
+  const current = mapNodes.find(n => n.id === currentNode);
+  if (!current) return;
+
+  // Check for upgrade button
+  if (input.jp('Digit1') || input.jp('Digit2') || input.jp('Digit3')) {
+    beginTransition(S.UPGRADE);
+    return;
+  }
+
+  // Escape to title
+  if (input.jp('Escape')) {
+    beginTransition(S.TITLE);
+    return;
+  }
+
+  // Click/tap on nodes
+  if (input.tapped) {
+    for (const node of mapNodes) {
+      if (current.connections.includes(node.id) && !node.cleared) {
+        const dist = MathUtil.dist(input.tapX, input.tapY, node.x, node.y);
+        if (dist < 35) {
+          currentNode = node.id;
+          node.cleared = true;
+          playSfx('uiClick');
+          if (node.type === 'battle' || node.type === 'boss') {
+            beginTransition(S.PRE_BATTLE);
+          } else if (node.type === 'event_') {
+            handleEvent();
+          } else if (node.type === 'shop') {
+            handleShop();
+          }
+          return;
+        }
+      }
+    }
+    // Check upgrade button
+    const bw = 120, bh = 36;
+    const bx = engine.W / 2 - bw / 2;
+    const by = engine.H - 50;
+    if (UI.hitTest(input.tapX, input.tapY, bx, by, bw, bh)) {
+      beginTransition(S.UPGRADE);
+      return;
+    }
+  }
+
+  // Keyboard navigation with arrow keys
+  if (input.jp('ArrowDown') || input.jp('KeyS')) {
+    const next = mapNodes.filter(n => current.connections.includes(n.id) && !n.cleared);
+    if (next.length > 0) {
+      currentNode = next[0].id;
+      next[0].cleared = true;
+      playSfx('uiClick');
+      const node = next[0];
+      if (node.type === 'battle' || node.type === 'boss') {
+        beginTransition(S.PRE_BATTLE);
+      } else if (node.type === 'event_') {
+        handleEvent();
+      } else if (node.type === 'shop') {
+        handleShop();
+      }
+    }
+  }
+}
+
+// Simple event handler (random bonus)
+function handleEvent() {
+  const roll = rng.next();
+  const eventMult = 1 + (player.upgrades.explore >= 3 ? 0.20 : 0);
+  if (roll < 0.4) {
+    // Treasure
+    const gold = Math.floor((30 + currentZone * 20) * eventMult);
+    player.gold += gold;
+    addDamagePopup(engine.W/2, engine.H/2, `+${gold}💰`, COL_GOLD);
+    sound.sfx('score');
+  } else if (roll < 0.7) {
+    // HP recovery
+    const heal = Math.floor(20 * eventMult);
+    player.hp = Math.min(player.hp + heal, player.maxHp);
+    addDamagePopup(engine.W/2, engine.H/2, `+${heal}❤️`, COL_OASIS);
+    sound.sfx('powerup');
+  } else {
+    // Trap
+    const dmg = Math.floor(10 + currentZone * 5);
+    player.hp = Math.max(1, player.hp - dmg);
+    addDamagePopup(engine.W/2, engine.H/2, `-${dmg}💀`, COL_DANGER);
+    sound.sfx('hit');
+    shakeIntensity = 5;
+  }
+}
+
+// Simple shop handler
+function handleShop() {
+  // Auto-heal for gold
+  const shopDiscount = player.upgrades.explore >= 2 ? 0.9 : 1.0;
+  const healCost = Math.floor(30 * shopDiscount);
+  if (player.gold >= healCost) {
+    player.gold -= healCost;
+    player.hp = Math.min(player.hp + 30, player.maxHp);
+    addDamagePopup(engine.W/2, engine.H/2, `+30❤️ -${healCost}💰`, COL_OASIS);
+    sound.sfx('powerup');
+  }
+}
+
+function updatePreBattle(dt) {
+  // Handled by tween timer in enterState
+}
+
+function updateBattle(dt) {
+  if (_transitioning || showNarrative) return;
+
+  // Pause
+  if (input.jp('Escape')) {
+    beginTransition(S.PAUSED);
+    return;
+  }
+
+  // Toggle relic panel
+  if (input.jp('Tab')) {
+    showRelicPanel = !showRelicPanel;
+    playSfx('uiClick');
+  }
+
+  // Board animations
+  updateBoardAnims(dt);
+
+  // If animating, don't accept input
+  if (boardLocked) {
+    // Check if animations done
+    if (swapAnim) {
+      swapAnim.t += dt;
+      if (swapAnim.t >= swapAnim.dur) {
+        if (swapAnim.revert) {
+          // Revert swap
+          swapCells(swapAnim.r1, swapAnim.c1, swapAnim.r2, swapAnim.c2);
+          addDamagePopup(engine.W/2, engine.H*0.45, t('noMatch'), '#ff8888');
+        }
+        swapAnim = null;
+        if (!swapAnim || !swapAnim.revert) {
+          // Process matches
+          processMatchCascade();
+        } else {
+          boardLocked = false;
+          turnPhase = 'PLAYER';
+        }
+      }
+      return;
+    }
+
+    if (matchAnims.length > 0) {
+      // Wait for match anim
+      let allDone = true;
+      for (const ma of matchAnims) {
+        ma.t += dt;
+        if (ma.t < ma.dur) allDone = false;
+      }
+      if (allDone) {
+        matchAnims = [];
+        // Remove matched cells
+        for (let r = 0; r < BOARD_SIZE; r++) {
+          for (let c = 0; c < BOARD_SIZE; c++) {
+            if (boardAnim[r][c].removing) {
+              board[r][c] = null;
+              boardAnim[r][c].removing = false;
+            }
+          }
+        }
+        // Apply gravity
+        applyGravity();
+        // Start fall animation
+        let maxFall = 0;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+          for (let c = 0; c < BOARD_SIZE; c++) {
+            if (boardAnim[r][c].offY !== 0) {
+              maxFall = Math.max(maxFall, Math.abs(boardAnim[r][c].offY));
+            }
+          }
+        }
+        if (maxFall > 0) {
+          const fallDur = 200;
+          for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+              if (boardAnim[r][c].offY !== 0) {
+                tween.add(boardAnim[r][c], { offY: 0 }, fallDur, 'easeIn');
+              }
+            }
+          }
+          // After fall, check for more matches
+          tween.add({ v:0 }, { v:1 }, fallDur + 50, 'linear', () => {
+            processMatchCascade();
+          });
+        } else {
+          processMatchCascade();
+        }
+      }
+      return;
+    }
+
+    return;
+  }
+
+  // Player turn input
+  if (turnPhase === 'PLAYER') {
+    // Hint display
+    if (input.jp('KeyH') && (player.upgrades.ancient >= 1 || player.relics.includes('ancientCompass'))) {
+      hintTile = findHint();
+    }
+
+    // Relic: hourglass shard — every 3 turns transform a tile
+    if (player.relics.includes('hourglassShard') && turnCount > 0 && turnCount % 3 === 0) {
+      const r = rng.nextInt(0, BOARD_SIZE-1);
+      const c = rng.nextInt(0, BOARD_SIZE-1);
+      board[r][c].elem = rng.pick(ELEMENTS);
+      boardAnim[r][c].glow = 1;
+    }
+
+    handleBoardInput();
+  }
+
+  // Check enemy death
+  if (enemy && enemy.hp <= 0) {
+    handleEnemyDefeated();
+  }
+}
+
+function processMatchCascade() {
+  const matches = findMatches();
+  if (matches.length > 0) {
+    comboCount++;
+    if (comboCount > 1) {
+      addDamagePopup(engine.W/2, engine.H*0.35, `${t('combo')} x${comboCount}!`, COL_GOLD);
+      playSfx('combo');
+    }
+
+    applyMatchEffects(matches);
+
+    // Mark cells for removal
+    for (const match of matches) {
+      for (const {r, c} of match.cells) {
+        boardAnim[r][c].removing = true;
+        boardAnim[r][c].scale = 1;
+        tween.add(boardAnim[r][c], { scale: 0, alpha: 0 }, 250, 'easeIn');
+      }
+    }
+    matchAnims.push({ t: 0, dur: 300 });
+    boardLocked = true;
+
+    // Create bomb tiles for 4-matches
+    for (const match of matches) {
+      if (match.type === '4' && match.cells.length >= 4) {
+        // The middle cell becomes a bomb after gravity
+        // We'll handle this visually — for now just extra damage
+      }
+    }
+  } else {
+    // No more matches — end player turn
+    if (turnPhase !== 'PLAYER' || boardLocked) {
+      boardLocked = false;
+      comboCount = 0;
+
+      // Enemy turn
+      turnPhase = 'ENEMY';
+      tween.add({ v:0 }, { v:1 }, 500, 'linear', () => {
+        doEnemyTurn();
+        turnPhase = 'PLAYER';
+
+        // Refresh hint
+        if (player.relics.includes('ancientCompass') || player.upgrades.ancient >= 1) {
+          hintTile = findHint();
+        }
+
+        // Check for no valid swaps — shuffle
+        if (!hasValidSwap()) {
+          const allElems = [];
+          for (let r = 0; r < BOARD_SIZE; r++)
+            for (let c = 0; c < BOARD_SIZE; c++)
+              allElems.push(board[r][c].elem);
+          const shuffled = rng.shuffle(allElems);
+          let idx = 0;
+          for (let r = 0; r < BOARD_SIZE; r++)
+            for (let c = 0; c < BOARD_SIZE; c++)
+              board[r][c].elem = shuffled[idx++];
+          removeInitial3Matches();
+          addDamagePopup(engine.W/2, engine.H*0.4, '🔄 Shuffle!', COL_GOLD);
+        }
+      });
+    } else {
+      boardLocked = false;
+    }
+  }
+}
+
+function handleEnemyDefeated() {
+  if (_transitioning) return;
+  player.battleResults.push(true);
+  player.consecutiveLosses = 0;
+  calcDDA();
+
+  // Boss reward (F17 — bossRewardGiven flag)
+  if (enemy.isBoss && !bossRewardGiven) {
+    bossRewardGiven = true;
+    player.scrolls += enemy.scrollReward || 1;
+    score += 2000;
+    addDamagePopup(engine.W/2, engine.H*0.3, t('scrollObtained'), COL_GOLD);
+    playSfx('bossDefeat');
+    shakeIntensity = 12;
+
+    // Check if all zones cleared
+    if (currentZone >= ZONE_DEFS.length - 1) {
+      tween.add({ v:0 }, { v:1 }, 1500, 'linear', () => {
+        beginTransition(S.VICTORY);
+      });
+      return;
+    }
+  } else {
+    score += 300;
+    sound.sfx('score');
+  }
+
+  stopBGM();
+  tween.add({ v:0 }, { v:1 }, 1000, 'linear', () => {
+    beginTransition(S.POST_BATTLE);
+  });
+}
+
+function handleBoardInput() {
+  if (boardLocked || _transitioning) return;
+  const bp = getBoardPos();
+
+  // Keyboard cursor movement
+  if (input.jp('ArrowUp') || input.jp('KeyW')) cursorR = Math.max(0, cursorR - 1);
+  if (input.jp('ArrowDown') || input.jp('KeyS')) cursorR = Math.min(BOARD_SIZE-1, cursorR + 1);
+  if (input.jp('ArrowLeft') || input.jp('KeyA')) cursorC = Math.max(0, cursorC - 1);
+  if (input.jp('ArrowRight') || input.jp('KeyD')) cursorC = Math.min(BOARD_SIZE-1, cursorC + 1);
+
+  // Keyboard select/swap
+  if (input.jp('Space') || input.jp('Enter')) {
+    if (selectedTile) {
+      // Try swap
+      const dr = cursorR - selectedTile.r;
+      const dc = cursorC - selectedTile.c;
+      if (Math.abs(dr) + Math.abs(dc) === 1) {
+        trySwap(selectedTile.r, selectedTile.c, cursorR, cursorC);
+        selectedTile = null;
+      } else {
+        selectedTile = { r: cursorR, c: cursorC };
+      }
+    } else {
+      selectedTile = { r: cursorR, c: cursorC };
+    }
+    playSfx('uiClick');
+  }
+
+  // Mouse/touch: tap to select, drag to swap
+  if (input.tapped) {
+    const col = Math.floor((input.tapX - bp.x) / bp.cell);
+    const row = Math.floor((input.tapY - bp.y) / bp.cell);
+    if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
+      // Check if cell is petrified
+      if (board[row][col].special === 'petrify') {
+        addDamagePopup(input.tapX, input.tapY, t('petrifyTile'), '#888');
+        return;
+      }
+      if (selectedTile) {
+        const dr = row - selectedTile.r;
+        const dc = col - selectedTile.c;
+        if (Math.abs(dr) + Math.abs(dc) === 1) {
+          trySwap(selectedTile.r, selectedTile.c, row, col);
+          selectedTile = null;
+        } else {
+          selectedTile = { r: row, c: col };
+          cursorR = row; cursorC = col;
+        }
+      } else {
+        selectedTile = { r: row, c: col };
+        cursorR = row; cursorC = col;
+        touchStartX = input.tapX;
+        touchStartY = input.tapY;
+        touchStartR = row;
+        touchStartC = col;
+      }
+      playSfx('uiClick');
+    }
+  }
+
+  // Touch swipe detection
+  if (input.mouseDown && touchStartR >= 0) {
+    const dx = input.mouseX - touchStartX;
+    const dy = input.mouseY - touchStartY;
+    const dist = Math.hypot(dx, dy);
+    if (dist > bp.cell * 0.4) {
+      let dr = 0, dc = 0;
+      if (Math.abs(dx) > Math.abs(dy)) dc = dx > 0 ? 1 : -1;
+      else dr = dy > 0 ? 1 : -1;
+      const nr = touchStartR + dr;
+      const nc = touchStartC + dc;
+      if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+        trySwap(touchStartR, touchStartC, nr, nc);
+        selectedTile = null;
+      }
+      touchStartR = -1; touchStartC = -1;
+    }
+  }
+  if (!input.mouseDown) {
+    touchStartR = -1; touchStartC = -1;
+  }
+}
+
+function trySwap(r1, c1, r2, c2) {
+  // Check petrify
+  if (board[r1][c1].special === 'petrify' || board[r2][c2].special === 'petrify') {
+    addDamagePopup(engine.W/2, engine.H*0.45, t('petrifyTile'), '#888');
+    return;
+  }
+
+  boardLocked = true;
+  turnPhase = 'ANIMATING';
+  comboCount = 0;
+
+  // Perform swap
+  swapCells(r1, c1, r2, c2);
+
+  // Check for matches
+  const matches = findMatches();
+  const revert = matches.length === 0;
+
+  swapAnim = { r1, c1, r2, c2, t: 0, dur: 200, revert };
+
+  if (revert) {
+    // Will revert after animation
+  } else {
+    hintTile = null;
+    // Process matches after swap animation
+    swapAnim.revert = false;
+  }
+}
+
+function updateBoardAnims(dt) {
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (boardAnim[r][c].glow > 0) {
+        boardAnim[r][c].glow -= dt / 1000;
+        if (boardAnim[r][c].glow < 0) boardAnim[r][c].glow = 0;
+      }
+    }
+  }
+}
+
+function updatePostBattle(dt) {
+  if (_transitioning) return;
+
+  // Relic selection
+  if (input.tapped && rewardChoices.length > 0) {
+    const startY = engine.H * 0.4;
+    const relicH = 60;
+    for (let i = 0; i < rewardChoices.length; i++) {
+      const ry = startY + i * (relicH + 10);
+      const rx = engine.W * 0.15;
+      const rw = engine.W * 0.7;
+      if (UI.hitTest(input.tapX, input.tapY, rx, ry, rw, relicH)) {
+        player.relics.push(rewardChoices[i].id);
+        playSfx('item');
+        rewardChoices = [];
+        // Advance zone or continue
+        const bossNode = mapNodes.find(n => n.type === 'boss' && n.cleared);
+        if (bossNode || currentZone >= ZONE_DEFS.length - 1) {
+          currentZone = Math.min(currentZone + 1, ZONE_DEFS.length - 1);
+          mapNodes = [];
+        }
+        beginTransition(S.MAP);
+        return;
+      }
+    }
+  }
+
+  // Skip relic selection
+  if (input.jp('Space') || input.jp('Enter')) {
+    if (rewardChoices.length === 0) {
+      const bossNode = mapNodes.find(n => n.type === 'boss' && n.cleared);
+      if (bossNode) {
+        currentZone = Math.min(currentZone + 1, ZONE_DEFS.length - 1);
+        mapNodes = [];
+      }
+      beginTransition(S.MAP);
+    }
+  }
+}
+
+function updateUpgrade(dt) {
+  if (_transitioning) return;
+
+  // Tab switching
+  if (input.jp('Digit1')) upgradeTab = 0;
+  if (input.jp('Digit2')) upgradeTab = 1;
+  if (input.jp('Digit3')) upgradeTab = 2;
+
+  // Escape to map
+  if (input.jp('Escape') || input.jp('KeyR')) {
+    beginTransition(S.MAP);
+    return;
+  }
+
+  // Click on upgrades
+  if (input.tapped) {
+    const tabs = ['mastery', 'explore', 'ancient'];
+    const tabKey = tabs[upgradeTab];
+    const defs = UPGRADE_DEFS[tabKey];
+    const currentLvl = player.upgrades[tabKey];
+
+    // Tab buttons
+    for (let i = 0; i < 3; i++) {
+      const tx = engine.W * 0.1 + i * (engine.W * 0.27);
+      const ty = engine.H * 0.08;
+      if (UI.hitTest(input.tapX, input.tapY, tx, ty, engine.W * 0.25, 36)) {
+        upgradeTab = i;
+        playSfx('uiClick');
+        return;
+      }
+    }
+
+    if (currentLvl < defs.length) {
+      const upg = defs[currentLvl];
+      const bx = engine.W * 0.2;
+      const by = engine.H * 0.45;
+      const bw = engine.W * 0.6;
+      const bh = 50;
+      if (UI.hitTest(input.tapX, input.tapY, bx, by, bw, bh) && player.crystals >= upg.cost) {
+        player.crystals -= upg.cost;
+        player.upgrades[tabKey]++;
+        playSfx('item');
+        addDamagePopup(engine.W/2, engine.H*0.4, '⬆️ ' + t('upgrade') + '!', COL_GOLD);
+      }
+    }
+
+    // Back button
+    const bbx = engine.W/2 - 60;
+    const bby = engine.H - 60;
+    if (UI.hitTest(input.tapX, input.tapY, bbx, bby, 120, 40)) {
+      beginTransition(S.MAP);
+    }
+  }
+}
+
+function updateGameOver(dt) {
+  if (_transitioning) return;
+  if (input.jp('KeyR') || input.confirm()) {
+    beginTransition(S.TITLE);
+  }
+}
+
+function updateVictory(dt) {
+  if (_transitioning) return;
+  if (input.confirm()) {
+    beginTransition(S.TITLE);
+  }
+}
+
+function updatePaused(dt) {
+  if (input.jp('Escape')) {
+    state = prevState;
+    return;
+  }
+  if (input.tapped) {
+    // Resume button
+    const bx = engine.W/2 - 80;
+    if (UI.hitTest(input.tapX, input.tapY, bx, engine.H*0.4, 160, 44)) {
+      state = prevState;
+      playSfx('uiClick');
+    }
+    // Quit button
+    if (UI.hitTest(input.tapX, input.tapY, bx, engine.H*0.5, 160, 44)) {
+      beginTransition(S.TITLE);
+      playSfx('uiClick');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// §21. RENDER — Main
+// ═══════════════════════════════════════════════════════════
+function gameRender(ctx, w, h, dt) {
+  const shake = UI.shake(shakeIntensity);
+  ctx.save();
+  ctx.translate(shake.x, shake.y);
+
+  // Clear
+  ctx.fillStyle = COL_BG;
+  ctx.fillRect(-10, -10, w + 20, h + 20);
+
+  switch (state) {
+    case S.TITLE: renderTitle(ctx, w, h); break;
+    case S.MAP: renderMap(ctx, w, h); break;
+    case S.PRE_BATTLE: renderPreBattle(ctx, w, h); break;
+    case S.BATTLE: renderBattle(ctx, w, h, false); break;
+    case S.BOSS: renderBattle(ctx, w, h, true); break;
+    case S.POST_BATTLE: renderPostBattle(ctx, w, h); break;
+    case S.UPGRADE: renderUpgrade(ctx, w, h); break;
+    case S.GAMEOVER: renderGameOver(ctx, w, h); break;
+    case S.VICTORY: renderVictory(ctx, w, h); break;
+    case S.PAUSED: renderPaused(ctx, w, h); break;
+  }
+
+  // Particles always on top
+  particles.render(ctx);
+
+  // Damage popups
+  renderDamagePopups(ctx);
+
+  // Narrative overlay
+  if (showNarrative) renderNarrative(ctx, w, h);
+
+  // Transition fade
+  if (_transitioning) {
+    UI.fade(ctx, w, h, _transAlpha);
+  }
+
+  // Scanlines
+  UI.scanlines(ctx, w, h, 0.02);
+
+  ctx.restore();
+
+  // HUD overlays (always visible regardless of shake)
+  renderHUD(ctx, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════
+// §22. RENDER FUNCTIONS — Per State
+// ═══════════════════════════════════════════════════════════
+
+// === TITLE ===
+function renderTitle(ctx, w, h) {
+  // Desert background gradient
+  renderDesertBg(ctx, w, h, 'far');
+
+  // Sand particles
+  const sandT = titleAnim * 0.5;
+  for (let i = 0; i < 30; i++) {
+    const sx = ((i * 137.5 + sandT * 40) % (w + 100)) - 50;
+    const sy = ((i * 83.7 + sandT * 20 + Math.sin(sandT + i) * 15) % h);
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = COL_SAND_LIGHT;
+    ctx.fillRect(sx, sy, 2 + (i % 3), 1);
+  }
+  ctx.globalAlpha = 1;
+
+  // Title text
+  const titleY = h * 0.28;
+  const pulse = Math.sin(titleAnim * 2) * 0.05 + 1;
+  ctx.save();
+  ctx.translate(w/2, titleY);
+  ctx.scale(pulse, pulse);
+  UI.text(ctx, t('title'), 0, 0, { size: Math.min(48, w*0.1), bold: true, color: COL_GOLD, glow: '#ffaa00' });
+  ctx.restore();
+
+  UI.text(ctx, t('subtitle'), w/2, titleY + 50, { size: Math.min(18, w*0.04), color: COL_SAND });
+
+  // Zara character
+  const zaraSize = Math.min(180, w * 0.35);
+  const zaraX = w/2 - zaraSize/2;
+  const zaraY = h * 0.38;
+  drawAssetOrFallback(ctx, 'playerZara', zaraX, zaraY, zaraSize, zaraSize, () => {
+    drawZaraFallback(ctx, w/2, zaraY + zaraSize/2, zaraSize * 0.4);
+  });
+
+  // Start button
+  const btnW = Math.min(200, w * 0.5);
+  const btnH = 50;
+  const btnX = w/2 - btnW/2;
+  const btnY = h * 0.72;
+  const hover = UI.hitTest(input.mouseX, input.mouseY, btnX, btnY, btnW, btnH);
+  UI.button(ctx, t('start'), btnX, btnY, btnW, btnH, { color: COL_SAND, hover });
+
+  // Controls hint
+  const controlsText = input.isMobile ? t('touchControls') : t('controls');
+  UI.text(ctx, controlsText, w/2, h * 0.85, { size: 11, color: COL_TEXT3 });
+  UI.text(ctx, `${t('langToggle')} | ${t('muteToggle')}`, w/2, h * 0.90, { size: 11, color: COL_TEXT3 });
+  UI.text(ctx, `Best: ${highScore}`, w/2, h * 0.95, { size: 12, color: COL_TEXT2 });
+}
+
+// === MAP ===
+function renderMap(ctx, w, h) {
+  renderDesertBg(ctx, w, h, currentZone === 0 ? 'oasis' : (currentZone === 2 ? 'pyramid' : 'mid'));
+
+  // Zone title
+  const zoneNames = [t('zone1'), t('zone2'), t('zone3')];
+  UI.text(ctx, zoneNames[currentZone] || '???', w/2, 30, { size: 22, bold: true, color: COL_GOLD, glow: '#ffaa00' });
+
+  // Weather indicator
+  if (currentWeather) {
+    const weatherName = currentWeather === 'sandstorm' ? t('sandstorm') : t('desertHeat');
+    UI.text(ctx, `🌤️ ${weatherName}`, w/2, 55, { size: 13, color: '#ffaa88' });
+  }
+
+  // Draw connections
+  ctx.strokeStyle = COL_SAND + '66';
+  ctx.lineWidth = 2;
+  for (const node of mapNodes) {
+    for (const connId of node.connections) {
+      const target = mapNodes.find(n => n.id === connId);
+      if (target) {
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(target.x, target.y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw nodes
+  for (const node of mapNodes) {
+    const isCurrent = node.id === currentNode;
+    const isReachable = mapNodes.find(n => n.id === currentNode)?.connections.includes(node.id) && !node.cleared;
+    const r = 22;
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+    if (isCurrent) {
+      ctx.fillStyle = COL_GOLD;
+      ctx.shadowColor = COL_GOLD;
+      ctx.shadowBlur = 15;
+    } else if (node.cleared) {
+      ctx.fillStyle = COL_TEXT3;
+    } else if (isReachable) {
+      ctx.fillStyle = COL_SAND + 'cc';
+      ctx.shadowColor = COL_SAND;
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.fillStyle = '#222244';
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Node icon
+    let icon = '⚔️';
+    if (node.type === 'event_') icon = '🎲';
+    else if (node.type === 'shop') icon = '🏪';
+    else if (node.type === 'boss') icon = '🏛️';
+    else if (node.type === 'start') icon = '🏠';
+    UI.text(ctx, icon, node.x, node.y, { size: 16 });
+  }
+
+  // Resources bar
+  renderResourceBar(ctx, w, h);
+
+  // Upgrade button
+  const bw = 120, bh = 36;
+  const bx = w/2 - bw/2;
+  const by = h - 50;
+  const hover = UI.hitTest(input.mouseX, input.mouseY, bx, by, bw, bh);
+  UI.button(ctx, t('upgrade'), bx, by, bw, bh, { color: COL_OASIS, hover });
+}
+
+// === PRE_BATTLE ===
+function renderPreBattle(ctx, w, h) {
+  renderDesertBg(ctx, w, h, 'mid');
+
+  if (enemy) {
+    // Enemy portrait
+    const eSize = Math.min(200, w * 0.4);
+    const ex = w/2 - eSize/2;
+    const ey = h * 0.15;
+    drawAssetOrFallback(ctx, enemy.assetKey, ex, ey, eSize, eSize, () => {
+      drawEnemyFallback(ctx, w/2, ey + eSize/2, eSize*0.4, enemy.isBoss);
+    });
+
+    const eName = lang === 'ko' ? (enemy.nameKo || enemy.name) : enemy.name;
+    UI.text(ctx, eName, w/2, h * 0.55, { size: 24, bold: true, color: enemy.isBoss ? COL_DANGER : COL_TEXT, glow: enemy.isBoss ? '#ff0000' : null });
+    UI.text(ctx, `HP: ${enemy.hp}  ATK: ${enemy.atk}`, w/2, h * 0.62, { size: 16, color: COL_TEXT2 });
+
+    // "Entering battle..." text
+    const dots = '.'.repeat(Math.floor(titleAnim * 2) % 4);
+    UI.text(ctx, (enemy.isBoss ? t('bossAppear') : t('battle')) + dots, w/2, h * 0.75, { size: 18, color: COL_GOLD });
+  }
+}
+
+// === BATTLE ===
+function renderBattle(ctx, w, h, isBoss) {
+  renderDesertBg(ctx, w, h, currentZone === 0 ? 'oasis' : (currentZone === 2 ? 'pyramid' : 'mid'));
+
+  // Weather overlay
+  if (currentWeather === 'sandstorm') renderSandstorm(ctx, w, h);
+
+  // Enemy section (top)
+  if (enemy) {
+    // Enemy sprite
+    const eSize = Math.min(80, w * 0.15);
+    const ex = w * 0.75 - eSize/2;
+    const ey = 10;
+    drawAssetOrFallback(ctx, enemy.assetKey, ex, ey, eSize, eSize, () => {
+      drawEnemyFallback(ctx, w * 0.75, ey + eSize/2, eSize * 0.35, isBoss);
+    });
+
+    // Enemy HP bar
+    const hpW = Math.min(180, w * 0.35);
+    const hpX = w * 0.75 - hpW/2;
+    const hpY = ey + eSize + 5;
+    UI.hpBar(ctx, hpX, hpY, hpW, 10, Math.max(0, enemy.hp), enemy.maxHp, { fgColor: COL_DANGER });
+    UI.text(ctx, `${Math.max(0, enemy.hp)}/${enemy.maxHp}`, hpX + hpW/2, hpY + 20, { size: 11, color: COL_TEXT2 });
+
+    // Enemy name
+    const eName = lang === 'ko' ? (enemy.nameKo || enemy.name) : enemy.name;
+    UI.text(ctx, eName, w * 0.75, hpY + 33, { size: 12, bold: true, color: isBoss ? COL_DANGER : COL_TEXT });
+
+    // Poison indicator
+    if (enemy.poison > 0) {
+      UI.text(ctx, `🧪${enemy.poison}`, w * 0.75 + hpW/2 + 15, hpY, { size: 11, color: '#88ff44' });
+    }
+  }
+
+  // Player HP + shield (top-left)
+  const phpW = Math.min(180, w * 0.35);
+  const phpX = w * 0.05;
+  const phpY = 15;
+  // HP frame asset
+  drawAssetOrFallback(ctx, 'uiHpFrame', phpX - 5, phpY - 5, phpW + 10, 22, () => {});
+  UI.hpBar(ctx, phpX, phpY, phpW, 12, player.hp, player.maxHp, { fgColor: '#00ff87' });
+  if (player.shield > 0) {
+    UI.hpBar(ctx, phpX, phpY + 14, phpW, 6, player.shield, player.maxHp * 0.5, { fgColor: '#00aaff', bgColor: '#1a1a3e' });
+  }
+  UI.text(ctx, `${t('hp')}: ${player.hp}/${player.maxHp}`, phpX + phpW/2, phpY + 30, { size: 11, color: COL_TEXT2 });
+
+  // Score + combo (top-center)
+  UI.text(ctx, `${t('score')}: ${score}`, w/2, 12, { size: 13, color: COL_GOLD });
+  if (comboCount > 1) {
+    UI.text(ctx, `${t('combo')} x${comboCount}`, w/2, 28, { size: 14, bold: true, color: '#ff88ff', glow: '#ff44ff' });
+  }
+  UI.text(ctx, `${t('turn')}: ${turnCount}`, w/2, 42, { size: 11, color: COL_TEXT2 });
+
+  // Turn indicator
+  const turnText = turnPhase === 'PLAYER' ? t('yourTurn') : t('enemyTurn');
+  const turnColor = turnPhase === 'PLAYER' ? '#00ff87' : COL_DANGER;
+  UI.text(ctx, turnText, w * 0.15, phpY + 50, { size: 12, bold: true, color: turnColor });
+
+  // Zara portrait (small, beside HP)
+  const zaraS = 40;
+  drawAssetOrFallback(ctx, 'playerZara', phpX + phpW + 8, phpY - 5, zaraS, zaraS, () => {
+    drawZaraFallback(ctx, phpX + phpW + 8 + zaraS/2, phpY + zaraS/2 - 5, zaraS*0.35);
+  });
+
+  // Board
+  renderBoard(ctx, w, h);
+
+  // Relic panel
+  if (showRelicPanel) renderRelicPanel(ctx, w, h);
+
+  // Bottom bar: relics + pause buttons
+  renderBattleUI(ctx, w, h);
+}
+
+function renderBoard(ctx, w, h) {
+  const bp = getBoardPos();
+
+  // Board background
+  ctx.fillStyle = '#0a0a2e88';
+  ctx.fillRect(bp.x - 4, bp.y - 4, bp.bw + 8, bp.bh + 8);
+  ctx.strokeStyle = COL_STONE + '88';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bp.x - 4, bp.y - 4, bp.bw + 8, bp.bh + 8);
+
+  // Grid lines
+  ctx.strokeStyle = COL_TEXT3 + '33';
+  ctx.lineWidth = 0.5;
+  for (let r = 0; r <= BOARD_SIZE; r++) {
+    ctx.beginPath();
+    ctx.moveTo(bp.x, bp.y + r * bp.cell);
+    ctx.lineTo(bp.x + bp.bw, bp.y + r * bp.cell);
+    ctx.stroke();
+  }
+  for (let c = 0; c <= BOARD_SIZE; c++) {
+    ctx.beginPath();
+    ctx.moveTo(bp.x + c * bp.cell, bp.y);
+    ctx.lineTo(bp.x + c * bp.cell, bp.y + bp.bh);
+    ctx.stroke();
+  }
+
+  // Draw tiles
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (!board[r][c]) continue;
+      const cell = board[r][c];
+      const anim = boardAnim[r][c];
+      const cx = bp.x + c * bp.cell + bp.cell/2;
+      const cy = bp.y + r * bp.cell + bp.cell/2 + (anim.offY || 0);
+      const s = bp.cell * 0.42 * (anim.scale != null ? anim.scale : 1);
+
+      if (s <= 0) continue;
+
+      ctx.save();
+      ctx.globalAlpha = anim.alpha != null ? anim.alpha : 1;
+
+      // Swap animation offset
+      if (swapAnim && ((swapAnim.r1 === r && swapAnim.c1 === c) || (swapAnim.r2 === r && swapAnim.c2 === c))) {
+        const progress = MathUtil.clamp(swapAnim.t / swapAnim.dur, 0, 1);
+        const isFirst = swapAnim.r1 === r && swapAnim.c1 === c;
+        const tr = isFirst ? swapAnim.r2 : swapAnim.r1;
+        const tc = isFirst ? swapAnim.c2 : swapAnim.c1;
+        const targetCx = bp.x + tc * bp.cell + bp.cell/2;
+        const targetCy = bp.y + tr * bp.cell + bp.cell/2;
+        const interpX = MathUtil.lerp(cx, targetCx, progress);
+        const interpY = MathUtil.lerp(cy, targetCy, progress);
+        ctx.translate(interpX, interpY);
+      } else {
+        ctx.translate(cx, cy);
+      }
+
+      // Selected highlight
+      if (selectedTile && selectedTile.r === r && selectedTile.c === c) {
+        ctx.shadowColor = COL_GOLD;
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = COL_GOLD;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-s, -s, s*2, s*2);
+        ctx.shadowBlur = 0;
+      }
+
+      // Hint highlight
+      if (hintTile && ((hintTile.r1 === r && hintTile.c1 === c) || (hintTile.r2 === r && hintTile.c2 === c))) {
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 8 + Math.sin(Date.now()/200) * 4;
+      }
+
+      // Draw tile (asset or fallback)
+      const tileKey = 'tile' + cell.elem.charAt(0).toUpperCase() + cell.elem.slice(1);
+      drawAssetOrFallback(ctx, tileKey, -s, -s, s*2, s*2, () => {
+        drawTileFallback(ctx, 0, 0, s, cell.elem);
+      });
+
+      // Special overlay
+      if (cell.special === 'poison') {
+        ctx.fillStyle = '#88ff4444';
+        ctx.fillRect(-s, -s, s*2, s*2);
+        UI.text(ctx, '☠', 0, 0, { size: s * 0.6, color: '#88ff44' });
+      }
+      if (cell.special === 'petrify') {
+        ctx.fillStyle = '#88888866';
+        ctx.fillRect(-s, -s, s*2, s*2);
+        UI.text(ctx, '🪨', 0, 0, { size: s * 0.6 });
+      }
+
+      // Glow effect
+      if (anim.glow > 0) {
+        ctx.globalAlpha = anim.glow * 0.5;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-s, -s, s*2, s*2);
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+
+  // Cursor (keyboard)
+  if (!input.isMobile) {
+    const curX = bp.x + cursorC * bp.cell;
+    const curY = bp.y + cursorR * bp.cell;
+    ctx.strokeStyle = COL_GOLD + '88';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(curX + 2, curY + 2, bp.cell - 4, bp.cell - 4);
+    ctx.setLineDash([]);
+  }
+
+  // Sandstorm overlay on top 2 rows
+  if (currentWeather === 'sandstorm') {
+    ctx.fillStyle = COL_SAND + '55';
+    ctx.fillRect(bp.x, bp.y, bp.bw, bp.cell * 2);
+    UI.text(ctx, '🌪️', bp.x + bp.bw/2, bp.y + bp.cell, { size: 20 });
+  }
+}
+
+function renderBattleUI(ctx, w, h) {
+  const bp = getBoardPos();
+  const btnY = bp.y + bp.bh + 15;
+  const btnH = Math.max(MIN_TOUCH, 36);
+  const btnW = Math.min(100, w * 0.22);
+  const gap = 10;
+
+  // Relic button
+  const relicBtnX = w/2 - btnW - gap/2;
+  const hoverRelic = UI.hitTest(input.mouseX, input.mouseY, relicBtnX, btnY, btnW, btnH);
+  UI.button(ctx, `${t('relics')} (${player.relics.length})`, relicBtnX, btnY, btnW, btnH, { color: COL_STONE, hover: hoverRelic });
+
+  // Pause button
+  const pauseBtnX = w/2 + gap/2;
+  const hoverPause = UI.hitTest(input.mouseX, input.mouseY, pauseBtnX, btnY, btnW, btnH);
+  UI.button(ctx, t('pause'), pauseBtnX, btnY, btnW, btnH, { color: '#555577', hover: hoverPause });
+
+  // Handle taps on battle UI
+  if (input.tapped) {
+    if (UI.hitTest(input.tapX, input.tapY, relicBtnX, btnY, btnW, btnH)) {
+      showRelicPanel = !showRelicPanel;
+      playSfx('uiClick');
+    }
+    if (UI.hitTest(input.tapX, input.tapY, pauseBtnX, btnY, btnW, btnH)) {
+      prevState = state;
+      state = S.PAUSED;
+      playSfx('uiClick');
+    }
+  }
+}
+
+function renderRelicPanel(ctx, w, h) {
+  const panelW = Math.min(250, w * 0.6);
+  const panelH = Math.min(300, h * 0.4);
+  const px = w/2 - panelW/2;
+  const py = h/2 - panelH/2;
+
+  ctx.fillStyle = '#0a0a2eee';
+  ctx.fillRect(px, py, panelW, panelH);
+  ctx.strokeStyle = COL_GOLD;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px, py, panelW, panelH);
+
+  UI.text(ctx, t('relics'), px + panelW/2, py + 20, { size: 16, bold: true, color: COL_GOLD });
+
+  if (player.relics.length === 0) {
+    UI.text(ctx, '-', px + panelW/2, py + panelH/2, { size: 14, color: COL_TEXT3 });
+  } else {
+    for (let i = 0; i < player.relics.length; i++) {
+      const def = RELIC_DEFS.find(d => d.id === player.relics[i]);
+      if (def) {
+        const ry = py + 40 + i * 28;
+        const rarityColor = def.rarity === 'rare' ? '#9966ff' : COL_SAND;
+        UI.text(ctx, `${def.rarity === 'rare' ? '💎' : '🔹'} ${t(def.nameKey)}`, px + panelW/2, ry, { size: 12, color: rarityColor });
+      }
+    }
+  }
+}
+
+// === POST_BATTLE ===
+function renderPostBattle(ctx, w, h) {
+  renderDesertBg(ctx, w, h, 'mid');
+
+  UI.text(ctx, t('victory'), w/2, h * 0.1, { size: 32, bold: true, color: COL_GOLD, glow: '#ffaa00' });
+  UI.text(ctx, `${t('score')}: ${score}`, w/2, h * 0.18, { size: 18, color: COL_TEXT });
+
+  renderResourceBar(ctx, w, h * 0.04);
+
+  if (rewardChoices.length > 0) {
+    UI.text(ctx, t('chooseRelic'), w/2, h * 0.32, { size: 16, color: COL_SAND });
+
+    const startY = h * 0.4;
+    const relicH = 60;
+    for (let i = 0; i < rewardChoices.length; i++) {
+      const rc = rewardChoices[i];
+      const ry = startY + i * (relicH + 10);
+      const rx = w * 0.15;
+      const rw = w * 0.7;
+      const hover = UI.hitTest(input.mouseX, input.mouseY, rx, ry, rw, relicH);
+
+      ctx.fillStyle = hover ? '#1a1a3ecc' : '#12121ecc';
+      ctx.fillRect(rx, ry, rw, relicH);
+      ctx.strokeStyle = rc.rarity === 'rare' ? '#9966ff' : COL_SAND;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(rx, ry, rw, relicH);
+
+      // Relic frame asset
+      drawAssetOrFallback(ctx, 'uiRelicFrame', rx + 5, ry + 5, 50, 50, () => {
+        ctx.fillStyle = rc.rarity === 'rare' ? '#9966ff33' : COL_SAND + '33';
+        ctx.fillRect(rx + 5, ry + 5, 50, 50);
+      });
+
+      UI.text(ctx, t(rc.nameKey), rx + rw * 0.45, ry + 18, { size: 14, bold: true, color: COL_TEXT });
+      UI.text(ctx, rc.desc, rx + rw * 0.45, ry + 38, { size: 11, color: COL_TEXT2 });
+    }
+  } else {
+    UI.text(ctx, t('press'), w/2, h * 0.6, { size: 14, color: COL_TEXT3 });
+  }
+}
+
+// === UPGRADE ===
+function renderUpgrade(ctx, w, h) {
+  ctx.fillStyle = '#08081e';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('upgrade'), w/2, 30, { size: 24, bold: true, color: COL_GOLD });
+
+  // Tabs
+  const tabs = [t('upgMastery'), t('upgExplore'), t('upgAncient')];
+  const tabKeys = ['mastery', 'explore', 'ancient'];
+  const tabColors = ['#ff6b35', '#00b4a0', '#0099dd'];
+  for (let i = 0; i < 3; i++) {
+    const tx = w * 0.1 + i * (w * 0.27);
+    const ty = h * 0.08;
+    const tw = w * 0.25;
+    const th = 36;
+    const active = upgradeTab === i;
+    const hover = UI.hitTest(input.mouseX, input.mouseY, tx, ty, tw, th);
+    ctx.fillStyle = active ? tabColors[i] + '88' : (hover ? '#222244' : '#16163e');
+    ctx.fillRect(tx, ty, tw, th);
+    ctx.strokeStyle = tabColors[i];
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(tx, ty, tw, th);
+    UI.text(ctx, tabs[i], tx + tw/2, ty + th/2, { size: 12, bold: active, color: active ? '#fff' : COL_TEXT2 });
+  }
+
+  // Current level info
+  const tabKey = tabKeys[upgradeTab];
+  const defs = UPGRADE_DEFS[tabKey];
+  const lvl = player.upgrades[tabKey];
+
+  // Show unlocked levels
+  for (let i = 0; i < defs.length; i++) {
+    const uy = h * 0.22 + i * 55;
+    const ux = w * 0.15;
+    const uw = w * 0.7;
+
+    const unlocked = i < lvl;
+    const isNext = i === lvl;
+
+    ctx.fillStyle = unlocked ? tabColors[upgradeTab] + '33' : '#12121e';
+    ctx.fillRect(ux, uy, uw, 45);
+    ctx.strokeStyle = unlocked ? tabColors[upgradeTab] : (isNext ? COL_GOLD : COL_TEXT3);
+    ctx.lineWidth = isNext ? 2 : 1;
+    ctx.strokeRect(ux, uy, uw, 45);
+
+    UI.text(ctx, `Lv.${i+1}: ${defs[i].desc}`, ux + uw/2, uy + 15, {
+      size: 12, color: unlocked ? COL_TEXT : (isNext ? COL_TEXT : COL_TEXT3)
+    });
+    if (!unlocked) {
+      const costColor = player.crystals >= defs[i].cost ? COL_GOLD : COL_DANGER;
+      UI.text(ctx, `💎 ${defs[i].cost}`, ux + uw/2, uy + 33, { size: 11, color: costColor });
+    } else {
+      UI.text(ctx, '✅', ux + uw - 25, uy + 22, { size: 14 });
+    }
+  }
+
+  // Buy button for next level
+  if (lvl < defs.length) {
+    const bx = w * 0.2;
+    const by = h * 0.22 + lvl * 55;
+    const bw = w * 0.6;
+    const bh = 45;
+    if (player.crystals >= defs[lvl].cost) {
+      // Highlight the buyable upgrade
+    }
+  }
+
+  // Resources
+  UI.text(ctx, `💎 ${t('crystals')}: ${player.crystals}  💰 ${t('gold')}: ${player.gold}`, w/2, h * 0.88, { size: 13, color: COL_TEXT2 });
+
+  // Back button
+  const bbx = w/2 - 60;
+  const bby = h - 55;
+  const hover = UI.hitTest(input.mouseX, input.mouseY, bbx, bby, 120, 40);
+  UI.button(ctx, t('backToTitle'), bbx, bby, 120, 40, { color: '#555577', hover });
+}
+
+// === GAMEOVER ===
+function renderGameOver(ctx, w, h) {
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+
+  // Vignette
+  const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w*0.6);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(1, '#000000aa');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('gameover'), w/2, h * 0.25, { size: 36, bold: true, color: COL_DANGER, glow: '#ff0000' });
+  UI.text(ctx, `${t('score')}: ${score}`, w/2, h * 0.38, { size: 22, color: COL_GOLD });
+
+  if (isNewBest) {
+    UI.text(ctx, `🎉 ${t('newBest')}`, w/2, h * 0.48, { size: 20, bold: true, color: '#ff88ff', glow: '#ff44ff' });
+  }
+  UI.text(ctx, `${t('bestScore')}: ${highScore}`, w/2, h * 0.55, { size: 16, color: COL_TEXT2 });
+
+  // Stats
+  UI.text(ctx, `📜 ${t('scrolls')}: ${player.scrolls}  💎 ${player.relics.length} ${t('relics')}`, w/2, h * 0.65, { size: 13, color: COL_TEXT2 });
+
+  // Restart prompt
+  const restartText = input.isMobile ? t('press') : 'R / Tap to ' + t('restart');
+  UI.text(ctx, restartText, w/2, h * 0.8, { size: 14, color: COL_TEXT3 });
+}
+
+// === VICTORY ===
+function renderVictory(ctx, w, h) {
+  renderDesertBg(ctx, w, h, 'oasis');
+
+  // Gold particles
+  for (let i = 0; i < 15; i++) {
+    const sx = (w/2 + Math.cos(titleAnim * 2 + i * 0.5) * w * 0.3);
+    const sy = (h * 0.3 + Math.sin(titleAnim * 1.5 + i * 0.7) * h * 0.15);
+    ctx.fillStyle = COL_GOLD;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  UI.text(ctx, t('allCleared'), w/2, h * 0.2, { size: 28, bold: true, color: COL_GOLD, glow: '#ffaa00' });
+  UI.text(ctx, t('runComplete'), w/2, h * 0.3, { size: 20, color: COL_SAND });
+
+  // Scroll icon
+  const scrollSize = 80;
+  drawAssetOrFallback(ctx, 'itemScroll', w/2 - scrollSize/2, h*0.35, scrollSize, scrollSize, () => {
+    ctx.fillStyle = COL_SAND;
+    ctx.fillRect(w/2-20, h*0.38, 40, 50);
+    UI.text(ctx, '📜', w/2, h*0.42, { size: 30 });
+  });
+
+  UI.text(ctx, `${t('score')}: ${score}`, w/2, h * 0.55, { size: 22, bold: true, color: COL_GOLD });
+  if (isNewBest) {
+    UI.text(ctx, `🎉 ${t('newBest')}`, w/2, h * 0.63, { size: 18, color: '#ff88ff', glow: '#ff44ff' });
+  }
+  UI.text(ctx, t('press'), w/2, h * 0.8, { size: 14, color: COL_TEXT3 });
+}
+
+// === PAUSED ===
+function renderPaused(ctx, w, h) {
+  // Dim background
+  ctx.fillStyle = '#0a0a2ecc';
+  ctx.fillRect(0, 0, w, h);
+
+  UI.text(ctx, t('pause'), w/2, h * 0.3, { size: 28, bold: true, color: COL_TEXT });
+
+  const bx = w/2 - 80;
+  const bw = 160, bh = 44;
+
+  // Resume
+  const hoverResume = UI.hitTest(input.mouseX, input.mouseY, bx, h*0.4, bw, bh);
+  UI.button(ctx, t('resume'), bx, h*0.4, bw, bh, { color: COL_OASIS, hover: hoverResume });
+
+  // Quit
+  const hoverQuit = UI.hitTest(input.mouseX, input.mouseY, bx, h*0.5, bw, bh);
+  UI.button(ctx, t('quit'), bx, h*0.5, bw, bh, { color: COL_DANGER, hover: hoverQuit });
+
+  UI.text(ctx, `${t('langToggle')} | ${t('muteToggle')}`, w/2, h * 0.7, { size: 12, color: COL_TEXT3 });
+}
+
+// ═══════════════════════════════════════════════════════════
+// §23. RENDER HELPERS
+// ═══════════════════════════════════════════════════════════
+
+// Desert background with parallax layers
+function renderDesertBg(ctx, w, h, type) {
+  // Base sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0, '#1a0a3e');
+  skyGrad.addColorStop(0.4, '#2a1555');
+  skyGrad.addColorStop(0.7, '#4a2040');
+  skyGrad.addColorStop(1, '#0a0a2e');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Stars
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 97.3) % w);
+    const sy = ((i * 53.7) % (h * 0.4));
+    const bright = 0.3 + (Math.sin(Date.now() / 1000 + i) + 1) * 0.2;
+    ctx.fillStyle = `rgba(255, 255, 200, ${bright})`;
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+
+  // Background asset
+  const bgKey = type === 'oasis' ? 'bgOasis' : (type === 'pyramid' ? 'bgPyramid' : (type === 'mid' ? 'bgDesertMid' : 'bgDesertFar'));
+  if (assets.sprites[bgKey]) {
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(assets.sprites[bgKey], 0, h * 0.3, w, h * 0.7);
+    ctx.globalAlpha = 1;
+  } else {
+    // Fallback: sand dunes
+    const duneGrad = ctx.createLinearGradient(0, h * 0.6, 0, h);
+    duneGrad.addColorStop(0, COL_SAND + '33');
+    duneGrad.addColorStop(1, COL_BG);
+    ctx.fillStyle = duneGrad;
+    ctx.fillRect(0, h * 0.6, w, h * 0.4);
+
+    // Pyramid silhouettes
+    ctx.fillStyle = COL_STONE + '22';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.2, h * 0.6);
+    ctx.lineTo(w * 0.35, h * 0.35);
+    ctx.lineTo(w * 0.5, h * 0.6);
+    ctx.fill();
+
+    ctx.fillStyle = COL_STONE + '15';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.55, h * 0.6);
+    ctx.lineTo(w * 0.7, h * 0.4);
+    ctx.lineTo(w * 0.85, h * 0.6);
+    ctx.fill();
+  }
+}
+
+// Sandstorm weather effect
+function renderSandstorm(ctx, w, h) {
+  const t = Date.now() / 1000;
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = COL_SAND;
+  for (let i = 0; i < 60; i++) {
+    const sx = ((i * 47.3 + t * 80) % (w + 50)) - 25;
+    const sy = ((i * 31.7 + t * 30 + Math.sin(t * 2 + i) * 10) % h);
+    ctx.fillRect(sx, sy, 8 + (i % 5), 1.5);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Resource bar
+function renderResourceBar(ctx, w, topY) {
+  const y = topY || (engine.H - 25);
+  UI.text(ctx, `💰${player.gold}  💎${player.crystals}  📜${player.scrolls}  ❤️${player.hp}/${player.maxHp}`, w/2, y, { size: 12, color: COL_TEXT2 });
+}
+
+// Narrative overlay
+function renderNarrative(ctx, w, h) {
+  ctx.fillStyle = '#0a0a2ecc';
+  ctx.fillRect(0, h * 0.35, w, h * 0.3);
+  ctx.strokeStyle = COL_GOLD + '66';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(10, h * 0.35, w - 20, h * 0.3);
+
+  // Split narrative text by newlines
+  const lines = narrativeText.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    UI.text(ctx, lines[i], w/2, h * 0.45 + i * 25, { size: 14, color: COL_SAND });
+  }
+
+  UI.text(ctx, t('press'), w/2, h * 0.6, { size: 11, color: COL_TEXT3 });
+}
+
+// Damage popups
+function renderDamagePopups(ctx) {
+  for (const p of damagePopups) {
+    const alpha = Math.max(0, p.life / p.maxLife);
+    ctx.globalAlpha = alpha;
+    UI.text(ctx, p.text, p.x, p.y, { size: 16, bold: true, color: p.color, glow: p.color + '88' });
+  }
+  ctx.globalAlpha = 1;
+}
+
+// HUD (top corner info — always visible)
+function renderHUD(ctx, w, h) {
+  // Mute indicator
+  if (bgmMuted) {
+    UI.text(ctx, '🔇', w - 25, 15, { size: 14 });
+  }
+  // Language indicator
+  UI.text(ctx, lang.toUpperCase(), w - 25, 32, { size: 10, color: COL_TEXT3 });
+}
+
+// ═══════════════════════════════════════════════════════════
+// §24. ASSET RENDERING WITH FALLBACKS (F24)
+// ═══════════════════════════════════════════════════════════
+
+// Universal asset draw with fallback
+function drawAssetOrFallback(ctx, key, x, y, w, h, fallbackFn) {
+  if (assets.sprites[key]) {
+    ctx.drawImage(assets.sprites[key], x, y, w, h);
+  } else {
+    fallbackFn();
+  }
+}
+
+// Fallback: Zara character (procedural)
+function drawZaraFallback(ctx, cx, cy, size) {
+  ctx.save();
+  // Body
+  ctx.fillStyle = COL_SAND;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + size * 0.2, size * 0.35, size * 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Head
+  ctx.fillStyle = '#b08050';
+  ctx.beginPath();
+  ctx.arc(cx, cy - size * 0.5, size * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // Turban
+  ctx.fillStyle = '#e0c070';
+  ctx.beginPath();
+  ctx.arc(cx, cy - size * 0.6, size * 0.25, Math.PI, 0);
+  ctx.fill();
+  // Eyes
+  ctx.fillStyle = COL_GOLD;
+  ctx.beginPath();
+  ctx.arc(cx - size * 0.1, cy - size * 0.5, size * 0.06, 0, Math.PI * 2);
+  ctx.arc(cx + size * 0.1, cy - size * 0.5, size * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+  // Glow in hand
+  ctx.fillStyle = '#ffd70066';
+  ctx.beginPath();
+  ctx.arc(cx + size * 0.3, cy + size * 0.1, size * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Fallback: Enemy (procedural)
+function drawEnemyFallback(ctx, cx, cy, size, isBoss) {
+  ctx.save();
+  ctx.fillStyle = isBoss ? '#9933aa' : '#aa6633';
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * (isBoss ? 0.8 : 0.6), 0, Math.PI * 2);
+  ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#ff3333';
+  ctx.beginPath();
+  ctx.arc(cx - size * 0.15, cy - size * 0.1, size * 0.08, 0, Math.PI * 2);
+  ctx.arc(cx + size * 0.15, cy - size * 0.1, size * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+  // Claws/horns for boss
+  if (isBoss) {
+    ctx.strokeStyle = '#cc6600';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - size * 0.5, cy - size * 0.5);
+    ctx.lineTo(cx - size * 0.3, cy - size * 0.8);
+    ctx.moveTo(cx + size * 0.5, cy - size * 0.5);
+    ctx.lineTo(cx + size * 0.3, cy - size * 0.8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Fallback: Tile (procedural — octagonal gem)
+function drawTileFallback(ctx, cx, cy, size, elem) {
+  ctx.save();
+  const color = ELEM_COLORS[elem];
+
+  // Octagonal shape
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  const r = size * 0.85;
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 / 8) * i - Math.PI / 8;
+    const px = cx + Math.cos(angle) * r;
+    const py = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Inner highlight
+  ctx.fillStyle = '#ffffff22';
+  ctx.beginPath();
+  const r2 = r * 0.6;
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 / 8) * i - Math.PI / 8;
+    const px = cx + Math.cos(angle) * r2;
+    const py = cy + Math.sin(angle) * r2;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Element icon
+  const icon = ELEM_ICONS[elem];
+  UI.text(ctx, icon, cx, cy, { size: size * 0.7 });
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+// §25. RESIZE HANDLER
+// ═══════════════════════════════════════════════════════════
+function onGameResize(w, h) {
+  // Reposition map nodes
+  if (state === S.MAP && mapNodes.length > 0) {
+    for (const node of mapNodes) {
+      const rowNodes = mapNodes.filter(n => n.row === node.row);
+      const idx = rowNodes.indexOf(node);
+      const spacing = w / (rowNodes.length + 1);
+      node.x = spacing * (idx + 1);
+      node.y = 80 + node.row * 110;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// §26. INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  // Load assets from manifest.json (F1, F22)
+  try {
+    const manifest = await fetch('assets/manifest.json').then(r => r.json()).catch(() => null);
+    if (manifest && manifest.assets) {
+      const assetMap = {};
+      for (const [key, info] of Object.entries(manifest.assets)) {
+        assetMap[key] = 'assets/' + info.file;
+      }
+      await assets.load(assetMap);
+    }
+  } catch (e) {
+    console.warn('[DuneChronicle] Asset load failed, using fallbacks:', e);
+  }
+
+  // Set initial state
+  highScore = Save.getHighScore(GAME_ID);
+  _ready = true; // F12, F23 — TDZ defense
+  enterState(S.TITLE);
+  engine.start();
+}
+
+init();
+
+// ═══════════════════════════════════════════════════════════
+// §27. EVENT BUS LISTENERS (F28 — decoupled systems)
+// ═══════════════════════════════════════════════════════════
+bus.on('match', (data) => {
+  // Particles on match
+  // (already handled in applyMatchEffects)
+});
+
+bus.on('stateChange', (data) => {
+  // BGM transitions
+  if (data.to === S.BATTLE) startBGM('battle');
+  else if (data.to === S.BOSS) startBGM('boss');
+  else if (data.to === S.MAP || data.to === S.UPGRADE || data.to === S.POST_BATTLE) startBGM('map');
+  else if (data.to === S.TITLE) startBGM('title');
+  else if (data.to === S.VICTORY) startBGM('victory');
+  else if (data.to === S.GAMEOVER) stopBGM();
+});
+
+bus.on('frame', (data) => {
+  // Can be used for global per-frame effects
+});
+</script>
+</body>
+</html>

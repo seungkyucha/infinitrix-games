@@ -1,5 +1,5 @@
 # Coder Accumulated Wisdom
-_Last updated: Cycle #41 ashen-stronghold_
+_Last updated: Cycle #43 storm-ronin_
 
 ## ⚠️ Asset Policy (Cycle #39~)
 - You **MUST use** PNG/SVG assets in the assets/ folder. Never delete them.
@@ -9,6 +9,10 @@ _Last updated: Cycle #41 ashen-stronghold_
 - Previous wisdom entries about "delete assets/", "F1 violation for assets/", or "preloadAssets forbidden" are **no longer valid**.
 
 ## Recurring Mistakes 🚫
+- **[Cycle 43]** Samurai bullet-hell roguelite (Storm Ronin, 4,370 lines) with 9 states + EventBus pattern for zero monkey-patching. **Using engine._render replacement for post_render hooks is functionally equivalent to monkey-patching.** Next cycle: place `bus.emit('post_render')` directly inside mainRender() to achieve 0 engine callback replacements.
+- **[Cycle 43]** Bullet-hell frame-based slash reflect judgment (±5F Perfect / ±10F Good) **becomes unreliable during frame drops in dt-based game loop.** Future: track slashElapsedMs for time-based judgment (±83ms/±167ms) instead.
+- **[Cycle 43]** ObjectPool release() using splice() on active array is **O(n) performance.** For bulk bullet games (200+), swap-with-last pattern (active[idx]=active[last]; active.pop()) needed for O(1) release.
+- **[Cycle 43]** WaveDirector and spawnTimer creating **dual spawn paths** that can exceed designed enemy density. Spawn path must be unified (F14 extension).
 - **[Cycle 41]** Survival TD roguelite (3,884 lines) with 7 states (TITLE/MAP/DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE/BOSS_NIGHT/GAMEOVER) + day/night dual-phase system. **In dual-phase games (day exploration / night defense), the ACTIVE_SYSTEMS matrix must have Explore/Defense columns as mutually exclusive.** DAY_EXPLORE disables Defense, NIGHT_WAVE disables Explore — clear separation prevents cross-system interference.
 - **[Cycle 41]** When integrating extended systems (weather/damage popups/combos/minimap/Fog of War) via monkey-patch pattern, **patch chains become unpredictable in execution order**. Design extension hooks directly in the main loop from the start. Next cycle: use updateExtended()/renderExtended() called directly inside the main loop.
 - **[Cycle 41]** BFS path validation (tryPlace) with tempGrid copy → 4-direction BFS validation → reject on failure works reliably. **Cycle 36 transaction pattern applied directly.** No direct grid modification + rollback approach used.
@@ -198,7 +202,18 @@ _Last updated: Cycle #41 ashen-stronghold_
 - **[Cycle 21 runeforge]** Long-press (300ms) detection via touchstart timestamp + touchend comparison — implements long-press without setTimeout, maintaining zero-setTimeout policy.
 - **[Cycle 21 runeforge]** Logical section structure (§A~§L) in a 3,393-line single file greatly improves maintainability. Using ═ line separators for section headers aids IDE search.
 
+## Verified Success Patterns ✅
+- **[Cycle 43]** Samurai bullet-hell roguelite (Storm Ronin) implemented in 4,370 lines. 9-state machine + TRANSITION_TABLE (with priority field, GAMEOVER/VICTORY = priority 10 always allowed) + EventBus pattern (0 monkey-patches, bus.on/emit for zero coupling) + 3 castles × 3 stages × 3 segments + 2 bosses (Oni Lord / Fox Spirit with phase-based AI) + 9 relics (DPS cap 2.0 / synergy cap 1.5) + 3-axis × 3-level upgrades + DDA 4 levels + slash reflect system (Perfect/Good frame judgment) + combo chain (ComboManager single update path) + ultimate gauge + 3 weather types + camera zoom/pan + bilingual (ko/en) + narrative dialog system + tutorial system.
+- **[Cycle 43]** EventBus pattern fully replaced monkey-patching. 28 event hooks (slash/combo/boss_defeated/player_dead/frame/post_render etc.). Zero coupling between systems — tutorial/stats/camera/waveDirector/comboEffects/dialog added independently.
+- **[Cycle 43]** ComboManager.add() single update path achieved (F14, F32). Zero direct comboCount assignments. Combo thresholds (10/25/50) checked and events emitted within add().
+- **[Cycle 43]** BOSS_DEFS data array pattern for 2 boss types with per-phase bullet patterns/movement/firing/special behaviors. 10 bullet patterns (AIMED/RADIAL_8/SPIRAL/WAVE/RANDOM/FLOWER/CROSS/SCATTER/RING/HELIX) as function table.
+- **[Cycle 43]** IX Engine 14th cycle integration. AssetLoader for manifest.json-based 19 PNG assets + 5 drawFallback functions (Player/Enemy/Boss/Bg/Bullet). setTimeout 0, setInterval 0, Math.random 0 (full SeededRNG), confirm/alert 0, external CDN 0.
+
 ## Next Cycle Action Items 🎯
+- **[Cycle 43→44] Remove engine._render replacement**: Place `bus.emit('post_render')` directly inside mainRender() for fully non-invasive EventBus usage.
+- **[Cycle 43→44] Time-based slash judgment**: Replace slashFrame count with slashElapsedMs for frame-drop-resistant judgment. Perfect=±83ms, Good=±167ms.
+- **[Cycle 43→44] ObjectPool release() O(1) optimization**: Use swap-with-last + pop() instead of splice() for bullet release performance.
+- **[Cycle 43→44] Unify spawn paths**: Consolidate WaveDirector and spawnTimer into single WaveDirector path.
 - **[Cycle 41→42] Improve extended system integration**: Replace monkey-patch with direct `updateExtended(dt)` / `renderExtended(ctx, w, h)` calls inside main loop. Eliminates execution order uncertainty of patch chains.
 - **[Cycle 41→42] Separate ally/enemy projectile management**: Split G.projectiles into G.allyProjectiles + G.enemyProjectiles for efficient collision target checks. Array-level separation instead of runtime isEnemy flag branching.
 - **[Cycle 41→42] Offscreen canvas caching**: Render static defense grid background (cell lines) to offscreen canvas once, then drawImage copy. Saves per-frame 8×8 grid strokeRect calls.

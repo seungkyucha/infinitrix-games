@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-25T15:00:00.000Z",
-  "totalGames": 38,
+  "lastUpdated": "2026-03-27T12:04:49.336Z",
+  "totalGames": 39,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -7120,6 +7120,182 @@
             "Clique direito/R: Cancelar colocação",
             "Toque: Colocar e explorar (mobile)",
             "ESC: Pausa"
+          ]
+        }
+      }
+    },
+    {
+      "id": "royal-gem-chronicle",
+      "title": "로얄 젬 크로니클",
+      "description": "판타지 왕국의 보석을 매칭하여 잊혀진 성을 복원하세요!",
+      "genre": [
+        "puzzle"
+      ],
+      "thumbnail": "/games/royal-gem-chronicle/assets/thumbnail.png",
+      "path": "/games/royal-gem-chronicle/index.html",
+      "addedAt": "2026-03-27T12:04:49.336Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "매치3",
+        "퍼즐",
+        "캐주얼",
+        "판타지",
+        "보석",
+        "캐슬"
+      ],
+      "controls": [
+        "마우스: 보석 클릭 후 인접 보석 클릭으로 스왑",
+        "마우스 드래그: 보석을 드래그하여 스왑",
+        "터치: 탭 후 스와이프로 스왑",
+        "키보드: 방향키로 커서 이동, Space로 선택/스왑"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Royal Gem Chronicle",
+          "description": "Match gems to restore a forgotten castle in a fantasy kingdom!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "casual",
+            "fantasy",
+            "gems",
+            "castle"
+          ],
+          "controls": [
+            "Mouse: Click a gem then click an adjacent gem to swap",
+            "Mouse drag: Drag a gem to swap",
+            "Touch: Tap then swipe to swap",
+            "Keyboard: Arrow keys to move cursor, Space to select/swap"
+          ]
+        },
+        "ja": {
+          "title": "ロイヤルジェムクロニクル",
+          "description": "ファンタジー王国の宝石をマッチさせて忘れられた城を復元しよう！",
+          "tags": [
+            "マッチ3",
+            "パズル",
+            "カジュアル",
+            "ファンタジー",
+            "宝石",
+            "城"
+          ],
+          "controls": [
+            "マウス: 宝石をクリックして隣の宝石をクリックでスワップ",
+            "マウスドラッグ: 宝石をドラッグしてスワップ",
+            "タッチ: タップしてスワイプでスワップ",
+            "キーボード: 矢印キーでカーソル移動、Spaceで選択/スワップ"
+          ]
+        },
+        "zh-CN": {
+          "title": "皇家宝石编年史",
+          "description": "匹配宝石，修复奇幻王国中被遗忘的城堡！",
+          "tags": [
+            "三消",
+            "益智",
+            "休闲",
+            "奇幻",
+            "宝石",
+            "城堡"
+          ],
+          "controls": [
+            "鼠标：点击宝石后点击相邻宝石交换",
+            "鼠标拖拽：拖动宝石交换",
+            "触屏：点击后滑动交换",
+            "键盘：方向键移动光标，空格键选择/交换"
+          ]
+        },
+        "zh-TW": {
+          "title": "皇家寶石編年史",
+          "description": "配對寶石，修復奇幻王國中被遺忘的城堡！",
+          "tags": [
+            "三消",
+            "益智",
+            "休閒",
+            "奇幻",
+            "寶石",
+            "城堡"
+          ],
+          "controls": [
+            "滑鼠：點擊寶石後點擊相鄰寶石交換",
+            "滑鼠拖曳：拖動寶石交換",
+            "觸控：點擊後滑動交換",
+            "鍵盤：方向鍵移動游標，空白鍵選擇/交換"
+          ]
+        },
+        "es": {
+          "title": "Crónica de Gemas Reales",
+          "description": "¡Combina gemas para restaurar un castillo olvidado en un reino de fantasía!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "casual",
+            "fantasía",
+            "gemas",
+            "castillo"
+          ],
+          "controls": [
+            "Ratón: Haz clic en una gema y luego en una adyacente para intercambiar",
+            "Arrastrar: Arrastra una gema para intercambiar",
+            "Táctil: Toca y desliza para intercambiar",
+            "Teclado: Flechas para mover cursor, Espacio para seleccionar/intercambiar"
+          ]
+        },
+        "fr": {
+          "title": "Chronique des Gemmes Royales",
+          "description": "Associez les gemmes pour restaurer un château oublié dans un royaume fantastique !",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "casual",
+            "fantaisie",
+            "gemmes",
+            "château"
+          ],
+          "controls": [
+            "Souris : Cliquez sur une gemme puis sur une adjacente pour échanger",
+            "Glisser : Faites glisser une gemme pour échanger",
+            "Tactile : Appuyez puis balayez pour échanger",
+            "Clavier : Flèches pour déplacer le curseur, Espace pour sélectionner/échanger"
+          ]
+        },
+        "de": {
+          "title": "Königliche Edelstein-Chronik",
+          "description": "Kombiniere Edelsteine und restauriere eine vergessene Burg in einem Fantasy-Königreich!",
+          "tags": [
+            "Match-3",
+            "Puzzle",
+            "Casual",
+            "Fantasy",
+            "Edelsteine",
+            "Burg"
+          ],
+          "controls": [
+            "Maus: Klicke auf einen Edelstein, dann auf einen benachbarten zum Tauschen",
+            "Maus ziehen: Ziehe einen Edelstein zum Tauschen",
+            "Touch: Tippen und wischen zum Tauschen",
+            "Tastatur: Pfeiltasten zum Bewegen, Leertaste zum Auswählen/Tauschen"
+          ]
+        },
+        "pt": {
+          "title": "Crônica das Gemas Reais",
+          "description": "Combine gemas para restaurar um castelo esquecido em um reino de fantasia!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "casual",
+            "fantasia",
+            "gemas",
+            "castelo"
+          ],
+          "controls": [
+            "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
+            "Arrastar: Arraste uma gema para trocar",
+            "Toque: Toque e deslize para trocar",
+            "Teclado: Setas para mover cursor, Espaço para selecionar/trocar"
           ]
         }
       }

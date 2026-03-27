@@ -1,0 +1,113 @@
+{
+  "gameId": "royal-gem-chronicle",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "artDirection": {
+    "style": "Glossy 3D-rendered Casual Fantasy — 밝고 화려한 3D 느낌의 2D 보석, 부드러운 그라디언트, 글로시 반사, 보석 내부 빛 산란, 따뜻한 판타지 동화 배경",
+    "palette": "#e63946, #457b9d, #2a9d8f, #f4a261, #9b5de5, #e0e0e0, #ffd700",
+    "mood": "밝고 화려한 판타지, 왕국 모험, 달콤한 성취감, 동화 속 보석 세계",
+    "reference": "Royal Match (Dream Games) 보석 퀄리티 + Candy Crush Saga (King) 파티클 연출"
+  },
+  "format": "png",
+  "assets": {
+    "gemRuby": {
+      "file": "gem-ruby.png",
+      "size": "512x512",
+      "desc": "루비 보석 — 하트컷 형태, 진홍색(#e63946) 그라디언트, 좌상단 흰색 하이라이트 반사, 내부 빛 산란 표현, 미세한 그림자. 깨끗하고 고급스러운 3D 렌더링 느낌."
+    },
+    "gemSapphire": {
+      "file": "gem-sapphire.png",
+      "size": "512x512",
+      "desc": "사파이어 보석 — 원형 브릴리언트컷, 코발트블루(#457b9d) 그라디언트, 좌상단 흰색 하이라이트, 깊은 파란빛 내부 광택. 투명감 있는 유리 질감."
+    },
+    "gemEmerald": {
+      "file": "gem-emerald.png",
+      "size": "512x512",
+      "desc": "에메랄드 보석 — 육각형 에메랄드컷, 에메랄드 그린(#2a9d8f) 그라디언트, 면 분할이 보이는 결정 질감, 내부 녹색 빛 산란."
+    },
+    "gemTopaz": {
+      "file": "gem-topaz.png",
+      "size": "512x512",
+      "desc": "토파즈 보석 — 방패(쉴드)형, 따뜻한 금색(#f4a261) 그라디언트, 태양빛처럼 내부에서 빛이 퍼지는 표현, 주황-노란 하이라이트."
+    },
+    "gemAmethyst": {
+      "file": "gem-amethyst.png",
+      "size": "512x512",
+      "desc": "아메시스트 보석 — 물방울(티어드롭)형, 자수정 보라(#9b5de5) 그라디언트, 신비로운 보라빛 내부 광택, 미세한 별 반짝임."
+    },
+    "gemDiamond": {
+      "file": "gem-diamond.png",
+      "size": "512x512",
+      "desc": "다이아몬드 보석 — 클래식 다이아몬드컷, 은빛 흰색(#e0e0e0) 그라디언트, 무지개빛 프리즘 반사, 최고급 보석 느낌의 강한 하이라이트."
+    },
+    "specialLineH": {
+      "file": "special-line-h.png",
+      "size": "512x512",
+      "desc": "줄 파괴 보석 (가로) — 보석 위에 가로 방향 황금 화살표 오버레이, 양쪽으로 뻗어나가는 빛줄기 이펙트. 투명 배경에 오버레이용."
+    },
+    "specialLineV": {
+      "file": "special-line-v.png",
+      "size": "512x512",
+      "desc": "줄 파괴 보석 (세로) — 보석 위에 세로 방향 황금 화살표 오버레이, 위아래로 뻗어나가는 빛줄기 이펙트. 투명 배경에 오버레이용."
+    },
+    "specialBomb": {
+      "file": "special-bomb.png",
+      "size": "512x512",
+      "desc": "폭탄 보석 오버레이 — 보석 위에 점선 원형 폭발 범위 표시, 중앙에 빛나는 폭탄 아이콘, 주황-빨강 글로우. 투명 배경."
+    },
+    "specialRainbow": {
+      "file": "special-rainbow.png",
+      "size": "512x512",
+      "desc": "무지개 보석 — 6색이 프리즘처럼 어우러진 구체, 내부에서 빛이 회전하는 듯한 표현, 무지개빛 광채와 별 파티클. 독립 에셋(오버레이 아님)."
+    },
+    "obstacleIce": {
+      "file": "obstacle-ice.png",
+      "size": "512x512",
+      "desc": "얼음 장애물 — 반투명 푸른 빙결 층, 보석 위를 덮는 서리/결빙 텍스처, 가장자리에 결정 패턴. 2겹일 때 더 불투명. 투명 배경 오버레이."
+    },
+    "obstacleCrate": {
+      "file": "obstacle-crate.png",
+      "size": "512x512",
+      "desc": "나무 상자 장애물 — 판타지 스타일 나무 상자, 금속 못과 밧줄 장식, 중앙에 잠금 문양. 보석 셀을 완전히 덮는 단독 에셋."
+    },
+    "obstacleChain": {
+      "file": "obstacle-chain.png",
+      "size": "512x512",
+      "desc": "체인 장애물 — 보석을 감싸는 금속 체인 2줄, 금색/은색 체인 링크, 잠금장치. 투명 배경 오버레이."
+    },
+    "bgCastle": {
+      "file": "bg-castle.png",
+      "size": "1920x1080",
+      "desc": "캐슬 맵 배경 — 판타지 왕국의 성 전경, 푸른 하늘과 뭉게구름, 녹색 언덕 위의 동화풍 캐슬, 성벽과 탑과 깃발, 정원과 꽃밭. 따뜻하고 밝은 색감. 캐슬 복원 진행도가 표시될 영역을 고려한 레이아웃."
+    },
+    "bgPlay": {
+      "file": "bg-play.png",
+      "size": "1920x1080",
+      "desc": "플레이 화면 배경 — 성 내부의 보석 방. 돌벽 텍스처 + 황금 장식 + 촛불 조명. 중앙에 8×8 그리드가 놓일 나무 프레임/테이블 공간. 어둡지 않고 따뜻한 분위기."
+    },
+    "effectMatchBurst": {
+      "file": "effect-match-burst.png",
+      "size": "512x512",
+      "desc": "매칭 폭발 이펙트 — 별 모양 빛 파편 + 보석 색상의 반짝이 파티클이 사방으로 퍼지는 순간. 밝고 화려한 폭발. 투명 배경."
+    },
+    "effectComboText": {
+      "file": "effect-combo-text.png",
+      "size": "512x256",
+      "desc": "콤보 텍스트 이펙트 — 'Nice!', 'Great!', 'Awesome!', 'Incredible!' 텍스트가 금색+흰색 외곽선으로 화려하게 표현. 별과 빛줄기 장식. 투명 배경. 'Incredible!' 텍스트 상태로 제작."
+    },
+    "uiBoosterPanel": {
+      "file": "ui-booster-panel.png",
+      "size": "512x128",
+      "desc": "부스터 UI 패널 — 하단에 배치되는 3칸 부스터 슬롯 패널, 금색 테두리 + 진한 갈색 배경, 각 슬롯은 원형 아이콘 공간. 판타지 스크롤/두루마리 느낌."
+    },
+    "uiGoalPanel": {
+      "file": "ui-goal-panel.png",
+      "size": "512x160",
+      "desc": "레벨 목표 패널 — 상단에 배치되는 목표 표시 UI, 양피지/두루마리 스타일, 금색 테두리, 왕관 장식. 목표 아이콘과 숫자가 들어갈 공간."
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 중앙에 6색 보석이 화려하게 배치된 8×8 그리드, 배경에 판타지 캐슬 실루엣, 상단에 '로얄 젬 크로니클' 금색 타이틀 텍스트, 보석에서 빛줄기와 파티클이 터지는 화려한 장면. Royal Match 스타일의 프리미엄 퍼즐 게임 분위기."
+    }
+  }
+}

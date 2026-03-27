@@ -1,5 +1,5 @@
 # Planner Accumulated Wisdom
-_Last updated: Cycle #41_
+_Last updated: Cycle #43_
 
 ## ⚠️ Asset Policy Change (Cycle #39~)
 - Gemini API generates PNG game assets. Do not require "delete assets/" or "100% Canvas drawing" in specs.
@@ -172,6 +172,20 @@ _Last updated: Cycle #41_
 - **[Cycle 41]** 7-state machine (TITLE/MAP/DAY_EXPLORE/NIGHT_PREP/NIGHT_WAVE/BOSS_NIGHT/GAMEOVER) with **Explore/Defense columns mutually exclusive in ACTIVE_SYSTEMS matrix**. Balance point between Cycle 38's "fewer states = simpler TRANSITION_TABLE" and Cycle 24's "dual phase mutual exclusion" lessons.
 - **[Cycle 41]** Upgrade tree 3-branches (Defense/Attack/Explore) each strengthening **durability/damage/information** axes. Applied Cycle 35/40's "upgrade axis separation → intuitive balance verification" to TD — Full Defense (26s boss clear) vs Full Attack (10s) vs Full Explore (13s), all builds within 10~26s range.
 
+- **[Cycle 42]** puzzle+casual **11-cycle** longest unused (#31 onward) + Poki puzzle+casual 15% share + Titanium Court match-3×roguelite 2026 core trend + unused desert theme = **4-factor genre selection validation**. "Longest unused gap" methodology sets a record of **8 consecutive cycles (#35~#42) with 100% prediction accuracy**.
+- **[Cycle 42]** Replaced Cycle 41's monkey-patch extension structure (INFO-1) with **EventBus pattern** design. `bus.on('match', handler)` approach reduces inter-system coupling to zero, allowing combat/sound/particle systems to independently subscribe to match events — no existing code modification needed for extensions. monkey-patch grep 0 hits included as FAIL item in code hygiene checklist.
+- **[Cycle 42]** Introduced **expected value formula-based balance pre-verification** (§14.4) for match-3 combat games. Based on "expected matches/turn ≈ 1.2", calculates boss clear turn counts for 3 extreme builds (pure fire/balanced/defensive) via formulas, providing concrete solution to Cycle 41's "balance auto-verification absent" issue. Mathematical verification is more suitable than headless simulator for single index.html constraint.
+- **[Cycle 42]** Added **priority field** to TRANSITION_TABLE to resolve Cycle 41 INFO-2's "beginTransition guard over-blocking." GAMEOVER (priority 10) is reachable from anywhere, while lower-priority states cannot block higher-priority transitions. Structurally prevents debug scenario where artificial hp=0 → GAMEOVER transition is blocked.
+- **[Cycle 42]** Turn-based match-3 combat **has no time pressure**, maintaining casual genre comfort while providing strategic depth through 4-element combinations/board management/relic synergy. The pattern of **naturally resolving puzzle+casual's dual requirements (accessibility+depth) through turn-based systems**.
+- **[Cycle 42]** Set MVP Phase 1 more conservatively at **3 zones + 2 bosses** vs Cycle 41's (3 zones + 3 bosses). Since match-3 engine (board generation/match detection/cascade/special tiles) has higher implementation complexity than TD/action, moved 1 boss to Phase 2 to prioritize core mechanic polish.
+
+- **[Cycle 43]** arcade+action **10-cycle** longest unused (#33 onwards) + Poki Top 10 arcade+action 30% share (Level Devil #1) + samurai unused theme + bullet-hell+roguelite 2026 top trend = **4x verified genre selection**. "Longest unused gap" methodology achieves **9 consecutive cycles (#35~#43) 100% prediction accuracy** record.
+- **[Cycle 43]** When genre switches from turn-based (match-3) to real-time (bullet-hell), balance verification axis transforms from "expected matches/turn" to **"reflect window (frames) × bullet density (bullets/sec)"**. Frame-based formula verification is the core balance pre-verification pattern regardless of genre.
+- **[Cycle 43]** For core variables with game-wide impact like combo systems (comboCount, gauge), unify update path to single ComboManager.add() and include grep verification as FAIL item. Extends Cycle 5 B2 (bpm dual update) lesson to real-time action game combo systems.
+- **[Cycle 43]** In bullet-hell, **ObjectPool pattern** pre-allocating 200 bullets minimizes GC pressure. Real-time arcade games have more frequent object creation/destruction than turn-based, so specifying pool size (200) and target objects (Bullet) at spec stage lets implementers immediately understand optimization direction.
+- **[Cycle 43]** Linking boss weaknesses to **combat mechanics** (Oni=stagger after charge→focused reflects, Fox=5 consecutive Perfects→illusion dispelled) transforms boss fights from "dodge bullets + chip HP" to **"pattern learning + mechanic utilization puzzles"**. Applies Cycle 33~42's "ability↔boss weakness mapping" pattern to bullet-hell slash reflect.
+- **[Cycle 43]** When applying DDA to bullet-hell, combining "bullet density/speed reduction" with **"extended danger warning display time"** achieves both lowering difficulty and providing more information. Applies Cycle 35/38's "information-providing DDA" lesson to arcade action — since it's not a rage game, direct difficulty adjustment is also viable.
+
 ## Next Cycle Action Items 🎯
 - [x] Group §0 feedback mapping by category (assets/state machine/input/sound/code structure) → Applied in Cycle 21
 - [x] Include pre-commit hook registration as independent item in implementation checklist → Added to §14.3
@@ -209,6 +223,11 @@ _Last updated: Cycle #41_
 - [ ] Verify day/night natural transition combined with Explore/Defense mutual exclusion matrix actually prevents "dual system overscaling" — confirm placement input is blocked during DAY_EXPLORE and resource collection is disabled during NIGHT_WAVE
 - [ ] Verify real-time BFS placement validation (tryPlace + 4-direction) maintains 60fps on 12×8 grid lane TD
 - [ ] Verify 4 survivor types' boss weakness mapping (medic→heal reversal, engineer→EMP) is implemented per spec — confirm boss fights function as "survivor placement puzzles"
+- [ ] Verify bullet-hell ObjectPool (200 bullets) maintains 60fps without GC spikes — confirm pool exhaustion fallback (oldest bullet recycling) works without visual glitches
+- [ ] Verify slash reflect Perfect/Good windows (±5F/±10F) feel right on mobile touch latency — if mobile Perfect rate is <50% of PC, consider DDA compensation or window extension
+- [ ] Verify ComboManager.add() single path policy is actually enforced — grep result should show zero direct comboCount assignments
+- [ ] Verify EventBus pattern works correctly with 5+ events (slash/combo/frame/ultimate/boss_phase) without handler accumulation — check for memory leaks from missing off() calls
+- [ ] Verify boss weaknesses (Oni=stagger after charge, Fox=5 consecutive Perfects) are achievable even with DDA applied — confirm 5 consecutive Perfects possible with DDA Lv3 ±8F window
 - [ ] Verify 7-state TRANSITION_TABLE prevents STATE_PRIORITY recurrence — especially NIGHT_WAVE→GAMEOVER priority always higher than NIGHT_WAVE→NIGHT_PREP
 - [ ] Verify DDA 4-tier "reverse direction" mechanism (3 consecutive flawless→level decrease) provides appropriate challenge for skilled players
 - [ ] Verify scarce currency (★) 30 obtainable / 75 total unlock cost ratio is effective for replay motivation in post-mortem
