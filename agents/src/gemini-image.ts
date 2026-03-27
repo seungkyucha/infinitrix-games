@@ -10,6 +10,7 @@
 import { GoogleGenAI } from '@google/genai'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs'
 import { dirname } from 'path'
+import sharp from 'sharp'
 
 const MODEL = 'gemini-3.1-flash-image-preview'
 
@@ -88,12 +89,68 @@ interface GenResult {
   filePath: string
 }
 
-/** Generate image — optionally with a reference image attached */
+/**
+ * Remove green chromakey background → transparent PNG using sharp
+ * HSV-based green detection: H=80~160, S>40%, V>30%
+ */
+async function removeGreenBackground(filePath: string): Promise<boolean> {
+  const { data, info } = await sharp(filePath)
+    .raw()
+    .ensureAlpha()
+    .toBuffer({ resolveWithObject: true })
+
+  const { width, height, channels } = info
+  const pixels = new Uint8Array(data)
+
+  for (let i = 0; i < pixels.length; i += channels) {
+    const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2]
+
+    // Convert RGB to HSV for better green detection
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    const delta = max - min
+    const v = max / 255
+    const s = max === 0 ? 0 : delta / max
+
+    let h = 0
+    if (delta > 0) {
+      if (max === g) h = 60 * (((b - r) / delta) + 2)
+      else if (max === r) h = 60 * (((g - b) / delta) % 6)
+      else h = 60 * (((r - g) / delta) + 4)
+      if (h < 0) h += 360
+    }
+
+    // Green chromakey detection: H=80~160, S>35%, V>25%
+    const isGreen = h >= 80 && h <= 160 && s > 0.35 && v > 0.25
+
+    if (isGreen) {
+      // Fully transparent
+      pixels[i + 3] = 0
+    } else if (h >= 60 && h <= 180 && s > 0.2 && v > 0.2) {
+      // Edge feathering: semi-green pixels get partial transparency
+      const greenness = Math.min(1, Math.max(0, (s - 0.2) / 0.3 * (1 - Math.abs(h - 120) / 60)))
+      pixels[i + 3] = Math.round(255 * (1 - greenness * 0.8))
+    }
+  }
+
+  await sharp(Buffer.from(pixels), { raw: { width, height, channels } })
+    .png()
+    .toFile(filePath + '.tmp')
+
+  // Replace original
+  const { renameSync } = await import('fs')
+  renameSync(filePath + '.tmp', filePath)
+
+  console.log(`  🔍 [Sharp] Green background removed: ${filePath}`)
+  return true
+}
+
+/** Generate image — optionally with reference + transparency post-processing */
 async function generateImage(
   prompt: string,
   filePath: string,
   name: string,
   referenceImagePath?: string,
+  needsTransparency: boolean = false,
 ): Promise<GenResult> {
   try {
     const ai = getClient()
@@ -132,6 +189,21 @@ async function generateImage(
           }
 
           writeFileSync(filePath, buf)
+
+          // Post-process: remove green chromakey background → transparent PNG
+          if (needsTransparency) {
+            try {
+              const processed = await removeGreenBackground(filePath)
+              if (processed) {
+                const finalSize = readFileSync(filePath).length
+                console.log(`  ✅ [Gemini] ${name}: ${(finalSize / 1024).toFixed(0)}KB (transparent)`)
+                return { ok: true, bytes: finalSize, filePath }
+              }
+            } catch (e) {
+              console.log(`  ⚠️ [Gemini] ${name}: Transparency failed, keeping original`)
+            }
+          }
+
           console.log(`  ✅ [Gemini] ${name}: ${(buf.length / 1024).toFixed(0)}KB saved`)
           return { ok: true, bytes: buf.length, filePath }
         }
@@ -156,7 +228,7 @@ function buildPrompt(
   gameTitle: string,
   genre: string,
   hasReference: boolean,
-): string {
+): { prompt: string; transparent: boolean } {
   const [w, h] = asset.size.split('x').map(Number)
 
   const isBackground = asset.id.startsWith('bg-') || asset.id.includes('background')
@@ -188,6 +260,13 @@ function buildPrompt(
      asset.id.includes('character') || asset.id.includes('hero') || asset.id.includes('mob') || isBoss)
   const isVariation = !!asset.ref
 
+  // 투명 배경이 필요한 에셋: 캐릭터, 아이템, UI, 이펙트, 스프라이트시트, 파티클, 콤보팝업, 보드장식
+  // 투명 불필요: 배경, 썸네일, 타일러블 텍스처
+  const needsTransparent = !isBackground && !isThumbnail && !isTexture
+  const BG = needsTransparent
+    ? 'Background: solid bright green (#00FF00) chromakey. The green will be removed in post-processing to create transparency. Use PURE #00FF00 green, not dark green or yellow-green.'
+    : ''
+
   const STYLE = art.artStyle || 'stylized digital art'
   const PALETTE = art.colorPalette || 'rich, vibrant'
   const MOOD = art.mood || 'dramatic, atmospheric'
@@ -203,7 +282,7 @@ AVOID: flat vector art, generic clipart, stock imagery, AI-slop look.`
 
   // ─── Variation from reference image ───
   if (isVariation && hasReference) {
-    return `[TASK] Create a VARIATION of the attached reference character image.
+    return { prompt: `[TASK] Create a VARIATION of the attached reference character image.
 
 ${ART_DIR}
 
@@ -217,9 +296,9 @@ Keep the EXACT SAME character: same outfit, same colors, same proportions, same 
 - Change ONLY the pose/action as described above.
 - Maintain identical color palette, shading style, and detail level.
 - Output: ${w}x${h} pixels.
-- Background: solid pure black (#000000). NO transparency.
+- ${BG}
 - Exactly 1 character, centered, with 15% padding margin.
-- NO text, NO UI, NO borders, NO watermarks.`
+- NO text, NO UI, NO borders, NO watermarks.`, transparent: needsTransparent }
   }
 
   // ─── Sprite Sheet (multi-frame animation strip) ───
@@ -229,7 +308,7 @@ Keep the EXACT SAME character: same outfit, same colors, same proportions, same 
     const frameH = h
 
     if (isGemSheet) {
-      return `[TASK] Create a gem/jewel shimmer animation sprite sheet for "${gameTitle}" (${genre}).
+      return { prompt: `[TASK] Create a gem/jewel shimmer animation sprite sheet for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -248,14 +327,14 @@ ${ART_DIR}
 - ALL ${frameCount} frames must show the SAME gem from the SAME angle — only the light/sparkle changes.
 - Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH} of the strip.
 - Gem must be CENTERED within each frame with consistent padding.
-- Background: solid pure black (#000000). NO transparency.
+- ${BG}
 - Rich faceted crystal with visible refraction, specular highlights, and internal glow.
 - The gem must look DESIRABLE — premium, polished, luminous.
-- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`
+- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`, transparent: needsTransparent }
     }
 
     if (isMatchEffect) {
-      return `[TASK] Create a match/explosion effect animation sequence for "${gameTitle}" (${genre}).
+      return { prompt: `[TASK] Create a match/explosion effect animation sequence for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -274,13 +353,14 @@ ${ART_DIR}
 [STRICT RULES]
 - Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH}.
 - Effect must be CENTERED within each frame.
-- Background: solid pure black (#000000). Bright parts = visible (additive blending in game).
+- ${BG}
+- In-game, green/black areas become invisible. Bright parts = visible effect.
 - HDR-style bloom: pure white core → themed color → fading edges.
 - Progressive size increase across frames: small spark → large burst → fade.
-- Output: ${w}x${h} pixels. NO text, NO characters.`
+- Output: ${w}x${h} pixels. NO text, NO characters.`, transparent: needsTransparent }
     }
 
-    return `[TASK] Create an animation sprite sheet for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create an animation sprite sheet for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -297,15 +377,15 @@ ${ART_DIR}
 - Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH} of the strip.
 - Object/character must be CENTERED within each frame with consistent positioning.
 - Consistent art style, colors, proportions, and lighting across ALL frames.
-- Background: solid pure black (#000000). NO transparency.
+- ${BG}
 - Rich detail: visible textures, shading, highlights consistent across all frames.
 - Silhouette must be recognizable even at small display size.
-- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`
+- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`, transparent: needsTransparent }
   }
 
   // ─── Particle Effect Texture ───
   if (isParticle) {
-    return `[TASK] Create a particle effect texture for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a particle effect texture for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -313,7 +393,7 @@ ${ART_DIR}
 
 [STRICT RULES]
 - EXACTLY 1 particle texture, CENTERED in frame.
-- Background: solid pure black (#000000).
+- ${BG}
   In-game, black areas become invisible (additive blending). Design accordingly.
 - The particle should be a SMALL, SOFT element: a glowing dot, spark, ember, snowflake, or light mote.
 - Radial gradient from bright center to transparent/black edges.
@@ -322,12 +402,12 @@ ${ART_DIR}
 - Circular or near-circular shape for versatile rotation.
 - Rich color: saturated core with desaturated edges, subtle color shift from center to edge.
 - Output: ${w}x${h} pixels. NO text, NO borders, NO watermarks.
-- HIGH DETAIL even at small size — this texture will be rendered hundreds of times per frame.`
+- HIGH DETAIL even at small size — this texture will be rendered hundreds of times per frame.`, transparent: needsTransparent }
   }
 
   // ─── Tileable Texture ───
   if (isTexture) {
-    return `[TASK] Create a seamlessly tileable texture for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a seamlessly tileable texture for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -341,12 +421,12 @@ ${ART_DIR}
 - Lighting must be NEUTRAL/AMBIENT — no strong directional shadows that break tiling.
 - Output: ${w}x${h} pixels. Fills the ENTIRE canvas, NO black borders.
 - NO characters, NO items, NO text, NO watermarks.
-- Professional game texture quality — suitable for ground, walls, or surfaces.`
+- Professional game texture quality — suitable for ground, walls, or surfaces.`, transparent: needsTransparent }
   }
 
   // ─── Match-3 Combo Popup ───
   if (isComboPopup) {
-    return `[TASK] Create combo/score popup text graphics for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create combo/score popup text graphics for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -354,17 +434,17 @@ ${ART_DIR}
 
 [STRICT RULES]
 - Stylized number/text graphic for in-game score popups.
-- Background: solid pure black (#000000).
+- ${BG}
 - Bold, impactful typography with effects: metallic sheen, glow, 3D extrusion, or emboss.
 - Must be INSTANTLY READABLE even at small sizes and during fast gameplay.
 - Dynamic feel: slight perspective, motion lines, or energy aura around the text.
 - Color coding for escalation: warm gold for base, hotter colors for higher combos.
-- Output: ${w}x${h} pixels. NO additional UI, NO frames.`
+- Output: ${w}x${h} pixels. NO additional UI, NO frames.`, transparent: needsTransparent }
   }
 
   // ─── Board Decoration / Frame ───
   if (isBoardDecor) {
-    return `[TASK] Create a decorative board frame/border element for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a decorative board frame/border element for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -372,17 +452,17 @@ ${ART_DIR}
 
 [STRICT RULES]
 - Ornamental frame, border, or decorative element for the game board.
-- Background: solid pure black (#000000).
+- ${BG}
 - Rich material detail: carved wood, gilded metal, crystal-encrusted, magical runes, etc.
 - Symmetrical or repeatable design suitable for framing a rectangular game area.
 - Premium craftsmanship feel — like a high-end jewelry box or magical artifact border.
 - Consistent lighting (top-left), depth through highlights and shadows.
-- Output: ${w}x${h} pixels. NO text, NO characters, NO watermarks.`
+- Output: ${w}x${h} pixels. NO text, NO characters, NO watermarks.`, transparent: needsTransparent }
   }
 
   // ─── Character (base or standalone) ───
   if (isCharacter) {
-    return `[TASK] Create a game character sprite for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a game character sprite for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -392,14 +472,15 @@ ${ART_DIR}
 - Render EXACTLY 1 character. NOT a sprite sheet. NOT multiple characters. NOT multiple poses.
 - Single pose: idle/standing, facing front or 3/4 view.
 - Character centered in frame with 15% padding on all sides.
-- Background: solid pure black (#000000). NO transparency, NO gradients, NO environment.
+- ${BG}
+- NO gradients, NO environment.
 - The game engine uses drawImage() — black areas are treated as empty space.
 ${isBoss ? '- BOSS character: 2x more imposing, dramatic aura/glow, complex armor/details.' : ''}
 - Rich shading: key light (top-left 45°), fill light (subtle right), rim light (back edge).
 - Visible material textures: fabric weave, metal reflections, skin detail, armor rivets.
 - Silhouette must be recognizable even at 64x64 pixels.
 - Output: ${w}x${h} pixels.
-- NO text, NO UI elements, NO borders, NO watermarks, NO ground shadow.`
+- NO text, NO UI elements, NO borders, NO watermarks, NO ground shadow.`, transparent: needsTransparent }
   }
 
   // ─── Background ───
@@ -407,7 +488,7 @@ ${isBoss ? '- BOSS character: 2x more imposing, dramatic aura/glow, complex armo
     const layer = asset.id.includes('far') || asset.id.includes('layer1') ? 'FAR (distant sky/horizon)' :
                   asset.id.includes('mid') || asset.id.includes('layer2') ? 'MID (terrain silhouettes)' :
                   asset.id.includes('near') || asset.id.includes('ground') ? 'NEAR (ground/platforms)' : 'GENERAL'
-    return `[TASK] Create a game background layer for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a game background layer for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -423,12 +504,12 @@ ${layer.includes('MID') ? '- Medium-detail silhouettes: buildings, trees, rocks.
 ${layer.includes('NEAR') ? '- High-detail ground elements: platforms, foliage, terrain texture.' : ''}
 - Painterly digital art with visible brushwork and atmospheric perspective.
 - Consider horizontal tiling (left-right edge continuity).
-- Output: ${w}x${h} pixels.`
+- Output: ${w}x${h} pixels.`, transparent: needsTransparent }
   }
 
   // ─── Effect/VFX ───
   if (isEffect) {
-    return `[TASK] Create a game visual effect (VFX) for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a game visual effect (VFX) for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -436,7 +517,7 @@ ${ART_DIR}
 
 [STRICT RULES]
 - EXACTLY 1 effect instance, CENTERED in the frame.
-- Background: solid pure black (#000000).
+- ${BG}
   In-game, black areas become invisible (additive blending). Design accordingly:
   bright parts = visible effect, black = transparent in game.
 - Radial/centered emanation from the center outward.
@@ -446,12 +527,12 @@ ${asset.id.includes('hit') ? '- IMPACT effect: short burst, directional speed li
 ${asset.id.includes('explosion') ? '- EXPLOSION: large radial burst, fire/smoke layers, flying debris.' : ''}
 ${asset.id.includes('heal') ? '- HEALING: upward-floating particles, soft green/white glow, gentle sparkles.' : ''}
 ${asset.id.includes('dash') ? '- DASH/SPEED: horizontal motion blur, afterimage trail, wind lines.' : ''}
-- Output: ${w}x${h} pixels. NO text, NO characters.`
+- Output: ${w}x${h} pixels. NO text, NO characters.`, transparent: needsTransparent }
   }
 
   // ─── UI Icon ───
   if (isUI) {
-    return `[TASK] Create a game UI icon for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a game UI icon for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -459,7 +540,7 @@ ${ART_DIR}
 
 [STRICT RULES]
 - EXACTLY 1 icon, CENTERED with 20% padding margin.
-- Background: solid pure black (#000000). NO transparency.
+- ${BG}
 - Must be INSTANTLY READABLE at 32x32 pixel display size — bold, high-contrast shapes.
 - Premium mobile game quality: glossy surface, specular highlight, 3D depth feel.
 ${asset.id.includes('hp') || asset.id.includes('heart') || asset.id.includes('health') ?
@@ -469,12 +550,12 @@ ${asset.id.includes('score') || asset.id.includes('coin') || asset.id.includes('
 ${asset.id.includes('mana') || asset.id.includes('energy') ?
   '- MANA/ENERGY icon: blue/purple crystal orb, magical sparkle, internal glow.' : ''}
 - Drop shadow for floating appearance. Material matches game theme.
-- Output: ${w}x${h} pixels. NO text, NO numbers, NO frames.`
+- Output: ${w}x${h} pixels. NO text, NO numbers, NO frames.`, transparent: needsTransparent }
   }
 
   // ─── Thumbnail / Key Art ───
   if (isThumbnail) {
-    return `[TASK] Create game store cover art / marketing thumbnail for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create game store cover art / marketing thumbnail for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -490,12 +571,12 @@ ${ART_DIR}
 - Dynamic composition: rule of thirds, action pose, movement/drama.
 - High contrast, saturated accent colors for thumbnail grid visibility.
 - Professional color grading: movie poster / Steam capsule art quality.
-- Output: ${w}x${h} pixels. Landscape orientation.`
+- Output: ${w}x${h} pixels. Landscape orientation.`, transparent: needsTransparent }
   }
 
   // ─── Item / Collectible ───
   if (isItem) {
-    return `[TASK] Create a game item/collectible sprite for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a game item/collectible sprite for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -503,18 +584,18 @@ ${ART_DIR}
 
 [STRICT RULES]
 - EXACTLY 1 item, CENTERED with 20% padding.
-- Background: solid pure black (#000000). NO transparency.
+- ${BG}
 - Item must look DESIRABLE — players should want to collect it.
 - Readable at 32x32 display size.
 - NO character hands holding the item — item floats alone.
 - Luminous surface with internal glow or magical aura. Fresnel rim lighting.
 - Subtle sparkle/particle effects suggesting value or power.
-- Output: ${w}x${h} pixels. NO text, NO UI, NO hands.`
+- Output: ${w}x${h} pixels. NO text, NO UI, NO hands.`, transparent: needsTransparent }
   }
 
   // ─── Tile / Platform ───
   if (isTile) {
-    return `[TASK] Create a game tile/platform piece for "${gameTitle}" (${genre}).
+    return { prompt: `[TASK] Create a game tile/platform piece for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -522,15 +603,15 @@ ${ART_DIR}
 
 [STRICT RULES]
 - SEAMLESS TILEABLE texture/platform piece.
-- Background: solid pure black (#000000) around the tile shape.
+- ${BG}
 - Edges designed for tiling — left matches right, top matches bottom.
 - Visible material texture: stone cracks, wood grain, metal rivets, crystal facets.
 - Consistent lighting direction (top-left).
-- Output: ${w}x${h} pixels. Single tile.`
+- Output: ${w}x${h} pixels. Single tile.`, transparent: needsTransparent }
   }
 
   // ─── Generic fallback ───
-  return `[TASK] Create a game asset for "${gameTitle}" (${genre}).
+  return { prompt: `[TASK] Create a game asset for "${gameTitle}" (${genre}).
 
 ${ART_DIR}
 
@@ -538,9 +619,9 @@ ${ART_DIR}
 
 [STRICT RULES]
 - EXACTLY 1 object/element, CENTERED in frame.
-- Background: solid pure black (#000000). NO transparency.
+- ${BG}
 - Game-ready: clean edges, consistent lighting, readable at display size.
-- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`
+- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`, transparent: needsTransparent }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -628,8 +709,8 @@ async function runPipeline(
   console.log(`  📦 Phase 1: ${baseAssets.length} base assets`)
   for (const asset of baseAssets) {
     const filePath = `${assetsDir}/${asset.id}.png`
-    const prompt = buildPrompt(asset, art, gameTitle, genre, false)
-    const result = await generateImage(prompt, filePath, asset.id)
+    const { prompt, transparent } = buildPrompt(asset, art, gameTitle, genre, false)
+    const result = await generateImage(prompt, filePath, asset.id, undefined, transparent)
 
     if (result.ok && validateAsset(filePath, asset.id, asset.size)) {
       generated.push(asset.id)
@@ -637,7 +718,7 @@ async function runPipeline(
       // Retry once
       console.log(`  🔄 [Gemini] Retrying ${asset.id}...`)
       await new Promise(r => setTimeout(r, 1000))
-      const retry = await generateImage(prompt, filePath, `${asset.id} (retry)`)
+      const retry = await generateImage(prompt, filePath, `${asset.id} (retry)`, undefined, transparent)
       if (retry.ok && validateAsset(filePath, asset.id, asset.size)) {
         generated.push(asset.id)
       } else {
@@ -654,8 +735,8 @@ async function runPipeline(
       const filePath = `${assetsDir}/${asset.id}.png`
       const refPath = `${assetsDir}/${asset.ref}.png`
       const hasRef = existsSync(refPath)
-      const prompt = buildPrompt(asset, art, gameTitle, genre, hasRef)
-      const result = await generateImage(prompt, filePath, asset.id, hasRef ? refPath : undefined)
+      const { prompt, transparent } = buildPrompt(asset, art, gameTitle, genre, hasRef)
+      const result = await generateImage(prompt, filePath, asset.id, hasRef ? refPath : undefined, transparent)
 
       if (result.ok && validateAsset(filePath, asset.id, asset.size)) {
         generated.push(asset.id)
