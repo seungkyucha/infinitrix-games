@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-28T00:00:00.000Z",
-  "totalGames": 40,
+  "lastUpdated": "2026-03-27T23:24:52.889Z",
+  "totalGames": 41,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -7472,6 +7472,200 @@
             "Arrastar: Arraste uma gema para trocar",
             "Toque: Toque e deslize para trocar",
             "Teclado: Setas para mover cursor, Espaço para selecionar/trocar"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gem-odyssey",
+      "title": "젬 오딧세이",
+      "description": "마법 왕국을 여행하며 보석을 매칭하는 레벨 클리어 퍼즐!",
+      "genre": [
+        "puzzle"
+      ],
+      "thumbnail": "/games/gem-odyssey/assets/thumbnail.png",
+      "path": "/games/gem-odyssey/index.html",
+      "addedAt": "2026-03-27T23:24:52.889Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": [
+        "매치3",
+        "퍼즐",
+        "판타지",
+        "왕국여행",
+        "보석",
+        "레벨클리어",
+        "부스터"
+      ],
+      "controls": [
+        "마우스: 보석 클릭 후 인접 보석 클릭으로 스왑",
+        "마우스 드래그: 보석을 드래그하여 스왑",
+        "터치: 탭 후 스와이프로 스왑",
+        "키보드: 방향키로 커서 이동, Space로 선택/스왑",
+        "부스터: 하단 아이콘 클릭/탭으로 활성화 후 타일 선택"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Gem Odyssey",
+          "description": "Travel through magical kingdoms matching gems in this level-clear puzzle!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "fantasy",
+            "kingdom journey",
+            "gems",
+            "level clear",
+            "booster"
+          ],
+          "controls": [
+            "Mouse: Click a gem then click an adjacent gem to swap",
+            "Mouse Drag: Drag a gem to swap",
+            "Touch: Tap and swipe to swap",
+            "Keyboard: Arrow keys to move cursor, Space to select/swap",
+            "Boosters: Click/tap icons at bottom to activate, then select a tile"
+          ]
+        },
+        "ja": {
+          "title": "ジェム・オデッセイ",
+          "description": "魔法の王国を旅しながら宝石をマッチさせるレベルクリアパズル！",
+          "tags": [
+            "マッチ3",
+            "パズル",
+            "ファンタジー",
+            "王国旅行",
+            "宝石",
+            "レベルクリア",
+            "ブースター"
+          ],
+          "controls": [
+            "マウス: 宝石をクリックして隣の宝石をクリックでスワップ",
+            "マウスドラッグ: 宝石をドラッグしてスワップ",
+            "タッチ: タップしてスワイプでスワップ",
+            "キーボード: 矢印キーでカーソル移動、Spaceで選択/スワップ",
+            "ブースター: 下部のアイコンをクリック/タップで有効化後タイルを選択"
+          ]
+        },
+        "zh-CN": {
+          "title": "宝石奥德赛",
+          "description": "穿越魔法王国，匹配宝石通关的益智游戏！",
+          "tags": [
+            "三消",
+            "益智",
+            "奇幻",
+            "王国之旅",
+            "宝石",
+            "关卡通关",
+            "增益道具"
+          ],
+          "controls": [
+            "鼠标：点击一颗宝石后点击相邻宝石交换",
+            "鼠标拖拽：拖动宝石进行交换",
+            "触屏：点击后滑动交换",
+            "键盘：方向键移动光标，空格键选择/交换",
+            "增益道具：点击底部图标激活后选择目标方块"
+          ]
+        },
+        "zh-TW": {
+          "title": "寶石奧德賽",
+          "description": "穿越魔法王國，配對寶石過關的益智遊戲！",
+          "tags": [
+            "三消",
+            "益智",
+            "奇幻",
+            "王國之旅",
+            "寶石",
+            "關卡通關",
+            "增益道具"
+          ],
+          "controls": [
+            "滑鼠：點擊一顆寶石後點擊相鄰寶石交換",
+            "滑鼠拖曳：拖動寶石進行交換",
+            "觸控：點擊後滑動交換",
+            "鍵盤：方向鍵移動游標，空白鍵選擇/交換",
+            "增益道具：點擊底部圖示啟用後選擇目標方塊"
+          ]
+        },
+        "es": {
+          "title": "Odisea de Gemas",
+          "description": "¡Viaja por reinos mágicos combinando gemas en este puzzle por niveles!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "fantasía",
+            "viaje de reinos",
+            "gemas",
+            "superar niveles",
+            "potenciadores"
+          ],
+          "controls": [
+            "Ratón: Haz clic en una gema y luego en una adyacente para intercambiar",
+            "Arrastrar: Arrastra una gema para intercambiar",
+            "Táctil: Toca y desliza para intercambiar",
+            "Teclado: Flechas para mover cursor, Espacio para seleccionar/intercambiar",
+            "Potenciadores: Clic/toca los iconos inferiores para activar y selecciona una casilla"
+          ]
+        },
+        "fr": {
+          "title": "L'Odyssée des Gemmes",
+          "description": "Voyagez à travers des royaumes magiques en associant des gemmes dans ce puzzle à niveaux !",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "fantaisie",
+            "voyage royal",
+            "gemmes",
+            "niveaux",
+            "boosters"
+          ],
+          "controls": [
+            "Souris : Cliquez sur une gemme puis sur une adjacente pour échanger",
+            "Glisser : Faites glisser une gemme pour échanger",
+            "Tactile : Appuyez et glissez pour échanger",
+            "Clavier : Flèches pour déplacer le curseur, Espace pour sélectionner/échanger",
+            "Boosters : Cliquez/appuyez sur les icônes en bas pour activer puis sélectionnez une case"
+          ]
+        },
+        "de": {
+          "title": "Juwelen-Odyssee",
+          "description": "Reise durch magische Königreiche und kombiniere Juwelen in diesem Level-Puzzle!",
+          "tags": [
+            "Match-3",
+            "Puzzle",
+            "Fantasy",
+            "Königreichreise",
+            "Juwelen",
+            "Level-Abschluss",
+            "Booster"
+          ],
+          "controls": [
+            "Maus: Klicke auf einen Edelstein und dann auf einen benachbarten zum Tauschen",
+            "Maus ziehen: Ziehe einen Edelstein zum Tauschen",
+            "Touch: Tippe und wische zum Tauschen",
+            "Tastatur: Pfeiltasten zum Bewegen des Cursors, Leertaste zum Auswählen/Tauschen",
+            "Booster: Klicke/tippe auf die Symbole unten zum Aktivieren, dann wähle ein Feld"
+          ]
+        },
+        "pt": {
+          "title": "Odisseia das Gemas",
+          "description": "Viaje por reinos mágicos combinando gemas neste puzzle de fases!",
+          "tags": [
+            "match-3",
+            "puzzle",
+            "fantasia",
+            "jornada de reinos",
+            "gemas",
+            "passar de fase",
+            "impulsionadores"
+          ],
+          "controls": [
+            "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
+            "Arrastar: Arraste uma gema para trocar",
+            "Toque: Toque e deslize para trocar",
+            "Teclado: Setas para mover cursor, Espaço para selecionar/trocar",
+            "Impulsionadores: Clique/toque nos ícones inferiores para ativar e selecione um bloco"
           ]
         }
       }
