@@ -297,7 +297,7 @@ class Particles {
 
   /** Emit particles at position */
   emit(x, y, count = 10, opts = {}) {
-    const { color = '#fff', speed = 100, life = 0.5, size = 3, spread = Math.PI * 2 } = opts;
+    const { color = '#fff', speed = 100, life = 0.5, size = 3, spread = Math.PI * 2, texture = null, rotation = false } = opts;
     for (let i = 0; i < count && this._particles.length < this._max; i++) {
       const angle = Math.random() * spread - spread / 2 + (opts.angle || 0);
       const spd = speed * (0.5 + Math.random() * 0.5);
@@ -310,6 +310,8 @@ class Particles {
         size: size * (0.5 + Math.random()),
         color,
         alpha: 1,
+        texture,
+        rotation: rotation ? Math.random() * Math.PI * 2 : 0,
       });
     }
   }
@@ -331,8 +333,16 @@ class Particles {
   render(ctx) {
     for (const p of this._particles) {
       ctx.globalAlpha = p.alpha;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      if (p.texture) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        if (p.rotation) ctx.rotate(p.rotation * (p.life / p.maxLife));
+        ctx.drawImage(p.texture, -p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -492,6 +502,48 @@ const MathUtil = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Sprite Animation — sprite sheet frame management
+// ═══════════════════════════════════════════════════════════
+class Sprite {
+  constructor(image, frameWidth, frameHeight, frameCount, fps = 12) {
+    this.image = image;
+    this.fw = frameWidth;
+    this.fh = frameHeight;
+    this.frameCount = frameCount;
+    this.fps = fps;
+    this.currentFrame = 0;
+    this.elapsed = 0;
+    this.loop = true;
+    this.playing = true;
+  }
+
+  update(dt) {
+    if (!this.playing) return;
+    this.elapsed += dt;
+    const frameDur = 1000 / this.fps;
+    while (this.elapsed >= frameDur) {
+      this.elapsed -= frameDur;
+      this.currentFrame++;
+      if (this.currentFrame >= this.frameCount) {
+        this.currentFrame = this.loop ? 0 : this.frameCount - 1;
+        if (!this.loop) this.playing = false;
+      }
+    }
+  }
+
+  draw(ctx, x, y, w, h) {
+    if (!this.image) return;
+    const sx = this.currentFrame * this.fw;
+    ctx.drawImage(this.image, sx, 0, this.fw, this.fh, x, y, w || this.fw, h || this.fh);
+  }
+
+  reset() { this.currentFrame = 0; this.elapsed = 0; this.playing = true; }
+  play() { this.playing = true; }
+  stop() { this.playing = false; }
+  setFrame(f) { this.currentFrame = Math.min(f, this.frameCount - 1); }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Genre — 장르별 모듈 마운트 포인트
 // 각 장르 모듈은 /engine/genres/{genre}.js에서 IX.Genre.{Name}에 등록
 // ═══════════════════════════════════════════════════════════
@@ -500,6 +552,6 @@ const Genre = {};
 // ═══════════════════════════════════════════════════════════
 // Export
 // ═══════════════════════════════════════════════════════════
-return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Genre };
+return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Sprite, Genre };
 
 })();

@@ -29,6 +29,7 @@ export interface AssetDef {
   desc: string
   size: string
   ref?: string  // reference asset id (e.g. "player" for "player-attack")
+  frames?: number  // for sprite sheets — number of animation frames
 }
 
 export interface ArtDirection {
@@ -62,12 +63,14 @@ export function parseAssetRequirements(specContent: string): ArtDirection | null
     const descMatch = block.match(/desc:\s*"([^"]+)"/)
     const sizeMatch = block.match(/size:\s*"?(\d+x\d+)"?/)
     const refMatch = block.match(/ref:\s*"?(\S+)"?/)
+    const framesMatch = block.match(/frames:\s*(\d+)/)
     if (idMatch) {
       assets.push({
         id: idMatch[1].trim(),
         desc: descMatch?.[1]?.trim() ?? idMatch[1].trim(),
         size: sizeMatch?.[1]?.trim() ?? '512x512',
         ref: refMatch?.[1]?.trim(),
+        frames: framesMatch ? parseInt(framesMatch[1], 10) : undefined,
       })
     }
   }
@@ -164,7 +167,23 @@ function buildPrompt(
   const isItem = asset.id.includes('item-') || asset.id.includes('powerup') || asset.id.includes('coin') ||
                  asset.id.includes('gem') || asset.id.includes('potion') || asset.id.includes('weapon')
   const isBoss = asset.id.includes('boss')
+
+  // New asset type detections — sprite sheets, particles, tileable textures
+  const isSpriteSheet = asset.id.includes('sheet') || asset.id.includes('anim') ||
+                        asset.id.includes('frames') || asset.id.includes('sequence') || !!asset.frames
+  const isParticle = asset.id.includes('particle') || asset.id.includes('spark') ||
+                     asset.id.includes('glow') || asset.id.includes('trail')
+  const isTexture = asset.id.includes('texture') || asset.id.includes('pattern') ||
+                    asset.id.includes('tileable')
+
+  // Match-3 specialized asset types
+  const isGemSheet = isSpriteSheet && (asset.id.includes('gem') || asset.id.includes('jewel'))
+  const isMatchEffect = asset.id.includes('match') && (asset.id.includes('effect') || asset.id.includes('explosion') || asset.id.includes('sequence'))
+  const isComboPopup = asset.id.includes('combo') || (asset.id.includes('popup') && asset.id.includes('number'))
+  const isBoardDecor = asset.id.includes('board') || asset.id.includes('frame-decor') || asset.id.includes('decoration')
+
   const isCharacter = !isBackground && !isEffect && !isUI && !isThumbnail && !isTile && !isItem &&
+    !isSpriteSheet && !isParticle && !isTexture && !isComboPopup && !isBoardDecor &&
     (asset.id.includes('player') || asset.id.includes('enemy') || asset.id.includes('npc') ||
      asset.id.includes('character') || asset.id.includes('hero') || asset.id.includes('mob') || isBoss)
   const isVariation = !!asset.ref
@@ -201,6 +220,164 @@ Keep the EXACT SAME character: same outfit, same colors, same proportions, same 
 - Background: solid pure black (#000000). NO transparency.
 - Exactly 1 character, centered, with 15% padding margin.
 - NO text, NO UI, NO borders, NO watermarks.`
+  }
+
+  // ─── Sprite Sheet (multi-frame animation strip) ───
+  if (isSpriteSheet) {
+    const frameCount = asset.frames || 4
+    const frameW = Math.round(w / frameCount)
+    const frameH = h
+
+    if (isGemSheet) {
+      return `[TASK] Create a gem/jewel shimmer animation sprite sheet for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[GEM DESCRIPTION] ${asset.desc}
+
+[SPRITE SHEET FORMAT]
+- ${frameCount} frames arranged HORIZONTALLY in a single image strip.
+- Total image size: ${w}x${h} pixels.
+- Each frame: ${frameW}x${frameH} pixels.
+- Frames show a SHIMMER/SPARKLE animation cycle: light reflection moves across the gem surface.
+- Frame 1: base gem, subtle glow.
+- Frame 2-${frameCount - 1}: light highlight sweeps across facets, intensifying.
+- Frame ${frameCount}: peak sparkle, then cycles back.
+
+[STRICT RULES]
+- ALL ${frameCount} frames must show the SAME gem from the SAME angle — only the light/sparkle changes.
+- Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH} of the strip.
+- Gem must be CENTERED within each frame with consistent padding.
+- Background: solid pure black (#000000). NO transparency.
+- Rich faceted crystal with visible refraction, specular highlights, and internal glow.
+- The gem must look DESIRABLE — premium, polished, luminous.
+- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`
+    }
+
+    if (isMatchEffect) {
+      return `[TASK] Create a match/explosion effect animation sequence for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[EFFECT DESCRIPTION] ${asset.desc}
+
+[SPRITE SHEET FORMAT]
+- ${frameCount} frames arranged HORIZONTALLY in a single image strip.
+- Total image size: ${w}x${h} pixels.
+- Each frame: ${frameW}x${frameH} pixels.
+- Frames show an EXPLOSION sequence from start to finish.
+- Frame 1: initial flash/spark, small and bright.
+- Frame 2: expanding ring of energy and particles.
+- Frame 3: full explosion with scattered debris and bright core.
+- Frame ${frameCount}: dissipating particles, fading edges.
+
+[STRICT RULES]
+- Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH}.
+- Effect must be CENTERED within each frame.
+- Background: solid pure black (#000000). Bright parts = visible (additive blending in game).
+- HDR-style bloom: pure white core → themed color → fading edges.
+- Progressive size increase across frames: small spark → large burst → fade.
+- Output: ${w}x${h} pixels. NO text, NO characters.`
+    }
+
+    return `[TASK] Create an animation sprite sheet for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[ANIMATION DESCRIPTION] ${asset.desc}
+
+[SPRITE SHEET FORMAT]
+- ${frameCount} frames arranged HORIZONTALLY in a single image strip.
+- Total image size: ${w}x${h} pixels.
+- Each frame: ${frameW}x${frameH} pixels.
+- Frames should show a smooth animation cycle (e.g., idle breathing, walking, floating).
+
+[STRICT RULES]
+- ALL ${frameCount} frames must show the SAME object/character — only pose/state changes between frames.
+- Clear frame boundaries — each frame occupies exactly ${frameW}x${frameH} of the strip.
+- Object/character must be CENTERED within each frame with consistent positioning.
+- Consistent art style, colors, proportions, and lighting across ALL frames.
+- Background: solid pure black (#000000). NO transparency.
+- Rich detail: visible textures, shading, highlights consistent across all frames.
+- Silhouette must be recognizable even at small display size.
+- Output: ${w}x${h} pixels. NO text, NO UI, NO watermarks.`
+  }
+
+  // ─── Particle Effect Texture ───
+  if (isParticle) {
+    return `[TASK] Create a particle effect texture for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[PARTICLE DESCRIPTION] ${asset.desc}
+
+[STRICT RULES]
+- EXACTLY 1 particle texture, CENTERED in frame.
+- Background: solid pure black (#000000).
+  In-game, black areas become invisible (additive blending). Design accordingly.
+- The particle should be a SMALL, SOFT element: a glowing dot, spark, ember, snowflake, or light mote.
+- Radial gradient from bright center to transparent/black edges.
+- Alpha falloff: crisp bright core (20% of radius) → soft glow (50%) → fading edge (100%).
+- Must look good when rendered at very small sizes (8-32 pixels) and when many are on screen at once.
+- Circular or near-circular shape for versatile rotation.
+- Rich color: saturated core with desaturated edges, subtle color shift from center to edge.
+- Output: ${w}x${h} pixels. NO text, NO borders, NO watermarks.
+- HIGH DETAIL even at small size — this texture will be rendered hundreds of times per frame.`
+  }
+
+  // ─── Tileable Texture ───
+  if (isTexture) {
+    return `[TASK] Create a seamlessly tileable texture for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[TEXTURE DESCRIPTION] ${asset.desc}
+
+[STRICT RULES]
+- SEAMLESSLY TILEABLE: left edge matches right edge, top edge matches bottom edge PERFECTLY.
+- When placed in a 3x3 grid of copies, NO visible seams at any boundary.
+- Consistent detail density across the entire surface — no focal point or center bias.
+- Visible material properties: surface roughness, subtle color variation, fine detail.
+- Lighting must be NEUTRAL/AMBIENT — no strong directional shadows that break tiling.
+- Output: ${w}x${h} pixels. Fills the ENTIRE canvas, NO black borders.
+- NO characters, NO items, NO text, NO watermarks.
+- Professional game texture quality — suitable for ground, walls, or surfaces.`
+  }
+
+  // ─── Match-3 Combo Popup ───
+  if (isComboPopup) {
+    return `[TASK] Create combo/score popup text graphics for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[POPUP DESCRIPTION] ${asset.desc}
+
+[STRICT RULES]
+- Stylized number/text graphic for in-game score popups.
+- Background: solid pure black (#000000).
+- Bold, impactful typography with effects: metallic sheen, glow, 3D extrusion, or emboss.
+- Must be INSTANTLY READABLE even at small sizes and during fast gameplay.
+- Dynamic feel: slight perspective, motion lines, or energy aura around the text.
+- Color coding for escalation: warm gold for base, hotter colors for higher combos.
+- Output: ${w}x${h} pixels. NO additional UI, NO frames.`
+  }
+
+  // ─── Board Decoration / Frame ───
+  if (isBoardDecor) {
+    return `[TASK] Create a decorative board frame/border element for "${gameTitle}" (${genre}).
+
+${ART_DIR}
+
+[DECORATION DESCRIPTION] ${asset.desc}
+
+[STRICT RULES]
+- Ornamental frame, border, or decorative element for the game board.
+- Background: solid pure black (#000000).
+- Rich material detail: carved wood, gilded metal, crystal-encrusted, magical runes, etc.
+- Symmetrical or repeatable design suitable for framing a rectangular game area.
+- Premium craftsmanship feel — like a high-end jewelry box or magical artifact border.
+- Consistent lighting (top-left), depth through highlights and shadows.
+- Output: ${w}x${h} pixels. NO text, NO characters, NO watermarks.`
   }
 
   // ─── Character (base or standalone) ───
