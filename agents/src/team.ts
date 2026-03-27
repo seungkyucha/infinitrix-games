@@ -212,6 +212,15 @@ assets:
 - 이펙트: effect-heal, effect-levelup, effect-dash 등
 - UI: ui-button-start, ui-frame-dialog 등
 
+⚠️ 포즈/변형 에셋은 ref 필드로 기본 에셋을 참조:
+  - id: player-attack
+    desc: "플레이어 공격 포즈 — 검을 앞으로 휘두르는 자세"
+    size: "512x512"
+    ref: "player"    ← 기본 player 에셋을 참조하여 동일 캐릭터 변형 생성
+
+  ref가 있으면 Gemini가 기본 에셋 이미지를 첨부하여 통일성 있는 변형을 생성합니다.
+  같은 캐릭터의 idle, attack, hurt, death 포즈가 필요하면 이 방식을 사용하세요.
+
 ⚠️ index.html 하나에 구현 가능한 현실적 규모로 기획할 것
 ⚠️ 에셋은 최소 8개 ~ 최대 20개 범위로 정의
 
