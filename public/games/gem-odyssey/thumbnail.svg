@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0533;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#2d1b69;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#0d1b2a;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="ruby" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff1744"/>
+      <stop offset="50%" style="stop-color:#e91e63"/>
+      <stop offset="100%" style="stop-color:#b71c1c"/>
+    </linearGradient>
+    <linearGradient id="sapphire" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#448aff"/>
+      <stop offset="50%" style="stop-color:#2979ff"/>
+      <stop offset="100%" style="stop-color:#1565c0"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#69f0ae"/>
+      <stop offset="50%" style="stop-color:#00e676"/>
+      <stop offset="100%" style="stop-color:#1b5e20"/>
+    </linearGradient>
+    <linearGradient id="topaz" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd740"/>
+      <stop offset="50%" style="stop-color:#ffab00"/>
+      <stop offset="100%" style="stop-color:#ff8f00"/>
+    </linearGradient>
+    <linearGradient id="amethyst" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e040fb"/>
+      <stop offset="50%" style="stop-color:#aa00ff"/>
+      <stop offset="100%" style="stop-color:#6a1b9a"/>
+    </linearGradient>
+    <linearGradient id="diamond" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0f7fa"/>
+      <stop offset="50%" style="stop-color:#80deea"/>
+      <stop offset="100%" style="stop-color:#00acc1"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="sparkle">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="300" fill="url(#bg)"/>
+
+  <!-- Stars -->
+  <circle cx="30" cy="25" r="1.5" fill="#fff" opacity="0.7"/>
+  <circle cx="85" cy="45" r="1" fill="#fff" opacity="0.5"/>
+  <circle cx="150" cy="18" r="1.2" fill="#fff" opacity="0.6"/>
+  <circle cx="250" cy="30" r="1" fill="#fff" opacity="0.4"/>
+  <circle cx="320" cy="15" r="1.5" fill="#fff" opacity="0.7"/>
+  <circle cx="370" cy="50" r="1" fill="#fff" opacity="0.5"/>
+  <circle cx="55" cy="70" r="0.8" fill="#fff" opacity="0.3"/>
+  <circle cx="345" cy="80" r="1.2" fill="#fff" opacity="0.6"/>
+
+  <!-- Grid background (subtle) -->
+  <rect x="95" y="70" width="210" height="180" rx="12" fill="#ffffff" opacity="0.06"/>
+
+  <!-- Row 1 gems -->
+  <!-- Ruby (diamond shape) -->
+  <g filter="url(#glow)" transform="translate(120,95)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#ruby)" stroke="#ff5252" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <!-- Sapphire -->
+  <g filter="url(#glow)" transform="translate(170,95)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#sapphire)" stroke="#82b1ff" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <!-- Emerald -->
+  <g filter="url(#glow)" transform="translate(220,95)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#emerald)" stroke="#b9f6ca" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <!-- Topaz -->
+  <g filter="url(#glow)" transform="translate(270,95)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#topaz)" stroke="#ffe57f" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- Row 2 gems -->
+  <g filter="url(#glow)" transform="translate(120,140)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#amethyst)" stroke="#ea80fc" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(170,140)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#diamond)" stroke="#80deea" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.25"/>
+  </g>
+  <!-- Matching 3 rubies highlight -->
+  <g filter="url(#glow)" transform="translate(220,140)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#ruby)" stroke="#ff5252" stroke-width="2"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.3"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(270,140)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#sapphire)" stroke="#82b1ff" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- Row 3 gems -->
+  <g filter="url(#glow)" transform="translate(120,185)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#topaz)" stroke="#ffe57f" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(170,185)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#ruby)" stroke="#ff5252" stroke-width="2"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.3"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(220,185)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#emerald)" stroke="#b9f6ca" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(270,185)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#amethyst)" stroke="#ea80fc" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- Row 4 gems -->
+  <g filter="url(#glow)" transform="translate(120,230)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#emerald)" stroke="#b9f6ca" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(170,230)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#topaz)" stroke="#ffe57f" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.2"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(220,230)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#ruby)" stroke="#ff5252" stroke-width="2"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.3"/>
+  </g>
+  <g filter="url(#glow)" transform="translate(270,230)">
+    <polygon points="0,-18 18,0 0,18 -18,0" fill="url(#diamond)" stroke="#80deea" stroke-width="1"/>
+    <polygon points="0,-18 18,0 0,0" fill="#fff" opacity="0.25"/>
+  </g>
+
+  <!-- Match line effect (vertical 3 rubies: row2-col3, row3-col2, row4-col3) -->
+  <line x1="170" y1="140" x2="170" y2="185" stroke="#ff1744" stroke-width="2" opacity="0.6" filter="url(#sparkle)"/>
+  <line x1="220" y1="185" x2="220" y2="230" stroke="#ff1744" stroke-width="2" opacity="0.6" filter="url(#sparkle)"/>
+
+  <!-- Sparkle effects -->
+  <g filter="url(#sparkle)">
+    <polygon points="195,100 197,106 203,106 198,110 200,116 195,112 190,116 192,110 187,106 193,106" fill="#fff" opacity="0.9"/>
+    <polygon points="310,160 311.5,164 316,164 312.5,167 313.5,171 310,168.5 306.5,171 307.5,167 304,164 308.5,164" fill="#fff" opacity="0.7"/>
+    <polygon points="80,200 81,203 84,203 81.5,205 82.5,208 80,206 77.5,208 78.5,205 76,203 79,203" fill="#ffd740" opacity="0.6"/>
+  </g>
+
+  <!-- Title -->
+  <text x="200" y="35" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffd740" filter="url(#glow)">Gem Odyssey</text>
+  <text x="200" y="58" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#e0f7fa" opacity="0.8">Match &amp; Conquer the Kingdoms</text>
+
+  <!-- Bottom decorative crown -->
+  <g transform="translate(200,278)" opacity="0.5">
+    <polygon points="0,-12 -15,4 -10,-2 -5,4 0,-4 5,4 10,-2 15,4" fill="#ffd740" stroke="#ffab00" stroke-width="0.5"/>
+    <circle cx="-10" cy="-1" r="2" fill="#ff1744"/>
+    <circle cx="0" cy="-5" r="2" fill="#448aff"/>
+    <circle cx="10" cy="-1" r="2" fill="#69f0ae"/>
+  </g>
+</svg>

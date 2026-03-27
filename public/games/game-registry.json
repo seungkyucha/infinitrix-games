@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-27T23:24:52.889Z",
+  "lastUpdated": "2026-03-28T00:00:00.000Z",
   "totalGames": 41,
   "games": [
     {
@@ -7483,7 +7483,7 @@
       "genre": [
         "puzzle"
       ],
-      "thumbnail": "/games/gem-odyssey/assets/thumbnail.png",
+      "thumbnail": "/games/gem-odyssey/thumbnail.svg",
       "path": "/games/gem-odyssey/index.html",
       "addedAt": "2026-03-27T23:24:52.889Z",
       "featured": false,
