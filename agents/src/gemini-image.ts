@@ -721,26 +721,18 @@ async function runPipeline(
 
   if (!existsSync(assetsDir)) mkdirSync(assetsDir, { recursive: true })
 
-  // Limit total assets to prevent timeout (max 20)
-  const MAX_ASSETS = 20
-  if (art.assets.length > MAX_ASSETS) {
-    console.log(`  ⚠️ [Gemini] ${art.assets.length} assets requested, trimming to ${MAX_ASSETS} (prioritizing base assets + thumbnail)`)
-    // Keep thumbnail, then base assets, then variations
-    const thumbnail = art.assets.filter(a => a.id === 'thumbnail')
-    const bases = art.assets.filter(a => !a.ref && a.id !== 'thumbnail')
-    const variations = art.assets.filter(a => !!a.ref)
-    art.assets = [...thumbnail, ...bases, ...variations].slice(0, MAX_ASSETS)
-  }
-
   // Phase 1: Generate base assets (no reference needed)
   const baseAssets = art.assets.filter(a => !a.ref)
   const variationAssets = art.assets.filter(a => !!a.ref)
 
-  console.log(`  📦 Phase 1: ${baseAssets.length} base assets`)
-  for (const asset of baseAssets) {
+  // Parallel generation: process CONCURRENCY assets at a time
+  const CONCURRENCY = 3
+
+  async function generateOne(asset: AssetDef, refPath?: string) {
     const filePath = `${assetsDir}/${asset.id}.png`
-    const { prompt, transparent } = buildPrompt(asset, art, gameTitle, genre, false)
-    const result = await generateImage(prompt, filePath, asset.id, undefined, transparent)
+    const hasRef = refPath ? existsSync(refPath) : false
+    const { prompt, transparent } = buildPrompt(asset, art, gameTitle, genre, hasRef)
+    const result = await generateImage(prompt, filePath, asset.id, hasRef ? refPath : undefined, transparent)
 
     if (result.ok && validateAsset(filePath, asset.id, asset.size)) {
       generated.push(asset.id)
@@ -748,33 +740,30 @@ async function runPipeline(
       // Retry once
       console.log(`  🔄 [Gemini] Retrying ${asset.id}...`)
       await new Promise(r => setTimeout(r, 1000))
-      const retry = await generateImage(prompt, filePath, `${asset.id} (retry)`, undefined, transparent)
+      const retry = await generateImage(prompt, filePath, `${asset.id} (retry)`, hasRef ? refPath : undefined, transparent)
       if (retry.ok && validateAsset(filePath, asset.id, asset.size)) {
         generated.push(asset.id)
       } else {
         failed.push(asset.id)
       }
     }
-    await new Promise(r => setTimeout(r, 600))
   }
 
-  // Phase 2: Generate variations using base as reference
-  if (variationAssets.length > 0) {
-    console.log(`  📦 Phase 2: ${variationAssets.length} variation assets (with reference)`)
-    for (const asset of variationAssets) {
-      const filePath = `${assetsDir}/${asset.id}.png`
-      const refPath = `${assetsDir}/${asset.ref}.png`
-      const hasRef = existsSync(refPath)
-      const { prompt, transparent } = buildPrompt(asset, art, gameTitle, genre, hasRef)
-      const result = await generateImage(prompt, filePath, asset.id, hasRef ? refPath : undefined, transparent)
-
-      if (result.ok && validateAsset(filePath, asset.id, asset.size)) {
-        generated.push(asset.id)
-      } else {
-        failed.push(asset.id)
-      }
-      await new Promise(r => setTimeout(r, 600))
+  async function generateBatch(assets: AssetDef[], getRef?: (a: AssetDef) => string | undefined) {
+    for (let i = 0; i < assets.length; i += CONCURRENCY) {
+      const batch = assets.slice(i, i + CONCURRENCY)
+      await Promise.all(batch.map(a => generateOne(a, getRef?.(a))))
+      if (i + CONCURRENCY < assets.length) await new Promise(r => setTimeout(r, 300))
     }
+  }
+
+  console.log(`  📦 Phase 1: ${baseAssets.length} base assets (${CONCURRENCY} parallel)`)
+  await generateBatch(baseAssets)
+
+  // Phase 2: Generate variations using base as reference (parallel)
+  if (variationAssets.length > 0) {
+    console.log(`  📦 Phase 2: ${variationAssets.length} variation assets (${CONCURRENCY} parallel)`)
+    await generateBatch(variationAssets, (a) => `${assetsDir}/${a.ref}.png`)
   }
 
   // Write manifest

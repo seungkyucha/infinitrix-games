@@ -222,7 +222,7 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
         model:          'claude-opus-4-6',
-        maxTurns:       40,
+        maxTurns:       80,
         systemPrompt:   roleDef.prompt,
 
         hooks: {
