@@ -645,6 +645,46 @@ ctx.font = Layout.fontSize(24, w, h) + 'px system-ui, sans-serif';
 - 그리드는 **Layout.grid()** — 셀 크기 자동 계산
 - HUD는 **Layout.hud()** — 상단/하단 영역 자동 배치
 - 모바일이면 터치 조작 UI 표시 (Layout.touchControls)
+
+### ⚠️⚠️⚠️ 모바일 터치 필수 규칙 (매 게임 반복 문제 발생 중):
+
+1. **IX.Input의 터치 좌표를 그대로 사용**할 것
+   - input.tapX, input.tapY, input.mouseX, input.mouseY는 이미 게임 좌표(CSS 좌표)
+   - 추가 변환(DPR 곱셈/나눗셈) 절대 하지 말 것
+
+2. **터치 히트 테스트**는 렌더링 좌표와 동일해야 함
+   - 보석을 (x=100, y=200)에 그렸으면, 터치 판정도 (100, 200) 근처
+   - 렌더링과 터치가 다른 좌표계를 쓰면 절대 안 됨
+
+3. **자체 좌표 변환을 구현하지 말 것**
+   - ❌ `(e.clientX - rect.left) * canvas.width / rect.width / dpr`
+   - ❌ `touch.pageX * window.devicePixelRatio`
+   - ✅ IX.Input이 이미 올바른 좌표를 제공 — 그냥 input.tapX 사용
+
+4. **모든 인터랙티브 요소의 터치 영역 테스트**
+   \`\`\`javascript
+   // 매치3 보석 터치 판정 예시
+   function getGemAt(tapX, tapY) {
+     const col = Math.floor((tapX - boardX) / cellSize);
+     const row = Math.floor((tapY - boardY) / cellSize);
+     if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+       return { col, row };
+     }
+     return null;
+   }
+   // boardX, boardY, cellSize는 모두 Layout.grid()에서 계산된 값 사용
+   \`\`\`
+
+5. **디버그 터치 표시 (개발 중)**
+   \`\`\`javascript
+   // render() 마지막에 추가 — 터치 위치가 맞는지 시각적 확인
+   if (input.mouseDown) {
+     ctx.fillStyle = 'rgba(255,0,0,0.5)';
+     ctx.beginPath();
+     ctx.arc(input.mouseX, input.mouseY, 10, 0, Math.PI*2);
+     ctx.fill();
+   }
+   \`\`\`
 3. 타이틀 → 플레이 → 게임오버 → 재시작 전체 흐름 필수
 4. input.flush()를 update() 끝에 반드시 호출
 5. 모든 상태에서 tween.update(dt) 호출 (상태 전환 트윈이 멈추지 않도록)

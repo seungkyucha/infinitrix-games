@@ -121,18 +121,26 @@ class Input {
     });
 
     const c = this._canvas;
-    // Convert client (screen) coordinates to game (logical) coordinates.
-    //
-    // Canvas setup: canvas.width = W * dpr, style.width = W px
-    // Rendering:    ctx.setTransform(dpr, 0, 0, dpr, 0, 0) → game draws in (0..W, 0..H)
-    //
-    // Therefore game coordinates = CSS coordinates = (clientX - rect.left)
-    // No DPR scaling needed — setTransform already handles it for rendering.
+    /**
+     * Convert client (screen/touch) coordinates to game (logical) coordinates.
+     *
+     * The game uses ctx.setTransform(dpr, ...) so game coordinates = (0..W, 0..H)
+     * where W = window.innerWidth, H = window.innerHeight.
+     *
+     * On mobile, getBoundingClientRect() may differ from the logical game size
+     * due to CSS scaling, iframe embedding, or viewport quirks.
+     *
+     * Formula: gameX = (clientX - rect.left) / rect.width * gameW
+     * This works regardless of CSS transforms, DPR, or container scaling.
+     */
     const toCanvasCoords = (clientX, clientY) => {
       const r = c.getBoundingClientRect();
+      // Get the game's logical dimensions (set by Engine.resize)
+      const gameW = parseFloat(c.style.width)  || r.width;
+      const gameH = parseFloat(c.style.height) || r.height;
       return [
-        clientX - r.left,
-        clientY - r.top
+        (clientX - r.left) / r.width  * gameW,
+        (clientY - r.top)  / r.height * gameH
       ];
     };
 
