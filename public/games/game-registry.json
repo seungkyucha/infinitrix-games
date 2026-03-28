@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-28T08:20:42.607Z",
+  "lastUpdated": "2026-03-28T12:00:00.000Z",
   "totalGames": 43,
   "games": [
     {
@@ -7805,7 +7805,7 @@
       "title": "젬 로얄 챌린지",
       "description": "보석 왕국 토너먼트에서 챔피언에 도전하세요!",
       "genre": ["puzzle"],
-      "thumbnail": "/games/gem-royal-challenge/assets/thumbnail.png",
+      "thumbnail": "/games/gem-royal-challenge/thumbnail.svg",
       "path": "/games/gem-royal-challenge/index.html",
       "addedAt": "2026-03-28T08:20:42.607Z",
       "featured": false,
