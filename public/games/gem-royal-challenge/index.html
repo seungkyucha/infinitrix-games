@@ -3355,9 +3355,16 @@ function handleSuperBoosterInput(cw,ch) {
 
   loadGame();
 
+  // Store engine ref for W/H access
+  let _engineW = window.innerWidth, _engineH = window.innerHeight;
+  // Monkey-patch Layout.cx/cy to work without args (game calls Layout.cx()*2 everywhere)
+  const _origCx = Layout.cx, _origCy = Layout.cy;
+  Layout.cx = function(w) { return (w || _engineW) / 2; };
+  Layout.cy = function(h) { return (h || _engineH) / 2; };
+
   const engine = new Engine('gameCanvas', {
     update(dtMs) { coreUpdate(dtMs / 1000); },
-    render(ctx) { coreRender(ctx); },
+    render(ctx, w, h) { _engineW = w; _engineH = h; coreRender(ctx); },
     onResize(w,h) {
       // Layout recomputes automatically; rebuild board origin cache
       if (gState===STATE.PLAY||gState===STATE.CASCADE||gState===STATE.GOAL_CHECK) {
