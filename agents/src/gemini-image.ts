@@ -784,3 +784,92 @@ async function runPipeline(
 
   return { generated, failed }
 }
+
+/**
+ * 게임 에셋을 활용하여 썸네일 생성
+ * 기존 에셋(캐릭터, 배경 등)을 Gemini에 첨부하여 합성 포스터 생성
+ */
+export async function generateThumbnailFromAssets(
+  gameId: string,
+  gameTitle: string,
+  genre: string,
+  assetsDir: string,
+): Promise<boolean> {
+  const thumbPath = `${assetsDir}/thumbnail.png`
+
+  // 기존 에셋 중 대표 이미지 찾기 (player, bg 우선)
+  const candidates = ['player', 'bg-far', 'bg-mid', 'bg-layer1', 'bg-layer2', 'enemy', 'hero']
+  const refImages: { mimeType: string; data: string }[] = []
+
+  for (const name of candidates) {
+    const png = `${assetsDir}/${name}.png`
+    if (existsSync(png) && refImages.length < 3) {
+      const data = readFileSync(png).toString('base64')
+      refImages.push({ mimeType: 'image/png', data })
+    }
+  }
+
+  if (refImages.length === 0) {
+    console.log(`  ⚠️ [Thumbnail] No reference assets found for ${gameId}`)
+    return false
+  }
+
+  console.log(`  🖼️ [Thumbnail] Generating from ${refImages.length} game assets...`)
+
+  try {
+    const ai = getClient()
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = []
+
+    // 에셋 이미지 첨부
+    for (const img of refImages) {
+      parts.push({ inlineData: img })
+    }
+
+    // 프롬프트
+    parts.push({ text: `[TASK] Create a game store thumbnail/poster using the attached game assets as reference.
+
+[GAME] "${gameTitle}" (${genre})
+
+[ATTACHED IMAGES] These are actual in-game character and background assets. Use them as the basis for the thumbnail composition.
+
+[REQUIREMENTS]
+- Create a marketing-quality game poster/thumbnail at EXACTLY 800x600 pixels.
+- Use the characters and visual style from the attached images — do NOT redesign them.
+- Compose a dramatic scene: character in action pose, atmospheric background from the game.
+- Add the game title "${gameTitle}" in large, stylish, genre-appropriate typography.
+  Title must be READABLE and integrated into the composition.
+- Professional color grading, dramatic lighting, depth of field.
+- Quality level: Steam indie game capsule art / mobile game store banner.
+- Landscape orientation. Full scene — NOT transparent, NOT black void.
+- NO watermarks, NO borders.` })
+
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{ role: 'user', parts }],
+      config: { responseModalities: ['Text', 'Image'] },
+    })
+
+    if (response.candidates && response.candidates[0]) {
+      for (const part of response.candidates[0].content?.parts || []) {
+        if (part.inlineData) {
+          const buf = Buffer.from(part.inlineData.data!, 'base64')
+          if (buf.length < 5000) {
+            console.log(`  ⚠️ [Thumbnail] Image too small, skipping`)
+            return false
+          }
+          const dir = dirname(thumbPath)
+          if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+          writeFileSync(thumbPath, buf)
+          console.log(`  ✅ [Thumbnail] ${(buf.length / 1024).toFixed(0)}KB saved (from game assets)`)
+          return true
+        }
+      }
+    }
+
+    console.log(`  ⚠️ [Thumbnail] No image in response`)
+    return false
+  } catch (err) {
+    console.error(`  ❌ [Thumbnail] Failed:`, (err as Error).message?.slice(0, 200))
+    return false
+  }
+}

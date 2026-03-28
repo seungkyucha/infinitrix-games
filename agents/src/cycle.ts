@@ -10,7 +10,7 @@ import {
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs'
-import { generateGameAssets } from './gemini-image.js'
+import { generateGameAssets, generateThumbnailFromAssets } from './gemini-image.js'
 
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
@@ -821,9 +821,10 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
 
       1. public/games/game-registry.json에 새 게임을 추가해줘
-         ⚠️ thumbnail 경로: assets 폴더를 확인하여 thumbnail.png가 있으면
-         "/games/[game-id]/assets/thumbnail.png", 없으면 "/games/[game-id]/assets/thumbnail.svg"
-         (assets/ 폴더 포함 — 빠뜨리면 썸네일이 표시되지 않음)
+         ⚠️ thumbnail 경로: assets 폴더에서 ls 명령으로 확인 후:
+         - thumbnail.png 있으면 → "/games/[game-id]/assets/thumbnail.png" (PNG 우선!)
+         - thumbnail.png 없으면 → "/games/[game-id]/assets/thumbnail.svg"
+         반드시 실제 파일 존재 여부를 확인하고 경로를 등록할 것
          ⚠️ addedAt은 반드시 new Date().toISOString() 으로 현재 시각을 사용할 것!
          (임의 시간 입력 금지 — 최신순 정렬에 영향)
 
@@ -862,6 +863,8 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       const specRaw = readFileSync(`${PROJECT_ROOT}/docs/game-specs/cycle-${cycleNumber}-spec.md`, 'utf-8')
       const gameIdMatch = specRaw.match(/game-id:\s*(.+)/)
       const gameId = gameIdMatch?.[1]?.trim() ?? ''
+      const specMeta: Record<string,string> = {}
+      for (const m of specRaw.matchAll(/^(\w[\w-]*):\s*(.+)$/gm)) { specMeta[m[1]] = m[2].trim() }
 
       if (gameId) {
         const game = reg.games.find((g: { id: string }) => g.id === gameId)
@@ -889,10 +892,29 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
           }
         }
 
-        // 3. 썸네일 파일 확인
-        const thumbPath = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.svg`
-        if (!existsSync(thumbPath)) {
-          verifyErrors.push(`썸네일 파일 없음: ${thumbPath}`)
+        // 3. 썸네일 파일 확인 (PNG 우선, SVG 폴백)
+        const thumbPng = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.png`
+        const thumbSvg = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.svg`
+        if (!existsSync(thumbPng)) {
+          // PNG 썸네일이 없으면 에셋 기반으로 Gemini 생성 시도
+          if (process.env.GEMINI_API_KEY) {
+            console.log(`  🖼️ [검증] thumbnail.png 없음 — 에셋 기반 생성 시도`)
+            try {
+              const ok = await generateThumbnailFromAssets(
+                gameId, specMeta['title'] ?? gameId, specMeta['genre'] ?? '',
+                `${PROJECT_ROOT}/public/games/${gameId}/assets`
+              )
+              if (!ok && !existsSync(thumbSvg)) {
+                verifyErrors.push(`썸네일 파일 없음 (PNG 생성 실패, SVG도 없음)`)
+              }
+            } catch {
+              if (!existsSync(thumbSvg)) {
+                verifyErrors.push(`썸네일 파일 없음`)
+              }
+            }
+          } else if (!existsSync(thumbSvg)) {
+            verifyErrors.push(`썸네일 파일 없음`)
+          }
         }
 
         // 4. totalGames 일치 확인
