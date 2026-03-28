@@ -539,9 +539,9 @@ const Layout = {
     return MathUtil.clamp(base * this.scale(w, h), min, max);
   },
 
-  /** 화면 중앙 기준 좌표 */
-  cx(w) { return w / 2; },
-  cy(h) { return h / 2; },
+  /** 화면 중앙 기준 좌표 (w/h 생략 시 window.innerWidth/Height 사용) */
+  cx(w) { return (w || window.innerWidth) / 2; },
+  cy(h) { return (h || window.innerHeight) / 2; },
 
   /** 모바일 여부 */
   isMobile(w) { return w < 768; },
