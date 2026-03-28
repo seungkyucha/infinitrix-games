@@ -7926,7 +7926,7 @@
       "title": "보석 왕국 건설기",
       "description": "보석을 매칭하고 별을 모아 무너진 왕국을 재건하세요!",
       "genre": ["puzzle", "strategy"],
-      "thumbnail": "/games/gem-kingdom-builder/assets/thumbnail.png",
+      "thumbnail": "/games/gem-kingdom-builder/assets/thumbnail.svg",
       "path": "/games/gem-kingdom-builder/index.html",
       "addedAt": "2026-03-28T14:05:33.661Z",
       "featured": false,
