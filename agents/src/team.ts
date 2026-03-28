@@ -586,6 +586,65 @@ init();
 ═══════════════════════════════════════════════════
 1. IX Engine 반드시 사용: <script src="/engine/ix-engine.js"></script>
 2. 외부 CDN 사용 금지 (Google Fonts 포함). 시스템 폰트만 사용.
+
+═══════════════════════════════════════════════════
+## ⚠️ 반응형 레이아웃 (모든 해상도 대응) — CRITICAL
+═══════════════════════════════════════════════════
+
+게임은 모바일(320px~), 태블릿(768px~), PC(1024px~) 모두에서 정상 동작해야 합니다.
+**절대 하드코딩된 픽셀 좌표를 사용하지 마세요.** 모든 위치/크기는 화면 비율 기반으로 계산.
+
+### IX.Layout 사용법:
+\`\`\`javascript
+const { Layout } = IX;
+
+function render(ctx, w, h) {
+  const s = Layout.scale(w, h);        // 기준(1280x720) 대비 스케일
+  const mobile = Layout.isMobile(w);   // 768px 미만
+  const safe = Layout.safeArea(w, h);  // 노치/상태바 제외 안전 영역
+
+  // 폰트 크기 — 화면에 맞게 자동 조절
+  ctx.font = Layout.fontSize(24, w, h) + 'px system-ui, sans-serif';
+
+  // 게임 보드 그리드 (매치3 등)
+  const grid = Layout.grid(8, 8, safe.w, safe.h * 0.7);
+  // grid.cellSize, grid.offsetX, grid.offsetY 사용
+
+  // HUD
+  const hud = Layout.hud(w, h);
+  // hud.top, hud.bottom, hud.fontSize, hud.iconSize
+
+  // 모바일 터치 버튼
+  const touch = Layout.touchControls(w, h);
+  if (touch) {
+    // touch.joystick, touch.buttonA, touch.buttonB 렌더링
+  }
+}
+\`\`\`
+
+### 금지 패턴:
+\`\`\`javascript
+// ❌ 절대 하지 말 것:
+ctx.fillText('Score', 100, 30);          // 하드코딩 좌표
+ctx.fillRect(400, 300, 200, 50);         // 하드코딩 위치
+const cellSize = 64;                      // 하드코딩 크기
+ctx.font = '24px sans-serif';            // 하드코딩 폰트
+
+// ✅ 올바른 방법:
+const s = Layout.scale(w, h);
+ctx.fillText('Score', w * 0.08, h * 0.04);
+ctx.fillRect(w * 0.3, h * 0.4, 200 * s, 50 * s);
+const cellSize = Layout.grid(8, 8, w, h * 0.7).cellSize;
+ctx.font = Layout.fontSize(24, w, h) + 'px system-ui, sans-serif';
+\`\`\`
+
+### 핵심 원칙:
+- 모든 좌표는 w, h의 **비율(%)** 또는 **Layout.px()** 사용
+- 폰트는 **Layout.fontSize()** — 자동 클램프(min/max)
+- 버튼/터치 영역은 **최소 44px** (Layout.buttonSize)
+- 그리드는 **Layout.grid()** — 셀 크기 자동 계산
+- HUD는 **Layout.hud()** — 상단/하단 영역 자동 배치
+- 모바일이면 터치 조작 UI 표시 (Layout.touchControls)
 3. 타이틀 → 플레이 → 게임오버 → 재시작 전체 흐름 필수
 4. input.flush()를 update() 끝에 반드시 호출
 5. 모든 상태에서 tween.update(dt) 호출 (상태 전환 트윈이 멈추지 않도록)

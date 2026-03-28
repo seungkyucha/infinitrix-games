@@ -509,6 +509,104 @@ const MathUtil = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Layout — 반응형 레이아웃 유틸리티 (모바일/PC/태블릿 대응)
+// ═══════════════════════════════════════════════════════════
+const Layout = {
+  /** 기준 해상도 (디자인 기준) */
+  BASE_W: 1280,
+  BASE_H: 720,
+
+  /** 현재 화면에 맞는 스케일 팩터 계산 */
+  scale(w, h) {
+    return Math.min(w / this.BASE_W, h / this.BASE_H);
+  },
+
+  /** 기준 해상도 기반 값을 현재 해상도로 변환 */
+  px(baseValue, w, h) {
+    return baseValue * this.scale(w, h);
+  },
+
+  /** 화면 비율에 따른 폰트 크기 (최소/최대 클램프) */
+  fontSize(base, w, h, min = 10, max = 72) {
+    return MathUtil.clamp(base * this.scale(w, h), min, max);
+  },
+
+  /** 화면 중앙 기준 좌표 */
+  cx(w) { return w / 2; },
+  cy(h) { return h / 2; },
+
+  /** 모바일 여부 */
+  isMobile(w) { return w < 768; },
+  isTablet(w) { return w >= 768 && w < 1024; },
+  isDesktop(w) { return w >= 1024; },
+
+  /** 세로 모드 여부 */
+  isPortrait(w, h) { return h > w; },
+
+  /** 안전 영역 (노치/상태바 등 고려) — 게임 콘텐츠가 들어갈 영역 */
+  safeArea(w, h) {
+    const pad = this.isMobile(w) ? 10 : 20;
+    const topPad = this.isMobile(w) ? 40 : 20; // 모바일 상태바 영역
+    return { x: pad, y: topPad, w: w - pad * 2, h: h - topPad - pad };
+  },
+
+  /** 그리드 레이아웃 계산 (매치3 보드, 인벤토리 등) */
+  grid(cols, rows, areaW, areaH, padding = 2) {
+    const cellW = Math.floor((areaW - padding * (cols + 1)) / cols);
+    const cellH = Math.floor((areaH - padding * (rows + 1)) / rows);
+    const cellSize = Math.min(cellW, cellH);
+    const totalW = cellSize * cols + padding * (cols + 1);
+    const totalH = cellSize * rows + padding * (rows + 1);
+    const offsetX = Math.floor((areaW - totalW) / 2);
+    const offsetY = Math.floor((areaH - totalH) / 2);
+    return { cellSize, totalW, totalH, offsetX, offsetY, padding };
+  },
+
+  /** UI 버튼 크기 (모바일에서 최소 44px 터치 타겟) */
+  buttonSize(baseW, baseH, screenW, screenH) {
+    const s = this.scale(screenW, screenH);
+    const w = Math.max(baseW * s, 44);
+    const h = Math.max(baseH * s, 44);
+    return { w, h };
+  },
+
+  /** HUD 영역 — 상단/하단 UI 배치 */
+  hud(w, h) {
+    const s = this.scale(w, h);
+    const mobile = this.isMobile(w);
+    return {
+      top: { x: 0, y: 0, w, h: Math.max(40, 60 * s) },
+      bottom: { x: 0, y: h - Math.max(50, 80 * s), w, h: Math.max(50, 80 * s) },
+      fontSize: this.fontSize(mobile ? 14 : 18, w, h, 10, 28),
+      iconSize: Math.max(24, Math.round(32 * s)),
+      padding: Math.max(8, Math.round(16 * s)),
+    };
+  },
+
+  /** 터치 조작 영역 (가상 조이스틱, 버튼) — 모바일 전용 */
+  touchControls(w, h) {
+    if (!this.isMobile(w) && !this.isTablet(w)) return null;
+    const s = this.scale(w, h);
+    const btnSize = Math.max(48, Math.round(64 * s));
+    const margin = Math.max(16, Math.round(24 * s));
+    return {
+      joystick: {
+        x: margin + btnSize, y: h - margin - btnSize,
+        radius: btnSize,
+      },
+      buttonA: {
+        x: w - margin - btnSize, y: h - margin - btnSize,
+        size: btnSize, label: 'A',
+      },
+      buttonB: {
+        x: w - margin - btnSize * 2.2, y: h - margin - btnSize * 0.5,
+        size: btnSize * 0.8, label: 'B',
+      },
+    };
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
 // Sprite Animation — sprite sheet frame management
 // ═══════════════════════════════════════════════════════════
 class Sprite {
@@ -559,6 +657,6 @@ const Genre = {};
 // ═══════════════════════════════════════════════════════════
 // Export
 // ═══════════════════════════════════════════════════════════
-return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Sprite, Genre };
+return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Layout, Sprite, Genre };
 
 })();
