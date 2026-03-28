@@ -101,7 +101,7 @@ const ACTIVE_SYSTEMS = (() => {
   for (const k in STATE) {
     sys[STATE[k]] = { tween:true, input:false, board:false, mini:false, ui:true, sound:true, particle:true, event:false };
   }
-  sys[STATE.LOADING].tween = false; sys[STATE.LOADING].particle = false;
+  sys[STATE.LOADING].tween = true; sys[STATE.LOADING].particle = false;
   sys[STATE.TITLE].input = true;
   sys[STATE.EVENT_HUB].input = true; sys[STATE.EVENT_HUB].event = true;
   sys[STATE.DAILY_CHALLENGE].input = true; sys[STATE.DAILY_CHALLENGE].board = true; sys[STATE.DAILY_CHALLENGE].event = true;

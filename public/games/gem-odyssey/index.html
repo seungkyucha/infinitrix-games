@@ -173,7 +173,7 @@ const ACTIVE_SYSTEMS = (() => {
   for (const k in STATE) {
     m[STATE[k]] = { tween:true, input:false, board:false, ui:true, sound:true, particle:true };
   }
-  m[STATE.LOADING].tween = false; m[STATE.LOADING].sound = false; m[STATE.LOADING].particle = false;
+  m[STATE.LOADING].tween = true; m[STATE.LOADING].sound = false; m[STATE.LOADING].particle = false;
   m[STATE.TITLE].input = true;
   m[STATE.MAP].input = true;
   m[STATE.PLAY].input = true; m[STATE.PLAY].board = true;

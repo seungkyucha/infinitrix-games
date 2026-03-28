@@ -121,7 +121,7 @@ const STATE_PRIORITY = {
 
 // 상태×시스템 매트릭스 (F2) — 각 상태에서 업데이트할 시스템
 const STATE_MATRIX = {
-  LOADING:       { tween:false, particles:false, input:false, sound:false, tooltip:false },
+  LOADING:       { tween:true, particles:false, input:false, sound:false, tooltip:false },
   TITLE:         { tween:true,  particles:true,  input:true,  sound:true,  tooltip:false },
   META_SHOP:     { tween:true,  particles:false, input:true,  sound:true,  tooltip:true  },
   DUNGEON_MAP:   { tween:true,  particles:true,  input:true,  sound:true,  tooltip:true  },
