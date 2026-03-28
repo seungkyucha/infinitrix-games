@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-28T14:05:33.661Z",
-  "totalGames": 44,
+  "lastUpdated": "2026-03-28T20:07:49.247Z",
+  "totalGames": 45,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -8032,6 +8032,126 @@
           "title": "Construtor do Reino de Gemas",
           "description": "Combine gemas, colete estrelas e reconstrua o reino caído!",
           "tags": ["match-3", "puzzle", "gemas", "construção-de-reino", "cascata", "estratégia", "desafio-diário", "meta-jogo"],
+          "controls": [
+            "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
+            "Arrastar: Arraste uma gema para trocar",
+            "Toque: Toque e deslize para trocar (celular)",
+            "Teclado: Setas para mover cursor, Espaço para selecionar/trocar",
+            "Impulsionadores: Clique/toque nos ícones inferiores para ativar e selecione um bloco"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gem-arena",
+      "title": "보석 대전",
+      "description": "상대와 보석을 맞춰 콤보로 공격하는 PvP 매치3!",
+      "genre": ["puzzle", "strategy"],
+      "thumbnail": "/games/gem-arena/assets/thumbnail.png",
+      "path": "/games/gem-arena/index.html",
+      "addedAt": "2026-03-28T20:07:49.247Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["매치3", "퍼즐", "PvP", "대전", "보석", "전략", "콤보", "리그"],
+      "controls": [
+        "마우스: 보석 클릭 후 인접 보석 클릭으로 스왑",
+        "마우스 드래그: 보석을 드래그하여 스왑",
+        "터치: 탭 후 스와이프로 스왑 (모바일)",
+        "키보드: 방향키로 커서 이동, Space로 선택/스왑",
+        "부스터: 하단 아이콘 클릭/탭으로 활성화 후 타일 선택"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Gem Arena",
+          "description": "Match gems and combo-attack your rival in this PvP match-3!",
+          "tags": ["match-3", "puzzle", "PvP", "versus", "gems", "strategy", "combo", "league"],
+          "controls": [
+            "Mouse: Click a gem then click an adjacent gem to swap",
+            "Mouse Drag: Drag a gem to swap",
+            "Touch: Tap and swipe to swap (mobile)",
+            "Keyboard: Arrow keys to move cursor, Space to select/swap",
+            "Boosters: Click/tap icons at bottom to activate, then select a tile"
+          ]
+        },
+        "ja": {
+          "title": "ジェム・アリーナ",
+          "description": "宝石をマッチしてコンボで相手を攻撃するPvPマッチ3！",
+          "tags": ["マッチ3", "パズル", "PvP", "対戦", "宝石", "戦略", "コンボ", "リーグ"],
+          "controls": [
+            "マウス: 宝石をクリックして隣の宝石をクリックでスワップ",
+            "マウスドラッグ: 宝石をドラッグしてスワップ",
+            "タッチ: タップしてスワイプでスワップ（モバイル）",
+            "キーボード: 矢印キーでカーソル移動、スペースで選択/スワップ",
+            "ブースター: 下部アイコンをクリック/タップで有効化、タイルを選択"
+          ]
+        },
+        "zh-CN": {
+          "title": "宝石竞技场",
+          "description": "匹配宝石，用连击攻击对手的PvP三消对战！",
+          "tags": ["三消", "益智", "PvP", "对战", "宝石", "策略", "连击", "联赛"],
+          "controls": [
+            "鼠标: 点击宝石后点击相邻宝石交换",
+            "鼠标拖拽: 拖动宝石进行交换",
+            "触屏: 点击后滑动交换（移动端）",
+            "键盘: 方向键移动光标，空格键选择/交换",
+            "增益道具: 点击底部图标激活后选择目标格子"
+          ]
+        },
+        "zh-TW": {
+          "title": "寶石競技場",
+          "description": "配對寶石，用連擊攻擊對手的PvP三消對戰！",
+          "tags": ["三消", "益智", "PvP", "對戰", "寶石", "策略", "連擊", "聯賽"],
+          "controls": [
+            "滑鼠: 點擊寶石後點擊相鄰寶石交換",
+            "滑鼠拖曳: 拖動寶石進行交換",
+            "觸控: 點擊後滑動交換（行動裝置）",
+            "鍵盤: 方向鍵移動游標，空白鍵選擇/交換",
+            "增益道具: 點擊底部圖示啟用後選擇目標格子"
+          ]
+        },
+        "es": {
+          "title": "Arena de Gemas",
+          "description": "¡Combina gemas y ataca a tu rival con combos en este match-3 PvP!",
+          "tags": ["match-3", "puzzle", "PvP", "versus", "gemas", "estrategia", "combo", "liga"],
+          "controls": [
+            "Ratón: Haz clic en una gema y luego en otra adyacente para intercambiar",
+            "Arrastrar: Arrastra una gema para intercambiar",
+            "Táctil: Toca y desliza para intercambiar (móvil)",
+            "Teclado: Flechas para mover el cursor, Espacio para seleccionar/intercambiar",
+            "Potenciadores: Clic/toca los iconos inferiores para activar y selecciona una casilla"
+          ]
+        },
+        "fr": {
+          "title": "Arène de Gemmes",
+          "description": "Associez des gemmes et attaquez votre rival avec des combos dans ce match-3 PvP !",
+          "tags": ["match-3", "puzzle", "PvP", "duel", "gemmes", "stratégie", "combo", "ligue"],
+          "controls": [
+            "Souris : Cliquez sur une gemme puis sur une adjacente pour échanger",
+            "Glisser : Faites glisser une gemme pour échanger",
+            "Tactile : Appuyez et glissez pour échanger (mobile)",
+            "Clavier : Flèches pour déplacer le curseur, Espace pour sélectionner/échanger",
+            "Boosters : Cliquez/appuyez sur les icônes en bas pour activer, puis sélectionnez une case"
+          ]
+        },
+        "de": {
+          "title": "Edelstein-Arena",
+          "description": "Kombiniere Edelsteine und greife deinen Rivalen mit Combos im PvP-Match-3 an!",
+          "tags": ["Match-3", "Puzzle", "PvP", "Duell", "Edelsteine", "Strategie", "Combo", "Liga"],
+          "controls": [
+            "Maus: Klicke auf einen Edelstein und dann auf einen benachbarten zum Tauschen",
+            "Ziehen: Ziehe einen Edelstein zum Tauschen",
+            "Touch: Tippe und wische zum Tauschen (Mobil)",
+            "Tastatur: Pfeiltasten zum Bewegen des Cursors, Leertaste zum Auswählen/Tauschen",
+            "Booster: Klicke/tippe auf die Symbole unten zum Aktivieren, dann wähle ein Feld"
+          ]
+        },
+        "pt": {
+          "title": "Arena de Gemas",
+          "description": "Combine gemas e ataque seu rival com combos neste match-3 PvP!",
+          "tags": ["match-3", "puzzle", "PvP", "versus", "gemas", "estratégia", "combo", "liga"],
           "controls": [
             "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
             "Arrastar: Arraste uma gema para trocar",

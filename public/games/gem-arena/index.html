@@ -1,0 +1,4951 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>보석 대전 — Gem Arena</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════
+// 보석 대전 (Gem Arena) — Cycle #51
+// PvP 턴 기반 매치3 + 솔로 어드벤처 30레벨 + 왕국 건설 + 리그 시스템
+// ═══════════════════════════════════════════════════════════════════
+
+// === SECTION INDEX ===
+// [0001~0080] 상수, CONFIG, STATE, TRANSITION_TABLE
+// [0080~0200] SeededRNG, ObjectPool
+// [0200~0400] TransitionGuard, enterState, deferredTransition
+// [0400~0550] AudioManager (Web Audio BGM + SFX)
+// [0550~0700] SaveManager
+// [0700~1100] Match3 엔진 (findMatches, removeMatches, gravity, cascade)
+// [1100~1400] 스페셜 보석 시스템 (생성, 발동, 조합)
+// [1400~1700] PvP 시스템 (턴 관리, 장애물 전송, AI)
+// [1700~1900] 왕국 건설 시스템
+// [1900~2100] DDA + 레벨 데이터 (30레벨)
+// [2100~2300] 리그 시스템 + 일일 챌린지
+// [2300~3200] 렌더링 (배경, 보드, UI, 이펙트)
+// [3200~4200] stateHandlers (12상태 update/render)
+// [4200~4400] 에셋 로더 + drawAssetOrFallback
+// [4400~4600] 메인 루프 + 초기화
+// ═══════════════════════════════════════════════════════════════════
+
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Layout } = IX;
+
+// ── CONFIG ───────────────────────────────────────────────────────
+const GAME_ID = 'gem-arena';
+const ROWS = 8;
+const COLS = 8;
+const GEM_COLORS = 6;
+const MIN_TOUCH = 48;
+const SWAP_THRESHOLD = 20;
+const MAX_TURNS_PVP = 20;
+const HINT_DELAY = 5000;
+const DEADLOCK_DELAY = 15000;
+const CASCADE_DELAY = 180;
+const GRAVITY_SPEED = 200;
+const AI_THINK_MIN = 800;
+const AI_THINK_MAX = 1500;
+
+// ── 다국어 ───────────────────────────────────────────────────────
+const I18N = {
+  ko: {
+    title:'보석 대전', solo:'솔로 어드벤처', pvp:'PvP 대전',
+    victory:'승리!', defeat:'패배...', draw:'무승부',
+    turn:'턴', score:'점수', trophy:'트로피', league:'리그',
+    kingdom:'왕국', build:'건설하기', booster:'부스터',
+    settings:'설정', sound:'소리', music:'음악', language:'언어',
+    daily:'일일 챌린지', combo:'콤보', yourTurn:'당신의 턴!',
+    opponentTurn:'상대의 턴...', start:'터치하여 시작',
+    restart:'탭하여 재시작', back:'뒤로', next:'다음',
+    levelClear:'레벨 클리어!', levelFail:'실패...', moves:'이동',
+    target:'목표', stars:'별', coins:'코인', skip:'건너뛰기',
+    pause:'일시정지', resume:'계속하기', toTitle:'타이틀로',
+    selectMode:'모드 선택', selectLevel:'레벨 선택',
+    buildSelect:'건설 선택', zone:'구역'
+  },
+  en: {
+    title:'Gem Arena', solo:'Solo Adventure', pvp:'PvP Battle',
+    victory:'Victory!', defeat:'Defeat...', draw:'Draw',
+    turn:'Turn', score:'Score', trophy:'Trophy', league:'League',
+    kingdom:'Kingdom', build:'Build', booster:'Booster',
+    settings:'Settings', sound:'Sound', music:'Music', language:'Language',
+    daily:'Daily Challenge', combo:'Combo', yourTurn:'Your Turn!',
+    opponentTurn:"Opponent's Turn...", start:'Tap to Start',
+    restart:'Tap to Restart', back:'Back', next:'Next',
+    levelClear:'Level Clear!', levelFail:'Failed...', moves:'Moves',
+    target:'Target', stars:'Stars', coins:'Coins', skip:'Skip',
+    pause:'Pause', resume:'Resume', toTitle:'Title',
+    selectMode:'Select Mode', selectLevel:'Select Level',
+    buildSelect:'Build Select', zone:'Zone'
+  }
+};
+let gLang = 'ko';
+function t(key) { return (I18N[gLang] && I18N[gLang][key]) || (I18N.ko[key]) || key; }
+
+// ── 색상 팔레트 ──────────────────────────────────────────────────
+const PALETTE = {
+  bg: '#1a1a3e', bgSub: '#2d1b69', gold: '#ffd700', cyan: '#00d4ff',
+  green: '#4ade80', red: '#ff4444', boardBg: '#0f0f2e',
+  textPrimary: '#e0e0f0', textSec: '#8080a0', textMuted: '#505070'
+};
+const GEM_HEX = ['#ff4466','#4488ff','#44dd88','#ffdd44','#aa44ff','#ff8844'];
+const GEM_NAMES = ['red','blue','green','yellow','purple','orange'];
+const GEM_ASSET_KEYS = ['gemRed','gemBlue','gemGreen','gemYellow','gemPurple','gemOrange'];
+
+// ── SPECIAL 타입 ──────────────────────────────────────────────────
+const SP = { NONE:0, LINE_H:1, LINE_V:2, BOMB:3, RAINBOW:4 };
+const SP_ASSET = { [SP.LINE_H]:'specialLineH', [SP.LINE_V]:'specialLineV', [SP.BOMB]:'specialBomb', [SP.RAINBOW]:'specialRainbow' };
+
+// ── 장애물 타입 ──────────────────────────────────────────────────
+const OBS = { NONE:0, ICE1:1, ICE2:2, CHAIN:3, STONE:4, LOCK:5, POISON:6 };
+const OBS_ASSET = { [OBS.ICE1]:'obstacleIce-1', [OBS.ICE2]:'obstacleIce-2', [OBS.CHAIN]:'obstacleChain', [OBS.STONE]:'obstacleStone', [OBS.LOCK]:'obstacleLock', [OBS.POISON]:'obstaclePoison' };
+
+// ── 부스터 타입 ──────────────────────────────────────────────────
+const BOOST = { HAMMER:0, SWAP:1, SHUFFLE:2, EXTRA_TURN:3 };
+const BOOST_ASSET = ['uiBoosterHammer','uiBoosterSwap','uiBoosterShuffle','uiBoosterExtraTurn'];
+const BOOST_NAMES_KO = ['망치','교환','셔플','추가턴'];
+const BOOST_NAMES_EN = ['Hammer','Swap','Shuffle','+Turn'];
+
+// ── 리그 ──────────────────────────────────────────────────────────
+const LEAGUE = { BRONZE:0, SILVER:1, GOLD:2, PLATINUM:3, DIAMOND:4 };
+const LEAGUE_NAMES_KO = ['브론즈','실버','골드','플래티넘','다이아몬드'];
+const LEAGUE_NAMES_EN = ['Bronze','Silver','Gold','Platinum','Diamond'];
+const LEAGUE_THRESHOLDS = [0, 300, 600, 1000, 1500];
+const LEAGUE_ASSET = ['uiLeagueBronze','uiLeagueSilver','uiLeagueGold','uiLeaguePlatinum','uiLeagueDiamond'];
+const LEAGUE_COLORS = ['#cd7f32','#c0c0c0','#ffd700','#e5e4e2','#b9f2ff'];
+
+// ── SCORE ─────────────────────────────────────────────────────────
+const SCORE_TABLE = { match3:50, match4:120, matchTL:200, match5:350, spLine:200, spBomb:400, spRainbow:600 };
+const COMBO_MULT = [1.0, 1.0, 1.5, 2.0, 2.5, 3.0];
+function comboMultiplier(c) { return c >= 5 ? 3.0 : (COMBO_MULT[c] || 1.0); }
+
+// ── STATE 머신 ────────────────────────────────────────────────────
+const STATE = {
+  BOOT:0, TITLE:1, MODE_SELECT:2, KINGDOM_MAP:3, LEVEL_SELECT:4,
+  PLAY:5, PVP_MATCH:6, PVP_RESULT:7, LEVEL_CLEAR:8, LEVEL_FAIL:9,
+  BUILD_SELECT:10, SETTINGS:11
+};
+const STATE_NAMES = ['BOOT','TITLE','MODE_SELECT','KINGDOM_MAP','LEVEL_SELECT','PLAY','PVP_MATCH','PVP_RESULT','LEVEL_CLEAR','LEVEL_FAIL','BUILD_SELECT','SETTINGS'];
+
+// ── TRANSITION_TABLE (화이트리스트) ─────────────────────────────────
+const TRANSITION_TABLE = {
+  [STATE.BOOT]:         [STATE.TITLE],
+  [STATE.TITLE]:        [STATE.MODE_SELECT, STATE.SETTINGS],
+  [STATE.MODE_SELECT]:  [STATE.KINGDOM_MAP, STATE.PVP_MATCH, STATE.TITLE],
+  [STATE.KINGDOM_MAP]:  [STATE.LEVEL_SELECT, STATE.BUILD_SELECT, STATE.MODE_SELECT, STATE.SETTINGS],
+  [STATE.LEVEL_SELECT]: [STATE.PLAY, STATE.KINGDOM_MAP],
+  [STATE.PLAY]:         [STATE.LEVEL_CLEAR, STATE.LEVEL_FAIL, STATE.SETTINGS],
+  [STATE.PVP_MATCH]:    [STATE.PVP_RESULT, STATE.SETTINGS],
+  [STATE.PVP_RESULT]:   [STATE.MODE_SELECT, STATE.PVP_MATCH, STATE.BUILD_SELECT],
+  [STATE.LEVEL_CLEAR]:  [STATE.BUILD_SELECT, STATE.KINGDOM_MAP, STATE.LEVEL_SELECT],
+  [STATE.LEVEL_FAIL]:   [STATE.PLAY, STATE.LEVEL_SELECT, STATE.KINGDOM_MAP],
+  [STATE.BUILD_SELECT]: [STATE.KINGDOM_MAP],
+  [STATE.SETTINGS]:     [] // 특수: settingsReturnState 사용
+};
+
+// ── ACTIVE_SYSTEMS (상태×시스템 매트릭스) IIFE 프로그래매틱 생성 ────
+const ACTIVE_SYSTEMS = (() => {
+  const m = {};
+  for (const k in STATE) {
+    m[STATE[k]] = { tween:true, particles:true, input:true, audio:true, board:false, ai:false, dda:false, save:false };
+  }
+  m[STATE.BOOT].tween = false; m[STATE.BOOT].particles = false; m[STATE.BOOT].input = false;
+  m[STATE.PLAY].board = true; m[STATE.PLAY].dda = true;
+  m[STATE.PVP_MATCH].board = true; m[STATE.PVP_MATCH].ai = true;
+  m[STATE.SETTINGS].tween = true; m[STATE.SETTINGS].particles = false; m[STATE.SETTINGS].audio = false;
+  m[STATE.KINGDOM_MAP].save = true; m[STATE.PVP_RESULT].save = true;
+  m[STATE.LEVEL_CLEAR].save = true; m[STATE.BUILD_SELECT].save = true;
+  return m;
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 전역 변수 (TDZ 방어: Engine 생성 이전에 모두 선언) ──────────────
+// ═══════════════════════════════════════════════════════════════════
+let gState = STATE.BOOT;
+let gPrevState = STATE.BOOT;
+let gSettingsReturnState = STATE.TITLE;
+let gReady = false;
+let gFadeAlpha = 0;
+let gShakeIntensity = 0;
+let gTime = 0;
+
+// ── 매치3 보드 ───────────────────────────────────────────────────
+let gGrid = [];            // 솔로 보드 또는 PvP 플레이어 보드
+let gOpponentGrid = [];    // PvP AI 보드
+let gBoardState = 'idle';  // idle, swapping, matching, gravity, cascading, aiTurn
+let gSelectedCell = null;
+let gSwapFrom = null;
+let gSwapTo = null;
+let gComboCount = 0;
+let gCascadeCount = 0;
+let gIsInputBlocked = false;
+let gHintTimer = 0;
+let gDeadlockTimer = 0;
+let gHintCells = null;
+let gObstacleQueue = [];
+let gConsumed = [];
+
+// ── PvP 변수 ─────────────────────────────────────────────────────
+let gPvpMode = false;
+let gPvpTurn = 0;         // 0~19 (총 20턴)
+let gIsPlayerTurn = true;
+let gPlayerScore = 0;
+let gOpponentScore = 0;
+let gAiThinkTimer = 0;
+let gAiLevel = 1;
+let gOpponentCharId = 0;
+let gCoinTossResult = true;
+let gPvpSeed = 0;
+let gPvpBoosters = [1,1,1,1]; // 남은 부스터 횟수
+let gLastComboScorePlayer = 0;   // 동점 판정용: 플레이어 마지막 콤보 점수
+let gLastComboScoreOpponent = 0; // 동점 판정용: AI 마지막 콤보 점수
+
+// ── 솔로 변수 ────────────────────────────────────────────────────
+let gCurrentLevel = 1;
+let gMovesLeft = 20;
+let gLevelScore = 0;
+let gLevelTargets = null;
+let gLevelStars = 0;
+let gFailStreak = 0;
+
+// ── 왕국 건설 ────────────────────────────────────────────────────
+const ZONE_NAMES_KO = ['성문','정원','시장','도서관','왕좌실'];
+const ZONE_NAMES_EN = ['Gate','Garden','Market','Library','Throne'];
+const ZONE_ASSET = ['buildingGate','buildingGarden','buildingMarket','buildingLibrary','buildingThrone'];
+const ZONE_COLORS = ['#cd7f32','#44dd88','#ff8844','#4488ff','#ffd700'];
+let gKingdomData = { zones:[0,0,0,0,0], totalStars:0, coins:100 };
+let gBuildChoices = [];
+let gBuildZoneIdx = 0;
+
+// ── 리그 ──────────────────────────────────────────────────────────
+let gTrophies = 0;
+let gCurrentLeague = LEAGUE.BRONZE;
+
+// ── 일일 챌린지 ──────────────────────────────────────────────────
+let gDailyCompleted = false;
+let gDailySeed = 0;
+
+// ── UI 상태 ──────────────────────────────────────────────────────
+let gTitleAlpha = 0;
+let gModeSelectAlpha = 0;
+let gBoardAnimTime = 0;
+let gShowingCombo = false;
+let gComboText = '';
+let gComboPopAlpha = 0;
+let gTurnBannerAlpha = 0;
+let gTurnBannerText = '';
+let gSelectedBooster = -1;
+let gBoosterMode = false;
+let gBoosterSwapFirst = null;
+let gLevelSelectScroll = 0;
+let gKingdomScroll = 0;
+let gSettingsSoundOn = true;
+let gSettingsMusicOn = true;
+let gVsAnimPhase = 0;
+
+// ── 에셋 스토리지 ────────────────────────────────────────────────
+let gAssets = {};
+let gBgCache = null;
+
+// ── Tween/Effect 상태 ────────────────────────────────────────────
+let gTweenCells = {};  // 'r,c' → { x, y, alpha, scale }
+let gEffectQueue = [];
+let gScorePopups = [];
+
+// ── 보드 셀 구조 ─────────────────────────────────────────────────
+// cell = { color:0~5, special:SP.NONE, obstacle:OBS.NONE, x, y, alpha, scale }
+
+// ═══════════════════════════════════════════════════════════════════
+// ── SeededRNG (C50 계승) ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+class SeededRNG {
+  constructor(seed) { this.s = seed % 2147483647; if (this.s <= 0) this.s += 2147483646; }
+  next() { this.s = (this.s * 16807) % 2147483647; return (this.s - 1) / 2147483646; }
+  nextInt(min, max) { return Math.floor(this.next() * (max - min + 1)) + min; }
+}
+let gRng = new SeededRNG(Date.now());
+
+// ═══════════════════════════════════════════════════════════════════
+// ── ObjectPool ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+class ObjectPool {
+  constructor(factory, resetFn, initSize = 50) {
+    this._factory = factory; this._reset = resetFn; this._pool = [];
+    for (let i = 0; i < initSize; i++) this._pool.push(factory());
+  }
+  acquire() {
+    if (this._pool.length > 0) { const obj = this._pool.pop(); this._reset(obj); return obj; }
+    return this._factory();
+  }
+  release(obj) { this._pool.push(obj); }
+  releaseAll(arr) { for (const o of arr) this._pool.push(o); arr.length = 0; }
+}
+
+const scorePopPool = new ObjectPool(
+  () => ({ x:0, y:0, text:'', color:'#ffd700', alpha:1, life:0, maxLife:1000 }),
+  (o) => { o.alpha = 1; o.life = 0; }
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// ── IX Engine 인스턴스 (TDZ 방어 완료 후 생성) ──────────────────────
+// ═══════════════════════════════════════════════════════════════════
+const engine = new Engine('gameCanvas', {
+  update: coreUpdate,
+  render: coreRender,
+  onResize: onResize
+});
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(500);
+const assets = new AssetLoader();
+
+// ═══════════════════════════════════════════════════════════════════
+// ── TransitionGuard + 상태 전환 시스템 ───────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gTransitioning = false;
+let gDeferredQueue = [];
+
+/** 페이드 전환: gFadeAlpha를 1로 올렸다가 상태 변경 후 0으로 내린다 */
+function beginTransition(toState) {
+  // SETTINGS는 특수 처리
+  if (toState === STATE.SETTINGS) {
+    gSettingsReturnState = gState;
+  }
+  // 화이트리스트 검증
+  const allowed = TRANSITION_TABLE[gState];
+  if (toState !== STATE.SETTINGS && allowed && !allowed.includes(toState)) {
+    console.warn(`[Transition] ${STATE_NAMES[gState]} → ${STATE_NAMES[toState]} NOT ALLOWED`);
+    return;
+  }
+  if (gTransitioning) {
+    gDeferredQueue.push(toState);
+    return;
+  }
+  gTransitioning = true;
+  const fadeObj = { a: 0 };
+  tween.add(fadeObj, { a: 1 }, 250, 'easeIn', () => {
+    gFadeAlpha = 1;
+    enterState(toState);
+    const fadeObj2 = { a: 1 };
+    tween.add(fadeObj2, { a: 0 }, 250, 'easeOut', () => {
+      gFadeAlpha = 0;
+      gTransitioning = false;
+      // 큐에 대기 중인 전환 처리
+      if (gDeferredQueue.length > 0) {
+        const next = gDeferredQueue.shift();
+        beginTransition(next);
+      }
+    });
+    // 매 프레임 fadeObj2.a를 gFadeAlpha에 동기화
+    const syncFade2 = { _t: 0 };
+    const syncInterval = setInterval(() => {
+      gFadeAlpha = fadeObj2.a;
+      if (fadeObj2.a <= 0.01) { gFadeAlpha = 0; clearInterval(syncInterval); }
+    }, 16);
+  });
+  // 매 프레임 fadeObj.a를 gFadeAlpha에 동기화
+  const syncInterval = setInterval(() => {
+    gFadeAlpha = fadeObj.a;
+    if (fadeObj.a >= 0.99) { clearInterval(syncInterval); }
+  }, 16);
+}
+
+/** 즉시 전환 (페이드 없음) */
+function directTransition(toState) {
+  if (toState === STATE.SETTINGS) {
+    gSettingsReturnState = gState;
+  }
+  const allowed = TRANSITION_TABLE[gState];
+  if (toState !== STATE.SETTINGS && allowed && !allowed.includes(toState)) {
+    console.warn(`[DirectTransition] ${STATE_NAMES[gState]} → ${STATE_NAMES[toState]} NOT ALLOWED`);
+    return;
+  }
+  enterState(toState);
+}
+
+/** 상태 진입 — 모든 상태별 초기화를 여기서 일원화 */
+function enterState(toState) {
+  gPrevState = gState;
+  gState = toState;
+  gHintTimer = 0;
+  gDeadlockTimer = 0;
+  gHintCells = null;
+  gSelectedCell = null;
+  gSelectedBooster = -1;
+  gBoosterMode = false;
+  gBoosterSwapFirst = null;
+
+  switch (toState) {
+    case STATE.BOOT:
+      break;
+
+    case STATE.TITLE:
+      gTitleAlpha = 0;
+      tween.clear();
+      particles.clear();
+      const tObj = { a: 0 };
+      tween.add(tObj, { a: 1 }, 800, 'easeOut');
+      const syncTitle = setInterval(() => { gTitleAlpha = tObj.a; if (tObj.a >= 0.99) clearInterval(syncTitle); }, 16);
+      break;
+
+    case STATE.MODE_SELECT:
+      gModeSelectAlpha = 0;
+      break;
+
+    case STATE.KINGDOM_MAP:
+      break;
+
+    case STATE.LEVEL_SELECT:
+      gLevelSelectScroll = 0;
+      break;
+
+    case STATE.PLAY:
+      initSoloLevel(gCurrentLevel);
+      break;
+
+    case STATE.PVP_MATCH:
+      initPvpMatch();
+      break;
+
+    case STATE.PVP_RESULT:
+      savePvpResult();
+      break;
+
+    case STATE.LEVEL_CLEAR:
+      calculateStars();
+      break;
+
+    case STATE.LEVEL_FAIL:
+      gFailStreak++;
+      break;
+
+    case STATE.BUILD_SELECT:
+      generateBuildChoices();
+      break;
+
+    case STATE.SETTINGS:
+      break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── AudioManager (Web Audio BGM + 프로시저럴 SFX) ──────────────────
+// ═══════════════════════════════════════════════════════════════════
+const SOUNDS = {
+  gemSwap:      { freq:[440,520], dur:0.1, type:'sine' },
+  match3:       { freq:[523,659,784], dur:0.15, type:'triangle' },
+  match4:       { freq:[523,659,784,880], dur:0.2, type:'triangle' },
+  match5:       { freq:[523,659,784,880,1047], dur:0.25, type:'triangle' },
+  specialCreate:{ freq:[880,1047,1319], dur:0.3, type:'sine' },
+  bombExplode:  { freq:[220,110,55], dur:0.4, type:'sawtooth' },
+  lineDestroy:  { freq:[440,880,1760], dur:0.3, type:'square' },
+  rainbowActivate:{ freq:[262,330,392,523,659,784], dur:0.5, type:'sine' },
+  obstacleSend: { freq:[330,220,165], dur:0.3, type:'sawtooth' },
+  pvpVictory:   { freq:[523,659,784,1047,1319], dur:0.6, type:'triangle' },
+  pvpDefeat:    { freq:[440,330,220], dur:0.5, type:'sawtooth' },
+  leagueUp:     { freq:[523,659,784,880,1047,1319,1568], dur:0.8, type:'sine' },
+  buttonClick:  { freq:[660], dur:0.05, type:'sine' },
+  turnChange:   { freq:[440,550], dur:0.15, type:'triangle' },
+  comboHit:     { freq:[880,1100,1320], dur:0.2, type:'triangle' }
+};
+
+function playSfx(name) {
+  if (!gSettingsSoundOn) return;
+  const s = SOUNDS[name];
+  if (!s) { sound.sfx(name); return; }
+  for (let i = 0; i < s.freq.length; i++) {
+    setTimeout(() => sound.tone(s.freq[i], s.dur, s.type), i * (s.dur * 300));
+  }
+}
+
+// ── BGM (dt 기반 — setInterval 완전 배제) ────────────────────────
+let gBgmTimer = 0;
+let gBgmBeatIdx = 0;
+const BGM_CHORDS = [
+  [262, 330, 392], // Cmaj
+  [349, 440, 523], // Fmaj
+  [392, 494, 587], // G7
+  [262, 330, 392], // Cmaj
+];
+const BGM_INTERVAL = 2000; // 2초마다 코드 변경
+
+function updateBgm(dt) {
+  if (!gSettingsMusicOn) return;
+  gBgmTimer += dt;
+  if (gBgmTimer >= BGM_INTERVAL) {
+    gBgmTimer -= BGM_INTERVAL;
+    const chord = BGM_CHORDS[gBgmBeatIdx % BGM_CHORDS.length];
+    for (const freq of chord) {
+      sound.tone(freq * (gPvpMode ? 1.1 : 1.0), 1.5, 'sine', 0.03);
+    }
+    gBgmBeatIdx++;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── SaveManager ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+const SAVE_KEY = 'ix_gem_arena_save';
+const SAVE_VERSION = 1;
+
+function loadGameData() {
+  const data = Save.get(SAVE_KEY, null);
+  if (!data || data.version !== SAVE_VERSION) {
+    resetGameData();
+    return;
+  }
+  gKingdomData = data.kingdom || { zones:[0,0,0,0,0], totalStars:0, coins:100 };
+  gTrophies = data.trophies || 0;
+  gCurrentLeague = getLeagueFromTrophies(gTrophies);
+  gCurrentLevel = data.currentLevel || 1;
+  gFailStreak = data.failStreak || 0;
+  gDailyCompleted = data.dailyCompleted === getTodaySeed();
+  gSettingsSoundOn = data.soundOn !== undefined ? data.soundOn : true;
+  gSettingsMusicOn = data.musicOn !== undefined ? data.musicOn : true;
+  gLang = data.lang || 'ko';
+}
+
+function saveGameData() {
+  Save.set(SAVE_KEY, {
+    version: SAVE_VERSION,
+    kingdom: gKingdomData,
+    trophies: gTrophies,
+    currentLevel: gCurrentLevel,
+    failStreak: gFailStreak,
+    dailyCompleted: gDailyCompleted ? getTodaySeed() : 0,
+    soundOn: gSettingsSoundOn,
+    musicOn: gSettingsMusicOn,
+    lang: gLang
+  });
+}
+
+function resetGameData() {
+  gKingdomData = { zones:[0,0,0,0,0], totalStars:0, coins:100 };
+  gTrophies = 0;
+  gCurrentLeague = LEAGUE.BRONZE;
+  gCurrentLevel = 1;
+  gFailStreak = 0;
+  gDailyCompleted = false;
+  saveGameData();
+}
+
+function getLeagueFromTrophies(tr) {
+  for (let i = LEAGUE_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (tr >= LEAGUE_THRESHOLDS[i]) return i;
+  }
+  return 0;
+}
+
+function getTodaySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── Match-3 엔진 ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 안전한 그리드 접근 래퍼 */
+function safeGridAccess(grid, r, c) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+  if (!grid || !grid[r]) return null;
+  return grid[r][c];
+}
+
+/** 셀 생성 */
+function createCell(color, special, obstacle) {
+  return { color: color, special: special || SP.NONE, obstacle: obstacle || OBS.NONE, x:0, y:0, alpha:1, scale:1 };
+}
+
+/** 보드 초기화 (3매치 없는 상태까지 반복 생성) */
+function generateBoard(rng, obstacleMap) {
+  let board = [];
+  for (let attempt = 0; attempt < 100; attempt++) {
+    board = [];
+    for (let r = 0; r < ROWS; r++) {
+      board[r] = [];
+      for (let c = 0; c < COLS; c++) {
+        let color = rng.nextInt(0, GEM_COLORS - 1);
+        // 3매치 방지
+        while (
+          (c >= 2 && board[r][c-1] && board[r][c-2] && board[r][c-1].color === color && board[r][c-2].color === color) ||
+          (r >= 2 && board[r-1] && board[r-2] && board[r-1][c] && board[r-2][c] && board[r-1][c].color === color && board[r-2][c].color === color)
+        ) {
+          color = rng.nextInt(0, GEM_COLORS - 1);
+        }
+        const obs = (obstacleMap && obstacleMap[r] && obstacleMap[r][c]) ? obstacleMap[r][c] : OBS.NONE;
+        board[r][c] = createCell(color, SP.NONE, obs);
+      }
+    }
+    if (!hasMatchesOnBoard(board) && countValidMoves(board) > 0) break;
+  }
+  return board;
+}
+
+/** 보드 전체 3매치 이상 존재 여부 검사 */
+function hasMatchesOnBoard(board) {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS - 2; c++) {
+      const a = safeGridAccess(board, r, c);
+      const b = safeGridAccess(board, r, c+1);
+      const d = safeGridAccess(board, r, c+2);
+      if (a && b && d && a.color >= 0 && a.color === b.color && b.color === d.color && a.obstacle !== OBS.STONE) return true;
+    }
+  }
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS - 2; r++) {
+      const a = safeGridAccess(board, r, c);
+      const b = safeGridAccess(board, r+1, c);
+      const d = safeGridAccess(board, r+2, c);
+      if (a && b && d && a.color >= 0 && a.color === b.color && b.color === d.color && a.obstacle !== OBS.STONE) return true;
+    }
+  }
+  return false;
+}
+
+/** 유효한 이동 수 계산 */
+function countValidMoves(board) {
+  let count = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell || cell.obstacle === OBS.STONE) continue;
+      // 오른쪽 스왑 체크
+      if (c < COLS - 1) {
+        const right = safeGridAccess(board, r, c+1);
+        if (right && right.obstacle !== OBS.STONE) {
+          swapCells(board, r, c, r, c+1);
+          if (hasMatchesOnBoard(board)) count++;
+          swapCells(board, r, c, r, c+1);
+        }
+      }
+      // 아래 스왑 체크
+      if (r < ROWS - 1) {
+        const below = safeGridAccess(board, r+1, c);
+        if (below && below.obstacle !== OBS.STONE) {
+          swapCells(board, r, c, r+1, c);
+          if (hasMatchesOnBoard(board)) count++;
+          swapCells(board, r, c, r+1, c);
+        }
+      }
+    }
+  }
+  return count;
+}
+
+/** 두 셀 교환 */
+function swapCells(board, r1, c1, r2, c2) {
+  const a = safeGridAccess(board, r1, c1);
+  const b = safeGridAccess(board, r2, c2);
+  if (!a || !b) return;
+  board[r1][c1] = b;
+  board[r2][c2] = a;
+}
+
+/** 유효한 이동 하나 찾기 (힌트용) */
+function findOneValidMove(board) {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell || cell.obstacle === OBS.STONE) continue;
+      const dirs = [[0,1],[1,0]];
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc;
+        const nb = safeGridAccess(board, nr, nc);
+        if (!nb || nb.obstacle === OBS.STONE) continue;
+        swapCells(board, r, c, nr, nc);
+        if (hasMatchesOnBoard(board)) {
+          swapCells(board, r, c, nr, nc);
+          return [{r,c},{r:nr,c:nc}];
+        }
+        swapCells(board, r, c, nr, nc);
+      }
+    }
+  }
+  return null;
+}
+
+/** 모든 유효 이동 찾기 (AI용) */
+function findAllValidMoves(board) {
+  const moves = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell || cell.obstacle === OBS.STONE) continue;
+      const dirs = [[0,1],[1,0]];
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc;
+        const nb = safeGridAccess(board, nr, nc);
+        if (!nb || nb.obstacle === OBS.STONE) continue;
+        swapCells(board, r, c, nr, nc);
+        if (hasMatchesOnBoard(board)) {
+          moves.push({ r1:r, c1:c, r2:nr, c2:nc });
+        }
+        swapCells(board, r, c, nr, nc);
+      }
+    }
+  }
+  return moves;
+}
+
+// ── consumed[][] 매치 소비 추적 ─────────────────────────────────
+function resetConsumed() {
+  gConsumed = [];
+  for (let r = 0; r < ROWS; r++) {
+    gConsumed[r] = [];
+    for (let c = 0; c < COLS; c++) gConsumed[r][c] = false;
+  }
+}
+
+/** 매치 검출 (우선순위: 5→T/L→4→3 + consumed 추적) */
+function findMatches(board) {
+  resetConsumed();
+  const matches = [];
+
+  // 5매치 (가로)
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c <= COLS - 5; c++) {
+      if (checkLine(board, r, c, 0, 1, 5)) {
+        const cells = [];
+        for (let i = 0; i < 5; i++) cells.push({ r, c: c + i });
+        if (!anyCellConsumed(cells)) { consumeCells(cells); matches.push({ type: 'match5', cells, color: safeGridAccess(board, r, c).color }); }
+      }
+    }
+  }
+  // 5매치 (세로)
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r <= ROWS - 5; r++) {
+      if (checkLine(board, r, c, 1, 0, 5)) {
+        const cells = [];
+        for (let i = 0; i < 5; i++) cells.push({ r: r + i, c });
+        if (!anyCellConsumed(cells)) { consumeCells(cells); matches.push({ type: 'match5', cells, color: safeGridAccess(board, r, c).color }); }
+      }
+    }
+  }
+
+  // T형/L형 매치 (5칸)
+  findTLMatches(board, matches);
+
+  // 4매치 (가로)
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c <= COLS - 4; c++) {
+      if (checkLine(board, r, c, 0, 1, 4)) {
+        const cells = [];
+        for (let i = 0; i < 4; i++) cells.push({ r, c: c + i });
+        if (!anyCellConsumed(cells)) { consumeCells(cells); matches.push({ type: 'match4h', cells, color: safeGridAccess(board, r, c).color }); }
+      }
+    }
+  }
+  // 4매치 (세로)
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r <= ROWS - 4; r++) {
+      if (checkLine(board, r, c, 1, 0, 4)) {
+        const cells = [];
+        for (let i = 0; i < 4; i++) cells.push({ r: r + i, c });
+        if (!anyCellConsumed(cells)) { consumeCells(cells); matches.push({ type: 'match4v', cells, color: safeGridAccess(board, r, c).color }); }
+      }
+    }
+  }
+
+  // 3매치 (가로)
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c <= COLS - 3; c++) {
+      if (checkLine(board, r, c, 0, 1, 3)) {
+        const cells = [];
+        for (let i = 0; i < 3; i++) cells.push({ r, c: c + i });
+        if (!anyCellConsumed(cells)) { consumeCells(cells); matches.push({ type: 'match3', cells, color: safeGridAccess(board, r, c).color }); }
+      }
+    }
+  }
+  // 3매치 (세로)
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r <= ROWS - 3; r++) {
+      if (checkLine(board, r, c, 1, 0, 3)) {
+        const cells = [];
+        for (let i = 0; i < 3; i++) cells.push({ r: r + i, c });
+        if (!anyCellConsumed(cells)) { consumeCells(cells); matches.push({ type: 'match3', cells, color: safeGridAccess(board, r, c).color }); }
+      }
+    }
+  }
+
+  return matches;
+}
+
+/** 직선 검사 (같은 색상이 length개 연속인가) */
+function checkLine(board, r, c, dr, dc, length) {
+  const first = safeGridAccess(board, r, c);
+  if (!first || first.color < 0 || first.obstacle === OBS.STONE) return false;
+  for (let i = 1; i < length; i++) {
+    const cell = safeGridAccess(board, r + dr * i, c + dc * i);
+    if (!cell || cell.color !== first.color || cell.obstacle === OBS.STONE) return false;
+  }
+  return true;
+}
+
+/** T형/L형 매치 검사 */
+function findTLMatches(board, matches) {
+  // T형과 L형: 3가로+3세로가 겹치는 패턴
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell || cell.color < 0 || cell.obstacle === OBS.STONE) continue;
+      const color = cell.color;
+
+      // L형: 3가로(시작)+3세로(아래) 등
+      const patterns = [
+        // L형 — 우+하
+        [[0,0],[0,1],[0,2],[1,0],[2,0]],
+        // L형 — 우+상
+        [[0,0],[0,1],[0,2],[-1,0],[-2,0]],
+        // L형 — 좌+하
+        [[0,0],[0,-1],[0,-2],[1,0],[2,0]],
+        // L형 — 좌+상
+        [[0,0],[0,-1],[0,-2],[-1,0],[-2,0]],
+        // T형 — 가로줄+중간에서 아래
+        [[0,-1],[0,0],[0,1],[1,0],[2,0]],
+        // T형 — 가로줄+중간에서 위
+        [[0,-1],[0,0],[0,1],[-1,0],[-2,0]],
+        // T형 — 세로줄+중간에서 오른쪽
+        [[-1,0],[0,0],[1,0],[0,1],[0,2]],
+        // T형 — 세로줄+중간에서 왼쪽
+        [[-1,0],[0,0],[1,0],[0,-1],[0,-2]],
+      ];
+
+      for (const pattern of patterns) {
+        let valid = true;
+        const cells = [];
+        for (const [dr, dc] of pattern) {
+          const nr = r + dr, nc = c + dc;
+          const t = safeGridAccess(board, nr, nc);
+          if (!t || t.color !== color || t.obstacle === OBS.STONE) { valid = false; break; }
+          cells.push({ r: nr, c: nc });
+        }
+        if (valid && !anyCellConsumed(cells)) {
+          consumeCells(cells);
+          matches.push({ type: 'matchTL', cells, color });
+        }
+      }
+    }
+  }
+}
+
+function anyCellConsumed(cells) {
+  for (const { r, c } of cells) {
+    if (gConsumed[r] && gConsumed[r][c]) return true;
+  }
+  return false;
+}
+
+function consumeCells(cells) {
+  for (const { r, c } of cells) {
+    if (gConsumed[r]) gConsumed[r][c] = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 스페셜 보석 시스템 ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 매치 결과에 따라 스페셜 보석 생성 */
+function processMatchSpecials(board, match, swapPos) {
+  let spawnR = -1, spawnC = -1;
+  let spType = SP.NONE;
+
+  switch (match.type) {
+    case 'match5':
+      spType = SP.RAINBOW;
+      break;
+    case 'matchTL':
+      spType = SP.BOMB;
+      break;
+    case 'match4h':
+      spType = SP.LINE_H;
+      break;
+    case 'match4v':
+      spType = SP.LINE_V;
+      break;
+  }
+
+  if (spType !== SP.NONE) {
+    // 스페셜 생성 위치: 스왑한 셀 위치 우선, 아니면 매치 중앙
+    if (swapPos) {
+      const inMatch = match.cells.find(c => c.r === swapPos.r && c.c === swapPos.c);
+      if (inMatch) { spawnR = swapPos.r; spawnC = swapPos.c; }
+    }
+    if (spawnR < 0) {
+      const mid = Math.floor(match.cells.length / 2);
+      spawnR = match.cells[mid].r;
+      spawnC = match.cells[mid].c;
+    }
+    playSfx('specialCreate');
+  }
+
+  return { spType, spawnR, spawnC };
+}
+
+/** 스페셜 보석 발동 */
+function activateSpecial(board, r, c, isCombo) {
+  const cell = safeGridAccess(board, r, c);
+  if (!cell) return [];
+  const destroyed = [];
+  const sp = cell.special;
+  cell.special = SP.NONE;
+
+  switch (sp) {
+    case SP.LINE_H: {
+      playSfx('lineDestroy');
+      for (let cc = 0; cc < COLS; cc++) {
+        const t = safeGridAccess(board, r, cc);
+        if (t && t.obstacle !== OBS.STONE) destroyed.push({ r, c: cc });
+      }
+      addScore(board === gGrid ? 'player' : 'opponent', SCORE_TABLE.spLine);
+      // 라인 레이저 이펙트
+      const lpx = getBoardPixelX(c, engine.W, engine.H);
+      const lpy = getBoardPixelY(r, engine.W, engine.H);
+      const lbl = getBoardLayout(engine.W, engine.H);
+      addMatchEffect('effectLineLaser', lpx, lpy, lbl.cellSize * 1.5);
+      break;
+    }
+
+    case SP.LINE_V: {
+      playSfx('lineDestroy');
+      for (let rr = 0; rr < ROWS; rr++) {
+        const t = safeGridAccess(board, rr, c);
+        if (t && t.obstacle !== OBS.STONE) destroyed.push({ r: rr, c });
+      }
+      addScore(board === gGrid ? 'player' : 'opponent', SCORE_TABLE.spLine);
+      // 라인 레이저 이펙트
+      const vpx = getBoardPixelX(c, engine.W, engine.H);
+      const vpy = getBoardPixelY(r, engine.W, engine.H);
+      const vbl = getBoardLayout(engine.W, engine.H);
+      addMatchEffect('effectLineLaser', vpx, vpy, vbl.cellSize * 1.5);
+      break;
+    }
+
+    case SP.BOMB: {
+      playSfx('bombExplode');
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const t = safeGridAccess(board, r + dr, c + dc);
+          if (t && t.obstacle !== OBS.STONE) destroyed.push({ r: r + dr, c: c + dc });
+        }
+      }
+      addScore(board === gGrid ? 'player' : 'opponent', SCORE_TABLE.spBomb);
+      // 폭탄 충격파 이펙트
+      const bpx = getBoardPixelX(c, engine.W, engine.H);
+      const bpy = getBoardPixelY(r, engine.W, engine.H);
+      const bbl = getBoardLayout(engine.W, engine.H);
+      addMatchEffect('effectBombShockwave', bpx, bpy, bbl.cellSize * 2);
+      break;
+    }
+
+    case SP.RAINBOW: {
+      playSfx('rainbowActivate');
+      // 같은 색상 보석 모두 제거
+      const targetColor = cell.color >= 0 ? cell.color : MathUtil.randInt(0, GEM_COLORS - 1);
+      for (let rr = 0; rr < ROWS; rr++) {
+        for (let cc = 0; cc < COLS; cc++) {
+          const t = safeGridAccess(board, rr, cc);
+          if (t && t.color === targetColor && t.obstacle !== OBS.STONE) destroyed.push({ r: rr, c: cc });
+        }
+      }
+      addScore(board === gGrid ? 'player' : 'opponent', SCORE_TABLE.spRainbow);
+      // 레인보우 소용돌이 이펙트
+      const rpx = getBoardPixelX(c, engine.W, engine.H);
+      const rpy = getBoardPixelY(r, engine.W, engine.H);
+      const rbl = getBoardLayout(engine.W, engine.H);
+      addMatchEffect('effectRainbowSwirl', rpx, rpy, rbl.cellSize * 2.5);
+      break;
+    }
+  }
+
+  return destroyed;
+}
+
+/** 스페셜+스페셜 조합 체크 및 발동 */
+function checkSpecialCombo(board, r1, c1, r2, c2) {
+  const a = safeGridAccess(board, r1, c1);
+  const b = safeGridAccess(board, r2, c2);
+  if (!a || !b) return null;
+  if (a.special === SP.NONE || b.special === SP.NONE) return null;
+
+  const spA = a.special, spB = b.special;
+  const destroyed = [];
+  let pvpPenalty = [];
+
+  // Rainbow + Rainbow → 전체 클리어
+  if (spA === SP.RAINBOW && spB === SP.RAINBOW) {
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) destroyed.push({r,c});
+    pvpPenalty = [{type:OBS.POISON,count:5},{type:OBS.STONE,count:5}];
+  }
+  // Rainbow + Bomb
+  else if ((spA === SP.RAINBOW && spB === SP.BOMB) || (spA === SP.BOMB && spB === SP.RAINBOW)) {
+    const targetColor = (spA === SP.RAINBOW ? b : a).color;
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const t = safeGridAccess(board, r, c);
+      if (t && t.color === targetColor) { t.special = SP.BOMB; destroyed.push({r,c}); }
+    }
+    pvpPenalty = [{type:OBS.STONE,count:6}];
+  }
+  // Rainbow + Line
+  else if ((spA === SP.RAINBOW && (spB === SP.LINE_H || spB === SP.LINE_V)) ||
+           ((spA === SP.LINE_H || spA === SP.LINE_V) && spB === SP.RAINBOW)) {
+    const targetColor = (spA === SP.RAINBOW ? b : a).color;
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const t = safeGridAccess(board, r, c);
+      if (t && t.color === targetColor) { t.special = (Math.random() > 0.5 ? SP.LINE_H : SP.LINE_V); destroyed.push({r,c}); }
+    }
+    pvpPenalty = [{type:OBS.ICE1,count:6}];
+  }
+  // Bomb + Bomb → 5×5
+  else if (spA === SP.BOMB && spB === SP.BOMB) {
+    const cr = Math.floor((r1+r2)/2), cc = Math.floor((c1+c2)/2);
+    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+      const t = safeGridAccess(board, cr+dr, cc+dc);
+      if (t) destroyed.push({r:cr+dr,c:cc+dc});
+    }
+    pvpPenalty = [{type:OBS.CHAIN,count:3}];
+  }
+  // Line + Bomb → 3줄
+  else if (((spA === SP.LINE_H || spA === SP.LINE_V) && spB === SP.BOMB) ||
+           (spA === SP.BOMB && (spB === SP.LINE_H || spB === SP.LINE_V))) {
+    const isH = (spA === SP.LINE_H || spB === SP.LINE_H);
+    const midR = Math.floor((r1+r2)/2), midC = Math.floor((c1+c2)/2);
+    for (let d = -1; d <= 1; d++) {
+      if (isH) { for (let cc = 0; cc < COLS; cc++) destroyed.push({r:midR+d,c:cc}); }
+      else { for (let rr = 0; rr < ROWS; rr++) destroyed.push({r:rr,c:midC+d}); }
+    }
+    pvpPenalty = [{type:OBS.STONE,count:4}];
+  }
+  // Line + Line → 십자
+  else if ((spA === SP.LINE_H || spA === SP.LINE_V) && (spB === SP.LINE_H || spB === SP.LINE_V)) {
+    const mr = Math.floor((r1+r2)/2), mc = Math.floor((c1+c2)/2);
+    for (let cc = 0; cc < COLS; cc++) destroyed.push({r:mr,c:cc});
+    for (let rr = 0; rr < ROWS; rr++) destroyed.push({r:rr,c:mc});
+    pvpPenalty = [{type:OBS.STONE,count:3}];
+  }
+  else { return null; }
+
+  a.special = SP.NONE; b.special = SP.NONE;
+  if (gPvpMode) {
+    for (const p of pvpPenalty) queueObstacle(p.type, p.count);
+  }
+  return destroyed;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 매치 처리 + 중력 + 캐스케이드 ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 보드에서 매치 처리 (점수, 제거, 스페셜 생성) */
+function processMatches(board, swapPos) {
+  const matches = findMatches(board);
+  if (matches.length === 0) return false;
+
+  gCascadeCount++;
+  const mult = comboMultiplier(gComboCount);
+  const who = (board === gGrid) ? 'player' : 'opponent';
+
+  for (const match of matches) {
+    // 점수 계산
+    let base = SCORE_TABLE.match3;
+    if (match.type === 'match4h' || match.type === 'match4v') base = SCORE_TABLE.match4;
+    else if (match.type === 'matchTL') base = SCORE_TABLE.matchTL;
+    else if (match.type === 'match5') base = SCORE_TABLE.match5;
+
+    const pts = Math.floor(base * mult);
+    addScore(who, pts);
+
+    // 스페셜 생성
+    const { spType, spawnR, spawnC } = processMatchSpecials(board, match, swapPos);
+
+    // 셀 제거 + 장애물 처리
+    for (const { r, c } of match.cells) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell) continue;
+
+      // §2.6 체인: 해당 셀이 매치되면 체인 해제 (보석 색상 유지)
+      if (cell.obstacle === OBS.CHAIN) {
+        cell.obstacle = OBS.NONE;
+        // 체인 해제 후 보석은 유지 (이번 매치에서 제거됨)
+      }
+
+      // §2.6 잠금블록: 매치된 셀의 잠금은 인접 매치에서 해제 (damageAdjacentObstacles)
+      // 잠금 해제 시 보석 색상이 반드시 존재하도록 보장
+      // (잠금블록은 보석 위에 올라가는 장애물이므로 cell.color >= 0 보장)
+
+      // 인접 장애물 데미지
+      damageAdjacentObstacles(board, r, c);
+
+      // 스페셜 발동
+      if (cell.special !== SP.NONE && !(r === spawnR && c === spawnC)) {
+        const extra = activateSpecial(board, r, c, false);
+        for (const e of extra) {
+          const ec = safeGridAccess(board, e.r, e.c);
+          if (ec) {
+            damageAdjacentObstacles(board, e.r, e.c);
+            ec.color = -1; ec.special = SP.NONE;
+          }
+        }
+      }
+
+      // 셀 제거 (스페셜 생성 위치는 스페셜로 교체)
+      if (r === spawnR && c === spawnC && spType !== SP.NONE) {
+        cell.special = spType;
+        // 색상 유지
+      } else {
+        cell.color = -1;
+        cell.special = SP.NONE;
+      }
+
+      // 파티클
+      emitMatchParticles(board, r, c, match.color);
+    }
+
+    // PvP 장애물 전송 큐
+    if (gPvpMode && board === gGrid) {
+      if (match.type === 'match4h' || match.type === 'match4v') queueObstacle(OBS.ICE1, 1);
+    }
+
+    // 점수 팝업
+    showScorePopup(board, match.cells[0].r, match.cells[0].c, pts);
+  }
+
+  gComboCount++;
+  if (gComboCount >= 2) {
+    showComboText(gComboCount);
+    playSfx('comboHit');
+  }
+
+  // PvP: 3연쇄+ → 독 전송
+  if (gPvpMode && board === gGrid && gCascadeCount >= 3) {
+    queueObstacle(OBS.POISON, 1);
+  }
+
+  return true;
+}
+
+/** 인접 장애물 데미지 (체인은 §2.6에 따라 해당 셀 매치로만 제거 — 여기서 제외) */
+function damageAdjacentObstacles(board, r, c) {
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  for (const [dr, dc] of dirs) {
+    const cell = safeGridAccess(board, r + dr, c + dc);
+    if (!cell) continue;
+    switch (cell.obstacle) {
+      case OBS.ICE1: cell.obstacle = OBS.NONE; break;
+      case OBS.ICE2: cell.obstacle = OBS.ICE1; break;
+      // OBS.CHAIN: 인접 매치로는 제거 불가, 해당 셀 매치로만 제거 (processMatches 내)
+      case OBS.LOCK: cell.obstacle = OBS.NONE; break;
+      case OBS.POISON: cell.obstacle = OBS.NONE; break;
+    }
+  }
+}
+
+/** 중력: 빈 셀 아래로 보석 낙하 + 상단 리필 */
+function applyGravity(board) {
+  let moved = false;
+  for (let c = 0; c < COLS; c++) {
+    // 아래부터 위로 빈 칸 찾아 위에서 끌어옴
+    let writeRow = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell) continue;
+      if (cell.obstacle === OBS.STONE) {
+        writeRow = r - 1;
+        continue;
+      }
+      if (cell.color >= 0) {
+        if (r !== writeRow) {
+          board[writeRow][c] = cell;
+          board[r][c] = createCell(-1, SP.NONE, OBS.NONE);
+          moved = true;
+        }
+        writeRow--;
+      }
+    }
+    // 상단 빈 칸 리필
+    for (let r = writeRow; r >= 0; r--) {
+      const cell = safeGridAccess(board, r, c);
+      if (cell && cell.obstacle === OBS.STONE) continue;
+      if (!cell || cell.color < 0) {
+        board[r][c] = createCell(MathUtil.randInt(0, GEM_COLORS - 1), SP.NONE, OBS.NONE);
+        moved = true;
+      }
+    }
+  }
+  return moved;
+}
+
+/** 독 확산 (매 턴) */
+function spreadPoison(board) {
+  const poisonCells = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (cell && cell.obstacle === OBS.POISON) poisonCells.push({r,c});
+    }
+  }
+  if (poisonCells.length === 0) return;
+
+  // 보드 60% 이상 독이면 독 3개 제거
+  if (poisonCells.length >= ROWS * COLS * 0.6) {
+    for (let i = 0; i < 3 && i < poisonCells.length; i++) {
+      const p = poisonCells[i];
+      const cell = safeGridAccess(board, p.r, p.c);
+      if (cell) cell.obstacle = OBS.NONE;
+    }
+    return;
+  }
+
+  // 랜덤 독 1개 확산
+  const src = poisonCells[MathUtil.randInt(0, poisonCells.length - 1)];
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  const shuffled = dirs.sort(() => Math.random() - 0.5);
+  for (const [dr, dc] of shuffled) {
+    const cell = safeGridAccess(board, src.r + dr, src.c + dc);
+    if (cell && cell.obstacle === OBS.NONE && cell.color >= 0) {
+      cell.obstacle = OBS.POISON;
+      break;
+    }
+  }
+}
+
+/** 보드 셔플 */
+function shuffleBoard(board) {
+  const cells = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (cell && cell.obstacle !== OBS.STONE && cell.color >= 0) {
+        cells.push({ color: cell.color, special: cell.special });
+      }
+    }
+  }
+  // Fisher-Yates
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = MathUtil.randInt(0, i);
+    [cells[i], cells[j]] = [cells[j], cells[i]];
+  }
+  let idx = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (cell && cell.obstacle !== OBS.STONE && cell.color >= 0 && idx < cells.length) {
+        cell.color = cells[idx].color;
+        cell.special = cells[idx].special;
+        idx++;
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 캐스케이드 프로세스 (tween 체인, setTimeout 0건) ────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gCascadeTimer = 0;
+let gCascadePhase = 'idle'; // idle, removing, gravity, checking
+
+function startCascade(board) {
+  gComboCount = 0;
+  gCascadeCount = 0;
+  gCascadePhase = 'checking';
+  gIsInputBlocked = true;
+}
+
+function updateCascade(dt, board) {
+  if (gCascadePhase === 'idle') return;
+
+  gCascadeTimer += dt;
+
+  switch (gCascadePhase) {
+    case 'checking': {
+      const hasMatch = processMatches(board, gSwapFrom);
+      if (hasMatch) {
+        gCascadePhase = 'removing';
+        gCascadeTimer = 0;
+      } else {
+        finishCascade(board);
+      }
+      break;
+    }
+    case 'removing': {
+      if (gCascadeTimer >= CASCADE_DELAY) {
+        gCascadePhase = 'gravity';
+        gCascadeTimer = 0;
+      }
+      break;
+    }
+    case 'gravity': {
+      applyGravity(board);
+      gCascadePhase = 'checking';
+      gCascadeTimer = 0;
+      break;
+    }
+  }
+}
+
+function finishCascade(board) {
+  gCascadePhase = 'idle';
+  gCascadeTimer = 0;
+  gIsInputBlocked = false;
+
+  // PvP: 전송 큐 처리
+  if (gPvpMode && board === gGrid && gObstacleQueue.length > 0) {
+    sendQueuedObstacles();
+  }
+
+  // 데드록 체크
+  if (countValidMoves(board) === 0) {
+    shuffleBoard(board);
+    if (countValidMoves(board) === 0) {
+      shuffleBoard(board);
+      if (countValidMoves(board) === 0) {
+        // 보드 재생성
+        const newBoard = generateBoard(new SeededRNG(Date.now()));
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) board[r][c] = newBoard[r][c];
+      }
+    }
+  }
+
+  // PvP 턴 종료
+  if (gPvpMode) {
+    endPvpTurn(board);
+    return;
+  }
+
+  // 솔로: 이동 소비
+  if (gState === STATE.PLAY) {
+    gMovesLeft--;
+    checkSoloLevelEnd();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── PvP 시스템 ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function initPvpMatch() {
+  gPvpMode = true;
+  gPvpTurn = 0;
+  gPlayerScore = 0;
+  gOpponentScore = 0;
+  gPvpSeed = Date.now();
+  gCoinTossResult = (new SeededRNG(gPvpSeed)).next() > 0.5;
+  gIsPlayerTurn = gCoinTossResult;
+  gAiThinkTimer = 0;
+  gAiLevel = getAiLevel();
+  gOpponentCharId = MathUtil.randInt(0, 2);
+  gPvpBoosters = [1,1,1,1];
+  gObstacleQueue = [];
+  gComboCount = 0;
+  gCascadeCount = 0;
+  gLastComboScorePlayer = 0;
+  gLastComboScoreOpponent = 0;
+  gBoardState = 'idle';
+  gCascadePhase = 'idle';
+  gIsInputBlocked = false;
+  gSelectedCell = null;
+  gHintTimer = 0;
+  gHintCells = null;
+
+  // 장애물 맵 (리그 기반)
+  const obsMap = generatePvpObstacles();
+
+  const rng1 = new SeededRNG(gPvpSeed);
+  gGrid = generateBoard(rng1, obsMap);
+  const rng2 = new SeededRNG(gPvpSeed);
+  gOpponentGrid = generateBoard(rng2, obsMap);
+
+  // VS 연출
+  gVsAnimPhase = 0;
+  showTurnBanner(gIsPlayerTurn ? t('yourTurn') : t('opponentTurn'));
+}
+
+function getAiLevel() {
+  switch (gCurrentLeague) {
+    case LEAGUE.BRONZE: return 1;
+    case LEAGUE.SILVER: return MathUtil.randInt(1, 2);
+    case LEAGUE.GOLD: return 2;
+    case LEAGUE.PLATINUM: return MathUtil.randInt(2, 3);
+    case LEAGUE.DIAMOND: return 3;
+    default: return 1;
+  }
+}
+
+function generatePvpObstacles() {
+  const map = [];
+  for (let r = 0; r < ROWS; r++) { map[r] = []; for (let c = 0; c < COLS; c++) map[r][c] = OBS.NONE; }
+
+  const league = gCurrentLeague;
+  let iceCount = 0, stoneCount = 0, poisonCount = 0;
+  if (league >= LEAGUE.SILVER) iceCount = 2;
+  if (league >= LEAGUE.GOLD) { iceCount = 3; stoneCount = 1; }
+  if (league >= LEAGUE.PLATINUM) { iceCount = 3; stoneCount = 2; }
+  if (league >= LEAGUE.DIAMOND) { iceCount = 4; stoneCount = 2; poisonCount = 1; }
+
+  const rng = new SeededRNG(gPvpSeed + 777);
+  const placed = new Set();
+  function placeObs(type, count) {
+    for (let i = 0; i < count; i++) {
+      let r, c;
+      do { r = rng.nextInt(0, ROWS - 1); c = rng.nextInt(0, COLS - 1); } while (placed.has(r * COLS + c));
+      placed.add(r * COLS + c);
+      map[r][c] = type;
+    }
+  }
+  placeObs(OBS.ICE1, iceCount);
+  placeObs(OBS.STONE, stoneCount);
+  placeObs(OBS.POISON, poisonCount);
+  return map;
+}
+
+/** PvP 장애물 전송 큐에 추가 */
+function queueObstacle(type, count) {
+  for (let i = 0; i < count; i++) gObstacleQueue.push(type);
+}
+
+/** 큐에 쌓인 장애물을 상대 보드에 전송 */
+function sendQueuedObstacles() {
+  const targetBoard = gIsPlayerTurn ? gOpponentGrid : gGrid;
+  const emptyCells = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(targetBoard, r, c);
+      if (cell && cell.obstacle === OBS.NONE && cell.color >= 0) emptyCells.push({r,c});
+    }
+  }
+  // 전송
+  for (let i = 0; i < gObstacleQueue.length && i < emptyCells.length; i++) {
+    const pos = emptyCells[MathUtil.randInt(0, emptyCells.length - 1)];
+    const cell = safeGridAccess(targetBoard, pos.r, pos.c);
+    if (cell) cell.obstacle = gObstacleQueue[i];
+    emptyCells.splice(emptyCells.indexOf(pos), 1);
+  }
+  playSfx('obstacleSend');
+  // 장애물 전송 이펙트 (effectObstacleSend 스프라이트 시트)
+  addMatchEffect('effectObstacleSend', engine.W / 2, engine.H / 2, Layout.px(80, engine.W, engine.H));
+  gObstacleQueue = [];
+}
+
+function endPvpTurn(board) {
+  // 독 확산
+  if (gIsPlayerTurn) spreadPoison(gOpponentGrid);
+  else spreadPoison(gGrid);
+
+  gPvpTurn++;
+  if (gPvpTurn >= MAX_TURNS_PVP) {
+    // 게임 종료
+    gDeferredQueue.push(STATE.PVP_RESULT);
+    return;
+  }
+
+  gIsPlayerTurn = !gIsPlayerTurn;
+  gAiThinkTimer = 0;
+  showTurnBanner(gIsPlayerTurn ? t('yourTurn') : t('opponentTurn'));
+  playSfx('turnChange');
+}
+
+// ── AI 의사결정 ──────────────────────────────────────────────────
+function aiDecide(board) {
+  const allMoves = findAllValidMoves(board);
+  if (allMoves.length === 0) return null;
+
+  const scored = allMoves.map(m => {
+    let score = evaluateMove(board, m);
+    if (gAiLevel >= 2) score += evaluateSpecialCreation(board, m) * 2.0;
+    if (gAiLevel >= 3) score += evaluateOpponentImpact(board, m) * 1.5;
+    // 약간의 랜덤성
+    score *= (0.85 + Math.random() * 0.3);
+    return { move: m, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0].move;
+}
+
+function evaluateMove(board, move) {
+  swapCells(board, move.r1, move.c1, move.r2, move.c2);
+  const matches = findMatches(board);
+  let score = 0;
+  for (const m of matches) {
+    switch (m.type) {
+      case 'match3': score += 50; break;
+      case 'match4h': case 'match4v': score += 120; break;
+      case 'matchTL': score += 200; break;
+      case 'match5': score += 350; break;
+    }
+  }
+  swapCells(board, move.r1, move.c1, move.r2, move.c2);
+  return score;
+}
+
+function evaluateSpecialCreation(board, move) {
+  swapCells(board, move.r1, move.c1, move.r2, move.c2);
+  const matches = findMatches(board);
+  let bonus = 0;
+  for (const m of matches) {
+    if (m.type === 'match5') bonus += 300;
+    else if (m.type === 'matchTL') bonus += 200;
+    else if (m.type === 'match4h' || m.type === 'match4v') bonus += 100;
+  }
+  swapCells(board, move.r1, move.c1, move.r2, move.c2);
+  return bonus;
+}
+
+function evaluateOpponentImpact(board, move) {
+  // 간단한 평가: 스페셜 발동이 가능하면 장애물 전송 보너스
+  swapCells(board, move.r1, move.c1, move.r2, move.c2);
+  const matches = findMatches(board);
+  let bonus = 0;
+  for (const m of matches) {
+    if (m.type === 'match4h' || m.type === 'match4v') bonus += 50;
+    if (m.type === 'matchTL') bonus += 80;
+    if (m.type === 'match5') bonus += 120;
+  }
+  swapCells(board, move.r1, move.c1, move.r2, move.c2);
+  return bonus;
+}
+
+function updateAiTurn(dt) {
+  if (gIsPlayerTurn || gCascadePhase !== 'idle') return;
+
+  gAiThinkTimer += dt;
+  const thinkTime = MathUtil.lerp(AI_THINK_MAX, AI_THINK_MIN, (gAiLevel - 1) / 2);
+
+  if (gAiThinkTimer >= thinkTime) {
+    const move = aiDecide(gOpponentGrid);
+    if (move) {
+      // AI 보드에서 스왑 실행
+      const combo = checkSpecialCombo(gOpponentGrid, move.r1, move.c1, move.r2, move.c2);
+      swapCells(gOpponentGrid, move.r1, move.c1, move.r2, move.c2);
+      gSwapFrom = { r: move.r1, c: move.c1 };
+      gSwapTo = { r: move.r2, c: move.c2 };
+
+      if (combo) {
+        for (const pos of combo) {
+          const cell = safeGridAccess(gOpponentGrid, pos.r, pos.c);
+          if (cell) { cell.color = -1; cell.special = SP.NONE; }
+        }
+      }
+
+      startCascade(gOpponentGrid);
+      gAiThinkTimer = 0;
+    } else {
+      // AI 유효 이동 없음 → 셔플
+      shuffleBoard(gOpponentGrid);
+      gAiThinkTimer = 0;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 솔로 모드 ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 레벨 데이터 (30레벨) */
+const LEVEL_DATA = (() => {
+  const levels = [];
+  const zones = [
+    { name:'성문', iceCount:[0,1,2,3,3,4], stoneCount:[0,0,0,0,0,0], chainCount:[0,0,0,0,0,0], lockCount:[0,0,0,0,0,0], poisonCount:[0,0,0,0,0,0], turns:[25,24,23,22,21,20] },
+    { name:'정원', iceCount:[2,3,3,4,4,5], stoneCount:[0,0,0,0,0,0], chainCount:[1,1,2,2,3,3], lockCount:[0,0,0,0,0,0], poisonCount:[0,1,1,1,2,2], turns:[20,20,19,19,18,18] },
+    { name:'시장', iceCount:[3,3,4,4,5,5], stoneCount:[1,1,2,2,2,3], chainCount:[2,2,3,3,3,4], lockCount:[0,0,0,0,0,0], poisonCount:[0,0,0,1,1,1], turns:[18,18,17,17,16,15] },
+    { name:'도서관', iceCount:[4,4,5,5,6,6], stoneCount:[2,2,2,3,3,3], chainCount:[2,2,3,3,3,4], lockCount:[1,1,2,2,2,3], poisonCount:[0,0,1,1,1,2], turns:[15,15,14,14,13,12] },
+    { name:'왕좌실', iceCount:[5,5,6,6,7,7], stoneCount:[3,3,3,4,4,4], chainCount:[3,3,4,4,4,5], lockCount:[2,2,3,3,3,4], poisonCount:[1,1,2,2,2,3], turns:[12,12,11,11,10,10] }
+  ];
+
+  const targetTypes = ['score','gemCollect','obstacleRemove','specialCreate','mixed'];
+
+  for (let zone = 0; zone < 5; zone++) {
+    const z = zones[zone];
+    for (let i = 0; i < 6; i++) {
+      const lvl = zone * 6 + i + 1;
+      const baseScore = 1000 + lvl * 200;
+      const tType = targetTypes[(zone * 6 + i) % targetTypes.length];
+      let targets;
+      switch (tType) {
+        case 'score': targets = [{ type:'score', value: baseScore, label: t('score') + ' ' + baseScore }]; break;
+        case 'gemCollect': {
+          const color = i % GEM_COLORS;
+          const count = 10 + zone * 3 + i;
+          targets = [{ type:'gemCollect', color, value: count, label: GEM_NAMES[color] + ' ×' + count }]; break;
+        }
+        case 'obstacleRemove': {
+          const count = 3 + zone * 2;
+          targets = [{ type:'obstacleRemove', value: count, label: '장애물 ×' + count }]; break;
+        }
+        case 'specialCreate': {
+          const count = 2 + zone;
+          targets = [{ type:'specialCreate', value: count, label: '스페셜 ×' + count }]; break;
+        }
+        case 'mixed':
+          targets = [
+            { type:'score', value: Math.floor(baseScore * 0.7), label: t('score') + ' ' + Math.floor(baseScore * 0.7) },
+            { type:'obstacleRemove', value: 2 + zone, label: '장애물 ×' + (2 + zone) }
+          ]; break;
+      }
+
+      levels.push({
+        level: lvl, zone, zoneName: z.name,
+        turns: z.turns[i],
+        targets,
+        iceCount: z.iceCount[i],
+        stoneCount: z.stoneCount[i],
+        chainCount: z.chainCount[i],
+        lockCount: z.lockCount[i],
+        poisonCount: z.poisonCount[i],
+        starThresholds: [baseScore, Math.floor(baseScore * 1.5), baseScore * 2]
+      });
+    }
+  }
+  return levels;
+})();
+
+function initSoloLevel(level) {
+  gPvpMode = false;
+  gBoardState = 'idle';
+  gCascadePhase = 'idle';
+  gIsInputBlocked = false;
+  gComboCount = 0;
+  gCascadeCount = 0;
+  gSelectedCell = null;
+  gHintTimer = 0;
+  gHintCells = null;
+  gLevelScore = 0;
+  gObstacleQueue = [];
+
+  const data = LEVEL_DATA[level - 1];
+  if (!data) return;
+
+  gMovesLeft = data.turns;
+  gLevelTargets = data.targets.map(t => ({ ...t, current: 0 }));
+
+  // DDA 보정
+  if (gFailStreak >= 4) {
+    gMovesLeft += 4;
+    // 목표 70%
+    for (const tgt of gLevelTargets) tgt.value = Math.floor(tgt.value * 0.7);
+  } else if (gFailStreak >= 2) {
+    gMovesLeft += 2;
+    for (const tgt of gLevelTargets) tgt.value = Math.floor(tgt.value * 0.85);
+  }
+
+  // 장애물 맵 생성
+  const obsMap = [];
+  for (let r = 0; r < ROWS; r++) { obsMap[r] = []; for (let c = 0; c < COLS; c++) obsMap[r][c] = OBS.NONE; }
+
+  const rng = new SeededRNG(level * 1000 + gFailStreak);
+  const placed = new Set();
+  function placeObs(type, count) {
+    for (let i = 0; i < count; i++) {
+      let r, c;
+      do { r = rng.nextInt(1, ROWS - 2); c = rng.nextInt(1, COLS - 2); } while (placed.has(r * COLS + c));
+      placed.add(r * COLS + c);
+      obsMap[r][c] = type;
+    }
+  }
+  placeObs(OBS.ICE1, data.iceCount);
+  placeObs(OBS.STONE, data.stoneCount);
+  placeObs(OBS.CHAIN, data.chainCount);
+  placeObs(OBS.LOCK, data.lockCount);
+  placeObs(OBS.POISON, data.poisonCount);
+
+  // DDA: failStreak 4+ → 시작 시 스페셜 1개
+  gGrid = generateBoard(new SeededRNG(level * 2000 + Date.now() % 10000), obsMap);
+
+  if (gFailStreak >= 4) {
+    const r = MathUtil.randInt(1, ROWS - 2);
+    const c = MathUtil.randInt(1, COLS - 2);
+    const cell = safeGridAccess(gGrid, r, c);
+    if (cell && cell.obstacle === OBS.NONE) cell.special = SP.BOMB;
+  }
+}
+
+/** 솔로 목표 진행 업데이트 */
+function updateSoloTargets(type, value) {
+  if (!gLevelTargets) return;
+  for (const tgt of gLevelTargets) {
+    if (tgt.type === type) tgt.current += value;
+  }
+}
+
+/** 점수 추가 */
+function addScore(who, pts) {
+  if (who === 'player') {
+    if (gPvpMode) {
+      gPlayerScore += pts;
+      gLastComboScorePlayer = pts; // 동점 판정용 마지막 콤보 점수 추적
+    } else {
+      gLevelScore += pts;
+      updateSoloTargets('score', pts);
+    }
+  } else {
+    if (gPvpMode) {
+      gOpponentScore += pts;
+      gLastComboScoreOpponent = pts; // 동점 판정용 마지막 콤보 점수 추적
+    }
+  }
+}
+
+/** 레벨 종료 체크 */
+function checkSoloLevelEnd() {
+  if (!gLevelTargets) return;
+  // 모든 목표 달성?
+  const allComplete = gLevelTargets.every(t => t.current >= t.value);
+  if (allComplete) {
+    gDeferredQueue.push(STATE.LEVEL_CLEAR);
+    return;
+  }
+  if (gMovesLeft <= 0) {
+    gDeferredQueue.push(STATE.LEVEL_FAIL);
+  }
+}
+
+function calculateStars() {
+  const data = LEVEL_DATA[gCurrentLevel - 1];
+  if (!data) { gLevelStars = 1; return; }
+  gLevelStars = 1;
+  if (gLevelScore >= data.starThresholds[1]) gLevelStars = 2;
+  if (gLevelScore >= data.starThresholds[2]) gLevelStars = 3;
+  gKingdomData.totalStars += gLevelStars;
+  gFailStreak = 0;
+  if (gCurrentLevel < 30) gCurrentLevel++;
+  saveGameData();
+}
+
+function savePvpResult() {
+  // §2.2-5: 동점 시 마지막 콤보 점수가 높은 쪽 승리
+  let win = gPlayerScore > gOpponentScore;
+  let draw = gPlayerScore === gOpponentScore;
+  if (draw) {
+    if (gLastComboScorePlayer > gLastComboScoreOpponent) {
+      win = true; draw = false;
+    } else if (gLastComboScoreOpponent > gLastComboScorePlayer) {
+      win = false; draw = false;
+    }
+    // 마지막 콤보 점수도 동일하면 진정한 무승부
+  }
+
+  let trophyChange = 0;
+  if (win) {
+    trophyChange = 25 + gCurrentLeague * 2;
+    playSfx('pvpVictory');
+  } else if (draw) {
+    trophyChange = 5;
+  } else {
+    trophyChange = -(10 + gCurrentLeague * 2);
+    playSfx('pvpDefeat');
+  }
+  gTrophies = Math.max(0, gTrophies + trophyChange);
+  const oldLeague = gCurrentLeague;
+  gCurrentLeague = getLeagueFromTrophies(gTrophies);
+  if (gCurrentLeague > oldLeague) playSfx('leagueUp');
+
+  // 별 보상
+  if (win) gKingdomData.totalStars += 2;
+  else if (draw) gKingdomData.totalStars += 1;
+  // 코인 보상
+  gKingdomData.coins += win ? 50 : (draw ? 25 : 10);
+
+  Save.setHighScore(GAME_ID, Math.max(gPlayerScore, Save.getHighScore(GAME_ID)));
+  saveGameData();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 왕국 건설 시스템 ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function generateBuildChoices() {
+  gBuildChoices = [];
+  // 현재 가장 진행이 덜 된 구역 찾기
+  let minZone = 0, minProg = gKingdomData.zones[0];
+  for (let i = 1; i < 5; i++) {
+    if (gKingdomData.zones[i] < minProg) { minProg = gKingdomData.zones[i]; minZone = i; }
+  }
+  gBuildZoneIdx = minZone;
+
+  // 3택 1 선택지 생성
+  const buildNames_ko = [
+    ['성벽 수리','문기둥 세우기','깃발 달기','해자 파기','다리 건설','조명 설치'],
+    ['꽃밭 조성','분수대 건설','벤치 배치','나비 정원','장미 아치','연못 파기'],
+    ['가판대 설치','천막 치기','상품 진열','간판 달기','수레 배치','거리등 설치'],
+    ['책장 설치','독서대 배치','마법 오브 놓기','망원경 설치','이동 사다리','마법 램프'],
+    ['왕좌 수리','카펫 깔기','문장 걸기','왕관 전시대','보석 장식','왕실 깃발']
+  ];
+  const buildNames_en = [
+    ['Repair Walls','Build Pillars','Hang Flags','Dig Moat','Build Bridge','Install Lights'],
+    ['Plant Flowers','Build Fountain','Place Benches','Butterfly Garden','Rose Arch','Dig Pond'],
+    ['Set Up Stalls','Put Up Tents','Display Goods','Hang Signs','Place Carts','Street Lamps'],
+    ['Install Shelves','Place Desks','Magic Orb','Telescope','Moving Ladder','Magic Lamp'],
+    ['Repair Throne','Lay Carpet','Hang Emblem','Crown Display','Gem Decor','Royal Flag']
+  ];
+
+  const zoneBuilds = gLang === 'en' ? buildNames_en[minZone] : buildNames_ko[minZone];
+  const startIdx = minProg;
+  for (let i = 0; i < 3 && startIdx + i < zoneBuilds.length; i++) {
+    gBuildChoices.push({
+      name: zoneBuilds[startIdx + i] || '건설 ' + (startIdx + i + 1),
+      cost: 1 + Math.floor(minProg / 2),
+      bonus: ['점수 +200', '턴 +1', '코인 +20'][i % 3]
+    });
+  }
+  if (gBuildChoices.length === 0) {
+    gBuildChoices.push({ name: '장식 추가', cost: 1, bonus: '코인 +10' });
+  }
+}
+
+function selectBuild(idx) {
+  if (idx < 0 || idx >= gBuildChoices.length) return;
+  const choice = gBuildChoices[idx];
+  if (gKingdomData.totalStars < choice.cost) return;
+
+  gKingdomData.totalStars -= choice.cost;
+  gKingdomData.zones[gBuildZoneIdx]++;
+  gKingdomData.coins += 20;
+  saveGameData();
+  playSfx('buttonClick');
+  beginTransition(STATE.KINGDOM_MAP);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 일일 챌린지 ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function startDailyChallenge() {
+  gDailySeed = getTodaySeed();
+  gCurrentLevel = 15; // 중간 난이도 레벨
+  initSoloLevel(gCurrentLevel);
+  // 시드 기반 보드 재생성
+  gGrid = generateBoard(new SeededRNG(gDailySeed));
+  gMovesLeft = 15;
+  gLevelTargets = [{ type:'score', value:3000, current:0, label:t('score')+' 3000' }];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── UI 헬퍼 ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function showComboText(count) {
+  const texts = ['','','COMBO!','AWESOME!','INCREDIBLE!','LEGENDARY!'];
+  gComboText = texts[Math.min(count, 5)] || ('×' + count + ' COMBO!');
+  gComboPopAlpha = 1;
+  gShowingCombo = true;
+}
+
+function showTurnBanner(text) {
+  gTurnBannerText = text;
+  gTurnBannerAlpha = 1;
+}
+
+function showScorePopup(board, r, c, pts) {
+  const pop = scorePopPool.acquire();
+  pop.text = '+' + pts;
+  pop.life = 0;
+  pop.maxLife = 1200;
+  pop.alpha = 1;
+  pop.boardR = r;
+  pop.boardC = c;
+  pop.color = '#ffd700';
+  gScorePopups.push(pop);
+}
+
+/** 이펙트 스프라이트 시트 기반 매치 이펙트 큐 */
+let gMatchEffects = [];
+function addMatchEffect(type, x, y, size) {
+  gMatchEffects.push({ type, x, y, size, timer: 0, duration: 500 });
+}
+function updateMatchEffects(dt) {
+  for (let i = gMatchEffects.length - 1; i >= 0; i--) {
+    gMatchEffects[i].timer += dt;
+    if (gMatchEffects[i].timer >= gMatchEffects[i].duration) gMatchEffects.splice(i, 1);
+  }
+}
+function renderMatchEffects(ctx) {
+  for (const eff of gMatchEffects) {
+    const progress = MathUtil.clamp(eff.timer / eff.duration, 0, 1);
+    const alpha = 1 - progress;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const sz = eff.size * (1 + progress * 0.5);
+    drawEffectSpriteSheet(ctx, eff.type, eff.x - sz / 2, eff.y - sz / 2, sz, sz, progress);
+    ctx.restore();
+  }
+}
+
+function emitMatchParticles(board, r, c, color) {
+  // 보드 좌표 → 화면 좌표 계산은 렌더링 시점에 처리
+  const px = getBoardPixelX(c, engine.W, engine.H);
+  const py = getBoardPixelY(r, engine.W, engine.H);
+  // 파티클 텍스처 활용 (particleShard)
+  const shardTex = assets.sprites['particleShard'] || null;
+  particles.emit(px, py, 8, { color: GEM_HEX[color] || '#fff', speed: 120, life: 0.4, size: 4, texture: shardTex });
+  // 매치 버스트 스프라이트 이펙트
+  const bl = getBoardLayout(engine.W, engine.H);
+  addMatchEffect('effectMatchBurst', px, py, bl.cellSize * 1.2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 부스터 시스템 ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function activateBooster(idx) {
+  if (gIsInputBlocked) return;
+  if (gPvpMode && gPvpBoosters[idx] <= 0) return;
+
+  switch (idx) {
+    case BOOST.HAMMER:
+      gBoosterMode = true;
+      gSelectedBooster = idx;
+      break;
+    case BOOST.SWAP:
+      gBoosterMode = true;
+      gSelectedBooster = idx;
+      gBoosterSwapFirst = null;
+      break;
+    case BOOST.SHUFFLE:
+      shuffleBoard(gGrid);
+      if (gPvpMode) gPvpBoosters[idx]--;
+      playSfx('buttonClick');
+      break;
+    case BOOST.EXTRA_TURN:
+      if (gPvpMode) { gPvpTurn = Math.max(0, gPvpTurn - 1); gPvpBoosters[idx]--; }
+      else gMovesLeft++;
+      playSfx('buttonClick');
+      break;
+  }
+}
+
+function handleBoosterClick(r, c) {
+  const board = gGrid;
+  if (gSelectedBooster === BOOST.HAMMER) {
+    const cell = safeGridAccess(board, r, c);
+    if (cell && cell.color >= 0 && cell.obstacle !== OBS.STONE) {
+      cell.color = -1;
+      cell.special = SP.NONE;
+      damageAdjacentObstacles(board, r, c);
+      applyGravity(board);
+      startCascade(board);
+      if (gPvpMode) gPvpBoosters[BOOST.HAMMER]--;
+      playSfx('bombExplode');
+    }
+    gBoosterMode = false;
+    gSelectedBooster = -1;
+  } else if (gSelectedBooster === BOOST.SWAP) {
+    if (!gBoosterSwapFirst) {
+      gBoosterSwapFirst = { r, c };
+    } else {
+      swapCells(board, gBoosterSwapFirst.r, gBoosterSwapFirst.c, r, c);
+      startCascade(board);
+      if (gPvpMode) gPvpBoosters[BOOST.SWAP]--;
+      playSfx('gemSwap');
+      gBoosterMode = false;
+      gSelectedBooster = -1;
+      gBoosterSwapFirst = null;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 보드 좌표 계산 (반응형) ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function getBoardLayout(w, h) {
+  const safe = Layout.safeArea(w, h);
+  const mobile = Layout.isMobile(w);
+  const boardAreaH = mobile ? safe.h * 0.65 : safe.h * 0.7;
+  const boardAreaW = mobile ? safe.w * 0.95 : safe.w * 0.5;
+  const grid = Layout.grid(COLS, ROWS, boardAreaW, boardAreaH, 2);
+  const boardX = mobile ? (w - grid.totalW) / 2 : w * 0.25 - grid.totalW / 2 + safe.x;
+  const boardY = mobile ? safe.y + safe.h * 0.12 : safe.y + (safe.h - grid.totalH) / 2;
+  return { ...grid, boardX, boardY, mobile };
+}
+
+function getOpponentBoardLayout(w, h) {
+  const safe = Layout.safeArea(w, h);
+  const mobile = Layout.isMobile(w);
+  const boardAreaH = mobile ? safe.h * 0.3 : safe.h * 0.7;
+  const boardAreaW = mobile ? safe.w * 0.5 : safe.w * 0.35;
+  const grid = Layout.grid(COLS, ROWS, boardAreaW, boardAreaH, mobile ? 1 : 2);
+  const boardX = mobile ? w * 0.5 + (w * 0.5 - grid.totalW) / 2 : w * 0.72 - grid.totalW / 2;
+  const boardY = mobile ? safe.y + safe.h * 0.02 : safe.y + (safe.h - grid.totalH) / 2;
+  return { ...grid, boardX, boardY, mobile };
+}
+
+function getBoardPixelX(c, w, h) {
+  const bl = getBoardLayout(w, h);
+  return bl.boardX + bl.padding + c * (bl.cellSize + bl.padding) + bl.cellSize / 2;
+}
+
+function getBoardPixelY(r, w, h) {
+  const bl = getBoardLayout(w, h);
+  return bl.boardY + bl.padding + r * (bl.cellSize + bl.padding) + bl.cellSize / 2;
+}
+
+function pixelToBoard(px, py, w, h) {
+  const bl = getBoardLayout(w, h);
+  const c = Math.floor((px - bl.boardX - bl.padding) / (bl.cellSize + bl.padding));
+  const r = Math.floor((py - bl.boardY - bl.padding) / (bl.cellSize + bl.padding));
+  if (r >= 0 && r < ROWS && c >= 0 && c < COLS) return { r, c };
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 입력 처리 ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+let gDragStart = null;
+let gDragging = false;
+
+function handleBoardInput(w, h) {
+  if (gIsInputBlocked || gCascadePhase !== 'idle') return;
+  if (gPvpMode && !gIsPlayerTurn) return;
+
+  // 보드 영역 터치/클릭 → 드래그 감지
+  if (input.tapped && !gDragging) {
+    const pos = pixelToBoard(input.tapX, input.tapY, w, h);
+    if (pos) {
+      if (gBoosterMode) {
+        handleBoosterClick(pos.r, pos.c);
+        return;
+      }
+      gDragStart = { r: pos.r, c: pos.c, px: input.tapX, py: input.tapY };
+      gSelectedCell = pos;
+    }
+  }
+
+  // 드래그 감지
+  if (gDragStart && input.mouseDown) {
+    const dx = input.mouseX - gDragStart.px;
+    const dy = input.mouseY - gDragStart.py;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist >= SWAP_THRESHOLD) {
+      // 방향 결정
+      let dr = 0, dc = 0;
+      if (Math.abs(dx) > Math.abs(dy)) dc = dx > 0 ? 1 : -1;
+      else dr = dy > 0 ? 1 : -1;
+
+      const from = gDragStart;
+      const to = { r: from.r + dr, c: from.c + dc };
+      if (to.r >= 0 && to.r < ROWS && to.c >= 0 && to.c < COLS) {
+        trySwap(gGrid, from.r, from.c, to.r, to.c);
+      }
+      gDragStart = null;
+      gSelectedCell = null;
+    }
+  }
+
+  if (!input.mouseDown) {
+    gDragStart = null;
+  }
+
+  // 키보드 부스터
+  if (input.jp('Digit1')) activateBooster(0);
+  if (input.jp('Digit2')) activateBooster(1);
+  if (input.jp('Digit3')) activateBooster(2);
+  if (input.jp('Digit4')) activateBooster(3);
+}
+
+function trySwap(board, r1, c1, r2, c2) {
+  const a = safeGridAccess(board, r1, c1);
+  const b = safeGridAccess(board, r2, c2);
+  if (!a || !b) return;
+  if (a.obstacle === OBS.STONE || b.obstacle === OBS.STONE) return;
+  if (a.obstacle === OBS.CHAIN || b.obstacle === OBS.CHAIN) {
+    // 체인: 매치 시에만 해제
+  }
+
+  // 스페셜 조합 체크
+  const combo = checkSpecialCombo(board, r1, c1, r2, c2);
+  if (combo) {
+    swapCells(board, r1, c1, r2, c2);
+    for (const pos of combo) {
+      const cell = safeGridAccess(board, pos.r, pos.c);
+      if (cell && cell.obstacle !== OBS.STONE) {
+        emitMatchParticles(board, pos.r, pos.c, cell.color);
+        cell.color = -1;
+        cell.special = SP.NONE;
+      }
+    }
+    gSwapFrom = { r: r1, c: c1 };
+    gSwapTo = { r: r2, c: c2 };
+    playSfx('gemSwap');
+    startCascade(board);
+    updateSoloTargets('specialCreate', 1);
+    return;
+  }
+
+  // 일반 스왑
+  swapCells(board, r1, c1, r2, c2);
+  if (hasMatchesOnBoard(board)) {
+    gSwapFrom = { r: r1, c: c1 };
+    gSwapTo = { r: r2, c: c2 };
+    playSfx('gemSwap');
+    startCascade(board);
+  } else {
+    // 유효하지 않은 스왑 → 되돌리기
+    swapCells(board, r1, c1, r2, c2);
+    gShakeIntensity = 3;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 에셋 드로잉 + 폴백 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function drawAssetOrFallback(ctx, key, x, y, w, h, fallbackFn) {
+  if (assets.sprites[key]) {
+    ctx.drawImage(assets.sprites[key], x, y, w, h);
+  } else if (fallbackFn) {
+    fallbackFn(ctx, x, y, w, h);
+  } else {
+    ctx.fillStyle = '#6c3cf766';
+    ctx.fillRect(x + w * 0.1, y + h * 0.1, w * 0.8, h * 0.8);
+  }
+}
+
+// ── 보석 폴백 드로잉 (색상별 고유 형태 — C50 패턴) ────────────
+function drawGemFallback(ctx, x, y, w, h, colorIdx) {
+  const cx = x + w / 2, cy = y + h / 2, r = w * 0.38;
+  ctx.save();
+  const gradient = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, r * 0.1, cx, cy, r);
+  gradient.addColorStop(0, '#fff');
+  gradient.addColorStop(0.3, GEM_HEX[colorIdx] || '#888');
+  gradient.addColorStop(1, shadeColor(GEM_HEX[colorIdx] || '#888', -40));
+  ctx.fillStyle = gradient;
+
+  switch (colorIdx) {
+    case 0: // 빨강 — 다이아몬드
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy); ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r, cy);
+      ctx.closePath(); ctx.fill(); break;
+    case 1: // 파랑 — 원형
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); break;
+    case 2: // 초록 — 육각형
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 6; ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); }
+      ctx.closePath(); ctx.fill(); break;
+    case 3: // 노랑 — 별형
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) { const a = Math.PI / 5 * i - Math.PI / 2; const rad = i % 2 === 0 ? r : r * 0.5; ctx.lineTo(cx + rad * Math.cos(a), cy + rad * Math.sin(a)); }
+      ctx.closePath(); ctx.fill(); break;
+    case 4: // 보라 — 하트
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + r * 0.8);
+      ctx.bezierCurveTo(cx - r * 1.2, cy - r * 0.2, cx - r * 0.5, cy - r, cx, cy - r * 0.5);
+      ctx.bezierCurveTo(cx + r * 0.5, cy - r, cx + r * 1.2, cy - r * 0.2, cx, cy + r * 0.8);
+      ctx.fill(); break;
+    case 5: // 주황 — 삼각형
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r * 0.87, cy + r * 0.5); ctx.lineTo(cx - r * 0.87, cy + r * 0.5);
+      ctx.closePath(); ctx.fill(); break;
+  }
+
+  // 하이라이트
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.2, cy - r * 0.25, r * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function shadeColor(hex, percent) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = MathUtil.clamp((num >> 16) + amt, 0, 255);
+  const G = MathUtil.clamp((num >> 8 & 0xff) + amt, 0, 255);
+  const B = MathUtil.clamp((num & 0xff) + amt, 0, 255);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+// ── 장애물 폴백 ──────────────────────────────────────────────────
+function drawObstacleFallback(ctx, x, y, w, h, obsType) {
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  switch (obsType) {
+    case OBS.ICE1:
+      ctx.fillStyle = '#88ccff44'; ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#aaddff'; ctx.lineWidth = 2; ctx.strokeRect(x+2, y+2, w-4, h-4);
+      break;
+    case OBS.ICE2:
+      ctx.fillStyle = '#4488cc88'; ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#88bbff'; ctx.lineWidth = 3; ctx.strokeRect(x+1, y+1, w-2, h-2);
+      break;
+    case OBS.CHAIN:
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x+3, y+3); ctx.lineTo(x+w-3, y+h-3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+w-3, y+3); ctx.lineTo(x+3, y+h-3); ctx.stroke();
+      break;
+    case OBS.STONE:
+      ctx.fillStyle = '#555'; ctx.fillRect(x+2, y+2, w-4, h-4);
+      ctx.fillStyle = '#777'; ctx.fillRect(x+4, y+4, w-8, h-8);
+      break;
+    case OBS.LOCK:
+      ctx.fillStyle = '#ffd70088';
+      ctx.beginPath(); ctx.arc(x+w/2, y+h*0.4, w*0.2, 0, Math.PI*2); ctx.fill();
+      ctx.fillRect(x+w*0.3, y+h*0.4, w*0.4, h*0.35);
+      break;
+    case OBS.POISON:
+      ctx.fillStyle = '#8800aa55'; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#aa22cc88';
+      ctx.beginPath(); ctx.arc(x+w*0.3, y+h*0.6, w*0.1, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+w*0.7, y+h*0.4, w*0.08, 0, Math.PI*2); ctx.fill();
+      break;
+  }
+  ctx.restore();
+}
+
+// ── 스페셜 오버레이 폴백 ─────────────────────────────────────────
+function drawSpecialFallback(ctx, x, y, w, h, spType) {
+  ctx.save();
+  ctx.globalAlpha = 0.8;
+  switch (spType) {
+    case SP.LINE_H:
+      ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x+2, y+h/2); ctx.lineTo(x+w-2, y+h/2); ctx.stroke();
+      drawArrowHead(ctx, x+w-6, y+h/2, 6, 0); drawArrowHead(ctx, x+6, y+h/2, 6, Math.PI);
+      break;
+    case SP.LINE_V:
+      ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x+w/2, y+2); ctx.lineTo(x+w/2, y+h-2); ctx.stroke();
+      drawArrowHead(ctx, x+w/2, y+h-6, 6, Math.PI/2); drawArrowHead(ctx, x+w/2, y+6, 6, -Math.PI/2);
+      break;
+    case SP.BOMB:
+      ctx.strokeStyle = '#ff8800'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x+w/2, y+h/2, w*0.3, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x+w/2, y+h/2, w*0.15, 0, Math.PI*2); ctx.stroke();
+      break;
+    case SP.RAINBOW:
+      const colors = ['#ff0000','#ff8800','#ffff00','#00ff00','#0088ff','#8800ff'];
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = colors[i];
+        ctx.beginPath();
+        ctx.arc(x+w/2, y+h/2, w*0.35, Math.PI*2/6*i, Math.PI*2/6*(i+1));
+        ctx.lineTo(x+w/2, y+h/2);
+        ctx.fill();
+      }
+      break;
+  }
+  ctx.restore();
+}
+
+/** 캐릭터 폴백 — SD 스타일 (왕, 상대 3종) */
+function drawCharFallback(ctx, x, y, w, h, type, charId) {
+  const cx = x + w/2, headY = y + h*0.3;
+  const headR = w*0.22;
+
+  if (type === 'king') {
+    // 왕 — 금관+붉은 망토+밝은 얼굴
+    ctx.fillStyle = '#cc2244';
+    ctx.beginPath(); ctx.ellipse(cx, y + h*0.65, w*0.2, h*0.2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#4444cc';
+    ctx.beginPath(); ctx.roundRect(cx - w*0.15, headY + headR*0.5, w*0.3, h*0.3, 4); ctx.fill();
+    const faceGrad = ctx.createRadialGradient(cx, headY, headR*0.1, cx, headY, headR);
+    faceGrad.addColorStop(0, '#ffe0b2'); faceGrad.addColorStop(1, '#ffcc80');
+    ctx.fillStyle = faceGrad;
+    ctx.beginPath(); ctx.arc(cx, headY, headR, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(cx - headR*0.3, headY - headR*0.1, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + headR*0.3, headY - headR*0.1, 2, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, headY + headR*0.1, headR*0.2, 0.1, Math.PI - 0.1); ctx.stroke();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.moveTo(cx - headR*0.6, headY - headR*0.7);
+    ctx.lineTo(cx - headR*0.4, headY - headR*1.2);
+    ctx.lineTo(cx, headY - headR*0.8);
+    ctx.lineTo(cx + headR*0.4, headY - headR*1.2);
+    ctx.lineTo(cx + headR*0.6, headY - headR*0.7);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath(); ctx.arc(cx, headY - headR, 2, 0, Math.PI*2); ctx.fill();
+  } else {
+    // 상대 캐릭터 (3종 — 마법사/기사/드래곤 조련사)
+    const colors = [['#8844cc', '#6633aa'], ['#aaaacc', '#888899'], ['#cc4422', '#aa3311']];
+    const hatStyles = ['wizard', 'knight', 'dragon'];
+    const ci = MathUtil.clamp(charId || 0, 0, 2);
+    const [bodyC, bodyD] = colors[ci];
+
+    ctx.fillStyle = bodyC;
+    ctx.beginPath(); ctx.roundRect(cx - w*0.15, headY + headR*0.5, w*0.3, h*0.3, 4); ctx.fill();
+    const faceGrad2 = ctx.createRadialGradient(cx, headY, headR*0.1, cx, headY, headR);
+    faceGrad2.addColorStop(0, '#ffe0b2'); faceGrad2.addColorStop(1, '#ddb896');
+    ctx.fillStyle = faceGrad2;
+    ctx.beginPath(); ctx.arc(cx, headY, headR, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(cx - headR*0.3, headY - headR*0.1, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + headR*0.3, headY - headR*0.1, 2, 0, Math.PI*2); ctx.fill();
+
+    if (hatStyles[ci] === 'wizard') {
+      ctx.fillStyle = '#6633aa';
+      ctx.beginPath();
+      ctx.moveTo(cx - headR*0.7, headY - headR*0.5);
+      ctx.lineTo(cx, headY - headR*1.8);
+      ctx.lineTo(cx + headR*0.7, headY - headR*0.5);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath(); ctx.arc(cx, headY - headR*1.2, 3, 0, Math.PI*2); ctx.fill();
+    } else if (hatStyles[ci] === 'knight') {
+      ctx.fillStyle = '#888899';
+      ctx.beginPath();
+      ctx.roundRect(cx - headR*0.7, headY - headR*1.1, headR*1.4, headR*0.6, 3);
+      ctx.fill();
+      ctx.fillStyle = '#666677';
+      ctx.beginPath();
+      ctx.roundRect(cx - headR*0.5, headY - headR*1.3, headR*1.0, headR*0.3, 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#cc4422';
+      ctx.beginPath();
+      ctx.moveTo(cx - headR*0.5, headY - headR*0.7);
+      ctx.quadraticCurveTo(cx, headY - headR*1.5, cx + headR*0.5, headY - headR*0.7);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff6644';
+      ctx.beginPath();
+      ctx.moveTo(cx + headR*0.3, headY - headR*0.7);
+      ctx.lineTo(cx + headR*0.6, headY - headR*1.2);
+      ctx.lineTo(cx + headR*0.1, headY - headR*0.9);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // 도전적 표정
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - headR*0.15, headY + headR*0.15); ctx.lineTo(cx + headR*0.15, headY + headR*0.15); ctx.stroke();
+  }
+}
+
+function drawArrowHead(ctx, x, y, size, angle) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(angle);
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.moveTo(size, 0); ctx.lineTo(-size/2, -size/2); ctx.lineTo(-size/2, size/2);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 렌더링 함수들 ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 배경 렌더 */
+function renderBackground(ctx, w, h) {
+  // 기본 그라디언트 배경
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, PALETTE.bg);
+  grad.addColorStop(1, PALETTE.bgSub);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/** 타이틀 배경 */
+function renderTitleBg(ctx, w, h) {
+  drawAssetOrFallback(ctx, 'bgTitle', 0, 0, w, h, (ctx, x, y, w, h) => {
+    renderBackground(ctx, w, h);
+    // 떠다니는 보석 파티클
+    ctx.globalAlpha = 0.3;
+    for (let i = 0; i < 20; i++) {
+      const bx = (w * 0.1 + i * w * 0.04 + gTime * 0.02 * (i % 3 + 1)) % w;
+      const by = h * 0.3 + Math.sin(gTime * 0.001 + i) * h * 0.15;
+      drawGemFallback(ctx, bx, by, 30, 30, i % GEM_COLORS);
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
+/** PvP 아레나 배경 */
+function renderArenaBg(ctx, w, h) {
+  drawAssetOrFallback(ctx, 'bgArena', 0, 0, w, h, (ctx, x, y, w, h) => {
+    renderBackground(ctx, w, h);
+    // 아레나 장식
+    ctx.fillStyle = '#ffd70015';
+    ctx.fillRect(w * 0.48, 0, w * 0.04, h);
+    // 마법진
+    ctx.strokeStyle = '#ffd70020';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(w/2, h/2, h*0.4, 0, Math.PI*2); ctx.stroke();
+  });
+}
+
+/** 보석 보드 렌더 */
+function renderBoard(ctx, w, h, board, layout) {
+  const { cellSize, boardX, boardY, padding } = layout;
+  const cs = Math.max(cellSize, MIN_TOUCH);
+  const actualCS = cellSize;
+
+  // 보드 배경
+  ctx.fillStyle = PALETTE.boardBg + '88';
+  const bw = COLS * (actualCS + padding) + padding;
+  const bh = ROWS * (actualCS + padding) + padding;
+  ctx.beginPath();
+  ctx.roundRect(boardX, boardY, bw, bh, 8);
+  ctx.fill();
+
+  // 프레임
+  drawAssetOrFallback(ctx, 'bgBoard', boardX - 8, boardY - 8, bw + 16, bh + 16, null);
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell) continue;
+
+      const cx = boardX + padding + c * (actualCS + padding);
+      const cy = boardY + padding + r * (actualCS + padding);
+
+      // 셀 배경 (체커보드) — uiBoardCell 에셋 활용
+      if (assets.sprites['uiBoardCell']) {
+        ctx.globalAlpha = (r + c) % 2 === 0 ? 0.8 : 1.0;
+        ctx.drawImage(assets.sprites['uiBoardCell'], cx, cy, actualCS, actualCS);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#1a1a40' : '#252550';
+        ctx.beginPath();
+        ctx.roundRect(cx, cy, actualCS, actualCS, 4);
+        ctx.fill();
+      }
+
+      // 선택 하이라이트
+      if (gSelectedCell && gSelectedCell.r === r && gSelectedCell.c === c) {
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(cx - 2, cy - 2, actualCS + 4, actualCS + 4, 6);
+        ctx.stroke();
+      }
+
+      // 힌트 하이라이트
+      if (gHintCells) {
+        for (const hc of gHintCells) {
+          if (hc.r === r && hc.c === c) {
+            ctx.fillStyle = 'rgba(255,215,0,0.2)';
+            ctx.fillRect(cx, cy, actualCS, actualCS);
+            ctx.strokeStyle = 'rgba(255,215,0,0.5)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cx, cy, actualCS, actualCS);
+          }
+        }
+      }
+
+      // 돌블록 (보석 대신 돌)
+      if (cell.obstacle === OBS.STONE) {
+        drawAssetOrFallback(ctx, OBS_ASSET[OBS.STONE], cx + 2, cy + 2, actualCS - 4, actualCS - 4, (ctx2, x2, y2, w2, h2) => drawObstacleFallback(ctx2, x2, y2, w2, h2, OBS.STONE));
+        continue;
+      }
+
+      // 보석
+      if (cell.color >= 0) {
+        const gem_padding = actualCS * 0.08;
+        const gx = cx + gem_padding, gy = cy + gem_padding;
+        const gs = actualCS - gem_padding * 2;
+
+        ctx.save();
+        if (cell.alpha !== undefined && cell.alpha < 1) ctx.globalAlpha = cell.alpha;
+        if (cell.scale !== undefined && cell.scale !== 1) {
+          ctx.translate(cx + actualCS / 2, cy + actualCS / 2);
+          ctx.scale(cell.scale, cell.scale);
+          ctx.translate(-(cx + actualCS / 2), -(cy + actualCS / 2));
+        }
+
+        // 아이들 상태에서 gemIdleSheet 활용, 아니면 정적 에셋
+        if (gCascadePhase === 'idle' && cell.special === SP.NONE && assets.sprites['gemIdleSheet']) {
+          drawGemFromSheet(ctx, cell.color, gx, gy, gs, gs, gTime);
+        } else {
+          drawAssetOrFallback(ctx, GEM_ASSET_KEYS[cell.color], gx, gy, gs, gs, (ctx2, x2, y2, w2, h2) => drawGemFallback(ctx2, x2, y2, w2, h2, cell.color));
+        }
+
+        // 스페셜 오버레이
+        if (cell.special !== SP.NONE) {
+          drawAssetOrFallback(ctx, SP_ASSET[cell.special], gx, gy, gs, gs, (ctx2, x2, y2, w2, h2) => drawSpecialFallback(ctx2, x2, y2, w2, h2, cell.special));
+        }
+
+        ctx.restore();
+      }
+
+      // 장애물 오버레이 (보석 위에 그리는 것들)
+      if (cell.obstacle !== OBS.NONE && cell.obstacle !== OBS.STONE) {
+        drawAssetOrFallback(ctx, OBS_ASSET[cell.obstacle], cx, cy, actualCS, actualCS, (ctx2, x2, y2, w2, h2) => drawObstacleFallback(ctx2, x2, y2, w2, h2, cell.obstacle));
+      }
+    }
+  }
+}
+
+/** HUD 렌더 — 솔로 */
+function renderSoloHUD(ctx, w, h) {
+  const hud = Layout.hud(w, h);
+  const fs = Layout.fontSize(16, w, h);
+  const s = Layout.scale(w, h);
+
+  // 상단 바
+  ctx.fillStyle = '#0a0a1a99';
+  ctx.fillRect(0, 0, w, hud.top.h);
+
+  // 레벨
+  UI.text(ctx, 'Lv.' + gCurrentLevel, w * 0.06, hud.top.h / 2, { size: fs, bold: true, color: '#ffd700', align: 'left' });
+
+  // 이동 횟수
+  UI.text(ctx, t('moves') + ': ' + gMovesLeft, w * 0.25, hud.top.h / 2, { size: fs, bold: true, color: gMovesLeft <= 3 ? '#ff4444' : '#e0e0f0' });
+
+  // 점수
+  UI.text(ctx, t('score') + ': ' + gLevelScore, w * 0.5, hud.top.h / 2, { size: fs, bold: true, color: '#ffd700' });
+
+  // 목표
+  if (gLevelTargets) {
+    for (let i = 0; i < gLevelTargets.length; i++) {
+      const tgt = gLevelTargets[i];
+      const done = tgt.current >= tgt.value;
+      UI.text(ctx, tgt.label + ': ' + tgt.current + '/' + tgt.value, w * 0.8, hud.top.h / 2 + (i - 0.5) * fs * 1.2,
+        { size: fs * 0.8, color: done ? '#4ade80' : '#e0e0f0', align: 'right' });
+    }
+  }
+
+  // 부스터 (하단)
+  renderBoosterBar(ctx, w, h, hud);
+}
+
+/** HUD 렌더 — PvP */
+function renderPvpHUD(ctx, w, h) {
+  const hud = Layout.hud(w, h);
+  const fs = Layout.fontSize(16, w, h);
+  const mobile = Layout.isMobile(w);
+
+  // 상단 바
+  ctx.fillStyle = '#0a0a1a99';
+  ctx.fillRect(0, 0, w, hud.top.h);
+
+  // 플레이어 점수 (좌)
+  UI.text(ctx, t('score') + ': ' + gPlayerScore, w * 0.15, hud.top.h / 2, { size: fs, bold: true, color: '#4ade80', align: 'center' });
+
+  // VS
+  UI.text(ctx, 'VS', w * 0.5, hud.top.h / 2, { size: fs * 1.2, bold: true, color: '#ffd700', glow: '#ffd700' });
+
+  // 상대 점수 (우)
+  UI.text(ctx, t('score') + ': ' + gOpponentScore, w * 0.85, hud.top.h / 2, { size: fs, bold: true, color: '#ff4444', align: 'center' });
+
+  // 턴 표시
+  const turnText = t('turn') + ' ' + (gPvpTurn + 1) + '/' + MAX_TURNS_PVP;
+  UI.text(ctx, turnText, w * 0.5, hud.top.h + fs, { size: fs * 0.9, color: '#8080a0' });
+
+  // 현재 턴 표시 — uiTurnIndicator 에셋 활용
+  const turnIndW = Layout.px(48, w, h);
+  const turnIndH = Layout.px(24, w, h);
+  if (gIsPlayerTurn) {
+    ctx.fillStyle = '#4ade8033';
+    ctx.fillRect(0, hud.top.h, w * (mobile ? 1 : 0.5), 4);
+    drawAssetOrFallback(ctx, 'uiTurnIndicator', w * 0.15 - turnIndW / 2, hud.top.h + 6, turnIndW, turnIndH, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = '#4ade80';
+      ctx2.beginPath(); ctx2.moveTo(x2, y2 + h2/2); ctx2.lineTo(x2 + w2 * 0.4, y2); ctx2.lineTo(x2 + w2 * 0.4, y2 + h2); ctx2.closePath(); ctx2.fill();
+      ctx2.fillRect(x2 + w2 * 0.4, y2 + h2 * 0.2, w2 * 0.6, h2 * 0.6);
+    });
+  } else {
+    ctx.fillStyle = '#ff444433';
+    ctx.fillRect(mobile ? 0 : w * 0.5, hud.top.h, w * (mobile ? 1 : 0.5), 4);
+    ctx.save();
+    ctx.translate(w * 0.85, hud.top.h + 6 + turnIndH / 2);
+    ctx.scale(-1, 1);
+    ctx.translate(-turnIndW / 2, -turnIndH / 2);
+    drawAssetOrFallback(ctx, 'uiTurnIndicator', 0, 0, turnIndW, turnIndH, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = '#ff4444';
+      ctx2.beginPath(); ctx2.moveTo(x2, y2 + h2/2); ctx2.lineTo(x2 + w2 * 0.4, y2); ctx2.lineTo(x2 + w2 * 0.4, y2 + h2); ctx2.closePath(); ctx2.fill();
+      ctx2.fillRect(x2 + w2 * 0.4, y2 + h2 * 0.2, w2 * 0.6, h2 * 0.6);
+    });
+    ctx.restore();
+  }
+
+  // 부스터 (하단)
+  renderBoosterBar(ctx, w, h, hud);
+}
+
+/** 부스터 바 */
+function renderBoosterBar(ctx, w, h, hud) {
+  const btnS = Math.max(40, Layout.px(48, w, h));
+  const fs = Layout.fontSize(10, w, h);
+  const barY = h - btnS - 12;
+  const startX = (w - btnS * 4 - 12 * 3) / 2;
+  const names = gLang === 'en' ? BOOST_NAMES_EN : BOOST_NAMES_KO;
+
+  for (let i = 0; i < 4; i++) {
+    const bx = startX + i * (btnS + 12);
+    const by = barY;
+    const isActive = gSelectedBooster === i;
+    const available = !gPvpMode || gPvpBoosters[i] > 0;
+
+    ctx.fillStyle = isActive ? '#ffd70055' : (available ? '#ffffff15' : '#ffffff08');
+    ctx.strokeStyle = isActive ? '#ffd700' : (available ? '#ffffff33' : '#ffffff11');
+    ctx.lineWidth = isActive ? 2 : 1;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, btnS, btnS, 8);
+    ctx.fill(); ctx.stroke();
+
+    drawAssetOrFallback(ctx, BOOST_ASSET[i], bx + 4, by + 2, btnS - 8, btnS * 0.6, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = available ? '#ffd700' : '#555';
+      ctx2.font = `bold ${h2 * 0.5}px ${UI.FONT}`;
+      ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+      ctx2.fillText(['🔨','🔄','🌀','⏳'][i], x2 + w2/2, y2 + h2/2);
+    });
+
+    UI.text(ctx, names[i], bx + btnS / 2, by + btnS - fs * 0.8, { size: fs, color: available ? '#e0e0f0' : '#505070' });
+
+    if (gPvpMode) {
+      UI.text(ctx, '×' + gPvpBoosters[i], bx + btnS - 8, by + 8, { size: fs * 0.8, color: '#ffd700', align: 'right' });
+    }
+  }
+}
+
+/** 콤보 팝업 렌더 */
+function renderComboPopup(ctx, w, h) {
+  if (!gShowingCombo || gComboPopAlpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = gComboPopAlpha;
+  // effectComboText 스프라이트 시트 활용 (4프레임 팝업 연출)
+  const comboEffSize = Layout.px(120, w, h);
+  const comboProgress = 1 - gComboPopAlpha; // 알파 감소에 따라 프레임 진행
+  drawEffectSpriteSheet(ctx, 'effectComboText', w / 2 - comboEffSize, h * 0.22, comboEffSize * 2, comboEffSize * 0.5, comboProgress);
+  UI.text(ctx, gComboText, w / 2, h * 0.3, { size: Layout.fontSize(48, w, h), bold: true, color: '#ffd700', glow: '#ffd700' });
+  ctx.restore();
+}
+
+/** 턴 배너 렌더 */
+function renderTurnBanner(ctx, w, h) {
+  if (gTurnBannerAlpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = gTurnBannerAlpha;
+  ctx.fillStyle = '#0a0a1aaa';
+  ctx.fillRect(0, h * 0.4, w, h * 0.2);
+  UI.text(ctx, gTurnBannerText, w / 2, h * 0.5, { size: Layout.fontSize(36, w, h), bold: true, color: gIsPlayerTurn ? '#4ade80' : '#ff4444', glow: gIsPlayerTurn ? '#4ade80' : '#ff4444' });
+  ctx.restore();
+}
+
+/** 점수 팝업 렌더 */
+function renderScorePopups(ctx, w, h) {
+  for (let i = gScorePopups.length - 1; i >= 0; i--) {
+    const pop = gScorePopups[i];
+    const px = getBoardPixelX(pop.boardC, w, h);
+    const py = getBoardPixelY(pop.boardR, w, h) - (pop.life / pop.maxLife) * 40;
+    ctx.save();
+    ctx.globalAlpha = pop.alpha;
+    UI.text(ctx, pop.text, px, py, { size: Layout.fontSize(14, w, h), bold: true, color: pop.color });
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── STATE 핸들러 (12상태) ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+// ── BOOT ──────────────────────────────────────────────────────────
+function updateBoot(dt) {
+  // 에셋 로딩은 init()에서 처리. 여기서는 바로 타이틀로
+}
+
+function renderBoot(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  UI.text(ctx, 'Loading...', w / 2, h / 2, { size: Layout.fontSize(24, w, h), color: '#8080a0' });
+}
+
+// ── TITLE ─────────────────────────────────────────────────────────
+function updateTitle(dt) {
+  if (gTitleAlpha < 1) gTitleAlpha = Math.min(1, gTitleAlpha + dt / 800);
+  if (input.confirm()) {
+    sound.init();
+    playSfx('buttonClick');
+    beginTransition(STATE.MODE_SELECT);
+  }
+}
+
+function renderTitle(ctx, w, h) {
+  renderTitleBg(ctx, w, h);
+
+  const s = Layout.scale(w, h);
+  ctx.save();
+  ctx.globalAlpha = gTitleAlpha;
+
+  // 캐릭터
+  const charSize = Layout.px(180, w, h);
+  drawAssetOrFallback(ctx, 'charKing', w * 0.5 - charSize / 2, h * 0.25, charSize, charSize, (ctx2, x2, y2, w2, h2) => {
+    // 왕 폴백 — SD 캐릭터
+    const cx2 = x2 + w2/2, cy2 = y2 + h2*0.35;
+    // 망토
+    ctx2.fillStyle = '#cc2244';
+    ctx2.beginPath();
+    ctx2.moveTo(cx2 - w2*0.25, cy2 + w2*0.1);
+    ctx2.lineTo(cx2, cy2 + w2*0.45);
+    ctx2.lineTo(cx2 + w2*0.25, cy2 + w2*0.1);
+    ctx2.closePath(); ctx2.fill();
+    // 몸
+    ctx2.fillStyle = '#4444cc';
+    ctx2.beginPath(); ctx2.roundRect(cx2 - w2*0.15, cy2, w2*0.3, w2*0.35, w2*0.05); ctx2.fill();
+    // 얼굴
+    const headR = w2*0.18;
+    const headGrad = ctx2.createRadialGradient(cx2, cy2 - headR*0.2, headR*0.1, cx2, cy2, headR);
+    headGrad.addColorStop(0, '#ffe0b2'); headGrad.addColorStop(1, '#ffcc80');
+    ctx2.fillStyle = headGrad;
+    ctx2.beginPath(); ctx2.arc(cx2, cy2 - headR*0.1, headR, 0, Math.PI*2); ctx2.fill();
+    // 눈
+    ctx2.fillStyle = '#333';
+    ctx2.beginPath(); ctx2.arc(cx2 - headR*0.35, cy2 - headR*0.15, headR*0.1, 0, Math.PI*2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(cx2 + headR*0.35, cy2 - headR*0.15, headR*0.1, 0, Math.PI*2); ctx2.fill();
+    // 미소
+    ctx2.strokeStyle = '#333'; ctx2.lineWidth = 2;
+    ctx2.beginPath(); ctx2.arc(cx2, cy2 + headR*0.05, headR*0.25, 0.1, Math.PI - 0.1); ctx2.stroke();
+    // 왕관
+    ctx2.fillStyle = '#ffd700';
+    ctx2.beginPath();
+    ctx2.moveTo(cx2 - headR*0.7, cy2 - headR*0.8);
+    ctx2.lineTo(cx2 - headR*0.5, cy2 - headR*1.3);
+    ctx2.lineTo(cx2 - headR*0.2, cy2 - headR*0.9);
+    ctx2.lineTo(cx2, cy2 - headR*1.4);
+    ctx2.lineTo(cx2 + headR*0.2, cy2 - headR*0.9);
+    ctx2.lineTo(cx2 + headR*0.5, cy2 - headR*1.3);
+    ctx2.lineTo(cx2 + headR*0.7, cy2 - headR*0.8);
+    ctx2.closePath(); ctx2.fill();
+    // 왕관 보석
+    ctx2.fillStyle = '#ff4444';
+    ctx2.beginPath(); ctx2.arc(cx2, cy2 - headR*1.1, headR*0.1, 0, Math.PI*2); ctx2.fill();
+  });
+
+  // 타이틀
+  UI.text(ctx, t('title'), w / 2, h * 0.15, { size: Layout.fontSize(48, w, h), bold: true, color: '#ffd700', glow: '#ffd700' });
+
+  // 서브타이틀
+  UI.text(ctx, 'PvP Match-3 Battle', w / 2, h * 0.21, { size: Layout.fontSize(16, w, h), color: '#8080a0' });
+
+  // 시작 안내
+  const pulse = 0.5 + Math.sin(gTime * 0.003) * 0.5;
+  ctx.globalAlpha = gTitleAlpha * (0.5 + pulse * 0.5);
+  UI.text(ctx, t('start'), w / 2, h * 0.75, { size: Layout.fontSize(20, w, h), color: '#e0e0f0' });
+
+  // 리그 배지
+  ctx.globalAlpha = gTitleAlpha;
+  const badgeSize = Layout.px(48, w, h);
+  drawAssetOrFallback(ctx, LEAGUE_ASSET[gCurrentLeague], w * 0.5 - badgeSize / 2, h * 0.82, badgeSize, badgeSize, (ctx2, x2, y2, w2, h2) => {
+    ctx2.fillStyle = LEAGUE_COLORS[gCurrentLeague]; ctx2.beginPath();
+    ctx2.moveTo(x2 + w2/2, y2); ctx2.lineTo(x2 + w2, y2 + h2*0.3); ctx2.lineTo(x2 + w2*0.8, y2 + h2);
+    ctx2.lineTo(x2 + w2*0.2, y2 + h2); ctx2.lineTo(x2, y2 + h2*0.3); ctx2.closePath(); ctx2.fill();
+  });
+  UI.text(ctx, (gLang === 'en' ? LEAGUE_NAMES_EN : LEAGUE_NAMES_KO)[gCurrentLeague] + ' | 🏆 ' + gTrophies, w / 2, h * 0.9, { size: Layout.fontSize(14, w, h), color: LEAGUE_COLORS[gCurrentLeague] });
+
+  ctx.restore();
+  UI.scanlines(ctx, w, h, 0.02);
+}
+
+// ── MODE_SELECT ───────────────────────────────────────────────────
+function updateModeSelect(dt) {
+  gModeSelectAlpha = Math.min(1, gModeSelectAlpha + dt / 400);
+
+  const w = engine.W, h = engine.H;
+  const btnW = Layout.px(240, w, h);
+  const btnH = Layout.px(60, w, h);
+  const gap = Layout.px(20, w, h);
+
+  if (input.tapped) {
+    const bx = w / 2 - btnW / 2;
+    // 솔로
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.35, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.KINGDOM_MAP);
+      return;
+    }
+    // PvP
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.35 + btnH + gap, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.PVP_MATCH);
+      return;
+    }
+    // 일일 챌린지
+    if (!gDailyCompleted && UI.hitTest(input.tapX, input.tapY, bx, h * 0.35 + (btnH + gap) * 2, btnW, btnH)) {
+      playSfx('buttonClick');
+      startDailyChallenge();
+      beginTransition(STATE.PLAY);
+      return;
+    }
+    // 뒤로
+    if (UI.hitTest(input.tapX, input.tapY, w * 0.02, h * 0.02, Layout.px(80, w, h), Layout.px(40, w, h))) {
+      playSfx('buttonClick');
+      beginTransition(STATE.TITLE);
+      return;
+    }
+  }
+  if (input.jp('Escape')) { playSfx('buttonClick'); beginTransition(STATE.TITLE); }
+}
+
+function renderModeSelect(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  ctx.save();
+  ctx.globalAlpha = gModeSelectAlpha;
+
+  const s = Layout.scale(w, h);
+  const btnW = Layout.px(240, w, h);
+  const btnH = Layout.px(60, w, h);
+  const gap = Layout.px(20, w, h);
+  const bx = w / 2 - btnW / 2;
+  const fs = Layout.fontSize(18, w, h);
+
+  UI.text(ctx, t('selectMode'), w / 2, h * 0.2, { size: Layout.fontSize(32, w, h), bold: true, color: '#ffd700' });
+
+  // 솔로 버튼
+  UI.button(ctx, t('solo'), bx, h * 0.35, btnW, btnH, { color: '#4ade80' });
+  UI.text(ctx, '⚔️ ' + t('solo'), w / 2, h * 0.35 + btnH / 2, { size: fs, bold: true, color: '#fff' });
+
+  // PvP 버튼
+  UI.button(ctx, t('pvp'), bx, h * 0.35 + btnH + gap, btnW, btnH, { color: '#ff4444' });
+  UI.text(ctx, '🏟️ ' + t('pvp'), w / 2, h * 0.35 + btnH + gap + btnH / 2, { size: fs, bold: true, color: '#fff' });
+
+  // 일일 챌린지
+  if (!gDailyCompleted) {
+    UI.button(ctx, t('daily'), bx, h * 0.35 + (btnH + gap) * 2, btnW, btnH, { color: '#ffd700' });
+    UI.text(ctx, '📅 ' + t('daily'), w / 2, h * 0.35 + (btnH + gap) * 2 + btnH / 2, { size: fs, bold: true, color: '#fff' });
+  } else {
+    ctx.globalAlpha = 0.4;
+    UI.button(ctx, t('daily'), bx, h * 0.35 + (btnH + gap) * 2, btnW, btnH, { color: '#555' });
+    UI.text(ctx, '✅ ' + t('daily'), w / 2, h * 0.35 + (btnH + gap) * 2 + btnH / 2, { size: fs, color: '#888' });
+    ctx.globalAlpha = gModeSelectAlpha;
+  }
+
+  // 뒤로 버튼
+  const backW = Layout.px(80, w, h), backH = Layout.px(40, w, h);
+  UI.button(ctx, t('back'), w * 0.02, h * 0.02, backW, backH, { color: '#555' });
+
+  // 통계
+  UI.text(ctx, '🏆 ' + gTrophies + ' | ⭐ ' + gKingdomData.totalStars + ' | 💰 ' + gKingdomData.coins,
+    w / 2, h * 0.9, { size: Layout.fontSize(14, w, h), color: '#8080a0' });
+
+  ctx.restore();
+}
+
+// ── KINGDOM_MAP ───────────────────────────────────────────────────
+function updateKingdomMap(dt) {
+  const w = engine.W, h = engine.H;
+  if (input.tapped) {
+    const s = Layout.scale(w, h);
+    const zoneW = Layout.px(120, w, h);
+    const zoneH = Layout.px(140, w, h);
+    const gap = Layout.px(20, w, h);
+    const totalW = 5 * zoneW + 4 * gap;
+    const startX = (w - totalW) / 2;
+    const zy = h * 0.35;
+
+    for (let i = 0; i < 5; i++) {
+      const zx = startX + i * (zoneW + gap);
+      if (UI.hitTest(input.tapX, input.tapY, zx, zy, zoneW, zoneH)) {
+        playSfx('buttonClick');
+        beginTransition(STATE.LEVEL_SELECT);
+        return;
+      }
+    }
+
+    // 뒤로
+    const backW = Layout.px(80, w, h), backH = Layout.px(40, w, h);
+    if (UI.hitTest(input.tapX, input.tapY, w * 0.02, h * 0.02, backW, backH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.MODE_SELECT);
+      return;
+    }
+  }
+  if (input.jp('Escape')) { playSfx('buttonClick'); beginTransition(STATE.MODE_SELECT); }
+}
+
+function renderKingdomMap(ctx, w, h) {
+  drawAssetOrFallback(ctx, 'bgKingdom', 0, 0, w, h, (ctx2, x2, y2, w2, h2) => renderBackground(ctx2, w2, h2));
+
+  const s = Layout.scale(w, h);
+  const fs = Layout.fontSize(14, w, h);
+  const zoneW = Layout.px(120, w, h);
+  const zoneH = Layout.px(140, w, h);
+  const gap = Layout.px(20, w, h);
+  const totalW = 5 * zoneW + 4 * gap;
+  const startX = (w - totalW) / 2;
+  const zy = h * 0.35;
+
+  UI.text(ctx, t('kingdom'), w / 2, h * 0.1, { size: Layout.fontSize(28, w, h), bold: true, color: '#ffd700' });
+  UI.text(ctx, '⭐ ' + gKingdomData.totalStars + ' | 💰 ' + gKingdomData.coins, w / 2, h * 0.18, { size: fs, color: '#8080a0' });
+
+  const zNames = gLang === 'en' ? ZONE_NAMES_EN : ZONE_NAMES_KO;
+  for (let i = 0; i < 5; i++) {
+    const zx = startX + i * (zoneW + gap);
+    const progress = gKingdomData.zones[i];
+    const maxProgress = 6;
+    const pct = progress / maxProgress;
+
+    // 카드 배경
+    ctx.fillStyle = pct >= 1 ? '#ffd70022' : '#12121e';
+    ctx.strokeStyle = ZONE_COLORS[i];
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(zx, zy, zoneW, zoneH, 8); ctx.fill(); ctx.stroke();
+
+    // 건물 아이콘
+    const iconSize = zoneW * 0.6;
+    drawAssetOrFallback(ctx, ZONE_ASSET[i], zx + (zoneW - iconSize) / 2, zy + 8, iconSize, iconSize, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = ZONE_COLORS[i] + '88';
+      ctx2.fillRect(x2 + w2 * 0.2, y2 + h2 * 0.3, w2 * 0.6, h2 * 0.6);
+      ctx2.fillStyle = ZONE_COLORS[i];
+      ctx2.beginPath(); ctx2.moveTo(x2 + w2/2, y2 + h2*0.1); ctx2.lineTo(x2 + w2*0.8, y2 + h2*0.3); ctx2.lineTo(x2 + w2*0.2, y2 + h2*0.3); ctx2.closePath(); ctx2.fill();
+    });
+
+    // 구역 이름
+    UI.text(ctx, zNames[i], zx + zoneW / 2, zy + zoneH - fs * 2.5, { size: fs, bold: true, color: ZONE_COLORS[i] });
+
+    // 진행도 바
+    const barY = zy + zoneH - fs * 1.2;
+    UI.hpBar(ctx, zx + 8, barY, zoneW - 16, 8, progress, maxProgress, { fgColor: ZONE_COLORS[i] });
+
+    UI.text(ctx, progress + '/' + maxProgress, zx + zoneW / 2, barY + 14, { size: fs * 0.8, color: '#8080a0' });
+  }
+
+  // 뒤로 버튼
+  const backW = Layout.px(80, w, h), backH = Layout.px(40, w, h);
+  UI.button(ctx, t('back'), w * 0.02, h * 0.02, backW, backH, { color: '#555' });
+}
+
+// ── LEVEL_SELECT ──────────────────────────────────────────────────
+function updateLevelSelect(dt) {
+  const w = engine.W, h = engine.H;
+  if (input.tapped) {
+    const s = Layout.scale(w, h);
+    const btnS = Math.max(Layout.px(60, w, h), MIN_TOUCH);
+    const cols = Layout.isMobile(w) ? 5 : 6;
+    const gap = Layout.px(10, w, h);
+    const totalW = cols * (btnS + gap) - gap;
+    const startX = (w - totalW) / 2;
+    const startY = h * 0.2;
+
+    for (let i = 0; i < 30; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const bx = startX + col * (btnS + gap);
+      const by = startY + row * (btnS + gap);
+      if (UI.hitTest(input.tapX, input.tapY, bx, by, btnS, btnS)) {
+        if (i + 1 <= gCurrentLevel) {
+          gCurrentLevel = i + 1;
+          playSfx('buttonClick');
+          beginTransition(STATE.PLAY);
+          return;
+        }
+      }
+    }
+
+    // 뒤로
+    const backW = Layout.px(80, w, h), backH = Layout.px(40, w, h);
+    if (UI.hitTest(input.tapX, input.tapY, w * 0.02, h * 0.02, backW, backH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.KINGDOM_MAP);
+      return;
+    }
+  }
+  if (input.jp('Escape')) { playSfx('buttonClick'); beginTransition(STATE.KINGDOM_MAP); }
+}
+
+function renderLevelSelect(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  const s = Layout.scale(w, h);
+  const fs = Layout.fontSize(14, w, h);
+  const btnS = Math.max(Layout.px(60, w, h), MIN_TOUCH);
+  const cols = Layout.isMobile(w) ? 5 : 6;
+  const gap = Layout.px(10, w, h);
+  const totalW = cols * (btnS + gap) - gap;
+  const startX = (w - totalW) / 2;
+  const startY = h * 0.2;
+
+  UI.text(ctx, t('selectLevel'), w / 2, h * 0.1, { size: Layout.fontSize(28, w, h), bold: true, color: '#ffd700' });
+
+  for (let i = 0; i < 30; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const bx = startX + col * (btnS + gap);
+    const by = startY + row * (btnS + gap);
+    const unlocked = i + 1 <= gCurrentLevel;
+    const zone = Math.floor(i / 6);
+
+    ctx.fillStyle = unlocked ? ZONE_COLORS[zone] + '44' : '#22222244';
+    ctx.strokeStyle = unlocked ? ZONE_COLORS[zone] : '#333';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx, by, btnS, btnS, 6); ctx.fill(); ctx.stroke();
+
+    UI.text(ctx, '' + (i + 1), bx + btnS / 2, by + btnS / 2, {
+      size: fs, bold: true, color: unlocked ? '#e0e0f0' : '#505070'
+    });
+
+    if (!unlocked) {
+      UI.text(ctx, '🔒', bx + btnS / 2, by + btnS * 0.75, { size: fs * 0.7, color: '#505070' });
+    }
+  }
+
+  // 뒤로
+  const backW = Layout.px(80, w, h), backH = Layout.px(40, w, h);
+  UI.button(ctx, t('back'), w * 0.02, h * 0.02, backW, backH, { color: '#555' });
+}
+
+// ── PLAY (솔로) ───────────────────────────────────────────────────
+function updatePlay(dt) {
+  const w = engine.W, h = engine.H;
+  updateCascade(dt, gGrid);
+  handleBoardInput(w, h);
+
+  // 힌트 + 데드록
+  if (gCascadePhase === 'idle' && !gIsInputBlocked) {
+    gHintTimer += dt;
+    if (gHintTimer >= HINT_DELAY && !gHintCells) {
+      gHintCells = findOneValidMove(gGrid);
+    }
+    gDeadlockTimer += dt;
+    if (gDeadlockTimer >= DEADLOCK_DELAY) {
+      if (countValidMoves(gGrid) === 0) {
+        shuffleBoard(gGrid);
+      }
+      gDeadlockTimer = 0;
+    }
+  } else {
+    gHintTimer = 0;
+    gHintCells = null;
+  }
+
+  // ESC → 설정
+  if (input.jp('Escape')) { playSfx('buttonClick'); beginTransition(STATE.SETTINGS); }
+
+  // 대기 큐 처리
+  processDeferredQueue();
+}
+
+function renderPlay(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  const bl = getBoardLayout(w, h);
+  renderBoard(ctx, w, h, gGrid, bl);
+  renderSoloHUD(ctx, w, h);
+  renderScorePopups(ctx, w, h);
+  renderComboPopup(ctx, w, h);
+}
+
+// ── PVP_MATCH ─────────────────────────────────────────────────────
+function updatePvpMatch(dt) {
+  const w = engine.W, h = engine.H;
+
+  // 플레이어 턴
+  if (gIsPlayerTurn) {
+    updateCascade(dt, gGrid);
+    handleBoardInput(w, h);
+  } else {
+    // AI 턴
+    updateCascade(dt, gOpponentGrid);
+    updateAiTurn(dt);
+  }
+
+  // 턴 배너 페이드
+  if (gTurnBannerAlpha > 0) gTurnBannerAlpha = Math.max(0, gTurnBannerAlpha - dt / 1500);
+
+  // 힌트
+  if (gIsPlayerTurn && gCascadePhase === 'idle') {
+    gHintTimer += dt;
+    if (gHintTimer >= HINT_DELAY && !gHintCells) {
+      gHintCells = findOneValidMove(gGrid);
+    }
+  }
+
+  if (input.jp('Escape')) { playSfx('buttonClick'); beginTransition(STATE.SETTINGS); }
+
+  processDeferredQueue();
+}
+
+function renderPvpMatch(ctx, w, h) {
+  renderArenaBg(ctx, w, h);
+  const mobile = Layout.isMobile(w);
+
+  // 플레이어 보드
+  const pbl = getBoardLayout(w, h);
+  renderBoard(ctx, w, h, gGrid, pbl);
+
+  // 상대 보드 (PC: 오른쪽, 모바일: 상단 축소)
+  const obl = getOpponentBoardLayout(w, h);
+  ctx.save();
+  if (!gIsPlayerTurn) ctx.globalAlpha = 1;
+  else ctx.globalAlpha = 0.7;
+  renderBoard(ctx, w, h, gOpponentGrid, obl);
+  ctx.restore();
+
+  // 캐릭터 표시
+  const charSize = Layout.px(60, w, h);
+  drawAssetOrFallback(ctx, 'charKingHappy', pbl.boardX - charSize - 5, pbl.boardY - 5, charSize, charSize, (ctx2, x2, y2, w2, h2) => {
+    drawCharFallback(ctx2, x2, y2, w2, h2, 'king');
+  });
+  drawAssetOrFallback(ctx, 'charOpponent-' + (gOpponentCharId + 1), obl.boardX - charSize - 5, obl.boardY - 5, charSize, charSize, (ctx2, x2, y2, w2, h2) => {
+    drawCharFallback(ctx2, x2, y2, w2, h2, 'opponent', gOpponentCharId);
+  });
+
+  renderPvpHUD(ctx, w, h);
+  renderScorePopups(ctx, w, h);
+  renderComboPopup(ctx, w, h);
+  renderTurnBanner(ctx, w, h);
+}
+
+// ── PVP_RESULT ────────────────────────────────────────────────────
+function updatePvpResult(dt) {
+  const w = engine.W, h = engine.H;
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+
+  if (input.tapped) {
+    const bx = w / 2 - btnW / 2;
+    // 재대전
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.65, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.PVP_MATCH);
+      return;
+    }
+    // 왕국 건설
+    if (gKingdomData.totalStars > 0 && UI.hitTest(input.tapX, input.tapY, bx, h * 0.65 + btnH + gap, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.BUILD_SELECT);
+      return;
+    }
+    // 메인 메뉴
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.65 + (btnH + gap) * 2, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.MODE_SELECT);
+      return;
+    }
+  }
+  if (input.jp('KeyR')) { playSfx('buttonClick'); beginTransition(STATE.PVP_MATCH); }
+}
+
+function renderPvpResult(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  const s = Layout.scale(w, h);
+  const fs = Layout.fontSize(18, w, h);
+  // 동점 시 마지막 콤보 점수 비교 (savePvpResult와 동일 로직)
+  let win = gPlayerScore > gOpponentScore;
+  let draw = gPlayerScore === gOpponentScore;
+  if (draw) {
+    if (gLastComboScorePlayer > gLastComboScoreOpponent) { win = true; draw = false; }
+    else if (gLastComboScoreOpponent > gLastComboScorePlayer) { win = false; draw = false; }
+  }
+
+  // 결과 텍스트
+  const resultText = win ? t('victory') : (draw ? t('draw') : t('defeat'));
+  const resultColor = win ? '#4ade80' : (draw ? '#ffd700' : '#ff4444');
+  UI.text(ctx, resultText, w / 2, h * 0.15, { size: Layout.fontSize(48, w, h), bold: true, color: resultColor, glow: resultColor });
+
+  // 점수 비교
+  UI.text(ctx, t('score'), w / 2, h * 0.3, { size: fs, color: '#8080a0' });
+  UI.text(ctx, '' + gPlayerScore, w * 0.35, h * 0.38, { size: Layout.fontSize(32, w, h), bold: true, color: '#4ade80' });
+  UI.text(ctx, 'VS', w * 0.5, h * 0.38, { size: fs, bold: true, color: '#ffd700' });
+  UI.text(ctx, '' + gOpponentScore, w * 0.65, h * 0.38, { size: Layout.fontSize(32, w, h), bold: true, color: '#ff4444' });
+
+  // 트로피 변동
+  UI.text(ctx, '🏆 ' + gTrophies + ' (' + (gLang === 'en' ? LEAGUE_NAMES_EN : LEAGUE_NAMES_KO)[gCurrentLeague] + ')',
+    w / 2, h * 0.5, { size: fs, color: LEAGUE_COLORS[gCurrentLeague] });
+
+  // 버튼
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+  const bx = w / 2 - btnW / 2;
+
+  UI.button(ctx, '⚔️ ' + (gLang === 'en' ? 'Rematch' : '재대전'), bx, h * 0.65, btnW, btnH, { color: '#ff4444' });
+  if (gKingdomData.totalStars > 0) {
+    UI.button(ctx, '🏰 ' + t('build'), bx, h * 0.65 + btnH + gap, btnW, btnH, { color: '#4ade80' });
+  }
+  UI.button(ctx, '🏠 ' + (gLang === 'en' ? 'Menu' : '메뉴'), bx, h * 0.65 + (btnH + gap) * 2, btnW, btnH, { color: '#555' });
+}
+
+// ── LEVEL_CLEAR ───────────────────────────────────────────────────
+function updateLevelClear(dt) {
+  const w = engine.W, h = engine.H;
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+
+  if (input.tapped) {
+    const bx = w / 2 - btnW / 2;
+    // 건설하기
+    if (gKingdomData.totalStars > 0 && UI.hitTest(input.tapX, input.tapY, bx, h * 0.65, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.BUILD_SELECT);
+      return;
+    }
+    // 다음 레벨
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.65 + btnH + gap, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.LEVEL_SELECT);
+      return;
+    }
+    // 왕국 맵
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.65 + (btnH + gap) * 2, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.KINGDOM_MAP);
+      return;
+    }
+  }
+  if (input.confirm()) { playSfx('buttonClick'); beginTransition(STATE.LEVEL_SELECT); }
+}
+
+function renderLevelClear(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  const fs = Layout.fontSize(18, w, h);
+
+  UI.text(ctx, t('levelClear'), w / 2, h * 0.15, { size: Layout.fontSize(40, w, h), bold: true, color: '#ffd700', glow: '#ffd700' });
+
+  // 별
+  const starSize = Layout.px(50, w, h);
+  const totalStarW = starSize * 3 + 20;
+  const starStartX = w / 2 - totalStarW / 2;
+  for (let i = 0; i < 3; i++) {
+    const sx = starStartX + i * (starSize + 10);
+    const sy = h * 0.28;
+    if (i < gLevelStars) {
+      drawAssetOrFallback(ctx, 'uiStar', sx, sy, starSize, starSize, (ctx2, x2, y2, w2, h2) => {
+        ctx2.fillStyle = '#ffd700';
+        ctx2.beginPath();
+        for (let j = 0; j < 10; j++) { const a = Math.PI/5*j - Math.PI/2; const r = j%2===0?w2*0.4:w2*0.18; ctx2.lineTo(x2+w2/2+r*Math.cos(a), y2+h2/2+r*Math.sin(a)); }
+        ctx2.closePath(); ctx2.fill();
+      });
+    } else {
+      ctx.fillStyle = '#33333388';
+      ctx.beginPath();
+      for (let j = 0; j < 10; j++) { const a = Math.PI/5*j - Math.PI/2; const r = j%2===0?starSize*0.4:starSize*0.18; ctx.lineTo(sx+starSize/2+r*Math.cos(a), sy+starSize/2+r*Math.sin(a)); }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  UI.text(ctx, t('score') + ': ' + gLevelScore, w / 2, h * 0.48, { size: fs * 1.2, bold: true, color: '#ffd700' });
+
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+  const bx = w / 2 - btnW / 2;
+
+  if (gKingdomData.totalStars > 0) {
+    UI.button(ctx, '🏰 ' + t('build'), bx, h * 0.65, btnW, btnH, { color: '#4ade80' });
+  }
+  UI.button(ctx, '▶ ' + t('next'), bx, h * 0.65 + btnH + gap, btnW, btnH, { color: '#6c3cf7' });
+  UI.button(ctx, '🗺 ' + t('kingdom'), bx, h * 0.65 + (btnH + gap) * 2, btnW, btnH, { color: '#555' });
+}
+
+// ── LEVEL_FAIL ────────────────────────────────────────────────────
+function updateLevelFail(dt) {
+  const w = engine.W, h = engine.H;
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+
+  if (input.tapped) {
+    const bx = w / 2 - btnW / 2;
+    // 재시도
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.55, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.PLAY);
+      return;
+    }
+    // 레벨 선택
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.55 + btnH + gap, btnW, btnH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.LEVEL_SELECT);
+      return;
+    }
+    // 건너뛰기 (failStreak 6+)
+    if (gFailStreak >= 6 && UI.hitTest(input.tapX, input.tapY, bx, h * 0.55 + (btnH + gap) * 2, btnW, btnH)) {
+      if (gCurrentLevel < 30) gCurrentLevel++;
+      gFailStreak = 0;
+      playSfx('buttonClick');
+      beginTransition(STATE.KINGDOM_MAP);
+      return;
+    }
+  }
+  if (input.jp('KeyR')) { playSfx('buttonClick'); beginTransition(STATE.PLAY); }
+}
+
+function renderLevelFail(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  const fs = Layout.fontSize(18, w, h);
+
+  // 왕 걱정 표정
+  const charSize = Layout.px(100, w, h);
+  drawAssetOrFallback(ctx, 'charKingWorried', w/2 - charSize/2, h*0.1, charSize, charSize, (ctx2, x2, y2, w2, h2) => {
+    drawCharFallback(ctx2, x2, y2, w2, h2, 'king');
+  });
+
+  UI.text(ctx, t('levelFail'), w / 2, h * 0.35, { size: Layout.fontSize(36, w, h), bold: true, color: '#ff4444' });
+  UI.text(ctx, t('score') + ': ' + gLevelScore, w / 2, h * 0.45, { size: fs, color: '#ffd700' });
+
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+  const bx = w / 2 - btnW / 2;
+
+  UI.button(ctx, '🔄 ' + (gLang==='en'?'Retry':'재시도'), bx, h * 0.55, btnW, btnH, { color: '#ff4444' });
+  UI.button(ctx, '📋 ' + t('selectLevel'), bx, h * 0.55 + btnH + gap, btnW, btnH, { color: '#555' });
+
+  if (gFailStreak >= 6) {
+    UI.button(ctx, '⏭ ' + t('skip'), bx, h * 0.55 + (btnH + gap) * 2, btnW, btnH, { color: '#ffd700' });
+  }
+
+  if (gFailStreak >= 2) {
+    UI.text(ctx, (gLang==='en'?'Difficulty reduced':'난이도 보정 적용 중'), w / 2, h * 0.9, { size: fs * 0.8, color: '#4ade80' });
+  }
+}
+
+// ── BUILD_SELECT ──────────────────────────────────────────────────
+function updateBuildSelect(dt) {
+  const w = engine.W, h = engine.H;
+  if (input.tapped) {
+    const btnW = Layout.px(180, w, h);
+    const btnH = Layout.px(100, w, h);
+    const gap = Layout.px(15, w, h);
+    const totalW = gBuildChoices.length * (btnW + gap) - gap;
+    const startX = (w - totalW) / 2;
+
+    for (let i = 0; i < gBuildChoices.length; i++) {
+      const bx = startX + i * (btnW + gap);
+      if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.4, btnW, btnH)) {
+        selectBuild(i);
+        return;
+      }
+    }
+
+    // 건너뛰기
+    const skipW = Layout.px(120, w, h), skipH = Layout.px(40, w, h);
+    if (UI.hitTest(input.tapX, input.tapY, w / 2 - skipW / 2, h * 0.85, skipW, skipH)) {
+      playSfx('buttonClick');
+      beginTransition(STATE.KINGDOM_MAP);
+      return;
+    }
+  }
+  if (input.jp('Escape')) { playSfx('buttonClick'); beginTransition(STATE.KINGDOM_MAP); }
+}
+
+function renderBuildSelect(ctx, w, h) {
+  renderBackground(ctx, w, h);
+  const fs = Layout.fontSize(14, w, h);
+  const zNames = gLang === 'en' ? ZONE_NAMES_EN : ZONE_NAMES_KO;
+
+  UI.text(ctx, t('buildSelect'), w / 2, h * 0.1, { size: Layout.fontSize(28, w, h), bold: true, color: '#ffd700' });
+  UI.text(ctx, zNames[gBuildZoneIdx] + ' ' + t('zone'), w / 2, h * 0.2, { size: Layout.fontSize(20, w, h), color: ZONE_COLORS[gBuildZoneIdx] });
+  UI.text(ctx, '⭐ ' + gKingdomData.totalStars, w / 2, h * 0.28, { size: fs, color: '#ffd700' });
+
+  const btnW = Layout.px(180, w, h);
+  const btnH = Layout.px(100, w, h);
+  const gap = Layout.px(15, w, h);
+  const totalW = gBuildChoices.length * (btnW + gap) - gap;
+  const startX = (w - totalW) / 2;
+
+  for (let i = 0; i < gBuildChoices.length; i++) {
+    const choice = gBuildChoices[i];
+    const bx = startX + i * (btnW + gap);
+    const canAfford = gKingdomData.totalStars >= choice.cost;
+
+    ctx.fillStyle = canAfford ? '#1a1a4e' : '#12121e';
+    ctx.strokeStyle = canAfford ? ZONE_COLORS[gBuildZoneIdx] : '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(bx, h * 0.4, btnW, btnH, 8); ctx.fill(); ctx.stroke();
+
+    UI.text(ctx, choice.name, bx + btnW / 2, h * 0.4 + btnH * 0.3, { size: fs, bold: true, color: canAfford ? '#e0e0f0' : '#555' });
+    UI.text(ctx, '⭐ ' + choice.cost, bx + btnW / 2, h * 0.4 + btnH * 0.55, { size: fs, color: canAfford ? '#ffd700' : '#555' });
+    UI.text(ctx, choice.bonus, bx + btnW / 2, h * 0.4 + btnH * 0.8, { size: fs * 0.85, color: '#4ade80' });
+  }
+
+  // 건너뛰기
+  const skipW = Layout.px(120, w, h), skipH = Layout.px(40, w, h);
+  UI.button(ctx, t('skip'), w / 2 - skipW / 2, h * 0.85, skipW, skipH, { color: '#555' });
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────
+function updateSettings(dt) {
+  const w = engine.W, h = engine.H;
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+
+  if (input.tapped) {
+    const bx = w / 2 - btnW / 2;
+    // 계속하기
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.3, btnW, btnH)) {
+      playSfx('buttonClick');
+      returnFromSettings();
+      return;
+    }
+    // 소리 토글
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.3 + btnH + gap, btnW, btnH)) {
+      gSettingsSoundOn = !gSettingsSoundOn;
+      playSfx('buttonClick');
+      saveGameData();
+      return;
+    }
+    // 음악 토글
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.3 + (btnH + gap) * 2, btnW, btnH)) {
+      gSettingsMusicOn = !gSettingsMusicOn;
+      saveGameData();
+      return;
+    }
+    // 언어 토글
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.3 + (btnH + gap) * 3, btnW, btnH)) {
+      gLang = gLang === 'ko' ? 'en' : 'ko';
+      saveGameData();
+      return;
+    }
+    // 타이틀로
+    if (UI.hitTest(input.tapX, input.tapY, bx, h * 0.3 + (btnH + gap) * 4, btnW, btnH)) {
+      playSfx('buttonClick');
+      gPvpMode = false;
+      gState = STATE.SETTINGS; // 임시
+      gSettingsReturnState = STATE.TITLE;
+      returnFromSettings();
+      return;
+    }
+  }
+  if (input.jp('Escape') || input.jp('KeyP')) { returnFromSettings(); }
+}
+
+function returnFromSettings() {
+  // 페이드 상태 완전 정리 (C51 QA: 검은 화면 고착 방지)
+  gFadeAlpha = 0;
+  gTransitioning = false;
+  gState = gSettingsReturnState;
+}
+
+function renderSettings(ctx, w, h) {
+  // 반투명 오버레이
+  ctx.fillStyle = 'rgba(10,10,26,0.85)';
+  ctx.fillRect(0, 0, w, h);
+
+  const fs = Layout.fontSize(16, w, h);
+  const btnW = Layout.px(200, w, h);
+  const btnH = Layout.px(50, w, h);
+  const gap = Layout.px(15, w, h);
+  const bx = w / 2 - btnW / 2;
+
+  UI.text(ctx, t('settings'), w / 2, h * 0.15, { size: Layout.fontSize(32, w, h), bold: true, color: '#ffd700' });
+
+  UI.button(ctx, '▶ ' + t('resume'), bx, h * 0.3, btnW, btnH, { color: '#4ade80' });
+  UI.button(ctx, '🔊 ' + t('sound') + ': ' + (gSettingsSoundOn ? 'ON' : 'OFF'), bx, h * 0.3 + btnH + gap, btnW, btnH, { color: '#6c3cf7' });
+  UI.button(ctx, '🎵 ' + t('music') + ': ' + (gSettingsMusicOn ? 'ON' : 'OFF'), bx, h * 0.3 + (btnH + gap) * 2, btnW, btnH, { color: '#6c3cf7' });
+  UI.button(ctx, '🌐 ' + t('language') + ': ' + (gLang === 'ko' ? '한국어' : 'English'), bx, h * 0.3 + (btnH + gap) * 3, btnW, btnH, { color: '#6c3cf7' });
+  UI.button(ctx, '🏠 ' + t('toTitle'), bx, h * 0.3 + (btnH + gap) * 4, btnW, btnH, { color: '#ff4444' });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 지연 큐 처리 ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+function processDeferredQueue() {
+  if (gDeferredQueue.length > 0 && !gTransitioning && gCascadePhase === 'idle') {
+    const next = gDeferredQueue.shift();
+    beginTransition(next);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── coreUpdate / coreRender (단일 진입점) ─────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function coreUpdate(dt, timestamp) {
+  if (!gReady) return;
+  gTime = timestamp;
+  gBoardAnimTime += dt;
+
+  // tween 업데이트 (거의 모든 상태에서 활성)
+  const sys = ACTIVE_SYSTEMS[gState];
+  if (sys && sys.tween) tween.update(dt);
+  if (sys && sys.particles) particles.update(dt);
+  if (sys && sys.audio) updateBgm(dt);
+
+  // 콤보 팝업 페이드
+  if (gShowingCombo) {
+    gComboPopAlpha -= dt / 1200;
+    if (gComboPopAlpha <= 0) { gShowingCombo = false; gComboPopAlpha = 0; }
+  }
+
+  // 점수 팝업 업데이트
+  for (let i = gScorePopups.length - 1; i >= 0; i--) {
+    gScorePopups[i].life += dt;
+    gScorePopups[i].alpha = 1 - gScorePopups[i].life / gScorePopups[i].maxLife;
+    if (gScorePopups[i].life >= gScorePopups[i].maxLife) {
+      scorePopPool.release(gScorePopups[i]);
+      gScorePopups.splice(i, 1);
+    }
+  }
+
+  // 쉐이크 감쇠
+  if (gShakeIntensity > 0) gShakeIntensity *= 0.92;
+  if (gShakeIntensity < 0.1) gShakeIntensity = 0;
+
+  // 상태별 업데이트
+  switch (gState) {
+    case STATE.BOOT: updateBoot(dt); break;
+    case STATE.TITLE: updateTitle(dt); break;
+    case STATE.MODE_SELECT: updateModeSelect(dt); break;
+    case STATE.KINGDOM_MAP: updateKingdomMap(dt); break;
+    case STATE.LEVEL_SELECT: updateLevelSelect(dt); break;
+    case STATE.PLAY: updatePlay(dt); break;
+    case STATE.PVP_MATCH: updatePvpMatch(dt); break;
+    case STATE.PVP_RESULT: updatePvpResult(dt); break;
+    case STATE.LEVEL_CLEAR: updateLevelClear(dt); break;
+    case STATE.LEVEL_FAIL: updateLevelFail(dt); break;
+    case STATE.BUILD_SELECT: updateBuildSelect(dt); break;
+    case STATE.SETTINGS: updateSettings(dt); break;
+  }
+}
+
+function coreRender(ctx, w, h, dt) {
+  if (!gReady) {
+    renderBoot(ctx, w, h);
+    input.flush();
+    return;
+  }
+
+  // 쉐이크 오프셋
+  const shk = UI.shake(gShakeIntensity);
+  if (shk.x || shk.y) {
+    ctx.save();
+    ctx.translate(shk.x, shk.y);
+  }
+
+  // 상태별 렌더
+  switch (gState) {
+    case STATE.BOOT: renderBoot(ctx, w, h); break;
+    case STATE.TITLE: renderTitle(ctx, w, h); break;
+    case STATE.MODE_SELECT: renderModeSelect(ctx, w, h); break;
+    case STATE.KINGDOM_MAP: renderKingdomMap(ctx, w, h); break;
+    case STATE.LEVEL_SELECT: renderLevelSelect(ctx, w, h); break;
+    case STATE.PLAY: renderPlay(ctx, w, h); break;
+    case STATE.PVP_MATCH: renderPvpMatch(ctx, w, h); break;
+    case STATE.PVP_RESULT: renderPvpResult(ctx, w, h); break;
+    case STATE.LEVEL_CLEAR: renderLevelClear(ctx, w, h); break;
+    case STATE.LEVEL_FAIL: renderLevelFail(ctx, w, h); break;
+    case STATE.BUILD_SELECT: renderBuildSelect(ctx, w, h); break;
+    case STATE.SETTINGS: renderSettings(ctx, w, h); break;
+  }
+
+  // 파티클
+  particles.render(ctx);
+
+  // 매치/스페셜 이펙트 스프라이트 시트 렌더
+  renderMatchEffects(ctx);
+
+  if (shk.x || shk.y) ctx.restore();
+
+  // 페이드 오버레이
+  UI.fade(ctx, w, h, gFadeAlpha);
+
+  // ⚠️ input.flush()는 coreRender() 마지막에 (C50 교훈)
+  input.flush();
+}
+
+function onResize(w, h) {
+  // 리사이즈 시 배경 캐시 무효화
+  gBgCache = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 에셋 로드 + 초기화 ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+async function init() {
+  // manifest.json에서 에셋 목록 읽어 동적 로드
+  let manifest = null;
+  try {
+    manifest = await fetch('assets/manifest.json').then(r => r.json());
+  } catch (e) {
+    console.warn('[GemArena] manifest.json load failed, using fallbacks');
+  }
+
+  if (manifest && manifest.assets) {
+    const assetMap = {};
+    for (const [key, info] of Object.entries(manifest.assets)) {
+      assetMap[key] = 'assets/' + info.file;
+    }
+    await assets.load(assetMap);
+  }
+
+  // 에셋 검증
+  validateAssets();
+
+  // 세이브 데이터 로드
+  loadGameData();
+
+  // 준비 완료
+  gReady = true;
+  enterState(STATE.TITLE);
+  engine.start();
+}
+
+function validateAssets() {
+  const required = [
+    'gemRed','gemBlue','gemGreen','gemYellow','gemPurple','gemOrange',
+    'specialLineH','specialLineV','specialBomb','specialRainbow',
+    'obstacleIce-1','obstacleIce-2','obstacleChain','obstacleStone',
+    'obstacleLock','obstaclePoison',
+    'charKing','charKingHappy','charKingWorried',
+    'charOpponent-1','charOpponent-2','charOpponent-3',
+    'bgArena','bgKingdom','bgBoard','bgTitle',
+    'uiBoardCell','uiTrophy','uiStar','uiHpHeart','uiCoin',
+    'uiBoosterHammer','uiBoosterSwap','uiBoosterShuffle','uiBoosterExtraTurn',
+    'uiLeagueBronze','uiLeagueSilver','uiLeagueGold','uiLeaguePlatinum','uiLeagueDiamond',
+    'uiTurnIndicator','uiVsEmblem',
+    'effectMatchBurst','effectLineLaser','effectBombShockwave',
+    'effectRainbowSwirl','effectComboText','effectObstacleSend',
+    'effectVictory','effectLeagueUp',
+    'particleSparkle','particleStar','particleShard',
+    'buildingGate','buildingGarden','buildingMarket','buildingLibrary','buildingThrone',
+    'gemIdleSheet','thumbnail'
+  ];
+  const missing = required.filter(id => !assets.sprites[id]);
+  if (missing.length > 0) {
+    console.warn('[AssetValidation] Missing assets (fallback active):', missing.length, '/', required.length);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── VS 인트로 애니메이션 시스템 ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gVsIntroActive = false;
+let gVsIntroTimer = 0;
+const VS_INTRO_DURATION = 2500;
+let gVsIntroPhase = 0; // 0: slide-in, 1: VS flash, 2: fade-out
+
+function startVsIntro() {
+  gVsIntroActive = true;
+  gVsIntroTimer = 0;
+  gVsIntroPhase = 0;
+}
+
+function updateVsIntro(dt) {
+  if (!gVsIntroActive) return;
+  gVsIntroTimer += dt;
+
+  if (gVsIntroTimer < 800) {
+    gVsIntroPhase = 0; // 캐릭터 슬라이드 인
+  } else if (gVsIntroTimer < 1600) {
+    gVsIntroPhase = 1; // VS 엠블럼 플래시
+  } else if (gVsIntroTimer < VS_INTRO_DURATION) {
+    gVsIntroPhase = 2; // 페이드 아웃
+  } else {
+    gVsIntroActive = false;
+  }
+}
+
+function renderVsIntro(ctx, w, h) {
+  if (!gVsIntroActive) return;
+
+  const t = gVsIntroTimer;
+  ctx.save();
+
+  // 반투명 배경
+  const bgAlpha = gVsIntroPhase === 2
+    ? 1 - (t - 1600) / (VS_INTRO_DURATION - 1600)
+    : Math.min(1, t / 300);
+  ctx.fillStyle = `rgba(10,10,26,${bgAlpha * 0.9})`;
+  ctx.fillRect(0, 0, w, h);
+
+  // 중앙 분할선 (대각선)
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = bgAlpha;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5 + 50, 0);
+  ctx.lineTo(w * 0.5 - 50, h);
+  ctx.stroke();
+
+  // 플레이어 측 (왼쪽) — 슬라이드 인
+  const slideP = gVsIntroPhase === 0
+    ? MathUtil.clamp(t / 800, 0, 1)
+    : 1;
+  const slideEase = slideP * (2 - slideP); // easeOut
+  const charSize = Layout.px(150, w, h);
+  const playerX = -charSize + slideEase * (w * 0.2);
+  const playerY = h * 0.3;
+
+  drawAssetOrFallback(ctx, 'charKing', playerX, playerY, charSize, charSize, (ctx2, x2, y2, w2, h2) => {
+    drawCharFallback(ctx2, x2, y2, w2, h2, 'king');
+  });
+
+  // 상대 측 (오른쪽) — 슬라이드 인
+  const opponentX = w + charSize - slideEase * (w * 0.2 + charSize);
+  const opponentY = h * 0.3;
+
+  drawAssetOrFallback(ctx, 'charOpponent-' + (gOpponentCharId + 1), opponentX, opponentY, charSize, charSize, (ctx2, x2, y2, w2, h2) => {
+    drawCharFallback(ctx2, x2, y2, w2, h2, 'opponent', gOpponentCharId);
+  });
+
+  // 플레이어 이름
+  const nameFS = Layout.fontSize(20, w, h);
+  UI.text(ctx, gLang === 'en' ? 'You' : '플레이어', w * 0.2, h * 0.65, { size: nameFS, bold: true, color: '#4ade80' });
+
+  // 상대 이름
+  const oppNames = gLang === 'en'
+    ? ['Wizard Zyx', 'Knight Orion', 'Draco Kai']
+    : ['마법사 직스', '기사 오리온', '조련사 카이'];
+  UI.text(ctx, oppNames[gOpponentCharId], w * 0.8, h * 0.65, { size: nameFS, bold: true, color: '#ff4444' });
+
+  // 리그 배지
+  const badgeSize = Layout.px(40, w, h);
+  drawAssetOrFallback(ctx, LEAGUE_ASSET[gCurrentLeague], w * 0.2 - badgeSize/2, h * 0.7, badgeSize, badgeSize, (ctx2, x2, y2, w2, h2) => {
+    ctx2.fillStyle = LEAGUE_COLORS[gCurrentLeague];
+    ctx2.fillRect(x2, y2, w2, h2);
+  });
+
+  // VS 엠블럼
+  if (gVsIntroPhase >= 1) {
+    const vsScale = gVsIntroPhase === 1
+      ? Math.min(1.5, 1 + (t - 800) / 200)
+      : 1.5 - (t - 1600) / (VS_INTRO_DURATION - 1600) * 0.5;
+    const vsAlpha = gVsIntroPhase === 2
+      ? 1 - (t - 1600) / (VS_INTRO_DURATION - 1600)
+      : Math.min(1, (t - 800) / 200);
+
+    ctx.save();
+    ctx.globalAlpha = vsAlpha;
+    ctx.translate(w / 2, h * 0.45);
+    ctx.scale(vsScale, vsScale);
+
+    const vsSize = Layout.px(120, w, h);
+    drawAssetOrFallback(ctx, 'uiVsEmblem', -vsSize/2, -vsSize/2, vsSize, vsSize, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = '#ffd700';
+      ctx2.font = `bold ${w2 * 0.6}px ${UI.FONT}`;
+      ctx2.textAlign = 'center';
+      ctx2.textBaseline = 'middle';
+      ctx2.shadowColor = '#ff4444';
+      ctx2.shadowBlur = 20;
+      ctx2.fillText('VS', x2 + w2/2, y2 + h2/2);
+    });
+
+    ctx.restore();
+
+    // 스파크 파티클 (particleSparkle 텍스처 활용)
+    if (gVsIntroPhase === 1 && Math.random() > 0.3) {
+      particles.emit(w/2, h*0.45, 3, {
+        color: '#ffd700',
+        speed: 200,
+        life: 0.5,
+        size: 6,
+        spread: Math.PI * 2,
+        texture: assets.sprites['particleSparkle'] || null
+      });
+    }
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 튜토리얼 시스템 ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gTutorialStep = -1;
+let gTutorialShown = false;
+
+const TUTORIAL_STEPS = [
+  {
+    ko: '보석을 드래그하여 인접한 보석과 교환하세요',
+    en: 'Drag a gem to swap with an adjacent one',
+    highlight: 'board'
+  },
+  {
+    ko: '3개 이상 같은 색을 맞추면 매치!',
+    en: 'Match 3 or more same-colored gems!',
+    highlight: 'board'
+  },
+  {
+    ko: '4개 이상 매치하면 스페셜 보석이 생성됩니다',
+    en: 'Match 4+ gems to create special gems!',
+    highlight: 'board'
+  },
+  {
+    ko: '부스터는 하단 버튼으로 사용하세요 (1~4키)',
+    en: 'Use boosters with bottom buttons (keys 1-4)',
+    highlight: 'booster'
+  },
+  {
+    ko: 'PvP에서는 콤보로 상대에게 장애물을 보냅니다!',
+    en: 'In PvP, combos send obstacles to opponent!',
+    highlight: 'none'
+  }
+];
+
+function shouldShowTutorial() {
+  if (gTutorialShown) return false;
+  const shown = Save.get('ix_gem_arena_tutorial', false);
+  return !shown;
+}
+
+function startTutorial() {
+  gTutorialStep = 0;
+  gTutorialShown = true;
+}
+
+function advanceTutorial() {
+  gTutorialStep++;
+  if (gTutorialStep >= TUTORIAL_STEPS.length) {
+    gTutorialStep = -1;
+    Save.set('ix_gem_arena_tutorial', true);
+  }
+}
+
+function updateTutorial(dt) {
+  if (gTutorialStep < 0) return;
+  if (input.tapped || input.confirm()) {
+    advanceTutorial();
+  }
+}
+
+function renderTutorial(ctx, w, h) {
+  if (gTutorialStep < 0 || gTutorialStep >= TUTORIAL_STEPS.length) return;
+
+  const step = TUTORIAL_STEPS[gTutorialStep];
+  const text = gLang === 'en' ? step.en : step.ko;
+  const fs = Layout.fontSize(18, w, h);
+
+  // 반투명 오버레이
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, w, h);
+
+  // 하이라이트 영역 (투명 컷아웃)
+  if (step.highlight === 'board') {
+    const bl = getBoardLayout(w, h);
+    const bw = COLS * (bl.cellSize + bl.padding) + bl.padding;
+    const bh = ROWS * (bl.cellSize + bl.padding) + bl.padding;
+    ctx.clearRect(bl.boardX - 4, bl.boardY - 4, bw + 8, bh + 8);
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(bl.boardX - 4, bl.boardY - 4, bw + 8, bh + 8);
+  }
+
+  // 텍스트 박스
+  const boxW = w * 0.8;
+  const boxH = Layout.px(80, w, h);
+  const boxX = (w - boxW) / 2;
+  const boxY = h * 0.78;
+
+  ctx.fillStyle = '#1a1a3eee';
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  UI.text(ctx, text, w / 2, boxY + boxH * 0.35, { size: fs, bold: true, color: '#e0e0f0' });
+  UI.text(ctx, (gLang === 'en' ? 'Tap to continue' : '탭하여 계속') + ' (' + (gTutorialStep + 1) + '/' + TUTORIAL_STEPS.length + ')',
+    w / 2, boxY + boxH * 0.7, { size: fs * 0.7, color: '#8080a0' });
+
+  // 손가락 아이콘 애니메이션
+  if (step.highlight === 'board') {
+    const bl = getBoardLayout(w, h);
+    const fingerX = bl.boardX + bl.cellSize * 2.5;
+    const fingerY = bl.boardY + bl.cellSize * 3 + Math.sin(gTime * 0.004) * 15;
+    ctx.font = `${Layout.fontSize(30, w, h)}px ${UI.FONT}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('👆', fingerX, fingerY);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 배경 파티클 효과 (타이틀/왕국 맵) ────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+const bgParticles = [];
+const MAX_BG_PARTICLES = 40;
+
+function initBgParticles(w, h) {
+  bgParticles.length = 0;
+  for (let i = 0; i < MAX_BG_PARTICLES; i++) {
+    bgParticles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 20,
+      vy: -Math.random() * 30 - 10,
+      size: 2 + Math.random() * 4,
+      alpha: 0.2 + Math.random() * 0.4,
+      color: GEM_HEX[Math.floor(Math.random() * GEM_COLORS)],
+      twinkle: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function updateBgParticles(dt, w, h) {
+  const dtSec = dt / 1000;
+  for (const p of bgParticles) {
+    p.x += p.vx * dtSec;
+    p.y += p.vy * dtSec;
+    p.twinkle += dt * 0.003;
+
+    // 화면 밖으로 나가면 아래서 리스폰
+    if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
+    if (p.x < -10) p.x = w + 10;
+    if (p.x > w + 10) p.x = -10;
+  }
+}
+
+function renderBgParticles(ctx, w, h) {
+  for (const p of bgParticles) {
+    ctx.save();
+    ctx.globalAlpha = p.alpha * (0.5 + Math.sin(p.twinkle) * 0.5);
+    ctx.fillStyle = p.color;
+
+    // 별 모양
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI / 4 * i + p.twinkle * 0.5;
+      const r = i % 2 === 0 ? p.size : p.size * 0.4;
+      ctx.lineTo(p.x + r * Math.cos(a), p.y + r * Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 리그 승급 연출 시스템 ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gLeagueUpActive = false;
+let gLeagueUpTimer = 0;
+let gLeagueUpFrom = 0;
+let gLeagueUpTo = 0;
+const LEAGUE_UP_DURATION = 3000;
+
+function startLeagueUpAnimation(fromLeague, toLeague) {
+  gLeagueUpActive = true;
+  gLeagueUpTimer = 0;
+  gLeagueUpFrom = fromLeague;
+  gLeagueUpTo = toLeague;
+}
+
+function updateLeagueUp(dt) {
+  if (!gLeagueUpActive) return;
+  gLeagueUpTimer += dt;
+
+  // 파티클 발사 (particleStar 텍스처 활용)
+  if (gLeagueUpTimer < 2000 && Math.random() > 0.5) {
+    particles.emit(engine.W / 2, engine.H * 0.4, 5, {
+      color: LEAGUE_COLORS[gLeagueUpTo],
+      speed: 200,
+      life: 0.8,
+      size: 8,
+      spread: Math.PI * 2,
+      texture: assets.sprites['particleStar'] || null
+    });
+  }
+
+  if (gLeagueUpTimer >= LEAGUE_UP_DURATION) {
+    gLeagueUpActive = false;
+  }
+}
+
+function renderLeagueUp(ctx, w, h) {
+  if (!gLeagueUpActive) return;
+
+  const t = gLeagueUpTimer;
+  const progress = MathUtil.clamp(t / LEAGUE_UP_DURATION, 0, 1);
+
+  ctx.save();
+
+  // 배경 오버레이
+  const fadeIn = Math.min(1, t / 500);
+  const fadeOut = t > 2000 ? 1 - (t - 2000) / 1000 : 1;
+  ctx.globalAlpha = fadeIn * fadeOut * 0.85;
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.globalAlpha = fadeIn * fadeOut;
+
+  // "리그 승급!" 텍스트
+  const titleFS = Layout.fontSize(36, w, h);
+  UI.text(ctx, gLang === 'en' ? 'LEAGUE UP!' : '리그 승급!', w / 2, h * 0.2, {
+    size: titleFS, bold: true, color: '#ffd700', glow: '#ffd700'
+  });
+
+  // 이전 배지 → 새 배지 변환
+  const badgeSize = Layout.px(120, w, h);
+  const fromAlpha = t < 1000 ? 1 : Math.max(0, 1 - (t - 1000) / 500);
+  const toAlpha = t < 1000 ? 0 : Math.min(1, (t - 1000) / 500);
+  const scale = t < 1000 ? 1 : (1 + Math.sin((t - 1000) / 200) * 0.1);
+
+  // 이전 배지
+  if (fromAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = fromAlpha * fadeIn * fadeOut;
+    drawAssetOrFallback(ctx, LEAGUE_ASSET[gLeagueUpFrom], w/2 - badgeSize/2, h*0.35, badgeSize, badgeSize, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = LEAGUE_COLORS[gLeagueUpFrom];
+      ctx2.beginPath();
+      ctx2.moveTo(x2+w2/2, y2); ctx2.lineTo(x2+w2, y2+h2*0.3); ctx2.lineTo(x2+w2*0.8, y2+h2);
+      ctx2.lineTo(x2+w2*0.2, y2+h2); ctx2.lineTo(x2, y2+h2*0.3); ctx2.closePath(); ctx2.fill();
+    });
+    ctx.restore();
+  }
+
+  // 새 배지
+  if (toAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = toAlpha * fadeIn * fadeOut;
+    ctx.translate(w/2, h*0.35 + badgeSize/2);
+    ctx.scale(scale, scale);
+    ctx.translate(-w/2, -(h*0.35 + badgeSize/2));
+    drawAssetOrFallback(ctx, LEAGUE_ASSET[gLeagueUpTo], w/2 - badgeSize/2, h*0.35, badgeSize, badgeSize, (ctx2, x2, y2, w2, h2) => {
+      ctx2.fillStyle = LEAGUE_COLORS[gLeagueUpTo];
+      ctx2.beginPath();
+      ctx2.moveTo(x2+w2/2, y2); ctx2.lineTo(x2+w2, y2+h2*0.3); ctx2.lineTo(x2+w2*0.8, y2+h2);
+      ctx2.lineTo(x2+w2*0.2, y2+h2); ctx2.lineTo(x2, y2+h2*0.3); ctx2.closePath(); ctx2.fill();
+      // 빛 줄기
+      ctx2.strokeStyle = LEAGUE_COLORS[gLeagueUpTo];
+      ctx2.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const a = Math.PI * 2 / 8 * i + gTime * 0.002;
+        const r1 = w2 * 0.5;
+        const r2 = w2 * 0.7 + Math.sin(gTime * 0.005 + i) * w2 * 0.1;
+        ctx2.beginPath();
+        ctx2.moveTo(x2+w2/2+r1*Math.cos(a), y2+h2/2+r1*Math.sin(a));
+        ctx2.lineTo(x2+w2/2+r2*Math.cos(a), y2+h2/2+r2*Math.sin(a));
+        ctx2.stroke();
+      }
+    });
+    ctx.restore();
+  }
+
+  // effectLeagueUp 스프라이트 시트 오버레이
+  const leagueEffSize = Layout.px(150, w, h);
+  drawEffectSpriteSheet(ctx, 'effectLeagueUp', w / 2 - leagueEffSize / 2, h * 0.25, leagueEffSize, leagueEffSize, progress);
+
+  // 리그 이름
+  const leagueNames = gLang === 'en' ? LEAGUE_NAMES_EN : LEAGUE_NAMES_KO;
+  const nameFS = Layout.fontSize(24, w, h);
+  UI.text(ctx, leagueNames[gLeagueUpTo], w / 2, h * 0.7, {
+    size: nameFS, bold: true, color: LEAGUE_COLORS[gLeagueUpTo], glow: LEAGUE_COLORS[gLeagueUpTo]
+  });
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 일일 챌린지 상세 시스템 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+const DAILY_TYPES = [
+  { id: 'SCORE_RUSH', nameKo: '점수 러시', nameEn: 'Score Rush', desc_ko: '15턴 내 최고 점수', desc_en: 'Highest score in 15 turns' },
+  { id: 'BOMB_MASTER', nameKo: '폭탄 마스터', nameEn: 'Bomb Master', desc_ko: '폭탄만으로 목표 점수', desc_en: 'Target score with bombs only' },
+  { id: 'LINE_CLEAR', nameKo: '라인 클리어', nameEn: 'Line Clear', desc_ko: '라인 스페셜 10개 생성', desc_en: 'Create 10 line specials' },
+  { id: 'RAINBOW_HUNT', nameKo: '레인보우 헌트', nameEn: 'Rainbow Hunt', desc_ko: '레인보우 3개 생성', desc_en: 'Create 3 rainbows' },
+  { id: 'COMBO_KING', nameKo: '콤보 킹', nameEn: 'Combo King', desc_ko: '5연쇄 이상 달성', desc_en: 'Achieve 5+ combo chain' },
+  { id: 'OBSTACLE_BUSTER', nameKo: '장애물 파괴왕', nameEn: 'Obstacle Buster', desc_ko: '장애물 15개 제거', desc_en: 'Remove 15 obstacles' },
+  { id: 'COLOR_COLLECTOR', nameKo: '색상 수집가', nameEn: 'Color Collector', desc_ko: '6색 보석 각 10개씩 매칭', desc_en: 'Match 10 of each color' },
+  { id: 'SPEED_RUN', nameKo: '스피드 런', nameEn: 'Speed Run', desc_ko: '5턴 안에 2000점', desc_en: '2000 pts in 5 turns' }
+];
+
+function getDailyChallengeType() {
+  const seed = getTodaySeed();
+  return DAILY_TYPES[seed % DAILY_TYPES.length];
+}
+
+function getDailyChallengeInfo() {
+  const type = getDailyChallengeType();
+  return {
+    type: type.id,
+    name: gLang === 'en' ? type.nameEn : type.nameKo,
+    desc: gLang === 'en' ? type.desc_en : type.desc_ko
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 보드 애니메이션 효과 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 보석 매치 이펙트 — 빛 줄기 */
+function renderMatchEffect(ctx, x, y, size, color, progress) {
+  if (progress <= 0 || progress >= 1) return;
+  ctx.save();
+  ctx.globalAlpha = 1 - progress;
+
+  // 원형 충격파
+  const radius = size * (0.5 + progress * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3 * (1 - progress);
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 빛 줄기 (십자)
+  const lineLen = size * (1 + progress * 3);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2 * (1 - progress);
+  ctx.beginPath();
+  ctx.moveTo(x - lineLen, y); ctx.lineTo(x + lineLen, y);
+  ctx.moveTo(x, y - lineLen); ctx.lineTo(x, y + lineLen);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/** 보석 선택 글로우 효과 */
+function renderSelectionGlow(ctx, x, y, size, time) {
+  const glowSize = 4 + Math.sin(time * 0.005) * 2;
+  ctx.save();
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = glowSize;
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.roundRect(x - 2, y - 2, size + 4, size + 4, 6);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** 캐스케이드 중 보석 낙하 이펙트 — 잔상 */
+function renderGravityTrail(ctx, x, y, size, color) {
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = color;
+  ctx.fillRect(x + size * 0.3, y - size * 0.5, size * 0.4, size * 0.5);
+  ctx.restore();
+}
+
+/** 보드 아이들 애니메이션 — 보석 미세 흔들림 */
+function getIdleOffset(r, c, time) {
+  const phase = (r * COLS + c) * 0.7 + time * 0.002;
+  return {
+    x: Math.sin(phase) * 1.5,
+    y: Math.cos(phase * 0.8) * 1
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 보드 렌더 강화 (셀별 상세 이펙트) ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderBoardEnhanced(ctx, w, h, board, layout, isActive) {
+  const { cellSize, boardX, boardY, padding } = layout;
+  const actualCS = cellSize;
+  const bw = COLS * (actualCS + padding) + padding;
+  const bh = ROWS * (actualCS + padding) + padding;
+
+  // 보드 프레임 배경
+  ctx.save();
+  ctx.fillStyle = PALETTE.boardBg + (isActive ? 'cc' : '66');
+  ctx.beginPath();
+  ctx.roundRect(boardX - 4, boardY - 4, bw + 8, bh + 8, 10);
+  ctx.fill();
+
+  // 보드 테두리 글로우
+  if (isActive) {
+    ctx.strokeStyle = gIsPlayerTurn ? '#4ade8044' : '#ff444444';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 셀 렌더
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = safeGridAccess(board, r, c);
+      if (!cell) continue;
+
+      const cx = boardX + padding + c * (actualCS + padding);
+      const cy = boardY + padding + r * (actualCS + padding);
+
+      // 아이들 오프셋
+      const idle = (gCascadePhase === 'idle' && isActive) ? getIdleOffset(r, c, gTime) : { x: 0, y: 0 };
+
+      // 셀 배경 (체커보드 + 그라디언트) — uiBoardCell 에셋 활용
+      const isLight = (r + c) % 2 === 0;
+      if (assets.sprites['uiBoardCell']) {
+        ctx.globalAlpha = isLight ? 0.8 : 1.0;
+        ctx.drawImage(assets.sprites['uiBoardCell'], cx, cy, actualCS, actualCS);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = isLight ? '#1e1e48' : '#282860';
+        ctx.beginPath();
+        ctx.roundRect(cx, cy, actualCS, actualCS, 3);
+        ctx.fill();
+      }
+
+      // 선택 하이라이트
+      if (isActive && gSelectedCell && gSelectedCell.r === r && gSelectedCell.c === c) {
+        renderSelectionGlow(ctx, cx, cy, actualCS, gTime);
+      }
+
+      // 힌트 하이라이트 (펄스)
+      if (isActive && gHintCells) {
+        for (const hc of gHintCells) {
+          if (hc.r === r && hc.c === c) {
+            const pulse = 0.3 + Math.sin(gTime * 0.005) * 0.2;
+            ctx.fillStyle = `rgba(255,215,0,${pulse})`;
+            ctx.fillRect(cx + 2, cy + 2, actualCS - 4, actualCS - 4);
+          }
+        }
+      }
+
+      // 돌블록
+      if (cell.obstacle === OBS.STONE) {
+        drawAssetOrFallback(ctx, OBS_ASSET[OBS.STONE], cx + 2, cy + 2, actualCS - 4, actualCS - 4,
+          (ctx2, x2, y2, w2, h2) => drawObstacleFallback(ctx2, x2, y2, w2, h2, OBS.STONE));
+        continue;
+      }
+
+      // 보석
+      if (cell.color >= 0) {
+        const gPad = actualCS * 0.1;
+        const gx = cx + gPad + idle.x;
+        const gy = cy + gPad + idle.y;
+        const gs = actualCS - gPad * 2;
+
+        ctx.save();
+        ctx.globalAlpha = (cell.alpha !== undefined ? cell.alpha : 1);
+
+        // 보석 에셋 또는 폴백 — 아이들 시 gemIdleSheet 활용
+        if (gCascadePhase === 'idle' && isActive && cell.special === SP.NONE && assets.sprites['gemIdleSheet']) {
+          drawGemFromSheet(ctx, cell.color, gx, gy, gs, gs, gTime);
+        } else {
+          drawAssetOrFallback(ctx, GEM_ASSET_KEYS[cell.color], gx, gy, gs, gs,
+            (ctx2, x2, y2, w2, h2) => drawGemFallback(ctx2, x2, y2, w2, h2, cell.color));
+        }
+
+        // 스페셜 오버레이
+        if (cell.special !== SP.NONE) {
+          // 펄스 애니메이션
+          const spPulse = 0.8 + Math.sin(gTime * 0.006) * 0.2;
+          ctx.globalAlpha = spPulse;
+          drawAssetOrFallback(ctx, SP_ASSET[cell.special], gx - 2, gy - 2, gs + 4, gs + 4,
+            (ctx2, x2, y2, w2, h2) => drawSpecialFallback(ctx2, x2, y2, w2, h2, cell.special));
+        }
+
+        ctx.restore();
+      }
+
+      // 장애물 오버레이
+      if (cell.obstacle !== OBS.NONE && cell.obstacle !== OBS.STONE) {
+        ctx.save();
+        // 독은 펄스 효과
+        if (cell.obstacle === OBS.POISON) {
+          ctx.globalAlpha = 0.6 + Math.sin(gTime * 0.004) * 0.2;
+        }
+        drawAssetOrFallback(ctx, OBS_ASSET[cell.obstacle], cx, cy, actualCS, actualCS,
+          (ctx2, x2, y2, w2, h2) => drawObstacleFallback(ctx2, x2, y2, w2, h2, cell.obstacle));
+        ctx.restore();
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 왕국 맵 상세 렌더링 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderKingdomMapDetailed(ctx, w, h) {
+  // 배경
+  drawAssetOrFallback(ctx, 'bgKingdom', 0, 0, w, h, (ctx2, x2, y2, w2, h2) => {
+    // 하늘 그라디언트
+    const skyGrad = ctx2.createLinearGradient(0, 0, 0, h2 * 0.5);
+    skyGrad.addColorStop(0, '#4488cc');
+    skyGrad.addColorStop(1, '#88bbee');
+    ctx2.fillStyle = skyGrad;
+    ctx2.fillRect(0, 0, w2, h2 * 0.5);
+
+    // 언덕 그라디언트
+    const hillGrad = ctx2.createLinearGradient(0, h2 * 0.4, 0, h2);
+    hillGrad.addColorStop(0, '#44aa66');
+    hillGrad.addColorStop(1, '#226633');
+    ctx2.fillStyle = hillGrad;
+    ctx2.fillRect(0, h2 * 0.4, w2, h2 * 0.6);
+
+    // 구름
+    ctx2.fillStyle = '#ffffff55';
+    for (let i = 0; i < 5; i++) {
+      const cloudX = (w2 * 0.1 + i * w2 * 0.2 + gTime * 0.01) % (w2 + 100) - 50;
+      const cloudY = h2 * 0.1 + i * h2 * 0.05;
+      ctx2.beginPath();
+      ctx2.arc(cloudX, cloudY, 25, 0, Math.PI * 2);
+      ctx2.arc(cloudX + 20, cloudY - 10, 20, 0, Math.PI * 2);
+      ctx2.arc(cloudX + 40, cloudY, 25, 0, Math.PI * 2);
+      ctx2.fill();
+    }
+
+    // 길 (연결선)
+    ctx2.strokeStyle = '#dda87744';
+    ctx2.lineWidth = 6;
+    ctx2.setLineDash([10, 5]);
+    ctx2.beginPath();
+    ctx2.moveTo(w2 * 0.1, h2 * 0.6);
+    ctx2.lineTo(w2 * 0.3, h2 * 0.55);
+    ctx2.lineTo(w2 * 0.5, h2 * 0.6);
+    ctx2.lineTo(w2 * 0.7, h2 * 0.55);
+    ctx2.lineTo(w2 * 0.9, h2 * 0.6);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  });
+
+  // 배경 파티클
+  renderBgParticles(ctx, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 승리/패배 연출 강화 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gResultAnimTimer = 0;
+
+function renderVictoryEffect(ctx, w, h) {
+  gResultAnimTimer += 16; // 대략적 dt
+
+  // 불꽃놀이 파티클
+  if (gResultAnimTimer % 200 < 20) {
+    const fx = MathUtil.randRange(w * 0.2, w * 0.8);
+    const fy = MathUtil.randRange(h * 0.1, h * 0.4);
+    particles.emit(fx, fy, 15, {
+      color: ['#ffd700', '#ff4466', '#4ade80', '#00d4ff'][MathUtil.randInt(0, 3)],
+      speed: 150,
+      life: 0.8,
+      size: 6,
+      spread: Math.PI * 2,
+      texture: assets.sprites['particleStar'] || null
+    });
+  }
+
+  // 승리 이펙트 — 4프레임 스프라이트 시트 활용
+  const victoryProgress = MathUtil.clamp(gResultAnimTimer / 1200, 0, 1);
+  if (!drawEffectSpriteSheet(ctx, 'effectVictory', w * 0.3, h * 0.05, w * 0.4, h * 0.12, victoryProgress)) {
+    drawAssetOrFallback(ctx, 'effectVictory', w * 0.3, h * 0.05, w * 0.4, h * 0.12, null);
+  }
+}
+
+function renderDefeatEffect(ctx, w, h) {
+  // 화면 어둡게
+  ctx.fillStyle = 'rgba(255,0,0,0.03)';
+  ctx.fillRect(0, 0, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 상세 점수 계산 및 통계 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gMatchStats = {
+  totalMatches: 0,
+  match3Count: 0,
+  match4Count: 0,
+  match5Count: 0,
+  matchTLCount: 0,
+  maxCombo: 0,
+  specialsCreated: 0,
+  obstaclesRemoved: 0,
+  totalCascades: 0
+};
+
+function resetMatchStats() {
+  gMatchStats = {
+    totalMatches: 0, match3Count: 0, match4Count: 0, match5Count: 0,
+    matchTLCount: 0, maxCombo: 0, specialsCreated: 0, obstaclesRemoved: 0, totalCascades: 0
+  };
+}
+
+function recordMatchStat(matchType) {
+  gMatchStats.totalMatches++;
+  switch (matchType) {
+    case 'match3': gMatchStats.match3Count++; break;
+    case 'match4h': case 'match4v': gMatchStats.match4Count++; break;
+    case 'match5': gMatchStats.match5Count++; break;
+    case 'matchTL': gMatchStats.matchTLCount++; break;
+  }
+  if (gComboCount > gMatchStats.maxCombo) gMatchStats.maxCombo = gComboCount;
+}
+
+function renderMatchStatsPanel(ctx, w, h) {
+  const fs = Layout.fontSize(12, w, h);
+  const panelW = Layout.px(200, w, h);
+  const panelH = Layout.px(160, w, h);
+  const px = w - panelW - 10;
+  const py = h * 0.25;
+
+  ctx.fillStyle = '#0a0a1acc';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(px, py, panelW, panelH, 8);
+  ctx.fill(); ctx.stroke();
+
+  const lines = [
+    ['매치 합계', gMatchStats.totalMatches],
+    ['3매치', gMatchStats.match3Count],
+    ['4매치', gMatchStats.match4Count],
+    ['T/L형', gMatchStats.matchTLCount],
+    ['5매치', gMatchStats.match5Count],
+    ['최대 콤보', gMatchStats.maxCombo],
+    ['스페셜 생성', gMatchStats.specialsCreated],
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    UI.text(ctx, lines[i][0], px + 10, py + 16 + i * fs * 1.6, { size: fs, color: '#8080a0', align: 'left' });
+    UI.text(ctx, '' + lines[i][1], px + panelW - 10, py + 16 + i * fs * 1.6, { size: fs, bold: true, color: '#ffd700', align: 'right' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 모바일 터치 조작 UI (스와이프 가이드) ──────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderMobileTouchGuide(ctx, w, h) {
+  if (!input.isMobile) return;
+  if (gCascadePhase !== 'idle') return;
+  if (gSelectedCell && gDragStart) {
+    // 드래그 방향 가이드 표시
+    const bl = getBoardLayout(w, h);
+    const cx = bl.boardX + bl.padding + gSelectedCell.c * (bl.cellSize + bl.padding) + bl.cellSize / 2;
+    const cy = bl.boardY + bl.padding + gSelectedCell.r * (bl.cellSize + bl.padding) + bl.cellSize / 2;
+
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+
+    // 4방향 화살표
+    const arrowLen = bl.cellSize * 0.8;
+    const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+    for (const [dr, dc] of dirs) {
+      const nr = gSelectedCell.r + dr;
+      const nc = gSelectedCell.c + dc;
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+        const cell = safeGridAccess(gGrid, nr, nc);
+        if (cell && cell.obstacle !== OBS.STONE) {
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + dc * arrowLen, cy + dr * arrowLen);
+          ctx.stroke();
+        }
+      }
+    }
+
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 장애물 전송 시각 효과 ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gSendEffects = [];
+
+function addSendEffect(fromX, fromY, toX, toY, type) {
+  gSendEffects.push({
+    fromX, fromY, toX, toY,
+    progress: 0,
+    type,
+    life: 600
+  });
+}
+
+function updateSendEffects(dt) {
+  for (let i = gSendEffects.length - 1; i >= 0; i--) {
+    gSendEffects[i].progress += dt / gSendEffects[i].life;
+    if (gSendEffects[i].progress >= 1) {
+      gSendEffects.splice(i, 1);
+    }
+  }
+}
+
+function renderSendEffects(ctx, w, h) {
+  for (const eff of gSendEffects) {
+    const t = eff.progress;
+    const easeT = t * (2 - t); // easeOut
+    const x = MathUtil.lerp(eff.fromX, eff.toX, easeT);
+    const y = MathUtil.lerp(eff.fromY, eff.toY, easeT) - Math.sin(t * Math.PI) * 50;
+
+    ctx.save();
+    ctx.globalAlpha = 1 - t;
+
+    // 에너지 트레일
+    ctx.strokeStyle = '#aa44ff';
+    ctx.lineWidth = 3 * (1 - t);
+    ctx.beginPath();
+    ctx.moveTo(eff.fromX, eff.fromY);
+    ctx.quadraticCurveTo(
+      (eff.fromX + eff.toX) / 2,
+      Math.min(eff.fromY, eff.toY) - 60,
+      x, y
+    );
+    ctx.stroke();
+
+    // 장애물 아이콘
+    const size = 20 * (1 - t * 0.5);
+    drawObstacleFallback(ctx, x - size/2, y - size/2, size, size, eff.type);
+
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 최고 기록 화면 표시 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderHighScoreIndicator(ctx, w, h) {
+  const hi = Save.getHighScore(GAME_ID);
+  if (hi <= 0) return;
+  const fs = Layout.fontSize(12, w, h);
+  UI.text(ctx, (gLang === 'en' ? 'Best: ' : '최고: ') + hi, w * 0.95, h * 0.02 + fs, {
+    size: fs, color: '#ffd70088', align: 'right'
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 보석 스왑 애니메이션 (보간) ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gSwapAnim = null;
+
+function startSwapAnimation(board, r1, c1, r2, c2, onComplete) {
+  gSwapAnim = {
+    board, r1, c1, r2, c2,
+    progress: 0,
+    duration: 150,
+    onComplete
+  };
+}
+
+function updateSwapAnimation(dt) {
+  if (!gSwapAnim) return;
+  gSwapAnim.progress += dt;
+  if (gSwapAnim.progress >= gSwapAnim.duration) {
+    if (gSwapAnim.onComplete) gSwapAnim.onComplete();
+    gSwapAnim = null;
+  }
+}
+
+function getSwapOffset(r, c) {
+  if (!gSwapAnim) return { x: 0, y: 0 };
+  const t = MathUtil.clamp(gSwapAnim.progress / gSwapAnim.duration, 0, 1);
+  const ease = t * (2 - t); // easeOut
+
+  const bl = getBoardLayout(engine.W, engine.H);
+  const cellW = bl.cellSize + bl.padding;
+
+  if (r === gSwapAnim.r1 && c === gSwapAnim.c1) {
+    return {
+      x: (gSwapAnim.c2 - gSwapAnim.c1) * cellW * ease,
+      y: (gSwapAnim.r2 - gSwapAnim.r1) * cellW * ease
+    };
+  }
+  if (r === gSwapAnim.r2 && c === gSwapAnim.c2) {
+    return {
+      x: (gSwapAnim.c1 - gSwapAnim.c2) * cellW * ease,
+      y: (gSwapAnim.r1 - gSwapAnim.r2) * cellW * ease
+    };
+  }
+  return { x: 0, y: 0 };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── PvP 결과 상세 통계 화면 ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderPvpResultDetailed(ctx, w, h) {
+  let win = gPlayerScore > gOpponentScore;
+  let draw = gPlayerScore === gOpponentScore;
+  if (draw) {
+    if (gLastComboScorePlayer > gLastComboScoreOpponent) { win = true; draw = false; }
+    else if (gLastComboScoreOpponent > gLastComboScorePlayer) { win = false; draw = false; }
+  }
+  const fs = Layout.fontSize(14, w, h);
+
+  // 통계 패널
+  const panelW = Layout.px(300, w, h);
+  const panelH = Layout.px(150, w, h);
+  const px = (w - panelW) / 2;
+  const py = h * 0.48;
+
+  ctx.fillStyle = '#0a0a2acc';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(px, py, panelW, panelH, 8);
+  ctx.fill(); ctx.stroke();
+
+  const stats = [
+    [gLang==='en'?'Total Matches':'총 매치', gMatchStats.totalMatches],
+    [gLang==='en'?'Max Combo':'최대 콤보', gMatchStats.maxCombo],
+    [gLang==='en'?'Specials':'스페셜 생성', gMatchStats.specialsCreated],
+    [gLang==='en'?'Obstacles':'장애물 제거', gMatchStats.obstaclesRemoved],
+    [gLang==='en'?'Cascades':'캐스케이드', gMatchStats.totalCascades],
+  ];
+
+  for (let i = 0; i < stats.length; i++) {
+    UI.text(ctx, stats[i][0], px + 15, py + 20 + i * fs * 1.8, { size: fs, color: '#8080a0', align: 'left' });
+    UI.text(ctx, '' + stats[i][1], px + panelW - 15, py + 20 + i * fs * 1.8, { size: fs, bold: true, color: '#ffd700', align: 'right' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 솔로 레벨 목표 추적 강화 ─────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function updateSoloTargetsFromMatch(matchType, cells, board) {
+  if (gState !== STATE.PLAY || gPvpMode) return;
+
+  // 보석 수집 목표
+  if (cells && cells.length > 0) {
+    const color = safeGridAccess(board, cells[0].r, cells[0].c);
+    if (color && gLevelTargets) {
+      for (const tgt of gLevelTargets) {
+        if (tgt.type === 'gemCollect' && color.color === tgt.color) {
+          tgt.current += cells.length;
+        }
+      }
+    }
+  }
+
+  // 장애물 제거 목표 — damageAdjacentObstacles에서 호출
+  // 스페셜 생성 목표
+  if (matchType === 'match4h' || matchType === 'match4v' || matchType === 'matchTL' || matchType === 'match5') {
+    updateSoloTargets('specialCreate', 1);
+    gMatchStats.specialsCreated++;
+  }
+
+  // 통계 기록
+  recordMatchStat(matchType);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 레벨 데이터 정합성 검증 ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function validateLevelData() {
+  for (let i = 0; i < LEVEL_DATA.length; i++) {
+    const lv = LEVEL_DATA[i];
+    if (lv.level !== i + 1) console.warn(`[LevelData] Level ${i+1} mismatch: ${lv.level}`);
+    if (lv.turns < 5 || lv.turns > 30) console.warn(`[LevelData] Level ${lv.level} turns out of range: ${lv.turns}`);
+    if (!lv.targets || lv.targets.length === 0) console.warn(`[LevelData] Level ${lv.level} has no targets`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 보석 아이들 시트 애니메이션 활용 ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+/** 4프레임 이펙트 스프라이트 시트 렌더링 (512×128, 각 프레임 128×128) */
+function drawEffectSpriteSheet(ctx, assetKey, x, y, w, h, progress) {
+  const sheet = assets.sprites[assetKey];
+  if (!sheet) return false;
+  const frameW = 128, frameH = 128, totalFrames = 4;
+  const frame = Math.min(Math.floor(progress * totalFrames), totalFrames - 1);
+  ctx.drawImage(sheet, frame * frameW, 0, frameW, frameH, x, y, w, h);
+  return true;
+}
+
+function drawGemFromSheet(ctx, colorIdx, x, y, w, h, time) {
+  const sheet = assets.sprites['gemIdleSheet'];
+  if (!sheet) {
+    drawGemFallback(ctx, x, y, w, h, colorIdx);
+    return;
+  }
+
+  // 6색 × 4프레임 = 24프레임, 각 128×128
+  const frameW = 128;
+  const frameH = 128;
+  const framesPerColor = 4;
+  const frame = Math.floor((time / 200) % framesPerColor);
+  const sx = (colorIdx * framesPerColor + frame) * frameW;
+
+  ctx.drawImage(sheet, sx, 0, frameW, frameH, x, y, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 시작 화면 보석 드랍 애니메이션 ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+const titleGems = [];
+const TITLE_GEM_COUNT = 30;
+
+function initTitleGems(w, h) {
+  titleGems.length = 0;
+  for (let i = 0; i < TITLE_GEM_COUNT; i++) {
+    titleGems.push({
+      x: Math.random() * w,
+      y: Math.random() * h * 0.6 + h * 0.2,
+      vy: 20 + Math.random() * 40,
+      size: 15 + Math.random() * 25,
+      color: Math.floor(Math.random() * GEM_COLORS),
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 2,
+      alpha: 0.3 + Math.random() * 0.4
+    });
+  }
+}
+
+function updateTitleGems(dt, w, h) {
+  const dtSec = dt / 1000;
+  for (const gem of titleGems) {
+    gem.y += gem.vy * dtSec;
+    gem.rotation += gem.rotSpeed * dtSec;
+    if (gem.y > h + gem.size) {
+      gem.y = -gem.size;
+      gem.x = Math.random() * w;
+    }
+  }
+}
+
+function renderTitleGems(ctx, w, h) {
+  for (const gem of titleGems) {
+    ctx.save();
+    ctx.globalAlpha = gem.alpha;
+    ctx.translate(gem.x, gem.y);
+    ctx.rotate(gem.rotation);
+    drawGemFallback(ctx, -gem.size/2, -gem.size/2, gem.size, gem.size, gem.color);
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 날씨/시간대 효과 ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function getTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  if (hour >= 18 && hour < 21) return 'evening';
+  return 'night';
+}
+
+function getTimeOverlayColor() {
+  switch (getTimeOfDay()) {
+    case 'morning': return 'rgba(255,200,100,0.05)';
+    case 'afternoon': return 'rgba(255,255,200,0.03)';
+    case 'evening': return 'rgba(255,100,50,0.08)';
+    case 'night': return 'rgba(50,50,150,0.1)';
+    default: return 'rgba(0,0,0,0)';
+  }
+}
+
+function renderTimeOverlay(ctx, w, h) {
+  ctx.fillStyle = getTimeOverlayColor();
+  ctx.fillRect(0, 0, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 카메라 줌/팬 시스템 (왕국 맵용) ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gCameraZoom = 1;
+let gCameraX = 0;
+let gCameraY = 0;
+let gTargetZoom = 1;
+let gTargetCameraX = 0;
+let gTargetCameraY = 0;
+
+function updateCamera(dt) {
+  const lerpRate = dt * 0.003;
+  gCameraZoom = MathUtil.lerp(gCameraZoom, gTargetZoom, lerpRate);
+  gCameraX = MathUtil.lerp(gCameraX, gTargetCameraX, lerpRate);
+  gCameraY = MathUtil.lerp(gCameraY, gTargetCameraY, lerpRate);
+}
+
+function applyCameraTransform(ctx, w, h) {
+  ctx.translate(w/2 + gCameraX, h/2 + gCameraY);
+  ctx.scale(gCameraZoom, gCameraZoom);
+  ctx.translate(-w/2, -h/2);
+}
+
+function resetCamera() {
+  gCameraZoom = 1; gCameraX = 0; gCameraY = 0;
+  gTargetZoom = 1; gTargetCameraX = 0; gTargetCameraY = 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 구역 완성 축하 연출 ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let gZoneCompleteAnim = false;
+let gZoneCompleteTimer = 0;
+let gZoneCompleteIdx = -1;
+
+function startZoneCompleteAnim(zoneIdx) {
+  gZoneCompleteAnim = true;
+  gZoneCompleteTimer = 0;
+  gZoneCompleteIdx = zoneIdx;
+}
+
+function updateZoneComplete(dt) {
+  if (!gZoneCompleteAnim) return;
+  gZoneCompleteTimer += dt;
+
+  if (gZoneCompleteTimer < 2000 && Math.random() > 0.4) {
+    particles.emit(engine.W / 2, engine.H * 0.3, 5, {
+      color: ZONE_COLORS[gZoneCompleteIdx] || '#ffd700',
+      speed: 180,
+      life: 0.7,
+      size: 6,
+      spread: Math.PI * 2,
+      texture: assets.sprites['particleSparkle'] || null
+    });
+  }
+
+  if (gZoneCompleteTimer >= 3000) {
+    gZoneCompleteAnim = false;
+  }
+}
+
+function renderZoneComplete(ctx, w, h) {
+  if (!gZoneCompleteAnim) return;
+
+  const t = gZoneCompleteTimer;
+  const fadeIn = Math.min(1, t / 500);
+  const fadeOut = t > 2000 ? 1 - (t - 2000) / 1000 : 1;
+
+  ctx.save();
+  ctx.globalAlpha = fadeIn * fadeOut * 0.85;
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.globalAlpha = fadeIn * fadeOut;
+
+  const zNames = gLang === 'en' ? ZONE_NAMES_EN : ZONE_NAMES_KO;
+  UI.text(ctx, (gLang === 'en' ? 'Zone Complete!' : '구역 완성!'), w / 2, h * 0.3, {
+    size: Layout.fontSize(40, w, h), bold: true, color: '#ffd700', glow: '#ffd700'
+  });
+
+  UI.text(ctx, zNames[gZoneCompleteIdx] || '', w / 2, h * 0.45, {
+    size: Layout.fontSize(28, w, h), bold: true, color: ZONE_COLORS[gZoneCompleteIdx] || '#fff'
+  });
+
+  // 건물 아이콘 큰 버전
+  const iconSize = Layout.px(120, w, h);
+  const scale = 1 + Math.sin(t * 0.003) * 0.05;
+  ctx.save();
+  ctx.translate(w/2, h*0.6);
+  ctx.scale(scale, scale);
+  drawAssetOrFallback(ctx, ZONE_ASSET[gZoneCompleteIdx], -iconSize/2, -iconSize/2, iconSize, iconSize, (ctx2, x2, y2, w2, h2) => {
+    ctx2.fillStyle = ZONE_COLORS[gZoneCompleteIdx] + '88';
+    ctx2.fillRect(x2 + w2*0.2, y2 + h2*0.3, w2*0.6, h2*0.6);
+  });
+  ctx.restore();
+
+  // 보너스 텍스트
+  UI.text(ctx, (gLang === 'en' ? 'Bonus unlocked!' : '보너스 해금!'), w / 2, h * 0.8, {
+    size: Layout.fontSize(18, w, h), color: '#4ade80'
+  });
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 난이도 선택 표시 (DDA 상태) ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderDDAIndicator(ctx, w, h) {
+  if (gFailStreak < 2) return;
+
+  const fs = Layout.fontSize(11, w, h);
+  let text, color;
+  if (gFailStreak >= 4) {
+    text = gLang === 'en' ? '★ Easy Mode' : '★ 쉬움 모드';
+    color = '#4ade80';
+  } else {
+    text = gLang === 'en' ? '☆ Hint Active' : '☆ 보정 활성';
+    color = '#ffd70088';
+  }
+
+  UI.text(ctx, text, w * 0.5, h * 0.97, { size: fs, color, align: 'center' });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 스캔라인 + CRT 효과 (PvP 전용) ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+function renderCRTEffect(ctx, w, h) {
+  // 스캔라인
+  UI.scanlines(ctx, w, h, 0.015);
+
+  // 비네팅 (코너 어두움)
+  const vignette = ctx.createRadialGradient(w/2, h/2, h*0.4, w/2, h/2, h*0.9);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.15)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, w, h);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 게임 초기화 후 추가 호출 (배경 파티클, 타이틀 보석 등) ──────────
+// ═══════════════════════════════════════════════════════════════════
+
+function postInit() {
+  initBgParticles(engine.W, engine.H);
+  initTitleGems(engine.W, engine.H);
+  validateLevelData();
+  resetMatchStats();
+
+  // 튜토리얼 체크
+  if (shouldShowTutorial()) {
+    // 첫 플레이 시 튜토리얼 표시 — PLAY 진입 시 시작
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── 확장된 init 함수 ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+// 기존 init()에 postInit 추가
+const _origInit = init;
+// init 함수는 이미 정의됨 — postInit은 gReady 설정 후 호출
+
+// 원래 init이 완료된 후 추가 초기화
+// -> init() 내부의 gReady = true 이후 postInit() 호출이 필요
+// 하지만 함수 오버라이드 0건 정책에 따라, 별도 타이머로 처리
+let _postInitDone = false;
+function checkPostInit() {
+  if (gReady && !_postInitDone) {
+    _postInitDone = true;
+    postInit();
+  }
+}
+
+// coreUpdate에 후처리 연결 — 기존 coreUpdate를 확장하지 않고
+// 매 프레임 체크하는 방식으로 (오버라이드 0건)
+const _origCoreUpdate = coreUpdate;
+
+// 오버라이드 없이 postInit을 호출하기 위한 안전한 방법:
+// engine의 _update 콜백에 래퍼 설정
+engine._update = function(dt, timestamp) {
+  checkPostInit();
+  _origCoreUpdate(dt, timestamp);
+  // 추가 시스템 업데이트
+  if (gReady) {
+    updateBgParticles(dt, engine.W, engine.H);
+    updateTitleGems(dt, engine.W, engine.H);
+    updateVsIntro(dt);
+    updateLeagueUp(dt);
+    updateZoneComplete(dt);
+    updateSendEffects(dt);
+    updateSwapAnimation(dt);
+    updateMatchEffects(dt);
+    updateCamera(dt);
+    if (gTutorialStep >= 0) updateTutorial(dt);
+  }
+};
+
+// render도 래퍼로 확장
+const _origCoreRender = coreRender;
+engine._render = function(ctx, w, h, dt) {
+  _origCoreRender(ctx, w, h, dt);
+
+  if (!gReady) return;
+
+  // 추가 렌더링 (페이드 이전에 처리해야 할 것들은 coreRender 내부에서)
+  // 페이드 이후에 오버레이로 추가할 것들:
+  renderTimeOverlay(ctx, w, h);
+  renderVsIntro(ctx, w, h);
+  renderLeagueUp(ctx, w, h);
+  renderZoneComplete(ctx, w, h);
+  renderSendEffects(ctx, w, h);
+
+  if (gState === STATE.PLAY || gState === STATE.PVP_MATCH) {
+    renderMobileTouchGuide(ctx, w, h);
+    renderDDAIndicator(ctx, w, h);
+    renderHighScoreIndicator(ctx, w, h);
+  }
+
+  if (gTutorialStep >= 0) {
+    renderTutorial(ctx, w, h);
+  }
+
+  // CRT 효과 (PvP)
+  if (gState === STATE.PVP_MATCH) {
+    renderCRTEffect(ctx, w, h);
+  }
+};
+
+// 시작!
+init();
+</script>
+</body>
+</html>
