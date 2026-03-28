@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-28T05:17:10.883Z",
+  "lastUpdated": "2026-03-28T12:00:00.000Z",
   "totalGames": 42,
   "games": [
     {
@@ -7675,7 +7675,7 @@
       "title": "젬 나이트메어",
       "description": "보석을 매칭하여 위기에 빠진 왕을 구출하세요!",
       "genre": ["puzzle"],
-      "thumbnail": "/games/gem-nightmare/assets/thumbnail.png",
+      "thumbnail": "/games/gem-nightmare/thumbnail.svg",
       "path": "/games/gem-nightmare/index.html",
       "addedAt": "2026-03-28T05:17:10.883Z",
       "featured": false,

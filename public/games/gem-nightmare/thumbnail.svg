@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0a2e;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#0d0015;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="ruby" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4466;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#cc1133;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="sapphire" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4488ff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#2255cc;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#44ff88;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#22cc55;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="amethyst" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#bb66ff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#8833cc;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="diamond" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#aaddff;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="topaz" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffcc44;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ff9900;stop-opacity:1"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" style="stop-color:transparent;stop-opacity:0"/>
+      <stop offset="100%" style="stop-color:#000;stop-opacity:0.6"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="300" fill="url(#bg)"/>
+
+  <!-- Grid pattern (faint) -->
+  <g opacity="0.08" stroke="#8866cc" stroke-width="1">
+    <line x1="80" y1="60" x2="80" y2="240"/>
+    <line x1="130" y1="60" x2="130" y2="240"/>
+    <line x1="180" y1="60" x2="180" y2="240"/>
+    <line x1="230" y1="60" x2="230" y2="240"/>
+    <line x1="280" y1="60" x2="280" y2="240"/>
+    <line x1="330" y1="60" x2="330" y2="240"/>
+    <line x1="80" y1="100" x2="330" y2="100"/>
+    <line x1="80" y1="140" x2="330" y2="140"/>
+    <line x1="80" y1="180" x2="330" y2="180"/>
+    <line x1="80" y1="220" x2="330" y2="220"/>
+  </g>
+
+  <!-- Gems on grid -->
+  <!-- Row 1 -->
+  <polygon points="105,70 120,85 105,100 90,85" fill="url(#ruby)" filter="url(#glow)"/>
+  <polygon points="155,70 170,85 155,100 140,85" fill="url(#sapphire)" filter="url(#glow)"/>
+  <polygon points="205,70 220,85 205,100 190,85" fill="url(#emerald)" filter="url(#glow)"/>
+  <polygon points="255,70 270,85 255,100 240,85" fill="url(#topaz)" filter="url(#glow)"/>
+  <polygon points="305,70 320,85 305,100 290,85" fill="url(#amethyst)" filter="url(#glow)"/>
+
+  <!-- Row 2 -->
+  <polygon points="105,110 120,125 105,140 90,125" fill="url(#emerald)" filter="url(#glow)"/>
+  <polygon points="155,110 170,125 155,140 140,125" fill="url(#ruby)" filter="url(#glow)"/>
+  <polygon points="205,110 220,125 205,140 190,125" fill="url(#diamond)" filter="url(#glow)" opacity="0.9"/>
+  <polygon points="255,110 270,125 255,140 240,125" fill="url(#ruby)" filter="url(#glow)"/>
+  <polygon points="305,110 320,125 305,140 290,125" fill="url(#topaz)" filter="url(#glow)"/>
+
+  <!-- Row 3 - matching 3 rubies highlighted -->
+  <polygon points="105,150 120,165 105,180 90,165" fill="url(#amethyst)" filter="url(#glow)"/>
+  <polygon points="155,150 170,165 155,180 140,165" fill="url(#sapphire)" filter="url(#glow)"/>
+  <polygon points="205,150 220,165 205,180 190,165" fill="url(#topaz)" filter="url(#glow)"/>
+  <polygon points="255,150 270,165 255,180 240,165" fill="url(#emerald)" filter="url(#glow)"/>
+  <polygon points="305,150 320,165 305,180 290,165" fill="url(#ruby)" filter="url(#glow)"/>
+
+  <!-- Row 4 -->
+  <polygon points="105,190 120,205 105,220 90,205" fill="url(#topaz)" filter="url(#glow)"/>
+  <polygon points="155,190 170,205 155,220 140,205" fill="url(#amethyst)" filter="url(#glow)"/>
+  <polygon points="205,190 220,205 205,220 190,205" fill="url(#sapphire)" filter="url(#glow)"/>
+  <polygon points="255,190 270,205 255,220 240,205" fill="url(#diamond)" filter="url(#glow)" opacity="0.9"/>
+  <polygon points="305,190 320,205 305,220 290,205" fill="url(#emerald)" filter="url(#glow)"/>
+
+  <!-- Nightmare cracks/effects -->
+  <g opacity="0.3" stroke="#ff2244" stroke-width="1.5" fill="none">
+    <path d="M60,80 L70,95 L55,110 L72,130"/>
+    <path d="M340,90 L350,105 L338,125 L355,140"/>
+    <path d="M50,200 L65,215 L52,230"/>
+    <path d="M355,180 L345,200 L360,215"/>
+  </g>
+
+  <!-- Falling/exploding particles -->
+  <circle cx="130" cy="55" r="2" fill="#ff4466" opacity="0.7"/>
+  <circle cx="280" cy="48" r="1.5" fill="#4488ff" opacity="0.6"/>
+  <circle cx="190" cy="235" r="2" fill="#44ff88" opacity="0.7"/>
+  <circle cx="320" cy="230" r="1.5" fill="#ffcc44" opacity="0.6"/>
+  <circle cx="95" cy="240" r="2" fill="#bb66ff" opacity="0.5"/>
+
+  <!-- Crown (king icon) -->
+  <g transform="translate(200, 255)" filter="url(#shadow)">
+    <polygon points="-18,8 -14,-4 -8,4 0,-10 8,4 14,-4 18,8" fill="#ffd700" stroke="#cc9900" stroke-width="1"/>
+    <rect x="-18" y="8" width="36" height="6" rx="1" fill="#ffd700" stroke="#cc9900" stroke-width="1"/>
+    <circle cx="-10" cy="-1" r="2" fill="#ff4466"/>
+    <circle cx="0" cy="-6" r="2" fill="#4488ff"/>
+    <circle cx="10" cy="-1" r="2" fill="#44ff88"/>
+  </g>
+
+  <!-- Vignette overlay -->
+  <rect width="400" height="300" fill="url(#vignette)"/>
+
+  <!-- Title -->
+  <text x="200" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3" opacity="0.7">GEM NIGHTMARE</text>
+</svg>
