@@ -1,0 +1,358 @@
+{
+  "gameId": "gem-kingdom-builder",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "artDirection": {
+    "style": "glossy casual fantasy — 밝고 따뜻한 판타지 동화 스타일, Royal Match급 글로시 3D 느낌의 2D 보석",
+    "palette": "#FFF8E7, #87CEEB, #DAA520, #E74C3C, #3498DB, #2ECC71, #F1C40F, #9B59B6, #ECF0F1",
+    "mood": "따뜻하고 화려한 동화 속 왕국, 밝은 모험, 프리미엄 캐주얼",
+    "reference": "Royal Match (Dream Games) 비주얼 품질 + Homescapes (Playrix) 건설 분위기"
+  },
+  "format": "png",
+  "assets": {
+    "gemRuby": {
+      "file": "gem-ruby.png",
+      "size": "512x512",
+      "desc": "루비 보석 — 빨간색, 라운드 브릴리언트 컷, 내부 빛 산란, 글로시 상단 하이라이트, 하단 그림자. 따뜻한 빨강 그라디언트(#E74C3C→#C0392B), 흰색 반사점 2개"
+    },
+    "gemSapphire": {
+      "file": "gem-sapphire.png",
+      "size": "512x512",
+      "desc": "사파이어 보석 — 파란색, 쿠션 컷, 내부 빛 산란, 글로시 반사. 파랑 그라디언트(#3498DB→#2980B9), 흰색 하이라이트"
+    },
+    "gemEmerald": {
+      "file": "gem-emerald.png",
+      "size": "512x512",
+      "desc": "에메랄드 보석 — 초록색, 에메랄드 컷(직사각), 내부 빛 산란. 초록 그라디언트(#2ECC71→#27AE60)"
+    },
+    "gemTopaz": {
+      "file": "gem-topaz.png",
+      "size": "512x512",
+      "desc": "토파즈 보석 — 노란색, 페어 컷(물방울), 내부 금빛 산란. 노랑 그라디언트(#F1C40F→#F39C12)"
+    },
+    "gemAmethyst": {
+      "file": "gem-amethyst.png",
+      "size": "512x512",
+      "desc": "아메시스트 보석 — 보라색, 오벌 컷, 내부 보랏빛 산란. 보라 그라디언트(#9B59B6→#8E44AD)"
+    },
+    "gemDiamond": {
+      "file": "gem-diamond.png",
+      "size": "512x512",
+      "desc": "다이아몬드 보석 — 하얀/무지개빛, 프린세스 컷, 무지개 프리즘 반사. 흰색(#ECF0F1) 기반에 무지개 하이라이트"
+    },
+    "gemSpecialLineH": {
+      "file": "gem-special-line-h.png",
+      "size": "512x512",
+      "desc": "가로 줄 파괴 보석 — 보석 중앙에 수평 화살표 빛줄기. 밝은 금색 글로우, 양쪽 끝 화살표"
+    },
+    "gemSpecialLineV": {
+      "file": "gem-special-line-v.png",
+      "size": "512x512",
+      "desc": "세로 줄 파괴 보석 — 보석 중앙에 수직 화살표 빛줄기. 밝은 금색 글로우, 위아래 화살표"
+    },
+    "gemSpecialBomb": {
+      "file": "gem-special-bomb.png",
+      "size": "512x512",
+      "desc": "3×3 폭탄 보석 — 보석 중앙에 빛나는 폭탄 심볼, 주변 충격파 링, 금색+주황 글로우"
+    },
+    "gemSpecialRainbow": {
+      "file": "gem-special-rainbow.png",
+      "size": "512x512",
+      "desc": "무지개 보석 — 6색 그라디언트가 회전하는 구체, 무지개 파티클, 별 반짝임, 가장 화려한 보석"
+    },
+    "gemRubyIdleSheet": {
+      "file": "gem-ruby-idle-sheet.png",
+      "size": "512x128",
+      "desc": "루비 보석 대기 애니메이션 — 4프레임, 미세한 빛 반사 이동 + 글로우 펄스",
+      "ref": "gem-ruby"
+    },
+    "gemSapphireIdleSheet": {
+      "file": "gem-sapphire-idle-sheet.png",
+      "size": "512x128",
+      "desc": "사파이어 보석 대기 애니메이션 — 4프레임, 빛 반사 회전",
+      "ref": "gem-sapphire"
+    },
+    "gemEmeraldIdleSheet": {
+      "file": "gem-emerald-idle-sheet.png",
+      "size": "512x128",
+      "desc": "에메랄드 보석 대기 애니메이션 — 4프레임, 내부 빛 흔들림",
+      "ref": "gem-emerald"
+    },
+    "gemTopazIdleSheet": {
+      "file": "gem-topaz-idle-sheet.png",
+      "size": "512x128",
+      "desc": "토파즈 보석 대기 애니메이션 — 4프레임, 금빛 펄스",
+      "ref": "gem-topaz"
+    },
+    "gemAmethystIdleSheet": {
+      "file": "gem-amethyst-idle-sheet.png",
+      "size": "512x128",
+      "desc": "아메시스트 보석 대기 애니메이션 — 4프레임, 보랏빛 흔들림",
+      "ref": "gem-amethyst"
+    },
+    "gemDiamondIdleSheet": {
+      "file": "gem-diamond-idle-sheet.png",
+      "size": "512x128",
+      "desc": "다이아몬드 보석 대기 애니메이션 — 4프레임, 무지개 프리즘 회전",
+      "ref": "gem-diamond"
+    },
+    "obstacleIce-1": {
+      "file": "obstacle-ice-1.png",
+      "size": "512x512",
+      "desc": "얼음 장애물 1겹 — 반투명 얇은 서리, 보석 위에 오버레이"
+    },
+    "obstacleIce-2": {
+      "file": "obstacle-ice-2.png",
+      "size": "512x512",
+      "desc": "얼음 장애물 2겹 — 중간 두께 얼음, 불투명도 증가, 균열 패턴",
+      "ref": "obstacle-ice-1"
+    },
+    "obstacleIce-3": {
+      "file": "obstacle-ice-3.png",
+      "size": "512x512",
+      "desc": "얼음 장애물 3겹 — 두꺼운 얼음, 거의 불투명, 눈 결정 패턴",
+      "ref": "obstacle-ice-1"
+    },
+    "obstacleChain": {
+      "file": "obstacle-chain.png",
+      "size": "512x512",
+      "desc": "체인 장애물 — 금속 사슬이 보석을 감싸는 형태, 메탈릭 광택"
+    },
+    "obstacleCrate": {
+      "file": "obstacle-crate.png",
+      "size": "512x512",
+      "desc": "나무 상자 — 나무결 텍스처, 못 박힌 판자, 따뜻한 갈색"
+    },
+    "obstaclePoison": {
+      "file": "obstacle-poison.png",
+      "size": "512x512",
+      "desc": "독 — 보라색 연기/슬라임이 칸을 덮은 형태, 기포 올라옴"
+    },
+    "obstacleStone": {
+      "file": "obstacle-stone.png",
+      "size": "512x512",
+      "desc": "돌 블록 — 회색 바위, 이끼 조금, 금이 간 텍스처, 무거운 느낌"
+    },
+    "obstacleCurtain": {
+      "file": "obstacle-curtain.png",
+      "size": "512x512",
+      "desc": "커튼 — 붉은 벨벳 커튼이 칸을 가림, 금색 술 장식, 양쪽으로 열리는 느낌"
+    },
+    "obstacleJelly": {
+      "file": "obstacle-jelly.png",
+      "size": "512x512",
+      "desc": "젤리 — 반투명 연보라 젤리가 보석 위를 덮음, 말랑말랑한 질감"
+    },
+    "obstaclePie": {
+      "file": "obstacle-pie.png",
+      "size": "512x512",
+      "desc": "Pie 블로커 — 6조각 원형 파이, 각 조각이 개별적으로 금색/갈색, 격자무늬 크러스트"
+    },
+    "bgZone1Gateplaza": {
+      "file": "bg-zone1-gateplaza.png",
+      "size": "1920x1080",
+      "desc": "성문 광장 배경 — 웅장한 석조 성문, 깃발 펄럭임, 따뜻한 오후 햇살, 돌 바닥 광장"
+    },
+    "bgZone2Garden": {
+      "file": "bg-zone2-garden.png",
+      "size": "1920x1080",
+      "desc": "왕실 정원 배경 — 꽃이 만발한 정원, 분수대, 나비, 초록 잔디, 화사한 봄 분위기"
+    },
+    "bgZone3Market": {
+      "file": "bg-zone3-market.png",
+      "size": "1920x1080",
+      "desc": "번화가 시장 배경 — 가판대, 천막, 색색 깃발, 활기찬 분위기, 따뜻한 노을빛"
+    },
+    "bgZone4Library": {
+      "file": "bg-zone4-library.png",
+      "size": "1920x1080",
+      "desc": "대도서관 배경 — 높은 책장, 마법 구체, 스테인드글라스 창, 고요한 분위기"
+    },
+    "bgZone5Throne": {
+      "file": "bg-zone5-throne.png",
+      "size": "1920x1080",
+      "desc": "왕좌실 배경 — 황금 왕좌, 붉은 카펫, 크리스탈 샹들리에, 호화로운 분위기"
+    },
+    "bgKingdomMap": {
+      "file": "bg-kingdom-map.png",
+      "size": "1920x1080",
+      "desc": "왕국 전경 맵 — 조감도 시점, 5구역이 한눈에 보이는 판타지 왕국, 성+정원+시장+도서관+왕좌실, 길로 연결, 안개로 미해금 구역 표시"
+    },
+    "buildingGate": {
+      "file": "building-gate.png",
+      "size": "512x512",
+      "desc": "성문 — 웅장한 석조 아치형 성문, 철 격자문, 양쪽 횃불, 깃발"
+    },
+    "buildingGuardhouse": {
+      "file": "building-guardhouse.png",
+      "size": "512x512",
+      "desc": "경비초소 — 작은 석조 탑, 초소 지붕에 깃발, 창문에 불빛"
+    },
+    "buildingFountain": {
+      "file": "building-fountain.png",
+      "size": "512x512",
+      "desc": "환영 분수대 — 물이 솟는 3단 분수, 금색 장식, 주변 꽃"
+    },
+    "buildingGardenArch": {
+      "file": "building-garden-arch.png",
+      "size": "512x512",
+      "desc": "정원 아치 — 장미 넝쿨이 감싼 흰색 아치, 요정 조명"
+    },
+    "buildingFlowerBed": {
+      "file": "building-flower-bed.png",
+      "size": "512x512",
+      "desc": "꽃밭 — 알록달록 꽃이 심긴 원형 화단, 나비"
+    },
+    "buildingMarketStall": {
+      "file": "building-market-stall.png",
+      "size": "512x512",
+      "desc": "시장 가판대 — 과일/보석이 진열된 가판대, 줄무늬 천막"
+    },
+    "buildingBookshelfTower": {
+      "file": "building-bookshelf-tower.png",
+      "size": "512x512",
+      "desc": "책탑 — 책이 탑처럼 쌓인 마법 서가, 빛나는 룬 문자"
+    },
+    "buildingThrone": {
+      "file": "building-throne.png",
+      "size": "512x512",
+      "desc": "왕좌 — 금색+보라 벨벳 왕좌, 보석 장식, 왕관 걸이"
+    },
+    "effectMatchExplosion": {
+      "file": "effect-match-explosion.png",
+      "size": "512x128",
+      "desc": "매칭 폭발 이펙트 시퀀스 — 4프레임, 보석 색상 파편 + 빛 파티클이 퍼져나감"
+    },
+    "effectLineLaser": {
+      "file": "effect-line-laser.png",
+      "size": "1024x128",
+      "desc": "줄 파괴 레이저 이펙트 — 금색 레이저 빔이 가로/세로로 관통, 빛 산란"
+    },
+    "effectBombShockwave": {
+      "file": "effect-bomb-shockwave.png",
+      "size": "512x128",
+      "desc": "폭탄 충격파 이펙트 시퀀스 — 4프레임, 원형 충격파가 퍼져나감, 주황→노랑 글로우"
+    },
+    "effectRainbowBurst": {
+      "file": "effect-rainbow-burst.png",
+      "size": "512x512",
+      "desc": "무지개 폭발 이펙트 — 6색 무지개 파티클이 전 방향 확산, 별 반짝임"
+    },
+    "effectCascadeCombo": {
+      "file": "effect-cascade-combo.png",
+      "size": "512x256",
+      "desc": "콤보 텍스트 팝업 — 'Good!', 'Great!', 'Awesome!' 등 글자 + 별 파티클"
+    },
+    "effectBuildComplete": {
+      "file": "effect-build-complete.png",
+      "size": "768x128",
+      "desc": "건설 완료 이펙트 시퀀스 — 6프레임, 반짝이는 별 비+금색 가루+광선 방사"
+    },
+    "effectZoneUnlock": {
+      "file": "effect-zone-unlock.png",
+      "size": "768x128",
+      "desc": "구역 해금 이펙트 — 안개가 걷히며 금색 테두리 빛남, 6프레임 시퀀스"
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "desc": "반짝임 파티클 텍스처 — 작은 별 모양 빛 점, 알파 그라데이션, 흰색~금색"
+    },
+    "particleGemShard": {
+      "file": "particle-gem-shard.png",
+      "size": "64x64",
+      "desc": "보석 파편 파티클 — 작은 삼각 보석 조각, 반투명, 다색상용 흰색 기본"
+    },
+    "uiStarEmpty": {
+      "file": "ui-star-empty.png",
+      "size": "128x128",
+      "desc": "빈 별 아이콘 — 회색 윤곽선 별, 얇은 선"
+    },
+    "uiStarFilled": {
+      "file": "ui-star-filled.png",
+      "size": "128x128",
+      "desc": "채워진 별 아이콘 — 금색 별, 글로시 반사, 작은 반짝임"
+    },
+    "uiTurnCounter": {
+      "file": "ui-turn-counter.png",
+      "size": "256x256",
+      "desc": "턴 카운터 프레임 — 원형 금색 프레임, 숫자가 들어갈 중앙 공간, 왕국 문양"
+    },
+    "uiGoalPanel": {
+      "file": "ui-goal-panel.png",
+      "size": "512x128",
+      "desc": "레벨 목표 패널 — 상단 배너 형태, 금색 프레임, 목표 아이콘 3칸 공간"
+    },
+    "uiBoosterHammer": {
+      "file": "ui-booster-hammer.png",
+      "size": "128x128",
+      "desc": "망치 부스터 아이콘 — 금색 망치, 빛나는 효과, 원형 프레임"
+    },
+    "uiBoosterShuffle": {
+      "file": "ui-booster-shuffle.png",
+      "size": "128x128",
+      "desc": "셔플 부스터 아이콘 — 회전 화살표, 보석 실루엣, 원형 프레임"
+    },
+    "uiBoosterExtraTurn": {
+      "file": "ui-booster-extra-turn.png",
+      "size": "128x128",
+      "desc": "추가 턴 아이콘 — +5 숫자 + 모래시계, 초록색 글로우, 원형 프레임"
+    },
+    "uiBoosterColorBomb": {
+      "file": "ui-booster-color-bomb.png",
+      "size": "128x128",
+      "desc": "색상 폭탄 아이콘 — 무지개 구체, 별 파티클, 원형 프레임"
+    },
+    "uiButtonPlay": {
+      "file": "ui-button-play.png",
+      "size": "256x128",
+      "desc": "플레이 버튼 — 초록색 둥근 사각형, 흰색 삼각형 재생 아이콘, 그림자"
+    },
+    "uiButtonRetry": {
+      "file": "ui-button-retry.png",
+      "size": "256x128",
+      "desc": "재시도 버튼 — 파란색 둥근 사각형, 흰색 회전 화살표, 그림자"
+    },
+    "uiBuildCard": {
+      "file": "ui-build-card.png",
+      "size": "256x384",
+      "desc": "건설 선택 카드 — 금색 프레임의 카드 형태, 건물 이미지+이름+보너스 설명 공간"
+    },
+    "uiDailyBadge": {
+      "file": "ui-daily-badge.png",
+      "size": "128x128",
+      "desc": "일일 챌린지 배지 — 달력 아이콘 + 별, 금색 테두리, 오늘 날짜 표시 공간"
+    },
+    "uiWeeklyTrophy": {
+      "file": "ui-weekly-trophy.png",
+      "size": "128x128",
+      "desc": "주간 경쟁 트로피 — 금색 트로피 + 월계관, 1~3등 표시용"
+    },
+    "uiProgressBar": {
+      "file": "ui-progress-bar.png",
+      "size": "512x64",
+      "desc": "구역 건설 진행바 — 금색 프레임 바, 초록색 채움, 별 마커"
+    },
+    "charKing": {
+      "file": "char-king.png",
+      "size": "512x512",
+      "desc": "왕 캐릭터 — 친근한 표정의 카툰 왕, 금관+보라 망토+흰 수염, 상반신 포즈"
+    },
+    "charKingHappy": {
+      "file": "char-king-happy.png",
+      "size": "512x512",
+      "desc": "왕 기쁨 표정 — 활짝 웃는 왕, 양손 들어올림 포즈",
+      "ref": "char-king"
+    },
+    "charKingSad": {
+      "file": "char-king-sad.png",
+      "size": "512x512",
+      "desc": "왕 슬픈 표정 — 실망한 왕, 고개 숙임 포즈",
+      "ref": "char-king"
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 중앙에 반짝이는 6색 보석 배열, 뒤로 판타지 왕국 실루엣, 상단에 왕관, 하단에 '보석 왕국 건설기' 제목 텍스트(금색 로열 서체), 밝고 화려한 분위기"
+    }
+  }
+}
