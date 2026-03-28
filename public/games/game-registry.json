@@ -8047,7 +8047,7 @@
       "title": "보석 대전",
       "description": "상대와 보석을 맞춰 콤보로 공격하는 PvP 매치3!",
       "genre": ["puzzle", "strategy"],
-      "thumbnail": "/games/gem-arena/assets/thumbnail.png",
+      "thumbnail": "/games/gem-arena/thumbnail.svg",
       "path": "/games/gem-arena/index.html",
       "addedAt": "2026-03-28T20:07:49.247Z",
       "featured": false,
