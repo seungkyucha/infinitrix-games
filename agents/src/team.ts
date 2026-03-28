@@ -657,8 +657,8 @@ ctx.font = Layout.fontSize(24, w, h) + 'px system-ui, sans-serif';
    - 렌더링과 터치가 다른 좌표계를 쓰면 절대 안 됨
 
 3. **자체 좌표 변환을 구현하지 말 것**
-   - ❌ `(e.clientX - rect.left) * canvas.width / rect.width / dpr`
-   - ❌ `touch.pageX * window.devicePixelRatio`
+   - ❌ (e.clientX - rect.left) * canvas.width / rect.width / dpr
+   - ❌ touch.pageX * window.devicePixelRatio
    - ✅ IX.Input이 이미 올바른 좌표를 제공 — 그냥 input.tapX 사용
 
 4. **모든 인터랙티브 요소의 터치 영역 테스트**
