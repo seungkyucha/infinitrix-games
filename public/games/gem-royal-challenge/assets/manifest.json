@@ -1,0 +1,400 @@
+{
+  "gameId": "gem-royal-challenge",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "artDirection": {
+    "style": "glossy 3D-style 2D gems, warm fantasy storybook",
+    "palette": "#1a0a2e, #6c3cf7, #ffd700, #00d4ff, #ff4444, #33cc55, #f0e6ff",
+    "mood": "밝고 화려한 로얄 판타지, 보석의 영롱한 빛, 따뜻한 동화 왕국",
+    "reference": "Royal Match 보석 광택 + Candy Crush Saga 이펙트 연출"
+  },
+  "format": "png",
+  "assets": {
+    "gemRuby": {
+      "file": "gem-ruby.png",
+      "size": "512x512",
+      "desc": "루비 보석 — 빨간색, 타원 커팅, 내부에 붉은 빛 산란, 좌상단 하이라이트 반사, 투명한 깊이감"
+    },
+    "gemSapphire": {
+      "file": "gem-sapphire.png",
+      "size": "512x512",
+      "desc": "사파이어 보석 — 파란색, 직사각 커팅, 깊은 바다색 그라디언트, 빛 반사 밴드, 투명한 깊이감"
+    },
+    "gemEmerald": {
+      "file": "gem-emerald.png",
+      "size": "512x512",
+      "desc": "에메랄드 보석 — 초록색, 육각 커팅, 숲의 초록 빛 그라디언트, 자연스러운 내부 결정"
+    },
+    "gemTopaz": {
+      "file": "gem-topaz.png",
+      "size": "512x512",
+      "desc": "토파즈 보석 — 노란색, 하트형 커팅, 따뜻한 황금빛 그라디언트, 눈부신 중앙 하이라이트"
+    },
+    "gemAmethyst": {
+      "file": "gem-amethyst.png",
+      "size": "512x512",
+      "desc": "아메시스트 보석 — 보라색, 삼각 커팅, 몽환적 보라 그라디언트, 은은한 별빛 반사"
+    },
+    "gemDiamond": {
+      "file": "gem-diamond.png",
+      "size": "512x512",
+      "desc": "다이아몬드 보석 — 흰색/투명, 브릴리언트 커팅, 무지개 프리즘 반사, 최고급 광택"
+    },
+    "gemRubySheet": {
+      "file": "gem-ruby-sheet.png",
+      "size": "768x128",
+      "desc": "루비 반짝임 애니메이션 — 6프레임, 빛 반사가 좌상단에서 우하단으로 이동하는 시퀀스",
+      "ref": "gem-ruby"
+    },
+    "gemSapphireSheet": {
+      "file": "gem-sapphire-sheet.png",
+      "size": "768x128",
+      "desc": "사파이어 반짝임 애니메이션 — 6프레임, 깊은 파란 빛이 회전하는 시퀀스",
+      "ref": "gem-sapphire"
+    },
+    "gemEmeraldSheet": {
+      "file": "gem-emerald-sheet.png",
+      "size": "768x128",
+      "desc": "에메랄드 반짝임 애니메이션 — 6프레임, 초록 빛 펄스 시퀀스",
+      "ref": "gem-emerald"
+    },
+    "gemTopazSheet": {
+      "file": "gem-topaz-sheet.png",
+      "size": "768x128",
+      "desc": "토파즈 반짝임 애니메이션 — 6프레임, 황금빛 글리터 시퀀스",
+      "ref": "gem-topaz"
+    },
+    "gemAmethystSheet": {
+      "file": "gem-amethyst-sheet.png",
+      "size": "768x128",
+      "desc": "아메시스트 반짝임 애니메이션 — 6프레임, 보라 별빛 펄스 시퀀스",
+      "ref": "gem-amethyst"
+    },
+    "gemDiamondSheet": {
+      "file": "gem-diamond-sheet.png",
+      "size": "768x128",
+      "desc": "다이아몬드 반짝임 애니메이션 — 6프레임, 프리즘 무지개 반사 시퀀스",
+      "ref": "gem-diamond"
+    },
+    "specialLineH": {
+      "file": "special-line-h.png",
+      "size": "512x512",
+      "desc": "가로 줄 파괴 보석 — 기본 보석 형태 + 가로 방향 빛나는 화살표 오버레이, 좌우로 빛 줄기"
+    },
+    "specialLineV": {
+      "file": "special-line-v.png",
+      "size": "512x512",
+      "desc": "세로 줄 파괴 보석 — 기본 보석 형태 + 세로 방향 빛나는 화살표 오버레이, 상하로 빛 줄기"
+    },
+    "specialBomb": {
+      "file": "special-bomb.png",
+      "size": "512x512",
+      "desc": "폭탄 보석 — 기본 보석 + 별 모양 에너지 오라, 3×3 폭발 범위 암시하는 파동 링"
+    },
+    "specialRainbow": {
+      "file": "special-rainbow.png",
+      "size": "512x512",
+      "desc": "무지개 보석 — 프리즘 구체, 6색 무지개 그라디언트 회전, 중앙에 빛나는 별, 모든 색상 반사"
+    },
+    "obstacleIce-1": {
+      "file": "obstacle-ice-1.png",
+      "size": "512x512",
+      "desc": "얼음 1겹 — 반투명 하늘색 얼음 결정 레이어, 균열 없음, 보석이 살짝 비침"
+    },
+    "obstacleIce-2": {
+      "file": "obstacle-ice-2.png",
+      "size": "512x512",
+      "desc": "얼음 2겹 — 더 불투명한 얼음, 약간의 균열, 서리 결정 패턴",
+      "ref": "obstacle-ice-1"
+    },
+    "obstacleIce-3": {
+      "file": "obstacle-ice-3.png",
+      "size": "512x512",
+      "desc": "얼음 3겹 — 거의 불투명한 두꺼운 얼음, 깊은 균열, 눈꽃 결정 장식",
+      "ref": "obstacle-ice-1"
+    },
+    "obstacleChain": {
+      "file": "obstacle-chain.png",
+      "size": "512x512",
+      "desc": "체인 — 금속 자물쇠 체인, 2단계 내구도 표시(밝은 체인→어두운 녹슨 체인)"
+    },
+    "obstacleWood": {
+      "file": "obstacle-wood.png",
+      "size": "512x512",
+      "desc": "나무 상자 — 나무 판자 + 못, 금이 간 텍스처, 따뜻한 갈색 톤"
+    },
+    "obstaclePoison": {
+      "file": "obstacle-poison.png",
+      "size": "512x512",
+      "desc": "독 — 보라/검정 독 버블, 연기 이펙트, 위협적인 해골 문양"
+    },
+    "obstacleStone": {
+      "file": "obstacle-stone.png",
+      "size": "512x512",
+      "desc": "돌 블록 — 회색 화강암 텍스처, 이끼 장식, 파괴 불가능 느낌의 견고함"
+    },
+    "obstacleCurtain": {
+      "file": "obstacle-curtain.png",
+      "size": "512x512",
+      "desc": "커튼 — 보라색 벨벳 커튼, 금 술 장식, 물음표 표시, 뒤가 보이지 않는 불투명"
+    },
+    "obstacleJelly": {
+      "file": "obstacle-jelly.png",
+      "size": "512x512",
+      "desc": "젤리 — 반투명 핑크 젤리 타일, 반짝임 하이라이트, 탄력있는 질감"
+    },
+    "obstaclePie": {
+      "file": "obstacle-pie.png",
+      "size": "512x512",
+      "desc": "Pie 블로커 — 6등분 원형 파이, 각 조각이 독립적 색상(파스텔 톤), 조각 제거 시 빈 공간 표시, 골드 테두리"
+    },
+    "kingIdle": {
+      "file": "king-idle.png",
+      "size": "512x512",
+      "desc": "왕 기본 포즈 — 작은 황금 왕관, 파란 로브, 손을 모은 기본 자세, 따뜻한 미소, 풍성한 수염"
+    },
+    "kingHappy": {
+      "file": "king-happy.png",
+      "size": "512x512",
+      "desc": "왕 기쁨 포즈 — 양팔 들어올린 환호, 왕관 반짝임, 만세 자세, 눈이 반달 모양",
+      "ref": "king-idle"
+    },
+    "kingSurprised": {
+      "file": "king-surprised.png",
+      "size": "512x512",
+      "desc": "왕 놀람 포즈 — 눈 크게 뜨고 입 벌림, 왕관 약간 기울어짐, 놀란 제스처",
+      "ref": "king-idle"
+    },
+    "kingScared": {
+      "file": "king-scared.png",
+      "size": "512x512",
+      "desc": "왕 공포 포즈 — 떨리는 손, 식은땀, 왕관 삐뚤어짐, 두려운 표정",
+      "ref": "king-idle"
+    },
+    "kingTrophy": {
+      "file": "king-trophy.png",
+      "size": "512x512",
+      "desc": "왕 트로피 포즈 — 한 손에 황금 트로피 컵, 다른 손으로 V포즈, King's Cup 우승 연출, 빛나는 배경",
+      "ref": "king-idle"
+    },
+    "bgCrystalForestFar": {
+      "file": "bg-crystal-forest-far.png",
+      "size": "1920x1080",
+      "desc": "수정 숲 원경 — 보라+파랑 마법의 밤하늘, 별과 오로라, 먼 산맥 실루엣"
+    },
+    "bgCrystalForestMid": {
+      "file": "bg-crystal-forest-mid.png",
+      "size": "1920x1080",
+      "desc": "수정 숲 중경 — 보라빛 수정 나무들, 반딧불이 빛점, 마법 입자 부유"
+    },
+    "bgRubyVolcanoFar": {
+      "file": "bg-ruby-volcano-far.png",
+      "size": "1920x1080",
+      "desc": "루비 화산 원경 — 붉은 석양, 화산 실루엣, 용암 강줄기, 검붉은 하늘"
+    },
+    "bgRubyVolcanoMid": {
+      "file": "bg-ruby-volcano-mid.png",
+      "size": "1920x1080",
+      "desc": "루비 화산 중경 — 용암 흐름, 화산암 기둥, 불꽃 파티클, 열기 아지랑이"
+    },
+    "bgSapphireCoastFar": {
+      "file": "bg-sapphire-coast-far.png",
+      "size": "1920x1080",
+      "desc": "사파이어 해안 원경 — 청록색 바다, 수평선, 솜사탕 구름, 밝은 하늘"
+    },
+    "bgSapphireCoastMid": {
+      "file": "bg-sapphire-coast-mid.png",
+      "size": "1920x1080",
+      "desc": "사파이어 해안 중경 — 산호초 아치, 열대어 실루엣, 파도 거품, 해변 야자수"
+    },
+    "bgEmeraldGardenFar": {
+      "file": "bg-emerald-garden-far.png",
+      "size": "1920x1080",
+      "desc": "에메랄드 정원 원경 — 맑은 하늘, 무지개, 먼 성 실루엣, 새떼"
+    },
+    "bgEmeraldGardenMid": {
+      "file": "bg-emerald-garden-mid.png",
+      "size": "1920x1080",
+      "desc": "에메랄드 정원 중경 — 만개한 꽃밭, 나비, 분수대, 토피어리(동물 모양 정원수)"
+    },
+    "bgDiamondCastleFar": {
+      "file": "bg-diamond-castle-far.png",
+      "size": "1920x1080",
+      "desc": "다이아몬드 성 원경 — 은색 달빛 하늘, 눈꽃 결정, 별자리, 오로라"
+    },
+    "bgDiamondCastleMid": {
+      "file": "bg-diamond-castle-mid.png",
+      "size": "1920x1080",
+      "desc": "다이아몬드 성 중경 — 크리스탈 성벽, 눈 덮인 탑, 빙하 아치, 다이아몬드 장식"
+    },
+    "bgBoardFrame": {
+      "file": "bg-board-frame.png",
+      "size": "1920x1080",
+      "desc": "보드 프레임 근경 — 골드+보석 장식의 게임 보드 테두리, 로얄 문양, 모든 지역 공용"
+    },
+    "uiKingsCup": {
+      "file": "ui-kings-cup.png",
+      "size": "256x256",
+      "desc": "King's Cup 아이콘 — 황금 트로피 컵, 보석 장식, 왕관 로고, 로얄 리본"
+    },
+    "uiDailyChallenge": {
+      "file": "ui-daily-challenge.png",
+      "size": "256x256",
+      "desc": "데일리 챌린지 아이콘 — 달력 + 별 + 물음표, 매일 바뀌는 느낌, 골드 테두리"
+    },
+    "uiTeamBattle": {
+      "file": "ui-team-battle.png",
+      "size": "256x256",
+      "desc": "팀 배틀 아이콘 — 방패 2개 교차 + 검, 팀 대전 느낌, 불꽃 이펙트"
+    },
+    "uiSuperBooster": {
+      "file": "ui-super-booster.png",
+      "size": "256x256",
+      "desc": "Super Booster 아이콘 — 번개 + 별 + 무지개 오라, 파워업 느낌, 밝은 글로우"
+    },
+    "uiLeaderboardFrame": {
+      "file": "ui-leaderboard-frame.png",
+      "size": "512x768",
+      "desc": "리더보드 프레임 — 세로 스크롤 랭킹 판, 1/2/3위 금/은/동 장식, 로얄 테두리"
+    },
+    "uiEventBanner": {
+      "file": "ui-event-banner.png",
+      "size": "1024x256",
+      "desc": "이벤트 배너 — 가로형 축제 리본, 'EVENT' 텍스트 공간, 보석 장식, 골드 테두리"
+    },
+    "uiGoalPanel": {
+      "file": "ui-goal-panel.png",
+      "size": "800x200",
+      "desc": "레벨 목표 패널 — 상단 고정형 투명 패널, 아이콘 슬롯 3개, 진행률 바, 턴 수 표시"
+    },
+    "uiBoosterSlot": {
+      "file": "ui-booster-slot.png",
+      "size": "128x128",
+      "desc": "부스터 슬롯 — 원형 버튼 프레임, 골드 테두리, 잔여 수량 배지, 비활성 시 회색조"
+    },
+    "uiStarFull": {
+      "file": "ui-star-full.png",
+      "size": "128x128",
+      "desc": "채워진 별 — 황금색 5각 별, 글로우 이펙트, 레벨 클리어 등급용"
+    },
+    "uiStarEmpty": {
+      "file": "ui-star-empty.png",
+      "size": "128x128",
+      "desc": "빈 별 — 회색 5각 별 윤곽선, 레벨 클리어 등급 미달성용"
+    },
+    "uiTurnCounter": {
+      "file": "ui-turn-counter.png",
+      "size": "128x128",
+      "desc": "턴 카운터 — 원형 프레임 안에 숫자 공간, 5턴 이하 시 빨간색 경고 변환용"
+    },
+    "uiHpBar": {
+      "file": "ui-hp-bar.png",
+      "size": "512x64",
+      "desc": "점수 진행률 바 — 가로형 게이지, 별 마커 3개 (1/2/3성 달성 위치), 골드 테두리"
+    },
+    "effectMatchBurst": {
+      "file": "effect-match-burst.png",
+      "size": "512x128",
+      "desc": "매칭 폭발 이펙트 시퀀스 — 4프레임, 보석 파편이 퍼지며 빛나는 폭발"
+    },
+    "effectLineLaser": {
+      "file": "effect-line-laser.png",
+      "size": "1024x128",
+      "desc": "줄 파괴 레이저 이펙트 — 가로 방향 에너지 빔, 빛줄기 + 파티클"
+    },
+    "effectBombShockwave": {
+      "file": "effect-bomb-shockwave.png",
+      "size": "512x128",
+      "desc": "폭탄 충격파 이펙트 시퀀스 — 4프레임, 중앙에서 퍼지는 원형 충격파"
+    },
+    "effectRainbowWave": {
+      "file": "effect-rainbow-wave.png",
+      "size": "1024x512",
+      "desc": "무지개 전체 파괴 이펙트 — 화면 전체에 무지개빛 파동, 6색 빛줄기 방사"
+    },
+    "effectCascadeCombo": {
+      "file": "effect-cascade-combo.png",
+      "size": "256x256",
+      "desc": "콤보 텍스트 팝업 — 'COMBO x2', 'x3', 'x4+' 텍스트 + 폭죽 이펙트"
+    },
+    "effectLevelClear": {
+      "file": "effect-level-clear.png",
+      "size": "1024x512",
+      "desc": "레벨 클리어 축하 이펙트 — 대형 별 폭발 + 'CLEAR!' 텍스트 + 색종이 파티클"
+    },
+    "effectPieCrack": {
+      "file": "effect-pie-crack.png",
+      "size": "256x256",
+      "desc": "Pie 조각 제거 이펙트 — 파이 한 조각이 깨지며 빛 파편 흩어짐"
+    },
+    "effectSpecialCreate": {
+      "file": "effect-special-create.png",
+      "size": "512x512",
+      "desc": "스페셜 보석 생성 연출 — 빛 기둥 + 회전 오라 + 플래시, 스페셜 보석 탄생 순간"
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "desc": "반짝임 파티클 — 작은 빛 점, 알파 그라데이션, 보석 반짝임용"
+    },
+    "particleStar": {
+      "file": "particle-star.png",
+      "size": "64x64",
+      "desc": "별 파티클 — 4각 별 형태, 글로우, 레벨 클리어/이벤트 보상용"
+    },
+    "particleConfetti": {
+      "file": "particle-confetti.png",
+      "size": "64x64",
+      "desc": "색종이 파티클 — 작은 직사각형, 6색 변형, 축하 연출용"
+    },
+    "particleFire": {
+      "file": "particle-fire.png",
+      "size": "64x64",
+      "desc": "불꽃 파티클 — 주황+빨강 그라디언트, 알파 감소, 화산 배경/이펙트용"
+    },
+    "particleBubble": {
+      "file": "particle-bubble.png",
+      "size": "64x64",
+      "desc": "물방울 파티클 — 투명 청록색 원, 하이라이트 반사, 해안 배경용"
+    },
+    "mapPathNode": {
+      "file": "map-path-node.png",
+      "size": "128x128",
+      "desc": "맵 경로 노드 — 원형 돌 발판, 레벨 번호 공간, 클리어 시 별 장식 추가"
+    },
+    "mapRegionBanner": {
+      "file": "map-region-banner.png",
+      "size": "512x128",
+      "desc": "지역 이름 배너 — 리본형 현수막, 지역명 텍스트 공간, 지역 색상 변형용"
+    },
+    "mapLock": {
+      "file": "map-lock.png",
+      "size": "128x128",
+      "desc": "잠금 아이콘 — 금색 자물쇠, 미해금 레벨에 오버레이"
+    },
+    "miniWaterIcon": {
+      "file": "mini-water-icon.png",
+      "size": "256x256",
+      "desc": "물 탈출 미니게임 아이콘 — 물방울 + 사다리 + 왕 실루엣"
+    },
+    "miniFireIcon": {
+      "file": "mini-fire-icon.png",
+      "size": "256x256",
+      "desc": "불 회피 미니게임 아이콘 — 불꽃 + 방패 + 왕 실루엣"
+    },
+    "miniMazeIcon": {
+      "file": "mini-maze-icon.png",
+      "size": "256x256",
+      "desc": "미로 탈출 미니게임 아이콘 — 미로 패턴 + 열쇠 + 왕 실루엣"
+    },
+    "miniDragonIcon": {
+      "file": "mini-dragon-icon.png",
+      "size": "256x256",
+      "desc": "드래곤 보스 미니게임 아이콘 — 드래곤 머리 + 검 + 왕 실루엣"
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 중앙에 King's Cup 트로피를 든 왕 캐릭터, 주위로 6색 보석이 폭발처럼 방사, 상단에 'GEM ROYAL CHALLENGE' 금색 텍스트, 하단에 리더보드 UI 힌트, 배경은 다이아몬드 성 + 보석 비"
+    }
+  }
+}

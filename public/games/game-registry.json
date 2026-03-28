@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-28T12:00:00.000Z",
-  "totalGames": 42,
+  "lastUpdated": "2026-03-28T08:20:42.607Z",
+  "totalGames": 43,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -7795,6 +7795,127 @@
             "Toque: Toque e deslize para trocar",
             "Teclado: Setas para mover cursor, Espaço para selecionar/trocar",
             "Minijogo: Deslize esquerda/direita ou setas para mover o rei, Toque/Espaço para selecionar",
+            "Impulsionadores: Clique/toque nos ícones inferiores para ativar e selecione um bloco"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gem-royal-challenge",
+      "title": "젬 로얄 챌린지",
+      "description": "보석 왕국 토너먼트에서 챔피언에 도전하세요!",
+      "genre": ["puzzle"],
+      "thumbnail": "/games/gem-royal-challenge/assets/thumbnail.png",
+      "path": "/games/gem-royal-challenge/index.html",
+      "addedAt": "2026-03-28T08:20:42.607Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["매치3", "퍼즐", "보석", "토너먼트", "이벤트", "리더보드", "캐스케이드", "데일리챌린지", "팀배틀"],
+      "controls": [
+        "마우스: 보석 클릭 후 인접 보석 클릭으로 교환",
+        "드래그: 보석을 끌어서 교환",
+        "터치: 탭 후 스와이프로 교환",
+        "키보드: 방향키로 커서 이동, 스페이스바로 선택/교환",
+        "부스터: 하단 아이콘 클릭/탭으로 활성화 후 블록 선택"
+      ],
+      "difficulty": "hard",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Gem Royal Challenge",
+          "description": "Compete in the gem kingdom tournament to become champion!",
+          "tags": ["match-3", "puzzle", "gems", "tournament", "events", "leaderboard", "cascade", "daily-challenge", "team-battle"],
+          "controls": [
+            "Mouse: Click a gem then click an adjacent gem to swap",
+            "Drag: Drag a gem to swap",
+            "Touch: Tap and swipe to swap",
+            "Keyboard: Arrow keys to move cursor, Space to select/swap",
+            "Boosters: Click/tap icons at bottom to activate, then select a tile"
+          ]
+        },
+        "ja": {
+          "title": "ジェム・ロイヤル・チャレンジ",
+          "description": "宝石王国のトーナメントでチャンピオンを目指せ！",
+          "tags": ["マッチ3", "パズル", "宝石", "トーナメント", "イベント", "ランキング", "カスケード", "デイリーチャレンジ", "チームバトル"],
+          "controls": [
+            "マウス: 宝石をクリックして隣の宝石をクリックで交換",
+            "ドラッグ: 宝石をドラッグして交換",
+            "タッチ: タップしてスワイプで交換",
+            "キーボード: 矢印キーでカーソル移動、スペースで選択/交換",
+            "ブースター: 下部のアイコンをクリック/タップで発動、タイルを選択"
+          ]
+        },
+        "zh-CN": {
+          "title": "宝石皇家挑战",
+          "description": "在宝石王国锦标赛中争夺冠军！",
+          "tags": ["三消", "益智", "宝石", "锦标赛", "活动", "排行榜", "连锁", "每日挑战", "团队战"],
+          "controls": [
+            "鼠标: 点击宝石后点击相邻宝石交换",
+            "拖动: 拖动宝石交换",
+            "触控: 点击并滑动交换",
+            "键盘: 方向键移动光标，空格键选择/交换",
+            "增益道具: 点击底部图标激活，然后选择格子"
+          ]
+        },
+        "zh-TW": {
+          "title": "寶石皇家挑戰",
+          "description": "在寶石王國錦標賽中爭奪冠軍！",
+          "tags": ["三消", "益智", "寶石", "錦標賽", "活動", "排行榜", "連鎖", "每日挑戰", "團隊戰"],
+          "controls": [
+            "滑鼠: 點擊寶石後點擊相鄰寶石交換",
+            "拖曳: 拖曳寶石交換",
+            "觸控: 點擊並滑動交換",
+            "鍵盤: 方向鍵移動游標，空白鍵選擇/交換",
+            "增益道具: 點擊底部圖示啟動，然後選擇格子"
+          ]
+        },
+        "es": {
+          "title": "Gem Royal Challenge",
+          "description": "¡Compite en el torneo del reino de gemas para ser campeón!",
+          "tags": ["match-3", "puzzle", "gemas", "torneo", "eventos", "clasificación", "cascada", "desafío-diario", "batalla-equipos"],
+          "controls": [
+            "Ratón: Haz clic en una gema y luego en una adyacente para intercambiar",
+            "Arrastrar: Arrastra una gema para intercambiar",
+            "Táctil: Toca y desliza para intercambiar",
+            "Teclado: Flechas para mover cursor, Espacio para seleccionar/intercambiar",
+            "Potenciadores: Clic/toca los íconos inferiores para activar y selecciona una casilla"
+          ]
+        },
+        "fr": {
+          "title": "Gem Royal Challenge",
+          "description": "Participez au tournoi du royaume des gemmes et devenez champion !",
+          "tags": ["match-3", "puzzle", "gemmes", "tournoi", "événements", "classement", "cascade", "défi-quotidien", "bataille-équipe"],
+          "controls": [
+            "Souris : Cliquez sur une gemme puis sur une adjacente pour échanger",
+            "Glisser : Faites glisser une gemme pour échanger",
+            "Tactile : Appuyez et balayez pour échanger",
+            "Clavier : Flèches pour déplacer le curseur, Espace pour sélectionner/échanger",
+            "Boosters : Cliquez/appuyez sur les icônes en bas pour activer, puis sélectionnez une case"
+          ]
+        },
+        "de": {
+          "title": "Gem Royal Challenge",
+          "description": "Tritt im Edelstein-Königreich-Turnier an und werde Champion!",
+          "tags": ["Match-3", "Puzzle", "Edelsteine", "Turnier", "Events", "Rangliste", "Kaskade", "Tägliche-Herausforderung", "Team-Kampf"],
+          "controls": [
+            "Maus: Klicke auf einen Edelstein und dann auf einen benachbarten zum Tauschen",
+            "Ziehen: Ziehe einen Edelstein zum Tauschen",
+            "Touch: Tippe und wische zum Tauschen",
+            "Tastatur: Pfeiltasten zum Bewegen des Cursors, Leertaste zum Auswählen/Tauschen",
+            "Booster: Klicke/tippe auf die Symbole unten zum Aktivieren, dann wähle ein Feld"
+          ]
+        },
+        "pt": {
+          "title": "Gem Royal Challenge",
+          "description": "Compita no torneio do reino das gemas e seja campeão!",
+          "tags": ["match-3", "puzzle", "gemas", "torneio", "eventos", "ranking", "cascata", "desafio-diário", "batalha-equipe"],
+          "controls": [
+            "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
+            "Arrastar: Arraste uma gema para trocar",
+            "Toque: Toque e deslize para trocar",
+            "Teclado: Setas para mover cursor, Espaço para selecionar/trocar",
             "Impulsionadores: Clique/toque nos ícones inferiores para ativar e selecione um bloco"
           ]
         }
