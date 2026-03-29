@@ -1,0 +1,321 @@
+{
+  "gameId": "gem-kingdom-legends",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "artDirection": {
+    "style": "Glossy Fantasy Gem — 밝고 화려한 3D 느낌의 2D 보석 + 따뜻한 판타지 동화 배경",
+    "palette": "#E53935, #1E88E5, #43A047, #FDD835, #8E24AA, #FB8C00, #FFD700",
+    "mood": "따뜻한 동화적 모험 — 밝고 희망찬 왕국 재건, 보석의 화려한 광채",
+    "reference": "Royal Match 보석 광택 + Gardenscapes 동화풍 배경"
+  },
+  "format": "png",
+  "assets": {
+    "gemRed": {
+      "file": "gem-red.png",
+      "size": "128x128",
+      "desc": "루비 보석 — 다이아몬드 컷 하트형, 진홍색 그라데이션, 내부 빛 산란, 상단 글로시 반사 하이라이트, 약간의 그림자"
+    },
+    "gemBlue": {
+      "file": "gem-blue.png",
+      "size": "128x128",
+      "desc": "사파이어 보석 — 타원형 커팅, 진청색~하늘색 그라데이션, 내부 빛 줄기, 상단 백색 반사"
+    },
+    "gemGreen": {
+      "file": "gem-green.png",
+      "size": "128x128",
+      "desc": "에메랄드 보석 — 에메랄드 컷 사각형, 진초록~연초록 그라데이션, 내부 격자 빛 무늬"
+    },
+    "gemYellow": {
+      "file": "gem-yellow.png",
+      "size": "128x128",
+      "desc": "토파즈 보석 — 별 모양, 밝은 금색~레몬색 그라데이션, 중앙 밝은 발광, 꼭짓점 반짝임"
+    },
+    "gemPurple": {
+      "file": "gem-purple.png",
+      "size": "128x128",
+      "desc": "자수정 보석 — 둥근 브릴리언트 컷, 진보라~연보라 그라데이션, 내부 별 모양 빛"
+    },
+    "gemOrange": {
+      "file": "gem-orange.png",
+      "size": "128x128",
+      "desc": "호박 보석 — 물방울(드롭) 형태, 진주황~밝은 오렌지 그라데이션, 내부 따뜻한 빛 산란"
+    },
+    "gemRedSheet": {
+      "file": "gem-red-sheet.png",
+      "size": "768x128",
+      "desc": "루비 보석 반짝임 애니메이션 — 6프레임, 빛 반사가 보석 표면을 순환하며 반짝이는 시퀀스",
+      "ref": "gem-red"
+    },
+    "gemBlueSheet": {
+      "file": "gem-blue-sheet.png",
+      "size": "768x128",
+      "desc": "사파이어 보석 반짝임 애니메이션 — 6프레임, 빛 줄기가 내부에서 회전",
+      "ref": "gem-blue"
+    },
+    "gemGreenSheet": {
+      "file": "gem-green-sheet.png",
+      "size": "768x128",
+      "desc": "에메랄드 보석 반짝임 애니메이션 — 6프레임, 격자 빛 무늬가 반짝이는 시퀀스",
+      "ref": "gem-green"
+    },
+    "gemYellowSheet": {
+      "file": "gem-yellow-sheet.png",
+      "size": "768x128",
+      "desc": "토파즈 보석 반짝임 애니메이션 — 6프레임, 꼭짓점에서 중앙으로 빛 수렴",
+      "ref": "gem-yellow"
+    },
+    "gemPurpleSheet": {
+      "file": "gem-purple-sheet.png",
+      "size": "768x128",
+      "desc": "자수정 보석 반짝임 애니메이션 — 6프레임, 내부 별빛이 회전 반짝임",
+      "ref": "gem-purple"
+    },
+    "gemOrangeSheet": {
+      "file": "gem-orange-sheet.png",
+      "size": "768x128",
+      "desc": "호박 보석 반짝임 애니메이션 — 6프레임, 따뜻한 빛이 드롭 내부에서 맥동",
+      "ref": "gem-orange"
+    },
+    "specialLineH": {
+      "file": "special-line-h.png",
+      "size": "128x128",
+      "desc": "가로 줄 파괴 보석 — 보석 형태에 가로 화살표 2개(←→)가 빛나는 오버레이, 양쪽 끝에 번개 이펙트"
+    },
+    "specialLineV": {
+      "file": "special-line-v.png",
+      "size": "128x128",
+      "desc": "세로 줄 파괴 보석 — 보석 형태에 세로 화살표 2개(↑↓)가 빛나는 오버레이, 상하 번개 이펙트"
+    },
+    "specialBomb": {
+      "file": "special-bomb.png",
+      "size": "128x128",
+      "desc": "폭탄 보석 — 둥근 폭탄 형태, 보석 색상 유지 + 불꽃 심지, 내부 에너지 소용돌이, 위험한 광채"
+    },
+    "specialRainbow": {
+      "file": "special-rainbow.png",
+      "size": "128x128",
+      "desc": "레인보우 보석 — 6색이 소용돌이치는 구체, 무지개 프리즘 반사, 중앙 별 모양 백색 발광, 주변 작은 별 파티클"
+    },
+    "obstacleIce": {
+      "file": "obstacle-ice.png",
+      "size": "128x128",
+      "desc": "얼음 장애물 — 반투명 하늘색 얼음 결정, 내부에 보석 실루엣이 비침, 표면 서리 패턴, 차가운 빛 반사"
+    },
+    "obstacleStone": {
+      "file": "obstacle-stone.png",
+      "size": "256x128",
+      "desc": "돌블록 장애물 — 거친 회색 석재, 금이 간 표면, 미세한 광물 반짝임, 2단계 파괴 시 균열 확대"
+    },
+    "obstacleChain": {
+      "file": "obstacle-chain.png",
+      "size": "128x128",
+      "desc": "체인 장애물 — 금속 사슬이 보석을 X자로 감싸는 형태, 은색 금속 광택, 열쇠 구멍 디테일"
+    },
+    "obstaclePoison": {
+      "file": "obstacle-poison.png",
+      "size": "128x128",
+      "desc": "독 장애물 — 보라색~검정 독액이 보석을 감싸는 형태, 독 방울 떨어짐, 연기 이펙트, 불길한 광채"
+    },
+    "obstacleLock": {
+      "file": "obstacle-lock.png",
+      "size": "128x128",
+      "desc": "잠금 장애물 — 황금 자물쇠가 보석 위에 걸린 형태, 열쇠 구멍, 잠금 메커니즘 디테일"
+    },
+    "obstacleCurse": {
+      "file": "obstacle-curse.png",
+      "size": "384x128",
+      "desc": "저주 장애물 — 어두운 보라색 마법진이 보석을 감싸는 형태, 3겹 룬 문자 원, 사악한 눈 문양"
+    },
+    "bgZone1CastleGate": {
+      "file": "bg-zone1-castle-gate.png",
+      "size": "1920x1080",
+      "desc": "구역1 성문 배경 — 따뜻한 석재 성문, 양쪽 탑, 펄럭이는 깃발, 맑은 하늘, 새 떼, 성문 너머 왕국 전경"
+    },
+    "bgZone2Garden": {
+      "file": "bg-zone2-garden.png",
+      "size": "1920x1080",
+      "desc": "구역2 정원 배경 — 만개한 꽃밭, 분수, 나비, 오솔길, 아치형 덩굴, 부드러운 빛 번짐"
+    },
+    "bgZone3Market": {
+      "file": "bg-zone3-market.png",
+      "size": "1920x1080",
+      "desc": "구역3 시장 배경 — 활기찬 중세 시장, 천막 상점들, 과일 수레, 보석 진열대, 사람 실루엣"
+    },
+    "bgZone4Library": {
+      "file": "bg-zone4-library.png",
+      "size": "1920x1080",
+      "desc": "구역4 도서관 배경 — 거대한 마법 도서관, 떠다니는 책들, 촛불 조명, 별자리 천장화, 신비한 파란 빛"
+    },
+    "bgZone5Cathedral": {
+      "file": "bg-zone5-cathedral.png",
+      "size": "1920x1080",
+      "desc": "구역5 대성당 배경 — 장엄한 스테인드글라스, 빛줄기 내리쬐는 예배당, 보석 장식 기둥, 신성한 금빛"
+    },
+    "bgZone6Throne": {
+      "file": "bg-zone6-throne.png",
+      "size": "1920x1080",
+      "desc": "구역6 왕좌실 배경 — 황금 왕좌, 보석 박힌 기둥, 붉은 카펫, 왕관 거치대, 화려한 샹들리에"
+    },
+    "bgKingdomMap": {
+      "file": "bg-kingdom-map.png",
+      "size": "1920x1080",
+      "desc": "왕국 전체 조감도 맵 — 위에서 내려다본 왕국 전경, 6구역이 길로 연결, 빈 건설 부지들, 산맥과 강, 동화풍"
+    },
+    "charKingIdle": {
+      "file": "char-king-idle.png",
+      "size": "512x512",
+      "desc": "왕 캐릭터 기본 포즈 — SD 비율(2.5등신), 보석 왕관, 파란 망토, 황금 홀, 미소짓는 표정, 정면향"
+    },
+    "charKingHappy": {
+      "file": "char-king-happy.png",
+      "size": "512x512",
+      "desc": "왕 캐릭터 기쁨 포즈 — 두 손 들어 환호, 왕관이 살짝 기울어짐, 눈 반짝임, 축하 표정",
+      "ref": "char-king-idle"
+    },
+    "charKingSad": {
+      "file": "char-king-sad.png",
+      "size": "512x512",
+      "desc": "왕 캐릭터 실패 포즈 — 고개 숙인 모습, 왕관 내려앉음, 눈물 한 방울, 기운 없는 표정",
+      "ref": "char-king-idle"
+    },
+    "charKnight": {
+      "file": "char-knight.png",
+      "size": "512x512",
+      "desc": "기사 NPC (길드 멤버) — SD 비율, 은색 갑옷, 보석 장식 방패, 용감한 표정, 측면향"
+    },
+    "charWizard": {
+      "file": "char-wizard.png",
+      "size": "512x512",
+      "desc": "마법사 NPC (길드 멤버) — SD 비율, 보라색 로브, 보석 박힌 지팡이, 영리한 표정"
+    },
+    "charHealer": {
+      "file": "char-healer.png",
+      "size": "512x512",
+      "desc": "치유사 NPC (길드 멤버) — SD 비율, 초록 옷, 빛나는 보석 펜던트, 따뜻한 미소"
+    },
+    "bossDragon": {
+      "file": "boss-dragon.png",
+      "size": "800x600",
+      "desc": "드래곤 보스 — 대형, 보석으로 장식된 비늘, 입에서 보라색 에너지, 날개 펼침, 위압적 포즈, 붉은 눈"
+    },
+    "effectMatchBurst": {
+      "file": "effect-match-burst.png",
+      "size": "512x128",
+      "desc": "매칭 폭발 이펙트 시퀀스 — 4프레임, 보석 색상의 빛 파티클이 방사형으로 퍼지며 사라짐"
+    },
+    "effectLineLaser": {
+      "file": "effect-line-laser.png",
+      "size": "1024x128",
+      "desc": "줄 파괴 레이저 이펙트 — 가로 형태, 밝은 백색 레이저 빔 + 양쪽 끝 에너지 폭발, 파란 전기 아크"
+    },
+    "effectBombShockwave": {
+      "file": "effect-bomb-shockwave.png",
+      "size": "512x128",
+      "desc": "폭탄 충격파 이펙트 시퀀스 — 4프레임, 중심에서 원형 충격파 확장, 파편 날림"
+    },
+    "effectRainbowWave": {
+      "file": "effect-rainbow-wave.png",
+      "size": "1024x256",
+      "desc": "레인보우 발동 이펙트 — 무지개색 파동이 보드 전체를 휩쓰는 이펙트, 6색 빛줄기"
+    },
+    "effectCascadeStar": {
+      "file": "effect-cascade-star.png",
+      "size": "256x256",
+      "desc": "캐스케이드 콤보 별 이펙트 — 콤보 숫자 주변에 회전하는 별 파티클, 점점 커지는 크기"
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "desc": "반짝임 파티클 텍스처 — 작은 4각 별 모양, 백색~금색 알파 그라데이션, 중심 밝고 가장자리 투명"
+    },
+    "particleDust": {
+      "file": "particle-dust.png",
+      "size": "32x32",
+      "desc": "보석 먼지 파티클 — 원형, 매우 작은 빛 점, 무지개색 알파, 부드러운 가장자리"
+    },
+    "uiBoardFrame": {
+      "file": "ui-board-frame.png",
+      "size": "1024x1024",
+      "desc": "게임 보드 프레임 — 금색 장식 테두리, 모서리 보석 장식, 상단 레벨 목표 패널 영역, 하단 부스터 슬롯 영역"
+    },
+    "uiTurnCounter": {
+      "file": "ui-turn-counter.png",
+      "size": "128x128",
+      "desc": "턴 수 표시 UI — 원형 금색 배지, 중앙에 숫자 영역, 보석 장식 테두리"
+    },
+    "uiScoreBar": {
+      "file": "ui-score-bar.png",
+      "size": "512x64",
+      "desc": "점수바 UI — 가로 막대형, 금색 프레임, 내부 그라데이션 게이지, 별 3개 위치 마커"
+    },
+    "uiBoosterHammer": {
+      "file": "ui-booster-hammer.png",
+      "size": "128x128",
+      "desc": "부스터: 망치 — 금색 망치 아이콘, 보석 파편 이펙트, 둥근 배경"
+    },
+    "uiBoosterSwap": {
+      "file": "ui-booster-swap.png",
+      "size": "128x128",
+      "desc": "부스터: 교환 — 양방향 화살표 아이콘, 파란 에너지, 둥근 배경"
+    },
+    "uiBoosterShuffle": {
+      "file": "ui-booster-shuffle.png",
+      "size": "128x128",
+      "desc": "부스터: 셔플 — 소용돌이 아이콘, 무지개 에너지, 둥근 배경"
+    },
+    "uiBoosterExtraTurn": {
+      "file": "ui-booster-extra-turn.png",
+      "size": "128x128",
+      "desc": "부스터: 추가 턴 — +5 숫자가 새겨진 모래시계, 금색 빛, 둥근 배경"
+    },
+    "uiStar": {
+      "file": "ui-star.png",
+      "size": "128x128",
+      "desc": "별 아이콘 — 5각 별, 금색 글로시, 내부 빛 발산, 완성/미완성 2가지 상태 표현"
+    },
+    "uiSeasonBanner": {
+      "file": "ui-season-banner.png",
+      "size": "512x128",
+      "desc": "시즌 패스 배너 — 가로 리본형, 금색 테두리, 중앙 시즌 아이콘(왕관), 보라색~금색 그라데이션"
+    },
+    "uiGuildEmblem": {
+      "file": "ui-guild-emblem.png",
+      "size": "256x256",
+      "desc": "길드 엠블럼 — 방패 형태, 중앙 보석 문양, 검과 지팡이 교차, 금색 월계관 장식"
+    },
+    "uiButtonPlay": {
+      "file": "ui-button-play.png",
+      "size": "256x96",
+      "desc": "플레이 버튼 — 둥근 사각형, 초록색 그라데이션, 중앙 ▶ 아이콘, 글로시 반사, 금색 테두리"
+    },
+    "uiHpBar": {
+      "file": "ui-hp-bar.png",
+      "size": "512x64",
+      "desc": "보스 체력바 — 가로 막대, 빨간색 게이지, 해골 아이콘 좌측, 보스 이름 표시 영역"
+    },
+    "buildingCastle": {
+      "file": "building-castle.png",
+      "size": "384x256",
+      "desc": "왕국 건물: 성 — 3단계 업그레이드 형태 (작은집→석성→대성), 동화풍, 깃발, 보석 장식"
+    },
+    "buildingGarden": {
+      "file": "building-garden.png",
+      "size": "384x256",
+      "desc": "왕국 건물: 정원 — 3단계 (잡초밭→꽃밭→분수 정원), 나비, 꽃, 울타리"
+    },
+    "buildingMarket": {
+      "file": "building-market.png",
+      "size": "384x256",
+      "desc": "왕국 건물: 시장 — 3단계 (노점→상점가→번화가), 천막, 상품, 활기"
+    },
+    "buildingTower": {
+      "file": "building-tower.png",
+      "size": "384x256",
+      "desc": "왕국 건물: 마법탑 — 3단계 (돌탑→수정탑→대마법탑), 빛나는 크리스탈, 마법 아우라"
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "desc": "게임 대표 이미지 — 중앙에 6색 보석이 원형으로 배치, 배경에 왕국 전경, 상단에 '보석 왕국 전설' 금색 타이틀 텍스트, 하단에 왕 캐릭터(SD), 전체적으로 밝고 화려한 판타지 분위기"
+    }
+  }
+}

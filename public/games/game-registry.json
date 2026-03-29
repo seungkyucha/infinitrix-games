@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-28T20:07:49.247Z",
-  "totalGames": 45,
+  "lastUpdated": "2026-03-29T01:13:02.467Z",
+  "totalGames": 46,
   "games": [
     {
       "id": "color-merge-puzzle",
@@ -8158,6 +8158,126 @@
             "Toque: Toque e deslize para trocar (celular)",
             "Teclado: Setas para mover cursor, Espaço para selecionar/trocar",
             "Impulsionadores: Clique/toque nos ícones inferiores para ativar e selecione um bloco"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gem-kingdom-legends",
+      "title": "보석 왕국 전설",
+      "description": "매치3 퍼즐로 별을 모아 몰락한 보석 왕국을 재건하세요!",
+      "genre": ["puzzle"],
+      "thumbnail": "/games/gem-kingdom-legends/assets/thumbnail.png",
+      "path": "/games/gem-kingdom-legends/index.html",
+      "addedAt": "2026-03-29T01:13:02.467Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["매치3", "퍼즐", "보석", "왕국건설", "전략", "시즌패스", "길드", "캐스케이드"],
+      "controls": [
+        "마우스: 보석 클릭 후 인접 보석 클릭으로 스왑",
+        "드래그: 보석을 드래그하여 스왑",
+        "터치: 탭 후 스와이프로 스왑 (모바일)",
+        "부스터: 하단 아이콘 클릭으로 망치/교환/셔플/추가턴 사용",
+        "R키: 재시작 / ESC: 일시정지"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "i18n": {
+        "en": {
+          "title": "Gem Kingdom Legends",
+          "description": "Match gems to earn stars and rebuild your fallen gem kingdom!",
+          "tags": ["match-3", "puzzle", "gems", "kingdom building", "strategy", "season pass", "guild", "cascade"],
+          "controls": [
+            "Mouse: Click a gem then click an adjacent gem to swap",
+            "Drag: Drag a gem to swap",
+            "Touch: Tap and swipe to swap (mobile)",
+            "Boosters: Click icons below to use hammer/swap/shuffle/extra turn",
+            "R: Restart / ESC: Pause"
+          ]
+        },
+        "ja": {
+          "title": "ジュエルキングダム伝説",
+          "description": "マッチ3パズルで星を集めて、滅びた宝石王国を再建しよう！",
+          "tags": ["マッチ3", "パズル", "宝石", "王国建設", "戦略", "シーズンパス", "ギルド", "カスケード"],
+          "controls": [
+            "マウス：宝石をクリックして隣の宝石をクリックでスワップ",
+            "ドラッグ：宝石をドラッグしてスワップ",
+            "タッチ：タップしてスワイプでスワップ（モバイル）",
+            "ブースター：下のアイコンをクリックでハンマー/交換/シャッフル/追加ターン使用",
+            "Rキー：リスタート / ESC：一時停止"
+          ]
+        },
+        "zh-CN": {
+          "title": "宝石王国传说",
+          "description": "通过三消拼图收集星星，重建没落的宝石王国！",
+          "tags": ["三消", "拼图", "宝石", "王国建设", "策略", "赛季通行证", "公会", "连锁"],
+          "controls": [
+            "鼠标：点击宝石后点击相邻宝石交换",
+            "拖拽：拖拽宝石进行交换",
+            "触屏：点击后滑动交换（手机）",
+            "助力道具：点击下方图标使用锤子/交换/洗牌/额外回合",
+            "R：重新开始 / ESC：暂停"
+          ]
+        },
+        "zh-TW": {
+          "title": "寶石王國傳說",
+          "description": "透過三消拼圖收集星星，重建沒落的寶石王國！",
+          "tags": ["三消", "拼圖", "寶石", "王國建設", "策略", "賽季通行證", "公會", "連鎖"],
+          "controls": [
+            "滑鼠：點擊寶石後點擊相鄰寶石交換",
+            "拖曳：拖曳寶石進行交換",
+            "觸控：點擊後滑動交換（手機）",
+            "助力道具：點擊下方圖示使用錘子/交換/洗牌/額外回合",
+            "R：重新開始 / ESC：暫停"
+          ]
+        },
+        "es": {
+          "title": "Leyendas del Reino de Gemas",
+          "description": "¡Combina gemas para ganar estrellas y reconstruir tu reino caído!",
+          "tags": ["match-3", "puzle", "gemas", "construcción de reino", "estrategia", "pase de temporada", "gremio", "cascada"],
+          "controls": [
+            "Ratón: Haz clic en una gema y luego en una adyacente para intercambiar",
+            "Arrastrar: Arrastra una gema para intercambiar",
+            "Táctil: Toca y desliza para intercambiar (móvil)",
+            "Potenciadores: Haz clic en los íconos inferiores para usar martillo/intercambio/mezcla/turno extra",
+            "R: Reiniciar / ESC: Pausa"
+          ]
+        },
+        "fr": {
+          "title": "Légendes du Royaume des Gemmes",
+          "description": "Associez des gemmes pour gagner des étoiles et reconstruire votre royaume déchu !",
+          "tags": ["match-3", "puzzle", "gemmes", "construction de royaume", "stratégie", "passe de saison", "guilde", "cascade"],
+          "controls": [
+            "Souris : Cliquez sur une gemme puis sur une adjacente pour échanger",
+            "Glisser : Glissez une gemme pour échanger",
+            "Tactile : Appuyez et glissez pour échanger (mobile)",
+            "Boosters : Cliquez sur les icônes en bas pour utiliser marteau/échange/mélange/tour supplémentaire",
+            "R : Redémarrer / Échap : Pause"
+          ]
+        },
+        "de": {
+          "title": "Juwelen-Königreich Legenden",
+          "description": "Kombiniere Edelsteine, sammle Sterne und baue dein gefallenes Königreich wieder auf!",
+          "tags": ["Match-3", "Puzzle", "Edelsteine", "Königreichbau", "Strategie", "Season Pass", "Gilde", "Kaskade"],
+          "controls": [
+            "Maus: Klicke auf einen Edelstein und dann auf einen benachbarten zum Tauschen",
+            "Ziehen: Ziehe einen Edelstein zum Tauschen",
+            "Touch: Tippe und wische zum Tauschen (Mobil)",
+            "Booster: Klicke auf die Symbole unten für Hammer/Tausch/Mischen/Extrazug",
+            "R: Neustart / ESC: Pause"
+          ]
+        },
+        "pt": {
+          "title": "Lendas do Reino das Gemas",
+          "description": "Combine gemas para ganhar estrelas e reconstruir seu reino caído!",
+          "tags": ["match-3", "puzzle", "gemas", "construção de reino", "estratégia", "passe de temporada", "guilda", "cascata"],
+          "controls": [
+            "Mouse: Clique em uma gema e depois em uma adjacente para trocar",
+            "Arrastar: Arraste uma gema para trocar",
+            "Toque: Toque e deslize para trocar (celular)",
+            "Impulsionadores: Clique nos ícones inferiores para usar martelo/troca/embaralhar/turno extra",
+            "R: Reiniciar / ESC: Pausa"
           ]
         }
       }
