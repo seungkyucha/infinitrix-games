@@ -8167,7 +8167,7 @@
       "title": "보석 왕국 전설",
       "description": "매치3 퍼즐로 별을 모아 몰락한 보석 왕국을 재건하세요!",
       "genre": ["puzzle"],
-      "thumbnail": "/games/gem-kingdom-legends/assets/thumbnail.png",
+      "thumbnail": "/games/gem-kingdom-legends/thumbnail.svg",
       "path": "/games/gem-kingdom-legends/index.html",
       "addedAt": "2026-03-29T01:13:02.467Z",
       "featured": false,

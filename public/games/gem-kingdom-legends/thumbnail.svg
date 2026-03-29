@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0a2e;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#2d1b69;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#0f0c29;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="gem-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b"/>
+      <stop offset="100%" style="stop-color:#c0392b"/>
+    </linearGradient>
+    <linearGradient id="gem-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#74b9ff"/>
+      <stop offset="100%" style="stop-color:#2980b9"/>
+    </linearGradient>
+    <linearGradient id="gem-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#55efc4"/>
+      <stop offset="100%" style="stop-color:#00b894"/>
+    </linearGradient>
+    <linearGradient id="gem-yellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffeaa7"/>
+      <stop offset="100%" style="stop-color:#fdcb6e"/>
+    </linearGradient>
+    <linearGradient id="gem-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a29bfe"/>
+      <stop offset="100%" style="stop-color:#6c5ce7"/>
+    </linearGradient>
+    <linearGradient id="gem-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fab1a0"/>
+      <stop offset="100%" style="stop-color:#e17055"/>
+    </linearGradient>
+    <linearGradient id="crown" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700"/>
+      <stop offset="100%" style="stop-color:#f39c12"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="sparkle">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="300" fill="url(#bg)"/>
+
+  <!-- Stars background -->
+  <circle cx="30" cy="25" r="1.5" fill="#fff" opacity="0.6"/>
+  <circle cx="85" cy="50" r="1" fill="#fff" opacity="0.4"/>
+  <circle cx="150" cy="20" r="1.2" fill="#fff" opacity="0.5"/>
+  <circle cx="250" cy="35" r="1" fill="#fff" opacity="0.3"/>
+  <circle cx="320" cy="18" r="1.5" fill="#fff" opacity="0.5"/>
+  <circle cx="370" cy="55" r="1" fill="#fff" opacity="0.4"/>
+  <circle cx="55" cy="80" r="1" fill="#fff" opacity="0.3"/>
+  <circle cx="350" cy="90" r="1.2" fill="#fff" opacity="0.4"/>
+
+  <!-- Castle silhouette background -->
+  <g opacity="0.15" fill="#8e7cc3">
+    <rect x="140" y="60" width="20" height="100"/>
+    <rect x="240" y="60" width="20" height="100"/>
+    <rect x="130" y="50" width="40" height="15"/>
+    <rect x="230" y="50" width="40" height="15"/>
+    <rect x="160" y="80" width="80" height="80"/>
+    <polygon points="200,40 170,70 230,70"/>
+  </g>
+
+  <!-- 8x8 Grid (3x3 visible portion) -->
+  <g transform="translate(108, 85)">
+    <!-- Grid cells with gems -->
+    <!-- Row 1 -->
+    <rect x="0" y="0" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="48" y="0" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="96" y="0" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="144" y="0" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+    <!-- Row 2 -->
+    <rect x="0" y="48" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="48" y="48" width="44" height="44" rx="6" fill="rgba(255,255,255,0.1)" stroke="rgba(255,215,0,0.4)" stroke-width="1.5"/>
+    <rect x="96" y="48" width="44" height="44" rx="6" fill="rgba(255,255,255,0.1)" stroke="rgba(255,215,0,0.4)" stroke-width="1.5"/>
+    <rect x="144" y="48" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+    <!-- Row 3 -->
+    <rect x="0" y="96" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="48" y="96" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="96" y="96" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="144" y="96" width="44" height="44" rx="6" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+    <!-- Gems - Row 1 -->
+    <!-- Red gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-red)" filter="url(#glow)" transform="translate(0,0)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(0,0)"/>
+
+    <!-- Blue gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-blue)" filter="url(#glow)" transform="translate(48,0)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(48,0)"/>
+
+    <!-- Green gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-green)" filter="url(#glow)" transform="translate(96,0)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(96,0)"/>
+
+    <!-- Yellow gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-yellow)" filter="url(#glow)" transform="translate(144,0)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(144,0)"/>
+
+    <!-- Gems - Row 2 -->
+    <!-- Purple gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-purple)" filter="url(#glow)" transform="translate(0,48)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(0,48)"/>
+
+    <!-- Red gem (match!) -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-red)" filter="url(#glow)" transform="translate(48,48)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.3)" transform="translate(48,48)"/>
+
+    <!-- Red gem (match!) -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-red)" filter="url(#glow)" transform="translate(96,48)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.3)" transform="translate(96,48)"/>
+
+    <!-- Orange gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-orange)" filter="url(#glow)" transform="translate(144,48)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(144,48)"/>
+
+    <!-- Gems - Row 3 -->
+    <!-- Green gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-green)" filter="url(#glow)" transform="translate(0,96)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(0,96)"/>
+
+    <!-- Blue gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-blue)" filter="url(#glow)" transform="translate(48,96)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(48,96)"/>
+
+    <!-- Yellow gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-yellow)" filter="url(#glow)" transform="translate(96,96)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(96,96)"/>
+
+    <!-- Purple gem -->
+    <polygon points="22,6 38,16 38,32 22,38 6,32 6,16" fill="url(#gem-purple)" filter="url(#glow)" transform="translate(144,96)"/>
+    <polygon points="22,10 32,16 32,28 22,32 12,28 12,16" fill="rgba(255,255,255,0.2)" transform="translate(144,96)"/>
+
+    <!-- Match highlight glow on row 2, cols 2-3 -->
+    <rect x="48" y="48" width="92" height="44" rx="6" fill="none" stroke="#ffd700" stroke-width="2" opacity="0.6">
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Crown above grid -->
+  <g transform="translate(175, 48)" filter="url(#sparkle)">
+    <polygon points="25,0 5,22 10,22 0,32 50,32 40,22 45,22" fill="url(#crown)"/>
+    <circle cx="12" cy="26" r="3" fill="#e74c3c"/>
+    <circle cx="25" cy="22" r="3" fill="#3498db"/>
+    <circle cx="38" cy="26" r="3" fill="#2ecc71"/>
+  </g>
+
+  <!-- Sparkle effects -->
+  <g filter="url(#sparkle)">
+    <polygon points="60,130 63,125 66,130 63,135" fill="#ffd700" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="340,110 343,105 346,110 343,115" fill="#ffd700" opacity="0.6">
+      <animate attributeName="opacity" values="0.6;0.1;0.6" dur="1.8s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="80,200 83,195 86,200 83,205" fill="#fff" opacity="0.5">
+      <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.2s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="330,190 333,185 336,190 333,195" fill="#fff" opacity="0.7">
+      <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.6s" repeatCount="indefinite"/>
+    </polygon>
+  </g>
+
+  <!-- Stars (score) -->
+  <g transform="translate(55, 240)" filter="url(#sparkle)">
+    <polygon points="12,0 15,8 24,9 17,15 19,24 12,19 5,24 7,15 0,9 9,8" fill="#ffd700"/>
+  </g>
+  <g transform="translate(80, 236)" filter="url(#sparkle)">
+    <polygon points="15,0 19,10 30,11 22,19 24,30 15,24 6,30 8,19 0,11 11,10" fill="#ffd700"/>
+  </g>
+  <g transform="translate(112, 240)" filter="url(#sparkle)">
+    <polygon points="12,0 15,8 24,9 17,15 19,24 12,19 5,24 7,15 0,9 9,8" fill="#ffd700"/>
+  </g>
+
+  <!-- Title text -->
+  <text x="200" y="258" text-anchor="middle" font-family="'Segoe UI', sans-serif" font-size="26" font-weight="bold" fill="#ffeaa7" filter="url(#glow)">보석 왕국 전설</text>
+  <text x="200" y="280" text-anchor="middle" font-family="'Segoe UI', sans-serif" font-size="13" fill="#a29bfe" letter-spacing="2">GEM KINGDOM LEGENDS</text>
+
+  <!-- Decorative bottom border -->
+  <line x1="100" y1="290" x2="300" y2="290" stroke="url(#crown)" stroke-width="1.5" opacity="0.5"/>
+</svg>
