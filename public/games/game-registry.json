@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-04-17T16:56:04.000Z",
+  "lastUpdated": "2026-04-18T00:00:00.000Z",
   "totalGames": 1,
   "games": [
     {
@@ -7,7 +7,7 @@
       "title": "픽셀 심연",
       "description": "매 런마다 랜덤 던전을 탐험하는 턴제 로그라이크",
       "genre": ["roguelike", "arcade"],
-      "thumbnail": "/games/pixel-depths/assets/thumbnail.png",
+      "thumbnail": "/games/pixel-depths/thumbnail.svg",
       "path": "/games/pixel-depths/index.html",
       "addedAt": "2026-04-17T16:56:04.000Z",
       "featured": false,
