@@ -1,0 +1,65 @@
+{
+  "cycle": 2,
+  "gameId": "neon-survivors",
+  "genre": "survivor-like",
+  "artStyle": "pixel-art-32bit",
+  "verdict": "NEEDS_MINOR_FIX",
+  "reviewRounds": 1,
+  "review2Rounds": 1,
+  "durationMin": 80,
+  "disciplines": {
+    "planning": {
+      "score": 94.58333333333334,
+      "signals": {
+        "specCompleteness": 0.8333333333333334,
+        "genreDupCount": 0,
+        "styleDupCount": 0,
+        "refChainValid": 0.75,
+        "plannerReworkCount": 1,
+        "postmortemDepth": 14
+      }
+    },
+    "development": {
+      "score": 60.01914509883839,
+      "signals": {
+        "engineAdoption": 0.24393723252496433,
+        "customStateMachines": 0,
+        "directListenerCount": 0,
+        "onResetCoverage": 0.21428571428571427,
+        "totalMutableGlobals": 14,
+        "buttonKeyCoverage": 1,
+        "totalButtons": 8,
+        "codeLineCount": 1427,
+        "enginePromotions": 0
+      }
+    },
+    "art": {
+      "score": 57.5,
+      "signals": {
+        "stylePurity": 0.5,
+        "charConsistency": 1,
+        "assetVerifyRate": 1,
+        "assetGenerateRate": 0,
+        "failedAssetCount": 0,
+        "verifyFailedCount": 0,
+        "thumbnailFromGameAssets": false
+      }
+    },
+    "qa": {
+      "score": 80,
+      "signals": {
+        "firstRoundVerdict": "NEEDS_MINOR_FIX",
+        "reviewRounds": 1,
+        "review2Rounds": 1,
+        "buttonAuditPass": 1,
+        "restartVerifyPass": true,
+        "stuckStateBugs": 0,
+        "deployVerifyPass": "UNKNOWN"
+      }
+    }
+  },
+  "overallScore": 71.29741019631818,
+  "weakestDiscipline": "art",
+  "rootCauses": [],
+  "createdAt": "2026-04-17T18:32:51.687Z"
+}

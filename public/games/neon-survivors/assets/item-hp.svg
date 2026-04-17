@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" shape-rendering="crispEdges">
+  <defs>
+    <!-- Lime green gradient -->
+    <linearGradient id="hpMain" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#88ff88"/>
+      <stop offset="40%" stop-color="#44ff44"/>
+      <stop offset="100%" stop-color="#22aa22"/>
+    </linearGradient>
+    <!-- Highlight -->
+    <linearGradient id="hpHighlight" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ccffcc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#44ff44" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Glow -->
+    <radialGradient id="hpGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#44ff44" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#44ff44" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#44ff44" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer glow aura -->
+  <circle cx="64" cy="64" r="50" fill="url(#hpGlow)"/>
+
+  <!-- Cross/plus shape - main body -->
+  <g id="cross-body" filter="url(#glow)">
+    <!-- Vertical bar -->
+    <rect x="48" y="24" width="32" height="80" rx="4" fill="url(#hpMain)" stroke="#118811" stroke-width="2"/>
+    <!-- Horizontal bar -->
+    <rect x="24" y="48" width="80" height="32" rx="4" fill="url(#hpMain)" stroke="#118811" stroke-width="2"/>
+
+    <!-- 3D shading - darker bottom/right -->
+    <path d="M80 48 L80 80 L104 80 L104 52 Q104 48 100 48Z" fill="#22aa22" opacity="0.4"/>
+    <path d="M48 80 L80 80 L80 104 Q80 108 76 108 L48 108 Q44 108 44 104Z" fill="#22aa22" opacity="0.3"/>
+
+    <!-- Highlight top/left -->
+    <path d="M48 28 Q48 24 52 24 L76 24 Q80 24 80 28 L80 48 L48 48Z" fill="url(#hpHighlight)" opacity="0.5"/>
+    <path d="M24 52 Q24 48 28 48 L48 48 L48 80 L24 80 L24 52Z" fill="url(#hpHighlight)" opacity="0.3"/>
+  </g>
+
+  <!-- Center bright point -->
+  <g id="center-glow" filter="url(#softGlow)">
+    <circle cx="64" cy="64" r="10" fill="#aaffaa" opacity="0.5"/>
+    <circle cx="64" cy="64" r="5" fill="#ffffff" opacity="0.6"/>
+  </g>
+
+  <!-- Cross detail lines (pixel art style) -->
+  <g id="detail-lines" opacity="0.3">
+    <!-- Grid lines on cross for texture -->
+    <line x1="48" y1="48" x2="80" y2="48" stroke="#ffffff" stroke-width="1"/>
+    <line x1="48" y1="80" x2="80" y2="80" stroke="#116611" stroke-width="1"/>
+    <line x1="48" y1="48" x2="48" y2="80" stroke="#ffffff" stroke-width="1"/>
+    <line x1="80" y1="48" x2="80" y2="80" stroke="#116611" stroke-width="1"/>
+  </g>
+
+  <!-- Sparkle effects -->
+  <g id="sparkles" filter="url(#softGlow)">
+    <!-- Top sparkle -->
+    <line x1="64" y1="14" x2="64" y2="20" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+    <line x1="61" y1="17" x2="67" y2="17" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+    <!-- Right sparkle -->
+    <line x1="108" y1="64" x2="114" y2="64" stroke="#ffffff" stroke-width="1" opacity="0.6"/>
+    <line x1="111" y1="61" x2="111" y2="67" stroke="#ffffff" stroke-width="1" opacity="0.6"/>
+    <!-- Bottom left sparkle -->
+    <line x1="18" y1="96" x2="24" y2="96" stroke="#aaffaa" stroke-width="1" opacity="0.5"/>
+    <line x1="21" y1="93" x2="21" y2="99" stroke="#aaffaa" stroke-width="1" opacity="0.5"/>
+  </g>
+
+  <!-- Pixel corner accents -->
+  <g id="pixel-accents" opacity="0.5">
+    <rect x="46" y="22" width="4" height="4" fill="#ccffcc"/>
+    <rect x="22" y="46" width="4" height="4" fill="#aaffaa"/>
+    <rect x="78" y="102" width="4" height="4" fill="#228822"/>
+    <rect x="102" y="78" width="4" height="4" fill="#228822"/>
+  </g>
+</svg>

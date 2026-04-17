@@ -158,7 +158,7 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
   const codeLineCount = scriptMatch ? scriptMatch[1].split('\n').length : html.split('\n').length
 
   // enginePromotions — parse promotion note (very loose: count "- " entries under "## 승격")
-  const promoSection = inp.enginePromotionText.match(/##\s*승격(?:\s*완료)?([\s\S]*?)(##|$)/)
+  const promoSection = inp.enginePromotionText.match(/##\s*승격(?:\s*완료)?([\s\S]*?)(##(?!#)|$)/)
   const enginePromotions = promoSection ? countMatches(promoSection[1], /^-\s+/gm) : 0
 
   const score = clamp(

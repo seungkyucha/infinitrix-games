@@ -1103,6 +1103,114 @@ const GameFlow = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Pool — 오브젝트 풀링 (적, 탄환, 보석 등 재활용)
+//
+// GC 부담을 줄이기 위해 엔티티를 사전 할당하고 active 플래그로 관리.
+// acquire()로 비활성 엔티티를 가져오고, active=false로 반환.
+//
+// 사용법:
+//   const pool = new IX.Pool(100, () => ({ active: false, x: 0, y: 0, hp: 0 }));
+//   const e = pool.acquire();   // 비활성 엔티티 1개 반환 (없으면 null)
+//   e.x = 100; e.hp = 50;       // 초기화
+//   e.active = false;           // 반환 (release)
+//   pool.forEach(e => { ... }); // 활성 엔티티만 순회
+//   pool.releaseAll();          // 전체 비활성화 (리셋 시)
+// ═══════════════════════════════════════════════════════════
+class Pool {
+  /**
+   * @param {number} size - 사전 할당할 엔티티 수
+   * @param {function} factory - () => obj (active: false 포함 권장)
+   */
+  constructor(size, factory) {
+    this._items = [];
+    for (let i = 0; i < size; i++) this._items.push(factory());
+  }
+
+  /** 비활성 엔티티 하나를 활성화하여 반환. 풀 소진 시 null (graceful skip). */
+  acquire() {
+    for (const item of this._items) {
+      if (!item.active) { item.active = true; return item; }
+    }
+    return null;
+  }
+
+  /** 모든 엔티티 비활성화 (게임 리셋 시 사용) */
+  releaseAll() {
+    for (const item of this._items) item.active = false;
+  }
+
+  /** 활성 엔티티만 순회하며 콜백 실행 */
+  forEach(fn) {
+    for (const item of this._items) {
+      if (item.active) fn(item);
+    }
+  }
+
+  /** 현재 활성 엔티티 수 */
+  count() {
+    let c = 0;
+    for (const item of this._items) { if (item.active) c++; }
+    return c;
+  }
+
+  /** 내부 배열 직접 접근 (읽기 전용 권장) */
+  get items() { return this._items; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SpatialHash — 그리드 기반 공간 해싱 (충돌 판정 최적화)
+//
+// 많은 엔티티의 충돌 판정을 O(n²) → O(n) 수준으로 최적화.
+// 매 프레임 clear() → insert() → query() 순서로 사용.
+//
+// 사용법:
+//   const hash = new IX.SpatialHash(64);
+//   hash.clear();
+//   enemyPool.forEach(e => hash.insert(e));  // 모든 적 등록
+//   const nearby = hash.query(bullet.x, bullet.y, bullet.size + 30);
+//   for (const e of nearby) { /* 충돌 판정 */ }
+// ═══════════════════════════════════════════════════════════
+class SpatialHash {
+  /**
+   * @param {number} cellSize - 해시 셀 크기 (픽셀). 가장 큰 엔티티 크기의 2배 권장.
+   */
+  constructor(cellSize = 64) {
+    this._cellSize = cellSize;
+    this._cells = {};
+  }
+
+  /** 모든 셀 초기화 (매 프레임 시작 시 호출) */
+  clear() { this._cells = {}; }
+
+  /** 오브젝트를 해당 셀에 등록. obj는 { x, y } 필수. */
+  insert(obj) {
+    const cs = this._cellSize;
+    const cx = Math.floor(obj.x / cs);
+    const cy = Math.floor(obj.y / cs);
+    const k = cx + ',' + cy;
+    if (!this._cells[k]) this._cells[k] = [];
+    this._cells[k].push(obj);
+  }
+
+  /** (x, y) 중심 반경 r 내의 셀에 속한 오브젝트 목록 반환 */
+  query(x, y, r) {
+    const results = [];
+    const cs = this._cellSize;
+    const minCx = Math.floor((x - r) / cs);
+    const maxCx = Math.floor((x + r) / cs);
+    const minCy = Math.floor((y - r) / cs);
+    const maxCy = Math.floor((y + r) / cs);
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const cell = this._cells[cx + ',' + cy];
+        if (cell) results.push(...cell);
+      }
+    }
+    return results;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Genre — 장르별 모듈 마운트 포인트
 // 각 장르 모듈은 /engine/genres/{genre}.js에서 IX.Genre.{Name}에 등록
 // ═══════════════════════════════════════════════════════════
@@ -1115,6 +1223,7 @@ return {
   Engine, Input, Sound, Tween, Particles, AssetLoader,
   UI, Save, MathUtil, Layout, Sprite,
   Button, Scene, StateGuard, GameFlow,
+  Pool, SpatialHash,
   Genre,
 };
 

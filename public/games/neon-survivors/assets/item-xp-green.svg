@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" shape-rendering="crispEdges">
+  <defs>
+    <!-- Emerald green gem gradient -->
+    <linearGradient id="gemMain" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#88ffcc"/>
+      <stop offset="30%" stop-color="#00ff88"/>
+      <stop offset="60%" stop-color="#00cc66"/>
+      <stop offset="100%" stop-color="#006633"/>
+    </linearGradient>
+    <!-- Gem highlight -->
+    <linearGradient id="gemHighlight" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ccffee" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Outer glow -->
+    <radialGradient id="outerGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#00ff88" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#00ff88" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Glow aura -->
+  <circle cx="64" cy="64" r="48" fill="url(#outerGlow)"/>
+
+  <!-- Diamond shape - main body -->
+  <g id="gem-body" filter="url(#glow)">
+    <!-- Back face (darker) -->
+    <path d="M64 20 L100 64 L64 108 L28 64Z" fill="url(#gemMain)" stroke="#004422" stroke-width="2"/>
+
+    <!-- Left facet -->
+    <path d="M64 20 L28 64 L64 58Z" fill="#00dd66" opacity="0.6"/>
+    <!-- Right facet -->
+    <path d="M64 20 L100 64 L64 58Z" fill="#00aa55" opacity="0.5"/>
+    <!-- Bottom left facet -->
+    <path d="M28 64 L64 108 L64 58Z" fill="#008844" opacity="0.7"/>
+    <!-- Bottom right facet -->
+    <path d="M100 64 L64 108 L64 58Z" fill="#006633" opacity="0.8"/>
+
+    <!-- Center line -->
+    <line x1="64" y1="20" x2="64" y2="108" stroke="#00aa55" stroke-width="1" opacity="0.5"/>
+    <!-- Horizontal center -->
+    <line x1="28" y1="64" x2="100" y2="64" stroke="#00bb66" stroke-width="1" opacity="0.3"/>
+  </g>
+
+  <!-- Highlight facet (top-left bright) -->
+  <g id="highlight" filter="url(#innerGlow)">
+    <path d="M64 24 L36 62 L64 56Z" fill="url(#gemHighlight)"/>
+    <!-- Sharp highlight point -->
+    <path d="M52 40 L56 38 L54 44Z" fill="#ffffff" opacity="0.9"/>
+    <!-- Secondary highlight -->
+    <path d="M44 54 L48 52 L46 56Z" fill="#ccffee" opacity="0.6"/>
+  </g>
+
+  <!-- Inner sparkle -->
+  <g id="sparkle" opacity="0.8">
+    <!-- Cross sparkle at center -->
+    <line x1="60" y1="64" x2="68" y2="64" stroke="#ffffff" stroke-width="1.5"/>
+    <line x1="64" y1="60" x2="64" y2="68" stroke="#ffffff" stroke-width="1.5"/>
+    <!-- Diagonal sparkle -->
+    <line x1="61" y1="61" x2="67" y2="67" stroke="#ccffee" stroke-width="1" opacity="0.6"/>
+    <line x1="67" y1="61" x2="61" y2="67" stroke="#ccffee" stroke-width="1" opacity="0.6"/>
+  </g>
+
+  <!-- Pixel-art style edge detail -->
+  <g id="edge-detail" opacity="0.4">
+    <rect x="62" y="18" width="4" height="4" fill="#aaffdd"/>
+    <rect x="26" y="62" width="4" height="4" fill="#66ddaa"/>
+    <rect x="98" y="62" width="4" height="4" fill="#44aa77"/>
+    <rect x="62" y="106" width="4" height="4" fill="#338855"/>
+  </g>
+</svg>

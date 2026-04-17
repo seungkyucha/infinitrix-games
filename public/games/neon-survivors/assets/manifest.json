@@ -1,0 +1,215 @@
+{
+  "gameId": "neon-survivors",
+  "generatedBy": "gemini-3.1-flash-image-preview + claude-svg-fallback",
+  "provider": "gemini",
+  "artDirection": {
+    "style": "Detailed 32-bit pixel art, rich palette, soft shading, late-90s arcade / PS1 sprite era.",
+    "palette": ["#0d1117", "#00d4ff", "#ff4444", "#00ff88", "#ffd700", "#8b00ff", "#44ff44"],
+    "mood": "네온빛 사이버펑크 폐허, 긴장감 있는 생존, 화려한 전투 이펙트",
+    "reference": "Vampire Survivors 탑다운 구도 + Brotato 32-bit 캐릭터 스타일"
+  },
+  "format": "png",
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 캐릭터 (탑다운 뷰) — 사이안 네온 파츠가 부착된 벌키 전투 로봇. 둥근 머리에 빛나는 사이안 바이저, 컴팩트한 몸체, 양쪽 어깨에 소형 무기 마운트."
+    },
+    "playerHurt": {
+      "file": "player-hurt.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "플레이어 피격 포즈 — player.png 기반 SVG 재제작. 동일 벌키 메카 실루엣, 바이저 빨간색 경고, 몸체 균열+스파크 이펙트, 붉은 데미지 오버레이.",
+      "ref": "player",
+      "note": "PNG 원본(player-hurt.png)은 완전히 다른 캐릭터로 생성되어 SVG로 대체"
+    },
+    "playerIdleSheet": {
+      "file": "player-idle-sheet.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "플레이어 대기 애니메이션 스프라이트 시트 — 4프레임.",
+      "ref": "player",
+      "note": "⚠️ PNG 캐릭터가 player.png과 불일치 (보라/마젠타 병사). 스프라이트 시트라 SVG 대체 불가. 가능시 이미지 재생성 필요."
+    },
+    "enemySlime": {
+      "file": "enemy-slime.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "글리치 슬라임 (탑다운 뷰) — 반투명 붉은 젤리 몸체에 디지털 글리치 노이즈 패턴. 중앙에 빛나는 코어."
+    },
+    "enemyBat": {
+      "file": "enemy-bat.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "사이버 박쥐 (탑다운 뷰) — 기계 날개를 펼친 소형 드론형 박쥐. 붉은 LED 눈, 보라색 에너지 날개."
+    },
+    "enemySkeleton": {
+      "file": "enemy-skeleton.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "해골 전사 (탑다운 뷰) — 금속 갑옷 사이버 해골. 에너지 검 + 부서진 방패. 붉은 눈구멍 발광."
+    },
+    "enemyCharger": {
+      "file": "enemy-charger.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "돌진 병사 (탑다운 뷰) — 중장갑 기계형 병사. 어깨 부스터, 붉은 바이저, 유선형 갑옷."
+    },
+    "enemyBoss": {
+      "file": "enemy-boss.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "네온 코어 보스 (탑다운 뷰) — 거대한 구체형 에너지 코어. 보라+크림슨 소용돌이, 4개 위성 파츠, 중앙 눈(코어)."
+    },
+    "enemyBossPhase2": {
+      "file": "enemy-boss-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "네온 코어 보스 2페이즈 — enemy-boss.png 기반 SVG 재제작. 동일 구체형 코어에 외갑 파괴, 붉은 에너지 격렬 방출, 번개 이펙트, 불규칙 위성 파츠.",
+      "ref": "enemy-boss",
+      "note": "PNG 원본(enemy-boss-phase2.png)은 인간형 메카로 생성되어 구체형 보스와 완전 불일치, SVG로 대체"
+    },
+    "bgGround": {
+      "file": "bg-ground.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "바닥 타일 — 금이 간 콘크리트 + 사이안 네온 배선 그리드 패턴. 어두운 네이비 톤."
+    },
+    "bgMid": {
+      "file": "bg-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "중경 배경 — 부서진 네온 사인과 무너진 빌딩 실루엣. 딥 네이비~다크 퍼플 톤."
+    },
+    "bgFar": {
+      "file": "bg-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "원경 배경 — 보라빛 밤하늘에 희미한 고층 빌딩 스카이라인. 디지털 파티클."
+    },
+    "itemXpGreen": {
+      "file": "item-xp-green.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "경험치 보석 (초록) — 에메랄드 그린 다이아몬드. 다중 패싯 + 발광 효과. PNG 원본 거의 투명하여 SVG 대체.",
+      "note": "PNG(item-xp-green.png) 거의 투명하여 SVG로 대체"
+    },
+    "itemXpBlue": {
+      "file": "item-xp-blue.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "경험치 보석 (파랑, 5XP) — 사이안 블루 다이아몬드. 초록 보석보다 약간 큰 사이즈. item-xp-green과 동일 스타일.",
+      "note": "초록 보석과 스타일 통일을 위해 SVG로 제작"
+    },
+    "itemHp": {
+      "file": "item-hp.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "HP 회복 아이템 — 라임 그린 십자가(+) 형태. 3D 셰이딩 + 발광. PNG 원본 거의 투명하여 SVG 대체.",
+      "note": "PNG(item-hp.png) 거의 투명하여 SVG로 대체"
+    },
+    "itemMagnet": {
+      "file": "item-magnet.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "자석 아이템 — U자 자석 아이콘, 사이안 에너지 아크 스파크."
+    },
+    "projBullet": {
+      "file": "proj-bullet.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "기본 탄환 — 사이안 에너지 구체, 흰색 중심, 잔상 꼬리."
+    },
+    "projSpread": {
+      "file": "proj-spread.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "스프레드 샷 탄환 — 노란 에너지 구체."
+    },
+    "projLaser": {
+      "file": "proj-laser.png",
+      "size": "256x64",
+      "format": "png",
+      "desc": "레이저 빔 — 가로로 긴 사이안~흰색 에너지 빔."
+    },
+    "projOrbit": {
+      "file": "proj-orbit.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "오빗 실드 구체 — 보라색 에너지 구체."
+    },
+    "effectHit": {
+      "file": "effect-hit.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "피격 이펙트 — 흰색+사이안 스파크 파열."
+    },
+    "effectDeathSheet": {
+      "file": "effect-death-sheet.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "적 사망 이펙트 시퀀스 — 4프레임."
+    },
+    "effectLevelup": {
+      "file": "effect-levelup.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "레벨업 이펙트 — 골드색 원형 펄스 파동."
+    },
+    "effectBossExplosionSheet": {
+      "file": "effect-boss-explosion-sheet.png",
+      "size": "768x128",
+      "format": "png",
+      "desc": "보스 사망 대폭발 시퀀스 — 6프레임."
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "반짝임 파티클 — 흰색→사이안 알파 그라데이션."
+    },
+    "particleDamage": {
+      "file": "particle-damage.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "데미지 파티클 — 붉은 빛 점."
+    },
+    "uiHpIcon": {
+      "file": "ui-hp-icon.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 아이콘 — 빨간 네온 하트. UI HUD 체력바 옆 표시."
+    },
+    "uiXpIcon": {
+      "file": "ui-xp-icon.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "XP 아이콘 — 사이안 결정 별 형태."
+    },
+    "uiScoreIcon": {
+      "file": "ui-score-icon.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "점수 아이콘 — 골드색 왕관."
+    },
+    "uiUpgradeCardFrame": {
+      "file": "ui-upgrade-card-frame.png",
+      "size": "256x384",
+      "format": "png",
+      "desc": "업그레이드 카드 프레임 — 네온 사이안 테두리, 어두운 내부."
+    },
+    "uiJoystickBase": {
+      "file": "ui-joystick-base.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "가상 조이스틱 베이스 — 반투명 원형, 사이안 테두리."
+    },
+    "uiJoystickKnob": {
+      "file": "ui-joystick-knob.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "가상 조이스틱 놉 — 반투명 사이안 원."
+    }
+  }
+}

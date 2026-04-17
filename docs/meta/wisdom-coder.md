@@ -1,22 +1,26 @@
 # coder 누적 지혜
-_마지막 갱신: 사이클 #1_
+_마지막 갱신: 사이클 #2_
 
 ## 반복되는 실수 🚫
-1. [Cycle 1] 턴제 로그라이크는 스코프가 매우 넓음 — BSP 던전, A*, FOV, 인벤토리, 영구 업그레이드 등 시스템 수가 많아 코드가 1200줄 이상으로 커짐. 사전에 핵심 시스템을 우선순위화할 것.
-2. [Cycle 1] 모바일에서 D-pad + 맵 탭 이동이 겹칠 수 있음 — dpad hitTest로 먼저 필터링 후 나머지 영역만 handleMobileInput 처리 필요.
-3. [Cycle 1] 보스층(단일 방) 생성 시 일반 층과 완전히 다른 로직 분기 필요 — 조건 분기 빠뜨리면 빈 맵 버그 발생.
+1. [Cycle 1] 턴제 로그라이크는 스코프가 매우 넓음 — 시스템 수가 많아 코드 1200줄 이상. 사전에 핵심 시스템을 우선순위화할 것.
+2. [Cycle 1] 모바일에서 D-pad + 맵 탭 이동이 겹칠 수 있음 — hitTest 영역 분리 필요.
+3. [Cycle 2] 오브젝트 풀 크기를 너무 작게 잡으면 웨이브 후반에 적/탄환이 사라짐 — 풀 소진 시 graceful skip 패턴 필수 + 풀 크기는 넉넉하게(적 80+, 탄환 200+, 보석 300+).
+4. [Cycle 2] 보스 탄환과 플레이어 탄환이 같은 풀을 공유하면 데미지 부호로 구분해야 함 — dmg < 0 = 적 탄환 컨벤션 확립.
+5. [Cycle 2] 레벨업 오버레이(게임 일시정지 상태)에서 게임 로직 update를 스킵해야 하는데, Button.updateAll은 계속 호출되어야 함 — upgradeState.active 분기를 update 최상단에서 처리.
 
 ## 검증된 성공 패턴 ✅
-1. [Cycle 1] GameFlow.init()으로 TITLE/PLAY/GAMEOVER 라이프사이클을 표준화하면 상태 전환 버그가 구조적으로 방지됨.
-2. [Cycle 1] Scene.register()로 추가 상태(LOBBY, VICTORY)를 확장 등록하면 GameFlow 흐름 밖의 커스텀 씬도 깔끔하게 관리 가능.
-3. [Cycle 1] resetGameState()에 모든 전역 변수를 빠짐없이 나열하는 것이 재시작 버그 방지에 핵심.
-4. [Cycle 1] camera lerp(0.15)로 부드러운 카메라 추적 구현 — 턴제에서도 시각적 편안함 제공.
-5. [Cycle 1] AssetLoader.draw() 폴백 컬러로 에셋 로드 실패 시에도 게임이 정상 진행됨.
-6. [Cycle 1] IX.Button으로 모바일 D-pad 구현 — 터치/키보드 일관성 확보됨, 수동 렌더보다 간편.
-7. [Cycle 1] stuckMs를 90초로 설정 — 턴제 장르에서 무입력 감지 오작동 방지.
-8. [Cycle 1] Save.get/set으로 영구 업그레이드 저장 — Save.getHighScore와 별도 키로 복합 데이터 관리 가능.
+1. [Cycle 1,2] GameFlow.init() + Scene.register()로 라이프사이클 표준화 — 상태 전환 버그 구조적 방지.
+2. [Cycle 1,2] resetGameState()에 모든 전역 변수를 빠짐없이 나열 — 재시작 버그 방지 핵심. 풀도 releaseAll() 필수.
+3. [Cycle 1,2] camera lerp(0.1~0.15)로 부드러운 추적 — 실시간/턴제 모두 시각적 편안함 제공.
+4. [Cycle 1,2] AssetLoader.draw() 폴백 컬러로 에셋 로드 실패 시에도 게임 정상 진행.
+5. [Cycle 2] createPool() + acquire/release 패턴으로 오브젝트 풀링 — GC 부담 최소화, forEach로 활성 객체만 순회.
+6. [Cycle 2] spatialHash로 충돌 판정 최적화 — 64px 셀 기반 query로 O(n²) → O(n) 수준 달성.
+7. [Cycle 2] 가상 조이스틱은 터치 시작 위치 기준 동적 생성 + 데드존 10px — 고정 위치보다 UX 우수.
+8. [Cycle 2] 씬 전환 후 inputDelay(200ms)로 키 이중 소비 문제 구조적 해결.
+9. [Cycle 2] 난이도 선택을 별도 Scene(DIFF_SELECT)으로 분리 — GameFlow 표준 흐름에 자연스럽게 끼워넣기 가능.
+10. [Cycle 2] 보스 2페이즈(HP 50%)에서 에셋 교체 + 속도/패턴 변화 — 적은 코드로 극적인 전투 경험.
 
 ## 다음 사이클 적용 사항 🎯
-1. 로그라이크 장르 공통 코드(BSP, A*, FOV)를 engine/genres/roguelite.js로 승격 — 2개 이상 로그라이크 게임 시 즉시 실행
-2. 스와이프 이동 구현 추가 — 현재 탭만 지원, 모바일 UX 개선 여지
-3. 에셋 스프라이트 시트(idle, attack) 활용 — Sprite 클래스로 프레임 애니메이션 적용
+1. survivor-like 장르 공통 코드(오브젝트 풀, 웨이브 매니저, 자동 공격 시스템)를 engine/genres/survivor.js로 승격 검토
+2. Sprite 클래스로 프레임 애니메이션 적극 활용 — 이번에 idle sheet 에셋이 있었지만 미활용
+3. 카메라 시스템(lerp 추적, 경계 클램프, 쉐이크)을 IX.Camera로 엔진 승격 검토 — 2사이클 연속 구현

@@ -1,26 +1,27 @@
 # InfiniTriX Quality Dashboard
 
-_Last updated: 2026-04-17 16:55:47_
+_Last updated: 2026-04-17 18:32:51_
 
-_Based on last 1 cycles (1~1)_
+_Based on last 2 cycles (1~2)_
 
 ## 📊 Latest Cycle Snapshot
 
-- **Cycle 1** — pixel-depths (roguelike, pixel-art-16bit)
-- Verdict: **NEEDS_MINOR_FIX** / Overall: **73.4** / Weakest: development
+- **Cycle 2** — neon-survivors (survivor-like, pixel-art-32bit)
+- Verdict: **NEEDS_MINOR_FIX** / Overall: **71.3** / Weakest: art
 
 ## 📈 Discipline Scores (최근 10사이클)
 
 | Cycle | planning | development | art | qa | Overall | Verdict |
 |---|---|---|---|---|---|---|
 | 1 | 98 | 56 | 68 | 80 | 73.4 | ⚠️ |
+| 2 | 95 | 60 | 58 | 80 | 71.3 | ⚠️ |
 
 ## 📉 3-Cycle Moving Average (디시플린별 추세)
 
-- **planning**: 98.3  → (STABLE, Δ0.0)
-- **development**: 56.1  → (STABLE, Δ0.0)
-- **art**: 67.5  → (STABLE, Δ0.0)
-- **qa**: 80.0  → (STABLE, Δ0.0)
+- **planning**: 98.3 → 96.5  → (DECLINING, Δ-1.9)
+- **development**: 56.1 → 58.1  → (IMPROVING, Δ1.9)
+- **art**: 67.5 → 62.5  ↘ (DECLINING, Δ-5.0)
+- **qa**: 80.0 → 80.0  → (STABLE, Δ0.0)
 
 ## 🔧 Evolver 제안 통계 (최근 10사이클)
 
@@ -30,12 +31,10 @@ _Based on last 1 cycles (1~1)_
 
 ## 🔍 최약 디시플린 시그널 (최신 사이클)
 
-- `engineAdoption`: 0.20
-- `customStateMachines`: 0.00
-- `directListenerCount`: 0.00
-- `onResetCoverage`: 0.06
-- `totalMutableGlobals`: 16.00
-- `buttonKeyCoverage`: 1.00
-- `totalButtons`: 11.00
-- `codeLineCount`: 1527.00
-- `enginePromotions`: 0.00
+- `stylePurity`: 0.50
+- `charConsistency`: 1.00
+- `assetVerifyRate`: 1.00
+- `assetGenerateRate`: 0.00
+- `failedAssetCount`: 0.00
+- `verifyFailedCount`: 0.00
+- `thumbnailFromGameAssets`: false
