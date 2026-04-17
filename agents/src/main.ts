@@ -49,11 +49,32 @@ const USAGE_ERROR_PATTERNS = [
   /billing/i,
   /insufficient/i,
   /CLIConnectionError/i,
+  /out of (extra )?usage/i,        // Claude Code CLI: "You're out of extra usage"
+  /extra usage/i,
+  /resets?\s+\d?\d\s*(am|pm)/i,    // "resets 1am (Asia/Seoul)"
 ]
 
-function isUsageError(err: unknown): boolean {
+export function isUsageError(err: unknown): boolean {
   const msg = String(err)
   return USAGE_ERROR_PATTERNS.some(p => p.test(msg))
+}
+
+/**
+ * Parse "resets 1am (Asia/Seoul)" style hints and return ms-until-reset.
+ * Returns null if no parseable hint found.
+ */
+export function parseResetWaitMs(err: unknown): number | null {
+  const msg = String(err)
+  const m = msg.match(/resets?\s+(\d?\d)\s*(am|pm)(?:\s*\(([^)]+)\))?/i)
+  if (!m) return null
+  const hour12 = parseInt(m[1], 10)
+  const ampm = m[2].toLowerCase()
+  const hour24 = ampm === 'pm' ? (hour12 === 12 ? 12 : hour12 + 12) : (hour12 === 12 ? 0 : hour12)
+  const now = new Date()
+  const target = new Date(now)
+  target.setHours(hour24, 5, 0, 0)  // 5-min buffer after reset
+  if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1)
+  return target.getTime() - now.getTime()
 }
 
 /** Claude Code CLI 설치 및 인증 상태 확인 */
@@ -161,9 +182,17 @@ async function main() {
 
       if (result === 'usage_error') {
         retryCount++
-        // 점진적 대기: 15분 → 30분 → 60분 → 2시간 → 5시간(최대)
-        const base = 15 * 60 * 1000
-        const waitMs = Math.min(base * Math.pow(2, retryCount - 1), MAX_WAIT)
+        // Prefer explicit reset hint ("resets 1am (Asia/Seoul)") if the error mentioned one
+        const lastErrFile = resolve(PROJECT_ROOT, 'logs', 'last-usage-error.txt')
+        let waitMs: number
+        try {
+          const lastErr = readFileSync(lastErrFile, 'utf-8')
+          const parsed = parseResetWaitMs(lastErr)
+          waitMs = parsed && parsed < 7 * 60 * 60 * 1000 ? parsed : Math.min(15 * 60 * 1000 * Math.pow(2, retryCount - 1), MAX_WAIT)
+          if (parsed) console.log(`\n🕐 에러 메시지의 reset 시각 파싱 성공`)
+        } catch {
+          waitMs = Math.min(15 * 60 * 1000 * Math.pow(2, retryCount - 1), MAX_WAIT)
+        }
         const waitMin = Math.round(waitMs / 60000)
         console.log(`\n💤 토큰 한도 — ${waitMin}분 후 재시도 (${retryCount}회차). 체크포인트 유지 — 완료 phase는 건너뜁니다.\n`)
         await new Promise(r => setTimeout(r, waitMs))

@@ -947,6 +947,15 @@ ${THUMBNAIL_DISPLAY}`,
 - Bash: Node.js 스크립트로 자동화 테스트 실행
 - Write: 검토 결과 저장
 
+## 0단계: 피드백 문서 작성 (1차 리뷰일 때 필수)
+
+1차 리뷰(reviewRounds=1)라면, 리뷰 결과와 별개로 **반드시** 다음 파일을 Write 하세요:
+- 경로: \`docs/feedback/cycle-N-feedback.md\`
+- 내용: 지적사항 요약 / 수정 우선순위(HIGH/MED/LOW) / 코더가 고쳐야 할 파일·라인·기대 결과 / 재리뷰 시 확인 항목
+- 이 문서가 없으면 2차 리뷰에서 수정 여부를 검증할 수 없으므로, 재리뷰 verdict 는 자동으로 NEEDS_MAJOR_FIX 로 취급합니다.
+
+2차 리뷰일 때는 0단계를 건너뛰고 1단계로 바로 진행하되, 1단계 시작 전 docs/feedback/cycle-N-feedback.md 를 먼저 읽어 **모든 HIGH 항목이 수정되었는지** 교차 확인하세요.
+
 ## 1단계: 코드 리뷰 (정적 분석)
 
 검토 체크리스트:

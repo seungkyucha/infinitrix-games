@@ -1,0 +1,233 @@
+{
+  "gameId": "pixel-depths",
+  "generatedBy": "gemini-3.1-flash-image-preview + claude-svg-fallback",
+  "provider": "gemini+claude",
+  "artDirection": {
+    "style": "Crisp 16-bit pixel art, limited palette, dithering, retro SNES/Genesis feel. Sharp pixels, no anti-aliasing.",
+    "palette": ["#0a0a2e", "#3d2b1f", "#5a5a6e", "#00c8ff", "#e04040", "#ffd700", "#40c040"],
+    "mood": "어둡고 긴장감 있는 던전 탐험, 횃불 조명의 따뜻한 포인트, 레트로 모험 분위기",
+    "reference": "Shattered Pixel Dungeon 던전 분위기 + Nuclear Throne 캐릭터 비율"
+  },
+  "format": "png+svg",
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "용사 캐릭터 — 2등신 비율, 청록색 망토, 은색 검, 정면 대기 포즈. 둥근 헬멧에 빛나는 시안 눈."
+    },
+    "playerAttack": {
+      "file": "player-attack.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "용사 공격 포즈 — 검을 오른쪽으로 크게 휘두르는 자세, 청록 슬래시 잔상 효과. player.png 디자인 매칭 SVG.",
+      "ref": "player",
+      "note": "PNG 원본(player-attack.png)은 캐릭터 불일치로 SVG 대체"
+    },
+    "playerHurt": {
+      "file": "player-hurt.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "용사 피격 포즈 — 뒤로 젖혀진 자세, 붉은 데미지 이펙트, 눈 깜빡임. player.png 디자인 매칭 SVG.",
+      "ref": "player",
+      "note": "PNG 원본(player-hurt.png)은 캐릭터 불일치로 SVG 대체"
+    },
+    "playerIdleSheet": {
+      "file": "player-idle-sheet.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "용사 대기 애니메이션 스프라이트 시트 — 4프레임, 호흡 모션",
+      "ref": "player"
+    },
+    "enemySlime": {
+      "file": "enemy-slime.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "초록색 슬라임 — 반투명 젤리 질감, 동그란 형태, 작은 눈 2개, 바닥에 납작하게 퍼짐.",
+      "note": "PNG 원본(enemy-slime.png)이 거의 투명하게 생성되어 SVG 대체"
+    },
+    "enemyBat": {
+      "file": "enemy-bat.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "보라색 박쥐 — 날개를 펼친 자세, 붉은 눈, 날카로운 이빨. 어두운 보라+검정 배색."
+    },
+    "enemySkeleton": {
+      "file": "enemy-skeleton.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "해골 전사 — 녹슨 검과 방패를 든 해골. 빈 눈구멍에 붉은 빛, 금간 갑옷 조각."
+    },
+    "enemyMage": {
+      "file": "enemy-mage.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "언데드 마법사 — 낡은 보라색 로브, 해골 얼굴에 보라색 눈 빛, 손에 보라색 에너지 구체."
+    },
+    "bossDarkKnight": {
+      "file": "boss-dark-knight.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "다크 나이트 보스 — 검은 풀아머, 붉은 망토, 거대한 대검. 투구 사이로 빛나는 붉은 눈."
+    },
+    "bossDarkKnightAttack": {
+      "file": "boss-dark-knight-attack.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "다크 나이트 공격 자세 — 대검을 높이 들어올린 내려치기 준비, 어둠 에너지 방출. boss-dark-knight.png 매칭 SVG.",
+      "ref": "boss-dark-knight",
+      "note": "PNG 원본(boss-dark-knight-attack.png)은 색상/디자인 불일치로 SVG 대체"
+    },
+    "tileFloor": {
+      "file": "tile-floor.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "던전 바닥 타일 — 갈색 돌바닥, 균열과 이끼 디테일, 심리스 타일링"
+    },
+    "tileWall": {
+      "file": "tile-wall.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "던전 벽 타일 — 회색 석재 벽돌, 어두운 그라우트 라인, 이끼와 습기 얼룩"
+    },
+    "tileStairs": {
+      "file": "tile-stairs.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "하향 계단 — 어두운 구멍으로 내려가는 석재 계단"
+    },
+    "tileTrap": {
+      "file": "tile-trap.png",
+      "size": "256x128",
+      "format": "png",
+      "desc": "함정 타일 — 바닥에 숨겨진 가시 함정, 활성화 전/후 2가지 상태"
+    },
+    "itemPotionHp": {
+      "file": "item-potion-hp.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 회복 포션 — 붉은 액체가 담긴 둥근 유리병, 코르크 마개"
+    },
+    "itemPotionStr": {
+      "file": "item-potion-str.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "공격력 강화 포션 — 주황색 액체, 근육 문양이 새겨진 병"
+    },
+    "itemGold": {
+      "file": "item-gold.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "골드 코인 — 빛나는 황금 동전, 왕관 문양"
+    },
+    "itemChest": {
+      "file": "item-chest.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "보물상자 — 나무 상자에 황금 잠금장치, 닫힌 상태"
+    },
+    "itemChestOpen": {
+      "file": "item-chest-open.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "열린 보물상자 — 뚜껑이 활짝 열리고 안에서 황금빛 발산",
+      "ref": "item-chest"
+    },
+    "effectHit": {
+      "file": "effect-hit.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "근접 타격 이펙트 — 흰색+청록 별 모양 충격파"
+    },
+    "effectMagic": {
+      "file": "effect-magic.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "마법 피격 이펙트 — 보라색 에너지 파동, 마법진 문양 잔상"
+    },
+    "effectHeal": {
+      "file": "effect-heal.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "회복 이펙트 — 녹색 빛 입자가 위로 상승하며 소멸"
+    },
+    "effectLevelupSequence": {
+      "file": "effect-levelup-sequence.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "층 전환 이펙트 시퀀스 — 4프레임 트랜지션"
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "반짝임 파티클 텍스처 — 작은 황금빛 별"
+    },
+    "particleDust": {
+      "file": "particle-dust.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "먼지 파티클 — 갈색 작은 점, 이동 시 먼지 효과"
+    },
+    "uiHeart": {
+      "file": "ui-heart.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "체력 아이콘 — 16-bit 픽셀 하트, 빨간색 채움 / 빈 하트 2가지 상태"
+    },
+    "uiGoldIcon": {
+      "file": "ui-gold-icon.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "골드 UI 아이콘 — 작은 금화 아이콘, 점수판 옆 표시용"
+    },
+    "uiInventoryFrame": {
+      "file": "ui-inventory-frame.png",
+      "size": "256x128",
+      "format": "png",
+      "desc": "인벤토리 슬롯 프레임 — 석재 테두리, 빈 상태와 선택 상태 구분"
+    },
+    "uiMinimapFrame": {
+      "file": "ui-minimap-frame.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "미니맵 프레임 — 석재 장식 프레임, 모서리 보석 장식"
+    },
+    "bgLobby": {
+      "file": "bg-lobby.png",
+      "size": "960x640",
+      "format": "png",
+      "desc": "로비 배경 — 모닥불이 타오르는 던전 입구 캠프"
+    },
+    "bgGameover": {
+      "file": "bg-gameover.png",
+      "size": "960x640",
+      "format": "png",
+      "desc": "게임오버 배경 — 쓰러진 용사 실루엣, 어두운 보라+검정 배경, 점수 표시 프레임"
+    },
+    "bgVictory": {
+      "file": "bg-victory.png",
+      "size": "960x640",
+      "format": "png",
+      "desc": "승리 배경 — 빛이 쏟아지는 던전, 황금빛 파티클, 용사 실루엣"
+    },
+    "npcMerchant": {
+      "file": "npc-merchant.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "상인 NPC — 두건 쓴 상인, 보석이 매달린 외투"
+    },
+    "thumbnail": {
+      "file": "thumbnail.png",
+      "size": "800x600",
+      "format": "png",
+      "desc": "게임 대표 이미지 — 용사가 횃불을 들고 어두운 던전 입구에 서 있는 장면, '픽셀 심연' 한글 제목"
+    }
+  },
+  "replacedAssets": {
+    "player-attack.png": "캐릭터 불일치 (다른 인물) → player-attack.svg로 교체",
+    "player-hurt.png": "캐릭터 불일치 (다른 인물) → player-hurt.svg로 교체",
+    "enemy-slime.png": "거의 투명하게 생성됨 → enemy-slime.svg로 교체",
+    "boss-dark-knight-attack.png": "색상/디자인 불일치 → boss-dark-knight-attack.svg로 교체"
+  }
+}

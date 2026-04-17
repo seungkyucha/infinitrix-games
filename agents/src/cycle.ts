@@ -206,7 +206,10 @@ function buildFeedbackBlock(cycleNumber: number): string {
   return parts.join('\n')
 }
 
-/** 단일 에이전트를 실행하고 결과를 반환 */
+/** Timeout per agent — prevents indefinite stalls on subprocess / MCP hangs. */
+const AGENT_TIMEOUT_MS = 30 * 60 * 1000  // 30 minutes
+
+/** 단일 에이전트를 실행하고 결과를 반환 (timeout 보호 포함) */
 async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> {
   const roleDef = agentRoles[agentId]
   if (!roleDef) throw new Error(`Unknown agent role: ${agentId}`)
@@ -215,9 +218,11 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
 
   let output  = ''
   let success = false
+  let lastActivity = Date.now()
+  const STALL_MS = 10 * 60 * 1000  // 10 minutes of no output = stall
 
   try {
-    for await (const msg of query({
+    const iterator = query({
       prompt,
       options: {
         cwd:            PROJECT_ROOT,
@@ -233,6 +238,7 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
           PostToolUse: [{
             matcher: '.*',
             hooks: [async (input: Record<string, unknown>) => {
+              lastActivity = Date.now()
               const toolName  = String(input['tool_name'] ?? 'tool')
               const toolInput = input['tool_input']
               const detail    = typeof toolInput === 'object'
@@ -244,15 +250,53 @@ async function runAgent(agentId: AgentId, prompt: string): Promise<AgentResult> 
           }],
         },
       },
-    })) {
-      if ('result' in msg) {
-        output  = msg.result
-        success = msg.stop_reason === 'end_turn'
+    })
+
+    // Race: iterator completion vs. wall-clock timeout vs. stall watchdog.
+    const start = Date.now()
+    const agentWork = (async () => {
+      for await (const msg of iterator) {
+        lastActivity = Date.now()
+        if ('result' in msg) {
+          output  = msg.result
+          success = msg.stop_reason === 'end_turn'
+        }
       }
-    }
+    })()
+
+    let timedOut = false
+    const watchdog = new Promise<void>((_, reject) => {
+      const iv = setInterval(() => {
+        const elapsed = Date.now() - start
+        const idle = Date.now() - lastActivity
+        if (elapsed > AGENT_TIMEOUT_MS) {
+          clearInterval(iv)
+          timedOut = true
+          reject(new Error(`agent timeout (wall clock > ${AGENT_TIMEOUT_MS / 60000}min)`))
+        } else if (idle > STALL_MS) {
+          clearInterval(iv)
+          timedOut = true
+          reject(new Error(`agent stall (no output > ${STALL_MS / 60000}min)`))
+        }
+      }, 30000)
+      agentWork.finally(() => clearInterval(iv))
+    })
+
+    await Promise.race([agentWork, watchdog])
+    if (timedOut) throw new Error('agent timed out')
   } catch (err) {
-    failAgent(agentId, String(err))
-    return { agent: agentId, success: false, output: '', error: String(err) }
+    const msg = String(err)
+    failAgent(agentId, msg)
+    console.log(`  ⚠️ [${agentId.toUpperCase()}] 실패/타임아웃: ${msg.slice(0, 200)}`)
+    // Usage/token-limit errors must abort the whole cycle so main.ts waits + resumes.
+    // Otherwise the cycle would keep invoking agents that all hit the same wall.
+    if (/out of (extra )?usage|rate.?limit|quota|usage.?limit|resets?\s+\d/i.test(msg)) {
+      try {
+        writeFileSync(`${PROJECT_ROOT}/logs/last-usage-error.txt`, msg)
+      } catch {}
+      throw new Error(`USAGE_LIMIT: ${msg.slice(0, 300)}`)
+    }
+    return { agent: agentId, success: false, output, error: msg }
   }
 
   console.log(`  ✓ [${agentId.toUpperCase()}] 완료`)

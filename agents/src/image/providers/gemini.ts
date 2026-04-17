@@ -5,6 +5,7 @@
  * chromakey post-processing (green #00FF00 → alpha=0).
  */
 import { GoogleGenAI } from '@google/genai'
+import sharp from 'sharp'
 import type { ImageProvider, ImageGenerateInput, ImageGenerateResult } from '../types.js'
 
 const MODEL = 'gemini-3.1-flash-image-preview'
@@ -51,10 +52,20 @@ export const geminiProvider: ImageProvider = {
       if (response.candidates && response.candidates[0]) {
         for (const part of response.candidates[0].content?.parts || []) {
           if (part.inlineData) {
-            const buf = Buffer.from(part.inlineData.data!, 'base64')
+            let buf: Buffer = Buffer.from(part.inlineData.data!, 'base64')
             if (buf.length < 5000) {
               return { ok: false, error: `image too small (${buf.length}B)` }
             }
+            // Gemini may return a larger/different-aspect image than requested.
+            // Resize to match exactly so downstream verification + game rendering stay predictable.
+            try {
+              const meta = await sharp(buf).metadata()
+              if (meta.width !== input.width || meta.height !== input.height) {
+                buf = Buffer.from(
+                  await sharp(buf).resize(input.width, input.height, { fit: 'fill' }).png().toBuffer(),
+                )
+              }
+            } catch { /* keep original buffer on resize failure */ }
             return { ok: true, pngBuffer: buf }
           }
         }

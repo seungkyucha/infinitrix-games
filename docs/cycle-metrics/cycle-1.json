@@ -1,0 +1,65 @@
+{
+  "cycle": 1,
+  "gameId": "pixel-depths",
+  "genre": "roguelike",
+  "artStyle": "pixel-art-16bit",
+  "verdict": "NEEDS_MINOR_FIX",
+  "reviewRounds": 1,
+  "review2Rounds": 1,
+  "durationMin": 23,
+  "disciplines": {
+    "planning": {
+      "score": 98.33333333333334,
+      "signals": {
+        "specCompleteness": 0.8333333333333334,
+        "genreDupCount": 0,
+        "styleDupCount": 0,
+        "refChainValid": 1,
+        "plannerReworkCount": 1,
+        "postmortemDepth": 13
+      }
+    },
+    "development": {
+      "score": 56.139968789013736,
+      "signals": {
+        "engineAdoption": 0.2009987515605493,
+        "customStateMachines": 0,
+        "directListenerCount": 0,
+        "onResetCoverage": 0.0625,
+        "totalMutableGlobals": 16,
+        "buttonKeyCoverage": 1,
+        "totalButtons": 11,
+        "codeLineCount": 1527,
+        "enginePromotions": 0
+      }
+    },
+    "art": {
+      "score": 67.5,
+      "signals": {
+        "stylePurity": 0.5,
+        "charConsistency": 1,
+        "assetVerifyRate": 1,
+        "assetGenerateRate": 0,
+        "failedAssetCount": 0,
+        "verifyFailedCount": 0,
+        "thumbnailFromGameAssets": true
+      }
+    },
+    "qa": {
+      "score": 80,
+      "signals": {
+        "firstRoundVerdict": "NEEDS_MINOR_FIX",
+        "reviewRounds": 1,
+        "review2Rounds": 1,
+        "buttonAuditPass": 1,
+        "restartVerifyPass": true,
+        "stuckStateBugs": 0,
+        "deployVerifyPass": "UNKNOWN"
+      }
+    }
+  },
+  "overallScore": 73.3836573033708,
+  "weakestDiscipline": "development",
+  "rootCauses": [],
+  "createdAt": "2026-04-17T16:52:08.679Z"
+}

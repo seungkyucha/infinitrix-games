@@ -536,6 +536,88 @@ const MathUtil = {
   circleCollide: (x1, y1, r1, x2, y2, r2) => MathUtil.dist(x1, y1, x2, y2) < r1 + r2,
   rectCollide: (x1, y1, w1, h1, x2, y2, w2, h2) =>
     x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2,
+
+  /**
+   * Grid-based A* pathfinding (4-directional)
+   *
+   * 범용 그리드 경로 탐색. 로그라이크, 타워디펜스, 전략 등 다양한 장르에서 사용.
+   * 게임 상태에 의존하지 않는 순수 함수 — isBlocked 콜백으로 장애물을 판단.
+   *
+   * @param {number} sx - 시작 x
+   * @param {number} sy - 시작 y
+   * @param {number} gx - 목표 x
+   * @param {number} gy - 목표 y
+   * @param {number} w  - 그리드 너비
+   * @param {number} h  - 그리드 높이
+   * @param {function} isBlocked - (x, y) => boolean (해당 타일이 통과 불가이면 true)
+   * @param {object} [opts] - { maxNodes: 200 }
+   * @returns {Array<{x,y}>} 경로 (시작 제외, 목표 포함). 경로 없으면 빈 배열.
+   */
+  aStar(sx, sy, gx, gy, w, h, isBlocked, opts) {
+    if (sx === gx && sy === gy) return [];
+    const maxNodes = (opts && opts.maxNodes) || 200;
+    const open = [{ x: sx, y: sy, g: 0, f: 0, parent: null }];
+    const closed = new Set();
+    const key = (x, y) => y * w + x;
+
+    while (open.length > 0) {
+      open.sort((a, b) => a.f - b.f);
+      const cur = open.shift();
+      if (cur.x === gx && cur.y === gy) {
+        const path = [];
+        let n = cur;
+        while (n.parent) { path.unshift({ x: n.x, y: n.y }); n = n.parent; }
+        return path;
+      }
+      closed.add(key(cur.x, cur.y));
+
+      const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+      for (const [dx, dy] of dirs) {
+        const nx = cur.x + dx, ny = cur.y + dy;
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+        if (closed.has(key(nx, ny))) continue;
+        if (!(nx === gx && ny === gy) && isBlocked(nx, ny)) continue;
+        const g = cur.g + 1;
+        const heuristic = Math.abs(nx - gx) + Math.abs(ny - gy);
+        const existing = open.find(n => n.x === nx && n.y === ny);
+        if (existing) {
+          if (g < existing.g) { existing.g = g; existing.f = g + heuristic; existing.parent = cur; }
+        } else {
+          open.push({ x: nx, y: ny, g, f: g + heuristic, parent: cur });
+        }
+      }
+      if (open.length > maxNodes) return []; // Safety limit
+    }
+    return [];
+  },
+
+  /**
+   * Bresenham line-of-sight check (그리드 기반)
+   *
+   * 두 타일 사이에 장애물 없이 직선이 통과하는지 확인.
+   * 로그라이크 FOV, 슈터 사격, 전략 게임 시야 판정 등에 사용.
+   *
+   * @param {number} x0 - 시작 x
+   * @param {number} y0 - 시작 y
+   * @param {number} x1 - 끝 x
+   * @param {number} y1 - 끝 y
+   * @param {function} isBlocked - (x, y) => boolean (벽이면 true)
+   * @returns {boolean} 시야가 확보되면 true
+   */
+  lineOfSight(x0, y0, x1, y1, isBlocked) {
+    let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    let cx = x0, cy = y0;
+    while (cx !== x1 || cy !== y1) {
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; cx += sx; }
+      if (e2 < dx) { err += dx; cy += sy; }
+      if (cx === x1 && cy === y1) return true;
+      if (isBlocked(cx, cy)) return false;
+    }
+    return true;
+  },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -714,6 +796,9 @@ class Button {
     this.visible = opts.visible !== false;
     this._cooldown = 0;                       // prevent double-trigger
     Button._active.push(this);
+    if ((this.w && this.w < 44) || (this.h && this.h < 44)) {
+      console.warn('[IX.Button] tap target under 44px — text=' + JSON.stringify(this.text) + ' size=' + this.w + 'x' + this.h + ' (mobile UX risk)');
+    }
   }
 
   hitTest(px, py) {

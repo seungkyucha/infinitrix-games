@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>픽셀 심연 — Pixel Depths</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a2e;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Layout, Sprite, Button, Scene, GameFlow, StateGuard } = IX;
+
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS & CONFIG
+// ═══════════════════════════════════════════════════════════
+const GAME_ID = 'pixel-depths';
+const MAP_W = 30, MAP_H = 24;
+const TILE = { WALL: 0, FLOOR: 1, STAIRS: 2, TRAP: 3, TRAP_ACTIVE: 4 };
+const MAX_FLOOR = 5;
+const FOV_RANGE = 5;
+const INV_SLOTS = 3;
+
+// Color palette from art direction
+const PAL = {
+  bg:     '#0a0a2e', floor: '#3d2b1f', wall: '#5a5a6e',
+  player: '#00c8ff', enemy: '#e04040', gold: '#ffd700',
+  heal:   '#40c040', dark:  '#111122', fog: '#1a1a30',
+  uiBg:   '#0d0d28', uiBorder: '#2a2a50',
+};
+
+// Enemy definitions by floor
+const ENEMY_DEFS = {
+  slime:    { name: '슬라임', hp: 8,  atk: 2,  atkVar: 0, xp: 5,  gold: [1,3], asset: 'enemySlime',    color: '#40c040', speed: 1 },
+  bat:      { name: '박쥐',   hp: [12,15], atk: 3,  atkVar: 1, xp: 8,  gold: [1,4], asset: 'enemyBat',      color: '#8844aa', speed: 2 },
+  skeleton: { name: '해골',   hp: [18,22], atk: 5,  atkVar: 1, xp: 12, gold: [2,5], asset: 'enemySkeleton',  color: '#ccccaa', speed: 1 },
+  mage:     { name: '마법사', hp: [25,30], atk: 7,  atkVar: 2, xp: 15, gold: [3,5], asset: 'enemyMage',      color: '#9944ff', speed: 1, ranged: true, range: 4 },
+  boss:     { name: '다크 나이트', hp: 80, atk: 12, atkVar: 0, xp: 100, gold: [20,30], asset: 'bossDarkKnight', color: '#ff2222', speed: 1, boss: true },
+};
+
+// Floor enemy tables
+const FLOOR_ENEMIES = [
+  [],
+  ['slime'],
+  ['slime','bat'],
+  ['bat','skeleton'],
+  ['skeleton','mage'],
+  ['boss'],
+];
+
+// Upgrade definitions
+const UPGRADES = [
+  { id: 'armor',  name: '튼튼한 갑옷',   costs: [30,60,100],  maxLv: 3, desc: (lv) => `시작 HP +${[5,10,20][lv]}` },
+  { id: 'sword',  name: '날카로운 검',   costs: [40,80,130],  maxLv: 3, desc: (lv) => `시작 공격력 +${[2,4,7][lv]}` },
+  { id: 'eye',    name: '탐험가의 눈',   costs: [50,100],     maxLv: 2, desc: (lv) => `시야 +${[1,2][lv]}` },
+  { id: 'luck',   name: '행운의 부적',   costs: [60,120],     maxLv: 2, desc: (lv) => `드랍률 +${[10,20][lv]}%` },
+];
+
+// ═══════════════════════════════════════════════════════════
+// CORE SYSTEMS
+// ═══════════════════════════════════════════════════════════
+const engine = new Engine('gameCanvas', {});
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(300);
+const assets = new AssetLoader();
+
+// ═══════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════
+let player, enemies, items, mapTiles, explored, visible;
+let floor, score, turnCount, killCount, goldCollected;
+let inventory, damagePopups, logMessages, msgTimer;
+let cameraX, cameraY, animating, shakeIntensity;
+let bossPhase2;
+let swipeStartX, swipeStartY, swipeActive;
+// Visual effect overlays (sprite-based hit/magic/heal effects)
+let visualEffects;
+// Player sprite state: 'idle', 'attack', 'hurt'
+let playerSpriteState, playerSpriteTimer;
+// Boss sprite state for attack animation
+let bossAttackTimer;
+// Player idle animation sprite
+let playerIdleSprite;
+// Floor transition effect
+let floorTransition;
+
+/** Load persistent upgrades from localStorage */
+function loadPersistent() {
+  return Save.get(`ix_${GAME_ID}_upgrades`, { gold: 0, armor: 0, sword: 0, eye: 0, luck: 0 });
+}
+function savePersistent(data) { Save.set(`ix_${GAME_ID}_upgrades`, data); }
+
+/** Calculate player base stats from upgrades */
+function calcBaseStats() {
+  const p = loadPersistent();
+  const hpBonus = [0, 5, 10, 20][p.armor] || 0;
+  const atkBonus = [0, 2, 4, 7][p.sword] || 0;
+  const fovBonus = [0, 1, 2][p.eye] || 0;
+  const luckBonus = [0, 10, 20][p.luck] || 0;
+  return { hp: 20 + hpBonus, atk: 5 + atkBonus, fov: FOV_RANGE + fovBonus, luck: luckBonus };
+}
+
+/** Reset all game state for a new run */
+function resetGameState() {
+  const stats = calcBaseStats();
+  player = { x: 0, y: 0, hp: stats.hp, maxHp: stats.hp, atk: stats.atk, fov: stats.fov, luck: stats.luck };
+  enemies = [];
+  items = [];
+  mapTiles = [];
+  explored = [];
+  visible = [];
+  floor = 1;
+  score = 0;
+  turnCount = 0;
+  killCount = 0;
+  goldCollected = 0;
+  inventory = [null, null, null];
+  damagePopups = [];
+  logMessages = [];
+  msgTimer = 0;
+  cameraX = 0;
+  cameraY = 0;
+  animating = false;
+  shakeIntensity = 0;
+  bossPhase2 = false;
+  swipeStartX = 0;
+  swipeStartY = 0;
+  swipeActive = false;
+  visualEffects = [];
+  playerSpriteState = 'idle';
+  playerSpriteTimer = 0;
+  bossAttackTimer = 0;
+  floorTransition = { active: false, timer: 0, duration: 600 };
+}
+
+// ═══════════════════════════════════════════════════════════
+// BSP DUNGEON GENERATION
+// ═══════════════════════════════════════════════════════════
+function generateDungeon(floorNum) {
+  // Initialize map with walls
+  mapTiles = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(TILE.WALL));
+  explored = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
+  visible = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
+  enemies = [];
+  items = [];
+
+  if (floorNum === MAX_FLOOR) {
+    // Boss floor: single large room
+    const rx = 5, ry = 4, rw = 20, rh = 16;
+    for (let y = ry; y < ry + rh; y++)
+      for (let x = rx; x < rx + rw; x++) mapTiles[y][x] = TILE.FLOOR;
+    player.x = rx + Math.floor(rw / 2);
+    player.y = ry + rh - 2;
+    spawnEnemy('boss', rx + Math.floor(rw / 2), ry + 3);
+    bossPhase2 = false;
+    addLog(`5층: 다크 나이트가 기다리고 있다!`);
+    return;
+  }
+
+  // BSP split
+  const rooms = [];
+  const nodes = [{ x: 1, y: 1, w: MAP_W - 2, h: MAP_H - 2 }];
+
+  function splitNode(node, depth) {
+    if (depth >= 3 || node.w < 10 || node.h < 10) {
+      // Create room within node
+      const rw = MathUtil.randInt(Math.min(5, node.w - 2), Math.min(10, node.w - 2));
+      const rh = MathUtil.randInt(Math.min(5, node.h - 2), Math.min(8, node.h - 2));
+      const rx = node.x + MathUtil.randInt(1, node.w - rw - 1);
+      const ry = node.y + MathUtil.randInt(1, node.h - rh - 1);
+      rooms.push({ x: rx, y: ry, w: rw, h: rh, cx: Math.floor(rx + rw / 2), cy: Math.floor(ry + rh / 2) });
+      return;
+    }
+
+    const horizontal = node.w < node.h ? true : node.h < node.w ? false : Math.random() < 0.5;
+    if (horizontal) {
+      const split = MathUtil.randInt(Math.floor(node.h * 0.35), Math.floor(node.h * 0.65));
+      splitNode({ x: node.x, y: node.y, w: node.w, h: split }, depth + 1);
+      splitNode({ x: node.x, y: node.y + split, w: node.w, h: node.h - split }, depth + 1);
+    } else {
+      const split = MathUtil.randInt(Math.floor(node.w * 0.35), Math.floor(node.w * 0.65));
+      splitNode({ x: node.x, y: node.y, w: split, h: node.h }, depth + 1);
+      splitNode({ x: node.x + split, y: node.y, w: node.w - split, h: node.h }, depth + 1);
+    }
+  }
+
+  splitNode(nodes[0], 0);
+
+  // Carve rooms
+  for (const r of rooms) {
+    for (let y = r.y; y < r.y + r.h; y++)
+      for (let x = r.x; x < r.x + r.w; x++)
+        mapTiles[y][x] = TILE.FLOOR;
+  }
+
+  // Connect rooms with corridors
+  for (let i = 0; i < rooms.length - 1; i++) {
+    const a = rooms[i], b = rooms[i + 1];
+    let cx = a.cx, cy = a.cy;
+    while (cx !== b.cx) {
+      if (cy >= 0 && cy < MAP_H && cx >= 0 && cx < MAP_W) mapTiles[cy][cx] = TILE.FLOOR;
+      cx += cx < b.cx ? 1 : -1;
+    }
+    while (cy !== b.cy) {
+      if (cy >= 0 && cy < MAP_H && cx >= 0 && cx < MAP_W) mapTiles[cy][cx] = TILE.FLOOR;
+      cy += cy < b.cy ? 1 : -1;
+    }
+  }
+
+  // Place player in first room
+  player.x = rooms[0].cx;
+  player.y = rooms[0].cy;
+
+  // Place stairs in last room
+  const lastRoom = rooms[rooms.length - 1];
+  mapTiles[lastRoom.cy][lastRoom.cx] = TILE.STAIRS;
+
+  // Place enemies
+  const enemyTypes = FLOOR_ENEMIES[floorNum] || ['slime'];
+  for (let i = 1; i < rooms.length - 1; i++) {
+    const r = rooms[i];
+    const count = MathUtil.randInt(1, Math.min(3, floorNum + 1));
+    for (let j = 0; j < count; j++) {
+      const ex = MathUtil.randInt(r.x + 1, r.x + r.w - 2);
+      const ey = MathUtil.randInt(r.y + 1, r.y + r.h - 2);
+      if (ex === player.x && ey === player.y) continue;
+      const type = enemyTypes[MathUtil.randInt(0, enemyTypes.length - 1)];
+      spawnEnemy(type, ex, ey);
+    }
+  }
+
+  // Place traps (floor 2+)
+  if (floorNum >= 2) {
+    for (let i = 1; i < rooms.length; i++) {
+      if (Math.random() < 0.3) {
+        const r = rooms[i];
+        const tx = MathUtil.randInt(r.x + 1, r.x + r.w - 2);
+        const ty = MathUtil.randInt(r.y + 1, r.y + r.h - 2);
+        if (mapTiles[ty][tx] === TILE.FLOOR) mapTiles[ty][tx] = TILE.TRAP;
+      }
+    }
+  }
+
+  // Place items
+  const itemChance = [0, 0.5, 0.35, 0.3, 0.2, 0][floorNum] || 0.3;
+  for (let i = 1; i < rooms.length; i++) {
+    if (Math.random() < itemChance + player.luck * 0.01) {
+      const r = rooms[i];
+      const ix = MathUtil.randInt(r.x + 1, r.x + r.w - 2);
+      const iy = MathUtil.randInt(r.y + 1, r.y + r.h - 2);
+      const roll = Math.random();
+      if (roll < 0.4) items.push({ x: ix, y: iy, type: 'hpPotion', name: 'HP 포션', heal: 10 });
+      else if (roll < 0.65) items.push({ x: ix, y: iy, type: 'strPotion', name: '힘 포션', atkBuff: 3, turns: 10 });
+      else items.push({ x: ix, y: iy, type: 'chest', name: '보물상자', gold: MathUtil.randInt(10, 20), opened: false });
+    }
+  }
+
+  // Sprinkle gold
+  for (const r of rooms) {
+    if (Math.random() < 0.4) {
+      const gx = MathUtil.randInt(r.x, r.x + r.w - 1);
+      const gy = MathUtil.randInt(r.y, r.y + r.h - 1);
+      if (mapTiles[gy][gx] === TILE.FLOOR) {
+        items.push({ x: gx, y: gy, type: 'gold', name: '골드', gold: MathUtil.randInt(1, 5) });
+      }
+    }
+  }
+
+  addLog(`${floorNum}층에 도착했다.`);
+
+  // Floor 1 tutorial messages
+  if (floorNum === 1) {
+    addLog('1~3: 아이템 사용, 적에게 이동하면 공격');
+    addLog('WASD/방향키: 이동, Space: 대기');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ENEMY MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function spawnEnemy(type, x, y) {
+  const def = ENEMY_DEFS[type];
+  const hp = Array.isArray(def.hp) ? MathUtil.randInt(def.hp[0], def.hp[1]) : def.hp;
+  enemies.push({
+    x, y, type, name: def.name,
+    hp, maxHp: hp, atk: def.atk, atkVar: def.atkVar || 0, xp: def.xp,
+    goldDrop: def.gold, asset: def.asset, color: def.color,
+    speed: def.speed, ranged: !!def.ranged, range: def.range || 1,
+    boss: !!def.boss, alive: true, seenPlayer: false,
+    atkBuff: 0, atkBuffTurns: 0,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// A* PATHFINDING — uses IX.MathUtil.aStar (engine)
+// ═══════════════════════════════════════════════════════════
+function aStar(sx, sy, gx, gy) {
+  return MathUtil.aStar(sx, sy, gx, gy, MAP_W, MAP_H, (nx, ny) => {
+    if (mapTiles[ny][nx] === TILE.WALL) return true;
+    // Don't path through other enemies (except target)
+    if (enemies.some(e => e.alive && e.x === nx && e.y === ny)) return true;
+    return false;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// FOV — Bresenham line-of-sight
+// ═══════════════════════════════════════════════════════════
+function computeFOV() {
+  for (let y = 0; y < MAP_H; y++)
+    for (let x = 0; x < MAP_W; x++) visible[y][x] = false;
+
+  const fov = player.fov;
+  for (let angle = 0; angle < 360; angle += 2) {
+    const rad = angle * Math.PI / 180;
+    const dx = Math.cos(rad), dy = Math.sin(rad);
+    let cx = player.x + 0.5, cy = player.y + 0.5;
+    for (let d = 0; d < fov; d++) {
+      const tx = Math.floor(cx), ty = Math.floor(cy);
+      if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) break;
+      visible[ty][tx] = true;
+      explored[ty][tx] = true;
+      if (mapTiles[ty][tx] === TILE.WALL) break;
+      cx += dx; cy += dy;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TURN PROCESSING
+// ═══════════════════════════════════════════════════════════
+function tryMove(dx, dy) {
+  if (animating) return false;
+  const nx = player.x + dx, ny = player.y + dy;
+  if (nx < 0 || nx >= MAP_W || ny < 0 || ny >= MAP_H) return false;
+  if (mapTiles[ny][nx] === TILE.WALL) return false;
+
+  // Check for enemy at target
+  const target = enemies.find(e => e.alive && e.x === nx && e.y === ny);
+  if (target) {
+    // Attack enemy
+    playerAttack(target);
+  } else {
+    // Move
+    player.x = nx;
+    player.y = ny;
+    sound.sfx('jump');
+
+    // Check trap
+    if (mapTiles[ny][nx] === TILE.TRAP) {
+      mapTiles[ny][nx] = TILE.TRAP_ACTIVE;
+      const dmg = MathUtil.randInt(3, 6);
+      player.hp -= dmg;
+      addDamagePopup(player.x, player.y, dmg, '#ff4444');
+      addLog(`함정! ${dmg} 데미지!`);
+      shakeIntensity = 5;
+      sound.sfx('hit');
+    }
+
+    // Check stairs
+    if (mapTiles[ny][nx] === TILE.STAIRS) {
+      nextFloor();
+      return true;
+    }
+
+    // Pickup items
+    pickupItems();
+  }
+
+  processTurn();
+  return true;
+}
+
+function playerAttack(target) {
+  const dmg = player.atk + MathUtil.randInt(0, 2);
+  target.hp -= dmg;
+  addDamagePopup(target.x, target.y, dmg, PAL.player);
+  shakeIntensity = 3;
+  sound.sfx('hit');
+
+  // Player attack sprite + hit effect overlay
+  setPlayerSprite('attack', 300);
+  spawnVisualEffect(target.x, target.y, 'effectHit', 350);
+
+  particles.emit(
+    target.x * getTileSize() + getTileSize() / 2 + getCamOffsetX(),
+    target.y * getTileSize() + getTileSize() / 2 + getCamOffsetY(),
+    8, { color: PAL.player, speed: 100, life: 0.4, size: 3 }
+  );
+
+  if (target.hp <= 0) {
+    target.alive = false;
+    killCount++;
+    score += target.xp * 10;
+    const goldAmt = MathUtil.randInt(target.goldDrop[0], target.goldDrop[1]);
+    goldCollected += goldAmt;
+    addLog(`${target.name} 처치! +${goldAmt}G`);
+    sound.sfx('score');
+
+    // Boss killed → victory
+    if (target.boss) {
+      score += 500;
+      const persistent = loadPersistent();
+      persistent.gold += goldCollected;
+      savePersistent(persistent);
+      Save.setHighScore(GAME_ID, score);
+      Scene.transition('VICTORY', { score, floor, killCount, goldCollected });
+      return;
+    }
+  } else {
+    addLog(`${target.name}에게 ${dmg} 데미지!`);
+  }
+}
+
+function processTurn() {
+  turnCount++;
+
+  // Enemy AI
+  for (const e of enemies) {
+    if (!e.alive) continue;
+
+    // Buff tick
+    if (e.atkBuffTurns > 0) e.atkBuffTurns--;
+
+    const dist = Math.abs(e.x - player.x) + Math.abs(e.y - player.y);
+
+    // Check if enemy sees player
+    if (visible[e.y] && visible[e.y][e.x]) e.seenPlayer = true;
+    if (dist <= (e.boss ? 15 : 8)) e.seenPlayer = true;
+
+    if (!e.seenPlayer) {
+      // Random wander
+      if (Math.random() < 0.3) {
+        const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+        const d = dirs[MathUtil.randInt(0, 3)];
+        const nx = e.x + d[0], ny = e.y + d[1];
+        if (nx >= 0 && nx < MAP_W && ny >= 0 && ny < MAP_H && mapTiles[ny][nx] !== TILE.WALL
+            && !enemies.some(o => o !== e && o.alive && o.x === nx && o.y === ny)
+            && !(nx === player.x && ny === player.y)) {
+          e.x = nx; e.y = ny;
+        }
+      }
+      continue;
+    }
+
+    // Boss phase 2 check
+    if (e.boss && e.hp <= e.maxHp / 2 && !bossPhase2) {
+      bossPhase2 = true;
+      addLog('다크 나이트가 분노한다! 속도 증가!');
+      shakeIntensity = 8;
+    }
+
+    // Ranged attack
+    if (e.ranged && dist <= e.range && dist > 1 && hasLineOfSight(e.x, e.y, player.x, player.y)) {
+      const dmg = e.atk + MathUtil.randInt(0, e.atkVar);
+      player.hp -= dmg;
+      addDamagePopup(player.x, player.y, dmg, '#9944ff');
+      addLog(`${e.name}의 마법 공격! ${dmg} 데미지!`);
+      shakeIntensity = 4;
+      sound.sfx('explosion');
+      setPlayerSprite('hurt', 300);
+      spawnVisualEffect(player.x, player.y, 'effectMagic', 400);
+      continue;
+    }
+
+    // Melee: boss phase1 acts every 2 turns, phase2 every turn; others based on speed
+    const moveChance = e.boss
+      ? (bossPhase2 ? 1 : (turnCount % 2 === 0 ? 1 : 0))
+      : (turnCount % e.speed === 0 ? 1 : 0);
+    if (!moveChance) continue;
+
+    if (dist === 1) {
+      // Attack player
+      const dmg = e.atk + MathUtil.randInt(0, e.atkVar);
+      player.hp -= dmg;
+      addDamagePopup(player.x, player.y, dmg, e.color);
+      addLog(`${e.name}의 공격! ${dmg} 데미지!`);
+      shakeIntensity = 4;
+      sound.sfx('hit');
+      setPlayerSprite('hurt', 300);
+      spawnVisualEffect(player.x, player.y, 'effectHit', 300);
+      if (e.boss) triggerBossAttackAnim(350);
+    } else {
+      // Boss charge (phase2): rush 3 tiles in straight line (triggers at dist <= 3)
+      if (e.boss && bossPhase2 && (e.x === player.x || e.y === player.y) && dist <= 3) {
+        const cdx = Math.sign(player.x - e.x), cdy = Math.sign(player.y - e.y);
+        for (let s = 0; s < 3; s++) {
+          const nx = e.x + cdx, ny = e.y + cdy;
+          if (nx < 0 || nx >= MAP_W || ny < 0 || ny >= MAP_H || mapTiles[ny][nx] === TILE.WALL) break;
+          e.x = nx; e.y = ny;
+          if (e.x === player.x && e.y === player.y) {
+            const dmg = e.atk + 5;
+            player.hp -= dmg;
+            addDamagePopup(player.x, player.y, dmg, '#ff0000');
+            addLog('다크 나이트의 돌진 공격!');
+            shakeIntensity = 10;
+            sound.sfx('explosion');
+            setPlayerSprite('hurt', 400);
+            triggerBossAttackAnim(400);
+            spawnVisualEffect(player.x, player.y, 'effectHit', 400);
+            break;
+          }
+        }
+      } else {
+        // Path to player
+        const path = aStar(e.x, e.y, player.x, player.y);
+        if (path.length > 0) {
+          const next = path[0];
+          if (!enemies.some(o => o !== e && o.alive && o.x === next.x && o.y === next.y)) {
+            e.x = next.x; e.y = next.y;
+          }
+        }
+      }
+    }
+  }
+
+  // Check player death
+  if (player.hp <= 0) {
+    player.hp = 0;
+    const persistent = loadPersistent();
+    persistent.gold += goldCollected;
+    savePersistent(persistent);
+    Save.setHighScore(GAME_ID, score);
+    sound.sfx('gameover');
+    GameFlow.gameOver({ score, floor, killCount, goldCollected });
+  }
+
+  computeFOV();
+}
+
+/** Line-of-sight — delegates to IX.MathUtil.lineOfSight (engine) */
+function hasLineOfSight(x0, y0, x1, y1) {
+  return MathUtil.lineOfSight(x0, y0, x1, y1, (cx, cy) =>
+    mapTiles[cy] && mapTiles[cy][cx] === TILE.WALL
+  );
+}
+
+function pickupItems() {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const it = items[i];
+    if (it.x === player.x && it.y === player.y) {
+      if (it.type === 'gold') {
+        goldCollected += it.gold;
+        score += it.gold;
+        addLog(`+${it.gold} 골드`);
+        sound.sfx('score');
+        items.splice(i, 1);
+      } else if (it.type === 'chest') {
+        if (!it.opened) {
+          it.opened = true;
+          goldCollected += it.gold;
+          score += it.gold;
+          addLog(`보물상자! +${it.gold} 골드`);
+          sound.sfx('powerup');
+        }
+      } else {
+        // Try to add to inventory
+        const slot = inventory.indexOf(null);
+        if (slot >= 0) {
+          inventory[slot] = it;
+          items.splice(i, 1);
+          addLog(`${it.name} 획득!`);
+          sound.sfx('score');
+        } else {
+          addLog('인벤토리가 가득 찼다!');
+        }
+      }
+    }
+  }
+}
+
+function useItem(slot) {
+  if (animating) return;
+  const it = inventory[slot];
+  if (!it) return;
+  if (it.type === 'hpPotion') {
+    player.hp = Math.min(player.maxHp, player.hp + it.heal);
+    addLog(`HP 포션 사용! +${it.heal} HP`);
+    sound.sfx('powerup');
+    spawnVisualEffect(player.x, player.y, 'effectHeal', 500);
+    particles.emit(
+      player.x * getTileSize() + getTileSize() / 2 + getCamOffsetX(),
+      player.y * getTileSize() + getTileSize() / 2 + getCamOffsetY(),
+      12, { color: PAL.heal, speed: 60, life: 0.6, size: 4 }
+    );
+  } else if (it.type === 'strPotion') {
+    player.atk += it.atkBuff;
+    addLog(`힘 포션! 공격력 +${it.atkBuff}`);
+    sound.sfx('powerup');
+  }
+  inventory[slot] = null;
+  processTurn();
+}
+
+function nextFloor() {
+  floor++;
+  if (floor > MAX_FLOOR) {
+    // Should not happen — boss is on floor 5
+    return;
+  }
+  score += floor * 100;
+  sound.sfx('powerup');
+  // Trigger floor transition effect
+  floorTransition = { active: true, timer: 0, duration: 600 };
+  generateDungeon(floor);
+  computeFOV();
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+function addDamagePopup(x, y, amount, color) {
+  damagePopups.push({ x, y, amount, color, life: 1.0, offsetY: 0 });
+}
+
+function addLog(msg) {
+  logMessages.unshift(msg);
+  if (logMessages.length > 4) logMessages.length = 4;
+  msgTimer = 3000;
+}
+
+/** Spawn a visual effect sprite overlay at tile position */
+function spawnVisualEffect(tileX, tileY, assetKey, duration = 400) {
+  visualEffects.push({ x: tileX, y: tileY, asset: assetKey, life: duration, maxLife: duration });
+}
+
+/** Set player sprite to attack/hurt with auto-revert */
+function setPlayerSprite(state, duration = 300) {
+  playerSpriteState = state;
+  playerSpriteTimer = duration;
+}
+
+/** Trigger boss attack sprite briefly */
+function triggerBossAttackAnim(duration = 350) {
+  bossAttackTimer = duration;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDERING HELPERS
+// ═══════════════════════════════════════════════════════════
+function getTileSize() {
+  const w = engine.W, h = engine.H;
+  // Reserve space for HUD
+  const hudH = Layout.isMobile(w) ? h * 0.2 : h * 0.12;
+  const gameH = h - hudH;
+  const ts = Math.max(16, Math.min(Math.floor(w / 16), Math.floor(gameH / 12)));
+  return ts;
+}
+
+function getCamOffsetX() {
+  const ts = getTileSize();
+  const w = engine.W;
+  return w / 2 - cameraX * ts - ts / 2;
+}
+
+function getCamOffsetY() {
+  const ts = getTileSize();
+  const h = engine.H;
+  const hudH = Layout.isMobile(engine.W) ? h * 0.2 : h * 0.12;
+  const gameH = h - hudH;
+  return gameH / 2 - cameraY * ts - ts / 2;
+}
+
+/** Convert tap coords to tile coords */
+function tapToTile(tapX, tapY) {
+  const ts = getTileSize();
+  const ox = getCamOffsetX(), oy = getCamOffsetY();
+  const tx = Math.floor((tapX - ox) / ts);
+  const ty = Math.floor((tapY - oy) / ts);
+  return { tx, ty };
+}
+
+// ═══════════════════════════════════════════════════════════
+// MOBILE SWIPE DETECTION
+// ═══════════════════════════════════════════════════════════
+function handleMobileInput(inp) {
+  // Detect swipe
+  if (inp.tapped) {
+    // Check if tap is on HUD (inventory)
+    const w = engine.W, h = engine.H;
+    const hudY = h - (Layout.isMobile(w) ? h * 0.2 : h * 0.12);
+    if (inp.tapY > hudY) {
+      // Inventory tap
+      const slotW = w * 0.12;
+      const slotH = (h - hudY) * 0.7;
+      const startX = w * 0.02;
+      const startY = hudY + (h - hudY) * 0.15;
+      for (let i = 0; i < INV_SLOTS; i++) {
+        const sx = startX + i * (slotW + w * 0.02);
+        if (inp.tapX >= sx && inp.tapX <= sx + slotW && inp.tapY >= startY && inp.tapY <= startY + slotH) {
+          useItem(i);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Tap adjacent tile to move
+    const { tx, ty } = tapToTile(inp.tapX, inp.tapY);
+    const dx = tx - player.x, dy = ty - player.y;
+    if (Math.abs(dx) + Math.abs(dy) === 1) {
+      return tryMove(dx, dy);
+    }
+    // Tap on player = wait
+    if (dx === 0 && dy === 0) {
+      processTurn();
+      return true;
+    }
+    // Tap farther away = move in that direction
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      return tryMove(Math.sign(dx), 0);
+    } else {
+      return tryMove(0, Math.sign(dy));
+    }
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCENE: TITLE
+// ═══════════════════════════════════════════════════════════
+const titleScene = {
+  enter() {
+    const w = engine.W, h = engine.H;
+    const s = Layout.scale(w, h);
+    const bw = Math.max(200, 240 * s), bh = Math.max(50, 60 * s);
+    new Button({
+      x: w / 2 - bw / 2, y: h * 0.55, w: bw, h: bh,
+      text: '모험 시작', key: ['Space', 'Enter'],
+      fontSize: Layout.fontSize(22, w, h),
+      color: PAL.player,
+      onClick: () => { sound.init(); Scene.transition('LOBBY'); },
+    });
+  },
+  update(dt, inp) { tween.update(dt); },
+  render(ctx, w, h) {
+    // Background
+    if (assets.has('bgLobby')) {
+      ctx.drawImage(assets.sprites.bgLobby, 0, 0, w, h);
+      ctx.fillStyle = 'rgba(10,10,46,0.5)';
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.fillStyle = PAL.bg;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Title text
+    const fs = Layout.fontSize(48, w, h);
+    UI.text(ctx, '픽셀 심연', w / 2, h * 0.2, { size: fs, bold: true, color: '#fff', glow: PAL.player });
+    UI.text(ctx, 'Pixel Depths', w / 2, h * 0.2 + fs * 0.8, { size: Layout.fontSize(18, w, h), color: '#8888cc' });
+
+    // Subtitle
+    UI.text(ctx, '턴제 로그라이크 던전 크롤러', w / 2, h * 0.38, { size: Layout.fontSize(14, w, h), color: '#aab' });
+
+    // High score
+    const hi = Save.getHighScore(GAME_ID);
+    if (hi > 0) {
+      UI.text(ctx, `최고점수: ${hi}`, w / 2, h * 0.45, { size: Layout.fontSize(14, w, h), color: PAL.gold });
+    }
+
+    UI.scanlines(ctx, w, h, 0.02);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// SCENE: LOBBY (Upgrade Shop)
+// ═══════════════════════════════════════════════════════════
+let lobbySelected = 0;
+
+const lobbyScene = {
+  enter() {
+    lobbySelected = 0;
+    const w = engine.W, h = engine.H;
+    const s = Layout.scale(w, h);
+    const bw = Math.max(180, 200 * s), bh = Math.max(44, 50 * s);
+
+    new Button({
+      x: w / 2 - bw / 2, y: h * 0.82, w: bw, h: bh,
+      text: '던전 입장', key: ['Space', 'Enter'],
+      fontSize: Layout.fontSize(18, w, h),
+      color: '#e04040',
+      onClick: () => { resetGameState(); generateDungeon(floor); computeFOV(); Scene.transition('PLAY'); },
+    });
+    new Button({
+      x: w * 0.02, y: h * 0.02, w: Math.max(80, 100 * s), h: Math.max(36, 40 * s),
+      text: '뒤로', key: ['Escape'],
+      fontSize: Layout.fontSize(14, w, h),
+      color: '#555',
+      onClick: () => Scene.transition('TITLE'),
+    });
+  },
+  update(dt, inp) {
+    tween.update(dt);
+
+    // Navigate upgrades
+    if (inp.jp('ArrowUp') || inp.jp('KeyW')) lobbySelected = Math.max(0, lobbySelected - 1);
+    if (inp.jp('ArrowDown') || inp.jp('KeyS')) lobbySelected = Math.min(UPGRADES.length - 1, lobbySelected + 1);
+
+    // Purchase
+    if (inp.jp('KeyE') || inp.jp('Enter')) {
+      purchaseUpgrade(lobbySelected);
+    }
+
+    // Tap on upgrade
+    if (inp.tapped) {
+      const w = engine.W, h = engine.H;
+      const s = Layout.scale(w, h);
+      const startY = h * 0.28;
+      const rowH = Math.max(50, 65 * s);
+      for (let i = 0; i < UPGRADES.length; i++) {
+        const ry = startY + i * rowH;
+        if (inp.tapY >= ry && inp.tapY < ry + rowH && inp.tapX > w * 0.1 && inp.tapX < w * 0.9) {
+          lobbySelected = i;
+          purchaseUpgrade(i);
+          break;
+        }
+      }
+    }
+  },
+  render(ctx, w, h) {
+    if (assets.has('bgLobby')) {
+      ctx.drawImage(assets.sprites.bgLobby, 0, 0, w, h);
+      ctx.fillStyle = 'rgba(10,10,46,0.7)';
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.fillStyle = PAL.bg;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    const s = Layout.scale(w, h);
+    const persistent = loadPersistent();
+
+    // Merchant NPC on the left side
+    if (assets.has('npcMerchant')) {
+      const merchantSize = Math.max(80, 120 * s);
+      assets.draw(ctx, 'npcMerchant', w * 0.02, h * 0.25, merchantSize, merchantSize);
+    }
+
+    // Title
+    UI.text(ctx, '로비 — 영구 업그레이드', w / 2, h * 0.08, { size: Layout.fontSize(24, w, h), bold: true, color: '#fff' });
+
+    // Gold display — use gold icon if available
+    if (assets.has('uiGoldIcon')) {
+      const gIconS = Math.max(20, 28 * s);
+      assets.draw(ctx, 'uiGoldIcon', w / 2 - Layout.fontSize(20, w, h) * 3, h * 0.17 - gIconS / 2, gIconS, gIconS);
+    }
+    UI.text(ctx, `보유 골드: ${persistent.gold}G`, w / 2, h * 0.17, { size: Layout.fontSize(20, w, h), color: PAL.gold, bold: true });
+
+    // Upgrade list
+    const startY = h * 0.28;
+    const rowH = Math.max(50, 65 * s);
+    const fs = Layout.fontSize(14, w, h);
+
+    for (let i = 0; i < UPGRADES.length; i++) {
+      const u = UPGRADES[i];
+      const lv = persistent[u.id] || 0;
+      const ry = startY + i * rowH;
+      const selected = i === lobbySelected;
+
+      // Row background
+      ctx.fillStyle = selected ? 'rgba(0,200,255,0.15)' : 'rgba(20,20,50,0.5)';
+      ctx.fillRect(w * 0.1, ry, w * 0.8, rowH - 4);
+      if (selected) {
+        ctx.strokeStyle = PAL.player;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(w * 0.1, ry, w * 0.8, rowH - 4);
+      }
+
+      // Name + level
+      const maxed = lv >= u.maxLv;
+      UI.text(ctx, `${u.name} Lv.${lv}/${u.maxLv}`, w * 0.35, ry + rowH * 0.3, { size: fs, color: maxed ? '#888' : '#fff', align: 'left' });
+
+      // Description
+      if (!maxed) {
+        UI.text(ctx, u.desc(lv), w * 0.35, ry + rowH * 0.65, { size: fs * 0.85, color: '#aaa', align: 'left' });
+      } else {
+        UI.text(ctx, 'MAX', w * 0.35, ry + rowH * 0.65, { size: fs * 0.85, color: PAL.heal, align: 'left' });
+      }
+
+      // Cost
+      if (!maxed) {
+        const cost = u.costs[lv];
+        const canAfford = persistent.gold >= cost;
+        UI.text(ctx, `${cost}G`, w * 0.82, ry + rowH * 0.5, { size: fs, color: canAfford ? PAL.gold : '#ff4444', align: 'center' });
+      }
+    }
+
+    // Instructions
+    UI.text(ctx, Layout.isMobile(w) ? '탭으로 구매' : '↑↓ 선택 / E 구매', w / 2, h * 0.77, { size: Layout.fontSize(12, w, h), color: '#666' });
+
+    UI.scanlines(ctx, w, h, 0.02);
+  },
+};
+
+function purchaseUpgrade(idx) {
+  const u = UPGRADES[idx];
+  const persistent = loadPersistent();
+  const lv = persistent[u.id] || 0;
+  if (lv >= u.maxLv) { addLog('이미 최대 레벨!'); return; }
+  const cost = u.costs[lv];
+  if (persistent.gold < cost) { sound.sfx('hit'); return; }
+  persistent.gold -= cost;
+  persistent[u.id] = lv + 1;
+  savePersistent(persistent);
+  sound.sfx('powerup');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCENE: PLAY (Main Dungeon)
+// ═══════════════════════════════════════════════════════════
+let dpadButtons = [];
+
+const playScene = {
+  enter() {
+    sound.init();
+    const w = engine.W, h = engine.H;
+    const s = Layout.scale(w, h);
+
+    // Mobile D-pad using IX.Button
+    if (Layout.isMobile(w) || Layout.isTablet(w)) {
+      const btnS = Math.max(48, 56 * s);
+      const margin = w * 0.04;
+      const baseX = w - margin - btnS * 3;
+      const baseY = h - (Layout.isMobile(w) ? h * 0.2 : h * 0.12) - btnS * 3 - margin;
+
+      dpadButtons = [
+        new Button({ x: baseX + btnS, y: baseY, w: btnS, h: btnS, text: '▲', key: ['ArrowUp'], color: '#334', fontSize: Layout.fontSize(18, w, h), onClick: () => tryMove(0, -1) }),
+        new Button({ x: baseX + btnS, y: baseY + btnS * 2, w: btnS, h: btnS, text: '▼', key: ['ArrowDown'], color: '#334', fontSize: Layout.fontSize(18, w, h), onClick: () => tryMove(0, 1) }),
+        new Button({ x: baseX, y: baseY + btnS, w: btnS, h: btnS, text: '◀', key: ['ArrowLeft'], color: '#334', fontSize: Layout.fontSize(18, w, h), onClick: () => tryMove(-1, 0) }),
+        new Button({ x: baseX + btnS * 2, y: baseY + btnS, w: btnS, h: btnS, text: '▶', key: ['ArrowRight'], color: '#334', fontSize: Layout.fontSize(18, w, h), onClick: () => tryMove(1, 0) }),
+        new Button({ x: baseX + btnS, y: baseY + btnS, w: btnS, h: btnS, text: '⏸', key: ['Space'], color: '#225', fontSize: Layout.fontSize(14, w, h), onClick: () => { processTurn(); } }),
+      ];
+    } else {
+      dpadButtons = [];
+    }
+  },
+  update(dt, inp) {
+    tween.update(dt);
+    particles.update(dt);
+
+    // Decay shake
+    if (shakeIntensity > 0) shakeIntensity = Math.max(0, shakeIntensity - dt * 0.02);
+
+    // Damage popup animation
+    for (let i = damagePopups.length - 1; i >= 0; i--) {
+      const p = damagePopups[i];
+      p.life -= dt / 1000;
+      p.offsetY -= dt * 0.05;
+      if (p.life <= 0) damagePopups.splice(i, 1);
+    }
+
+    // Visual effect overlay timers
+    for (let i = visualEffects.length - 1; i >= 0; i--) {
+      visualEffects[i].life -= dt;
+      if (visualEffects[i].life <= 0) visualEffects.splice(i, 1);
+    }
+
+    // Player sprite state timer
+    if (playerSpriteTimer > 0) {
+      playerSpriteTimer -= dt;
+      if (playerSpriteTimer <= 0) playerSpriteState = 'idle';
+    }
+
+    // Boss attack sprite timer
+    if (bossAttackTimer > 0) bossAttackTimer -= dt;
+
+    // Player idle animation
+    if (playerIdleSprite) playerIdleSprite.update(dt);
+
+    // Floor transition timer
+    if (floorTransition && floorTransition.active) {
+      floorTransition.timer += dt;
+      if (floorTransition.timer >= floorTransition.duration) {
+        floorTransition.active = false;
+      }
+    }
+
+    // Message timer
+    if (msgTimer > 0) msgTimer -= dt;
+
+    // Camera smooth follow
+    cameraX = MathUtil.lerp(cameraX, player.x, 0.15);
+    cameraY = MathUtil.lerp(cameraY, player.y, 0.15);
+
+    // Keyboard input (PC)
+    if (!animating) {
+      if (inp.jp('ArrowUp') || inp.jp('KeyW')) tryMove(0, -1);
+      else if (inp.jp('ArrowDown') || inp.jp('KeyS')) tryMove(0, 1);
+      else if (inp.jp('ArrowLeft') || inp.jp('KeyA')) tryMove(-1, 0);
+      else if (inp.jp('ArrowRight') || inp.jp('KeyD')) tryMove(1, 0);
+      else if (inp.jp('Space')) processTurn(); // Wait turn
+
+      // Inventory
+      if (inp.jp('Digit1')) useItem(0);
+      if (inp.jp('Digit2')) useItem(1);
+      if (inp.jp('Digit3')) useItem(2);
+
+      // ESC → lobby
+      if (inp.jp('Escape')) {
+        const persistent = loadPersistent();
+        persistent.gold += goldCollected;
+        savePersistent(persistent);
+        Scene.transition('LOBBY');
+      }
+    }
+
+    // Mobile tap input (only if no D-pad button handled it)
+    if (inp.tapped && dpadButtons.length === 0) {
+      handleMobileInput(inp);
+    }
+    // For mobile with dpad, taps on map area also move
+    if (inp.tapped && dpadButtons.length > 0) {
+      const w = engine.W, h = engine.H;
+      const hudY = h - (Layout.isMobile(w) ? h * 0.2 : h * 0.12);
+      // Only handle if tap is in game area and not on dpad
+      if (inp.tapY < hudY) {
+        const onDpad = dpadButtons.some(b => b.hitTest(inp.tapX, inp.tapY));
+        if (!onDpad) {
+          handleMobileInput(inp);
+        }
+      } else {
+        // Inventory tap
+        handleMobileInput(inp);
+      }
+    }
+  },
+  render(ctx, w, h) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    const ts = getTileSize();
+    const shake = UI.shake(shakeIntensity);
+    const ox = getCamOffsetX() + shake.x;
+    const oy = getCamOffsetY() + shake.y;
+
+    // Determine visible tile range
+    const startCol = Math.max(0, Math.floor(-ox / ts) - 1);
+    const endCol = Math.min(MAP_W, Math.ceil((w - ox) / ts) + 1);
+    const startRow = Math.max(0, Math.floor(-oy / ts) - 1);
+    const hudH = Layout.isMobile(w) ? h * 0.2 : h * 0.12;
+    const endRow = Math.min(MAP_H, Math.ceil(((h - hudH) - oy) / ts) + 1);
+
+    // Floor 3+: reduce visibility for darkness effect
+    const darkFloor = floor >= 3;
+
+    // Draw tiles
+    for (let row = startRow; row < endRow; row++) {
+      for (let col = startCol; col < endCol; col++) {
+        const sx = col * ts + ox, sy = row * ts + oy;
+        const isVisible = visible[row] && visible[row][col];
+        const isExplored = explored[row] && explored[row][col];
+
+        if (!isExplored) continue;
+
+        const tile = mapTiles[row][col];
+        const alpha = isVisible ? 1.0 : 0.3;
+        ctx.globalAlpha = alpha;
+
+        if (tile === TILE.WALL) {
+          if (assets.has('tileWall')) {
+            assets.draw(ctx, 'tileWall', sx, sy, ts, ts);
+          } else {
+            ctx.fillStyle = PAL.wall;
+            ctx.fillRect(sx, sy, ts, ts);
+            ctx.fillStyle = '#4a4a5e';
+            ctx.fillRect(sx + 1, sy + 1, ts - 2, ts * 0.4);
+          }
+        } else if (tile === TILE.FLOOR) {
+          if (assets.has('tileFloor')) {
+            assets.draw(ctx, 'tileFloor', sx, sy, ts, ts);
+          } else {
+            ctx.fillStyle = PAL.floor;
+            ctx.fillRect(sx, sy, ts, ts);
+            // Detail
+            ctx.fillStyle = '#342618';
+            ctx.fillRect(sx + ts * 0.2, sy + ts * 0.6, ts * 0.15, ts * 0.1);
+          }
+        } else if (tile === TILE.STAIRS) {
+          if (assets.has('tileFloor')) assets.draw(ctx, 'tileFloor', sx, sy, ts, ts);
+          else { ctx.fillStyle = PAL.floor; ctx.fillRect(sx, sy, ts, ts); }
+          if (assets.has('tileStairs')) {
+            assets.draw(ctx, 'tileStairs', sx, sy, ts, ts);
+          } else {
+            ctx.fillStyle = '#666';
+            for (let s = 0; s < 3; s++) {
+              ctx.fillRect(sx + ts * 0.2, sy + ts * (0.2 + s * 0.25), ts * 0.6, ts * 0.15);
+            }
+          }
+        } else if (tile === TILE.TRAP) {
+          if (assets.has('tileFloor')) assets.draw(ctx, 'tileFloor', sx, sy, ts, ts);
+          else { ctx.fillStyle = PAL.floor; ctx.fillRect(sx, sy, ts, ts); }
+          // Subtle trap hint
+          if (isVisible) {
+            ctx.fillStyle = 'rgba(180,80,40,0.3)';
+            ctx.fillRect(sx + ts * 0.3, sy + ts * 0.3, ts * 0.4, ts * 0.4);
+          }
+        } else if (tile === TILE.TRAP_ACTIVE) {
+          if (assets.has('tileFloor')) assets.draw(ctx, 'tileFloor', sx, sy, ts, ts);
+          else { ctx.fillStyle = PAL.floor; ctx.fillRect(sx, sy, ts, ts); }
+          if (assets.has('tileTrap')) {
+            assets.draw(ctx, 'tileTrap', sx, sy, ts, ts);
+          } else {
+            ctx.fillStyle = '#aa4422';
+            ctx.fillRect(sx + ts * 0.15, sy + ts * 0.15, ts * 0.7, ts * 0.7);
+          }
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Draw items
+    for (const it of items) {
+      if (!visible[it.y] || !visible[it.y][it.x]) continue;
+      const sx = it.x * ts + ox, sy = it.y * ts + oy;
+      const pad = ts * 0.15;
+      if (it.type === 'gold') {
+        assets.draw(ctx, 'itemGold', sx + pad, sy + pad, ts - pad * 2, ts - pad * 2, PAL.gold);
+      } else if (it.type === 'hpPotion') {
+        assets.draw(ctx, 'itemPotionHp', sx + pad, sy + pad, ts - pad * 2, ts - pad * 2, PAL.heal);
+      } else if (it.type === 'strPotion') {
+        assets.draw(ctx, 'itemPotionStr', sx + pad, sy + pad, ts - pad * 2, ts - pad * 2, '#ff8800');
+      } else if (it.type === 'chest') {
+        const key = it.opened ? 'itemChestOpen' : 'itemChest';
+        assets.draw(ctx, key, sx + pad, sy + pad, ts - pad * 2, ts - pad * 2, PAL.gold);
+      }
+    }
+
+    // Draw enemies
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      if (!visible[e.y] || !visible[e.y][e.x]) continue;
+      const sx = e.x * ts + ox, sy = e.y * ts + oy;
+      const pad = e.boss ? 0 : ts * 0.08;
+      const eSize = e.boss ? ts * 1.3 : ts - pad * 2;
+      const eOx = e.boss ? -ts * 0.15 : pad;
+      const eOy = e.boss ? -ts * 0.3 : pad;
+      // Boss: use attack sprite when attacking
+      const eAsset = (e.boss && bossAttackTimer > 0) ? 'bossDarkKnightAttack' : e.asset;
+      assets.draw(ctx, eAsset, sx + eOx, sy + eOy, eSize, eSize, e.color);
+
+      // HP bar under enemy
+      if (e.hp < e.maxHp) {
+        const barW = ts * 0.8, barH = 3;
+        const barX = sx + (ts - barW) / 2, barY = sy - 5;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.fillStyle = e.boss ? '#ff2222' : PAL.enemy;
+        ctx.fillRect(barX, barY, barW * (e.hp / e.maxHp), barH);
+      }
+    }
+
+    // Draw player
+    {
+      const sx = player.x * ts + ox, sy = player.y * ts + oy;
+      // Choose player sprite based on state
+      if (playerSpriteState === 'attack' && assets.has('playerAttack')) {
+        assets.draw(ctx, 'playerAttack', sx, sy, ts, ts, PAL.player);
+      } else if (playerSpriteState === 'hurt' && assets.has('playerHurt')) {
+        assets.draw(ctx, 'playerHurt', sx, sy, ts, ts, '#ff4444');
+      } else if (playerIdleSprite && playerSpriteState === 'idle') {
+        playerIdleSprite.draw(ctx, sx, sy, ts, ts);
+      } else {
+        assets.draw(ctx, 'player', sx, sy, ts, ts, PAL.player);
+      }
+
+      // Player highlight ring
+      ctx.strokeStyle = PAL.player + '66';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sx + ts / 2, sy + ts / 2, ts * 0.55, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Darkness overlay for floor 3+
+    if (darkFloor) {
+      for (let row = startRow; row < endRow; row++) {
+        for (let col = startCol; col < endCol; col++) {
+          if (visible[row] && visible[row][col]) continue;
+          const sx = col * ts + ox, sy = row * ts + oy;
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillRect(sx, sy, ts, ts);
+        }
+      }
+    }
+
+    // Damage popups
+    for (const p of damagePopups) {
+      const sx = p.x * ts + ox + ts / 2;
+      const sy = p.y * ts + oy + p.offsetY;
+      ctx.globalAlpha = Math.max(0, p.life);
+      UI.text(ctx, `-${p.amount}`, sx, sy, { size: Layout.fontSize(16, w, h), bold: true, color: p.color, glow: p.color });
+    }
+    ctx.globalAlpha = 1;
+
+    // Visual effect overlays (effectHit, effectMagic, effectHeal)
+    for (const vfx of visualEffects) {
+      const sx = vfx.x * ts + ox, sy = vfx.y * ts + oy;
+      const progress = 1 - vfx.life / vfx.maxLife;
+      ctx.globalAlpha = Math.max(0, 1 - progress * 0.8);
+      const effectScale = 1 + progress * 0.3;
+      const effectSize = ts * effectScale;
+      const eox = (ts - effectSize) / 2;
+      assets.draw(ctx, vfx.asset, sx + eox, sy + eox, effectSize, effectSize, '#fff');
+      ctx.globalAlpha = 1;
+    }
+
+    // Particles
+    particles.render(ctx);
+
+    // Floor transition overlay
+    if (floorTransition && floorTransition.active) {
+      const prog = floorTransition.timer / floorTransition.duration;
+      const fadeAlpha = prog < 0.5 ? prog * 2 : 2 - prog * 2;
+      ctx.fillStyle = `rgba(0,0,0,${fadeAlpha * 0.85})`;
+      ctx.fillRect(0, 0, w, h);
+      if (assets.has('effectLevelupSequence') && prog < 0.7) {
+        const frameIdx = Math.min(3, Math.floor(prog * 4));
+        const img = assets.sprites.effectLevelupSequence;
+        const fw = img.width / 4;
+        const fh = img.height;
+        const drawW = w * 0.3, drawH = drawW * (fh / fw);
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(img, frameIdx * fw, 0, fw, fh, w / 2 - drawW / 2, h * 0.3, drawW, drawH);
+        ctx.globalAlpha = 1;
+      }
+      if (prog > 0.3 && prog < 0.8) {
+        UI.text(ctx, `${floor}층으로 이동 중...`, w / 2, h * 0.55, { size: Layout.fontSize(24, w, h), bold: true, color: '#fff', glow: PAL.gold });
+      }
+    }
+
+    // ═══ HUD ═══
+    const hudY = h - (Layout.isMobile(w) ? h * 0.2 : h * 0.12);
+    ctx.fillStyle = PAL.uiBg + 'ee';
+    ctx.fillRect(0, hudY, w, h - hudY);
+    ctx.strokeStyle = PAL.uiBorder;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, hudY);
+    ctx.lineTo(w, hudY);
+    ctx.stroke();
+
+    const fs = Layout.fontSize(13, w, h);
+    const iconS = Math.max(16, 20 * Layout.scale(w, h));
+
+    // HP — use uiHeart icon if available
+    const hpBarW = w * 0.2, hpBarH = Math.max(10, 14 * Layout.scale(w, h));
+    const hpX = w * 0.02, hpY = hudY + (h - hudY) * 0.2;
+    if (assets.has('uiHeart')) {
+      assets.draw(ctx, 'uiHeart', hpX, hpY - iconS / 2, iconS, iconS);
+      UI.hpBar(ctx, hpX + iconS + 4, hpY - hpBarH / 2, hpBarW, hpBarH, player.hp, player.maxHp, { fgColor: '#e04040' });
+      UI.text(ctx, `${player.hp}/${player.maxHp}`, hpX + iconS + 4 + hpBarW + 8, hpY, { size: fs * 0.9, color: '#ccc', align: 'left' });
+    } else {
+      UI.text(ctx, `HP`, hpX, hpY, { size: fs, color: '#e44', align: 'left' });
+      UI.hpBar(ctx, hpX + fs * 2, hpY - hpBarH / 2, hpBarW, hpBarH, player.hp, player.maxHp, { fgColor: '#e04040' });
+      UI.text(ctx, `${player.hp}/${player.maxHp}`, hpX + fs * 2 + hpBarW + 8, hpY, { size: fs * 0.9, color: '#ccc', align: 'left' });
+    }
+
+    // Floor / Score / Gold / Kills — use uiGoldIcon if available
+    const infoY = hudY + (h - hudY) * 0.55;
+    UI.text(ctx, `${floor}F`, w * 0.03, infoY, { size: fs, color: '#aaa', align: 'left' });
+    UI.text(ctx, `ATK:${player.atk}`, w * 0.1, infoY, { size: fs, color: '#e88', align: 'left' });
+    if (assets.has('uiGoldIcon')) {
+      assets.draw(ctx, 'uiGoldIcon', w * 0.2, infoY - iconS / 2, iconS, iconS);
+      UI.text(ctx, `${goldCollected}`, w * 0.2 + iconS + 2, infoY, { size: fs, color: PAL.gold, align: 'left' });
+    } else {
+      UI.text(ctx, `${goldCollected}G`, w * 0.22, infoY, { size: fs, color: PAL.gold, align: 'left' });
+    }
+    UI.text(ctx, `Score:${score}`, w * 0.35, infoY, { size: fs, color: '#fff', align: 'left' });
+
+    // Inventory slots — use uiInventoryFrame if available
+    const slotSize = Math.max(30, 40 * Layout.scale(w, h));
+    const slotStartX = w * 0.55;
+    const slotY = hudY + (h - hudY) * 0.15;
+    const hasInvFrame = assets.has('uiInventoryFrame');
+    for (let i = 0; i < INV_SLOTS; i++) {
+      const sx = slotStartX + i * (slotSize + 6);
+      if (hasInvFrame) {
+        // Frame sprite: 2 states side by side (256x128 → each 128x128)
+        const img = assets.sprites.uiInventoryFrame;
+        const frameX = inventory[i] ? 128 : 0;
+        ctx.drawImage(img, frameX, 0, 128, 128, sx, slotY, slotSize, slotSize);
+      } else {
+        ctx.fillStyle = inventory[i] ? '#1a1a40' : '#0d0d20';
+        ctx.strokeStyle = inventory[i] ? PAL.player : PAL.uiBorder;
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(sx, slotY, slotSize, slotSize);
+        ctx.strokeRect(sx, slotY, slotSize, slotSize);
+      }
+
+      if (inventory[i]) {
+        const it = inventory[i];
+        const pad = slotSize * 0.15;
+        if (it.type === 'hpPotion') assets.draw(ctx, 'itemPotionHp', sx + pad, slotY + pad, slotSize - pad * 2, slotSize - pad * 2, PAL.heal);
+        else if (it.type === 'strPotion') assets.draw(ctx, 'itemPotionStr', sx + pad, slotY + pad, slotSize - pad * 2, slotSize - pad * 2, '#ff8800');
+      }
+
+      // Slot number
+      UI.text(ctx, `${i + 1}`, sx + slotSize / 2, slotY + slotSize + fs * 0.6, { size: fs * 0.75, color: '#666' });
+    }
+
+    // Log messages
+    if (msgTimer > 0 && logMessages.length > 0) {
+      const logFs = Layout.fontSize(11, w, h);
+      const logAlpha = Math.min(1, msgTimer / 500);
+      ctx.globalAlpha = logAlpha;
+      for (let i = 0; i < Math.min(3, logMessages.length); i++) {
+        UI.text(ctx, logMessages[i], w / 2, h * 0.04 + i * (logFs + 4), { size: logFs, color: '#ddd', shadow: true });
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Minimap (top-right)
+    renderMinimap(ctx, w, h);
+
+    UI.scanlines(ctx, w, h, 0.015);
+  },
+};
+
+function renderMinimap(ctx, w, h) {
+  const s = Layout.scale(w, h);
+  const mmSize = Math.max(60, 90 * s);
+  const mmX = w - mmSize - 8, mmY = 8;
+  const cellS = mmSize / Math.max(MAP_W, MAP_H);
+
+  // Use uiMinimapFrame if available
+  if (assets.has('uiMinimapFrame')) {
+    const framePad = 6;
+    assets.draw(ctx, 'uiMinimapFrame', mmX - framePad, mmY - framePad, mmSize + framePad * 2, mmSize + framePad * 2);
+  } else {
+    ctx.fillStyle = 'rgba(10,10,30,0.8)';
+    ctx.fillRect(mmX - 2, mmY - 2, mmSize + 4, mmSize + 4);
+    ctx.strokeStyle = PAL.uiBorder;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mmX - 2, mmY - 2, mmSize + 4, mmSize + 4);
+  }
+  // Dark background behind minimap dots
+  ctx.fillStyle = 'rgba(10,10,30,0.8)';
+  ctx.fillRect(mmX, mmY, mmSize, mmSize);
+
+  for (let row = 0; row < MAP_H; row++) {
+    for (let col = 0; col < MAP_W; col++) {
+      if (!explored[row] || !explored[row][col]) continue;
+      const mx = mmX + col * cellS, my = mmY + row * cellS;
+      const tile = mapTiles[row][col];
+      if (tile === TILE.WALL) {
+        ctx.fillStyle = '#3a3a50';
+      } else if (tile === TILE.STAIRS) {
+        ctx.fillStyle = '#ffff00';
+      } else {
+        ctx.fillStyle = visible[row][col] ? '#5a4a3a' : '#2a2018';
+      }
+      ctx.fillRect(mx, my, Math.max(1, cellS), Math.max(1, cellS));
+    }
+  }
+
+  // Player on minimap
+  ctx.fillStyle = PAL.player;
+  ctx.fillRect(mmX + player.x * cellS - 1, mmY + player.y * cellS - 1, Math.max(2, cellS + 1), Math.max(2, cellS + 1));
+
+  // Visible enemies on minimap
+  for (const e of enemies) {
+    if (!e.alive || !visible[e.y] || !visible[e.y][e.x]) continue;
+    ctx.fillStyle = PAL.enemy;
+    ctx.fillRect(mmX + e.x * cellS, mmY + e.y * cellS, Math.max(1, cellS), Math.max(1, cellS));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCENE: GAMEOVER (custom — shows run stats)
+// ═══════════════════════════════════════════════════════════
+const gameoverScene = {
+  enter(data) {
+    const w = engine.W, h = engine.H;
+    const s = Layout.scale(w, h);
+    const bw = Math.max(200, 240 * s), bh = Math.max(50, 56 * s);
+
+    new Button({
+      x: w / 2 - bw / 2, y: h * 0.68, w: bw, h: bh,
+      text: '로비로 돌아가기', key: ['KeyR', 'Space', 'Enter'],
+      fontSize: Layout.fontSize(16, w, h),
+      color: PAL.player,
+      onClick: () => Scene.transition('LOBBY'),
+    });
+    new Button({
+      x: w / 2 - bw / 2, y: h * 0.78, w: bw, h: bh * 0.8,
+      text: '타이틀', key: ['Escape'],
+      fontSize: Layout.fontSize(14, w, h),
+      color: '#555',
+      onClick: () => Scene.transition('TITLE'),
+    });
+  },
+  update(dt) { tween.update(dt); },
+  render(ctx, w, h) {
+    if (assets.has('bgGameover')) {
+      ctx.drawImage(assets.sprites.bgGameover, 0, 0, w, h);
+      ctx.fillStyle = 'rgba(10,10,30,0.6)';
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.fillStyle = '#080818';
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    const data = GameFlow._config?._gameoverData || {};
+    const fs = Layout.fontSize(16, w, h);
+
+    UI.text(ctx, 'GAME OVER', w / 2, h * 0.15, { size: Layout.fontSize(42, w, h), bold: true, color: '#ff4466', glow: '#ff0044' });
+
+    const stats = [
+      ['도달 층', `${data.floor || 0}F`],
+      ['처치 수', `${data.killCount || 0}`],
+      ['획득 골드', `${data.goldCollected || 0}G (저장됨)`],
+      ['최종 점수', `${data.score || 0}`],
+    ];
+    const startY = h * 0.3;
+    for (let i = 0; i < stats.length; i++) {
+      UI.text(ctx, stats[i][0], w * 0.35, startY + i * (fs * 2.2), { size: fs, color: '#888', align: 'right' });
+      UI.text(ctx, stats[i][1], w * 0.4, startY + i * (fs * 2.2), { size: fs * 1.1, color: PAL.gold, align: 'left', bold: true });
+    }
+
+    const hi = Save.getHighScore(GAME_ID);
+    UI.text(ctx, `최고점수: ${hi}`, w / 2, h * 0.58, { size: fs, color: '#aaa' });
+
+    UI.scanlines(ctx, w, h, 0.02);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// SCENE: VICTORY
+// ═══════════════════════════════════════════════════════════
+const victoryScene = {
+  enter(data) {
+    const w = engine.W, h = engine.H;
+    const s = Layout.scale(w, h);
+    const bw = Math.max(200, 240 * s), bh = Math.max(50, 56 * s);
+
+    new Button({
+      x: w / 2 - bw / 2, y: h * 0.72, w: bw, h: bh,
+      text: '로비로', key: ['Space', 'Enter'],
+      fontSize: Layout.fontSize(16, w, h),
+      color: PAL.gold,
+      onClick: () => Scene.transition('LOBBY'),
+    });
+  },
+  update(dt) { tween.update(dt); particles.update(dt); },
+  render(ctx, w, h) {
+    if (assets.has('bgVictory')) {
+      ctx.drawImage(assets.sprites.bgVictory, 0, 0, w, h);
+      ctx.fillStyle = 'rgba(10,10,30,0.3)';
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.fillStyle = '#0a0a1e';
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    const data = GameFlow._config?._gameoverData || {};
+    const fs = Layout.fontSize(16, w, h);
+
+    UI.text(ctx, '승 리 !', w / 2, h * 0.15, { size: Layout.fontSize(48, w, h), bold: true, color: PAL.gold, glow: '#ffaa00' });
+    UI.text(ctx, '다크 나이트를 쓰러뜨렸다!', w / 2, h * 0.28, { size: Layout.fontSize(18, w, h), color: '#fff' });
+
+    const stats = [
+      ['최종 점수', `${data.score || 0}`],
+      ['처치 수', `${data.killCount || 0}`],
+      ['획득 골드', `${data.goldCollected || 0}G`],
+    ];
+    const startY = h * 0.38;
+    for (let i = 0; i < stats.length; i++) {
+      UI.text(ctx, stats[i][0], w * 0.35, startY + i * (fs * 2.2), { size: fs, color: '#aaa', align: 'right' });
+      UI.text(ctx, stats[i][1], w * 0.4, startY + i * (fs * 2.2), { size: fs * 1.1, color: PAL.gold, align: 'left', bold: true });
+    }
+
+    // Sparkle particles
+    if (Math.random() < 0.3) {
+      particles.emit(MathUtil.randRange(w * 0.2, w * 0.8), MathUtil.randRange(h * 0.1, h * 0.5), 1, { color: PAL.gold, speed: 30, life: 1, size: 3 });
+    }
+    particles.render(ctx);
+
+    UI.scanlines(ctx, w, h, 0.02);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  // Load assets from manifest
+  const manifest = await fetch('assets/manifest.json').then(r => r.json()).catch(() => null);
+  if (manifest && manifest.assets) {
+    const assetMap = {};
+    for (const [key, info] of Object.entries(manifest.assets)) {
+      if (key === 'thumbnail') continue; // Skip thumbnail
+      assetMap[key] = 'assets/' + info.file;
+    }
+    await assets.load(assetMap, { timeoutMs: 10000 });
+  }
+
+  // Bind tween/particles for auto-cleanup
+  Scene.bind({ tween, particles });
+
+  // Initialize player idle sprite sheet (4 frames, 512x128 → each 128x128)
+  if (assets.has('playerIdleSheet')) {
+    const img = assets.sprites.playerIdleSheet;
+    playerIdleSprite = new Sprite(img, img.width / 4, img.height, 4, 4);
+  }
+
+  // Register all scenes
+  GameFlow.init({
+    titleText: '픽셀 심연',
+    title: titleScene,
+    play: playScene,
+    gameover: gameoverScene,
+    onReset: resetGameState,
+    stuckMs: 90000, // 90 seconds for turn-based
+  });
+
+  // Register extra scenes
+  Scene.register('LOBBY', lobbyScene);
+  Scene.register('VICTORY', victoryScene);
+
+  // Engine loop
+  engine._update = (dt) => {
+    Scene.update(dt, input);
+    input.flush();
+  };
+  engine._render = (ctx, w, h) => {
+    Scene.render(ctx, w, h);
+  };
+
+  GameFlow.start();
+  engine.start();
+}
+
+init();
+</script>
+</body>
+</html>

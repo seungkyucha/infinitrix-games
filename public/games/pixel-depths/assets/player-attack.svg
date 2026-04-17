@@ -1,0 +1,286 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" shape-rendering="crispEdges">
+  <defs>
+    <!-- Helmet metallic gradient -->
+    <linearGradient id="helmetGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7a7a8e"/>
+      <stop offset="40%" stop-color="#5a5a6e"/>
+      <stop offset="100%" stop-color="#3a3a4e"/>
+    </linearGradient>
+    <!-- Sword blade gradient -->
+    <linearGradient id="bladeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c0c0d0"/>
+      <stop offset="50%" stop-color="#e8e8f0"/>
+      <stop offset="100%" stop-color="#a0a0b0"/>
+    </linearGradient>
+    <!-- Cape gradient -->
+    <linearGradient id="capeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00c8ff"/>
+      <stop offset="60%" stop-color="#009bcc"/>
+      <stop offset="100%" stop-color="#006688"/>
+    </linearGradient>
+    <!-- Slash trail gradient -->
+    <linearGradient id="slashGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00c8ff" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#00e8ff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00c8ff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Eye glow filter -->
+    <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Slash glow filter -->
+    <filter id="slashGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Armor leather gradient -->
+    <linearGradient id="armorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8b7355"/>
+      <stop offset="100%" stop-color="#5a4030"/>
+    </linearGradient>
+    <!-- Boot gradient -->
+    <linearGradient id="bootGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a3525"/>
+      <stop offset="100%" stop-color="#3d2b1f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ====== SLASH TRAIL EFFECT (behind character) ====== -->
+  <g id="slash-trail" filter="url(#slashGlow)">
+    <!-- Outer slash arc - large sweeping trail -->
+    <path d="M72,18 Q108,30 118,52 Q124,68 112,86 Q104,72 100,58 Q94,40 80,26 Z"
+          fill="url(#slashGrad)" opacity="0.6"/>
+    <!-- Mid slash arc -->
+    <path d="M76,24 Q104,36 112,54 Q116,66 108,80 Q102,68 96,54 Q90,40 82,30 Z"
+          fill="#00e8ff" opacity="0.35"/>
+    <!-- Inner slash arc - bright core -->
+    <path d="M80,30 Q100,40 106,56 Q110,64 104,74 Q100,64 94,52 Q88,42 84,34 Z"
+          fill="#ffffff" opacity="0.3"/>
+    <!-- Slash sparkle particles -->
+    <rect x="114" y="50" width="3" height="3" fill="#00c8ff" opacity="0.7"/>
+    <rect x="110" y="40" width="2" height="2" fill="#ffffff" opacity="0.6"/>
+    <rect x="116" y="62" width="2" height="2" fill="#00e8ff" opacity="0.5"/>
+    <rect x="106" y="76" width="3" height="3" fill="#00c8ff" opacity="0.4"/>
+    <rect x="108" y="34" width="2" height="2" fill="#ffffff" opacity="0.5"/>
+    <rect x="118" y="56" width="2" height="2" fill="#88eeff" opacity="0.6"/>
+  </g>
+
+  <!-- ====== CAPE (behind body, flowing back-left from motion) ====== -->
+  <g id="cape">
+    <!-- Main cape body flowing backward -->
+    <path d="M30,42 L42,40 L44,44 L40,60 L36,78 L28,92 L18,96 L12,90 L14,74 L18,58 L24,46 Z"
+          fill="url(#capeGrad)"/>
+    <!-- Cape shadow fold -->
+    <path d="M30,42 L36,44 L32,60 L28,78 L22,90 L16,92 L18,76 L22,58 L26,46 Z"
+          fill="#006688" opacity="0.5"/>
+    <!-- Cape highlight fold -->
+    <path d="M34,44 L40,42 L38,56 L34,70 L30,82 L26,88 L28,74 L30,58 Z"
+          fill="#00d8ff" opacity="0.3"/>
+    <!-- Cape bottom flutter detail -->
+    <path d="M18,96 L12,90 L10,94 L14,100 L22,98 L28,92 Z"
+          fill="#008aaa"/>
+    <!-- Cape edge highlight -->
+    <path d="M12,90 L14,74 L16,72 L14,88 Z" fill="#00d8ff" opacity="0.25"/>
+  </g>
+
+  <!-- ====== BACK ARM (left arm, behind body) ====== -->
+  <g id="arm-back">
+    <!-- Upper arm -->
+    <rect x="34" y="50" width="8" height="14" rx="1" fill="#5a4030"/>
+    <!-- Shoulder armor plate -->
+    <rect x="32" y="48" width="10" height="6" rx="1" fill="#5a5a6e"/>
+    <rect x="33" y="49" width="8" height="2" fill="#7a7a8e"/>
+    <!-- Forearm -->
+    <rect x="32" y="62" width="7" height="10" rx="1" fill="#8b7355"/>
+    <!-- Glove/fist -->
+    <rect x="31" y="70" width="8" height="6" rx="1" fill="#3d2b1f"/>
+  </g>
+
+  <!-- ====== BODY (leaning forward) ====== -->
+  <g id="body" transform="translate(2,-2)">
+    <!-- Torso base - leather armor -->
+    <path d="M40,46 L62,44 L66,50 L64,72 L38,74 L36,50 Z" fill="url(#armorGrad)"/>
+
+    <!-- Chainmail section on torso -->
+    <g id="chainmail" opacity="0.7">
+      <!-- Chainmail pattern - dithering style -->
+      <rect x="44" y="52" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="48" y="52" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="52" y="52" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="56" y="52" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="46" y="54" width="2" height="2" fill="#4a4a5e"/>
+      <rect x="50" y="54" width="2" height="2" fill="#4a4a5e"/>
+      <rect x="54" y="54" width="2" height="2" fill="#4a4a5e"/>
+      <rect x="44" y="56" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="48" y="56" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="52" y="56" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="56" y="56" width="2" height="2" fill="#5a5a6e"/>
+      <rect x="46" y="58" width="2" height="2" fill="#4a4a5e"/>
+      <rect x="50" y="58" width="2" height="2" fill="#4a4a5e"/>
+      <rect x="54" y="58" width="2" height="2" fill="#4a4a5e"/>
+    </g>
+
+    <!-- Belt -->
+    <rect x="38" y="66" width="28" height="5" rx="1" fill="#3d2b1f"/>
+    <!-- Belt buckle -->
+    <rect x="49" y="67" width="5" height="3" rx="0.5" fill="#c8a84e"/>
+    <rect x="50" y="68" width="3" height="1" fill="#a08030"/>
+
+    <!-- Armor trim / edge details -->
+    <rect x="40" y="46" width="22" height="2" fill="#2a2a3e"/>
+    <!-- Red accent stripes on armor -->
+    <rect x="42" y="60" width="8" height="1" fill="#8b2020"/>
+    <rect x="54" y="60" width="6" height="1" fill="#8b2020"/>
+
+    <!-- Shoulder armor - right (front) -->
+    <rect x="58" y="42" width="12" height="8" rx="1" fill="#5a5a6e"/>
+    <rect x="59" y="43" width="10" height="3" fill="#7a7a8e"/>
+    <rect x="60" y="44" width="8" height="1" fill="#9a9aae"/>
+  </g>
+
+  <!-- ====== LEGS ====== -->
+  <g id="legs">
+    <!-- Left leg (back) -->
+    <rect x="38" y="74" width="10" height="16" rx="1" fill="#5a4030"/>
+    <!-- Left leg armor plate -->
+    <rect x="37" y="74" width="4" height="12" fill="#2a2a3e"/>
+    <!-- Left boot -->
+    <rect x="36" y="88" width="14" height="8" rx="1" fill="url(#bootGrad)"/>
+    <rect x="35" y="94" width="16" height="4" rx="1" fill="#3d2b1f"/>
+    <!-- Boot sole -->
+    <rect x="35" y="96" width="16" height="2" fill="#2a1a10"/>
+    <!-- Boot strap -->
+    <rect x="37" y="90" width="12" height="1" fill="#2a2a3e"/>
+
+    <!-- Right leg (front, stepping forward) -->
+    <rect x="54" y="72" width="10" height="18" rx="1" fill="#5a4030"/>
+    <!-- Right leg armor plate -->
+    <rect x="62" y="72" width="4" height="14" fill="#2a2a3e"/>
+    <!-- Right boot -->
+    <rect x="52" y="88" width="16" height="8" rx="1" fill="url(#bootGrad)"/>
+    <rect x="52" y="94" width="18" height="4" rx="1" fill="#3d2b1f"/>
+    <!-- Boot sole -->
+    <rect x="52" y="96" width="18" height="2" fill="#2a1a10"/>
+    <!-- Boot strap -->
+    <rect x="54" y="90" width="12" height="1" fill="#2a2a3e"/>
+  </g>
+
+  <!-- ====== HEAD (large chibi head with helmet) ====== -->
+  <g id="head">
+    <!-- Helmet base -->
+    <path d="M32,10 Q34,2 52,0 Q70,2 72,10 L74,30 Q72,38 52,40 Q32,38 30,30 Z"
+          fill="url(#helmetGrad)"/>
+
+    <!-- Helmet top crest / ridge -->
+    <path d="M44,2 Q52,-2 60,2 L58,6 Q52,4 46,6 Z" fill="#8a8a9e"/>
+    <rect x="48" y="0" width="8" height="4" rx="1" fill="#7a7a8e"/>
+
+    <!-- Helmet visor area (dark) -->
+    <path d="M36,18 L68,18 L66,30 Q64,34 52,36 Q40,34 38,30 Z" fill="#1a1a2e"/>
+
+    <!-- Visor horizontal slit -->
+    <rect x="38" y="22" width="28" height="8" rx="1" fill="#0a0a1e"/>
+
+    <!-- Glowing cyan eyes -->
+    <g filter="url(#eyeGlow)">
+      <!-- Left eye -->
+      <rect x="40" y="24" width="8" height="4" rx="0.5" fill="#00c8ff"/>
+      <rect x="42" y="25" width="4" height="2" fill="#88f0ff"/>
+      <rect x="43" y="25" width="2" height="2" fill="#ffffff"/>
+      <!-- Right eye -->
+      <rect x="54" y="24" width="8" height="4" rx="0.5" fill="#00c8ff"/>
+      <rect x="56" y="25" width="4" height="2" fill="#88f0ff"/>
+      <rect x="57" y="25" width="2" height="2" fill="#ffffff"/>
+    </g>
+
+    <!-- Visor nose bridge -->
+    <rect x="50" y="22" width="4" height="6" fill="#1a1a2e"/>
+
+    <!-- Helmet cheek guards -->
+    <path d="M32,18 L36,18 L38,32 L34,34 L30,30 Z" fill="#4a4a5e"/>
+    <path d="M68,18 L72,18 L74,30 L70,34 L66,32 Z" fill="#4a4a5e"/>
+
+    <!-- Helmet rim / brow -->
+    <rect x="34" y="18" width="36" height="3" rx="1" fill="#6a6a7e"/>
+    <rect x="36" y="18" width="32" height="1" fill="#8a8a9e"/>
+
+    <!-- Helmet rivets -->
+    <circle cx="36" cy="20" r="1.5" fill="#9a9aae"/>
+    <circle cx="68" cy="20" r="1.5" fill="#9a9aae"/>
+    <circle cx="52" cy="10" r="1.5" fill="#9a9aae"/>
+
+    <!-- Cape clasp at neck (gold) -->
+    <circle cx="52" cy="38" r="3" fill="#c8a84e"/>
+    <circle cx="52" cy="38" r="1.5" fill="#a08030"/>
+  </g>
+
+  <!-- ====== FRONT ARM + SWORD (attack swing to the right) ====== -->
+  <g id="arm-sword">
+    <!-- Upper arm extending right -->
+    <path d="M62,46 L74,42 L78,48 L66,52 Z" fill="#5a4030"/>
+
+    <!-- Forearm reaching out -->
+    <path d="M74,42 L88,36 L92,42 L78,48 Z" fill="#8b7355"/>
+
+    <!-- Gauntlet / glove gripping sword -->
+    <rect x="86" y="34" width="10" height="10" rx="1" fill="#3d2b1f"/>
+    <rect x="87" y="35" width="8" height="3" fill="#4a3525"/>
+    <rect x="87" y="40" width="8" height="3" fill="#4a3525"/>
+
+    <!-- ====== SWORD ====== -->
+    <g id="sword">
+      <!-- Sword handle / grip -->
+      <rect x="88" y="38" width="4" height="8" rx="0.5" fill="#5a3a20"/>
+      <rect x="89" y="39" width="2" height="2" fill="#7a5a40"/>
+      <rect x="89" y="43" width="2" height="2" fill="#7a5a40"/>
+
+      <!-- Sword crossguard -->
+      <path d="M84,34 L98,30 L99,34 L85,38 Z" fill="#a0a0b0"/>
+      <path d="M86,35 L96,32 L97,34 L87,37 Z" fill="#c0c0d0"/>
+
+      <!-- Sword blade - extended to the upper right -->
+      <path d="M96,30 L118,10 L120,8 L122,10 L102,32 L98,34 Z" fill="url(#bladeGrad)"/>
+      <!-- Blade edge highlight -->
+      <path d="M98,30 L118,10 L119,9 L120,10 L100,31 Z" fill="#e8e8f0" opacity="0.6"/>
+      <!-- Blade center fuller -->
+      <path d="M100,30 L116,14 L117,15 L101,31 Z" fill="#8888a0" opacity="0.4"/>
+      <!-- Blade tip -->
+      <path d="M118,10 L122,6 L124,8 L120,12 Z" fill="#d0d0e0"/>
+
+      <!-- Pommel -->
+      <circle cx="90" cy="46" r="3" fill="#a0a0b0"/>
+      <circle cx="90" cy="46" r="1.5" fill="#c8a84e"/>
+    </g>
+  </g>
+
+  <!-- ====== GROUND SHADOW ====== -->
+  <ellipse cx="52" cy="100" rx="28" ry="4" fill="#0a0a2e" opacity="0.4"/>
+
+  <!-- ====== ADDITIONAL MOTION EFFECTS ====== -->
+  <g id="motion-lines" opacity="0.3">
+    <!-- Speed lines behind character -->
+    <rect x="14" y="40" width="12" height="1" fill="#00c8ff"/>
+    <rect x="10" y="50" width="16" height="1" fill="#00c8ff"/>
+    <rect x="16" y="60" width="10" height="1" fill="#00c8ff"/>
+    <rect x="8" y="70" width="14" height="1" fill="#00c8ff"/>
+    <rect x="20" y="46" width="8" height="1" fill="#00a8dd"/>
+    <rect x="12" y="56" width="10" height="1" fill="#00a8dd"/>
+    <rect x="18" y="66" width="8" height="1" fill="#00a8dd"/>
+  </g>
+
+  <!-- ====== SLASH IMPACT SPARKS ====== -->
+  <g id="sparks">
+    <rect x="120" y="6" width="3" height="1" fill="#ffffff" opacity="0.8"/>
+    <rect x="124" y="4" width="1" height="3" fill="#ffffff" opacity="0.8"/>
+    <rect x="122" y="2" width="2" height="1" fill="#00e8ff" opacity="0.6"/>
+    <rect x="126" y="8" width="1" height="2" fill="#00c8ff" opacity="0.5"/>
+    <rect x="118" y="4" width="1" height="1" fill="#ffffff" opacity="0.7"/>
+  </g>
+</svg>

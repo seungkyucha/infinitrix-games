@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "WebSearch",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:www.svggenie.com)",
+      "WebFetch(domain:medium.com)",
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"=== Gemini commit time ===\" git log --oneline --format=\"%ai %s\" \"C:/Work/InfinitriX\")",
+      "Bash(npm ls *)",
+      "Bash(npm view *)",
+      "Bash(npx tsc *)",
+      "Bash(IMAGE_PROVIDER=\"\" GEMINI_API_KEY=\"test-key\" OPENAI_API_KEY=\"\" npx tsx -e \"import\\('./src/image/index.js'\\).then\\(m => { const p = m.getImageProvider\\(\\); console.log\\('provider:', p?.name, 'model:', p?.modelTag, 'nativeAlpha:', p?.supportsNativeTransparency\\) }\\)\")",
+      "Bash(OPENAI_API_KEY=\"test\" GEMINI_API_KEY=\"test\" IMAGE_PROVIDER=openai npx tsx -e \"import\\('./src/image/index.js'\\).then\\(m => { const p = m.getImageProvider\\(\\); console.log\\('selected:', p?.name, 'nativeAlpha:', p?.supportsNativeTransparency\\) }\\)\")",
+      "Bash(OPENAI_API_KEY=\"\" GEMINI_API_KEY=\"\" IMAGE_PROVIDER=\"\" npx tsx -e \"import\\('./src/image/index.js'\\).then\\(m => console.log\\('available:', m.isImageGenerationAvailable\\(\\)\\)\\)\")",
+      "Bash(GEMINI_API_KEY=\"test\" npx tsx -e \"import\\('./src/gemini-image.js'\\).then\\(m => console.log\\('shim exports:', Object.keys\\(m\\).sort\\(\\).join\\(','\\)\\)\\)\")"
+    ]
+  }
+}
