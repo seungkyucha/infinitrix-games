@@ -1,5 +1,118 @@
 {
-  "lastUpdated": "2026-04-17T00:00:00.000Z",
-  "totalGames": 0,
-  "games": []
+  "lastUpdated": "2026-04-17T16:56:04.000Z",
+  "totalGames": 1,
+  "games": [
+    {
+      "id": "pixel-depths",
+      "title": "픽셀 심연",
+      "description": "매 런마다 랜덤 던전을 탐험하는 턴제 로그라이크",
+      "genre": ["roguelike", "arcade"],
+      "thumbnail": "/games/pixel-depths/assets/thumbnail.png",
+      "path": "/games/pixel-depths/index.html",
+      "addedAt": "2026-04-17T16:56:04.000Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["로그라이크", "턴제", "던전크롤러", "픽셀아트", "영구죽음", "메타업그레이드"],
+      "controls": [
+        "WASD / 방향키: 이동",
+        "Space: 턴 대기",
+        "1~3: 아이템 사용",
+        "터치: 스와이프 이동, 탭 공격"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Pixel Depths",
+          "description": "A turn-based roguelike dungeon crawler with randomly generated dungeons each run",
+          "tags": ["roguelike", "turn-based", "dungeon-crawler", "pixel-art", "permadeath", "meta-upgrades"],
+          "controls": [
+            "WASD / Arrow keys: Move",
+            "Space: Wait a turn",
+            "1~3: Use items",
+            "Touch: Swipe to move, tap to attack"
+          ]
+        },
+        "ja": {
+          "title": "ピクセル深淵",
+          "description": "毎回ランダム生成されるダンジョンを探索するターン制ローグライク",
+          "tags": ["ローグライク", "ターン制", "ダンジョンクロウラー", "ドット絵", "パーマデス", "メタアップグレード"],
+          "controls": [
+            "WASD / 矢印キー: 移動",
+            "Space: ターン待機",
+            "1~3: アイテム使用",
+            "タッチ: スワイプで移動、タップで攻撃"
+          ]
+        },
+        "zh-CN": {
+          "title": "像素深渊",
+          "description": "每次冒险随机生成地牢的回合制Roguelike游戏",
+          "tags": ["Roguelike", "回合制", "地牢探索", "像素风", "永久死亡", "永久升级"],
+          "controls": [
+            "WASD / 方向键: 移动",
+            "Space: 等待一回合",
+            "1~3: 使用道具",
+            "触屏: 滑动移动，点击攻击"
+          ]
+        },
+        "zh-TW": {
+          "title": "像素深淵",
+          "description": "每次冒險隨機生成地牢的回合制Roguelike遊戲",
+          "tags": ["Roguelike", "回合制", "地牢探索", "像素風", "永久死亡", "永久升級"],
+          "controls": [
+            "WASD / 方向鍵: 移動",
+            "Space: 等待一回合",
+            "1~3: 使用道具",
+            "觸控: 滑動移動，點擊攻擊"
+          ]
+        },
+        "es": {
+          "title": "Profundidades Píxel",
+          "description": "Un roguelike por turnos con mazmorras generadas aleatoriamente en cada partida",
+          "tags": ["roguelike", "por turnos", "exploración de mazmorras", "pixel art", "muerte permanente", "mejoras permanentes"],
+          "controls": [
+            "WASD / Flechas: Mover",
+            "Espacio: Esperar un turno",
+            "1~3: Usar objetos",
+            "Táctil: Deslizar para mover, tocar para atacar"
+          ]
+        },
+        "fr": {
+          "title": "Pixel Abysses",
+          "description": "Un roguelike au tour par tour avec des donjons générés aléatoirement à chaque partie",
+          "tags": ["roguelike", "tour par tour", "exploration de donjons", "pixel art", "mort permanente", "améliorations permanentes"],
+          "controls": [
+            "WASD / Flèches : Se déplacer",
+            "Espace : Passer un tour",
+            "1~3 : Utiliser des objets",
+            "Tactile : Glisser pour se déplacer, toucher pour attaquer"
+          ]
+        },
+        "de": {
+          "title": "Pixel-Abgrund",
+          "description": "Ein rundenbasiertes Roguelike mit zufällig generierten Dungeons bei jedem Durchlauf",
+          "tags": ["Roguelike", "Rundenbasiert", "Dungeon-Crawler", "Pixelkunst", "Permadeath", "Meta-Upgrades"],
+          "controls": [
+            "WASD / Pfeiltasten: Bewegen",
+            "Leertaste: Runde abwarten",
+            "1~3: Gegenstände benutzen",
+            "Touch: Wischen zum Bewegen, Tippen zum Angreifen"
+          ]
+        },
+        "pt": {
+          "title": "Pixel Abismos",
+          "description": "Um roguelike por turnos com masmorras geradas aleatoriamente a cada partida",
+          "tags": ["roguelike", "por turnos", "exploração de masmorras", "pixel art", "morte permanente", "melhorias permanentes"],
+          "controls": [
+            "WASD / Setas: Mover",
+            "Espaço: Aguardar um turno",
+            "1~3: Usar itens",
+            "Toque: Deslizar para mover, tocar para atacar"
+          ]
+        }
+      }
+    }
+  ]
 }
