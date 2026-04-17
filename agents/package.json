@@ -13,6 +13,7 @@
     "@google/genai": "^1.46.0",
     "ioredis": "^5.10.1",
     "openai": "^6.34.0",
+    "puppeteer": "^24.41.0",
     "sharp": "^0.34.5"
   },
   "devDependencies": {

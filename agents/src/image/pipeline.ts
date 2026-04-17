@@ -140,8 +140,12 @@ async function runPipeline(
 
   if (!existsSync(assetsDir)) mkdirSync(assetsDir, { recursive: true })
 
-  const baseAssets = art.assets.filter(a => !a.ref)
-  const variationAssets = art.assets.filter(a => !!a.ref)
+  // Thumbnails are now generated at the very end of the cycle by captureGameplayScreenshot()
+  // (see agents/src/screenshot.ts). Never let the image provider paint a thumbnail here —
+  // that produced text-prompt "cover art" that didn't match the actual gameplay.
+  const filteredAssets = art.assets.filter(a => a.id !== 'thumbnail')
+  const baseAssets = filteredAssets.filter(a => !a.ref)
+  const variationAssets = filteredAssets.filter(a => !!a.ref)
 
   const CONCURRENCY = 3
   const useChromaKey = !provider.supportsNativeTransparency
@@ -212,14 +216,14 @@ async function runPipeline(
     artDirection: { style: art.artStyle, palette: art.colorPalette, mood: art.mood, reference: art.reference },
     format: 'png',
     assets: Object.fromEntries(
-      art.assets.map(a => [
+      filteredAssets.map(a => [
         a.id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()),
         { file: `${a.id}.png`, size: a.size, desc: a.desc, ref: a.ref || undefined },
       ])
     ),
   }
   writeFileSync(`${assetsDir}/manifest.json`, JSON.stringify(manifest, null, 2))
-  console.log(`  📋 manifest.json saved (${generated.length}/${art.assets.length} generated)`)
+  console.log(`  📋 manifest.json saved (${generated.length}/${filteredAssets.length} generated; thumbnail will be captured from live gameplay)`)
 
   return { generated, failed }
 }

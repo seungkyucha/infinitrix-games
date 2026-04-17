@@ -555,7 +555,7 @@ ${styleListStr}
            - 텍스트가 포함된 에셋(썸네일 등)의 텍스트가 읽히는가?
         5. **누락 에셋 보완**:
            - 없는 에셋은 SVG로 보완 생성 (스타일 일치시킬 것)
-           - thumbnail.png가 없으면 thumbnail.svg 생성 (400x300 viewBox)
+           - ⛔ thumbnail은 절대 만들지 말 것 (SVG도 PNG도) — 사이클 후반 스크린샷 phase가 자동 캡처
         6. **manifest.json 갱신**:
            - 실제 존재하는 파일만 등록
            - format 필드는 주 포맷(png/svg) 기록
@@ -1034,6 +1034,20 @@ ${styleListStr}
       console.log(`\n⏭️ [6.5/7] Self-Evolution — 체크포인트로 건너뜀`)
     }
 
+    // ── 6.8단계: 실제 게임플레이 스크린샷 → 썸네일 ──────────────
+    // 썸네일은 AI 생성 텍스트 프롬프트나 SVG가 아니라 **실제로 돌아가는 게임의 스크린샷**.
+    // 이 단계는 비용 0 (로컬 puppeteer)이고 항상 실행.
+    if (state.gameId && !phaseDone('deploy')) {
+      console.log(`\n📸 [6.8/7] 게임플레이 스크린샷 캡처`)
+      try {
+        const { captureGameplayScreenshot, removeVectorThumbnail } = await import('./screenshot.js')
+        removeVectorThumbnail(state.gameId)
+        await captureGameplayScreenshot({ gameId: state.gameId })
+      } catch (err) {
+        console.error(`  ⚠️ [Screenshot] 실패 (비치명):`, (err as Error).message)
+      }
+    }
+
     // ── 7단계: 배포 ──────────────────────────────────────────
     if (!phaseDone('deploy')) {
     console.log(`\n🚢 [7/7] 배포 담당 — 레지스트리 등록 & GitHub Push`)
@@ -1043,10 +1057,9 @@ ${styleListStr}
       docs/game-specs/cycle-${cycleNumber}-spec.md를 읽어 게임 정보를 확인하고:
 
       1. public/games/game-registry.json에 새 게임을 추가해줘
-         ⚠️ thumbnail 경로: assets 폴더에서 ls 명령으로 확인 후:
-         - thumbnail.png 있으면 → "/games/[game-id]/assets/thumbnail.png" (PNG 우선!)
-         - thumbnail.png 없으면 → "/games/[game-id]/assets/thumbnail.svg"
-         반드시 실제 파일 존재 여부를 확인하고 경로를 등록할 것
+         ⚠️ thumbnail은 **반드시 "/games/[game-id]/assets/thumbnail.png"** 로 설정할 것.
+         ⛔ thumbnail.svg 경로는 절대 등록하지 말 것 (이전 단계에서 실제 게임플레이 스크린샷이 thumbnail.png로 저장됨).
+         ⚠️ 만약 thumbnail.png가 없으면 등록하지 말고 에러로 보고할 것 — AI 생성 썸네일·SVG 폴백 금지.
          ⚠️ addedAt은 반드시 new Date().toISOString() 으로 현재 시각을 사용할 것!
          (임의 시간 입력 금지 — 최신순 정렬에 영향)
 
@@ -1097,9 +1110,9 @@ ${styleListStr}
           if (!game.i18n || Object.keys(game.i18n).length < 8) {
             verifyErrors.push(`게임 "${gameId}"의 i18n 필드 누락 또는 불완전 (${Object.keys(game.i18n ?? {}).length}/8)`)
           }
-          // thumbnail 경로 확인
-          if (!game.thumbnail?.includes('/assets/thumbnail.svg')) {
-            verifyErrors.push(`게임 "${gameId}"의 thumbnail 경로 이상: ${game.thumbnail}`)
+          // thumbnail 경로 확인 — 반드시 .png (실제 게임플레이 스크린샷)
+          if (!game.thumbnail?.endsWith('/assets/thumbnail.png')) {
+            verifyErrors.push(`게임 "${gameId}" thumbnail 경로는 /assets/thumbnail.png 여야 함: ${game.thumbnail}`)
           }
         }
 
@@ -1114,28 +1127,22 @@ ${styleListStr}
           }
         }
 
-        // 3. 썸네일 파일 확인 (PNG 우선, SVG 폴백)
+        // 3. 썸네일 파일 확인 — 반드시 실제 게임플레이 스크린샷 PNG
         const thumbPng = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.png`
         const thumbSvg = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.svg`
+        // SVG 썸네일은 무조건 제거 (Vector fallback 원천 차단)
+        if (existsSync(thumbSvg)) {
+          try { (await import('fs')).unlinkSync(thumbSvg); console.log(`  🗑️ [검증] stale thumbnail.svg 제거`) } catch {}
+        }
         if (!existsSync(thumbPng)) {
-          // PNG 썸네일이 없으면 에셋 기반으로 활성 provider로 생성 시도
-          if (isImageGenerationAvailable()) {
-            console.log(`  🖼️ [검증] thumbnail.png 없음 — 에셋 기반 생성 시도 (${getImageProvider()?.name})`)
-            try {
-              const ok = await generateThumbnailFromAssets(
-                gameId, specMeta['title'] ?? gameId, specMeta['genre'] ?? '',
-                `${PROJECT_ROOT}/public/games/${gameId}/assets`
-              )
-              if (!ok && !existsSync(thumbSvg)) {
-                verifyErrors.push(`썸네일 파일 없음 (PNG 생성 실패, SVG도 없음)`)
-              }
-            } catch {
-              if (!existsSync(thumbSvg)) {
-                verifyErrors.push(`썸네일 파일 없음`)
-              }
-            }
-          } else if (!existsSync(thumbSvg)) {
-            verifyErrors.push(`썸네일 파일 없음`)
+          // 6.8 스크린샷 phase가 실패했으면 여기서 재시도
+          console.log(`  📸 [검증] thumbnail.png 없음 — 게임플레이 스크린샷 재시도`)
+          try {
+            const { captureGameplayScreenshot } = await import('./screenshot.js')
+            const result = await captureGameplayScreenshot({ gameId })
+            if (!result) verifyErrors.push(`썸네일 스크린샷 캡처 실패 (thumbnail.png 생성 안됨)`)
+          } catch (err) {
+            verifyErrors.push(`썸네일 스크린샷 에러: ${(err as Error).message.slice(0, 100)}`)
           }
         }
 
@@ -1184,10 +1191,10 @@ ${styleListStr}
         수정 방법:
         - registry에 게임이 없으면 추가 (i18n 8개 언어 포함)
         - totalGames 불일치면 수정
-        - 썸네일 파일이 없으면:
-          → public/games/[game-id]/assets/ 폴더 생성 (mkdir -p)
-          → thumbnail.svg 생성 (width="400" height="300" viewBox="0 0 400 300")
-          → 게임의 장르와 제목에 맞는 매력적인 SVG 이미지 제작
+        - 썸네일 파일(thumbnail.png)이 없으면:
+          ⛔ SVG를 **만들지 말 것** (벡터 fallback 금지)
+          → 스크린샷 capture phase가 이미 실패했음을 의미하므로 에러 보고만
+          → registry에 없는 썸네일을 등록하지 말 것
         - i18n 필드가 누락되면 8개 언어(en,ja,zh-CN,zh-TW,es,fr,de,pt)로 추가
         - 커밋되지 않은 파일이 있으면:
           git add public/games/ docs/
