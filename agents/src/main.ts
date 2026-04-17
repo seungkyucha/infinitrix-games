@@ -141,38 +141,37 @@ async function main() {
 
   if (isOnce) {
     const result = await runOneCycle()
-    process.exit(result === true ? 0 : 1)
+    // exit codes:
+    //   0 = success
+    //   1 = generic error (cycle advances)
+    //   2 = usage_error (cycle number NOT advanced, checkpoint preserved)
+    //       → wrapper script should wait and re-run same cycle to resume
+    const code = result === true ? 0 : result === 'usage_error' ? 2 : 1
+    if (code === 2) {
+      console.log('\n💳 토큰 한도 — 프로세스 종료 (exit 2). 체크포인트가 보존되어 다음 실행 시 자동 재개됩니다.')
+    }
+    process.exit(code)
   } else {
-    // 무한 반복 + 사용량 초과 시 점진적 대기
+    // 무한 반복 + 사용량 초과 시 점진적 대기 (Claude 토큰은 보통 5시간 단위 리프레시)
     let retryCount = 0
-    const MAX_WAIT = 60 * 60 * 1000 // 최대 1시간
+    const MAX_WAIT = 5 * 60 * 60 * 1000 // 최대 5시간 (Claude 토큰 리프레시 주기)
 
     while (true) {
       const result = await runOneCycle()
 
       if (result === 'usage_error') {
         retryCount++
-        // 점진적 대기: 5분 → 10분 → 20분 → 40분 → 60분 (최대)
-        const waitMs = Math.min(5 * 60 * 1000 * Math.pow(2, retryCount - 1), MAX_WAIT)
+        // 점진적 대기: 15분 → 30분 → 60분 → 2시간 → 5시간(최대)
+        const base = 15 * 60 * 1000
+        const waitMs = Math.min(base * Math.pow(2, retryCount - 1), MAX_WAIT)
         const waitMin = Math.round(waitMs / 60000)
-        console.log(`\n💤 사용량 한도 — ${waitMin}분 후 재시도 (${retryCount}회차)...\n`)
+        console.log(`\n💤 토큰 한도 — ${waitMin}분 후 재시도 (${retryCount}회차). 체크포인트 유지 — 완료 phase는 건너뜁니다.\n`)
         await new Promise(r => setTimeout(r, waitMs))
         continue
       }
 
       // 성공 또는 일반 에러: 리트라이 카운터 초기화
       retryCount = 0
-
-      // 매치3 집중 모드 종료 체크 (사이클 53 완료 시)
-      const MATCH3_END_CYCLE = 53
-      const currentCycle = getCurrentCycle() - 1 // 방금 완료한 사이클
-      if (currentCycle >= MATCH3_END_CYCLE) {
-        console.log(`\n💎 ═══════════════════════════════════════════════`)
-        console.log(`💎 매치3 집중 모드 10라운드 완료! (사이클 44~${currentCycle})`)
-        console.log(`💎 프로세스를 종료합니다.`)
-        console.log(`💎 ═══════════════════════════════════════════════\n`)
-        process.exit(0)
-      }
 
       console.log(`\n⏳ 다음 사이클까지 ${interval / 60000}분 대기...\n`)
       await new Promise(r => setTimeout(r, interval))

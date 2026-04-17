@@ -10,7 +10,7 @@ const STATUS_FILE = resolve(LOGS_DIR, 'agent-status.json')
 function getVercelUrl()   { return process.env.VERCEL_APP_URL ?? '' }
 function getWriteSecret() { return process.env.STATUS_WRITE_SECRET ?? '' }
 
-export type AgentId     = 'analyst' | 'planner' | 'designer' | 'coder' | 'reviewer' | 'postmortem' | 'deployer'
+export type AgentId     = 'analyst' | 'planner' | 'designer' | 'coder' | 'reviewer' | 'postmortem' | 'deployer' | 'evolver'
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'error'
 export type CycleStatus = 'idle' | 'running' | 'completed' | 'error'
 
@@ -80,6 +80,7 @@ export function defaultStatus(): StatusData {
       reviewer:   defaultAgent(),
       postmortem: defaultAgent(),
       deployer:   defaultAgent(),
+      evolver:    defaultAgent(),
     },
     recentLogs: [],
     stepNameEn: '',
@@ -443,6 +444,23 @@ function humanizeAction(agentId: AgentId, toolName: string, detail: string): str
       return '사이클 전체 회고 및 인사이트 정리 중'
     }
 
+    // ── Evolver (자가진화) ──────────────────────────────────────────────────
+    case 'evolver': {
+      if (toolName === 'Read') {
+        if (filePath.includes('cycle-metrics')) return '최근 사이클 메트릭 분석 중 — 디시플린 추세 파악'
+        if (filePath.includes('post-mortem'))   return '포스트모템 분석 중 — 반복 근본원인 탐지'
+        if (filePath.includes('wisdom'))        return '에이전트 지혜 검토 중 — 개선 힌트 추출'
+        if (filePath.includes('engine-notes'))  return '엔진 승격 이력 검토 중 — 진화 정체 감지'
+        return `평가 대상 읽는 중 (${fname})`
+      }
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('evolution/proposal')) return '진화 제안서 작성 중 — 디시플린별 개선안 정리'
+        if (filePath.includes('dashboard'))          return '품질 대시보드 갱신 중'
+        return '자가진화 산출물 기록 중'
+      }
+      return '파이프라인 진화 분석 중'
+    }
+
     // ── 배포 담당 ────────────────────────────────────────────────────────────
     case 'deployer': {
       if (toolName === 'Read') {
@@ -731,6 +749,23 @@ function humanizeActionEn(agentId: AgentId, toolName: string, detail: string): s
         return 'Writing cycle wrap-up document'
       }
       return 'Conducting full cycle retrospective and organizing insights'
+    }
+
+    // ── Evolver (self-evolution) ────────────────────────────────────────────
+    case 'evolver': {
+      if (toolName === 'Read') {
+        if (filePath.includes('cycle-metrics')) return 'Analyzing recent cycle metrics — detecting discipline trends'
+        if (filePath.includes('post-mortem'))   return 'Analyzing postmortems — detecting recurring root causes'
+        if (filePath.includes('wisdom'))        return 'Reviewing agent wisdom — extracting improvement hints'
+        if (filePath.includes('engine-notes'))  return 'Reviewing engine promotion history — detecting stagnation'
+        return `Reading evaluation target (${fname})`
+      }
+      if (toolName === 'Write' || toolName === 'Edit') {
+        if (filePath.includes('evolution/proposal')) return 'Writing evolution proposal — per-discipline improvements'
+        if (filePath.includes('dashboard'))          return 'Updating quality dashboard'
+        return 'Recording evolution output'
+      }
+      return 'Analyzing pipeline evolution'
     }
 
     // ── Deployer ────────────────────────────────────────────────────────────

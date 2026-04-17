@@ -10,7 +10,11 @@ import {
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs'
-import { generateGameAssets, generateThumbnailFromAssets } from './gemini-image.js'
+import { generateGameAssets, generateThumbnailFromAssets, isImageGenerationAvailable, getImageProvider } from './image/index.js'
+import {
+  loadCheckpoint, initCheckpoint, markPhaseDone, hasPhaseDone, clearCheckpoint,
+  type CycleCheckpoint, type PhaseName,
+} from './checkpoint.js'
 
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
@@ -289,64 +293,80 @@ export async function runDevelopmentCycle(cycleNumber: number): Promise<CycleSta
   const growthDirective = buildGrowthDirective(cycleNumber)
   console.log(`  📈 성장 목표: ${cycleNumber <= 5 ? '기본' : cycleNumber <= 10 ? '중급' : cycleNumber <= 20 ? '고급' : '프리미엄'} 단계`)
 
-  // ── 매치3 집중 모드 (사이클 44~53) ──────────────────────────
-  const MATCH3_START = 44
-  const MATCH3_END   = 53
-  const isMatch3Mode = cycleNumber >= MATCH3_START && cycleNumber <= MATCH3_END
-  const match3Round  = isMatch3Mode ? cycleNumber - MATCH3_START + 1 : 0
-  const match3Directive = isMatch3Mode ? `
+  // ── 스팀 인디 장르 로테이션 ─────────────────────────────────
+  // 목표: 매 사이클마다 다른 장르/아트 스타일을 시도, 폭넓은 포트폴리오 구축.
+  // 분석가·플래너는 이 목록 안에서만 선택하도록 강제된다.
+  const STEAM_INDIE_GENRES = [
+    { id: 'roguelike',        name: '로그라이크',       desc: '매 런마다 랜덤 생성되는 던전, 영구 죽음, 메타 업그레이드 (Hades/Dead Cells 계열)' },
+    { id: 'survivor-like',    name: '서바이벌 슈터',   desc: '자동 공격, 웨이브 누적, 빌드 조합 (Vampire Survivors/Brotato 계열)' },
+    { id: 'deckbuilder',      name: '덱빌더 로그라이크', desc: '카드 선택, 덱 구축, 턴제 전투 (Slay the Spire/Balatro 계열)' },
+    { id: 'metroidvania',     name: '메트로배니아',    desc: '탐험, 능력 획득, 맵 언락 (Hollow Knight/Ori 계열)' },
+    { id: 'bullet-hell',      name: '탄막 슈터',        desc: '빽빽한 탄막 회피, 패턴 암기, 보스 러시 (Touhou/Enter the Gungeon 계열)' },
+    { id: 'puzzle-platformer', name: '퍼즐 플랫포머',   desc: '물리 기반 퍼즐, 기믹 상호작용 (Celeste/Limbo 계열)' },
+    { id: 'auto-battler',     name: '오토 배틀러',      desc: '유닛 배치, 자동 전투, 시너지 (Teamfight Tactics/Super Auto Pets 계열)' },
+    { id: 'tower-defense',    name: '타워 디펜스',      desc: '경로 방어, 타워 배치·업그레이드 (Bloons TD/Kingdom Rush 계열)' },
+    { id: 'incremental',      name: '인크리멘털/클리커', desc: '자동 생산, 업그레이드 트리, 프리스티지 (Cookie Clicker/NGU Idle 계열)' },
+    { id: 'match3',           name: '매치3 퍼즐',       desc: '보석 스왑, 콤보, 스페셜 젬 (Royal Match/Candy Crush 계열)' },
+    { id: 'boomer-shooter',   name: '부머 슈터',        desc: '빠른 FPS, 시크릿, 아레나 전투 (DOOM/Quake 계열의 2.5D)' },
+  ] as const
+
+  // 10개 고정 아트 스타일 — 플래너가 하나를 골라 모든 에셋에 강제 적용
+  const ART_STYLES = [
+    { id: 'pixel-art-16bit',  name: '16-bit 픽셀아트',   cue: 'Crisp 16-bit pixel art, limited palette, dithering, retro SNES/Genesis feel. Sharp pixels, no anti-aliasing.' },
+    { id: 'pixel-art-32bit',  name: '32-bit 픽셀아트',   cue: 'Detailed 32-bit pixel art, rich palette, soft shading, late-90s arcade / PS1 sprite era.' },
+    { id: 'low-poly-3d',      name: '로우폴리 3D',       cue: 'Low-poly 3D render style: flat-shaded polygons, geometric forms, PS1/N64 era look, visible triangulation.' },
+    { id: 'hand-drawn-2d',    name: '핸드드로우 2D',     cue: 'Hand-drawn 2D art: visible ink lines, watercolor-like fills, slight paper texture (Hollow Knight / Cuphead feel).' },
+    { id: 'painterly-2d',     name: '페인터리 2D',        cue: 'Painterly digital 2D illustration: visible brushstrokes, rich atmospheric lighting (Ori / Gris feel).' },
+    { id: 'flat-vector',      name: '플랫 벡터',          cue: 'Flat vector art: clean geometric shapes, bold outlines, limited gradients, modern mobile-game look.' },
+    { id: 'cel-shaded',       name: '셀 셰이드 3D',      cue: 'Cel-shaded 3D: bold outlines, flat color zones, anime/comic book shading (Jet Set Radio / Borderlands feel).' },
+    { id: 'neon-synthwave',   name: '네온 신스웨이브',   cue: 'Neon synthwave aesthetic: magenta/cyan glows, grid floors, CRT scanlines, retro-futuristic 80s vibe.' },
+    { id: 'dark-gothic',      name: '다크 고딕',          cue: 'Dark gothic illustration: muted palette, heavy blacks, dramatic rim lighting, Bloodborne/Darkest Dungeon feel.' },
+    { id: 'minimalist-geom',  name: '미니멀 기하',        cue: 'Minimalist geometric style: pure shapes, 2-3 color palette, negative space, Thomas Was Alone / Geometry Wars feel.' },
+  ] as const
+
+  const rotationIdx = (cycleNumber - 1) % STEAM_INDIE_GENRES.length
+  const styleIdx = (cycleNumber - 1) % ART_STYLES.length
+  const suggestedGenre = STEAM_INDIE_GENRES[rotationIdx]
+  const suggestedStyle = ART_STYLES[styleIdx]
+
+  const genreListStr = STEAM_INDIE_GENRES.map(g => `  - ${g.id}: ${g.name} — ${g.desc}`).join('\n')
+  const styleListStr = ART_STYLES.map(s => `  - ${s.id}: ${s.name} — ${s.cue}`).join('\n')
+
+  const indieDirective = `
 ═══════════════════════════════════════════════════════════
-⚠️ 매치3 집중 모드 (${match3Round}/10 라운드)
+🎮 스팀 인디 장르 도전 — 다양성 + 완성도 우선
 ═══════════════════════════════════════════════════════════
 
-이번 싸이클은 **매치3 퍼즐 게임**만 제작합니다.
-목표: 로얄 매치(Royal Match) 급 프리미엄 매치3 게임
+**이번 사이클 추천 장르**: ${suggestedGenre.id} (${suggestedGenre.name})
+  ${suggestedGenre.desc}
 
-### 라운드별 진화 방향:
-${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
-- 3매치/4매치/5매치 + L/T자 매칭 시스템
-- 보석 스왑 애니메이션 (트윈 보간, 바운스 이징)
-- 매칭 → 제거 → 낙하 → 연쇄 반응 (cascade) 루프
-- 기본 보석 5~6색 + 스페셜 보석 (줄 파괴, 폭탄, 무지개)
-- 화려한 매칭 이펙트: 파티클 폭발, 빛줄기, 화면 쉐이크
-- 콤보 카운터 + 점수 팝업 애니메이션`
-: match3Round <= 6 ? `[중기 ${match3Round - 3}/3] 레벨/목표 시스템 + 비주얼 향상
-- 다양한 레벨 목표: 점수 달성, 특정 보석 N개 제거, 장애물 파괴, 젤리 제거
-- 장애물 시스템: 얼음(1~3겹), 체인, 나무 상자, 독 퍼짐
-- 부스터/파워업: 망치, 셔플, 추가 턴, 색상 폭탄
-- 레벨 맵 (10~20 레벨)
-- 로얄 매치급 비주얼: 보석 반짝임, 스페셜 생성 연출, 레벨 클리어 축하 애니메이션
-- 매칭 시 보석별 고유 파티클 색상/패턴`
-: `[후기 ${match3Round - 6}/4] 프리미엄 완성 + 메타 시스템
-- 완성된 매치3 + 이전 라운드 최고 코드 기반으로 발전
-- 스토리/테마 (왕국 건설, 정원 꾸미기, 탐험 등)
-- 스타 수집 → 건설/장식 메타 게임
-- 일일 챌린지 / 이벤트 레벨 시스템
-- 난이도 동적 조절 (DDA) — 연속 실패 시 쉬워짐
-- 프리미엄급 UI: 부드러운 전환, 리치 애니메이션, 주스(juice) 이펙트 극대화
-- 사운드 디자인: 매칭 음, 콤보 음, 스페셜 생성 음, 레벨 클리어 팡파레`}
+**이번 사이클 추천 아트 스타일**: ${suggestedStyle.id} (${suggestedStyle.name})
+  ${suggestedStyle.cue}
 
-### 이전 매치3 게임 개선:
-- 이전 라운드 게임의 코드를 반드시 참고하여 문제점 개선
-- 같은 실수 반복 금지 — 이전 리뷰의 지적 사항 반영
-- 매 라운드마다 비주얼 퀄리티와 게임성이 눈에 띄게 향상되어야 함
+### 장르 선택 규칙 (분석가·플래너):
+- 아래 11개 스팀 인디 장르 중 하나만 선택할 것:
+${genreListStr}
+- **최근 3사이클에 제작한 장르는 피하기** — 포트폴리오 다양성 확보
+- 추천과 다른 장르를 선택해도 되지만, 위 목록 외 장르는 금지
+- 플래너는 기획서 YAML front-matter의 \`genre\` 필드에 **장르 id** 를 정확히 기입
 
-### 에셋 특별 요구사항:
-- 보석(gem) 에셋: 6색 이상, 각각 고유한 형태 + 빛 반사 + 내부 광택
-- 스페셜 보석: 줄 파괴(가로/세로 화살표), 폭탄(3x3), 무지개(전색 제거)
-- 이펙트: 매칭 폭발, 콤보 텍스트 팝업, 줄 파괴 레이저, 폭탄 충격파
-- 배경: 판타지 왕국/정원/성 등 로얄 매치 분위기
-- UI: 레벨 목표 패널, 부스터 버튼, 턴 수 표시, 점수바
+### 아트 스타일 선택 규칙 (플래너):
+- 아래 10개 스타일 중 하나만 선택할 것:
+${styleListStr}
+- 플래너는 기획서 YAML front-matter에 \`art-style\` 필드를 추가하고 **스타일 id**를 기입
+- asset-requirements YAML 블록의 \`art-style\` 필드도 **동일한 id + 전체 cue 문장**으로 채울 것
+- **모든 에셋은 이 스타일을 엄격히 따라야 함** — 스타일 혼재 절대 금지
+- 예: \`pixel-art-16bit\`을 선택했다면 썸네일/배경/캐릭터/UI 모두 16-bit 픽셀아트
 
-### 아트 스타일:
-- 로얄 매치/캔디 크러시 급 — 밝고 화려한 3D 느낌의 2D 보석
-- 부드러운 그라디언트, 글로시 반사, 보석 내부 빛 산란
-- 배경은 따뜻한 판타지 동화 스타일
+### 스팀 인디 수준 완성도 체크리스트:
+- **핵심 루프가 재미있어야 함** — 처음 30초 안에 "한 판 더"를 유도
+- **시작~플레이~게임오버~재시작** 전 구간 버그 없어야 함
+- **UI 버튼 3방식 동작**: 마우스 / 터치 / 키보드 단축키 전부
+- **에셋 일관성**: 캐릭터 기본/공격/피격 등 변형은 반드시 동일 인물로 보여야 함 (ref 이미지 필수)
+- **아트 스타일 일관성**: 한 게임 안에 섞이지 말 것
 ═══════════════════════════════════════════════════════════
-` : ''
-  if (isMatch3Mode) {
-    console.log(`  💎 매치3 집중 모드 (${match3Round}/10 라운드)`)
-  }
+`
+  console.log(`  🎮 추천 장르: ${suggestedGenre.name} / 아트: ${suggestedStyle.name}`)
 
   const state: CycleState = {
     cycleNumber,
@@ -358,8 +378,18 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
     startedAt,
   }
 
+  // ── Checkpoint: mid-cycle resume after token exhaustion ──
+  const existingCp = loadCheckpoint(cycleNumber)
+  const checkpoint: CycleCheckpoint = initCheckpoint(cycleNumber, existingCp)
+  if (existingCp) {
+    console.log(`  🔖 [Checkpoint] 사이클 #${cycleNumber} 재개 (resume #${checkpoint.resumedCount}) — 완료 phase: [${existingCp.completedPhases.join(', ') || 'none'}]`)
+  }
+  const phaseDone = (p: PhaseName) => hasPhaseDone(checkpoint, p)
+  const phaseMark = (p: PhaseName) => markPhaseDone(checkpoint, p)
+
   try {
     // ── 1단계: 분석 ──────────────────────────────────────────
+    if (!phaseDone('analysis')) {
     console.log(`\n📊 [1/7] 분석가 — 플랫폼 현황 및 트렌드 분석`)
     state.status = 'analysis'
     startAgent('analyst', 1, '트렌드 분석', 'Trend Analysis')
@@ -368,15 +398,18 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       HTML5 게임 트렌드를 검색하여 다음 제작 게임을 추천해줘.
       결과를 docs/analytics/cycle-${cycleNumber}-report.md에 저장해줘.
       ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
-      ${match3Directive}
+      ${indieDirective}
       ${growthDirective}
       ${feedbackBlock}
-      ${isMatch3Mode ? '⚠️ 이번 싸이클은 매치3 퍼즐 게임만 분석/추천하세요. 다른 장르는 추천하지 마세요.' : '⚠️ 이전 사이클에서 지적된 장르 편중·구현 문제가 있다면 반드시 다른 방향을 선택할 것.'}
+      ⚠️ 이번 사이클은 스팀 인디 장르 목록 중 하나만 추천하세요. 최근 3사이클 제작 장르와 겹치지 않도록 game-registry.json 확인 후 선택.
       ${agentWisdomBlock('analyst', cycleNumber)}
     `)
     completeAgent('analyst')
+    phaseMark('analysis')
+    } else console.log(`\n⏭️ [1/7] 분석 — 체크포인트로 건너뜀`)
 
     // ── 2단계: 기획 ──────────────────────────────────────────
+    if (!phaseDone('planning')) {
     console.log(`\n📋 [2/7] 플래너 — 게임 기획서 작성`)
     state.status = 'planning'
     startAgent('planner', 2, '게임 기획', 'Game Design')
@@ -384,28 +417,32 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       docs/analytics/cycle-${cycleNumber}-report.md를 읽고,
       제작할 게임의 상세 기획서를 docs/game-specs/cycle-${cycleNumber}-spec.md에 저장해줘.
       ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
-      기획서 맨 위에 반드시 YAML front-matter 형식으로:
+
+      기획서 맨 위 YAML front-matter (반드시 아래 필드 모두 채울 것):
       ---
       game-id: [영문-소문자-하이픈]
       title: [한국어 제목]
-      genre: [장르]
+      genre: [스팀 인디 장르 목록 중 id 하나]
+      art-style: [ART_STYLES 목록 중 id 하나]
       difficulty: [easy/medium/hard]
       ---
-      형태로 메타데이터를 포함해줘.
-      ${match3Directive}
+
+      asset-requirements YAML 블록의 art-style 필드는 선택한 스타일의 **전체 cue 문장**으로 채울 것.
+      (예: art-style: "Crisp 16-bit pixel art, limited palette, dithering, retro SNES/Genesis feel. Sharp pixels, no anti-aliasing.")
+
+      ${indieDirective}
       ${growthDirective}
       ${feedbackBlock}
-      ${isMatch3Mode ? '⚠️ 반드시 매치3 퍼즐 게임을 기획하세요. 다른 장르는 기획하지 마세요. 이전 매치3 게임의 리뷰를 참고하여 개선하세요.' : '⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.'}
+      ⚠️ 이전 포스트모템의 "다음 사이클 제안"과 "아쉬웠던 점"을 기획서에 명시적으로 반영할 것.
+      ⚠️ 캐릭터 에셋이 여러 포즈(idle, attack, hurt 등)가 있다면 base 캐릭터를 먼저 정의하고 나머지는 반드시 ref 로 base를 참조할 것.
       ${agentWisdomBlock('planner', cycleNumber)}
     `)
     completeAgent('planner')
+    phaseMark('planning')
+    } else console.log(`\n⏭️ [2/7] 기획 — 체크포인트로 건너뜀`)
 
     // ── 3단계: 그래픽 에셋 제작 (Gemini PNG + Claude 아트 디렉션) ──
-    console.log(`\n🎨 [3/7] 디자이너 — Gemini PNG 에셋 생성`)
-    state.status = 'designing'
-    startAgent('designer', 3, '그래픽 에셋 제작 (Gemini PNG)', 'Graphic Assets (Gemini PNG)')
-
-    // 3-A: 기획서에서 게임 정보 + 에셋 요구사항 추출
+    // 3-A: 기획서에서 게임 정보 추출 — 항상 수행 (resume 시에도 필요)
     const specPath = `${PROJECT_ROOT}/docs/game-specs/cycle-${cycleNumber}-spec.md`
     let gameId = '', gameTitle = '', genre = '', specContent = ''
     if (existsSync(specPath)) {
@@ -416,50 +453,69 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       gameId    = idMatch?.[1]?.trim() ?? ''
       gameTitle = titleMatch?.[1]?.trim() ?? ''
       genre     = genreMatch?.[1]?.trim() ?? ''
+      state.gameId = gameId
+      state.gameTitle = gameTitle
+      state.gameGenre = genre ? [genre] : []
     }
+
+    if (!phaseDone('designing')) {
+    console.log(`\n🎨 [3/7] 디자이너 — Gemini PNG 에셋 생성`)
+    state.status = 'designing'
+    startAgent('designer', 3, '그래픽 에셋 제작 (Gemini PNG)', 'Graphic Assets (Gemini PNG)')
 
     if (gameId) {
       const assetsDir = `${PROJECT_ROOT}/public/games/${gameId}/assets`
 
-      // 3-B: Gemini로 PNG 에셋 생성 (기획서의 asset-requirements 기반)
-      if (process.env.GEMINI_API_KEY) {
-        console.log(`  🎨 Gemini PNG 생성 시작 (game: ${gameId})`)
+      // 3-B: 활성 provider(OpenAI / Gemini)로 PNG 에셋 생성
+      if (isImageGenerationAvailable()) {
+        const providerName = getImageProvider()?.name ?? 'image'
+        console.log(`  🎨 PNG 생성 시작 via ${providerName} (game: ${gameId})`)
         try {
           const result = await generateGameAssets(gameId, gameTitle, genre, specContent, assetsDir)
-          console.log(`  ✅ Gemini 생성 완료: ${result.generated.length}개 성공, ${result.failed.length}개 실패`)
+          console.log(`  ✅ ${providerName} 생성 완료: ${result.generated.length}개 성공, ${result.failed.length}개 실패`)
           if (result.failed.length > 0) {
             console.log(`  ⚠️ 실패 에셋: ${result.failed.join(', ')}`)
           }
         } catch (err) {
-          console.error(`  ❌ Gemini 에셋 생성 실패:`, err)
+          console.error(`  ❌ ${providerName} 에셋 생성 실패:`, err)
         }
       } else {
-        console.log(`  ⚠️ GEMINI_API_KEY 없음 — Claude 디자이너로 SVG 폴백`)
+        console.log(`  ⚠️ 이미지 provider 없음 (OPENAI_API_KEY / GEMINI_API_KEY 미설정) — Claude 디자이너로 SVG 폴백`)
       }
 
-      // 3-C: Claude 디자이너로 보완 (누락 에셋 SVG 생성 + 아트 디렉션)
+      // 3-C: 디자이너 — 생성된 에셋 검증 + 누락 SVG 보완 + 일관성 체크
       await runAgent('designer', `
+        📎 사용 가능한 스킬: asset-consistency (에셋 일관성 감사 절차).
+           반드시 호출하여 체크리스트를 따를 것.
+
         docs/game-specs/cycle-${cycleNumber}-spec.md를 읽고,
         public/games/${gameId}/assets/ 폴더를 확인해줘.
 
-        ⚠️ Gemini API가 PNG 에셋을 이미 생성했을 수 있습니다.
-        먼저 assets/ 폴더에 어떤 파일이 있는지 확인(ls)한 후:
+        ⚠️ 이미지 provider(OpenAI/Gemini)가 PNG 에셋을 이미 생성했을 수 있습니다.
 
-        1. PNG 파일이 있으면 → manifest.json만 갱신 (PNG 에셋 포함)
-        2. 누락된 에셋이 있으면 → SVG로 보완 생성
-        3. thumbnail.png가 없으면 → thumbnail.svg를 반드시 생성
-           (width="400" height="300" viewBox="0 0 400 300")
+        ═══════════════════════════════════════════════════
+        🎨 에셋 검증 체크리스트 (스팀 인디 수준)
+        ═══════════════════════════════════════════════════
 
-        manifest.json 형식:
-        {
-          "gameId": "${gameId}",
-          "format": "png",
-          "assets": {
-            "player":    { "file": "player.png 또는 player.svg", "desc": "..." },
-            "enemy":     { "file": "enemy.png 또는 enemy.svg", "desc": "..." },
-            ...
-          }
-        }
+        1. ls로 assets/ 폴더 확인 — 실제 존재하는 파일 목록 파악
+        2. **아트 스타일 일관성** (중요):
+           - 기획서의 art-style을 읽고, 모든 PNG가 그 스타일을 따르는지 육안 검증
+           - 스타일 혼재(픽셀아트 + 사실적 페인팅 등) 발견 시 리젠 필요 항목 보고
+        3. **캐릭터 일관성**:
+           - player / player-attack / player-hurt 등 같은 캐릭터 변형이 실제 같은 인물로 보이는가?
+           - 색상, 실루엣, 의상이 동일한가?
+           - 불일치 시 ref 재사용해서 리젠 필요한 에셋 리스트업
+        4. **UI 의도대로 나왔는가**:
+           - UI 아이콘이 의도한 주제를 표현하는가? (hp=빨간하트/방패 등)
+           - 작은 크기(32px)에서도 식별 가능한가?
+           - 텍스트가 포함된 에셋(썸네일 등)의 텍스트가 읽히는가?
+        5. **누락 에셋 보완**:
+           - 없는 에셋은 SVG로 보완 생성 (스타일 일치시킬 것)
+           - thumbnail.png가 없으면 thumbnail.svg 생성 (400x300 viewBox)
+        6. **manifest.json 갱신**:
+           - 실제 존재하는 파일만 등록
+           - format 필드는 주 포맷(png/svg) 기록
+           - 각 에셋에 desc 포함
 
         ${agentWisdomBlock('designer', cycleNumber)}
       `)
@@ -471,38 +527,108 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       `)
     }
     completeAgent('designer')
+    phaseMark('designing')
+    } else console.log(`\n⏭️ [3/7] 디자이너 — 체크포인트로 건너뜀`)
 
     // ── 4단계: 게임 코딩 ─────────────────────────────────────
+    if (!phaseDone('coding')) {
     console.log(`\n💻 [4/7] 코더 — HTML5 게임 구현 (디자이너 에셋 활용)`)
     state.status = 'coding'
     startAgent('coder', 4, '게임 코딩', 'Game Coding')
     await runAgent('coder', `
+      📎 사용 가능한 스킬: game-template (새 HTML 작성 시 이 템플릿 구조로 시작)
+
       docs/game-specs/cycle-${cycleNumber}-spec.md와
       public/games/[game-id]/assets/manifest.json을 읽고,
       public/games/[game-id]/index.html을 작성해줘.
-      디자이너가 만든 SVG 에셋을 preloadAssets()로 로드하여 Canvas 렌더링에 활용할 것.
       기획서의 game-id를 정확히 읽어 폴더명으로 사용할 것.
       ${growthDirective}
       ${feedbackBlock}
-      ⚠️ 이전 사이클 리뷰에서 지적된 코드 품질 문제(메모리 누수, 터치 이벤트 누락 등)를 반드시 해결할 것.
 
-      ⚠️⚠️⚠️ 필수 구현 체크리스트 (하나라도 빠지면 리뷰 FAIL):
+      ═══════════════════════════════════════════════════════════
+      🛠️ IX Engine 필수 활용 (절대 지키지 않으면 NEEDS_MAJOR_FIX)
+      ═══════════════════════════════════════════════════════════
 
-      1. 게임 시작: 타이틀 화면 → SPACE/클릭/탭으로 시작 → 상태 초기화
-      2. 키보드 조작: keydown/keyup으로 이동(WASD/화살표) + 액션(Space 등) 실제 동작
-      3. 모바일 조작: touchstart/touchmove/touchend + 화면에 가상 조이스틱/버튼 렌더링
-         → 터치 입력이 실제 플레이어 이동/액션으로 연결될 것
-         → 터치만으로 시작/플레이/재시작 모든 흐름이 가능할 것
-      4. 게임 오버: 명확한 종료 조건 + 게임 오버 화면 + 최고점수 localStorage 저장
-      5. 재시작: R키/탭으로 모든 상태(점수, 적, 위치) 완전 초기화 후 재시작
-      6. Canvas: devicePixelRatio 대응 + resize 이벤트 + 전체 화면 맞춤
-      7. 외부 의존 제거: Google Fonts 같은 외부 CDN 사용 금지. 시스템 폰트만 사용.
-         → font-family: 'Segoe UI', system-ui, -apple-system, sans-serif
+      게임은 다음 IX Engine 모듈을 반드시 활용할 것. 재구현 금지.
+
+      1. **GameFlow** — 표준 라이프사이클 (BOOT→TITLE→PLAY→GAMEOVER):
+         \`\`\`
+         IX.Scene.bind({ tween, particles });
+         IX.GameFlow.init({
+           titleText: '[게임 제목]',
+           play: {
+             enter: () => { /* 상태 초기화 + 버튼 생성 */ },
+             update: (dt, input) => { /* 게임 로직 */ },
+             render: (ctx, w, h) => { /* 렌더 */ },
+           },
+           onReset: () => { /* 모든 게임 변수 완전 초기화 */ },
+         });
+         IX.GameFlow.start();
+         // 게임 오버 시: IX.GameFlow.gameOver({ score });
+         \`\`\`
+         ⛔ 자체 상태 머신(setState, TRANSITION_TABLE 등) 금지. 무조건 Scene 사용.
+
+      2. **Button** — 모든 버튼은 반드시 IX.Button 사용:
+         \`\`\`
+         new IX.Button({
+           x, y, w: 200, h: 60, text: '시작',
+           key: ['Space', 'Enter'],  // 키보드 단축키 (필수 지정)
+           onClick: () => IX.Scene.transition('PLAY'),
+         });
+         \`\`\`
+         ⛔ 자체 hit-test + onclick 조합 금지. 모든 버튼 키보드 대응 강제.
+
+      3. **Scene** — timer/listener는 반드시 Scene 스코프에 등록:
+         \`\`\`
+         IX.Scene.setTimeout(fn, ms);       // 전환 시 자동 clear
+         IX.Scene.setInterval(fn, ms);      // 전환 시 자동 clear
+         IX.Scene.on(window, 'resize', fn); // 전환 시 자동 remove
+         \`\`\`
+         ⛔ 맨 setTimeout/setInterval/addEventListener 금지. 누수 원인.
+
+      4. **Input** — IX.Input 인스턴스 사용. 직접 이벤트 리스너 금지:
+         - input.jp(code), input.held(code), input.confirm()
+         - input.mouseX/Y, input.tapped, input.tapX/Y (게임 좌표로 자동 변환됨)
+         - ⛔ 좌표에 dpr 곱하기 등 추가 변환 절대 금지
+
+      5. **AssetLoader** — 타임아웃/폴백 보장:
+         \`\`\`
+         const loader = new IX.AssetLoader();
+         const res = await loader.load({ player: 'assets/player.png', ... }, { timeoutMs: 10000 });
+         // res.failed 리스트 확인, draw()는 자동으로 폴백 컬러 박스 렌더
+         \`\`\`
+
+      6. **Layout/MathUtil/Sound/Tween/Particles/Sprite/Save** — 모두 재사용 (재구현 금지)
+
+      ═══════════════════════════════════════════════════════════
+      ✅ 필수 구현 체크리스트
+      ═══════════════════════════════════════════════════════════
+      1. 시작 흐름: GameFlow.start() → TITLE에서 Space/Enter/Tap → PLAY 전환
+      2. 모든 버튼 3방식 동작: 마우스 / 터치 / 키보드 단축키 (IX.Button.keys 필수)
+      3. 재시작 완벽: onReset에서 **모든** 전역 변수 초기화 (점수·적·타이머·플래그 빠짐없이)
+      4. GAMEOVER → RESTART 키(R/Space/Enter)로 재진입 시 정상 동작
+      5. Canvas: Engine 내장 resize/dpr 사용. 직접 resize 금지
+      6. 외부 CDN 금지: 시스템 폰트만 사용
+      7. 에셋 로드 실패 시 폴백 렌더로 진행 (무한 로딩 금지)
+      8. **아트 스타일 존중**: manifest.json의 art-style을 읽고, Canvas 배경/UI 컬러도 그 스타일과 맞출 것
+
+      ═══════════════════════════════════════════════════════════
+      🔄 공통 엔진 승격 의무 (Engine Promotion)
+      ═══════════════════════════════════════════════════════════
+      게임 작성 중 다음을 발견하면 **해당 코드를 public/engine/ix-engine.js 또는 engine/genres/[genre].js로 이동하고** 게임에서는 엔진을 호출하는 방식으로 바꿀 것:
+      - 2개 이상 게임에서 반복되는 헬퍼 함수
+      - 장르 공통 메커니즘 (예: 오토 배틀러의 레인 배치, 로그라이크의 던전 생성)
+      - 범용 UI 위젯 (대화 상자, 인벤토리 그리드, HP바 레이어 등)
+      작업 보고서 맨 끝에 "엔진 승격 내역: [없음 또는 이동한 함수/모듈 목록]" 을 반드시 기록할 것.
+
       ${agentWisdomBlock('coder', cycleNumber)}
     `)
     completeAgent('coder')
+    phaseMark('coding')
+    } else console.log(`\n⏭️ [4/7] 코더 — 체크포인트로 건너뜀`)
 
     // ── 5단계: 리뷰 + 테스트 (최대 3회 반복) ──────────────────
+    if (!phaseDone('review_1st')) {
     const MAX_REVIEW_ROUNDS = 3
     for (let round = 1; round <= MAX_REVIEW_ROUNDS; round++) {
       const isRetry = round > 1
@@ -510,120 +636,74 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       state.status = 'reviewing'
       startAgent('reviewer', 5, `코드 리뷰 + 테스트 (${round}회차)`, `Code Review + Test (round ${round})`)
       const reviewResult = await runAgent('reviewer', `
+        📎 사용 가능한 스킬: button-audit (버튼 3방식 동작 감사), restart-verify (재시작 누수 검증), asset-consistency (에셋 일관성).
+           각 스킬을 해당 검증 항목 수행 시 반드시 활용할 것.
+
         docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
         public/games/[game-id]/index.html을 코드 리뷰 및 브라우저 테스트해줘.
-        에셋 로딩(assets/manifest.json, SVG 파일들) 여부도 확인할 것.
+        에셋 로딩(assets/manifest.json 및 에셋 파일들) 여부도 확인할 것.
         ${isRetry ? `⚠️ 이번은 ${round}회차 재리뷰입니다. 이전 리뷰(docs/reviews/cycle-${cycleNumber}-review.md)에서 지적한 사항이 실제로 수정되었는지 중점 검증해줘.` : ''}
 
         ═══════════════════════════════════════════════════
-        🎮 게임 플레이 완전성 검증 (가장 중요 — 반드시 통과해야 APPROVED)
+        🎮 스팀 인디 수준 완성도 검증
         ═══════════════════════════════════════════════════
+        아래 항목별 PASS/FAIL 을 명시. 하나라도 FAIL이면 NEEDS_MAJOR_FIX.
 
-        아래 항목을 코드에서 직접 확인하고, 각 항목별 PASS/FAIL을 명시할 것.
-        하나라도 FAIL이면 NEEDS_MAJOR_FIX 판정.
+        📌 A. IX Engine 준수
+        A-1. IX.GameFlow / IX.Scene / IX.Button 사용하는가?
+             ⛔ 자체 state machine / 자체 hit-test 버튼 발견 시 FAIL.
+        A-2. setTimeout/setInterval/addEventListener를 직접 쓰지 않고
+             IX.Scene.setTimeout / setInterval / on 을 쓰는가?
+        A-3. manifest.json의 art-style 값을 실제로 Canvas 렌더(배경색·UI톤)에 반영하는가?
 
-        📌 1. 게임 시작 흐름
-        - 타이틀/시작 화면이 존재하는가?
-        - SPACE 키 또는 클릭/탭으로 게임이 시작되는가?
-        - 시작 시 게임 상태(점수, 위치, 체력 등)가 올바르게 초기화되는가?
+        📌 B. 버튼 3방식 동작 (가장 중요)
+        - 모든 IX.Button 인스턴스를 grep으로 찾아 리스트업
+        - 각 버튼마다:
+          B-1. 마우스 클릭 가능한 위치에 렌더되는가? (hitTest 영역)
+          B-2. 터치 가능한 크기인가? (min 44px)
+          B-3. 키보드 단축키(key) 가 지정되어 있는가?
+          B-4. onClick 콜백이 실제로 state를 바꾸는가?
+        ⛔ 위 4개 중 하나라도 빠진 버튼이 있으면 NEEDS_MAJOR_FIX.
 
-        📌 2. 입력(조작) 시스템 — 데스크톱
-        - keydown/keyup 이벤트 리스너가 등록되어 있는가?
-        - 이동 키(WASD 또는 화살표)가 실제로 플레이어를 움직이는가?
-          → 키 입력 → 상태 변경 → 렌더링까지 코드 흐름을 추적할 것
-        - 공격/액션 키(Space, Z 등)가 실제로 동작하는가?
-        - 일시정지(P/ESC)가 게임 루프를 정지시키는가?
+        📌 C. 재시작 3회 연속 검증 (가장 중요)
+        - onReset 콜백이 다음을 **전부** 초기화하는지 grep으로 확인:
+          C-1. 모든 전역 게임 변수 (점수·HP·시간·레벨·웨이브·콤보·플래그)
+          C-2. 모든 배열/맵 (적 목록·투사체·파티클·퀘스트 목록)
+          C-3. 트윈/파티클(Scene.cleanup에서 자동)
+        - 시뮬레이션: TITLE → PLAY → GAMEOVER → PLAY → GAMEOVER → PLAY (3회)
+          가 변수 누수 없이 반복 가능한 코드 흐름인가?
+        - onReset에 누락된 변수가 하나라도 있으면 FAIL.
 
-        📌 3. 입력(조작) 시스템 — 모바일
-        - touchstart/touchmove/touchend 이벤트가 등록되어 있는가?
-        - 가상 조이스틱 또는 터치 버튼이 화면에 렌더링되는가?
-        - 터치 입력이 실제로 게임 로직에 연결되는가?
-          → 터치 좌표 → 조이스틱 방향 → 플레이어 이동까지 추적
-        - 터치 타겟이 44px 이상인가?
-        - touch-action: none, overflow: hidden 등 스크롤 방지가 되어 있는가?
+        📌 D. 스팀 인디 수준 플레이 완성도
+        D-1. 핵심 루프(입력→상태변화→피드백)가 30초 내에 재미 전달?
+        D-2. 승리/패배 조건 명확?
+        D-3. 점수/진행도 시각 피드백 있는가?
+        D-4. 사운드 이펙트 연결됨? (IX.Sound.sfx)
+        D-5. 파티클/트윈 연출 있음?
 
-        📌 4. 게임 루프 & 로직
-        - requestAnimationFrame 기반 게임 루프가 있는가?
-        - delta time(dt)을 계산하여 프레임 독립적 업데이트를 하는가?
-        - 충돌 감지가 올바르게 구현되어 있는가? (거리 계산, hitbox 등)
-        - 점수가 실제로 증가하는 코드 경로가 있는가?
-        - 난이도 변화가 실제로 적용되는가? (웨이브/레벨/속도 증가 등)
+        📌 E. 스크린 전환 + Stuck 방어
+        E-1. BOOT에서 에셋 로드 10초 타임아웃 시 TITLE로 자동 진행되는가?
+        E-2. StateGuard 가 기본 활성화(GameFlow.init)되어 있는가?
+        E-3. TITLE/GAMEOVER에서 어떤 입력이든 PLAY로 전환 가능?
+        E-4. PLAY 중 정상 입력으로 GAMEOVER 도달 가능?
 
-        📌 5. 게임 오버 & 재시작
-        - 게임 오버 조건이 명확히 구현되어 있는가? (HP 0, 시간 초과 등)
-        - 게임 오버 화면이 표시되는가?
-        - 최고 점수가 localStorage에 저장/로드되는가?
-        - R키 또는 탭으로 재시작 시 모든 상태가 완전히 초기화되는가?
-          → 점수, 적, 플레이어 위치, 타이머 등 모두 리셋 확인
-        - 재시작 후 게임이 정상적으로 다시 진행되는가?
+        📌 F. 입력 시스템
+        F-1. IX.Input 을 그대로 사용. 자체 touch/mouse 이벤트 리스너 없음.
+        F-2. 게임 좌표 변환은 engine 내장(mouseX/Y, tapX/Y)만 사용.
 
-        📌 6. 화면 렌더링
-        - canvas 크기가 window.innerWidth/Height에 맞게 설정되는가?
-        - devicePixelRatio가 적용되어 선명하게 렌더링되는가?
-        - resize 이벤트에서 canvas가 재조정되는가?
-        - 배경, 캐릭터, UI 요소가 모두 렌더링되는가?
-          → 시작 화면, 게임 중, 게임 오버 각 상태에서 확인
-
-        📌 7. 외부 의존성 안전성
-        - Google Fonts 등 외부 CDN이 로드 실패해도 게임이 동작하는가?
-          → font-family에 시스템 폰트 폴백이 있는가?
-        - 에셋(SVG) 로드 실패 시 Canvas 폴백 드로잉이 있는가?
+        📌 G. 에셋 일관성
+        G-1. manifest.json 의 art-style 확인 — 썸네일·캐릭터·UI가 한 스타일인가?
+        G-2. 캐릭터 변형(attack/hurt 등)이 base와 같은 인물로 보이는가?
 
         ═══════════════════════════════════════════════════
-        📱 모바일 조작 대응 검사
-        ═══════════════════════════════════════════════════
-        - 모바일 뷰포트 meta 태그 (width=device-width, user-scalable=no)
-        - 키보드 입력 없이 게임의 모든 기능(시작, 플레이, 재시작)이 가능한지
-        - 가상 조이스틱/버튼이 게임 화면을 가리지 않는 위치에 배치되는지
-
-        ═══════════════════════════════════════════════════
-        🚫 📌 8. 진행 불가능(Stuck) 상태 검증 — CRITICAL
-        ═══════════════════════════════════════════════════
-        모든 화면/상태에서 "진행 불가능" 상태가 없는지 코드 흐름을 추적하여 검증.
-        하나라도 FAIL이면 NEEDS_MAJOR_FIX.
-
-        8-1. TITLE 화면:
-        - ACTIVE_SYSTEMS에서 input이 활성(true)인가?
-        - ACTIVE_SYSTEMS에서 tween이 활성(true)인가? (beginTransition 사용 시 필수)
-        - Space/Enter/클릭/터치 모두 → 다음 상태 전환 코드가 존재하는가?
-        - 상태 전환 함수(beginTransition/setState)가 실제로 state를 변경하는가?
-
-        8-2. 레벨 선택/메뉴:
-        - 터치/클릭으로 선택 가능한 코드 경로 존재하는가?
-        - 키보드(화살표+Enter)로도 선택 가능한가?
-        - 뒤로 가기(ESC) 코드가 있는가?
-
-        8-3. 게임 플레이 데드락:
-        - 매치3: 가능한 이동이 0개일 때 자동 셔플 또는 리필 로직이 있는가?
-        - 웨이브 게임: 모든 적 처치 후 다음 웨이브 트리거가 있는가?
-        - 타이머 게임: 시간 초과 시 게임오버 전환이 있는가?
-        - 무한 대기 상태가 발생할 수 있는 코드 경로가 없는가?
-
-        8-4. 게임 오버/결과:
-        - R키 + 터치/클릭 모두로 재시작 코드가 있는가?
-        - 재시작 시 score=0, level=1, enemies=[], timer 리셋 등 완전 초기화 확인
-        - 재시작 후 게임이 실제로 정상 진행되는 코드 흐름 확인
-
-        8-5. 레벨 클리어/업그레이드:
-        - 클리어 후 다음 화면 진행 코드가 있는가?
-        - 선택지가 있으면 터치+키보드 모두 동작하는가?
-        - 타임아웃 시 자동 진행 또는 기본 선택 코드가 있는가?
-
-        8-6. 일시정지/모달:
-        - ESC 또는 터치로 닫기 가능한가?
-        - 닫힌 후 게임이 정상 재개되는가?
-
-        ═══════════════════════════════════════════════════
-
-        ⚠️ 판정 기준 (엄격 적용):
-        - APPROVED: 📌 1~8 모두 PASS + 모바일 조작 가능
-        - NEEDS_MINOR_FIX: 핵심 플레이는 되지만 일부 미흡 (UI 깨짐 등)
-        - NEEDS_MAJOR_FIX: 📌 1~5 또는 📌 8 중 하나라도 FAIL
+        판정 기준:
+        - APPROVED: A~G 모두 PASS
+        - NEEDS_MINOR_FIX: 핵심(A/B/C/E) PASS + D/F/G 중 일부 미흡
+        - NEEDS_MAJOR_FIX: A/B/C/E 중 하나라도 FAIL
 
         결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
         ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
-        최종 판정을 APPROVED / NEEDS_MINOR_FIX / NEEDS_MAJOR_FIX 중 하나로 명시해줘.
-        YAML front-matter에 verdict: [판정] 을 반드시 포함할 것.
+        YAML front-matter에 verdict: [판정] 과 버튼별 PASS/FAIL 리스트를 반드시 포함.
         ${agentWisdomBlock('reviewer', cycleNumber)}
       `)
       completeAgent('reviewer')
@@ -655,8 +735,11 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       `)
       completeAgent('coder')
     }
+    phaseMark('review_1st')
+    } else console.log(`\n⏭️ [5/7] 1차 리뷰 — 체크포인트로 건너뜀`)
 
     // ── 5.5단계: 플래너·디자이너 재검토 → 코더 개선 → 2차 리뷰 ──
+    if (!phaseDone('review_2nd')) {
     console.log(`\n🔄 [5.5/7] 플래너·디자이너 재검토 + 코더 개선 + 2차 리뷰`)
 
     // 플래너 재검토: 기획서 대비 구현 점검
@@ -773,8 +856,49 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
     } else {
       console.log(`  ✅ 플래너·디자이너 피드백 없음 — 2차 리뷰 생략`)
     }
+    phaseMark('review_2nd')
+    } else console.log(`\n⏭️ [5.5/7] 2차 리뷰 — 체크포인트로 건너뜀`)
+
+    // ── 5.8단계: 엔진 승격 ──────────────────────────────────────
+    if (!phaseDone('engine_promote')) {
+    // 방금 만든 게임 코드를 읽고, 다른 게임에서도 재사용할 만한 공통 패턴을
+    // public/engine/ix-engine.js 또는 engine/genres/[genre].js 로 이동시키는 단계.
+    console.log(`\n🔧 [5.8/7] 엔진 승격 — 재사용 가능한 코드를 공통 엔진으로 이동`)
+    startAgent('coder', 5, '엔진 승격 스윕', 'Engine Promotion Sweep')
+    await runAgent('coder', `
+      📎 사용 가능한 스킬: engine-promote (승격 절차 표준).
+         이 스킬의 6단계 절차를 그대로 따라 실행할 것.
+
+      작업 목적: 방금 완성된 게임의 중복 가능한 로직을 공통 엔진으로 이동하여,
+      다음 사이클 이후 모든 게임이 이 기능을 공유하게 만드는 것.
+
+      단계:
+      1. 기획서(docs/game-specs/cycle-${cycleNumber}-spec.md)에서 game-id 확인
+      2. public/games/[game-id]/index.html 의 <script> 본문 읽기
+      3. public/engine/ix-engine.js 및 public/engine/genres/*.js 현재 상태 읽기
+      4. 아래 기준 중 하나라도 해당하는 함수/객체를 **승격 후보**로 식별:
+         - 이름이 일반적이고 다른 장르에서도 쓰일 수 있는 헬퍼 (예: easeOutBack, lerp2, rectCollideCircle)
+         - 현재 장르에 특화되지만 장르 모듈에 없던 패턴 (예: 로그라이크의 상자 루트 테이블)
+         - 게임 상태 외부에 상태를 갖지 않는 순수 함수
+      5. 후보 중 **실제로 가치가 명확한 것만** (확신이 없으면 승격하지 말 것):
+         - 범용이면 → public/engine/ix-engine.js 의 알맞은 객체(UI, MathUtil, Layout 등)에 메서드 추가
+         - 장르 특화면 → public/engine/genres/<장르id>.js 에 추가 (없으면 새 파일 생성하고 IX.Genre.<이름>에 등록)
+      6. 게임 index.html 에서는 승격된 함수 호출을 IX 또는 IX.Genre 경로로 바꿀 것
+      7. 작업 후 보고:
+         - docs/engine-notes/cycle-${cycleNumber}-promotion.md 파일에 승격 내역 기록
+         - 형식: ## 승격 / ## 보류(이유) / ## 향후 후보
+         - 승격 없으면 "이번 사이클 승격 없음. 이유: [...]" 라고 짧게.
+
+      ⚠️ 엔진 구조 변경은 하위 호환을 깨지 말 것. 새 메서드 추가만 허용.
+      ⚠️ 불확실한 승격은 docs/engine-notes에 "향후 후보"로만 기록하고 이동하지 말 것.
+      ⚠️ 엔진 파일 수정 후 node -e "require(...)" 같은 것으로 파싱 가능 여부 최종 확인.
+    `)
+    completeAgent('coder')
+    phaseMark('engine_promote')
+    } else console.log(`\n⏭️ [5.8/7] 엔진 승격 — 체크포인트로 건너뜀`)
 
     // ── 6단계: 포스트모템 ──────────────────────────────────────
+    if (!phaseDone('postmortem')) {
     console.log(`\n📝 [6/7] 포스트모템 — 사이클 총정리 + 플랫폼 지혜 갱신`)
     state.status = 'reviewing'
     startAgent('postmortem', 6, '포스트모템 작성', 'Postmortem')
@@ -812,8 +936,62 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
       - "다음 사이클 우선순위"는 이전 것 삭제 후 최신 3개만
     `)
     completeAgent('postmortem')
+    phaseMark('postmortem')
+    } else console.log(`\n⏭️ [6/7] 포스트모템 — 체크포인트로 건너뜀`)
+
+    // ── 6.5단계: Self-Evolution (메트릭 수집 + Evolver + Apply + Dashboard) ──
+    // 매 사이클마다 4-discipline 메트릭 수집 → Evolver가 제안 → LOW+MEDIUM 자동 적용
+    if (!phaseDone('self_evolution') && process.env.EVOLVER_ENABLED !== '0') {
+      console.log(`\n🧠 [6.5/7] Self-Evolution — 메트릭 수집 + 자가진화`)
+      try {
+        const { collectCycleMetrics, saveCycleMetrics } = await import('./metrics.js')
+        const { runEvolver } = await import('./evolver.js')
+        const { applyProposals } = await import('./apply-proposal.js')
+        const { saveDashboard } = await import('./dashboard.js')
+
+        const durationMin = Math.round((Date.now() - new Date(startedAt).getTime()) / 60000)
+
+        // Extract review2Rounds & planner rework count loosely — these default to 1
+        const metrics = collectCycleMetrics({
+          cycle: cycleNumber,
+          gameId: state.gameId,
+          durationMin,
+          assetStats: { requested: 0, generated: 0, failed: 0, verifyFailed: 0 },
+          plannerReworkCount: 1,
+          deployVerifyPass: null,
+        })
+        saveCycleMetrics(metrics)
+        console.log(`  📊 Metrics: overall=${metrics.overallScore.toFixed(1)} | P=${metrics.disciplines.planning.score.toFixed(0)} D=${metrics.disciplines.development.score.toFixed(0)} A=${metrics.disciplines.art.score.toFixed(0)} Q=${metrics.disciplines.qa.score.toFixed(0)} | weakest=${metrics.weakestDiscipline}`)
+
+        // Regenerate dashboard (cheap)
+        saveDashboard()
+
+        // Run evolver every N cycles (default 1 = every cycle).
+        const period = parseInt(process.env.EVOLVER_PERIOD ?? '1', 10)
+        if (cycleNumber >= period && cycleNumber % period === 0) {
+          console.log(`  🧬 [Evolver] 발동 (사이클 ${cycleNumber}, 주기 ${period})`)
+          const produced = await runEvolver(cycleNumber)
+          if (produced) {
+            const proposalPath = `${PROJECT_ROOT}/docs/evolution/proposal-cycle-${cycleNumber}.md`
+            const applyResult = await applyProposals(proposalPath, cycleNumber)
+            console.log(`  🔧 [Apply] 적용 ${applyResult.applied.length} / 보류 ${applyResult.deferred.length} / 실패 ${applyResult.failed.length}`)
+          }
+          // Dashboard를 evolver 이후 한 번 더 (proposal 통계 반영)
+          saveDashboard()
+        } else {
+          const remaining = period - (cycleNumber % period)
+          console.log(`  ⏳ Evolver 대기 — ${remaining} 사이클 후 발동`)
+        }
+      } catch (err) {
+        console.error(`  ⚠️ Self-Evolution 실패 (비치명):`, (err as Error).message)
+      }
+      phaseMark('self_evolution')
+    } else if (phaseDone('self_evolution')) {
+      console.log(`\n⏭️ [6.5/7] Self-Evolution — 체크포인트로 건너뜀`)
+    }
 
     // ── 7단계: 배포 ──────────────────────────────────────────
+    if (!phaseDone('deploy')) {
     console.log(`\n🚢 [7/7] 배포 담당 — 레지스트리 등록 & GitHub Push`)
     state.status = 'deploying'
     startAgent('deployer', 7, '레지스트리 등록 + 배포', 'Registry + Deploy')
@@ -896,9 +1074,9 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
         const thumbPng = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.png`
         const thumbSvg = `${PROJECT_ROOT}/public/games/${gameId}/assets/thumbnail.svg`
         if (!existsSync(thumbPng)) {
-          // PNG 썸네일이 없으면 에셋 기반으로 Gemini 생성 시도
-          if (process.env.GEMINI_API_KEY) {
-            console.log(`  🖼️ [검증] thumbnail.png 없음 — 에셋 기반 생성 시도`)
+          // PNG 썸네일이 없으면 에셋 기반으로 활성 provider로 생성 시도
+          if (isImageGenerationAvailable()) {
+            console.log(`  🖼️ [검증] thumbnail.png 없음 — 에셋 기반 생성 시도 (${getImageProvider()?.name})`)
             try {
               const ok = await generateThumbnailFromAssets(
                 gameId, specMeta['title'] ?? gameId, specMeta['genre'] ?? '',
@@ -977,8 +1155,11 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
     } else {
       console.log(`  ✅ [검증] 모든 항목 통과`)
     }
+    phaseMark('deploy')
+    } else console.log(`\n⏭️ [7/7] 배포 — 체크포인트로 건너뜀`)
 
-    // 사이클 완료
+    // 사이클 완료 — checkpoint 삭제
+    clearCheckpoint(cycleNumber)
     state.status      = 'completed'
     state.completedAt = new Date().toISOString()
     completeCycle(state.gameTitle, state.gameId)
@@ -988,6 +1169,7 @@ ${match3Round <= 3 ? `[초기 ${match3Round}/3] 핵심 매치3 메카닉 완성
     state.error  = String(err)
     failCycle(String(err))
     console.error(`\n❌ 사이클 오류:`, err)
+    console.error(`  🔖 체크포인트 유지 — 다음 실행 시 완료된 phase 건너뛰고 재개: [${checkpoint.completedPhases.join(', ')}]`)
   }
 
   const summary = `# 사이클 #${cycleNumber} 완료\n- 시작: ${state.startedAt}\n- 완료: ${state.completedAt}\n- 상태: ${state.status}\n`

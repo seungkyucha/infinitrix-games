@@ -15,16 +15,22 @@
 
 ## 장르 모듈 목록
 
+### 이미 존재
 | 파일 | 장르 | 포함 기능 |
 |------|------|----------|
-| `platformer.js` | 플랫포머/액션 | 중력, 점프, 벽점프, 코요테타임, 1방향 플랫폼 |
-| `shooter.js` | 슈팅/탄막 | 탄막 패턴, 오토파이어, 무기 시스템, 탄환 풀링 |
-| `tower-defense.js` | 타워 디펜스 | 그리드 배치, 타워 타겟팅, 웨이브 매니저, 경로 탐색 |
-| `roguelite.js` | 로그라이트 | 절차적 맵 생성, 룸 시스템, 아이템 드롭, 영구 진행 |
-| `puzzle.js` | 퍼즐 | 그리드 매칭, 블록 물리, 콤보 체인, 힌트 시스템 |
-| `idle.js` | 방치형 | 오프라인 진행, 프레스티지, 자동화, 큰 수 포맷 |
-| `card.js` | 카드/덱빌딩 | 덱 관리, 카드 드로우, 핸드 UI, 턴 시스템 |
-| `racing.js` | 레이싱 | 드리프트 물리, 트랙/체크포인트, AI 라이벌, 부스트 |
+| `platformer.js` | 플랫포머 | PlatformPhysics, CoyoteJump, OneWayPlatform, WallMechanics |
+| `match3.js` | 매치3 | Board, Matcher, Cascade, SpecialGem |
+
+### 아직 없음 (해당 장르 게임 사이클에서 엔진 승격으로 생성 예정)
+- `roguelike.js` — 던전 생성, 룸 그래프, 루트 테이블, 메타 업그레이드
+- `survivor-like.js` — 오토파이어, 웨이브 누적, 빌드 조합
+- `deckbuilder.js` — 덱 관리, 카드 드로우/셔플, 턴 시스템
+- `metroidvania.js` — 맵 그리드, 능력 잠금, 저장/진행 상태
+- `bullet-hell.js` — 탄막 패턴, 탄환 풀링, 패턴 스케줄러
+- `auto-battler.js` — 유닛 레인 배치, 자동 타겟, 시너지 판정
+- `tower-defense.js` — 경로 탐색, 타워 타겟팅, 웨이브 매니저
+- `incremental.js` — 오프라인 진행, 프리스티지, 큰 수 포맷
+- `boomer-shooter.js` — 레이캐스트, 벽 콜리전, 시크릿 트리거
 
 ## 기여 규칙
 

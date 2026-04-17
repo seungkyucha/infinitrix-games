@@ -367,22 +367,42 @@ class Particles {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Asset Loader — SVG 에셋 프리로더
+// Asset Loader — 에셋 프리로더 (타임아웃 + 폴백 보장)
 // ═══════════════════════════════════════════════════════════
 class AssetLoader {
-  constructor() { this.sprites = {}; }
+  constructor() { this.sprites = {}; this.failed = []; }
 
-  async load(assetMap) {
-    await Promise.all(
-      Object.entries(assetMap).map(([key, src]) =>
-        new Promise(resolve => {
-          const img = new Image();
-          img.onload = () => { this.sprites[key] = img; resolve(); };
-          img.onerror = resolve; // Continue even if asset fails
-          img.src = src;
-        })
-      )
-    );
+  /**
+   * Load a map of key→src. Each asset has an independent timeout.
+   * Never rejects — missing assets degrade to fallback rendering via draw().
+   *
+   * @returns {Promise<{loaded: string[], failed: string[], timedOut: boolean}>}
+   */
+  async load(assetMap, opts = {}) {
+    const timeoutMs = opts.timeoutMs ?? 10000;
+    const entries = Object.entries(assetMap);
+    const loaded = [];
+    const failed = [];
+
+    await Promise.all(entries.map(([key, src]) =>
+      new Promise(resolve => {
+        const img = new Image();
+        let done = false;
+        const finish = (ok) => {
+          if (done) return;
+          done = true;
+          if (ok) { this.sprites[key] = img; loaded.push(key); }
+          else { failed.push(key); this.failed.push(key); }
+          resolve();
+        };
+        img.onload = () => finish(true);
+        img.onerror = () => finish(false);
+        img.src = src;
+        setTimeout(() => finish(false), timeoutMs);
+      })
+    ));
+
+    return { loaded, failed, timedOut: failed.length > 0 };
   }
 
   /** Draw sprite with fallback */
@@ -394,6 +414,8 @@ class AssetLoader {
       ctx.fillRect(x + w * 0.1, y + h * 0.1, w * 0.8, h * 0.8);
     }
   }
+
+  has(key) { return !!this.sprites[key]; }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -657,6 +679,345 @@ class Sprite {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Button — 마우스 + 터치 + 키보드 통합 위젯
+//
+// 단일 API로 세 가지 입력을 모두 처리하고 hit-test가 내장되어
+// "마우스로는 되는데 키보드로 안되는" 버그를 구조적으로 제거한다.
+//
+// 사용법:
+//   const btn = new IX.Button({
+//     x: 100, y: 100, w: 200, h: 60,
+//     text: 'Start',
+//     key: 'Space',               // 단축키 (문자열 또는 배열)
+//     onClick: () => Scene.transition('PLAY'),
+//   });
+//   // 매 프레임:  Button.updateAll(input); Button.renderAll(ctx);
+//
+// Scene.transition() 시 자동으로 clearAll() 호출 → 상태별 버튼 누수 차단.
+// ═══════════════════════════════════════════════════════════
+class Button {
+  constructor(opts) {
+    this.x = opts.x; this.y = opts.y;
+    this.w = opts.w; this.h = opts.h;
+    this.text = opts.text ?? '';
+    this.keys = opts.key ? (Array.isArray(opts.key) ? opts.key : [opts.key]) : [];
+    this.onClick = opts.onClick || (() => {});
+    this.color = opts.color ?? '#6c3cf7';
+    this.textColor = opts.textColor ?? '#fff';
+    this.radius = opts.radius ?? 10;
+    this.fontSize = opts.fontSize ?? 18;
+    this.bold = opts.bold ?? true;
+    this.icon = opts.icon ?? null;            // optional asset key
+    this.hover = false;
+    this.pressed = false;
+    this.enabled = opts.enabled !== false;
+    this.visible = opts.visible !== false;
+    this._cooldown = 0;                       // prevent double-trigger
+    Button._active.push(this);
+  }
+
+  hitTest(px, py) {
+    return this.visible && this.enabled
+      && px >= this.x && px <= this.x + this.w
+      && py >= this.y && py <= this.y + this.h;
+  }
+
+  _trigger() {
+    if (this._cooldown > 0) return;
+    this._cooldown = 200;                     // 200ms debounce
+    try { this.onClick(); } catch (e) { console.error('[IX.Button]', e); }
+  }
+
+  update(input, dt) {
+    if (!this.visible || !this.enabled) return;
+    if (this._cooldown > 0) this._cooldown = Math.max(0, this._cooldown - dt);
+    this.hover = this.hitTest(input.mouseX, input.mouseY);
+    // Mouse/touch tap on button
+    if (input.tapped && this.hitTest(input.tapX, input.tapY)) this._trigger();
+    // Keyboard shortcut
+    for (const k of this.keys) {
+      if (input.jp(k)) { this._trigger(); break; }
+    }
+  }
+
+  render(ctx) {
+    if (!this.visible) return;
+    ctx.save();
+    const alpha = this.enabled ? 1 : 0.4;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = this.hover ? this.color + 'dd' : this.color + '99';
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(this.x, this.y, this.w, this.h, this.radius);
+    else ctx.rect(this.x, this.y, this.w, this.h);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = this.textColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${this.bold ? 'bold ' : ''}${this.fontSize}px ${UI.FONT}`;
+    ctx.fillText(this.text, this.x + this.w / 2, this.y + this.h / 2);
+    if (this.keys.length && this.keys[0] !== 'Space') {
+      ctx.font = `10px ${UI.FONT}`;
+      ctx.globalAlpha = alpha * 0.6;
+      ctx.fillText(`[${this.keys[0].replace(/^Key/, '')}]`, this.x + this.w / 2, this.y + this.h - 8);
+    }
+    ctx.restore();
+  }
+
+  setEnabled(v) { this.enabled = v; }
+  setVisible(v) { this.visible = v; }
+  setPosition(x, y) { this.x = x; this.y = y; }
+}
+
+Button._active = [];
+Button.clearAll = function() { Button._active.length = 0; };
+Button.updateAll = function(input, dt) {
+  for (const b of Button._active) b.update(input, dt);
+};
+Button.renderAll = function(ctx) {
+  for (const b of Button._active) b.render(ctx);
+};
+
+// ═══════════════════════════════════════════════════════════
+// Scene — 상태 전환 + 리소스 자동 정리
+//
+// Scene.setTimeout/setInterval/on()으로 등록된 모든 리소스는
+// Scene.transition() 또는 Scene.cleanup() 시 자동 해제된다.
+// Tween/Particles/Button도 함께 정리되어 상태 잔존 버그를 차단.
+// ═══════════════════════════════════════════════════════════
+const Scene = {
+  _states: {},
+  _resources: { timers: [], intervals: [], listeners: [] },
+  current: null,
+  _tween: null,
+  _particles: null,
+
+  /** Tween/Particles 인스턴스를 Scene과 연결 — transition 시 자동 clear */
+  bind({ tween, particles }) {
+    this._tween = tween || null;
+    this._particles = particles || null;
+  },
+
+  register(name, handlers) {
+    this._states[name] = {
+      enter: handlers.enter || (() => {}),
+      update: handlers.update || (() => {}),
+      render: handlers.render || (() => {}),
+      exit: handlers.exit || (() => {}),
+    };
+  },
+
+  transition(name, data) {
+    if (!this._states[name]) {
+      console.error('[IX.Scene] Unknown state:', name);
+      return;
+    }
+    const prev = this.current;
+    try { if (prev) this._states[prev].exit(); } catch (e) { console.error('[IX.Scene.exit]', e); }
+    this.cleanup();
+    this.current = name;
+    StateGuard.touch();
+    try { this._states[name].enter(data); } catch (e) { console.error('[IX.Scene.enter]', e); }
+  },
+
+  /** 현재 scene에 속한 모든 리소스 정리 */
+  cleanup() {
+    for (const id of this._resources.timers) clearTimeout(id);
+    for (const id of this._resources.intervals) clearInterval(id);
+    for (const [target, event, fn] of this._resources.listeners) {
+      try { target.removeEventListener(event, fn); } catch {}
+    }
+    this._resources.timers.length = 0;
+    this._resources.intervals.length = 0;
+    this._resources.listeners.length = 0;
+    Button.clearAll();
+    if (this._tween) this._tween.clear();
+    if (this._particles) this._particles.clear();
+  },
+
+  setTimeout(fn, ms) {
+    const id = setTimeout(() => {
+      const i = this._resources.timers.indexOf(id);
+      if (i >= 0) this._resources.timers.splice(i, 1);
+      fn();
+    }, ms);
+    this._resources.timers.push(id);
+    return id;
+  },
+
+  setInterval(fn, ms) {
+    const id = setInterval(fn, ms);
+    this._resources.intervals.push(id);
+    return id;
+  },
+
+  on(target, event, fn) {
+    target.addEventListener(event, fn);
+    this._resources.listeners.push([target, event, fn]);
+    return fn;
+  },
+
+  update(dt, input) {
+    if (this.current) {
+      try { this._states[this.current].update(dt, input); } catch (e) { console.error('[IX.Scene.update]', e); }
+    }
+    Button.updateAll(input, dt);
+    StateGuard.tick(dt, input);
+  },
+
+  render(ctx, w, h) {
+    if (this.current) {
+      try { this._states[this.current].render(ctx, w, h); } catch (e) { console.error('[IX.Scene.render]', e); }
+    }
+    Button.renderAll(ctx);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// StateGuard — 멈춤 감지 워치독
+//
+// 입력이 일정 시간 이상 없고 아무 state 전환도 없으면 onStuck 호출.
+// 기본 동작은 TITLE로 복귀 — "영원히 로딩" 같은 데드락을 방지한다.
+// ═══════════════════════════════════════════════════════════
+const StateGuard = {
+  _enabled: false,
+  _elapsed: 0,
+  _stuckMs: 30000,
+  _onStuck: null,
+  _lastInputState: '',
+
+  enable(opts = {}) {
+    this._enabled = true;
+    this._stuckMs = opts.stuckMs ?? 30000;
+    this._onStuck = opts.onStuck || (() => {
+      console.warn('[IX.StateGuard] Stuck detected — returning to TITLE');
+      if (Scene.current !== 'TITLE' && Scene._states.TITLE) Scene.transition('TITLE');
+    });
+    this._elapsed = 0;
+  },
+
+  disable() { this._enabled = false; },
+
+  /** 어떤 입력/전환이 발생했을 때 호출. 내부 타이머 리셋. */
+  touch() { this._elapsed = 0; },
+
+  tick(dt, input) {
+    if (!this._enabled) return;
+    // any input touches the guard
+    const inputSig = `${input.mouseX|0},${input.mouseY|0},${input.mouseDown},${input.tapped},${Object.keys(input.justPressed).length}`;
+    if (inputSig !== this._lastInputState) {
+      this._lastInputState = inputSig;
+      this._elapsed = 0;
+      return;
+    }
+    this._elapsed += dt;
+    if (this._elapsed >= this._stuckMs) {
+      this._elapsed = 0;
+      try { this._onStuck(); } catch (e) { console.error('[IX.StateGuard]', e); }
+    }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// GameFlow — 표준 라이프사이클 (BOOT → TITLE → PLAY → GAMEOVER)
+//
+// 모든 게임이 동일한 시작/종료/재시작 흐름을 공유하도록 강제한다.
+// 재시작 시 onReset 콜백을 호출하여 게임 로직의 상태를 초기화하고,
+// Scene.cleanup()이 타이머/리스너/트윈/파티클을 보장 정리한다.
+//
+// 사용법:
+//   GameFlow.init({
+//     title:    { enter, update, render },     // 선택
+//     play:     { enter, update, render },     // 필수
+//     gameover: { enter, update, render },     // 선택 (기본 제공)
+//     onReset:  () => { /* 게임 상태 초기화 */ },
+//     titleText: '게임 제목',
+//   });
+//   GameFlow.start();
+// ═══════════════════════════════════════════════════════════
+const GameFlow = {
+  _config: null,
+
+  init(config) {
+    this._config = config;
+    const onReset = config.onReset || (() => {});
+    const titleText = config.titleText || 'PRESS SPACE';
+
+    // TITLE state (default or user-supplied)
+    Scene.register('TITLE', config.title || {
+      enter: () => {
+        const w = window.innerWidth, h = window.innerHeight;
+        new Button({
+          x: w/2 - 120, y: h/2, w: 240, h: 64,
+          text: 'START', key: ['Space', 'Enter'],
+          onClick: () => GameFlow.startPlay(),
+        });
+      },
+      update: () => {},
+      render: (ctx, w, h) => {
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, w, h);
+        UI.text(ctx, titleText, w/2, h/2 - 80, { size: 42, bold: true, color: '#fff', glow: '#6c3cf7' });
+        UI.text(ctx, 'Space / Enter / Tap to start', w/2, h/2 + 100, { size: 16, color: '#aab' });
+      },
+    });
+
+    // PLAY state (user-supplied — required)
+    if (!config.play) throw new Error('[IX.GameFlow] config.play is required');
+    Scene.register('PLAY', config.play);
+
+    // GAMEOVER state (default or user-supplied)
+    Scene.register('GAMEOVER', config.gameover || {
+      enter: (data) => {
+        const w = window.innerWidth, h = window.innerHeight;
+        new Button({
+          x: w/2 - 140, y: h/2 + 40, w: 280, h: 56,
+          text: 'RESTART', key: ['KeyR', 'Space', 'Enter'],
+          onClick: () => { onReset(); Scene.transition('PLAY'); },
+        });
+        new Button({
+          x: w/2 - 140, y: h/2 + 110, w: 280, h: 48,
+          text: 'TITLE', key: ['Escape'],
+          color: '#555',
+          onClick: () => Scene.transition('TITLE'),
+        });
+      },
+      update: () => {},
+      render: (ctx, w, h) => {
+        ctx.fillStyle = 'rgba(10,10,26,0.92)';
+        ctx.fillRect(0, 0, w, h);
+        UI.text(ctx, 'GAME OVER', w/2, h/2 - 60, { size: 56, bold: true, color: '#ff4466', glow: '#ff0044' });
+        const scoreText = config._gameoverData?.score != null ? `SCORE: ${config._gameoverData.score}` : '';
+        if (scoreText) UI.text(ctx, scoreText, w/2, h/2, { size: 22, color: '#ffd700' });
+      },
+    });
+
+    StateGuard.enable({ stuckMs: config.stuckMs ?? 30000 });
+  },
+
+  /** 현재 Scene을 TITLE로 시작 */
+  start() {
+    Scene.transition('TITLE');
+  },
+
+  /** PLAY 시작 — onReset 호출 후 PLAY 진입 */
+  startPlay(data) {
+    if (this._config?.onReset) {
+      try { this._config.onReset(); } catch (e) { console.error('[IX.GameFlow.onReset]', e); }
+    }
+    Scene.transition('PLAY', data);
+  },
+
+  /** 게임 오버 — Score 등 UI 데이터 전달 */
+  gameOver(data) {
+    if (this._config) this._config._gameoverData = data;
+    Scene.transition('GAMEOVER', data);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
 // Genre — 장르별 모듈 마운트 포인트
 // 각 장르 모듈은 /engine/genres/{genre}.js에서 IX.Genre.{Name}에 등록
 // ═══════════════════════════════════════════════════════════
@@ -665,6 +1026,11 @@ const Genre = {};
 // ═══════════════════════════════════════════════════════════
 // Export
 // ═══════════════════════════════════════════════════════════
-return { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Layout, Sprite, Genre };
+return {
+  Engine, Input, Sound, Tween, Particles, AssetLoader,
+  UI, Save, MathUtil, Layout, Sprite,
+  Button, Scene, StateGuard, GameFlow,
+  Genre,
+};
 
 })();
