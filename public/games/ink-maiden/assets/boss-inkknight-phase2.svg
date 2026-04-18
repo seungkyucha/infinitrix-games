@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Armor dark gradient -->
+    <linearGradient id="armorDark" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#2a2a3e"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <!-- Purple energy glow -->
+    <radialGradient id="purpleEnergy" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#b088e0"/>
+      <stop offset="50%" stop-color="#7b5ea7"/>
+      <stop offset="100%" stop-color="#7b5ea7" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Sword flame gradient blue-purple -->
+    <linearGradient id="swordFlame" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#4a7fb5" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#7b5ea7" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#b088e0" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Tentacle gradient -->
+    <linearGradient id="tentacleGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="80%" stop-color="#3a2a5e"/>
+      <stop offset="100%" stop-color="#7b5ea7"/>
+    </linearGradient>
+    <!-- Visor glow -->
+    <radialGradient id="visorGlow" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%" stop-color="#b088e0"/>
+      <stop offset="40%" stop-color="#7b5ea7" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#7b5ea7" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Glow filter -->
+    <filter id="energyGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Puddle spread filter -->
+    <filter id="puddleBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+
+  <!-- Ink puddle spreading at feet -->
+  <g id="inkPuddle">
+    <ellipse cx="260" cy="478" rx="130" ry="22" fill="#1a1a2e" opacity="0.6" filter="url(#puddleBlur)"/>
+    <ellipse cx="250" cy="475" rx="95" ry="15" fill="#1a1a2e" opacity="0.8"/>
+    <!-- Purple tint in puddle -->
+    <ellipse cx="260" cy="476" rx="60" ry="10" fill="#7b5ea7" opacity="0.2"/>
+  </g>
+
+  <!-- Legs / boots -->
+  <g id="legs">
+    <!-- Left leg -->
+    <path d="M225,380 C222,400 220,430 218,460 C216,468 215,474 218,478 L238,478 C240,474 238,468 236,460 C234,435 234,410 236,385Z" fill="url(#armorDark)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Right leg -->
+    <path d="M275,380 C278,400 280,430 282,460 C284,468 285,474 282,478 L262,478 C260,474 262,468 264,460 C266,435 266,410 264,385Z" fill="url(#armorDark)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Cracks on legs -->
+    <path d="M228,410 L235,425 L230,440" stroke="#7b5ea7" stroke-width="1.2" fill="none" opacity="0.7"/>
+    <path d="M272,415 L268,430 L274,445" stroke="#7b5ea7" stroke-width="1.2" fill="none" opacity="0.7"/>
+  </g>
+
+  <!-- Torso armor -->
+  <g id="torso">
+    <path d="M210,210 C200,240 195,280 200,320 C205,355 215,375 230,385 L270,385 C285,375 295,355 300,320 C305,280 300,240 290,210 Q260,195 210,210Z" fill="url(#armorDark)" stroke="#1a1a2e" stroke-width="2.5"/>
+    <!-- Chest plate -->
+    <path d="M220,230 C225,250 230,275 235,300 L265,300 C270,275 275,250 280,230 Q260,218 220,230Z" fill="#222238" stroke="#1a1a2e" stroke-width="1.5"/>
+    <!-- Armor cracks with purple energy underneath -->
+    <path d="M235,245 L240,260 L232,278 L240,295" stroke="#7b5ea7" stroke-width="2" fill="none" opacity="0.8" filter="url(#energyGlow)"/>
+    <path d="M270,250 L265,268 L272,285" stroke="#7b5ea7" stroke-width="1.8" fill="none" opacity="0.75" filter="url(#energyGlow)"/>
+    <path d="M248,235 L252,255 L247,270" stroke="#b088e0" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <path d="M260,240 L258,258 L263,275 L257,290" stroke="#7b5ea7" stroke-width="1.5" fill="none" opacity="0.7"/>
+    <!-- Shoulder pads -->
+    <path d="M200,215 C185,210 170,215 168,225 C166,235 175,242 190,240 C200,238 208,230 205,220Z" fill="url(#armorDark)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M300,215 C315,210 330,215 332,225 C334,235 325,242 310,240 C300,238 292,230 295,220Z" fill="url(#armorDark)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Shoulder cracks -->
+    <path d="M182,222 L188,232" stroke="#7b5ea7" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <path d="M318,225 L314,234" stroke="#7b5ea7" stroke-width="1.5" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- Tentacle cape (replaces normal cape) -->
+  <g id="tentacleCape">
+    <!-- Tentacle 1 - left sweeping -->
+    <path d="M215,225 C200,260 180,310 160,360 C145,395 135,420 150,445 C155,452 165,455 170,448 C180,430 175,400 185,365 C195,330 205,290 215,255" fill="none" stroke="url(#tentacleGrad)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M150,445 C155,452 165,458 172,452" fill="none" stroke="#7b5ea7" stroke-width="4" stroke-linecap="round"/>
+    <!-- Tentacle 2 - center-left -->
+    <path d="M230,230 C225,275 220,330 225,385 C228,415 235,440 245,458 C248,462 255,460 254,452 C248,430 242,405 240,375 C238,340 237,290 238,250" fill="none" stroke="url(#tentacleGrad)" stroke-width="9" stroke-linecap="round"/>
+    <path d="M245,458 C248,464 256,465 258,456" fill="none" stroke="#7b5ea7" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- Tentacle 3 - center-right -->
+    <path d="M270,230 C280,280 285,335 280,390 C278,420 270,445 260,462 C258,466 252,464 253,456 C260,435 266,410 268,380 C272,345 270,290 268,250" fill="none" stroke="url(#tentacleGrad)" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M260,462 C256,468 250,466 252,458" fill="none" stroke="#7b5ea7" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- Tentacle 4 - right sweeping -->
+    <path d="M285,225 C300,260 320,310 340,360 C355,395 365,420 350,445 C345,452 335,455 330,448 C320,430 325,400 315,365 C305,330 295,290 285,255" fill="none" stroke="url(#tentacleGrad)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M350,445 C345,452 335,458 328,452" fill="none" stroke="#7b5ea7" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Arms -->
+  <g id="arms">
+    <!-- Left arm (holds sword) -->
+    <path d="M190,240 C175,260 160,285 150,310 C142,330 138,345 140,355" fill="none" stroke="#1a1a2e" stroke-width="12" stroke-linecap="round"/>
+    <path d="M190,240 C175,260 160,285 150,310 C142,330 138,345 140,355" fill="none" stroke="url(#armorDark)" stroke-width="9" stroke-linecap="round"/>
+    <!-- Right arm -->
+    <path d="M310,240 C325,265 335,290 338,315 C340,330 338,340 335,348" fill="none" stroke="#1a1a2e" stroke-width="11" stroke-linecap="round"/>
+    <path d="M310,240 C325,265 335,290 338,315 C340,330 338,340 335,348" fill="none" stroke="url(#armorDark)" stroke-width="8" stroke-linecap="round"/>
+    <!-- Gauntlet cracks -->
+    <path d="M155,310 L160,325" stroke="#7b5ea7" stroke-width="1.2" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- Greatsword with ink flames -->
+  <g id="greatsword">
+    <!-- Sword blade -->
+    <path d="M135,350 L120,180 L130,170 L140,180 L155,350Z" fill="#3a3a50" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M130,170 L137,180 L137,340" fill="none" stroke="#555570" stroke-width="1" opacity="0.5"/>
+    <!-- Crossguard -->
+    <path d="M115,350 L155,350 L150,360 L120,360Z" fill="#1a1a2e" stroke="#1a1a2e" stroke-width="1.5"/>
+    <!-- Grip -->
+    <path d="M127,360 L143,360 L141,390 L129,390Z" fill="#2a1a1e" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Pommel -->
+    <circle cx="135" cy="395" r="8" fill="#1a1a2e" stroke="#7b5ea7" stroke-width="1"/>
+    <!-- Ink flames wrapping sword -->
+    <g filter="url(#energyGlow)">
+      <path d="M120,180 C110,160 115,130 118,110 C122,130 130,145 128,170 C125,150 118,125 122,100 C128,125 135,148 132,175" fill="url(#swordFlame)" opacity="0.7"/>
+      <path d="M140,180 C150,155 145,125 142,105 C138,130 130,148 134,172 C136,148 142,120 138,95 C132,122 128,150 130,175" fill="url(#swordFlame)" opacity="0.6"/>
+      <path d="M125,250 C115,230 118,210 122,195 C126,215 132,225 128,245" fill="url(#swordFlame)" opacity="0.5"/>
+      <path d="M142,240 C150,220 148,200 144,188 C140,208 135,222 138,238" fill="url(#swordFlame)" opacity="0.45"/>
+    </g>
+  </g>
+
+  <!-- Helmet -->
+  <g id="helmet">
+    <path d="M225,160 C220,145 222,125 235,115 C245,108 255,105 265,108 C278,115 282,130 280,148 C278,165 275,180 270,195 L232,195 C228,180 226,170 225,160Z" fill="url(#armorDark)" stroke="#1a1a2e" stroke-width="2.5"/>
+    <!-- Helmet crest -->
+    <path d="M250,105 C248,90 252,75 258,68 C260,78 260,90 258,105" fill="#1a1a2e" stroke="#1a1a2e" stroke-width="1.5"/>
+    <!-- Visor slit with intense purple glow -->
+    <rect x="234" y="155" width="36" height="8" rx="2" fill="url(#visorGlow)" filter="url(#energyGlow)"/>
+    <rect x="238" y="157" width="28" height="4" rx="1" fill="#b088e0" opacity="0.9"/>
+    <!-- Helmet cracks -->
+    <path d="M240,130 L245,145 L238,158" stroke="#7b5ea7" stroke-width="1.5" fill="none" opacity="0.7" filter="url(#energyGlow)"/>
+    <path d="M268,135 L265,148 L270,160" stroke="#7b5ea7" stroke-width="1.3" fill="none" opacity="0.6"/>
+    <!-- Energy leaking from visor -->
+    <g filter="url(#energyGlow)" opacity="0.6">
+      <path d="M240,158 C235,150 228,145 220,142" stroke="#b088e0" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M270,158 C275,150 282,146 290,144" stroke="#b088e0" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M252,155 C252,148 250,140 248,132" stroke="#7b5ea7" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.4"/>
+    </g>
+  </g>
+</svg>

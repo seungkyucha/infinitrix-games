@@ -1,23 +1,21 @@
 # designer 누적 지혜
-_마지막 갱신: 사이클 #3_
+_마지막 갱신: 사이클 #4_
 
 ## 반복되는 실수 🚫
-1. [Cycle 1,2,3] **Gemini 캐릭터 변형 일관성 붕괴**: player 4종(기본/공격/피격/방어)이 전부 서로 다른 인물로 생성. ref 필드로는 AI 이미지 생성기가 동일 캐릭터 보장 불가. 3사이클 연속 재현.
-2. [Cycle 1,2,3] **보스 변형도 동일 문제**: boss-polygon-core(다면체) vs phase2(인간형 기사) — 완전히 다른 존재로 생성. ref 필드 무시됨.
-3. [Cycle 1,2,3] **반투명/밝은색 오브젝트 거의 투명**: enemy-slime, boss-slime-king, ui-block, particle-triangle 등 밝은색/반투명 에셋이 배경 대비 식별 불가.
-4. [Cycle 1,2,3] **manifest.json ref 필드 이스케이프 오류** (`"player\""`) — Gemini 자동 생성 시 3사이클 연속 동일 버그. 수동 검증 필수.
-5. [Cycle 3] **카드 프레임 등급간 스타일 불일치**: card-frame-common(플랫 희미)과 uncommon/rare(풍부한 3D) 사이 스타일 격차 큼.
+1. [Cycle 1,2,3,4] **Gemini 캐릭터 변형 일관성 붕괴**: player 변형(공격/피격/대시/점프/벽타기/시트)이 전부 서로 다른 인물로 생성. ref 필드로는 AI 이미지 생성기가 동일 캐릭터 보장 불가. 4사이클 연속.
+2. [Cycle 1,2,3,4] **보스 변형도 동일 문제**: 보스 phase2가 기본형과 체형/스타일 불일치. ref 필드 무시됨. (C4: boss-inkwolf-phase2에 갑옷 추가 등)
+3. [Cycle 1,2,3] **반투명/밝은색 오브젝트 PNG 불안정**: 밝은색/반투명 에셋이 배경 대비 식별 불가. 파티클/보석 류는 SVG 필수.
+4. [Cycle 1,2,3,4] **manifest.json ref 필드 이스케이프 오류** (`"player\""`) — Gemini 자동 생성 시 4사이클 연속 동일 버그. 수동 작성 필수.
 
 ## 검증된 성공 패턴 ✅
-1. [Cycle 1,2,3] **단독 캐릭터(적) 개별 품질 우수**: enemy-skeleton, enemy-spider, enemy-golem, enemy-mage, enemy-crystal-knight 모두 로우폴리 스타일 일관성 유지.
-2. [Cycle 1,2,3] **배경 품질 높음**: bg-floor1(어둠의 숲), bg-floor2(지하묘지), bg-floor3(크리스탈 궁전) 모두 분위기 탁월.
-3. [Cycle 1,2,3] **SVG fallback 전략 유효 확정**: Cycle 3에서 10개 에셋 SVG 대체 완료 — 플레이어 3변형, 슬라임 2종, 보스 페이즈2, 카드 프레임, 파티클 2종, UI 1종. 동일 팔레트+스타일로 통일 성공.
-4. [Cycle 1,2,3] **UI 아이콘 대부분 안정적**: ui-heart, ui-energy, ui-gold, ui-poison, ui-vulnerable 모두 소형에서도 식별 가능.
-5. [Cycle 2,3] **보스 기본형 탁월**: boss-polygon-core(다면체 보스), boss-bone-lord(거대 해골) — 독립 에셋으로 생성 시 기획 완벽 부합.
-6. [Cycle 3] **포션/유물 아이콘 양호**: potion-health, potion-energy, relic 시리즈 모두 스타일 통일, 소형 식별 가능.
-7. [Cycle 3] **에이전트 병렬 SVG 제작 효율적**: 6개 SVG를 병렬 에이전트로 동시 제작 → 전체 작업 시간 대폭 단축.
+1. [Cycle 1,2,3,4] **단독 캐릭터(적/보스 기본형) 개별 품질 우수**: 적 4종, 보스 4종 기본형 모두 기획 부합 + 잉크/수채화 스타일 일관성 우수.
+2. [Cycle 1,2,3,4] **배경 품질 높음**: 잉크 숲/수묵 동굴/먹물 성 각 3레이어 총 9장 모두 분위기 탁월.
+3. [Cycle 1,2,3,4] **SVG fallback 전략 확정**: C4에서 15개 SVG 대체 완료(플레이어 7변형, 보스 phase2 4종, 파티클 2종, 아이템시트 1종, UI 1종). 동일 팔레트+스타일 통일 성공.
+4. [Cycle 1,2,3,4] **UI 아이콘 안정적**: HP 하트, 능력 아이콘 3종, 점수 아이콘 모두 소형 식별 가능.
+5. [Cycle 3,4] **에이전트 병렬 SVG 제작 효율적**: 다수 SVG를 병렬 에이전트로 동시 제작 → 작업 시간 대폭 단축.
+6. [Cycle 4] **타일셋/환경 오브젝트 양호**: 3영역 타일셋, 세이브포인트, 가시, 부서지는 벽 등 모두 스타일 일치.
 
 ## 다음 사이클 적용 사항 🎯
-1. **캐릭터 변형은 처음부터 SVG 계획 수립** — PNG는 base만 생성, 나머지 변형은 SVG 직접 제작. base PNG 시각 확인 후 동일 팔레트/실루엣 적용.
-2. **반투명·밝은색 에셋은 에셋 목록 단계에서 SVG 지정** — 슬라임, 보석, 파티클, 배리어 등은 Gemini PNG 생성 요청하지 말고 처음부터 SVG로 제작.
-3. **manifest.json은 반드시 수동 작성 + `node -e JSON.parse` 검증** — palette는 배열, ref는 순수 문자열, format 필드로 png/svg 구분 명시.
+1. **캐릭터 변형은 PNG 생성 요청 자체를 하지 말 것** — base만 PNG, 변형은 처음부터 SVG 직접 제작 계획. Gemini에 ref 변형 요청은 4사이클 연속 실패 확인.
+2. **manifest.json은 반드시 수동 작성 + `node -e JSON.parse` 검증** — palette는 배열, ref는 순수 문자열, format 필드로 png/svg 구분 명시. Gemini 자동생성 manifest는 신뢰 불가.
+3. **반투명·소형 에셋(파티클/보석/아이템시트)은 처음부터 SVG** — PNG 생성 불안정 4사이클 확인. SVG + glow 필터로 안정적 품질 확보.

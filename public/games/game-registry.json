@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-04-18T06:40:38.943Z",
-  "totalGames": 3,
+  "lastUpdated": "2026-04-18T21:13:13.440Z",
+  "totalGames": 4,
   "games": [
     {
       "id": "pixel-depths",
@@ -352,6 +352,145 @@
             "E: Finalizar turno",
             "Q/W: Usar poções",
             "Toque: Tocar para selecionar carta → Tocar para mirar inimigo"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ink-maiden",
+      "title": "잉크 메이든",
+      "description": "잉크 세계에서 붓의 능력을 되찾는 핸드드로우 메트로배니아",
+      "genre": ["action", "arcade"],
+      "thumbnail": "/games/ink-maiden/assets/thumbnail.png",
+      "path": "/games/ink-maiden/index.html",
+      "addedAt": "2026-04-18T21:13:13.440Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["메트로배니아", "횡스크롤", "탐험", "보스전", "핸드드로우", "잉크아트", "능력획득"],
+      "controls": [
+        "← → / A D: 이동",
+        "↑ / W: 점프 (공중에서 이중점프)",
+        "Shift / Z: 대시",
+        "X / Space: 공격",
+        "벽 + ↑: 벽타기",
+        "ESC: 일시정지/맵",
+        "터치: 가상 조이스틱 + 버튼"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Ink Maiden",
+          "description": "A hand-drawn metroidvania where you reclaim the lost powers of the brush in an ink-painted world",
+          "tags": ["metroidvania", "side-scroller", "exploration", "boss-fight", "hand-drawn", "ink-art", "ability-unlock"],
+          "controls": [
+            "← → / A D: Move",
+            "↑ / W: Jump (double jump in mid-air)",
+            "Shift / Z: Dash",
+            "X / Space: Attack",
+            "Wall + ↑: Wall climb",
+            "ESC: Pause / Map",
+            "Touch: Virtual joystick + Buttons"
+          ]
+        },
+        "ja": {
+          "title": "インクメイデン",
+          "description": "インクで描かれた世界で失われた筆の力を取り戻す手描きメトロイドヴァニア",
+          "tags": ["メトロイドヴァニア", "横スクロール", "探索", "ボス戦", "手描き", "インクアート", "能力解放"],
+          "controls": [
+            "← → / A D: 移動",
+            "↑ / W: ジャンプ（空中で二段ジャンプ）",
+            "Shift / Z: ダッシュ",
+            "X / Space: 攻撃",
+            "壁 + ↑: 壁登り",
+            "ESC: ポーズ / マップ",
+            "タッチ: 仮想ジョイスティック + ボタン"
+          ]
+        },
+        "zh-CN": {
+          "title": "墨之少女",
+          "description": "在水墨世界中找回失落画笔之力的手绘银河恶魔城游戏",
+          "tags": ["银河恶魔城", "横版卷轴", "探索", "Boss战", "手绘", "水墨风", "能力解锁"],
+          "controls": [
+            "← → / A D: 移动",
+            "↑ / W: 跳跃（空中二段跳）",
+            "Shift / Z: 冲刺",
+            "X / Space: 攻击",
+            "墙壁 + ↑: 攀墙",
+            "ESC: 暂停 / 地图",
+            "触屏: 虚拟摇杆 + 按钮"
+          ]
+        },
+        "zh-TW": {
+          "title": "墨之少女",
+          "description": "在水墨世界中找回失落畫筆之力的手繪銀河惡魔城遊戲",
+          "tags": ["銀河惡魔城", "橫版卷軸", "探索", "Boss戰", "手繪", "水墨風", "能力解鎖"],
+          "controls": [
+            "← → / A D: 移動",
+            "↑ / W: 跳躍（空中二段跳）",
+            "Shift / Z: 衝刺",
+            "X / Space: 攻擊",
+            "牆壁 + ↑: 攀牆",
+            "ESC: 暫停 / 地圖",
+            "觸控: 虛擬搖桿 + 按鈕"
+          ]
+        },
+        "es": {
+          "title": "Ink Maiden",
+          "description": "Un metroidvania dibujado a mano donde recuperas los poderes perdidos del pincel en un mundo de tinta",
+          "tags": ["metroidvania", "desplazamiento lateral", "exploración", "lucha contra jefes", "dibujado a mano", "arte de tinta", "desbloqueo de habilidades"],
+          "controls": [
+            "← → / A D: Mover",
+            "↑ / W: Saltar (doble salto en el aire)",
+            "Shift / Z: Dash",
+            "X / Espacio: Atacar",
+            "Pared + ↑: Escalar pared",
+            "ESC: Pausa / Mapa",
+            "Táctil: Joystick virtual + Botones"
+          ]
+        },
+        "fr": {
+          "title": "Ink Maiden",
+          "description": "Un metroidvania dessiné à la main où vous retrouvez les pouvoirs perdus du pinceau dans un monde d'encre",
+          "tags": ["metroidvania", "défilement latéral", "exploration", "combat de boss", "dessiné à la main", "art à l'encre", "déblocage de capacités"],
+          "controls": [
+            "← → / A D : Se déplacer",
+            "↑ / W : Sauter (double saut en l'air)",
+            "Shift / Z : Dash",
+            "X / Espace : Attaquer",
+            "Mur + ↑ : Escalade murale",
+            "Échap : Pause / Carte",
+            "Tactile : Joystick virtuel + Boutons"
+          ]
+        },
+        "de": {
+          "title": "Ink Maiden",
+          "description": "Ein handgezeichnetes Metroidvania, in dem du die verlorenen Kräfte des Pinsels in einer Tintenwelt zurückgewinnst",
+          "tags": ["Metroidvania", "Side-Scroller", "Erkundung", "Bosskampf", "Handgezeichnet", "Tintenkunst", "Fähigkeiten-Freischaltung"],
+          "controls": [
+            "← → / A D: Bewegen",
+            "↑ / W: Springen (Doppelsprung in der Luft)",
+            "Shift / Z: Dash",
+            "X / Leertaste: Angreifen",
+            "Wand + ↑: Wandklettern",
+            "ESC: Pause / Karte",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
+        },
+        "pt": {
+          "title": "Ink Maiden",
+          "description": "Um metroidvania desenhado à mão onde você recupera os poderes perdidos do pincel em um mundo de tinta",
+          "tags": ["metroidvania", "rolagem lateral", "exploração", "luta contra chefe", "desenhado à mão", "arte em tinta", "desbloqueio de habilidades"],
+          "controls": [
+            "← → / A D: Mover",
+            "↑ / W: Pular (pulo duplo no ar)",
+            "Shift / Z: Dash",
+            "X / Espaço: Atacar",
+            "Parede + ↑: Escalar parede",
+            "ESC: Pausar / Mapa",
+            "Toque: Joystick virtual + Botões"
           ]
         }
       }

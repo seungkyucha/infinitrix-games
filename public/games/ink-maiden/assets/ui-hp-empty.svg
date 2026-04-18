@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="emptyFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8e0d0" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#d8d0c0" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#c8c0b0" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="inkOutline" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#2a2a3e"/>
+    </linearGradient>
+    <filter id="inkStroke">
+      <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5"/>
+    </filter>
+    <filter id="paperTexture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+      <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply"/>
+    </filter>
+  </defs>
+  <g id="empty-heart">
+    <!-- Shadow beneath -->
+    <path d="M64 112 C64 112, 18 78, 18 48 C18 30, 30 18, 46 18 C54 18, 60 22, 64 28 C68 22, 74 18, 82 18 C98 18, 110 30, 110 48 C110 78, 64 112, 64 112Z"
+          fill="#1a1a2e" opacity="0.1" transform="translate(2, 2)"/>
+    <!-- Inner empty fill - very faint paper color -->
+    <path d="M64 108 C64 108, 20 76, 20 48 C20 32, 32 20, 46 20 C54 20, 60 24, 64 30 C68 24, 74 20, 82 20 C96 20, 108 32, 108 48 C108 76, 64 108, 64 108Z"
+          fill="url(#emptyFill)"/>
+    <!-- Inner line detail - faint crack -->
+    <path d="M64 40 L60 55 L66 70 L62 85" stroke="#c8c0b0" stroke-width="0.8" fill="none" opacity="0.3"/>
+    <path d="M45 45 Q55 50, 50 60" stroke="#c8c0b0" stroke-width="0.6" fill="none" opacity="0.2"/>
+    <!-- Main ink outline - thick hand-drawn style -->
+    <path d="M64 108 C64 108, 20 76, 20 48 C20 32, 32 20, 46 20 C54 20, 60 24, 64 30 C68 24, 74 20, 82 20 C96 20, 108 32, 108 48 C108 76, 64 108, 64 108Z"
+          fill="none" stroke="url(#inkOutline)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Second outline pass for hand-drawn feel -->
+    <path d="M64 110 C62 106, 22 78, 19 48 C18 30, 31 19, 46 19 C55 19, 61 23, 64 29"
+          fill="none" stroke="#1a1a2e" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+    <path d="M64 29 C67 23, 73 19, 82 19 C97 19, 109 31, 109 48 C109 78, 66 106, 64 110"
+          fill="none" stroke="#1a1a2e" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+    <!-- Ink splatter detail near outline -->
+    <circle cx="22" cy="55" r="1.5" fill="#1a1a2e" opacity="0.3"/>
+    <circle cx="106" cy="52" r="1" fill="#1a1a2e" opacity="0.25"/>
+    <circle cx="40" cy="95" r="1.2" fill="#1a1a2e" opacity="0.2"/>
+    <!-- Subtle highlight on upper edge -->
+    <path d="M46 24 C50 22, 56 24, 60 28" stroke="#f5f0e1" stroke-width="1.5" fill="none" opacity="0.4" stroke-linecap="round"/>
+    <path d="M82 24 C86 22, 94 26, 100 34" stroke="#f5f0e1" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round"/>
+  </g>
+</svg>

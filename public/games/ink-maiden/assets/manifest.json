@@ -1,0 +1,369 @@
+{
+  "gameId": "ink-maiden",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "provider": "gemini",
+  "artDirection": {
+    "style": "Hand-drawn 2D art: visible ink lines, watercolor-like fills, slight paper texture (Hollow Knight / Cuphead feel).",
+    "palette": ["#1a1a2e", "#f5f0e1", "#4a7fb5", "#c94c4c", "#6b9e6b", "#7b5ea7", "#d4a847"],
+    "mood": "신비로운 잉크 세계, 따뜻한 종이 질감 속의 어둠, 수채화 모험",
+    "reference": "Hollow Knight 잉크 선화 + Ori and the Will of the Wisps 수채 배경 분위기"
+  },
+  "format": "png",
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "잉크 메이든 '마리' — 잉크 선화 소녀, 파란 수채 머리카락, 큰 붓, 하얀 원피스, 검정 잉크 아웃라인, 맨발에 잉크 자국"
+    },
+    "playerIdleSheet": {
+      "file": "player-idle-sheet.svg",
+      "size": "512x128",
+      "format": "svg",
+      "desc": "마리 대기 애니메이션 스프라이트 시트 — 4프레임, 머리카락 흔들림 + 붓 끝 잉크 방울 떨어짐",
+      "ref": "player"
+    },
+    "playerRunSheet": {
+      "file": "player-run-sheet.svg",
+      "size": "768x128",
+      "format": "svg",
+      "desc": "마리 달리기 애니메이션 스프라이트 시트 — 6프레임, 원피스 자락 펄럭임, 붓을 뒤로 끌며 달리는 자세",
+      "ref": "player"
+    },
+    "playerJump": {
+      "file": "player-jump.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "마리 점프 포즈 — 붓을 위로 치켜든 자세, 머리카락이 아래로 휘날림",
+      "ref": "player"
+    },
+    "playerAttack": {
+      "file": "player-attack.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "마리 공격 포즈 — 붓을 크게 가로로 휘두르기, 파란 잉크 호 잔상",
+      "ref": "player"
+    },
+    "playerHurt": {
+      "file": "player-hurt.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "마리 피격 포즈 — 뒤로 젖혀지며 빨간 잉크 얼룩, 고통스런 표정",
+      "ref": "player"
+    },
+    "playerDash": {
+      "file": "player-dash.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "마리 대시 포즈 — 붓을 앞으로 찌르듯 돌진, 파란 잉크 잔상",
+      "ref": "player"
+    },
+    "playerWallcling": {
+      "file": "player-wallcling.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "마리 벽타기 포즈 — 한 손으로 벽을 잡고 붓을 입에 물고 있는 자세",
+      "ref": "player"
+    },
+    "enemyInkblob": {
+      "file": "enemy-inkblob.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "잉크 얼룩 슬라임 — 검정 잉크 웅덩이에서 솟아오른 형태, 빨간 눈 2개, 끈적한 잉크"
+    },
+    "enemyInkbat": {
+      "file": "enemy-inkbat.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "잉크 박쥐 — 번진 먹물 날개, 빨간 눈, 잉크 방울 떨구며 비행"
+    },
+    "enemyInkspider": {
+      "file": "enemy-inkspider.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "잉크 거미 — 수묵화 스타일, 8개 다리 잉크 번짐, 배에 보라색 문양"
+    },
+    "enemyInkguard": {
+      "file": "enemy-inkguard.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "먹물 근위병 — 잉크 갑옷 전사, 먹물 검, 투구 사이 빨간 눈빛"
+    },
+    "bossInkwolf": {
+      "file": "boss-inkwolf.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "잉크 늑대 (잉크 숲 보스) — 거대한 잉크 늑대, 먹물이 흘러내림, 붉은 이빨과 발톱"
+    },
+    "bossInkwolfPhase2": {
+      "file": "boss-inkwolf-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "잉크 늑대 2페이즈 — 잉크가 붉게 변하며 빨간 잉크 화염, 분노한 눈",
+      "ref": "boss-inkwolf"
+    },
+    "bossSumispider": {
+      "file": "boss-sumispider.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "수묵 거미 (수묵 동굴 보스) — 천장 거대 거미, 수묵화 농담법, 8개 눈"
+    },
+    "bossSumispiderPhase2": {
+      "file": "boss-sumispider-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "수묵 거미 2페이즈 — 바닥 내려옴, 다리 4개 칼날 변형, 보라색 잉크 안개",
+      "ref": "boss-sumispider"
+    },
+    "bossInkknight": {
+      "file": "boss-inkknight.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "먹물 기사 (먹물 성 보스) — 거대 잉크 갑옷 기사, 양손검, 먹물 망토"
+    },
+    "bossInkknightPhase2": {
+      "file": "boss-inkknight-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "먹물 기사 2페이즈 — 갑옷 금, 잉크 에너지 누출, 검에 잉크 불꽃, 촉수 망토",
+      "ref": "boss-inkknight"
+    },
+    "bossDarkbrush": {
+      "file": "boss-darkbrush.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "어둠의 붓 (최종 보스) — 거대 붓 형상, 검은 잉크 소용돌이, 어둠의 뿌리"
+    },
+    "bossDarkbrushPhase2": {
+      "file": "boss-darkbrush-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "어둠의 붓 2페이즈 — 그림자 인간형 재구성, 마리 실루엣 모방, 빨간+보라 오라",
+      "ref": "boss-darkbrush"
+    },
+    "bgForestFar": {
+      "file": "bg-forest-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "잉크 숲 원경 — 종이 텍스처 위 연한 수채 초록/파랑 나무 실루엣, 몽환적"
+    },
+    "bgForestMid": {
+      "file": "bg-forest-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "잉크 숲 중경 — 잉크 선화 나무 기둥과 덩굴, 수채 초록 이파리"
+    },
+    "bgForestGround": {
+      "file": "bg-forest-ground.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "잉크 숲 지면 — 잉크로 그린 풀밭과 뿌리, 수채 초록+갈색"
+    },
+    "bgCaveFar": {
+      "file": "bg-cave-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "수묵 동굴 원경 — 짙은 먹색 배경에 수묵 농담법 바위, 보라색 수정 빛"
+    },
+    "bgCaveMid": {
+      "file": "bg-cave-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "수묵 동굴 중경 — 잉크 선화 종유석과 석순, 수묵 번짐, 거미줄"
+    },
+    "bgCaveGround": {
+      "file": "bg-cave-ground.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "수묵 동굴 지면 — 잉크 바위 바닥, 수묵 얼룩, 보라색 수정 조각"
+    },
+    "bgCastleFar": {
+      "file": "bg-castle-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "먹물 성 원경 — 잉크 선화 고딕 첨탑, 보라+빨강 수채 하늘, 먹구름"
+    },
+    "bgCastleMid": {
+      "file": "bg-castle-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "먹물 성 중경 — 잉크 선화 돌벽과 아치, 보라색 빛, 잉크 덩굴"
+    },
+    "bgCastleGround": {
+      "file": "bg-castle-ground.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "먹물 성 지면 — 잉크 석재 바닥, 금 간 타일, 잉크 웅덩이, 갑옷 파편"
+    },
+    "tilesetForest": {
+      "file": "tileset-forest.png",
+      "size": "240x256",
+      "format": "png",
+      "desc": "잉크 숲 타일셋 — 잉크 선화+수채 초록 풀/나무/흙 타일 16종"
+    },
+    "tilesetCave": {
+      "file": "tileset-cave.png",
+      "size": "240x256",
+      "format": "png",
+      "desc": "수묵 동굴 타일셋 — 수묵 번짐 바위/수정/거미줄 타일 16종"
+    },
+    "tilesetCastle": {
+      "file": "tileset-castle.png",
+      "size": "240x256",
+      "format": "png",
+      "desc": "먹물 성 타일셋 — 잉크 선화 돌벽/아치/기둥 타일 16종"
+    },
+    "itemInkdrop": {
+      "file": "item-inkdrop.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "잉크 방울 (HP 회복) — 수채 파랑 동그란 잉크 방울, 빛 하이라이트"
+    },
+    "itemGoldshard": {
+      "file": "item-goldshard.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "금빛 잉크 조각 (점수) — 오커 금색 결정화 조각, 금빛 잉크 파편"
+    },
+    "itemGoldshardSheet": {
+      "file": "item-goldshard-sheet.svg",
+      "size": "768x128",
+      "format": "svg",
+      "desc": "금빛 잉크 조각 반짝임 애니메이션 — 6프레임, 빛 반사 시퀀스",
+      "ref": "item-goldshard"
+    },
+    "itemHpup": {
+      "file": "item-hpup.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 증가 아이템 — 잉크 하트에 초록 수채, 초록 파티클"
+    },
+    "itemAbilityOrb": {
+      "file": "item-ability-orb.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "능력 오브 — 수채 파랑+보라 소용돌이 잉크 구슬, 능력 심볼"
+    },
+    "objSavepoint": {
+      "file": "obj-savepoint.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "세이브 포인트 (잉크 우물) — 잉크 선화 돌 우물, 초록 수채 빛"
+    },
+    "objBreakwall": {
+      "file": "obj-breakwall.png",
+      "size": "128x256",
+      "format": "png",
+      "desc": "부서지는 벽 — 균열 잉크 선화 벽, 파란 빛 새어나옴"
+    },
+    "objSpike": {
+      "file": "obj-spike.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "잉크 가시 (트랩) — 날카로운 잉크 가시, 빨간 잉크 맺힘"
+    },
+    "objPlatformMoving": {
+      "file": "obj-platform-moving.png",
+      "size": "256x128",
+      "format": "png",
+      "desc": "움직이는 플랫폼 — 잉크 선화 돌판에 수채 파랑 룬 문양"
+    },
+    "effectSlash": {
+      "file": "effect-slash.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "붓 공격 이펙트 — 4프레임, 파란 잉크 호, 수채 번짐 잔상"
+    },
+    "effectDash": {
+      "file": "effect-dash.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "대시 이펙트 — 4프레임, 파란 잉크 잔상이 늘어졌다 사라짐"
+    },
+    "effectHit": {
+      "file": "effect-hit.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "피격 이펙트 — 4프레임, 빨간 잉크가 튀어나감"
+    },
+    "effectDeath": {
+      "file": "effect-death.png",
+      "size": "768x128",
+      "format": "png",
+      "desc": "적 사망 이펙트 — 6프레임, 잉크 몸체가 종이에 스며듦"
+    },
+    "effectHeal": {
+      "file": "effect-heal.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "회복 이펙트 — 4프레임, 초록 수채 파티클이 감싸며 올라감"
+    },
+    "effectAbilityGet": {
+      "file": "effect-ability-get.png",
+      "size": "768x128",
+      "format": "png",
+      "desc": "능력 획득 이펙트 — 6프레임, 파란+보라 잉크 소용돌이 폭발"
+    },
+    "particleInk": {
+      "file": "particle-ink.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "잉크 파티클 텍스처 — 작은 잉크 방울, 알파 그라데이션 번짐"
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "금빛 반짝임 파티클 — 오커 금색 십자형 광채, 알파 그라데이션"
+    },
+    "uiHp": {
+      "file": "ui-hp.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 아이콘 — 잉크 선화 하트에 빨간 수채 채움"
+    },
+    "uiHpEmpty": {
+      "file": "ui-hp-empty.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "빈 HP 아이콘 — 잉크 선화 하트 윤곽만, 회색 톤",
+      "ref": "ui-hp"
+    },
+    "uiAbilityDash": {
+      "file": "ui-ability-dash.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "대시 능력 아이콘 — 원형 잉크 테두리, 화살표 심볼, 파란 수채"
+    },
+    "uiAbilityDoublejump": {
+      "file": "ui-ability-doublejump.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "이중점프 능력 아이콘 — 원형 잉크 테두리, 날개 심볼, 파란 수채"
+    },
+    "uiAbilityWallclimb": {
+      "file": "ui-ability-wallclimb.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "벽타기 능력 아이콘 — 원형 잉크 테두리, 손 심볼, 파란 수채"
+    },
+    "uiScore": {
+      "file": "ui-score.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "점수 아이콘 — 금빛 잉크 조각 형태"
+    },
+    "uiMinimapFrame": {
+      "file": "ui-minimap-frame.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "미니맵 프레임 — 잉크 선화 두루마리 테두리, 종이 텍스처"
+    },
+    "uiButtonFrame": {
+      "file": "ui-button-frame.png",
+      "size": "256x128",
+      "format": "png",
+      "desc": "범용 UI 버튼 프레임 — 잉크 선화 테두리, 수채 파랑 글로우"
+    }
+  }
+}

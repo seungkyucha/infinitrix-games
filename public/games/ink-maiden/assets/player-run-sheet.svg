@@ -1,0 +1,341 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 128">
+  <defs>
+    <linearGradient id="hairGrad" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#5a8fc5"/>
+      <stop offset="50%" stop-color="#4a7fb5"/>
+      <stop offset="100%" stop-color="#3a6fa5"/>
+    </linearGradient>
+    <linearGradient id="dressGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#f5f0e1"/>
+      <stop offset="100%" stop-color="#e8e0d0"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#faecd8"/>
+      <stop offset="100%" stop-color="#f5e6d0"/>
+    </linearGradient>
+    <linearGradient id="brushHandleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9a7924"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <linearGradient id="inkTrailGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1a1a2e" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="wc" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+
+  <!-- ===== FRAME 1: Right foot forward, left arm forward with brush trailing ===== -->
+  <g transform="translate(0, 0)" filter="url(#wc)">
+    <!-- Ink trail under feet -->
+    <ellipse cx="58" cy="120" rx="5" ry="1.5" fill="#1a1a2e" opacity="0.3"/>
+    <ellipse cx="72" cy="118" rx="4" ry="1" fill="#1a1a2e" opacity="0.2"/>
+    <circle cx="54" cy="121" r="1" fill="#1a1a2e" opacity="0.2"/>
+    <!-- Shadow -->
+    <ellipse cx="64" cy="122" rx="18" ry="3" fill="#1a1a2e" opacity="0.12"/>
+    <!-- Right leg (forward) -->
+    <path d="M66,86 Q72,94 76,104 Q77,108 78,112" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M66,86 Q72,94 76,104" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="78" cy="113" rx="5" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Left leg (back) -->
+    <path d="M60,86 Q54,94 50,104 Q49,108 48,112" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M60,86 Q54,94 50,104" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="48" cy="113" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Dress (flowing back) -->
+    <path d="M52,56 Q48,60 46,70 Q44,80 48,90 Q54,96 62,94 Q70,96 76,90 Q80,80 78,70 Q76,60 74,56 Z" fill="url(#dressGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Dress motion trail -->
+    <path d="M48,90 Q44,92 42,88" stroke="#e8e0d0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M56,70 Q54,78 52,88" stroke="#d8d0c0" stroke-width="1" fill="none" opacity="0.5"/>
+    <!-- Neckline -->
+    <path d="M55,54 Q63,50 71,54" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <!-- Left arm (forward with brush) -->
+    <path d="M52,58 Q44,54 38,50 Q34,48 30,46" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M52,58 Q44,54 38,50" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Brush trailing behind left hand -->
+    <line x1="30" y1="46" x2="18" y2="42" stroke="url(#brushHandleGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M18,40 Q14,38 12,40 Q14,42 18,44 Q16,42 18,40" fill="#4a7fb5" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Brush ink trail -->
+    <path d="M12,40 Q8,38 4,40" stroke="#4a7fb5" stroke-width="1" fill="none" opacity="0.4"/>
+    <!-- Right arm (back) -->
+    <path d="M74,58 Q80,64 84,72 Q86,76 86,78" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M74,58 Q80,64 84,72" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Neck -->
+    <rect x="60" y="46" width="6" height="7" rx="2" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <!-- Head (leaning forward) -->
+    <ellipse cx="64" cy="36" rx="13" ry="15" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Hair flowing back -->
+    <path d="M50,28 Q44,40 40,56 Q38,62 40,58 Q44,48 48,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M76,28 Q82,40 86,56 Q88,62 86,58 Q82,48 78,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <!-- Extra hair flow -->
+    <path d="M78,30 Q84,36 88,48" stroke="url(#hairGrad)" stroke-width="3" fill="none" opacity="0.6"/>
+    <!-- Hair top -->
+    <path d="M50,30 Q52,16 64,14 Q76,16 78,30 Q76,22 64,20 Q52,22 50,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Bangs -->
+    <path d="M52,28 Q55,24 57,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M59,26 Q63,22 67,26" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M69,28 Q72,24 75,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Eyes (determined look) -->
+    <ellipse cx="58" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <ellipse cx="69" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <circle cx="59.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="70.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="60" cy="35" r="0.7" fill="white"/>
+    <circle cx="71" cy="35" r="0.7" fill="white"/>
+    <!-- Mouth -->
+    <path d="M61,42 Q64,43 66,42" stroke="#c94c4c" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <!-- Blush -->
+    <ellipse cx="55" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+    <ellipse cx="72" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+  </g>
+
+  <!-- ===== FRAME 2: Mid-stride right, body leaning forward ===== -->
+  <g transform="translate(128, 0)" filter="url(#wc)">
+    <ellipse cx="60" cy="120" rx="6" ry="1.5" fill="#1a1a2e" opacity="0.25"/>
+    <circle cx="55" cy="121" r="1.2" fill="#1a1a2e" opacity="0.2"/>
+    <ellipse cx="66" cy="122" rx="16" ry="3" fill="#1a1a2e" opacity="0.12"/>
+    <!-- Both legs mid-crossing -->
+    <path d="M64,86 Q68,96 70,106 Q71,110 70,113" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M64,86 Q68,96 70,106" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="70" cy="114" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <path d="M62,86 Q56,94 54,102 Q53,106 54,108" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M62,86 Q56,94 54,102" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="54" cy="109" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Dress -->
+    <path d="M53,55 Q49,59 47,69 Q45,79 49,89 Q55,94 63,93 Q71,94 77,89 Q80,79 78,69 Q76,59 73,55 Z" fill="url(#dressGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M49,89 Q46,92 44,88" stroke="#e8e0d0" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <path d="M57,69 Q55,77 54,87" stroke="#d8d0c0" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M56,53 Q64,49 72,53" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <!-- Arms - both mid-swing -->
+    <path d="M53,57 Q47,56 42,56 Q38,56 36,56" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M53,57 Q47,56 42,56" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Brush -->
+    <line x1="36" y1="56" x2="24" y2="54" stroke="url(#brushHandleGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M24,52 Q20,51 18,53 Q20,55 24,56 Q22,54 24,52" fill="#4a7fb5" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M74,57 Q80,62 84,68" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M74,57 Q80,62 84,68" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Neck & Head -->
+    <rect x="60" y="45" width="6" height="7" rx="2" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <ellipse cx="64" cy="35" rx="13" ry="15" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Hair flowing back strongly -->
+    <path d="M50,27 Q44,39 40,55 Q38,61 40,57 Q44,47 48,37" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M76,27 Q84,39 90,55 Q92,61 90,57 Q86,47 80,37" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M80,29 Q88,36 94,50" stroke="url(#hairGrad)" stroke-width="3" fill="none" opacity="0.5"/>
+    <path d="M50,29 Q52,15 64,13 Q76,15 78,29 Q76,21 64,19 Q52,21 50,29" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M52,27 Q55,23 57,29" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M59,25 Q63,21 67,25" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M69,27 Q72,23 75,29" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Eyes -->
+    <ellipse cx="58" cy="35" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <ellipse cx="69" cy="35" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <circle cx="59.5" cy="35" r="2" fill="#1a1a2e"/>
+    <circle cx="70.5" cy="35" r="2" fill="#1a1a2e"/>
+    <circle cx="60" cy="34" r="0.7" fill="white"/>
+    <circle cx="71" cy="34" r="0.7" fill="white"/>
+    <path d="M61,41 Q64,42 66,41" stroke="#c94c4c" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <ellipse cx="55" cy="39" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+    <ellipse cx="72" cy="39" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+  </g>
+
+  <!-- ===== FRAME 3: Right foot pushing off, left foot coming forward ===== -->
+  <g transform="translate(256, 0)" filter="url(#wc)">
+    <ellipse cx="70" cy="120" rx="5" ry="1.5" fill="#1a1a2e" opacity="0.3"/>
+    <circle cx="74" cy="121" r="1" fill="#1a1a2e" opacity="0.2"/>
+    <ellipse cx="64" cy="122" rx="16" ry="3" fill="#1a1a2e" opacity="0.1"/>
+    <!-- Right leg (pushing off behind) -->
+    <path d="M66,86 Q74,92 80,100 Q84,106 86,112" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M66,86 Q74,92 80,100" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="86" cy="113" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Left leg (coming forward, lifted) -->
+    <path d="M60,86 Q54,88 50,94 Q48,98 50,100" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M60,86 Q54,88 50,94" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="50" cy="101" rx="4" ry="2" fill="#1a1a2e" opacity="0.4"/>
+    <!-- Dress -->
+    <path d="M52,56 Q48,60 46,70 Q44,80 48,90 Q54,95 62,94 Q70,95 76,90 Q80,80 78,70 Q76,60 74,56 Z" fill="url(#dressGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M48,90 Q44,94 42,90" stroke="#e8e0d0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M56,70 Q54,78 53,88" stroke="#d8d0c0" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M55,54 Q63,50 71,54" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <!-- Right arm (forward) -->
+    <path d="M74,58 Q68,52 62,48 Q58,46 56,44" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M74,58 Q68,52 62,48" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Left arm (back with brush) -->
+    <path d="M52,58 Q58,64 62,72 Q64,76 66,78" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M52,58 Q58,64 62,72" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Brush trailing from left hand -->
+    <line x1="66" y1="78" x2="78" y2="86" stroke="url(#brushHandleGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M78,84 Q82,86 82,89 Q80,88 78,88 Q79,86 78,84" fill="#4a7fb5" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Neck & Head -->
+    <rect x="60" y="46" width="6" height="7" rx="2" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <ellipse cx="64" cy="36" rx="13" ry="15" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Hair -->
+    <path d="M50,28 Q44,40 40,56 Q38,62 40,58 Q44,48 48,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M76,28 Q84,42 90,58 Q92,64 90,60 Q86,50 80,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M50,30 Q52,16 64,14 Q76,16 78,30 Q76,22 64,20 Q52,22 50,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M52,28 Q55,24 57,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M59,26 Q63,22 67,26" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M69,28 Q72,24 75,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Face -->
+    <ellipse cx="58" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <ellipse cx="69" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <circle cx="59.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="70.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="60" cy="35" r="0.7" fill="white"/>
+    <circle cx="71" cy="35" r="0.7" fill="white"/>
+    <path d="M61,42 Q64,43 66,42" stroke="#c94c4c" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <ellipse cx="55" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+    <ellipse cx="72" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+  </g>
+
+  <!-- ===== FRAME 4: Left foot forward, right arm forward ===== -->
+  <g transform="translate(384, 0)" filter="url(#wc)">
+    <ellipse cx="56" cy="120" rx="5" ry="1.5" fill="#1a1a2e" opacity="0.3"/>
+    <circle cx="52" cy="121" r="1" fill="#1a1a2e" opacity="0.2"/>
+    <ellipse cx="64" cy="122" rx="18" ry="3" fill="#1a1a2e" opacity="0.12"/>
+    <!-- Left leg (forward) -->
+    <path d="M60,86 Q54,94 50,104 Q49,108 48,112" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M60,86 Q54,94 50,104" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="48" cy="113" rx="5" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Right leg (back) -->
+    <path d="M66,86 Q72,94 76,104 Q77,108 78,112" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M66,86 Q72,94 76,104" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="78" cy="113" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Dress -->
+    <path d="M52,56 Q48,60 46,70 Q44,80 48,90 Q54,96 62,94 Q70,96 76,90 Q80,80 78,70 Q76,60 74,56 Z" fill="url(#dressGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M76,90 Q80,92 82,88" stroke="#e8e0d0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M70,70 Q72,78 73,88" stroke="#d8d0c0" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M55,54 Q63,50 71,54" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <!-- Right arm (forward) -->
+    <path d="M74,58 Q82,54 88,50 Q92,48 96,46" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M74,58 Q82,54 88,50" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Left arm (back with brush) -->
+    <path d="M52,58 Q46,64 42,72 Q40,76 38,80" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M52,58 Q46,64 42,72" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Brush -->
+    <line x1="38" y1="80" x2="30" y2="92" stroke="url(#brushHandleGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M28,90 Q26,94 28,97 Q30,96 30,94 Q30,92 28,90" fill="#4a7fb5" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Brush ink trail -->
+    <path d="M28,97 Q26,100 28,102" stroke="#4a7fb5" stroke-width="0.8" fill="none" opacity="0.3"/>
+    <!-- Neck & Head -->
+    <rect x="60" y="46" width="6" height="7" rx="2" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <ellipse cx="64" cy="36" rx="13" ry="15" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Hair -->
+    <path d="M50,28 Q44,40 40,56 Q38,62 40,58 Q44,48 48,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M76,28 Q82,40 86,56 Q88,62 86,58 Q82,48 78,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M78,30 Q86,38 90,50" stroke="url(#hairGrad)" stroke-width="3" fill="none" opacity="0.5"/>
+    <path d="M50,30 Q52,16 64,14 Q76,16 78,30 Q76,22 64,20 Q52,22 50,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M52,28 Q55,24 57,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M59,26 Q63,22 67,26" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M69,28 Q72,24 75,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Face -->
+    <ellipse cx="58" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <ellipse cx="69" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <circle cx="59.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="70.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="60" cy="35" r="0.7" fill="white"/>
+    <circle cx="71" cy="35" r="0.7" fill="white"/>
+    <path d="M61,42 Q64,43 66,42" stroke="#c94c4c" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <ellipse cx="55" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+    <ellipse cx="72" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+  </g>
+
+  <!-- ===== FRAME 5: Mid-stride left ===== -->
+  <g transform="translate(512, 0)" filter="url(#wc)">
+    <ellipse cx="62" cy="120" rx="6" ry="1.5" fill="#1a1a2e" opacity="0.25"/>
+    <circle cx="67" cy="121" r="1" fill="#1a1a2e" opacity="0.2"/>
+    <ellipse cx="64" cy="122" rx="16" ry="3" fill="#1a1a2e" opacity="0.12"/>
+    <!-- Legs mid-crossing (mirror of frame 2) -->
+    <path d="M62,86 Q58,96 56,106 Q55,110 56,113" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M62,86 Q58,96 56,106" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="56" cy="114" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <path d="M64,86 Q70,94 72,102 Q73,106 72,108" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M64,86 Q70,94 72,102" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="72" cy="109" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Dress -->
+    <path d="M53,55 Q49,59 47,69 Q45,79 49,89 Q55,94 63,93 Q71,94 77,89 Q80,79 78,69 Q76,59 73,55 Z" fill="url(#dressGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M77,89 Q80,92 82,88" stroke="#e8e0d0" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <path d="M69,69 Q71,77 72,87" stroke="#d8d0c0" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M56,53 Q64,49 72,53" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <!-- Arms mid-swing -->
+    <path d="M74,57 Q80,56 84,56 Q88,56 90,56" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M74,57 Q80,56 84,56" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M53,57 Q46,62 42,68" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M53,57 Q46,62 42,68" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Brush in left hand trailing -->
+    <line x1="42" y1="68" x2="34" y2="78" stroke="url(#brushHandleGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M32,76 Q30,80 32,83 Q34,82 34,80 Q34,78 32,76" fill="#4a7fb5" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Neck & Head -->
+    <rect x="60" y="45" width="6" height="7" rx="2" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <ellipse cx="64" cy="35" rx="13" ry="15" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Hair -->
+    <path d="M50,27 Q44,39 40,55 Q38,61 40,57 Q44,47 48,37" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M76,27 Q84,39 90,55 Q92,61 90,57 Q86,47 80,37" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M80,29 Q88,36 92,48" stroke="url(#hairGrad)" stroke-width="3" fill="none" opacity="0.5"/>
+    <path d="M50,29 Q52,15 64,13 Q76,15 78,29 Q76,21 64,19 Q52,21 50,29" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M52,27 Q55,23 57,29" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M59,25 Q63,21 67,25" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M69,27 Q72,23 75,29" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Face -->
+    <ellipse cx="58" cy="35" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <ellipse cx="69" cy="35" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <circle cx="59.5" cy="35" r="2" fill="#1a1a2e"/>
+    <circle cx="70.5" cy="35" r="2" fill="#1a1a2e"/>
+    <circle cx="60" cy="34" r="0.7" fill="white"/>
+    <circle cx="71" cy="34" r="0.7" fill="white"/>
+    <path d="M61,41 Q64,42 66,41" stroke="#c94c4c" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <ellipse cx="55" cy="39" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+    <ellipse cx="72" cy="39" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+  </g>
+
+  <!-- ===== FRAME 6: Left foot pushing off, right foot coming forward ===== -->
+  <g transform="translate(640, 0)" filter="url(#wc)">
+    <ellipse cx="54" cy="120" rx="5" ry="1.5" fill="#1a1a2e" opacity="0.3"/>
+    <circle cx="50" cy="121" r="1.2" fill="#1a1a2e" opacity="0.2"/>
+    <ellipse cx="64" cy="122" rx="16" ry="3" fill="#1a1a2e" opacity="0.1"/>
+    <!-- Left leg (pushing off behind) -->
+    <path d="M60,86 Q52,92 46,100 Q42,106 40,112" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M60,86 Q52,92 46,100" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="40" cy="113" rx="4" ry="2" fill="#1a1a2e" opacity="0.5"/>
+    <!-- Right leg (coming forward, lifted) -->
+    <path d="M66,86 Q72,88 76,94 Q78,98 76,100" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M66,86 Q72,88 76,94" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="76" cy="101" rx="4" ry="2" fill="#1a1a2e" opacity="0.4"/>
+    <!-- Dress -->
+    <path d="M52,56 Q48,60 46,70 Q44,80 48,90 Q54,95 62,94 Q70,95 76,90 Q80,80 78,70 Q76,60 74,56 Z" fill="url(#dressGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M76,90 Q80,94 82,90" stroke="#e8e0d0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M70,70 Q72,78 73,88" stroke="#d8d0c0" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M55,54 Q63,50 71,54" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <!-- Left arm (forward) -->
+    <path d="M52,58 Q44,52 38,48 Q34,46 30,44" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M52,58 Q44,52 38,48" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Brush in left hand forward -->
+    <line x1="30" y1="44" x2="18" y2="40" stroke="url(#brushHandleGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M18,38 Q14,36 12,38 Q14,40 18,42 Q16,40 18,38" fill="#4a7fb5" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M12,38 Q8,36 4,38" stroke="#4a7fb5" stroke-width="1" fill="none" opacity="0.4"/>
+    <!-- Right arm (back) -->
+    <path d="M74,58 Q80,64 84,72 Q86,76 86,78" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M74,58 Q80,64 84,72" stroke="url(#skinGrad)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Neck & Head -->
+    <rect x="60" y="46" width="6" height="7" rx="2" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <ellipse cx="64" cy="36" rx="13" ry="15" fill="url(#skinGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Hair -->
+    <path d="M50,28 Q44,40 40,56 Q38,62 40,58 Q44,48 48,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M76,28 Q84,42 90,58 Q92,64 90,60 Q86,50 80,38" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M78,30 Q86,38 92,52" stroke="url(#hairGrad)" stroke-width="3" fill="none" opacity="0.6"/>
+    <path d="M50,30 Q52,16 64,14 Q76,16 78,30 Q76,22 64,20 Q52,22 50,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="2"/>
+    <path d="M52,28 Q55,24 57,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M59,26 Q63,22 67,26" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M69,28 Q72,24 75,30" fill="url(#hairGrad)" stroke="#1a1a2e" stroke-width="1"/>
+    <!-- Face -->
+    <ellipse cx="58" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <ellipse cx="69" cy="36" rx="3" ry="3" fill="white" stroke="#1a1a2e" stroke-width="1.2"/>
+    <circle cx="59.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="70.5" cy="36" r="2" fill="#1a1a2e"/>
+    <circle cx="60" cy="35" r="0.7" fill="white"/>
+    <circle cx="71" cy="35" r="0.7" fill="white"/>
+    <path d="M61,42 Q64,43.5 66,42" stroke="#c94c4c" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <ellipse cx="55" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+    <ellipse cx="72" cy="40" rx="2.5" ry="1.2" fill="#c94c4c" opacity="0.2"/>
+  </g>
+</svg>

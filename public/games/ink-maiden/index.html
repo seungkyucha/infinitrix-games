@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>잉크 메이든</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#f5f0e1;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script src="/engine/genres/platformer.js"></script>
+<script>
+'use strict';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil, Layout, Sprite, Button, Scene, GameFlow, Pool, PopupText } = IX;
+const { PlatformPhysics, CoyoteJump, OneWayPlatform, WallMechanics, TileCollision } = IX.Genre.Platformer;
+
+/* ═══════════════════════════════════════════════════════════
+   CONFIG & CONSTANTS
+   ═══════════════════════════════════════════════════════════ */
+const GAME_ID = 'ink-maiden';
+const COL = {
+  inkBlack: '#1a1a2e', paperIvory: '#f5f0e1', waterBlue: '#4a7fb5',
+  waterRed: '#c94c4c', waterGreen: '#6b9e6b', waterPurple: '#7b5ea7',
+  inkGold: '#d4a847', darkBg: '#2a2a3e',
+};
+const TILE_COLS = 16, TILE_ROWS = 10;
+const SECRET_ROOM_COUNT = 5;
+
+/* Layout.fontSize binding-loss prevention wrapper */
+const fontSize = (...a) => Layout.fontSize(...a);
+
+/* ═══════════════════════════════════════════════════════════
+   ASSET MAP — load all game assets (complete manifest coverage)
+   ═══════════════════════════════════════════════════════════ */
+const assetMap = {
+  /* Player */
+  player: 'assets/player.png', playerAttack: 'assets/player-attack.svg',
+  playerDash: 'assets/player-dash.svg', playerJump: 'assets/player-jump.svg',
+  playerHurt: 'assets/player-hurt.svg', playerWallcling: 'assets/player-wallcling.svg',
+  playerIdleSheet: 'assets/player-idle-sheet.svg', playerRunSheet: 'assets/player-run-sheet.svg',
+  /* Enemies */
+  enemyInkblob: 'assets/enemy-inkblob.png', enemyInkbat: 'assets/enemy-inkbat.png',
+  enemyInkspider: 'assets/enemy-inkspider.png', enemyInkguard: 'assets/enemy-inkguard.png',
+  /* Bosses */
+  bossInkwolf: 'assets/boss-inkwolf.png', bossInkwolfPhase2: 'assets/boss-inkwolf-phase2.svg',
+  bossSumispider: 'assets/boss-sumispider.png', bossSumispiderPhase2: 'assets/boss-sumispider-phase2.svg',
+  bossInkknight: 'assets/boss-inkknight.png', bossInkknightPhase2: 'assets/boss-inkknight-phase2.svg',
+  bossDarkbrush: 'assets/boss-darkbrush.png', bossDarkbrushPhase2: 'assets/boss-darkbrush-phase2.svg',
+  /* Backgrounds — 3 layers per zone (far/mid/ground) */
+  bgForestFar: 'assets/bg-forest-far.png', bgForestMid: 'assets/bg-forest-mid.png', bgForestGround: 'assets/bg-forest-ground.png',
+  bgCaveFar: 'assets/bg-cave-far.png', bgCaveMid: 'assets/bg-cave-mid.png', bgCaveGround: 'assets/bg-cave-ground.png',
+  bgCastleFar: 'assets/bg-castle-far.png', bgCastleMid: 'assets/bg-castle-mid.png', bgCastleGround: 'assets/bg-castle-ground.png',
+  /* Tilesets */
+  tilesetForest: 'assets/tileset-forest.png', tilesetCave: 'assets/tileset-cave.png',
+  tilesetCastle: 'assets/tileset-castle.png',
+  /* Items */
+  itemInkdrop: 'assets/item-inkdrop.png', itemGoldshard: 'assets/item-goldshard.png',
+  itemGoldshardSheet: 'assets/item-goldshard-sheet.svg',
+  itemHpup: 'assets/item-hpup.png', itemAbilityOrb: 'assets/item-ability-orb.png',
+  /* Environment objects */
+  objSavepoint: 'assets/obj-savepoint.png', objBreakwall: 'assets/obj-breakwall.png',
+  objSpike: 'assets/obj-spike.png', objPlatformMoving: 'assets/obj-platform-moving.png',
+  /* Effects */
+  effectSlash: 'assets/effect-slash.png', effectDash: 'assets/effect-dash.png',
+  effectDeath: 'assets/effect-death.png', effectHeal: 'assets/effect-heal.png',
+  effectAbilityGet: 'assets/effect-ability-get.png',
+  /* Particles */
+  particleInk: 'assets/particle-ink.svg', particleSparkle: 'assets/particle-sparkle.svg',
+  /* UI */
+  uiHp: 'assets/ui-hp.png', uiHpEmpty: 'assets/ui-hp-empty.svg',
+  uiAbilityDash: 'assets/ui-ability-dash.png', uiAbilityDoublejump: 'assets/ui-ability-doublejump.png',
+  uiAbilityWallclimb: 'assets/ui-ability-wallclimb.png', uiScore: 'assets/ui-score.png',
+  uiMinimapFrame: 'assets/ui-minimap-frame.png', uiButtonFrame: 'assets/ui-button-frame.png',
+};
+
+/* ═══════════════════════════════════════════════════════════
+   DIFFICULTY SETTINGS — includes drop rate & savepoint level
+   ═══════════════════════════════════════════════════════════ */
+const DIFF = {
+  easy:   { hp: 8, eMul: 0.7, dMul: 0.7, iFrames: 1.5, dropRate: 0.4, saveLvl: 3 },
+  normal: { hp: 5, eMul: 1.0, dMul: 1.0, iFrames: 1.0, dropRate: 0.2, saveLvl: 2 },
+  hard:   { hp: 3, eMul: 1.5, dMul: 1.3, iFrames: 0.5, dropRate: 0.1, saveLvl: 1 },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   ROOM DATA — 16x10 tile maps (24 regular + 5 secret = 29)
+   Characters: .=empty, #=solid, ==platform, ^=spike, B=breakwall
+   ═══════════════════════════════════════════════════════════ */
+const ROOMS = {
+  /* ──────────── Ink Forest (8 rooms) ──────────── */
+  f0: {
+    zone: 'forest', name: 'Ink Forest - Entrance',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#......==......#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 10, y: 7 }],
+    items: [{ type: 'goldshard', x: 7, y: 3 }, { type: 'inkdrop', x: 13, y: 7 }],
+    exits: { right: 'f1' }, spawn: { x: 2, y: 7 },
+    savepoint: { x: 3, y: 8, spLvl: 1 },
+  },
+  f1: {
+    zone: 'forest', name: 'Ink Forest - Path',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#.==.......==..#',
+      '#..............#',
+      '#.....##.......#',
+      '#..............#',
+      '#...........^^.#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 5, y: 4 }, { type: 'inkblob', x: 11, y: 7 }],
+    items: [{ type: 'goldshard', x: 3, y: 2 }, { type: 'goldshard', x: 12, y: 2 }],
+    exits: { left: 'f0', right: 'f2', up: 'f4' },
+    savepoint: { x: 8, y: 8, spLvl: 3 },
+  },
+  f2: {
+    zone: 'forest', name: 'Ink Forest - Deep',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#.........==...#',
+      '#..............#',
+      '#...==.........#',
+      '#.........#....#',
+      '#..............#',
+      '#..........B...#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 4, y: 7 }, { type: 'inkblob', x: 9, y: 4 }],
+    items: [{ type: 'goldshard', x: 6, y: 4 }, { type: 'hpup', x: 2, y: 7 }],
+    exits: { left: 'f1', right: 'f3', up: 'f6', breakwall: { x: 11, y: 8, target: 'c0', needs: 'dash' } },
+    savepoint: { x: 14, y: 8, spLvl: 2 },
+  },
+  f3: {
+    zone: 'forest', name: 'Ink Forest - Clearing',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#........##....#',
+      '#..............#',
+      '#.^^.......^^..#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 3, y: 7 }, { type: 'inkblob', x: 8, y: 3 }, { type: 'inkblob', x: 13, y: 6 }],
+    items: [{ type: 'goldshard', x: 5, y: 2 }, { type: 'goldshard', x: 11, y: 2 }],
+    exits: { left: 'f2', right: 'f7b' },
+    savepoint: { x: 7, y: 8, spLvl: 2 },
+  },
+  f4: {
+    zone: 'forest', name: 'Ink Forest - Canopy',
+    map: [
+      '################',
+      '#..............#',
+      '#...==.........#',
+      '#..............#',
+      '#........==....#',
+      '#..............#',
+      '#..==..........#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 5, y: 5 }, { type: 'inkblob', x: 10, y: 3 }],
+    items: [{ type: 'goldshard', x: 4, y: 1 }, { type: 'goldshard', x: 9, y: 3 }],
+    exits: { down: 'f1', right: 'f5' },
+  },
+  f5: {
+    zone: 'forest', name: 'Ink Forest - Ridge',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#.==...........#',
+      '#..............#',
+      '#.......==.....#',
+      '#..............#',
+      '#...........B..#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 6, y: 6 }, { type: 'inkblob', x: 12, y: 4 }],
+    items: [{ type: 'goldshard', x: 2, y: 2 }, { type: 'inkdrop', x: 8, y: 4 }],
+    exits: { left: 'f4', breakwall: { x: 12, y: 7, target: 'sf0', needs: 'dash' } },
+  },
+  f6: {
+    zone: 'forest', name: 'Ink Forest - Grove',
+    map: [
+      '################',
+      '#..............#',
+      '#.....==.......#',
+      '#..............#',
+      '#..........==..#',
+      '#..............#',
+      '#..==..........#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkblob', x: 7, y: 5 }, { type: 'inkblob', x: 13, y: 3 }],
+    items: [{ type: 'goldshard', x: 3, y: 5 }, { type: 'goldshard', x: 11, y: 3 }],
+    exits: { down: 'f2' },
+    savepoint: { x: 14, y: 8, spLvl: 3 },
+  },
+  f7b: {
+    zone: 'forest', name: 'Ink Wolf Den', boss: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [], items: [],
+    boss: { type: 'inkwolf', x: 11, y: 6, hp: 20, reward: 'dash' },
+    exits: { left: 'f3' },
+  },
+
+  /* ──────────── Sumi Cave (6 rooms) ──────────── */
+  c0: {
+    zone: 'cave', name: 'Sumi Cave - Entry',
+    map: [
+      '################',
+      '#..............#',
+      '#.....##.......#',
+      '#..............#',
+      '#..........==..#',
+      '#..............#',
+      '#...==.........#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkbat', x: 8, y: 2 }, { type: 'inkspider', x: 12, y: 1 }],
+    items: [{ type: 'goldshard', x: 5, y: 5 }, { type: 'inkdrop', x: 13, y: 7 }],
+    exits: { right: 'c1', left: 'f2' }, spawn: { x: 2, y: 7 },
+    savepoint: { x: 3, y: 8, spLvl: 1 },
+  },
+  c1: {
+    zone: 'cave', name: 'Sumi Cave - Depths',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#......^^......#',
+      '#.....####.....#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkbat', x: 5, y: 2 }, { type: 'inkspider', x: 10, y: 1 }, { type: 'inkbat', x: 13, y: 3 }],
+    items: [{ type: 'goldshard', x: 3, y: 2 }, { type: 'goldshard', x: 12, y: 7 }],
+    exits: { left: 'c0', right: 'c2', up: 'k0', down: 'c3' },
+    savepoint: { x: 8, y: 8, spLvl: 2 },
+  },
+  c2: {
+    zone: 'cave', name: 'Sumi Cave - Pit',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#...==.....==..#',
+      '#..............#',
+      '#..............#',
+      '#......##......#',
+      '#..^^......^^..#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkspider', x: 4, y: 1 }, { type: 'inkbat', x: 11, y: 2 }],
+    items: [{ type: 'goldshard', x: 7, y: 2 }, { type: 'inkdrop', x: 13, y: 4 }],
+    exits: { left: 'c1', right: 'c4b' },
+    savepoint: { x: 2, y: 8, spLvl: 2 },
+  },
+  c3: {
+    zone: 'cave', name: 'Sumi Cave - Abyss',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==..........#',
+      '#..............#',
+      '#.........==...#',
+      '#..............#',
+      '#...^^....^^...#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkspider', x: 6, y: 1 }, { type: 'inkbat', x: 10, y: 3 }, { type: 'inkspider', x: 14, y: 1 }],
+    items: [{ type: 'goldshard', x: 3, y: 2 }, { type: 'hpup', x: 12, y: 4 }],
+    exits: { up: 'c1', right: 'c4' },
+  },
+  c4: {
+    zone: 'cave', name: 'Sumi Cave - Crystal Vein',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#.....==.......#',
+      '#..............#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkbat', x: 8, y: 2 }, { type: 'inkspider', x: 12, y: 1 }],
+    items: [{ type: 'goldshard', x: 5, y: 5 }, { type: 'goldshard', x: 13, y: 5 }],
+    exits: { left: 'c3' },
+    secretExit: { target: 'sc0', x: 6, y: 2, needs: 'doublejump' },
+  },
+  c4b: {
+    zone: 'cave', name: 'Sumi Spider Nest', boss: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [], items: [],
+    boss: { type: 'sumispider', x: 8, y: 3, hp: 25, reward: 'doublejump' },
+    exits: { left: 'c2' },
+  },
+
+  /* ──────────── Ink Castle (7 rooms) ──────────── */
+  k0: {
+    zone: 'castle', name: 'Ink Castle - Gate',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==..........#',
+      '#..............#',
+      '#........==....#',
+      '#..............#',
+      '#.....##.......#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 10, y: 7 }],
+    items: [{ type: 'goldshard', x: 4, y: 2 }, { type: 'inkdrop', x: 13, y: 4 }],
+    exits: { right: 'k1', down: 'c1', left: 'k3' }, spawn: { x: 2, y: 7 },
+    savepoint: { x: 3, y: 8, spLvl: 1 },
+    needs: 'doublejump',
+  },
+  k1: {
+    zone: 'castle', name: 'Ink Castle - Hall',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#..............#',
+      '#..^^......^^..#',
+      '#..####..####..#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 6, y: 4 }, { type: 'inkguard', x: 12, y: 4 }],
+    items: [{ type: 'goldshard', x: 8, y: 2 }, { type: 'hpup', x: 14, y: 7 }],
+    exits: { left: 'k0', right: 'k2', up: 'd0', down: 'k5' },
+    savepoint: { x: 8, y: 8, spLvl: 2 },
+  },
+  k2: {
+    zone: 'castle', name: 'Ink Castle - Armory',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#........##....#',
+      '#..............#',
+      '#.^^.......^^..#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 7, y: 6 }, { type: 'inkguard', x: 12, y: 3 }],
+    items: [{ type: 'goldshard', x: 4, y: 2 }, { type: 'goldshard', x: 13, y: 2 }],
+    exits: { left: 'k1', right: 'k4b' },
+    savepoint: { x: 2, y: 8, spLvl: 3 },
+  },
+  k3: {
+    zone: 'castle', name: 'Ink Castle - Battlements',
+    map: [
+      '################',
+      '#..............#',
+      '#......==......#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#..............#',
+      '#...##....##...#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 5, y: 6 }, { type: 'inkguard', x: 11, y: 3 }],
+    items: [{ type: 'goldshard', x: 7, y: 1 }, { type: 'inkdrop', x: 3, y: 3 }],
+    exits: { right: 'k0', up: 'k4' },
+  },
+  k4: {
+    zone: 'castle', name: 'Ink Castle - Gallery',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#.==.......==..#',
+      '#..............#',
+      '#......##......#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 8, y: 6 }],
+    items: [{ type: 'goldshard', x: 2, y: 2 }, { type: 'hpup', x: 13, y: 2 }],
+    exits: { down: 'k3' },
+    secretExit: { target: 'sk0', x: 14, y: 1, needs: 'wallclimb' },
+  },
+  k4b: {
+    zone: 'castle', name: 'Ink Knight Throne', boss: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [], items: [],
+    boss: { type: 'inkknight', x: 11, y: 5, hp: 30, reward: 'wallclimb' },
+    exits: { left: 'k2' },
+  },
+  k5: {
+    zone: 'castle', name: 'Ink Castle - Dungeon',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==..........#',
+      '#..............#',
+      '#.........==...#',
+      '#..............#',
+      '#..^^..^^..^^..#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 6, y: 6 }, { type: 'inkguard', x: 13, y: 4 }],
+    items: [{ type: 'goldshard', x: 3, y: 2 }, { type: 'goldshard', x: 10, y: 4 }, { type: 'inkdrop', x: 14, y: 2 }],
+    exits: { up: 'k1' },
+    secretExit: { target: 'sk1', x: 1, y: 7, needs: 'wallclimb' },
+  },
+
+  /* ──────────── Dark Chamber (3 rooms) ──────────── */
+  d0: {
+    zone: 'castle', name: 'Dark Chamber - Passage',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#.......##.....#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 5, y: 7 }, { type: 'inkguard', x: 11, y: 3 }],
+    items: [{ type: 'goldshard', x: 7, y: 3 }, { type: 'inkdrop', x: 13, y: 7 }],
+    exits: { right: 'd1', down: 'k1' }, spawn: { x: 2, y: 7 },
+    savepoint: { x: 3, y: 8, spLvl: 1 },
+    needs: 'wallclimb',
+    secretExit: { target: 'sd0', x: 14, y: 1, needs: 'wallclimb' },
+  },
+  d1: {
+    zone: 'castle', name: 'Dark Approach',
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#......^^......#',
+      '#.....####.....#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [{ type: 'inkguard', x: 4, y: 7 }, { type: 'inkguard', x: 11, y: 7 }],
+    items: [{ type: 'goldshard', x: 7, y: 2 }, { type: 'hpup', x: 13, y: 2 }],
+    exits: { left: 'd0', right: 'd2b' },
+    savepoint: { x: 8, y: 8, spLvl: 2 },
+  },
+  d2b: {
+    zone: 'castle', name: 'Dark Brush Chamber', boss: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [], items: [],
+    boss: { type: 'darkbrush', x: 10, y: 4, hp: 40, reward: 'victory' },
+    exits: { left: 'd1' },
+  },
+
+  /* ──────────── SECRET ROOMS (5 total, 500pts each) ──────────── */
+  sf0: {
+    zone: 'forest', name: '\u2605 Hidden Ink Spring', secret: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [],
+    items: [{ type: 'goldshard', x: 4, y: 2 }, { type: 'goldshard', x: 8, y: 2 }, { type: 'goldshard', x: 12, y: 2 },
+            { type: 'goldshard', x: 6, y: 6 }, { type: 'goldshard', x: 10, y: 6 }, { type: 'hpup', x: 7, y: 4 }],
+    exits: { left: 'f5' },
+  },
+  sc0: {
+    zone: 'cave', name: '\u2605 Crystal Heart', secret: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#.....==.......#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [],
+    items: [{ type: 'goldshard', x: 3, y: 6 }, { type: 'goldshard', x: 7, y: 6 }, { type: 'goldshard', x: 11, y: 6 },
+            { type: 'goldshard', x: 5, y: 3 }, { type: 'goldshard', x: 9, y: 3 }, { type: 'hpup', x: 13, y: 2 }],
+    exits: { down: 'c4' },
+  },
+  sk0: {
+    zone: 'castle', name: '\u2605 Sealed Vault', secret: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [],
+    items: [{ type: 'goldshard', x: 3, y: 3 }, { type: 'goldshard', x: 7, y: 3 }, { type: 'goldshard', x: 11, y: 3 },
+            { type: 'goldshard', x: 5, y: 7 }, { type: 'goldshard', x: 9, y: 7 }, { type: 'hpup', x: 13, y: 7 }],
+    exits: { left: 'k4' },
+  },
+  sk1: {
+    zone: 'castle', name: '\u2605 Hidden Treasury', secret: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..==......==..#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [],
+    items: [{ type: 'goldshard', x: 2, y: 6 }, { type: 'goldshard', x: 6, y: 6 }, { type: 'goldshard', x: 10, y: 6 },
+            { type: 'goldshard', x: 14, y: 6 }, { type: 'hpup', x: 8, y: 2 }],
+    exits: { right: 'k5' },
+  },
+  sd0: {
+    zone: 'castle', name: '\u2605 Darkness Within', secret: true,
+    map: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#...==....==...#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '################',
+    ],
+    enemies: [],
+    items: [{ type: 'goldshard', x: 3, y: 3 }, { type: 'goldshard', x: 7, y: 3 }, { type: 'goldshard', x: 11, y: 3 },
+            { type: 'goldshard', x: 5, y: 7 }, { type: 'goldshard', x: 9, y: 7 }, { type: 'goldshard', x: 13, y: 7 },
+            { type: 'hpup', x: 7, y: 5 }],
+    exits: { left: 'd0' },
+  },
+};
+
+/** Auto-open room walls at exit locations so player can walk through */
+function openRoomExits() {
+  for (const [id, room] of Object.entries(ROOMS)) {
+    const ex = room.exits;
+    if (!ex) continue;
+    const m = room.map.map(r => [...r]);
+    if (ex.right) { for (let r = 6; r <= 8; r++) if (r < TILE_ROWS) m[r][TILE_COLS - 1] = '.'; }
+    if (ex.left)  { for (let r = 6; r <= 8; r++) if (r < TILE_ROWS) m[r][0] = '.'; }
+    if (ex.up)    { for (let c = 6; c <= 9; c++) if (c < TILE_COLS) m[0][c] = '.'; }
+    if (ex.down)  { for (let c = 6; c <= 9; c++) if (c < TILE_COLS) m[TILE_ROWS - 1][c] = '.'; }
+    room.map = m.map(r => r.join(''));
+  }
+}
+openRoomExits();
+
+/* Zone background asset keys — 3-layer parallax (far/mid/ground) */
+const ZONE_BG = {
+  forest: { far: 'bgForestFar', mid: 'bgForestMid', ground: 'bgForestGround' },
+  cave:   { far: 'bgCaveFar',   mid: 'bgCaveMid',   ground: 'bgCaveGround' },
+  castle: { far: 'bgCastleFar', mid: 'bgCastleMid',  ground: 'bgCastleGround' },
+};
+
+/* Zone tile fallback colors */
+const ZONE_COLORS = {
+  forest: { solid: '#3a5a2a', plat: '#5a8a4a', spike: COL.waterRed, bg: '#e8e0d0' },
+  cave:   { solid: '#4a3a5a', plat: '#6a5a7a', spike: COL.waterRed, bg: '#d8d0e0' },
+  castle: { solid: '#5a4a3a', plat: '#7a6a5a', spike: COL.waterRed, bg: '#d0c8c0' },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   GAME STATE — reset by resetGameState()
+   ═══════════════════════════════════════════════════════════ */
+let difficulty, player, currentRoom, roomId, visitedRooms;
+let enemies, items, bosses, projectiles;
+let score, gameTime, inputDelay, shakeIntensity;
+let abilities, bossActive, bossDefeated;
+let lastSaveRoom, lastSaveSpawn;
+let deathCount, secretsFound, bossNoHit, resumingFromPause;
+
+/** Reset ALL global game variables explicitly */
+function resetGameState() {
+  difficulty = DIFF.normal;
+  player = {
+    x: 0, y: 0, w: 28, h: 40, vx: 0, vy: 0,
+    grounded: false, prevY: 0, prevX: 0,
+    facing: 1, hp: 5, maxHp: 5,
+    attacking: false, attackTimer: 0, attackCd: 0,
+    dashing: false, dashTimer: 0, dashCd: 0,
+    invincible: 0, hurtTimer: 0,
+    wallSliding: false, wallDir: 0,
+    airJumps: 0, maxAirJumps: 0,
+  };
+  currentRoom = null;
+  roomId = 'f0';
+  visitedRooms = new Set();
+  enemies = [];
+  items = [];
+  bosses = [];
+  projectiles = [];
+  score = 0;
+  gameTime = 0;
+  inputDelay = 0.2;
+  shakeIntensity = 0;
+  abilities = { dash: false, doublejump: false, wallclimb: false };
+  bossActive = null;
+  bossDefeated = new Set();
+  lastSaveRoom = 'f0';
+  lastSaveSpawn = { x: 2, y: 7 };
+  deathCount = 0;
+  secretsFound = new Set();
+  bossNoHit = { inkwolf: true, sumispider: true, inkknight: true, darkbrush: true };
+  resumingFromPause = false;
+  /* Deep-copy room maps so breakwall edits don't persist across games */
+  for (const [k, r] of Object.entries(ROOMS)) {
+    r.map = r._origMap ? [...r._origMap] : (r._origMap = [...r.map], [...r.map]);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ENGINE INSTANCES
+   ═══════════════════════════════════════════════════════════ */
+const engine = new Engine('gameCanvas');
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(300);
+const assets = new AssetLoader();
+const popups = new PopupText();
+const physics = new PlatformPhysics({ gravity: 980, jumpForce: -420, moveSpeed: 220, friction: 0.82 });
+const coyote = new CoyoteJump(100, 80);
+const wallMech = new WallMechanics({ slideSpeed: 60, wallJumpX: 260, wallJumpY: -380 });
+const tileCol = new TileCollision({ cols: TILE_COLS, rows: TILE_ROWS });
+
+Scene.bind({ tween, particles });
+
+/* ═══════════════════════════════════════════════════════════
+   TILE COLLISION — delegates to IX.Genre.Platformer.TileCollision
+   Game-specific tile query callbacks wrap the string-based map format.
+   ═══════════════════════════════════════════════════════════ */
+function tileSize(W, H) { return tileCol.tileSize(W, H); }
+
+/** Game-specific solid callback — accounts for room exits */
+function isSolid(map, col, row) {
+  if (col < 0) return !(currentRoom?.exits?.left);
+  if (col >= TILE_COLS) return !(currentRoom?.exits?.right);
+  if (row < 0) return !(currentRoom?.exits?.up);
+  if (row >= TILE_ROWS) return true;
+  const ch = map[row]?.[col];
+  return ch === '#' || ch === 'B';
+}
+
+function isSpike(map, col, row) {
+  if (row < 0 || row >= TILE_ROWS || col < 0 || col >= TILE_COLS) return false;
+  return map[row]?.[col] === '^';
+}
+
+function isPlatform(map, col, row) {
+  if (row < 0 || row >= TILE_ROWS || col < 0 || col >= TILE_COLS) return false;
+  return map[row]?.[col] === '=';
+}
+
+/** Resolve tile collisions using engine TileCollision + game-specific callbacks */
+function resolveTileCollisions(ent, map, W, H) {
+  return tileCol.resolve(ent, W, H,
+    (c, r) => isSolid(map, c, r),
+    { isPlatform: (c, r) => isPlatform(map, c, r), isHazard: (c, r) => isSpike(map, c, r) }
+  ) === 'hazard' ? 'spike' : null;
+}
+
+function checkWallTouch(ent, map, W, H) {
+  return tileCol.checkWallTouch(ent, W, H, (c, r) => isSolid(map, c, r));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ROOM MANAGEMENT
+   ═══════════════════════════════════════════════════════════ */
+function loadRoom(id, spawnDir) {
+  const room = ROOMS[id];
+  if (!room) return;
+  roomId = id;
+  currentRoom = room;
+  const firstVisit = !visitedRooms.has(id);
+  visitedRooms.add(id);
+  enemies = []; items = []; bosses = []; projectiles = [];
+  bossActive = null;
+  const W = engine.W, H = engine.H;
+  const { tw, th } = tileSize(W, H);
+
+  /* Secret room discovery bonus */
+  if (firstVisit && room.secret) {
+    secretsFound.add(id);
+    score += 500;
+    popups.add(W / 2, H / 3, '\u2605 SECRET +500', COL.inkGold);
+    sound.sfx('powerup');
+    particles.emit(W / 2, H / 2, 25, { color: COL.inkGold, speed: 120, life: 0.8 });
+  }
+
+  for (const e of room.enemies) {
+    const key = id + '_' + e.type + '_' + e.x;
+    if (bossDefeated.has(key)) continue;
+    enemies.push(createEnemy(e.type, e.x * tw, e.y * th, tw, th));
+  }
+  for (const it of room.items) {
+    const key = id + '_item_' + it.x + '_' + it.y;
+    if (bossDefeated.has(key)) continue;
+    items.push({ type: it.type, x: it.x * tw + tw * 0.25, y: it.y * th + th * 0.25, w: tw * 0.5, h: th * 0.5, collected: false, key });
+  }
+  if (room.boss && !bossDefeated.has(id + '_boss')) {
+    const b = createBoss(room.boss.type, room.boss.x * tw, room.boss.y * th, tw, th, room.boss.hp, room.boss.reward);
+    bosses.push(b); bossActive = b;
+  }
+
+  if (spawnDir === 'left') { player.x = W - player.w - tw * 1.5; player.y = H - th * 2 - player.h; }
+  else if (spawnDir === 'right') { player.x = tw * 1.5; player.y = H - th * 2 - player.h; }
+  else if (spawnDir === 'up') { player.x = W / 2; player.y = H - th * 2 - player.h; }
+  else if (spawnDir === 'down') { player.x = W / 2; player.y = th * 1.5; }
+  else if (room.spawn) { player.x = room.spawn.x * tw; player.y = room.spawn.y * th; }
+  else { player.x = tw * 2; player.y = H - th * 2 - player.h; }
+
+  if (room.savepoint && (room.savepoint.spLvl || 1) <= (difficulty.saveLvl || 2)) {
+    lastSaveRoom = id; lastSaveSpawn = room.spawn || { x: room.savepoint.x, y: room.savepoint.y };
+  }
+
+  particles.emit(player.x + player.w / 2, player.y + player.h / 2, 15, { color: COL.waterBlue, speed: 80, life: 0.5 });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ENEMY FACTORY
+   ═══════════════════════════════════════════════════════════ */
+function createEnemy(type, x, y, tw, th) {
+  const base = { type, x, y, w: tw * 0.8, h: th * 0.8, vx: 0, vy: 0, hp: 2, dmg: 1,
+                 active: true, facing: -1, grounded: false, prevY: y, prevX: x,
+                 patrolTimer: 0, state: 'patrol', attackTimer: 0, startX: x, hitTimer: 0 };
+  const dm = difficulty.dMul, em = difficulty.eMul;
+  switch (type) {
+    case 'inkblob': return { ...base, hp: Math.ceil(2 * em), dmg: Math.ceil(1 * dm), speed: 60, patrolRange: tw * 3 };
+    case 'inkbat': return { ...base, hp: Math.ceil(1 * em), dmg: Math.ceil(1 * dm), speed: 50, patrolRange: tw * 4, flying: true, baseY: y };
+    case 'inkspider': return { ...base, hp: Math.ceil(2 * em), dmg: Math.ceil(1 * dm), speed: 0, state: 'ceiling', ceilingY: y, dropSpeed: 300 };
+    case 'inkguard': return { ...base, hp: Math.ceil(4 * em), dmg: Math.ceil(2 * dm), speed: 40, patrolRange: tw * 2, comboCount: 0 };
+    default: return base;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOSS FACTORY
+   ═══════════════════════════════════════════════════════════ */
+function createBoss(type, x, y, tw, th, hp, reward) {
+  const bossHp = Math.ceil(hp * difficulty.eMul);
+  return { type, x, y, w: tw * 2.5, h: th * 2.5, vx: 0, vy: 0, hp: bossHp, maxHp: bossHp,
+    dmg: Math.ceil(2 * difficulty.dMul), active: true, facing: -1, grounded: false,
+    prevY: y, prevX: x, phase: 1, reward, state: 'idle',
+    patternIdx: 0, patternTimer: 0, attackTimer: 0, hitTimer: 0, iFrames: 0,
+    patterns: getBossPatterns(type, 1) };
+}
+
+function getBossPatterns(type, phase) {
+  const p1 = { inkwolf:['charge','wait','sweep','wait'], sumispider:['inkdrop','wait','slam','wait'],
+    inkknight:['swordsweep','wait','shieldcharge','wait'], darkbrush:['inkvortex','wait','brushslam','wait','shards','wait'] };
+  const p2 = { inkwolf:['charge','charge','wait','sweep','inkpuddle','wait'], sumispider:['rush','wait','bladelegs','inkdrop','wait'],
+    inkknight:['inkwave','wait','tentacles','swordsweep','wait'], darkbrush:['shadowform','wait','copyattack','inkvortex','wait','brushslam','wait'] };
+  return (phase === 1 ? p1[type] : p2[type]) || ['wait'];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UPDATE ENEMIES
+   ═══════════════════════════════════════════════════════════ */
+function updateEnemies(dt, W, H) {
+  const sec = dt / 1000;
+  const { tw, th } = tileSize(W, H);
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (!e.active) { enemies.splice(i, 1); continue; }
+    if (e.hitTimer > 0) e.hitTimer -= sec;
+    e.prevX = e.x; e.prevY = e.y;
+    const dx = player.x - e.x, dy = player.y - e.y, dist = Math.hypot(dx, dy);
+    switch (e.type) {
+      case 'inkblob': {
+        if (dist < tw * 5 && Math.abs(dy) < th * 2) { e.vx = (dx > 0 ? 1 : -1) * e.speed * 2; e.facing = dx > 0 ? 1 : -1; }
+        else { e.patrolTimer += sec; if (e.patrolTimer > 2) { e.facing *= -1; e.patrolTimer = 0; } e.vx = e.facing * e.speed; }
+        e.vy += 980 * sec; e.x += e.vx * sec; e.y += e.vy * sec;
+        resolveTileCollisions(e, currentRoom.map, W, H); break;
+      }
+      case 'inkbat': {
+        if (dist < tw * 6 && dy > th) { e.vy = 200; e.vx = (dx > 0 ? 1 : -1) * e.speed; }
+        else { e.patrolTimer += sec; e.x = e.startX + Math.sin(e.patrolTimer * 2) * e.patrolRange;
+          e.y = e.baseY + Math.cos(e.patrolTimer * 3) * th * 0.5; e.vy = 0; e.vx = 0; }
+        if (e.vy > 0) { e.y += e.vy * sec; e.x += e.vx * sec; }
+        if (e.y > e.baseY + th * 4) { e.y = e.baseY; e.vy = 0; } break;
+      }
+      case 'inkspider': {
+        if (e.state === 'ceiling' && dist < tw * 3 && Math.abs(dx) < tw * 2 && dy > 0) e.state = 'dropping';
+        if (e.state === 'dropping') { e.vy += 600 * sec; e.y += e.vy * sec;
+          const row = Math.floor((e.y + e.h) / th);
+          if (isSolid(currentRoom.map, Math.floor((e.x + e.w / 2) / tw), row)) { e.y = row * th - e.h; e.vy = 0; e.state = 'ground'; e.patrolTimer = 0; } }
+        if (e.state === 'ground') { e.patrolTimer += sec; if (e.patrolTimer > 3) e.state = 'returning'; }
+        if (e.state === 'returning') { e.y -= 100 * sec; if (e.y <= e.ceilingY) { e.y = e.ceilingY; e.state = 'ceiling'; e.vy = 0; } } break;
+      }
+      case 'inkguard': {
+        if (dist < tw * 4 && Math.abs(dy) < th * 2) { e.facing = dx > 0 ? 1 : -1; e.attackTimer += sec;
+          if (e.attackTimer > 0.8) { e.vx = e.facing * e.speed * 3; e.comboCount++;
+            if (e.comboCount >= 2) { e.attackTimer = -0.5; e.comboCount = 0; } else e.attackTimer = 0; }
+          else { e.vx = e.facing * e.speed; } }
+        else { e.patrolTimer += sec; if (e.patrolTimer > 2.5) { e.facing *= -1; e.patrolTimer = 0; }
+          e.vx = e.facing * e.speed; e.attackTimer = 0; e.comboCount = 0; }
+        e.vy += 980 * sec; e.x += e.vx * sec; e.y += e.vy * sec;
+        resolveTileCollisions(e, currentRoom.map, W, H); break;
+      }
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UPDATE BOSS
+   ═══════════════════════════════════════════════════════════ */
+function updateBoss(dt, W, H) {
+  if (!bossActive || !bossActive.active) return;
+  const b = bossActive, sec = dt / 1000;
+  const { tw, th } = tileSize(W, H);
+  if (b.hitTimer > 0) b.hitTimer -= sec;
+  if (b.iFrames > 0) b.iFrames -= sec;
+  b.prevX = b.x; b.prevY = b.y;
+  if (b.phase === 1 && b.hp <= b.maxHp * 0.5) {
+    b.phase = 2; b.patterns = getBossPatterns(b.type, 2); b.patternIdx = 0; b.patternTimer = 0;
+    shakeIntensity = 10; sound.sfx('explosion');
+    particles.emit(b.x + b.w / 2, b.y + b.h / 2, 30, { color: COL.waterRed, speed: 150, life: 0.8 });
+  }
+  b.patternTimer += sec;
+  const pat = b.patterns[b.patternIdx], dx = player.x - b.x;
+  b.facing = dx > 0 ? 1 : -1;
+  switch (pat) {
+    case 'wait': b.vx *= 0.9; if (b.patternTimer > 1.0) nextPattern(b); break;
+    case 'charge': b.vx = b.facing * 350; b.vy += 980 * sec; if (b.patternTimer > 0.8) nextPattern(b); break;
+    case 'sweep':
+      if (b.patternTimer > 0.3 && b.patternTimer < 0.36) spawnProj(b.x + b.w / 2, b.y + b.h / 2, b.facing * 300, 0, b.dmg);
+      if (b.patternTimer > 0.8) nextPattern(b); break;
+    case 'inkpuddle':
+      if (b.patternTimer > 0.3 && b.patternTimer < 0.36) { for (let i = 0; i < 3; i++) spawnProj(b.x + i * tw * 1.5, H - th * 1.5, 0, -60, 1); }
+      if (b.patternTimer > 1.0) nextPattern(b); break;
+    case 'inkdrop':
+      if (b.patternTimer > 0.2 && b.patternTimer < 0.26) { for (let i = 0; i < 3; i++) spawnProj(player.x + (i - 1) * tw, th, 0, 250, b.dmg); }
+      if (b.patternTimer > 1.0) nextPattern(b); break;
+    case 'slam': b.vy += 1200 * sec;
+      if (b.grounded && b.patternTimer > 0.5) { shakeIntensity = 8; sound.sfx('hit'); nextPattern(b); } break;
+    case 'rush': b.vx = b.facing * 400; if (b.patternTimer > 0.6) nextPattern(b); break;
+    case 'bladelegs':
+      if (b.patternTimer > 0.2 && b.patternTimer < 0.26) { spawnProj(b.x, b.y + b.h / 2, -200, 0, b.dmg); spawnProj(b.x + b.w, b.y + b.h / 2, 200, 0, b.dmg); }
+      if (b.patternTimer > 0.8) nextPattern(b); break;
+    case 'swordsweep': b.vx = b.facing * 200;
+      if (b.patternTimer > 0.3 && b.patternTimer < 0.36) spawnProj(b.x + b.w * b.facing, b.y, b.facing * 250, 0, b.dmg + 1);
+      if (b.patternTimer > 0.8) nextPattern(b); break;
+    case 'shieldcharge': b.vx = b.facing * 450; if (b.patternTimer > 0.7) nextPattern(b); break;
+    case 'inkwave':
+      if (b.patternTimer > 0.3 && b.patternTimer < 0.36) { for (let i = -2; i <= 2; i++) spawnProj(b.x + b.w / 2, b.y + b.h / 2, i * 120, -100, b.dmg); }
+      if (b.patternTimer > 1.0) nextPattern(b); break;
+    case 'tentacles':
+      if (b.patternTimer > 0.2 && b.patternTimer < 0.26) { spawnProj(b.x - tw, b.y, 0, 200, b.dmg); spawnProj(b.x + b.w + tw, b.y, 0, 200, b.dmg); }
+      if (b.patternTimer > 0.8) nextPattern(b); break;
+    case 'inkvortex': if (b.patternTimer < 1.0) player.vx += (dx > 0 ? -60 : 60) * sec;
+      if (b.patternTimer > 1.2) nextPattern(b); break;
+    case 'brushslam': if (b.patternTimer < 0.3) b.vy = -200; else b.vy += 1500 * sec;
+      if (b.grounded && b.patternTimer > 0.5) { shakeIntensity = 12;
+        spawnProj(b.x - tw, H - th * 1.5, -150, -100, b.dmg); spawnProj(b.x + b.w + tw, H - th * 1.5, 150, -100, b.dmg); nextPattern(b); } break;
+    case 'shards':
+      if (b.patternTimer > 0.2 && b.patternTimer < 0.26) { for (let a = 0; a < 6; a++) { const ang = (a / 6) * Math.PI * 2;
+        spawnProj(b.x + b.w / 2, b.y + b.h / 2, Math.cos(ang) * 200, Math.sin(ang) * 200, b.dmg); } }
+      if (b.patternTimer > 1.0) nextPattern(b); break;
+    case 'shadowform': b.vx = b.facing * 300; b.iFrames = 0.3; if (b.patternTimer > 1.0) nextPattern(b); break;
+    case 'copyattack':
+      if (b.patternTimer > 0.3 && b.patternTimer < 0.36) spawnProj(player.x, player.y - th, 0, 300, b.dmg + 1);
+      if (b.patternTimer > 0.8) nextPattern(b); break;
+  }
+  if (!(b.type === 'sumispider' && b.phase === 1)) b.vy += 980 * sec;
+  b.x += b.vx * sec; b.y += b.vy * sec; b.grounded = false;
+  if (b.x < tw) { b.x = tw; b.vx = 0; }
+  if (b.x + b.w > W - tw) { b.x = W - tw - b.w; b.vx = 0; }
+  if (b.y + b.h > H - th) { b.y = H - th - b.h; b.vy = 0; b.grounded = true; }
+  if (b.y < th) { b.y = th; b.vy = 0; }
+}
+
+function nextPattern(b) { b.patternIdx = (b.patternIdx + 1) % b.patterns.length; b.patternTimer = 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   PROJECTILE SYSTEM
+   ═══════════════════════════════════════════════════════════ */
+function spawnProj(x, y, vx, vy, dmg) { projectiles.push({ x, y, vx, vy, dmg, w: 16, h: 16, life: 3 }); }
+
+function updateProjectiles(dt, W, H) {
+  const sec = dt / 1000;
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.x += p.vx * sec; p.y += p.vy * sec; p.life -= sec;
+    if (p.life <= 0 || p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) { projectiles.splice(i, 1); continue; }
+    if (MathUtil.rectCollide(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h, player.x, player.y, player.w, player.h)) { hurtPlayer(p.dmg); projectiles.splice(i, 1); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAYER COMBAT
+   ═══════════════════════════════════════════════════════════ */
+function hurtPlayer(dmg) {
+  if (player.invincible > 0 || player.dashing) return;
+  player.hp -= dmg; player.invincible = difficulty.iFrames; player.hurtTimer = 0.3;
+  shakeIntensity = 6; sound.sfx('hit');
+  particles.emit(player.x + player.w / 2, player.y + player.h / 2, 10, { color: COL.waterRed, speed: 120, life: 0.4 });
+  popups.add(player.x + player.w / 2, player.y, `-${dmg}`, COL.waterRed);
+  /* Track no-hit boss status */
+  if (bossActive?.active) bossNoHit[bossActive.type] = false;
+  if (player.hp <= 0) { player.hp = 0; deathCount++; score = Math.max(0, score - 200); Scene.transition('GAMEOVER', { score }); }
+}
+
+function playerAttack(W, H) {
+  if (player.attackCd > 0) return;
+  player.attacking = true; player.attackTimer = 0.25; player.attackCd = 0.35;
+  sound.tone(440, 0.08, 'square', 0.2);
+  const atkX = player.facing > 0 ? player.x + player.w : player.x - player.w * 0.8;
+  const atkW = player.w * 0.8, atkH = player.h;
+  for (const e of enemies) {
+    if (!e.active) continue;
+    if (MathUtil.rectCollide(atkX, player.y, atkW, atkH, e.x, e.y, e.w, e.h)) {
+      e.hp--; e.hitTimer = 0.15; e.vx = player.facing * 150; sound.sfx('hit');
+      particles.emit(e.x + e.w / 2, e.y + e.h / 2, 8, { color: COL.waterBlue, speed: 100, life: 0.3 });
+      popups.add(e.x + e.w / 2, e.y, '-1', COL.waterBlue);
+      if (e.hp <= 0) {
+        e.active = false; score += 100; sound.sfx('score');
+        particles.emit(e.x + e.w / 2, e.y + e.h / 2, 15, { color: COL.inkBlack, speed: 80, life: 0.5 });
+        bossDefeated.add(roomId + '_' + e.type + '_' + Math.round(e.startX / (W / TILE_COLS)));
+        /* HP drop based on difficulty dropRate */
+        if (Math.random() < difficulty.dropRate) {
+          items.push({ type: 'inkdrop', x: e.x + e.w * 0.1, y: e.y + e.h * 0.1, w: e.w * 0.4, h: e.h * 0.4, collected: false, key: roomId + '_drop_' + Date.now() });
+        }
+      }
+    }
+  }
+  if (bossActive && bossActive.active && bossActive.iFrames <= 0) {
+    if (MathUtil.rectCollide(atkX, player.y, atkW, atkH, bossActive.x, bossActive.y, bossActive.w, bossActive.h)) {
+      bossActive.hp--; bossActive.hitTimer = 0.1; bossActive.iFrames = 0.15; sound.sfx('hit');
+      particles.emit(bossActive.x + bossActive.w / 2, bossActive.y + bossActive.h / 2, 10, { color: COL.waterBlue, speed: 120, life: 0.3 });
+      popups.add(bossActive.x + bossActive.w / 2, bossActive.y, '-1', COL.waterBlue);
+      if (bossActive.hp <= 0) defeatBoss(bossActive);
+    }
+  }
+}
+
+function defeatBoss(b) {
+  b.active = false; bossActive = null;
+  bossDefeated.add(roomId + '_boss');
+  score += b.type === 'darkbrush' ? 3000 : 1000;
+  /* No-hit boss bonus: +500 */
+  if (bossNoHit[b.type]) { score += 500; popups.add(b.x + b.w / 2, b.y - 30, 'NO HIT +500', COL.inkGold); }
+  shakeIntensity = 15; sound.sfx('explosion'); sound.sfx('powerup');
+  particles.emit(b.x + b.w / 2, b.y + b.h / 2, 40, { color: COL.inkGold, speed: 200, life: 1.0 });
+  /* Save current room as checkpoint after boss defeat */
+  lastSaveRoom = roomId;
+  lastSaveSpawn = { x: Math.round(player.x / (engine.W / TILE_COLS)), y: Math.round(player.y / (engine.H / TILE_ROWS)) };
+  if (b.reward === 'victory') { Scene.setTimeout(() => Scene.transition('ENDING', { score }), 2000); }
+  else { Scene.setTimeout(() => Scene.transition('ABILITY', { ability: b.reward }), 1500); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ROOM TRANSITIONS
+   ═══════════════════════════════════════════════════════════ */
+function checkRoomTransition(W, H) {
+  if (!currentRoom?.exits) return;
+  if (bossActive?.active) return;
+  const ex = currentRoom.exits;
+  const blocked = (target) => ROOMS[target]?.needs && !abilities[ROOMS[target].needs];
+  if (player.x + player.w < 0 && ex.left) { if (blocked(ex.left)) { player.x = 0; player.vx = 0; return; } loadRoom(ex.left, 'left'); inputDelay = 0.2; }
+  else if (player.x > W && ex.right) { if (blocked(ex.right)) { player.x = W - player.w; player.vx = 0; return; } loadRoom(ex.right, 'right'); inputDelay = 0.2; }
+  else if (player.y + player.h < 0 && ex.up) { if (blocked(ex.up)) { player.y = 0; player.vy = 0; return; } loadRoom(ex.up, 'up'); inputDelay = 0.2; }
+  else if (player.y > H && ex.down) { if (blocked(ex.down)) { player.y = H - player.h; player.vy = 0; return; } loadRoom(ex.down, 'down'); inputDelay = 0.2; }
+  if (ex.breakwall) {
+    const bw = ex.breakwall; const { tw, th } = tileSize(W, H);
+    if (currentRoom.map[bw.y]?.[bw.x] === '.' && abilities[bw.needs]) {
+      if (MathUtil.rectCollide(player.x, player.y, player.w, player.h, bw.x * tw, bw.y * th, tw, th)) { loadRoom(bw.target, 'right'); inputDelay = 0.2; }
+    }
+  }
+  if (currentRoom.secretExit) {
+    const se = currentRoom.secretExit;
+    if (abilities[se.needs]) {
+      const { tw, th } = tileSize(W, H);
+      if (MathUtil.rectCollide(player.x, player.y, player.w, player.h, se.x * tw, se.y * th, tw, th)) { loadRoom(se.target, 'up'); inputDelay = 0.2; }
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDERING
+   ═══════════════════════════════════════════════════════════ */
+function drawBackground(ctx, W, H) {
+  ctx.fillStyle = COL.paperIvory; ctx.fillRect(0, 0, W, H);
+  const zone = currentRoom?.zone || 'forest'; const bg = ZONE_BG[zone];
+  if (bg) {
+    if (assets.has(bg.far)) ctx.drawImage(assets.sprites[bg.far], 0, 0, W, H);
+    if (assets.has(bg.mid)) { ctx.globalAlpha = 0.6; ctx.drawImage(assets.sprites[bg.mid], 0, 0, W, H); ctx.globalAlpha = 1; }
+    if (assets.has(bg.ground)) { ctx.globalAlpha = 0.4; ctx.drawImage(assets.sprites[bg.ground], 0, 0, W, H); ctx.globalAlpha = 1; }
+  }
+}
+
+function drawTiles(ctx, W, H) {
+  if (!currentRoom) return;
+  const { tw, th } = tileSize(W, H);
+  const colors = ZONE_COLORS[currentRoom.zone || 'forest'];
+  const map = currentRoom.map;
+  for (let r = 0; r < TILE_ROWS; r++) {
+    for (let c = 0; c < TILE_COLS; c++) {
+      const ch = map[r]?.[c];
+      if (ch === '#') { ctx.fillStyle = colors.solid; ctx.fillRect(c * tw, r * th, tw, th);
+        ctx.strokeStyle = COL.inkBlack; ctx.lineWidth = 1; ctx.strokeRect(c * tw, r * th, tw, th); }
+      else if (ch === '=') { ctx.fillStyle = colors.plat; ctx.fillRect(c * tw, r * th, tw, th * 0.4);
+        ctx.strokeStyle = COL.inkBlack; ctx.lineWidth = 1; ctx.strokeRect(c * tw, r * th, tw, th * 0.4); }
+      else if (ch === '^') { ctx.fillStyle = colors.spike; ctx.beginPath();
+        ctx.moveTo(c * tw, (r + 1) * th); ctx.lineTo(c * tw + tw / 2, r * th + th * 0.3); ctx.lineTo((c + 1) * tw, (r + 1) * th); ctx.fill(); }
+      else if (ch === 'B') { assets.draw(ctx, 'objBreakwall', c * tw, r * th, tw, th, colors.solid);
+        ctx.strokeStyle = COL.waterBlue + '88'; ctx.lineWidth = 1; ctx.strokeRect(c * tw, r * th, tw, th); }
+    }
+  }
+  if (currentRoom.savepoint && (currentRoom.savepoint.spLvl || 1) <= (difficulty.saveLvl || 2)) {
+    const sp = currentRoom.savepoint;
+    assets.draw(ctx, 'objSavepoint', sp.x * tw, sp.y * th - th * 0.5, tw, th * 1.5, COL.waterGreen);
+    ctx.globalAlpha = 0.25 + Math.sin(gameTime * 3) * 0.12; ctx.fillStyle = COL.waterGreen;
+    ctx.beginPath(); ctx.arc(sp.x * tw + tw / 2, sp.y * th, tw * 0.6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  }
+  if (currentRoom.secretExit && abilities[currentRoom.secretExit.needs]) {
+    const se = currentRoom.secretExit;
+    ctx.globalAlpha = 0.15 + Math.sin(gameTime * 4) * 0.1; ctx.fillStyle = COL.inkGold;
+    ctx.beginPath(); ctx.arc(se.x * tw + tw / 2, se.y * th + th / 2, tw * 0.4, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  }
+}
+
+function drawPlayer(ctx) {
+  const p = player;
+  if (p.invincible > 0 && Math.floor(p.invincible * 10) % 2 === 0) return;
+  ctx.save();
+  ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+  if (p.facing < 0) ctx.scale(-1, 1);
+  const dw = p.w * 1.4, dh = p.h * 1.4;
+  let key = 'player';
+  if (p.hurtTimer > 0) key = 'playerHurt';
+  else if (p.dashing) key = 'playerDash';
+  else if (p.attacking) key = 'playerAttack';
+  else if (p.wallSliding) key = 'playerWallcling';
+  else if (!p.grounded) key = 'playerJump';
+  if (!assets.draw(ctx, key, -dw / 2, -dh / 2, dw, dh, null)) {
+    ctx.fillStyle = COL.waterBlue;
+    ctx.beginPath(); ctx.arc(0, -dh * 0.28, dw * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-dw * 0.2, -dh * 0.1); ctx.lineTo(dw * 0.2, -dh * 0.1);
+    ctx.lineTo(dw * 0.15, dh * 0.35); ctx.lineTo(-dw * 0.15, dh * 0.35); ctx.fill();
+    ctx.strokeStyle = COL.inkBlack; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(dw * 0.15, -dh * 0.1); ctx.lineTo(dw * 0.4, -dh * 0.35); ctx.stroke();
+    ctx.strokeStyle = COL.inkBlack; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -dh * 0.28, dw * 0.22, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+  if (p.attacking && p.attackTimer > 0.15) {
+    const ax = p.facing > 0 ? p.x + p.w : p.x - p.w;
+    ctx.globalAlpha = 0.7; assets.draw(ctx, 'effectSlash', ax - p.w * 0.3, p.y - p.h * 0.1, p.w * 1.2, p.h * 1.2, COL.waterBlue); ctx.globalAlpha = 1;
+  }
+}
+
+function drawEnemies(ctx) {
+  for (const e of enemies) {
+    if (!e.active) continue;
+    ctx.save();
+    if (e.hitTimer > 0) ctx.globalAlpha = 0.5;
+    const key = 'enemy' + e.type.charAt(0).toUpperCase() + e.type.slice(1);
+    ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
+    if (e.facing < 0) ctx.scale(-1, 1);
+    if (!assets.draw(ctx, key, -e.w / 2, -e.h / 2, e.w, e.h, null)) {
+      switch (e.type) {
+        case 'inkblob': ctx.fillStyle = COL.inkBlack; ctx.beginPath(); ctx.ellipse(0, e.h * 0.1, e.w * 0.45, e.h * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = COL.waterRed; ctx.fillRect(-e.w * 0.15, -e.h * 0.05, e.w * 0.08, e.h * 0.06); ctx.fillRect(e.w * 0.07, -e.h * 0.05, e.w * 0.08, e.h * 0.06); break;
+        case 'inkbat': ctx.fillStyle = COL.inkBlack; ctx.beginPath(); ctx.ellipse(0, 0, e.w * 0.15, e.h * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(-e.w * 0.45, -e.h * 0.1); ctx.lineTo(-e.w * 0.1, 0); ctx.lineTo(-e.w * 0.3, e.h * 0.15); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(e.w * 0.45, -e.h * 0.1); ctx.lineTo(e.w * 0.1, 0); ctx.lineTo(e.w * 0.3, e.h * 0.15); ctx.fill();
+          ctx.fillStyle = COL.waterRed; ctx.fillRect(-e.w * 0.06, -e.h * 0.08, e.w * 0.04, e.h * 0.04); ctx.fillRect(e.w * 0.02, -e.h * 0.08, e.w * 0.04, e.h * 0.04); break;
+        case 'inkspider': ctx.fillStyle = COL.waterPurple; ctx.beginPath(); ctx.ellipse(0, 0, e.w * 0.25, e.h * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = COL.inkBlack; ctx.lineWidth = 2;
+          for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI - Math.PI * 0.4;
+            ctx.beginPath(); ctx.moveTo(Math.cos(a) * e.w * 0.2, Math.sin(a) * e.h * 0.15); ctx.lineTo(Math.cos(a) * e.w * 0.5, Math.sin(a) * e.h * 0.45); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-Math.cos(a) * e.w * 0.2, Math.sin(a) * e.h * 0.15); ctx.lineTo(-Math.cos(a) * e.w * 0.5, Math.sin(a) * e.h * 0.45); ctx.stroke(); } break;
+        case 'inkguard': ctx.fillStyle = COL.inkBlack; ctx.fillRect(-e.w * 0.25, -e.h * 0.4, e.w * 0.5, e.h * 0.8);
+          ctx.fillRect(-e.w * 0.15, -e.h * 0.48, e.w * 0.3, e.h * 0.15);
+          ctx.fillStyle = COL.waterRed; ctx.fillRect(-e.w * 0.08, -e.h * 0.42, e.w * 0.16, e.h * 0.05);
+          ctx.fillStyle = '#555'; ctx.fillRect(e.w * 0.2, -e.h * 0.45, e.w * 0.06, e.h * 0.7); break;
+        default: ctx.fillStyle = COL.inkBlack; ctx.fillRect(-e.w / 2, -e.h / 2, e.w, e.h);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+function drawBoss(ctx, W, H) {
+  if (!bossActive || !bossActive.active) return;
+  const b = bossActive;
+  ctx.save();
+  if (b.hitTimer > 0) ctx.globalAlpha = 0.5;
+  if (b.type === 'darkbrush' && b.phase === 2) ctx.globalAlpha = 0.6 + Math.sin(gameTime * 5) * 0.2;
+  const typeMap = { inkwolf: 'bossInkwolf', sumispider: 'bossSumispider', inkknight: 'bossInkknight', darkbrush: 'bossDarkbrush' };
+  let key = typeMap[b.type]; if (b.phase === 2) key += 'Phase2';
+  ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+  if (b.facing < 0) ctx.scale(-1, 1);
+  if (!assets.draw(ctx, key, -b.w / 2, -b.h / 2, b.w, b.h, null)) {
+    const auraCol = b.phase === 2 ? COL.waterRed : COL.waterPurple;
+    ctx.globalAlpha = 0.3; ctx.fillStyle = auraCol;
+    ctx.beginPath(); ctx.ellipse(0, 0, b.w * 0.55, b.h * 0.55, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = COL.inkBlack;
+    ctx.beginPath(); ctx.ellipse(0, b.h * 0.05, b.w * 0.35, b.h * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, -b.h * 0.3, b.w * 0.2, b.h * 0.18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = b.phase === 2 ? COL.waterRed : COL.waterPurple;
+    ctx.fillRect(-b.w * 0.12, -b.h * 0.33, b.w * 0.08, b.h * 0.04); ctx.fillRect(b.w * 0.04, -b.h * 0.33, b.w * 0.08, b.h * 0.04);
+    ctx.strokeStyle = auraCol; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, b.h * 0.05, b.w * 0.35, b.h * 0.4, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+  const barW = Math.min(300, W * 0.4);
+  UI.hpBar(ctx, W / 2 - barW / 2, 18, barW, 12, b.hp, b.maxHp, { fgColor: b.phase === 2 ? COL.waterRed : COL.waterPurple, bgColor: '#3a2020', borderColor: COL.inkBlack });
+  UI.text(ctx, b.type.toUpperCase() + (b.phase === 2 ? ' [PHASE 2]' : ''), W / 2, 12, { size: fontSize(10, W, H, 8, 14), color: COL.inkBlack });
+}
+
+function drawProjectiles(ctx) {
+  for (const p of projectiles) { ctx.fillStyle = COL.waterPurple; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.w / 2, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+}
+
+function drawItems(ctx) {
+  for (const it of items) {
+    if (it.collected) continue;
+    const bob = Math.sin(gameTime * 3 + it.x) * 3;
+    const kMap = { goldshard: 'itemGoldshard', inkdrop: 'itemInkdrop', hpup: 'itemHpup' };
+    if (!assets.draw(ctx, kMap[it.type] || 'itemInkdrop', it.x, it.y + bob, it.w, it.h, null)) {
+      const cx = it.x + it.w / 2, cy = it.y + bob + it.h / 2;
+      switch (it.type) {
+        case 'goldshard': ctx.fillStyle = COL.inkGold; ctx.beginPath();
+          ctx.moveTo(cx, cy - it.h * 0.4); ctx.lineTo(cx + it.w * 0.3, cy); ctx.lineTo(cx, cy + it.h * 0.4); ctx.lineTo(cx - it.w * 0.3, cy); ctx.fill();
+          ctx.strokeStyle = '#b89030'; ctx.lineWidth = 1; ctx.beginPath();
+          ctx.moveTo(cx, cy - it.h * 0.4); ctx.lineTo(cx + it.w * 0.3, cy); ctx.lineTo(cx, cy + it.h * 0.4); ctx.lineTo(cx - it.w * 0.3, cy); ctx.closePath(); ctx.stroke(); break;
+        case 'inkdrop': ctx.fillStyle = COL.waterBlue; ctx.beginPath();
+          ctx.arc(cx, cy + it.h * 0.1, it.w * 0.25, 0, Math.PI, false); ctx.lineTo(cx, cy - it.h * 0.35); ctx.fill(); break;
+        case 'hpup': ctx.fillStyle = COL.waterGreen; const hs = it.w * 0.2; ctx.beginPath();
+          ctx.arc(cx - hs, cy - hs * 0.3, hs, 0, Math.PI, true); ctx.arc(cx + hs, cy - hs * 0.3, hs, 0, Math.PI, true);
+          ctx.lineTo(cx, cy + it.h * 0.35); ctx.fill(); break;
+      }
+    }
+  }
+}
+
+function drawHUD(ctx, W, H) {
+  const s = Layout.scale(W, H); const iconSz = Math.max(20, Math.round(24 * s));
+  const pad = Math.max(8, Math.round(12 * s)); const hudTop = pad + (input.isMobile ? 44 : 0);
+  for (let i = 0; i < player.maxHp; i++) {
+    const key = i < player.hp ? 'uiHp' : 'uiHpEmpty';
+    assets.draw(ctx, key, pad + i * (iconSz + 4), hudTop, iconSz, iconSz, i < player.hp ? COL.waterRed : '#888');
+  }
+  assets.draw(ctx, 'uiScore', W - pad - 60 * s, hudTop, iconSz * 0.8, iconSz * 0.8, COL.inkGold);
+  UI.text(ctx, `${score}`, W - pad - 10, hudTop + iconSz / 2, { size: fontSize(14, W, H, 10, 20), color: COL.inkGold, bold: true, align: 'right' });
+  let abX = pad; const abY = hudTop + iconSz + 6;
+  if (abilities.dash) { assets.draw(ctx, 'uiAbilityDash', abX, abY, iconSz, iconSz, COL.waterBlue); abX += iconSz + 4; }
+  if (abilities.doublejump) { assets.draw(ctx, 'uiAbilityDoublejump', abX, abY, iconSz, iconSz, COL.waterBlue); abX += iconSz + 4; }
+  if (abilities.wallclimb) { assets.draw(ctx, 'uiAbilityWallclimb', abX, abY, iconSz, iconSz, COL.waterBlue); }
+  UI.text(ctx, currentRoom?.name || '', W / 2, hudTop + iconSz / 2, { size: fontSize(10, W, H, 8, 14), color: COL.inkBlack + '77' });
+  if (abilities.dash && player.dashCd > 0) { ctx.fillStyle = COL.waterBlue + '66'; ctx.fillRect(pad, abY + iconSz + 4, iconSz * 2 * Math.max(0, player.dashCd / 1.0), 3); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE CONTROLS
+   ═══════════════════════════════════════════════════════════ */
+let mobileButtons = {};
+let touchMoveDir = 0, mobileJumpPressed = false, mobileAttackPressed = false, mobileDashPressed = false;
+
+function createMobileControls(W, H) {
+  const s = Layout.scale(W, H); const btnSz = Math.max(48, Math.round(56 * s)); const margin = Math.max(12, Math.round(18 * s));
+  mobileButtons.left = new Button({ x: margin, y: H - margin - btnSz, w: btnSz, h: btnSz, text: '\u25C0', key: [], fontSize: Math.max(14, btnSz * 0.4), color: COL.inkBlack + '66', textColor: COL.paperIvory, onClick: () => {} });
+  mobileButtons.right = new Button({ x: margin + btnSz + 8, y: H - margin - btnSz, w: btnSz, h: btnSz, text: '\u25B6', key: [], fontSize: Math.max(14, btnSz * 0.4), color: COL.inkBlack + '66', textColor: COL.paperIvory, onClick: () => {} });
+  mobileButtons.jump = new Button({ x: W - margin - btnSz, y: H - margin - btnSz, w: btnSz, h: btnSz, text: 'A', key: [], fontSize: Math.max(14, btnSz * 0.35), color: COL.waterBlue + 'aa', textColor: '#fff', onClick: () => { mobileJumpPressed = true; } });
+  mobileButtons.attack = new Button({ x: W - margin - btnSz * 2 - 12, y: H - margin - btnSz * 0.7, w: Math.max(48, btnSz * 0.85), h: Math.max(48, btnSz * 0.85), text: 'B', key: [], fontSize: Math.max(12, btnSz * 0.3), color: COL.waterRed + 'aa', textColor: '#fff', onClick: () => { mobileAttackPressed = true; } });
+  mobileButtons.dash = new Button({ x: W - margin - btnSz, y: margin + 40, w: Math.max(48, btnSz * 0.85), h: Math.max(48, btnSz * 0.85), text: 'DASH', key: [], fontSize: Math.max(10, btnSz * 0.22), color: COL.waterPurple + 'aa', textColor: '#fff', visible: false, onClick: () => { mobileDashPressed = true; } });
+  mobileButtons.pause = new Button({ x: margin, y: margin, w: Math.max(48, btnSz * 0.7), h: Math.max(48, btnSz * 0.7), text: '| |', key: ['Escape'], fontSize: Math.max(12, btnSz * 0.25), color: COL.inkBlack + '66', textColor: COL.paperIvory, onClick: () => { Scene.transition('PAUSE'); } });
+}
+
+function checkMobileTouchHold() {
+  touchMoveDir = 0;
+  if (!input.isMobile || !mobileButtons.left) return;
+  for (const t of input.touches) { if (mobileButtons.left.hitTest(t.x, t.y)) touchMoveDir = -1; if (mobileButtons.right.hitTest(t.x, t.y)) touchMoveDir = 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE: TITLE
+   ═══════════════════════════════════════════════════════════ */
+let chosenDiff = null;
+const titleScene = {
+  enter() {
+    const W = engine.W, H = engine.H, s = Layout.scale(W, H);
+    const btnW = Math.max(180, 220 * s), btnH = Math.max(48, 56 * s); const cx = W / 2 - btnW / 2; let cy = H / 2 + 20;
+    new Button({ x: cx, y: cy, w: btnW, h: btnH, text: 'Easy / \uC26C\uC6C0', key: ['Digit1'], color: COL.waterGreen, fontSize: Math.max(14, 16 * s), onClick: () => { chosenDiff = DIFF.easy; doStart(); } });
+    cy += btnH + 12;
+    new Button({ x: cx, y: cy, w: btnW, h: btnH, text: 'Normal / \uBCF4\uD1B5', key: ['Digit2', 'Enter'], color: COL.waterBlue, fontSize: Math.max(14, 16 * s), onClick: () => { chosenDiff = DIFF.normal; doStart(); } });
+    cy += btnH + 12;
+    new Button({ x: cx, y: cy, w: btnW, h: btnH, text: 'Hard / \uC5B4\uB824\uC6C0', key: ['Digit3'], color: COL.waterRed, fontSize: Math.max(14, 16 * s), onClick: () => { chosenDiff = DIFF.hard; doStart(); } });
+    function doStart() { sound.init(); sound.resume(); sound.sfx('select'); resetGameState(); difficulty = chosenDiff; player.hp = difficulty.hp; player.maxHp = difficulty.hp; Scene.transition('PLAY'); }
+  },
+  update(dt) { tween.update(dt); gameTime = (gameTime || 0) + dt / 1000; },
+  render(ctx, W, H) {
+    ctx.fillStyle = COL.paperIvory; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = COL.inkBlack + '08';
+    for (let i = 0; i < 60; i++) { ctx.fillRect((Math.sin(i * 7.3 + gameTime) * 0.5 + 0.5) * W, (Math.cos(i * 11.1 + gameTime * 0.7) * 0.5 + 0.5) * H, 2, 2); }
+    const fs = fontSize(42, W, H, 24, 60);
+    UI.text(ctx, '\uC78A\uD06C \uBA54\uC774\uB4E0', W / 2, H * 0.22, { size: fs, bold: true, color: COL.inkBlack, shadow: true });
+    UI.text(ctx, 'INK MAIDEN', W / 2, H * 0.22 + fs * 0.8, { size: fs * 0.4, color: COL.waterBlue });
+    UI.text(ctx, 'Select Difficulty', W / 2, H / 2 - 10, { size: fontSize(14, W, H, 10, 18), color: COL.inkBlack + 'aa' });
+    const hi = Save.getHighScore(GAME_ID);
+    if (hi > 0) UI.text(ctx, `HIGH SCORE: ${hi}`, W / 2, H * 0.36, { size: fontSize(13, W, H, 10, 16), color: COL.inkGold });
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE: PLAY
+   ═══════════════════════════════════════════════════════════ */
+const playScene = {
+  enter() {
+    inputDelay = 0.2;
+    if (!resumingFromPause) { loadRoom(lastSaveRoom || 'f0', null); }
+    resumingFromPause = false;
+    if (input.isMobile) createMobileControls(engine.W, engine.H);
+  },
+  update(dt) {
+    const W = engine.W, H = engine.H, sec = dt / 1000;
+    tween.update(dt); particles.update(dt); popups.update(dt); gameTime += sec;
+    if (inputDelay > 0) { inputDelay -= sec; input.flush(); return; }
+    if (shakeIntensity > 0) shakeIntensity = shakeIntensity * 0.9 < 0.5 ? 0 : shakeIntensity * 0.9;
+    checkMobileTouchHold();
+    const p = player; p.prevX = p.x; p.prevY = p.y;
+    /* Movement */
+    let moveDir = 0;
+    if (input.held('ArrowLeft') || input.held('KeyA')) moveDir = -1;
+    if (input.held('ArrowRight') || input.held('KeyD')) moveDir = 1;
+    if (touchMoveDir !== 0) moveDir = touchMoveDir;
+    if (moveDir !== 0) p.facing = moveDir;
+    if (!p.dashing) physics.moveX(p, moveDir, dt);
+    /* Jump (Up/W only — Space is attack per spec) */
+    const jumpBtn = input.jp('ArrowUp') || input.jp('KeyW') || mobileJumpPressed;
+    mobileJumpPressed = false;
+    if (jumpBtn) {
+      coyote.onJumpPress(gameTime * 1000);
+      if (p.grounded || coyote.canJump(gameTime * 1000, p.grounded)) { physics.jump(p); sound.sfx('jump'); particles.emit(p.x + p.w / 2, p.y + p.h, 6, { color: COL.paperIvory, speed: 60, life: 0.3, spread: Math.PI }); }
+      else if (abilities.doublejump && p.airJumps < p.maxAirJumps) { physics.jump(p); p.airJumps++; sound.sfx('jump'); particles.emit(p.x + p.w / 2, p.y + p.h, 8, { color: COL.waterBlue, speed: 80, life: 0.3 }); }
+      else if (p.wallSliding && abilities.wallclimb) { wallMech.wallJump(p, -p.wallDir); sound.sfx('jump'); }
+    }
+    if (p.grounded) { coyote.onGround(gameTime * 1000); p.airJumps = 0; }
+    if (abilities.doublejump) p.maxAirJumps = 1;
+    /* Wall slide / climb */
+    const wallDir = checkWallTouch(p, currentRoom.map, W, H); p.wallDir = wallDir;
+    if (abilities.wallclimb && wallDir !== 0 && !p.grounded) { wallMech.wallSlide(p, true, dt); if (input.held('ArrowUp') || input.held('KeyW')) p.vy = -physics.moveSpeed * 0.6; }
+    else { p.wallSliding = false; }
+    /* Attack (X / Space per spec) */
+    if (input.jp('KeyX') || input.jp('Space') || mobileAttackPressed) playerAttack(W, H);
+    mobileAttackPressed = false;
+    /* Dash */
+    const dashBtn = input.jp('ShiftLeft') || input.jp('ShiftRight') || input.jp('KeyZ') || mobileDashPressed;
+    mobileDashPressed = false;
+    if (dashBtn && abilities.dash && p.dashCd <= 0 && !p.dashing) {
+      p.dashing = true; p.dashTimer = 0.2; p.dashCd = 1.0; p.vx = p.facing * 500; p.vy = 0; sound.sfx('dash');
+      particles.emit(p.x + p.w / 2, p.y + p.h / 2, 12, { color: COL.waterBlue, speed: 100, life: 0.3, angle: p.facing > 0 ? Math.PI : 0, spread: Math.PI / 3 });
+      if (currentRoom.exits?.breakwall) {
+        const bw = currentRoom.exits.breakwall; const { tw, th } = tileSize(W, H);
+        Scene.setTimeout(() => {
+          if (abilities[bw.needs] && currentRoom.map[bw.y]?.[bw.x] === 'B' && MathUtil.rectCollide(p.x - tw, p.y, p.w + tw * 2, p.h, bw.x * tw, bw.y * th, tw, th)) {
+            currentRoom.map[bw.y] = currentRoom.map[bw.y].substring(0, bw.x) + '.' + currentRoom.map[bw.y].substring(bw.x + 1);
+            sound.sfx('explosion'); shakeIntensity = 8; particles.emit(bw.x * tw + tw / 2, bw.y * th + th / 2, 20, { color: COL.inkBlack, speed: 150, life: 0.5 });
+          }
+        }, 100);
+      }
+    }
+    /* Timers */
+    if (p.dashing) { p.dashTimer -= sec; if (p.dashTimer <= 0) { p.dashing = false; p.vx *= 0.3; } }
+    if (p.dashCd > 0) p.dashCd -= sec;
+    if (p.attacking) { p.attackTimer -= sec; if (p.attackTimer <= 0) p.attacking = false; }
+    if (p.attackCd > 0) p.attackCd -= sec;
+    if (p.invincible > 0) p.invincible -= sec;
+    if (p.hurtTimer > 0) p.hurtTimer -= sec;
+    /* Physics */
+    if (!p.dashing) physics.applyGravity(p, dt);
+    physics.applyFriction(p); p.x += p.vx * sec; p.y += p.vy * sec;
+    if (resolveTileCollisions(p, currentRoom.map, W, H) === 'spike') hurtPlayer(1);
+    if (mobileButtons.dash) mobileButtons.dash.setVisible(abilities.dash);
+    for (const e of enemies) { if (e.active && MathUtil.rectCollide(p.x, p.y, p.w, p.h, e.x, e.y, e.w, e.h)) hurtPlayer(e.dmg); }
+    if (bossActive?.active && MathUtil.rectCollide(p.x, p.y, p.w, p.h, bossActive.x, bossActive.y, bossActive.w, bossActive.h)) hurtPlayer(bossActive.dmg);
+    for (const it of items) {
+      if (it.collected) continue;
+      if (MathUtil.rectCollide(p.x, p.y, p.w, p.h, it.x, it.y, it.w, it.h)) {
+        it.collected = true; bossDefeated.add(it.key); sound.sfx('score');
+        particles.emit(it.x + it.w / 2, it.y + it.h / 2, 8, { color: COL.inkGold, speed: 60, life: 0.4 });
+        if (it.type === 'goldshard') { score += 50; popups.add(it.x, it.y, '+50', COL.inkGold); }
+        else if (it.type === 'inkdrop') { p.hp = Math.min(p.hp + 1, p.maxHp); popups.add(it.x, it.y, '+HP', COL.waterGreen); }
+        else if (it.type === 'hpup') { p.maxHp++; p.hp = p.maxHp; popups.add(it.x, it.y, 'HP UP!', COL.waterGreen); }
+      }
+    }
+    if (currentRoom.savepoint && (currentRoom.savepoint.spLvl || 1) <= (difficulty.saveLvl || 2)) {
+      const sp = currentRoom.savepoint; const { tw, th } = tileSize(W, H);
+      if (MathUtil.rectCollide(p.x, p.y, p.w, p.h, sp.x * tw, sp.y * th - th * 0.5, tw, th * 1.5)) { lastSaveRoom = roomId; lastSaveSpawn = currentRoom.spawn || { x: sp.x, y: sp.y }; }
+    }
+    updateEnemies(dt, W, H); updateBoss(dt, W, H); updateProjectiles(dt, W, H); checkRoomTransition(W, H);
+    if (input.jp('KeyP') || input.jp('Escape')) Scene.transition('PAUSE');
+  },
+  render(ctx, W, H) {
+    const shake = UI.shake(shakeIntensity); ctx.save(); ctx.translate(shake.x, shake.y);
+    drawBackground(ctx, W, H); drawTiles(ctx, W, H); drawItems(ctx); drawEnemies(ctx); drawBoss(ctx, W, H);
+    drawPlayer(ctx); drawProjectiles(ctx); particles.render(ctx);
+    popups.render(ctx, { fontSize: fontSize(16, W, H, 12, 22), bold: true });
+    ctx.restore(); drawHUD(ctx, W, H);
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE: PAUSE
+   ═══════════════════════════════════════════════════════════ */
+const pauseScene = {
+  enter() {
+    const W = engine.W, H = engine.H, s = Layout.scale(W, H);
+    const btnW = Math.max(160, 200 * s), btnH = Math.max(48, 52 * s);
+    new Button({ x: W / 2 - btnW / 2, y: H / 2 + 80, w: btnW, h: btnH, text: 'Resume', key: ['Escape', 'KeyP', 'Space', 'Enter'], color: COL.waterBlue, fontSize: Math.max(14, 16 * s),
+      onClick: () => { resumingFromPause = true; Scene.transition('PLAY'); } });
+    new Button({ x: W / 2 - btnW / 2, y: H / 2 + 80 + btnH + 12, w: btnW, h: btnH, text: 'Title', key: ['KeyT'], color: COL.waterRed, fontSize: Math.max(14, 16 * s),
+      onClick: () => Scene.transition('TITLE') });
+  },
+  update(dt) { tween.update(dt); },
+  render(ctx, W, H) {
+    ctx.fillStyle = COL.paperIvory + 'ee'; ctx.fillRect(0, 0, W, H);
+    UI.text(ctx, 'PAUSED', W / 2, H * 0.15, { size: fontSize(36, W, H, 20, 48), bold: true, color: COL.inkBlack });
+    const mW = Math.min(380, W * 0.75), mH = Math.min(220, H * 0.34);
+    const mX = W / 2 - mW / 2, mY = H * 0.2;
+    ctx.strokeStyle = COL.inkBlack; ctx.lineWidth = 2; ctx.strokeRect(mX - 2, mY - 2, mW + 4, mH + 4);
+    ctx.fillStyle = '#faf5ea'; ctx.fillRect(mX, mY, mW, mH);
+    const pos = { f0:[0,2],f1:[1,2],f2:[2,2],f3:[3,2],f7b:[4,2], f4:[1,1],f5:[2,1],f6:[2,0],sf0:[3,1],
+      c0:[3,3],c1:[4,3],c2:[5,3],c3:[4,4],c4:[5,4],c4b:[6,3], sc0:[5.5,4],
+      k0:[4,1],k1:[5,1],k2:[6,1],k3:[3.5,0.5],k4:[3,0],k4b:[7,1],k5:[5,2], sk0:[3.5,0],sk1:[5.5,2.5],
+      d0:[5,0],d1:[6,0],d2b:[7,0], sd0:[5.5,0.5] };
+    const nw = mW / 9, nh = mH / 5.5;
+    ctx.strokeStyle = COL.inkBlack + '44'; ctx.lineWidth = 1;
+    const conns = [['f0','f1'],['f1','f2'],['f2','f3'],['f3','f7b'],['f1','f4'],['f4','f5'],['f2','f6'],['f5','sf0'],
+      ['f2','c0'],['c0','c1'],['c1','c2'],['c2','c4b'],['c1','c3'],['c3','c4'],['c4','sc0'],
+      ['c1','k0'],['k0','k1'],['k1','k2'],['k2','k4b'],['k0','k3'],['k3','k4'],['k4','sk0'],['k1','k5'],['k5','sk1'],['k1','d0'],
+      ['d0','d1'],['d1','d2b'],['d0','sd0']];
+    for (const [a, b] of conns) {
+      if (!pos[a] || !pos[b]) continue;
+      if ((!visitedRooms.has(a) && ROOMS[a]?.secret) || (!visitedRooms.has(b) && ROOMS[b]?.secret)) continue;
+      ctx.beginPath(); ctx.moveTo(mX + pos[a][0] * nw + nw / 2, mY + pos[a][1] * nh + nh / 2);
+      ctx.lineTo(mX + pos[b][0] * nw + nw / 2, mY + pos[b][1] * nh + nh / 2); ctx.stroke();
+    }
+    for (const [rid, [px, py]] of Object.entries(pos)) {
+      if (!visitedRooms.has(rid) && ROOMS[rid]?.secret) continue;
+      const nx = mX + px * nw + nw * 0.15, ny = mY + py * nh + nh * 0.15;
+      const visited = visitedRooms.has(rid);
+      ctx.fillStyle = rid === roomId ? COL.waterBlue : ROOMS[rid]?.secret && visited ? COL.inkGold + '88' : visited ? COL.waterGreen + '88' : COL.inkBlack + '22';
+      ctx.fillRect(nx, ny, nw * 0.7, nh * 0.7);
+      ctx.strokeStyle = COL.inkBlack + '55'; ctx.lineWidth = 1; ctx.strokeRect(nx, ny, nw * 0.7, nh * 0.7);
+      if (ROOMS[rid]?.boss) { ctx.fillStyle = bossDefeated.has(rid + '_boss') ? COL.inkGold : COL.waterRed; ctx.beginPath(); ctx.arc(nx + nw * 0.35, ny + nh * 0.35, 3, 0, Math.PI * 2); ctx.fill(); }
+      if (ROOMS[rid]?.secret && visited) { UI.text(ctx, '\u2605', nx + nw * 0.35, ny + nh * 0.1, { size: 8, color: COL.inkGold }); }
+    }
+    const abSz = Math.max(22, 30 * Layout.scale(W, H)); let abX = W / 2 - 50; const abY = mY + mH + 16;
+    if (abilities.dash) { assets.draw(ctx, 'uiAbilityDash', abX, abY, abSz, abSz, COL.waterBlue); abX += abSz + 8; }
+    if (abilities.doublejump) { assets.draw(ctx, 'uiAbilityDoublejump', abX, abY, abSz, abSz, COL.waterBlue); abX += abSz + 8; }
+    if (abilities.wallclimb) { assets.draw(ctx, 'uiAbilityWallclimb', abX, abY, abSz, abSz, COL.waterBlue); }
+    UI.text(ctx, `SCORE: ${score}`, W / 2, H / 2 + 50, { size: fontSize(16, W, H, 12, 22), color: COL.inkGold, bold: true });
+    UI.text(ctx, `TIME: ${Math.floor(gameTime)}s  |  SECRETS: ${secretsFound.size}/${SECRET_ROOM_COUNT}`, W / 2, H / 2 + 70, { size: fontSize(12, W, H, 10, 16), color: COL.inkBlack + '88' });
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE: ABILITY
+   ═══════════════════════════════════════════════════════════ */
+const abilityScene = {
+  _timer: 0, _name: '', _ctrl: '',
+  enter(data) {
+    const ab = data?.ability; if (ab) abilities[ab] = true; score += 200; sound.sfx('powerup');
+    const names = { dash: 'DASH \uB300\uC2DC', doublejump: 'DOUBLE JUMP \uC774\uC911\uC810\uD504', wallclimb: 'WALL CLIMB \uBCBD\uD0C0\uAE30' };
+    const ctrls = { dash: 'Shift / Z', doublejump: '\uACF5\uC911\uC5D0\uC11C Jump \uD55C \uBC88 \uB354', wallclimb: '\uBCBD + Up \uD0A4' };
+    this._name = names[ab] || ab; this._ctrl = ctrls[ab] || ''; this._timer = 0;
+    const W = engine.W, H = engine.H, s = Layout.scale(W, H);
+    new Button({ x: W / 2 - 80, y: H * 0.72, w: 160, h: Math.max(48, 52 * s), text: 'Continue', key: ['Enter', 'Space'], color: COL.waterBlue, fontSize: Math.max(14, 16 * s), onClick: () => Scene.transition('PLAY') });
+    Scene.setTimeout(() => Scene.transition('PLAY'), 4000);
+  },
+  update(dt) { tween.update(dt); this._timer += dt / 1000; },
+  render(ctx, W, H) {
+    ctx.fillStyle = COL.paperIvory; ctx.fillRect(0, 0, W, H);
+    const pulse = Math.sin(this._timer * 4) * 20 + 60;
+    ctx.globalAlpha = 0.3; ctx.fillStyle = COL.waterPurple; ctx.beginPath(); ctx.arc(W / 2, H / 2 - 30, pulse, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    assets.draw(ctx, 'itemAbilityOrb', W / 2 - 40, H / 2 - 70, 80, 80, COL.waterPurple);
+    UI.text(ctx, 'NEW ABILITY!', W / 2, H * 0.2, { size: fontSize(30, W, H, 18, 42), bold: true, color: COL.inkGold, shadow: true });
+    UI.text(ctx, this._name, W / 2, H / 2 + 40, { size: fontSize(22, W, H, 14, 32), bold: true, color: COL.waterBlue });
+    UI.text(ctx, this._ctrl, W / 2, H / 2 + 70, { size: fontSize(13, W, H, 10, 18), color: COL.inkBlack + 'aa' });
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE: GAMEOVER
+   ═══════════════════════════════════════════════════════════ */
+const gameoverScene = {
+  enter() {
+    const W = engine.W, H = engine.H, s = Layout.scale(W, H);
+    const btnW = Math.max(180, 220 * s), btnH = Math.max(48, 52 * s); sound.sfx('gameover');
+    new Button({ x: W / 2 - btnW / 2, y: H / 2 + 40, w: btnW, h: btnH, text: 'Restart (Savepoint)', key: ['KeyR', 'Space', 'Enter'], color: COL.waterBlue, fontSize: Math.max(12, 14 * s),
+      onClick: () => { player.hp = player.maxHp; player.invincible = 2; Scene.transition('PLAY'); } });
+    new Button({ x: W / 2 - btnW / 2, y: H / 2 + 40 + btnH + 12, w: btnW, h: btnH, text: 'Title', key: ['Escape'], color: COL.waterRed, fontSize: Math.max(14, 16 * s),
+      onClick: () => Scene.transition('TITLE') });
+  },
+  update(dt) { tween.update(dt); input.flush(); },
+  render(ctx, W, H) {
+    ctx.fillStyle = COL.inkBlack + 'ee'; ctx.fillRect(0, 0, W, H);
+    UI.text(ctx, 'GAME OVER', W / 2, H * 0.3, { size: fontSize(42, W, H, 24, 56), bold: true, color: COL.waterRed });
+    UI.text(ctx, `SCORE: ${score}`, W / 2, H * 0.42, { size: fontSize(20, W, H, 14, 28), color: COL.inkGold, bold: true });
+    UI.text(ctx, `DEATHS: ${deathCount}`, W / 2, H * 0.50, { size: fontSize(14, W, H, 10, 18), color: COL.waterRed + 'aa' });
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE: ENDING (fixed time bonus formula)
+   ═══════════════════════════════════════════════════════════ */
+const endingScene = {
+  _score: 0, _grade: 'C', _timeBonus: 0, _secretBonus: 0, _isNew: false,
+  enter(data) {
+    const W = engine.W, H = engine.H, s = Layout.scale(W, H);
+    const btnW = Math.max(180, 220 * s), btnH = Math.max(48, 52 * s);
+    this._score = data?.score || score;
+    /* Time bonus: x1.5 for <10min, x1.2 for <15min (spec) */
+    if (gameTime <= 600) { this._timeBonus = Math.floor(this._score * 0.5); }
+    else if (gameTime <= 900) { this._timeBonus = Math.floor(this._score * 0.2); }
+    else { this._timeBonus = 0; }
+    this._score += this._timeBonus;
+    /* Secret rooms bonus: all 5 found = +2000 */
+    this._secretBonus = secretsFound.size >= SECRET_ROOM_COUNT ? 2000 : 0;
+    this._score += this._secretBonus;
+    this._grade = this._score >= 12000 ? 'S' : this._score >= 9000 ? 'A' : this._score >= 6000 ? 'B' : 'C';
+    this._isNew = Save.setHighScore(GAME_ID, this._score);
+    sound.sfx('powerup'); sound.sfx('score');
+    new Button({ x: W / 2 - btnW / 2, y: H * 0.78, w: btnW, h: btnH, text: 'Play Again', key: ['Space', 'Enter'], color: COL.waterGreen, fontSize: Math.max(14, 16 * s),
+      onClick: () => { resetGameState(); Scene.transition('TITLE'); } });
+    new Button({ x: W / 2 - btnW / 2, y: H * 0.78 + btnH + 12, w: btnW, h: btnH, text: 'Title', key: ['Escape'], color: COL.inkBlack, fontSize: Math.max(14, 16 * s),
+      onClick: () => Scene.transition('TITLE') });
+  },
+  update(dt) { tween.update(dt); gameTime += dt / 1000; input.flush(); },
+  render(ctx, W, H) {
+    ctx.fillStyle = COL.paperIvory; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = COL.inkGold + '44';
+    for (let i = 0; i < 30; i++) { ctx.fillRect((Math.sin(i * 5.3 + gameTime * 0.8) * 0.5 + 0.5) * W, (Math.cos(i * 8.1 + gameTime * 0.5) * 0.5 + 0.5) * H, 3, 3); }
+    UI.text(ctx, 'VICTORY!', W / 2, H * 0.1, { size: fontSize(42, W, H, 24, 56), bold: true, color: COL.inkGold, shadow: true });
+    UI.text(ctx, '\uC78A\uD06C \uC138\uACC4\uC5D0 \uBE5B\uC774 \uB3CC\uC544\uC654\uC2B5\uB2C8\uB2E4!', W / 2, H * 0.18, { size: fontSize(15, W, H, 11, 20), color: COL.inkBlack + 'cc' });
+    const gc = { S: COL.inkGold, A: COL.waterGreen, B: COL.waterBlue, C: COL.inkBlack };
+    UI.text(ctx, `GRADE: ${this._grade}`, W / 2, H * 0.28, { size: fontSize(36, W, H, 20, 48), bold: true, color: gc[this._grade] });
+    UI.text(ctx, `SCORE: ${this._score}`, W / 2, H * 0.38, { size: fontSize(22, W, H, 14, 30), bold: true, color: COL.inkGold });
+    if (this._timeBonus > 0) UI.text(ctx, `TIME BONUS: +${this._timeBonus} (${gameTime <= 600 ? '\u00D71.5' : '\u00D71.2'})`, W / 2, H * 0.45, { size: fontSize(14, W, H, 10, 18), color: COL.waterGreen });
+    if (this._secretBonus > 0) UI.text(ctx, `ALL SECRETS FOUND: +${this._secretBonus}`, W / 2, H * 0.50, { size: fontSize(14, W, H, 10, 18), color: COL.inkGold });
+    UI.text(ctx, `SECRETS: ${secretsFound.size}/${SECRET_ROOM_COUNT}  |  DEATHS: ${deathCount}`, W / 2, H * 0.56, { size: fontSize(12, W, H, 10, 16), color: COL.inkBlack + '88' });
+    if (this._isNew) UI.text(ctx, 'NEW HIGH SCORE!', W / 2, H * 0.63, { size: fontSize(18, W, H, 12, 24), bold: true, color: COL.waterRed });
+    UI.text(ctx, `TIME: ${Math.floor(gameTime / 60)}m ${Math.floor(gameTime % 60)}s`, W / 2, H * 0.68, { size: fontSize(12, W, H, 10, 16), color: COL.inkBlack + '66' });
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   REGISTER ALL SCENES & INIT GAMEFLOW
+   ═══════════════════════════════════════════════════════════ */
+GameFlow.init({ title: titleScene, play: playScene, gameover: gameoverScene, onReset: resetGameState, titleText: '\uC78A\uD06C \uBA54\uC774\uB4E0' });
+Scene.register('PAUSE', pauseScene);
+Scene.register('ABILITY', abilityScene);
+Scene.register('ENDING', endingScene);
+
+/* ═══════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════ */
+(async () => {
+  resetGameState();
+  const result = await assets.load(assetMap, { timeoutMs: 10000 });
+  if (result.failed.length) console.warn('[ink-maiden] Failed assets:', result.failed);
+  engine._update = (dt) => Scene.update(dt, input);
+  engine._render = (ctx, W, H) => Scene.render(ctx, W, H);
+  engine.start(); GameFlow.start();
+})();
+</script>
+</body>
+</html>

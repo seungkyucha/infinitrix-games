@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Spider body gradient -->
+    <linearGradient id="spiderBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7b5ea7"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <!-- Blade metallic gradient -->
+    <linearGradient id="bladeMetal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d0d0e0"/>
+      <stop offset="40%" stop-color="#a0a0b8"/>
+      <stop offset="70%" stop-color="#c8c8d8"/>
+      <stop offset="100%" stop-color="#8080a0"/>
+    </linearGradient>
+    <!-- Blade purple edge glow -->
+    <linearGradient id="bladeGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7b5ea7" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#7b5ea7" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Eye glow -->
+    <radialGradient id="spiderEyeGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ff6633"/>
+      <stop offset="50%" stop-color="#c94c4c"/>
+      <stop offset="100%" stop-color="#c94c4c" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Purple mist radial -->
+    <radialGradient id="purpleMist" cx="0.5" cy="0.6" r="0.5">
+      <stop offset="0%" stop-color="#7b5ea7" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#7b5ea7" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#7b5ea7" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Mist blur filter -->
+    <filter id="mistBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12"/>
+    </filter>
+    <!-- Subtle glow for eyes -->
+    <filter id="eyeGlowFilter" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Armor segment gradient -->
+    <linearGradient id="armorSeg" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#5a4087"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Purple ink mist cloud at ground level -->
+  <g id="mistLayer" filter="url(#mistBlur)">
+    <ellipse cx="256" cy="440" rx="200" ry="60" fill="url(#purpleMist)"/>
+    <ellipse cx="220" cy="450" rx="160" ry="45" fill="#7b5ea7" opacity="0.15"/>
+    <ellipse cx="300" cy="435" rx="140" ry="50" fill="#7b5ea7" opacity="0.12"/>
+  </g>
+
+  <!-- Back legs (4 normal thick legs gripping ground) -->
+  <g id="backLegs" stroke="#1a1a2e" stroke-width="2.5" fill="none">
+    <!-- Back-left far -->
+    <path d="M220,290 C185,300 150,330 120,380 C105,410 100,440 110,460" stroke-width="8" stroke="#1a1a2e" stroke-linecap="round"/>
+    <path d="M220,290 C185,300 150,330 120,380 C105,410 100,440 110,460" stroke-width="5" stroke="#3a2a5e" stroke-linecap="round"/>
+    <!-- Back-left near -->
+    <path d="M230,300 C200,320 175,355 160,400 C152,425 155,448 165,462" stroke-width="7" stroke="#1a1a2e" stroke-linecap="round"/>
+    <path d="M230,300 C200,320 175,355 160,400 C152,425 155,448 165,462" stroke-width="4.5" stroke="#3a2a5e" stroke-linecap="round"/>
+    <!-- Back-right near -->
+    <path d="M285,300 C310,320 340,355 355,400 C362,425 360,448 350,462" stroke-width="7" stroke="#1a1a2e" stroke-linecap="round"/>
+    <path d="M285,300 C310,320 340,355 355,400 C362,425 360,448 350,462" stroke-width="4.5" stroke="#3a2a5e" stroke-linecap="round"/>
+    <!-- Back-right far -->
+    <path d="M295,290 C330,300 365,330 395,380 C410,410 415,440 405,460" stroke-width="8" stroke="#1a1a2e" stroke-linecap="round"/>
+    <path d="M295,290 C330,300 365,330 395,380 C410,410 415,440 405,460" stroke-width="5" stroke="#3a2a5e" stroke-linecap="round"/>
+    <!-- Ground grip marks -->
+    <ellipse cx="110" cy="462" rx="12" ry="5" fill="#1a1a2e" opacity="0.6"/>
+    <ellipse cx="165" cy="464" rx="10" ry="4" fill="#1a1a2e" opacity="0.5"/>
+    <ellipse cx="350" cy="464" rx="10" ry="4" fill="#1a1a2e" opacity="0.5"/>
+    <ellipse cx="405" cy="462" rx="12" ry="5" fill="#1a1a2e" opacity="0.6"/>
+  </g>
+
+  <!-- Blade legs (4 front legs as blades) -->
+  <g id="bladeLegs">
+    <!-- Blade leg far-left -->
+    <path d="M210,260 C180,240 140,210 95,170 C88,163 82,155 78,148 L72,135 L90,155 C100,165 108,172 115,178" fill="none" stroke="#1a1a2e" stroke-width="6" stroke-linecap="round"/>
+    <path d="M95,170 L55,110 L72,135 L60,95 L78,128" fill="url(#bladeMetal)" stroke="#8080a0" stroke-width="1"/>
+    <path d="M95,170 L55,110" stroke="#7b5ea7" stroke-width="1.5" opacity="0.6" stroke-linecap="round"/>
+    <!-- Blade leg mid-left -->
+    <path d="M225,255 C200,235 165,200 130,158 C122,148 115,138 110,128" fill="none" stroke="#1a1a2e" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M130,158 L98,95 L110,128 L95,80 L115,120" fill="url(#bladeMetal)" stroke="#8080a0" stroke-width="1"/>
+    <path d="M130,158 L98,95" stroke="#7b5ea7" stroke-width="1.5" opacity="0.6" stroke-linecap="round"/>
+    <!-- Blade leg mid-right -->
+    <path d="M290,255 C315,235 350,200 385,158 C393,148 400,138 405,128" fill="none" stroke="#1a1a2e" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M385,158 L417,95 L405,128 L420,80 L400,120" fill="url(#bladeMetal)" stroke="#8080a0" stroke-width="1"/>
+    <path d="M385,158 L417,95" stroke="#7b5ea7" stroke-width="1.5" opacity="0.6" stroke-linecap="round"/>
+    <!-- Blade leg far-right -->
+    <path d="M305,260 C335,240 375,210 420,170 C427,163 433,155 437,148 L443,135 L425,155 C415,165 407,172 400,178" fill="none" stroke="#1a1a2e" stroke-width="6" stroke-linecap="round"/>
+    <path d="M420,170 L460,110 L443,135 L455,95 L437,128" fill="url(#bladeMetal)" stroke="#8080a0" stroke-width="1"/>
+    <path d="M420,170 L460,110" stroke="#7b5ea7" stroke-width="1.5" opacity="0.6" stroke-linecap="round"/>
+  </g>
+
+  <!-- Spider body - abdomen -->
+  <g id="abdomen">
+    <ellipse cx="258" cy="310" rx="70" ry="55" fill="url(#spiderBody)" stroke="#1a1a2e" stroke-width="2.5"/>
+    <!-- Armor segments -->
+    <path d="M200,295 Q258,280 316,295" fill="none" stroke="#5a4087" stroke-width="1.5" opacity="0.6"/>
+    <path d="M195,315 Q258,300 321,315" fill="none" stroke="#5a4087" stroke-width="1.5" opacity="0.6"/>
+    <path d="M200,335 Q258,320 316,335" fill="none" stroke="#5a4087" stroke-width="1.5" opacity="0.6"/>
+  </g>
+
+  <!-- Spider body - cephalothorax -->
+  <g id="cephalothorax">
+    <ellipse cx="256" cy="258" rx="52" ry="42" fill="url(#armorSeg)" stroke="#1a1a2e" stroke-width="2.5"/>
+    <!-- Armor plate lines -->
+    <path d="M210,250 Q256,238 302,250" fill="none" stroke="#5a4087" stroke-width="1.2" opacity="0.5"/>
+    <path d="M215,265 Q256,255 297,265" fill="none" stroke="#5a4087" stroke-width="1.2" opacity="0.5"/>
+  </g>
+
+  <!-- Chelicerae / fangs -->
+  <g id="fangs">
+    <path d="M240,220 C235,208 228,198 232,188 Q236,182 240,190 C243,198 242,210 240,220Z" fill="#1a1a2e" stroke="#1a1a2e" stroke-width="1"/>
+    <path d="M272,220 C277,208 284,198 280,188 Q276,182 272,190 C269,198 270,210 272,220Z" fill="#1a1a2e" stroke="#1a1a2e" stroke-width="1"/>
+  </g>
+
+  <!-- Multiple eyes - different sizes, glowing -->
+  <g id="eyes" filter="url(#eyeGlowFilter)">
+    <!-- Main eyes (large) -->
+    <ellipse cx="242" cy="245" rx="8" ry="7" fill="url(#spiderEyeGlow)"/>
+    <ellipse cx="242" cy="245" rx="3.5" ry="3" fill="#ff6633"/>
+    <ellipse cx="270" cy="245" rx="8" ry="7" fill="url(#spiderEyeGlow)"/>
+    <ellipse cx="270" cy="245" rx="3.5" ry="3" fill="#ff6633"/>
+    <!-- Secondary eyes (medium) -->
+    <ellipse cx="232" cy="235" rx="5" ry="4.5" fill="url(#spiderEyeGlow)"/>
+    <ellipse cx="232" cy="235" rx="2.5" ry="2" fill="#e05530"/>
+    <ellipse cx="280" cy="235" rx="5" ry="4.5" fill="url(#spiderEyeGlow)"/>
+    <ellipse cx="280" cy="235" rx="2.5" ry="2" fill="#e05530"/>
+    <!-- Small eyes (top row) -->
+    <circle cx="248" cy="230" r="3" fill="#c94c4c"/>
+    <circle cx="248" cy="230" r="1.5" fill="#ff6633"/>
+    <circle cx="264" cy="230" r="3" fill="#c94c4c"/>
+    <circle cx="264" cy="230" r="1.5" fill="#ff6633"/>
+    <!-- Tiny eyes outermost -->
+    <circle cx="225" cy="242" r="2.5" fill="#c94c4c" opacity="0.8"/>
+    <circle cx="287" cy="242" r="2.5" fill="#c94c4c" opacity="0.8"/>
+  </g>
+
+  <!-- Upper mist wisps -->
+  <g id="mistWisps" opacity="0.3">
+    <path d="M180,380 Q200,360 220,370 Q240,380 260,365 Q280,350 300,368 Q320,385 340,375" fill="none" stroke="#7b5ea7" stroke-width="3" stroke-linecap="round"/>
+    <path d="M150,400 Q190,385 230,395 Q270,405 310,390 Q350,375 380,392" fill="none" stroke="#7b5ea7" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>
