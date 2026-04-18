@@ -743,9 +743,15 @@ ${styleListStr}
         E-3. TITLE/GAMEOVER에서 어떤 입력이든 PLAY로 전환 가능?
         E-4. PLAY 중 정상 입력으로 GAMEOVER 도달 가능?
 
-        📌 F. 입력 시스템
+        📌 F. 입력 시스템 + 런타임 헬스체크
         F-1. IX.Input 을 그대로 사용. 자체 touch/mouse 이벤트 리스너 없음.
         F-2. 게임 좌표 변환은 engine 내장(mouseX/Y, tapX/Y)만 사용.
+        F-3. **런타임 로드 테스트 필수 (puppeteer MCP)**:
+             - public/games/[game-id]/index.html 을 로컬 서버로 로드
+             - page.on('pageerror') + console.error 리스너 등록
+             - 5초 warmup 후 pageerror 목록 확인
+             - ReferenceError / TypeError / "Cannot access X before initialization" 등 발견 시 **즉시 NEEDS_MAJOR_FIX**
+             - 정적 분석(grep)만으로는 temporal dead zone 버그를 못 잡으니 이 단계는 생략 불가
 
         📌 G. 에셋 일관성
         G-1. manifest.json 의 art-style 확인 — 썸네일·캐릭터·UI가 한 스타일인가?
@@ -1083,15 +1089,54 @@ ${styleListStr}
       console.log(`\n⏭️ [6.5/7] Self-Evolution — 체크포인트로 건너뜀`)
     }
 
-    // ── 6.8단계: 실제 게임플레이 스크린샷 → 썸네일 ──────────────
-    // 썸네일은 AI 생성 텍스트 프롬프트나 SVG가 아니라 **실제로 돌아가는 게임의 스크린샷**.
-    // 이 단계는 비용 0 (로컬 puppeteer)이고 항상 실행.
+    // ── 6.8단계: 실제 게임플레이 스크린샷 → 썸네일 + 런타임 헬스체크 ──
+    // 썸네일은 실제 돌아가는 게임의 스크린샷. 동시에 puppeteer가 잡는 pageerror는
+    // 리뷰어의 정적 분석이 놓친 runtime 버그를 노출한다. 버그 감지 시 코더 핫픽스 후 재촬영.
     if (state.gameId && !phaseDone('deploy')) {
-      console.log(`\n📸 [6.8/7] 게임플레이 스크린샷 캡처`)
+      console.log(`\n📸 [6.8/7] 게임플레이 스크린샷 캡처 + 런타임 헬스체크`)
       try {
         const { captureGameplayScreenshot, removeVectorThumbnail } = await import('./screenshot.js')
         removeVectorThumbnail(state.gameId)
-        await captureGameplayScreenshot({ gameId: state.gameId })
+        let shot = await captureGameplayScreenshot({ gameId: state.gameId })
+
+        // 런타임 에러 또는 블랭크 스크린샷 → 최대 2회까지 코더 핫픽스 + 재촬영
+        let hotfixRound = 0
+        while (!shot.ok && hotfixRound < 2) {
+          hotfixRound++
+          console.log(`\n  🚨 [6.8] 런타임 이슈 감지 — 코더 핫픽스 ${hotfixRound}/2:`)
+          for (const err of shot.pageErrors.slice(0, 3)) console.log(`     • ${err}`)
+          for (const w of shot.warnings) console.log(`     • ${w}`)
+
+          startAgent('coder', 6, `런타임 핫픽스 (${hotfixRound})`, `Runtime hotfix (${hotfixRound})`)
+          await runAgent('coder', `
+            public/games/${state.gameId}/index.html 이 puppeteer 헤드리스 브라우저에서 런타임 에러를 발생시켰습니다.
+            ⛔ 이 에러를 **최우선**으로 수정하고 재촬영할 수 있도록 하세요.
+
+            감지된 pageerror / console.error:
+            ${shot.pageErrors.map(e => `  • ${e}`).join('\n') || '  (없음)'}
+
+            기타 경고:
+            ${shot.warnings.map(w => `  • ${w}`).join('\n') || '  (없음)'}
+
+            흔한 원인:
+            - let/const 변수를 선언 전에 접근 (temporal dead zone / "Cannot access X before initialization")
+            - 존재하지 않는 함수 호출 (ReferenceError)
+            - null/undefined 접근 (TypeError)
+            - IX.GameFlow.init 이전에 IX.Button 생성
+            - Scene.bind 누락 → Scene.transition 후 Tween/Particles 잔존
+
+            수정 후, 게임이 브라우저에서 로드되자마자 런타임 에러 없이 타이틀 → PLAY 전환이 가능해야 합니다.
+            다른 기능을 망가뜨리지 말 것. IX.GameFlow / IX.Scene / IX.Button 규칙 유지.
+          `)
+          completeAgent('coder')
+
+          // 재촬영
+          shot = await captureGameplayScreenshot({ gameId: state.gameId })
+        }
+
+        if (!shot.ok) {
+          console.log(`  ⚠️ [6.8] 2회 핫픽스 후에도 런타임 이슈 남음 — 배포는 진행하되 다음 사이클 Evolver가 감지할 것`)
+        }
       } catch (err) {
         console.error(`  ⚠️ [Screenshot] 실패 (비치명):`, (err as Error).message)
       }
@@ -1189,7 +1234,8 @@ ${styleListStr}
           try {
             const { captureGameplayScreenshot } = await import('./screenshot.js')
             const result = await captureGameplayScreenshot({ gameId })
-            if (!result) verifyErrors.push(`썸네일 스크린샷 캡처 실패 (thumbnail.png 생성 안됨)`)
+            if (!result.path) verifyErrors.push(`썸네일 스크린샷 캡처 실패 (thumbnail.png 생성 안됨)`)
+            else if (!result.ok) verifyErrors.push(`썸네일 스크린샷 품질 불량: ${result.warnings.join('; ')}`)
           } catch (err) {
             verifyErrors.push(`썸네일 스크린샷 에러: ${(err as Error).message.slice(0, 100)}`)
           }

@@ -74,13 +74,28 @@ export interface ScreenshotOptions {
   height?: number
   warmupMs?: number
   timeoutMs?: number
+  /** Bytes — if final screenshot is smaller, treat as blank/broken. Default 15KB. */
+  minSizeBytes?: number
+}
+
+export interface ScreenshotResult {
+  /** True if the screenshot is a plausible gameplay frame (size threshold + no runtime errors). */
+  ok: boolean
+  /** Path of saved file (PNG), or undefined if capture itself failed. */
+  path?: string
+  /** Screenshot size in bytes. */
+  sizeBytes: number
+  /** Captured pageerror / console.error messages during load + warmup. */
+  pageErrors: string[]
+  /** Non-fatal reason strings — e.g. "size below threshold", "3 page errors". */
+  warnings: string[]
 }
 
 /**
- * Captures a screenshot of the running game.
- * @returns path of saved screenshot on success, null on failure.
+ * Captures a gameplay screenshot and reports runtime health signals.
+ * A "broken" result (ok=false) signals cycle.ts to halt deploy and force a coder fix.
  */
-export async function captureGameplayScreenshot(opts: ScreenshotOptions): Promise<string | null> {
+export async function captureGameplayScreenshot(opts: ScreenshotOptions): Promise<ScreenshotResult> {
   const {
     gameId,
     outputPath = resolvePath(PUBLIC_ROOT, 'games', gameId, 'assets', 'thumbnail.png'),
@@ -88,12 +103,16 @@ export async function captureGameplayScreenshot(opts: ScreenshotOptions): Promis
     height = 600,
     warmupMs = 3500,
     timeoutMs = 30000,
+    minSizeBytes = 15000,
   } = opts
+
+  const result: ScreenshotResult = { ok: false, sizeBytes: 0, pageErrors: [], warnings: [] }
 
   const gamePath = resolvePath(PUBLIC_ROOT, 'games', gameId, 'index.html')
   if (!existsSync(gamePath)) {
     console.log(`  ⚠️ [Screenshot] game index not found: ${gamePath}`)
-    return null
+    result.warnings.push('game index missing')
+    return result
   }
 
   const server = await createStaticServer(PUBLIC_ROOT)
@@ -110,11 +129,16 @@ export async function captureGameplayScreenshot(opts: ScreenshotOptions): Promis
     const page = await browser.newPage()
     await page.setViewport({ width, height })
 
-    const errors: string[] = []
-    page.on('pageerror', (e) => errors.push(String(e).slice(0, 200)))
+    page.on('pageerror', (e) => result.pageErrors.push(String(e).slice(0, 300)))
     page.on('console', (msg) => {
       const t = msg.type()
-      if (t === 'error') errors.push(`console.error: ${msg.text().slice(0, 150)}`)
+      if (t === 'error') {
+        const text = msg.text()
+        // Filter out harmless 404s for optional assets — keep code-level errors only.
+        if (!/Failed to load resource.*404/.test(text)) {
+          result.pageErrors.push(`console.error: ${text.slice(0, 200)}`)
+        }
+      }
     })
 
     await page.goto(url, { waitUntil: 'networkidle0', timeout: timeoutMs }).catch(() => {})
@@ -139,15 +163,28 @@ export async function captureGameplayScreenshot(opts: ScreenshotOptions): Promis
     if (!existsSync(dirname(outputPath))) mkdirSync(dirname(outputPath), { recursive: true })
     const buf = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width, height } })
     writeFileSync(outputPath, buf)
+    result.path = outputPath
+    result.sizeBytes = buf.length
 
-    if (errors.length > 0) {
-      console.log(`  ⚠️ [Screenshot] ${errors.length} page error(s) during capture (first: ${errors[0]})`)
+    if (result.pageErrors.length > 0) {
+      result.warnings.push(`${result.pageErrors.length} runtime error(s)`)
     }
-    console.log(`  ✅ [Screenshot] ${outputPath.split(/[\\/]/).slice(-3).join('/')} saved (${(buf.length / 1024).toFixed(0)}KB)`)
-    return outputPath
+    if (buf.length < minSizeBytes) {
+      result.warnings.push(`screenshot ${(buf.length / 1024).toFixed(1)}KB < ${(minSizeBytes / 1024).toFixed(0)}KB threshold (likely blank)`)
+    }
+
+    result.ok = result.pageErrors.length === 0 && buf.length >= minSizeBytes
+
+    const tag = result.ok ? '✅' : '❌'
+    console.log(`  ${tag} [Screenshot] ${outputPath.split(/[\\/]/).slice(-3).join('/')} saved (${(buf.length / 1024).toFixed(0)}KB, ok=${result.ok})`)
+    if (result.pageErrors.length > 0) {
+      console.log(`  💥 [Screenshot] runtime error: ${result.pageErrors[0]}`)
+    }
+    return result
   } catch (err) {
     console.log(`  ❌ [Screenshot] ${(err as Error).message.slice(0, 200)}`)
-    return null
+    result.warnings.push((err as Error).message.slice(0, 200))
+    return result
   } finally {
     if (browser) await browser.close().catch(() => {})
     await server.close().catch(() => {})

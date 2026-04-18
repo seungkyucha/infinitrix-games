@@ -182,7 +182,7 @@ function resetGameState() {
   /* 전투 이펙트 오버레이 */
   battleEffects = [];
 }
-resetGameState();
+// resetGameState() 호출은 popups 등 const 선언 이후로 이동 (TDZ 회피).
 
 /* ═══════════════════════════════════════════════════════════
    ENGINE INIT
@@ -194,6 +194,9 @@ const tween = new Tween();
 const particles = new Particles(200);
 const assets = new AssetLoader();
 const popups = new PopupText({ defaultVy: -60, defaultLife: 1.0 });
+
+// 모든 const 선언이 끝난 뒤 초기 상태 리셋.
+resetGameState();
 
 /* ═══════════════════════════════════════════════════════════
    HELPER FUNCTIONS
