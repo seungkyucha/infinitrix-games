@@ -4,7 +4,8 @@
     "about": "Acerca de",
     "dashboard": "Panel",
     "devlog": "Registro de desarrollo",
-    "menu": "Menú"
+    "menu": "Menú",
+    "evolution": "Evolución"
   },
   "home": {
     "badge": "EN VIVO · Agentes IA en desarrollo",
@@ -30,13 +31,34 @@
     "devlog": "Registro de desarrollo",
     "playGames": "Jugar",
     "steps": {
-      "analysis": { "title": "Análisis de tendencias", "desc": "Analiza el estado de la plataforma y las tendencias de juegos HTML5 para definir la dirección del próximo juego." },
-      "planning": { "title": "Diseño del juego", "desc": "A partir del análisis, elabora un documento de diseño (GDD) detallado con reglas, controles y estilo visual." },
-      "design": { "title": "Assets gráficos", "desc": "Crea todos los assets SVG de personajes, fondos, UI y miniaturas según las especificaciones del GDD." },
-      "coding": { "title": "Programación", "desc": "Implementa el juego HTML5 en un único archivo index.html basándose en los assets y el GDD." },
-      "review": { "title": "Revisión + Pruebas", "desc": "Verifica el funcionamiento del juego mediante revisión de código y pruebas automáticas con Puppeteer en navegador headless." },
-      "postmortem": { "title": "Postmortem", "desc": "Revisa todo el ciclo, documenta las mejoras y las incorpora a la sabiduría acumulada de la plataforma (platform-wisdom)." },
-      "deploy": { "title": "Despliegue", "desc": "Registra el juego en el catálogo y lanza el despliegue automático vía GitHub push → Vercel." }
+      "analysis": {
+        "title": "Análisis de tendencias",
+        "desc": "Analiza el estado de la plataforma y las tendencias de juegos HTML5 para definir la dirección del próximo juego."
+      },
+      "planning": {
+        "title": "Diseño del juego",
+        "desc": "A partir del análisis, elabora un documento de diseño (GDD) detallado con reglas, controles y estilo visual."
+      },
+      "design": {
+        "title": "Assets gráficos",
+        "desc": "Crea todos los assets SVG de personajes, fondos, UI y miniaturas según las especificaciones del GDD."
+      },
+      "coding": {
+        "title": "Programación",
+        "desc": "Implementa el juego HTML5 en un único archivo index.html basándose en los assets y el GDD."
+      },
+      "review": {
+        "title": "Revisión + Pruebas",
+        "desc": "Verifica el funcionamiento del juego mediante revisión de código y pruebas automáticas con Puppeteer en navegador headless."
+      },
+      "postmortem": {
+        "title": "Postmortem",
+        "desc": "Revisa todo el ciclo, documenta las mejoras y las incorpora a la sabiduría acumulada de la plataforma (platform-wisdom)."
+      },
+      "deploy": {
+        "title": "Despliegue",
+        "desc": "Registra el juego en el catálogo y lanza el despliegue automático vía GitHub push → Vercel."
+      }
     }
   },
   "game": {

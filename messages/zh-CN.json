@@ -4,7 +4,8 @@
     "about": "简介",
     "dashboard": "仪表盘",
     "devlog": "开发日志",
-    "menu": "菜单"
+    "menu": "菜单",
+    "evolution": "进化"
   },
   "home": {
     "badge": "LIVE · AI 智能体开发中",
@@ -30,13 +31,34 @@
     "devlog": "开发日志",
     "playGames": "开始游戏",
     "steps": {
-      "analysis": { "title": "趋势分析", "desc": "分析平台现状与 HTML5 游戏趋势，确定下一款游戏的方向。" },
-      "planning": { "title": "游戏策划", "desc": "基于分析结果，编写包含游戏规则、操作方式和视觉风格的详细策划书（GDD）。" },
-      "design": { "title": "美术资源", "desc": "根据策划书规格，制作角色、背景、UI 和缩略图的 SVG 资源。" },
-      "coding": { "title": "游戏编码", "desc": "根据资源和策划书，实现 index.html 单文件 HTML5 游戏。" },
-      "review": { "title": "评审 + 测试", "desc": "通过代码质量审查和 Puppeteer 无头浏览器自动测试来验证游戏运行。" },
-      "postmortem": { "title": "复盘总结", "desc": "回顾整个开发周期，整理改进点并沉淀到平台知识库（platform-wisdom）。" },
-      "deploy": { "title": "部署上线", "desc": "注册到游戏目录后，通过 GitHub push 触发 Vercel 自动部署。" }
+      "analysis": {
+        "title": "趋势分析",
+        "desc": "分析平台现状与 HTML5 游戏趋势，确定下一款游戏的方向。"
+      },
+      "planning": {
+        "title": "游戏策划",
+        "desc": "基于分析结果，编写包含游戏规则、操作方式和视觉风格的详细策划书（GDD）。"
+      },
+      "design": {
+        "title": "美术资源",
+        "desc": "根据策划书规格，制作角色、背景、UI 和缩略图的 SVG 资源。"
+      },
+      "coding": {
+        "title": "游戏编码",
+        "desc": "根据资源和策划书，实现 index.html 单文件 HTML5 游戏。"
+      },
+      "review": {
+        "title": "评审 + 测试",
+        "desc": "通过代码质量审查和 Puppeteer 无头浏览器自动测试来验证游戏运行。"
+      },
+      "postmortem": {
+        "title": "复盘总结",
+        "desc": "回顾整个开发周期，整理改进点并沉淀到平台知识库（platform-wisdom）。"
+      },
+      "deploy": {
+        "title": "部署上线",
+        "desc": "注册到游戏目录后，通过 GitHub push 触发 Vercel 自动部署。"
+      }
     }
   },
   "game": {

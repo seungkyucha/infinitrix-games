@@ -4,7 +4,8 @@
     "about": "簡介",
     "dashboard": "儀表板",
     "devlog": "開發日誌",
-    "menu": "選單"
+    "menu": "選單",
+    "evolution": "進化"
   },
   "home": {
     "badge": "LIVE · AI 代理開發中",
@@ -30,13 +31,34 @@
     "devlog": "開發日誌",
     "playGames": "開始遊戲",
     "steps": {
-      "analysis": { "title": "趨勢分析", "desc": "分析平台現況與 HTML5 遊戲趨勢，決定下一款遊戲的方向。" },
-      "planning": { "title": "遊戲企劃", "desc": "根據分析結果，撰寫包含遊戲規則、操作方式和視覺風格的詳細企劃書（GDD）。" },
-      "design": { "title": "美術素材", "desc": "依照企劃書規格，製作角色、背景、UI 和縮圖的 SVG 素材。" },
-      "coding": { "title": "遊戲編碼", "desc": "根據素材和企劃書，實作 index.html 單檔 HTML5 遊戲。" },
-      "review": { "title": "審查 + 測試", "desc": "透過程式碼品質審查和 Puppeteer 無頭瀏覽器自動測試來驗證遊戲運作。" },
-      "postmortem": { "title": "回顧檢討", "desc": "回顧整個開發週期，整理改進要點並沉澱至平台知識庫（platform-wisdom）。" },
-      "deploy": { "title": "部署上線", "desc": "註冊至遊戲目錄後，透過 GitHub push 觸發 Vercel 自動部署。" }
+      "analysis": {
+        "title": "趨勢分析",
+        "desc": "分析平台現況與 HTML5 遊戲趨勢，決定下一款遊戲的方向。"
+      },
+      "planning": {
+        "title": "遊戲企劃",
+        "desc": "根據分析結果，撰寫包含遊戲規則、操作方式和視覺風格的詳細企劃書（GDD）。"
+      },
+      "design": {
+        "title": "美術素材",
+        "desc": "依照企劃書規格，製作角色、背景、UI 和縮圖的 SVG 素材。"
+      },
+      "coding": {
+        "title": "遊戲編碼",
+        "desc": "根據素材和企劃書，實作 index.html 單檔 HTML5 遊戲。"
+      },
+      "review": {
+        "title": "審查 + 測試",
+        "desc": "透過程式碼品質審查和 Puppeteer 無頭瀏覽器自動測試來驗證遊戲運作。"
+      },
+      "postmortem": {
+        "title": "回顧檢討",
+        "desc": "回顧整個開發週期，整理改進要點並沉澱至平台知識庫（platform-wisdom）。"
+      },
+      "deploy": {
+        "title": "部署上線",
+        "desc": "註冊至遊戲目錄後，透過 GitHub push 觸發 Vercel 自動部署。"
+      }
     }
   },
   "game": {

@@ -27,6 +27,7 @@ export default function Header() {
             <NavLink href="/about">{t.nav.about}</NavLink>
             <NavLink href="/dashboard">{t.nav.dashboard}</NavLink>
             <NavLink href="/dev-log">{t.nav.devlog}</NavLink>
+            <NavLink href="/evolution">{t.nav.evolution}</NavLink>
             <a
               href="https://github.com/seungkyucha/infinitrix-games"
               target="_blank"
@@ -58,6 +59,7 @@ export default function Header() {
           <MobileNavLink href="/about" onClick={() => setMenuOpen(false)}>ℹ️ {t.nav.about}</MobileNavLink>
           <MobileNavLink href="/dashboard" onClick={() => setMenuOpen(false)}>📡 {t.nav.dashboard}</MobileNavLink>
           <MobileNavLink href="/dev-log" onClick={() => setMenuOpen(false)}>📓 {t.nav.devlog}</MobileNavLink>
+          <MobileNavLink href="/evolution" onClick={() => setMenuOpen(false)}>🧬 {t.nav.evolution}</MobileNavLink>
         </div>
       )}
     </header>

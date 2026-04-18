@@ -4,7 +4,8 @@
     "about": "Über uns",
     "dashboard": "Dashboard",
     "devlog": "Entwicklerlog",
-    "menu": "Menü"
+    "menu": "Menü",
+    "evolution": "Evolution"
   },
   "home": {
     "badge": "LIVE · KI-Agenten in Entwicklung",
@@ -30,13 +31,34 @@
     "devlog": "Entwicklerlog",
     "playGames": "Spiele spielen",
     "steps": {
-      "analysis": { "title": "Trendanalyse", "desc": "Analysiert den Plattformstatus und HTML5-Spieletrends, um die Richtung des nächsten Spiels festzulegen." },
-      "planning": { "title": "Spieldesign", "desc": "Erstellt auf Basis der Analyse ein detailliertes Game-Design-Dokument (GDD) mit Regeln, Steuerung und visuellem Stil." },
-      "design": { "title": "Grafik-Assets", "desc": "Produziert sämtliche SVG-Assets für Charaktere, Hintergründe, UI und Thumbnails gemäß den GDD-Spezifikationen." },
-      "coding": { "title": "Programmierung", "desc": "Implementiert das HTML5-Spiel als einzelne index.html-Datei auf Grundlage der Assets und des GDD." },
-      "review": { "title": "Review + Tests", "desc": "Überprüft die Spielfunktion durch Code-Review und automatisierte Tests mit Puppeteer im Headless-Browser." },
-      "postmortem": { "title": "Postmortem", "desc": "Reflektiert den gesamten Zyklus, dokumentiert Verbesserungen und speist sie in das Plattformwissen (platform-wisdom) ein." },
-      "deploy": { "title": "Deployment", "desc": "Registriert das Spiel im Katalog und löst über GitHub push → Vercel das automatische Deployment aus." }
+      "analysis": {
+        "title": "Trendanalyse",
+        "desc": "Analysiert den Plattformstatus und HTML5-Spieletrends, um die Richtung des nächsten Spiels festzulegen."
+      },
+      "planning": {
+        "title": "Spieldesign",
+        "desc": "Erstellt auf Basis der Analyse ein detailliertes Game-Design-Dokument (GDD) mit Regeln, Steuerung und visuellem Stil."
+      },
+      "design": {
+        "title": "Grafik-Assets",
+        "desc": "Produziert sämtliche SVG-Assets für Charaktere, Hintergründe, UI und Thumbnails gemäß den GDD-Spezifikationen."
+      },
+      "coding": {
+        "title": "Programmierung",
+        "desc": "Implementiert das HTML5-Spiel als einzelne index.html-Datei auf Grundlage der Assets und des GDD."
+      },
+      "review": {
+        "title": "Review + Tests",
+        "desc": "Überprüft die Spielfunktion durch Code-Review und automatisierte Tests mit Puppeteer im Headless-Browser."
+      },
+      "postmortem": {
+        "title": "Postmortem",
+        "desc": "Reflektiert den gesamten Zyklus, dokumentiert Verbesserungen und speist sie in das Plattformwissen (platform-wisdom) ein."
+      },
+      "deploy": {
+        "title": "Deployment",
+        "desc": "Registriert das Spiel im Katalog und löst über GitHub push → Vercel das automatische Deployment aus."
+      }
     }
   },
   "game": {
