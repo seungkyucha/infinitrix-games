@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-04-18T00:00:00.000Z",
-  "totalGames": 1,
+  "lastUpdated": "2026-04-18T01:06:35.985Z",
+  "totalGames": 2,
   "games": [
     {
       "id": "pixel-depths",
@@ -110,6 +110,127 @@
             "Espaço: Aguardar um turno",
             "1~3: Usar itens",
             "Toque: Deslizar para mover, tocar para atacar"
+          ]
+        }
+      }
+    },
+    {
+      "id": "neon-survivors",
+      "title": "네온 서바이버즈",
+      "description": "자동 공격 무기로 끝없는 적 무리 속에서 생존하라!",
+      "genre": ["action", "arcade"],
+      "thumbnail": "/games/neon-survivors/assets/thumbnail.png",
+      "path": "/games/neon-survivors/index.html",
+      "addedAt": "2026-04-18T01:06:35.985Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["서바이벌", "자동공격", "빌드조합", "픽셀아트", "웨이브", "보스전"],
+      "controls": [
+        "WASD / 방향키: 이동",
+        "Space: 시작 / 재시작",
+        "1/2/3: 레벨업 업그레이드 선택",
+        "ESC: 일시정지",
+        "모바일: 가상 조이스틱 + 터치"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Neon Survivors",
+          "description": "Survive endless waves of enemies with auto-fire weapons and build combos!",
+          "tags": ["survival", "auto-attack", "build-craft", "pixel-art", "waves", "boss-fight"],
+          "controls": [
+            "WASD / Arrow keys: Move",
+            "Space: Start / Restart",
+            "1/2/3: Choose level-up upgrade",
+            "ESC: Pause",
+            "Mobile: Virtual joystick + Tap"
+          ]
+        },
+        "ja": {
+          "title": "ネオンサバイバーズ",
+          "description": "自動攻撃武器で押し寄せる敵の群れから生き延びろ！",
+          "tags": ["サバイバル", "オート攻撃", "ビルド構築", "ドット絵", "ウェーブ", "ボス戦"],
+          "controls": [
+            "WASD / 矢印キー: 移動",
+            "Space: スタート / リスタート",
+            "1/2/3: レベルアップ時アップグレード選択",
+            "ESC: ポーズ",
+            "モバイル: 仮想ジョイスティック + タップ"
+          ]
+        },
+        "zh-CN": {
+          "title": "霓虹幸存者",
+          "description": "用自动射击武器在无尽敌群中生存下去！",
+          "tags": ["生存", "自动攻击", "构建搭配", "像素风", "波次", "Boss战"],
+          "controls": [
+            "WASD / 方向键: 移动",
+            "Space: 开始 / 重新开始",
+            "1/2/3: 选择升级",
+            "ESC: 暂停",
+            "手机: 虚拟摇杆 + 点击"
+          ]
+        },
+        "zh-TW": {
+          "title": "霓虹倖存者",
+          "description": "用自動射擊武器在無盡敵群中生存下去！",
+          "tags": ["生存", "自動攻擊", "構建搭配", "像素風", "波次", "Boss戰"],
+          "controls": [
+            "WASD / 方向鍵: 移動",
+            "Space: 開始 / 重新開始",
+            "1/2/3: 選擇升級",
+            "ESC: 暫停",
+            "手機: 虛擬搖桿 + 點擊"
+          ]
+        },
+        "es": {
+          "title": "Neon Survivors",
+          "description": "¡Sobrevive a oleadas infinitas de enemigos con armas de disparo automático!",
+          "tags": ["supervivencia", "ataque automático", "construcción", "pixel art", "oleadas", "jefe final"],
+          "controls": [
+            "WASD / Flechas: Mover",
+            "Espacio: Iniciar / Reiniciar",
+            "1/2/3: Elegir mejora al subir de nivel",
+            "ESC: Pausa",
+            "Móvil: Joystick virtual + Toque"
+          ]
+        },
+        "fr": {
+          "title": "Néon Survivants",
+          "description": "Survivez aux vagues infinies d'ennemis avec des armes à tir automatique !",
+          "tags": ["survie", "attaque automatique", "construction de build", "pixel art", "vagues", "combat de boss"],
+          "controls": [
+            "WASD / Flèches : Se déplacer",
+            "Espace : Démarrer / Recommencer",
+            "1/2/3 : Choisir une amélioration",
+            "Échap : Pause",
+            "Mobile : Joystick virtuel + Toucher"
+          ]
+        },
+        "de": {
+          "title": "Neon Überlebende",
+          "description": "Überlebe endlose Gegnerwellen mit automatischen Waffen und Build-Kombinationen!",
+          "tags": ["Überleben", "Automatischer Angriff", "Build-Bau", "Pixelkunst", "Wellen", "Bosskampf"],
+          "controls": [
+            "WASD / Pfeiltasten: Bewegen",
+            "Leertaste: Starten / Neustarten",
+            "1/2/3: Upgrade beim Levelaufstieg wählen",
+            "ESC: Pause",
+            "Mobil: Virtueller Joystick + Tippen"
+          ]
+        },
+        "pt": {
+          "title": "Neon Sobreviventes",
+          "description": "Sobreviva a ondas infinitas de inimigos com armas de disparo automático!",
+          "tags": ["sobrevivência", "ataque automático", "montagem de build", "pixel art", "ondas", "luta contra chefe"],
+          "controls": [
+            "WASD / Setas: Mover",
+            "Espaço: Iniciar / Reiniciar",
+            "1/2/3: Escolher melhoria ao subir de nível",
+            "ESC: Pausar",
+            "Mobile: Joystick virtual + Toque"
           ]
         }
       }
