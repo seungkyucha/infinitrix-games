@@ -1,6 +1,6 @@
 # InfiniTriX Quality Dashboard
 
-_Last updated: 2026-04-18 06:39:21_
+_Last updated: 2026-04-18 06:40:07_
 
 _Based on last 3 cycles (1~3)_
 
@@ -26,9 +26,9 @@ _Based on last 3 cycles (1~3)_
 
 ## 🔧 Evolver 제안 통계 (최근 10사이클)
 
-- 총 제안: 8건
-- 자동 적용 (LOW): 6건
-- 수동 대기 (MEDIUM/HIGH): 2건
+- 총 제안: 12건
+- 자동 적용 (LOW): 9건
+- 수동 대기 (MEDIUM/HIGH): 3건
 
 ## 🔍 최약 디시플린 시그널 (최신 사이클)
 
