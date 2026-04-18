@@ -1,0 +1,65 @@
+{
+  "cycle": 4,
+  "gameId": "ink-maiden",
+  "genre": "metroidvania",
+  "artStyle": "hand-drawn-2d",
+  "verdict": "APPROVED",
+  "reviewRounds": 1,
+  "review2Rounds": 1,
+  "durationMin": 2,
+  "disciplines": {
+    "planning": {
+      "score": 92.33333333333334,
+      "signals": {
+        "specCompleteness": 0.8333333333333334,
+        "genreDupCount": 0,
+        "styleDupCount": 0,
+        "refChainValid": 0.8666666666666667,
+        "plannerReworkCount": 1,
+        "postmortemDepth": 8
+      }
+    },
+    "development": {
+      "score": 53.979262295081966,
+      "signals": {
+        "engineAdoption": 0.10710382513661204,
+        "customStateMachines": 0,
+        "directListenerCount": 0,
+        "onResetCoverage": 0.08333333333333333,
+        "totalMutableGlobals": 12,
+        "buttonKeyCoverage": 1,
+        "totalButtons": 16,
+        "codeLineCount": 1573,
+        "enginePromotions": 0
+      }
+    },
+    "art": {
+      "score": 57.5,
+      "signals": {
+        "stylePurity": 0.5,
+        "charConsistency": 1,
+        "assetVerifyRate": 1,
+        "assetGenerateRate": 0,
+        "failedAssetCount": 0,
+        "verifyFailedCount": 0,
+        "thumbnailFromGameAssets": false
+      }
+    },
+    "qa": {
+      "score": 95,
+      "signals": {
+        "firstRoundVerdict": "APPROVED",
+        "reviewRounds": 1,
+        "review2Rounds": 1,
+        "buttonAuditPass": 1,
+        "restartVerifyPass": true,
+        "stuckStateBugs": 0,
+        "deployVerifyPass": "UNKNOWN"
+      }
+    }
+  },
+  "overallScore": 72.78544535519126,
+  "weakestDiscipline": "development",
+  "rootCauses": [],
+  "createdAt": "2026-04-18T21:06:42.994Z"
+}
