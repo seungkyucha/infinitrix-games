@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-04-18T01:06:35.985Z",
-  "totalGames": 2,
+  "lastUpdated": "2026-04-18T06:40:38.943Z",
+  "totalGames": 3,
   "games": [
     {
       "id": "pixel-depths",
@@ -231,6 +231,127 @@
             "1/2/3: Escolher melhoria ao subir de nível",
             "ESC: Pausar",
             "Mobile: Joystick virtual + Toque"
+          ]
+        }
+      }
+    },
+    {
+      "id": "poly-spire",
+      "title": "폴리 스파이어",
+      "description": "카드를 모아 덱을 구축하고 턴제 전투로 탑을 정복하라!",
+      "genre": ["strategy", "arcade"],
+      "thumbnail": "/games/poly-spire/assets/thumbnail.png",
+      "path": "/games/poly-spire/index.html",
+      "addedAt": "2026-04-18T06:40:38.943Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["덱빌더", "로그라이크", "카드게임", "턴제전략", "로우폴리", "판타지"],
+      "controls": [
+        "WASD / 마우스: 카드 선택 및 사용",
+        "1~5: 손패 카드 빠른 선택",
+        "E: 턴 종료",
+        "Q/W: 포션 사용",
+        "터치: 탭으로 카드 선택 → 탭으로 적 지정"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Poly Spire",
+          "description": "Build your deck and conquer the tower through turn-based card battles!",
+          "tags": ["deckbuilder", "roguelike", "card-game", "turn-based-strategy", "low-poly", "fantasy"],
+          "controls": [
+            "WASD / Mouse: Select and play cards",
+            "1~5: Quick select hand cards",
+            "E: End turn",
+            "Q/W: Use potions",
+            "Touch: Tap to select card → Tap to target enemy"
+          ]
+        },
+        "ja": {
+          "title": "ポリスパイア",
+          "description": "カードを集めてデッキを構築し、ターン制バトルで塔を制覇せよ！",
+          "tags": ["デッキビルダー", "ローグライク", "カードゲーム", "ターン制戦略", "ローポリ", "ファンタジー"],
+          "controls": [
+            "WASD / マウス: カード選択・使用",
+            "1~5: 手札カードをすばやく選択",
+            "E: ターン終了",
+            "Q/W: ポーション使用",
+            "タッチ: タップでカード選択 → タップで敵を指定"
+          ]
+        },
+        "zh-CN": {
+          "title": "多边塔",
+          "description": "收集卡牌构建牌组，通过回合制战斗征服高塔！",
+          "tags": ["构筑", "Roguelike", "卡牌游戏", "回合制策略", "低多边形", "奇幻"],
+          "controls": [
+            "WASD / 鼠标: 选择并使用卡牌",
+            "1~5: 快速选择手牌",
+            "E: 结束回合",
+            "Q/W: 使用药水",
+            "触屏: 点击选牌 → 点击指定敌人"
+          ]
+        },
+        "zh-TW": {
+          "title": "多邊塔",
+          "description": "收集卡牌構建牌組，透過回合制戰鬥征服高塔！",
+          "tags": ["構築", "Roguelike", "卡牌遊戲", "回合制策略", "低多邊形", "奇幻"],
+          "controls": [
+            "WASD / 滑鼠: 選擇並使用卡牌",
+            "1~5: 快速選擇手牌",
+            "E: 結束回合",
+            "Q/W: 使用藥水",
+            "觸控: 點擊選牌 → 點擊指定敵人"
+          ]
+        },
+        "es": {
+          "title": "Poly Spire",
+          "description": "¡Construye tu mazo y conquista la torre en batallas de cartas por turnos!",
+          "tags": ["deckbuilder", "roguelike", "juego de cartas", "estrategia por turnos", "low-poly", "fantasía"],
+          "controls": [
+            "WASD / Ratón: Seleccionar y jugar cartas",
+            "1~5: Selección rápida de cartas en mano",
+            "E: Terminar turno",
+            "Q/W: Usar pociones",
+            "Táctil: Tocar para seleccionar carta → Tocar para elegir enemigo"
+          ]
+        },
+        "fr": {
+          "title": "Poly Spire",
+          "description": "Construisez votre deck et conquérez la tour dans des combats de cartes au tour par tour !",
+          "tags": ["deckbuilder", "roguelike", "jeu de cartes", "stratégie au tour par tour", "low-poly", "fantaisie"],
+          "controls": [
+            "WASD / Souris : Sélectionner et jouer des cartes",
+            "1~5 : Sélection rapide des cartes en main",
+            "E : Terminer le tour",
+            "Q/W : Utiliser des potions",
+            "Tactile : Toucher pour sélectionner → Toucher pour cibler un ennemi"
+          ]
+        },
+        "de": {
+          "title": "Poly Spire",
+          "description": "Baue dein Deck und erobere den Turm in rundenbasierten Kartenkämpfen!",
+          "tags": ["Deckbuilder", "Roguelike", "Kartenspiel", "Rundenbasierte Strategie", "Low-Poly", "Fantasy"],
+          "controls": [
+            "WASD / Maus: Karten auswählen und spielen",
+            "1~5: Handkarten schnell auswählen",
+            "E: Runde beenden",
+            "Q/W: Tränke benutzen",
+            "Touch: Tippen zum Auswählen → Tippen zum Zielen auf Feinde"
+          ]
+        },
+        "pt": {
+          "title": "Poly Spire",
+          "description": "Monte seu deck e conquiste a torre em batalhas de cartas por turnos!",
+          "tags": ["deckbuilder", "roguelike", "jogo de cartas", "estratégia por turnos", "low-poly", "fantasia"],
+          "controls": [
+            "WASD / Mouse: Selecionar e jogar cartas",
+            "1~5: Seleção rápida de cartas na mão",
+            "E: Finalizar turno",
+            "Q/W: Usar poções",
+            "Toque: Tocar para selecionar carta → Tocar para mirar inimigo"
           ]
         }
       }
