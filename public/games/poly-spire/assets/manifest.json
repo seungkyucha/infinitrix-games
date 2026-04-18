@@ -1,0 +1,360 @@
+{
+  "gameId": "poly-spire",
+  "generatedBy": "gemini-3.1-flash-image-preview + svg-fallback",
+  "provider": "gemini",
+  "artDirection": {
+    "style": "Low-poly 3D render style: flat-shaded polygons, geometric forms, PS1/N64 era look, visible triangulation.",
+    "palette": ["#0d1b2a", "#1b2838", "#00d4ff", "#ffd700", "#ff4444", "#44cc66", "#c8ccd0"],
+    "mood": "신비로운 던전 탐험, 로우폴리 특유의 친근하면서도 몰입감 있는 판타지",
+    "reference": "Slay the Spire 카드 UI + Superflight/Astroneer 로우폴리 3D 아트",
+    "signature": "삼각형 면이 드러나는 flat-shading + 시안/금색 하이라이트"
+  },
+  "format": "mixed",
+  "assets": {
+    "thumbnail": {
+      "file": "thumbnail.svg",
+      "size": "400x300",
+      "format": "svg",
+      "desc": "폴리 스파이어 썸네일 — 로우폴리 기사와 카드, 시안/금색 네온 탑 배경."
+    },
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "로우폴리 3D 기사 캐릭터 — 삼각형 면이 드러나는 평면 셰이딩 갑옷, 시안색 눈빛, 한 손에 빛나는 카드 부채. 정면 기본 포즈."
+    },
+    "playerAttack": {
+      "file": "player-attack.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "플레이어 공격 포즈 — 카드를 앞으로 던지는 동작, 시안 에너지 궤적. player.png 기반 동일 디자인 SVG.",
+      "ref": "player"
+    },
+    "playerHurt": {
+      "file": "player-hurt.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "플레이어 피격 포즈 — 뒤로 밀리며 방어 자세, 갑옷에 붉은 금 이펙트. player.png 기반 동일 디자인 SVG.",
+      "ref": "player"
+    },
+    "playerDefend": {
+      "file": "player-defend.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "플레이어 방어 포즈 — 로우폴리 방패와 초록 육각형 배리어. player.png 기반 동일 디자인 SVG.",
+      "ref": "player"
+    },
+    "enemySlime": {
+      "file": "enemy-slime.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "로우폴리 슬라임 — 포화 초록 다면체 뭉치, 삼각형 면이 보이는 질감, 눈 2개. PNG 투명 문제로 SVG 대체."
+    },
+    "enemySkeleton": {
+      "file": "enemy-skeleton.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "로우폴리 해골 전사 — 각진 뼈대, 삼각형 면으로 구성된 두개골, 녹슨 검, 파란 눈구멍 빛."
+    },
+    "enemySpider": {
+      "file": "enemy-spider.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "로우폴리 독 거미 — 보라색 기하학적 몸체, 8개의 각진 다리, 독 물방울 송곳니."
+    },
+    "enemyGolem": {
+      "file": "enemy-golem.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "로우폴리 고대 골렘 — 거대한 돌 다면체 몸, 눈에서 붉은 빛, 위압적 크기감."
+    },
+    "enemyMage": {
+      "file": "enemy-mage.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "로우폴리 어둠 마법사 — 보라색 로브, 삼각형 면의 지팡이, 떠다니는 수정 오브."
+    },
+    "enemyCrystalKnight": {
+      "file": "enemy-crystal-knight.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "로우폴리 크리스탈 기사 — 반투명 수정 갑옷, 각진 대검, 시안 빛 실루엣."
+    },
+    "bossSlimeKing": {
+      "file": "boss-slime-king.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "1층 보스: 거대 슬라임 킹 — 금관, 내부 소형 슬라임, 포화 초록 다면체. PNG 투명 문제로 SVG 대체."
+    },
+    "bossBoneLord": {
+      "file": "boss-bone-lord.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "2층 보스: 뼈 용사 대장 — 거대 해골 전사, 양손 대검, 파란 불꽃, 망토.",
+      "ref": "enemy-skeleton"
+    },
+    "bossPolygonCore": {
+      "file": "boss-polygon-core.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "3층 최종 보스: 폴리곤 코어 — 거대 다면체, 가시 외륜, 다색 발광, 기하학적 파편."
+    },
+    "bossPolygonCorePhase2": {
+      "file": "boss-polygon-core-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "3층 보스 2페이즈: 폴리곤 코어 갈라짐 — 붉은 내부 코어 노출, 에너지 빔, 파편 증가. SVG로 일관성 보장.",
+      "ref": "boss-polygon-core"
+    },
+    "cardFrameCommon": {
+      "file": "card-frame-common.svg",
+      "size": "256x384",
+      "format": "svg",
+      "desc": "일반 카드 프레임 — 다크 배경 + 회색 테두리, 삼각형 패턴, 상단 일러스트+하단 텍스트 레이아웃. PNG 스타일 불일치로 SVG 대체."
+    },
+    "cardFrameUncommon": {
+      "file": "card-frame-uncommon.png",
+      "size": "256x384",
+      "format": "png",
+      "desc": "희귀 카드 프레임 — 파란색(#4488ff) 테두리, 보석 장식, 빛남 효과.",
+      "ref": "card-frame-common"
+    },
+    "cardFrameRare": {
+      "file": "card-frame-rare.png",
+      "size": "256x384",
+      "format": "png",
+      "desc": "레어 카드 프레임 — 금색(#ffaa00) 테두리, 강한 빛남 + 코너에 보석 장식.",
+      "ref": "card-frame-common"
+    },
+    "cardArtStrike": {
+      "file": "card-art-strike.png",
+      "size": "200x140",
+      "format": "png",
+      "desc": "타격 카드 일러스트 — 로우폴리 검 내리치기, 시안 에너지 궤적."
+    },
+    "cardArtDefend": {
+      "file": "card-art-defend.png",
+      "size": "200x140",
+      "format": "png",
+      "desc": "수비 카드 일러스트 — 로우폴리 방패에 초록 에너지 배리어."
+    },
+    "cardArtHeavy": {
+      "file": "card-art-heavy.png",
+      "size": "200x140",
+      "format": "png",
+      "desc": "강타 카드 일러스트 — 대검 지면 강타, 파편, 붉은 에너지."
+    },
+    "bgFloor1": {
+      "file": "bg-floor1.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "1층 전투 배경: 어둠의 숲 — 기하학적 나무, 안개, 초록/남색 톤."
+    },
+    "bgFloor2": {
+      "file": "bg-floor2.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "2층 전투 배경: 지하 묘지 — 돌기둥, 석관, 파란 횃불, 보라/남색 톤."
+    },
+    "bgFloor3": {
+      "file": "bg-floor3.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "3층 전투 배경: 크리스탈 궁전 — 수정 기둥, 시안/금색 빛줄기."
+    },
+    "bgMap": {
+      "file": "bg-map.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "노드 맵 배경 — 로우폴리 탑 단면도, 진한 남색 기본 톤."
+    },
+    "uiHeart": {
+      "file": "ui-heart.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 아이콘 — 로우폴리 3D 하트, 붉은색, 삼각형 면."
+    },
+    "uiEnergy": {
+      "file": "ui-energy.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "에너지 아이콘 — 로우폴리 시안 크리스탈 구, 내부 발광."
+    },
+    "uiGold": {
+      "file": "ui-gold.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "골드 아이콘 — 로우폴리 3D 금화, 금색 빛남."
+    },
+    "uiBlock": {
+      "file": "ui-block.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "블록(방어) 아이콘 — 로우폴리 방패, 초록 다면체 + 시안 엠블럼. PNG 투명 문제로 SVG 대체."
+    },
+    "uiPoison": {
+      "file": "ui-poison.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "독 상태이상 아이콘 — 보라색 로우폴리 물방울, 기포."
+    },
+    "uiVulnerable": {
+      "file": "ui-vulnerable.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "취약 상태이상 아이콘 — 금이 간 로우폴리 갑옷 조각, 붉은 빛."
+    },
+    "nodeCombat": {
+      "file": "node-combat.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "일반 전투 노드 — 로우폴리 교차 검, 회색/시안 톤."
+    },
+    "nodeElite": {
+      "file": "node-elite.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "엘리트 전투 노드 — 해골 + 불꽃, 금색/붉은 톤."
+    },
+    "nodeShop": {
+      "file": "node-shop.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "상점 노드 — 가방, 금색 동전."
+    },
+    "nodeRest": {
+      "file": "node-rest.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "휴식 노드 — 모닥불, 주황/노란 불꽃."
+    },
+    "nodeEvent": {
+      "file": "node-event.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "이벤트 노드 — 물음표, 시안 빛남."
+    },
+    "nodeBoss": {
+      "file": "node-boss.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "보스 노드 — 왕관 + 해골, 붉은/금색 톤."
+    },
+    "effectSlash": {
+      "file": "effect-slash.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "베기 이펙트 — 시안 에너지 검 궤적, 삼각형 파편."
+    },
+    "effectShield": {
+      "file": "effect-shield.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "방어 이펙트 — 초록 육각형 배리어, 기하학적 쉴드."
+    },
+    "effectHeal": {
+      "file": "effect-heal.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "회복 이펙트 — 초록 빛 입자 상승, 십자가 빛."
+    },
+    "effectHit": {
+      "file": "effect-hit.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "피격 이펙트 — 붉은 기하학적 파편 폭발."
+    },
+    "effectPoison": {
+      "file": "effect-poison.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "독 이펙트 — 보라색 기포, 독 안개."
+    },
+    "effectDeath": {
+      "file": "effect-death.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "적 사망 이펙트 — 다면체 파편 분해, 시안 빛."
+    },
+    "effectSlashSequence": {
+      "file": "effect-slash-sequence.png",
+      "size": "2048x512",
+      "format": "png",
+      "desc": "베기 이펙트 시퀀스 — 4프레임 검 궤적 애니메이션.",
+      "frames": 4
+    },
+    "effectCardPlaySequence": {
+      "file": "effect-card-play-sequence.png",
+      "size": "1024x256",
+      "format": "png",
+      "desc": "카드 사용 이펙트 시퀀스 — 4프레임 에너지 변환.",
+      "frames": 4
+    },
+    "particleTriangle": {
+      "file": "particle-triangle.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "삼각형 파티클 — 시안 로우폴리 삼각형, glow 필터. PNG 투명 문제로 SVG 대체."
+    },
+    "particleDiamond": {
+      "file": "particle-diamond.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "다이아몬드 파티클 — 금색 다이아몬드, glow 필터. PNG 희미 문제로 SVG 대체."
+    },
+    "relicSpikeShield": {
+      "file": "relic-spike-shield.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "유물: 뾰족 방패 — 가시 달린 로우폴리 방패, 메탈릭 회색+시안."
+    },
+    "relicDrawEngine": {
+      "file": "relic-draw-engine.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "유물: 드로우 엔진 — 기하학적 톱니바퀴, 시안+금색."
+    },
+    "relicEnergyCore": {
+      "file": "relic-energy-core.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "유물: 에너지 코어 — 시안 다면체 구슬, 에너지 소용돌이."
+    },
+    "relicVampireSword": {
+      "file": "relic-vampire-sword.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "유물: 뱀파이어 검 — 붉은 빛 로우폴리 검, 핏빛 오라."
+    },
+    "relicPoisonFlower": {
+      "file": "relic-poison-flower.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "유물: 독 꽃 — 보라색 로우폴리 꽃, 독 기포."
+    },
+    "potionHealth": {
+      "file": "potion-health.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "체력 포션 — 로우폴리 유리병, 붉은 액체."
+    },
+    "potionFire": {
+      "file": "potion-fire.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "화염 포션 — 로우폴리 유리병, 주황 불꽃 액체."
+    },
+    "potionBlock": {
+      "file": "potion-block.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "블록 포션 — 로우폴리 유리병, 초록 액체."
+    },
+    "potionEnergy": {
+      "file": "potion-energy.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "에너지 포션 — 로우폴리 유리병, 시안 빛나는 액체."
+    }
+  }
+}

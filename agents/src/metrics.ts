@@ -158,7 +158,7 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
   const codeLineCount = scriptMatch ? scriptMatch[1].split('\n').length : html.split('\n').length
 
   // enginePromotions — parse promotion note (very loose: count "- " entries under "## 승격")
-  const promoSection = inp.enginePromotionText.match(/##\s*승격(?:\s*완료)?([\s\S]*?)(##(?!#)|$)/)
+  const promoSection = inp.enginePromotionText.match(/##\s*승격(?:\s*완료)?([\s\S]*?)((?<!#)##(?!#)|$)/)
   const enginePromotions = promoSection ? countMatches(promoSection[1], /^-\s+/gm) : 0
 
   const score = clamp(
@@ -202,28 +202,34 @@ interface ArtInputs {
 }
 
 function scoreArt(inp: ArtInputs): DisciplineScore {
-  // stylePurity: manifest.art-style matches spec (string equality after trim)
+  // stylePurity: manifest.art-style matches spec (normalize: strip non-alphanumerics to absorb hyphen/space/punct differences)
   let stylePurity = 1
   try {
     const m = JSON.parse(inp.manifestText || '{}') as { artDirection?: { style?: string } }
     const manifestStyle = (m.artDirection?.style ?? '').toLowerCase()
     const specStyle = extractYaml(inp.specText, 'art-style').toLowerCase()
     if (specStyle && manifestStyle) {
-      stylePurity = specStyle.includes(manifestStyle.slice(0, 20)) || manifestStyle.includes(specStyle.slice(0, 20)) ? 1 : 0.5
+      const norm = (s: string) => s.replace(/[^a-z0-9]/g, '')
+      const ns = norm(specStyle)
+      const nm = norm(manifestStyle)
+      stylePurity = (ns && nm && (ns.includes(nm.slice(0, 20)) || nm.includes(ns.slice(0, 20)))) ? 1 : 0.5
     }
   } catch { /* default 1 */ }
 
-  // thumbnail-from-game-assets: heuristic — thumbnail.png exists and verify passed (we lack bytes comparison here)
+  // thumbnail-from-game-assets: heuristic — thumbnail.png OR thumbnail.svg exists (designer wisdom prefers SVG for variants)
   const thumbnailExists = existsSync(resolve(inp.assetsDir, 'thumbnail.png'))
+    || existsSync(resolve(inp.assetsDir, 'thumbnail.svg'))
 
-  // charConsistency: we don't compute pixel diff here (heavy); use a ref-pair-exists proxy
+  // charConsistency: we don't compute pixel diff here (heavy); use a ref-pair-exists proxy (accept .png or .svg base)
   let charConsistency = 1
   try {
     const m = JSON.parse(inp.manifestText || '{}') as { assets?: Record<string, { ref?: string; file?: string }> }
     const pairs = Object.entries(m.assets ?? {}).filter(([, v]) => !!v.ref)
     if (pairs.length > 0) {
       const bothExist = pairs.filter(([, v]) => {
-        const baseFile = Object.values(m.assets ?? {}).find(a => a.file === `${v.ref}.png`)
+        const baseFile = Object.values(m.assets ?? {}).find(a =>
+          a.file === `${v.ref}.png` || a.file === `${v.ref}.svg`,
+        )
         return !!baseFile && existsSync(resolve(inp.assetsDir, v.file ?? ''))
       }).length
       charConsistency = bothExist / pairs.length

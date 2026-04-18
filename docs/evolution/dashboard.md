@@ -1,13 +1,13 @@
 # InfiniTriX Quality Dashboard
 
-_Last updated: 2026-04-17 18:39:15_
+_Last updated: 2026-04-18 06:39:21_
 
-_Based on last 2 cycles (1~2)_
+_Based on last 3 cycles (1~3)_
 
 ## 📊 Latest Cycle Snapshot
 
-- **Cycle 2** — neon-survivors (survivor-like, pixel-art-32bit)
-- Verdict: **NEEDS_MINOR_FIX** / Overall: **71.3** / Weakest: art
+- **Cycle 3** — poly-spire (deckbuilder, low-poly-3d)
+- Verdict: **APPROVED** / Overall: **73.6** / Weakest: art
 
 ## 📈 Discipline Scores (최근 10사이클)
 
@@ -15,13 +15,14 @@ _Based on last 2 cycles (1~2)_
 |---|---|---|---|---|---|---|
 | 1 | 98 | 56 | 68 | 80 | 73.4 | ⚠️ |
 | 2 | 95 | 60 | 58 | 80 | 71.3 | ⚠️ |
+| 3 | 92 | 62 | 50 | 95 | 73.6 | ✅ |
 
 ## 📉 3-Cycle Moving Average (디시플린별 추세)
 
-- **planning**: 98.3 → 96.5  → (DECLINING, Δ-1.9)
-- **development**: 56.1 → 58.1  → (IMPROVING, Δ1.9)
-- **art**: 67.5 → 62.5  ↘ (DECLINING, Δ-5.0)
-- **qa**: 80.0 → 80.0  → (STABLE, Δ0.0)
+- **planning**: 98.3 → 96.5 → 95.1  ↘ (DECLINING, Δ-3.2)
+- **development**: 56.1 → 58.1 → 59.5  ↗ (IMPROVING, Δ3.4)
+- **art**: 67.5 → 62.5 → 58.5  ↘ (DECLINING, Δ-9.0)
+- **qa**: 80.0 → 80.0 → 85.0  ↗ (STABLE, Δ5.0)
 
 ## 🔧 Evolver 제안 통계 (최근 10사이클)
 
@@ -32,7 +33,7 @@ _Based on last 2 cycles (1~2)_
 ## 🔍 최약 디시플린 시그널 (최신 사이클)
 
 - `stylePurity`: 0.50
-- `charConsistency`: 1.00
+- `charConsistency`: 0.71
 - `assetVerifyRate`: 1.00
 - `assetGenerateRate`: 0.00
 - `failedAssetCount`: 0.00

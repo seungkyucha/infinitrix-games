@@ -1,0 +1,263 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Red damage glow filter -->
+    <filter id="damage-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0.3
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0.8 0" result="redBlur"/>
+      <feMerge>
+        <feMergeNode in="redBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Dim cyan visor glow (flickering/damaged) -->
+    <filter id="visor-flicker" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0 0 0 0 0
+                0 0.6 0 0 0.3
+                0 0 0.8 0 0.4
+                0 0 0 0.5 0" result="cyanBlur"/>
+      <feMerge>
+        <feMergeNode in="cyanBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Shadow filter for depth -->
+    <filter id="drop-shadow">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Whole character tilted backward (staggering hurt pose) -->
+  <g transform="translate(256,256) rotate(12) translate(-256,-256)" filter="url(#drop-shadow)">
+
+    <!-- Cape / Cloak (behind everything) -->
+    <g id="cape">
+      <!-- Cape main body - billowing from stagger -->
+      <polygon points="220,180 180,400 200,420 260,410 310,420 330,400 290,180"
+        fill="#1a1a2e" stroke="#252540" stroke-width="1"/>
+      <!-- Cape left fold -->
+      <polygon points="220,180 180,400 210,350 230,250"
+        fill="#12122a" stroke="#1e1e38" stroke-width="0.5"/>
+      <!-- Cape right fold -->
+      <polygon points="290,180 330,400 300,340 280,240"
+        fill="#222240" stroke="#2a2a4a" stroke-width="0.5"/>
+      <!-- Cape bottom torn edge -->
+      <polygon points="180,400 195,415 210,395 230,420 260,410 285,425 310,420 330,400 320,410 290,405 260,418 230,408 200,420 185,405"
+        fill="#151530" stroke="#1e1e38" stroke-width="0.5"/>
+    </g>
+
+    <!-- Legs -->
+    <g id="legs">
+      <!-- Left leg (planted, bearing weight) -->
+      <polygon points="225,340 215,410 230,415 245,345"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Left leg inner face -->
+      <polygon points="225,340 245,345 245,410 230,415"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="0.5"/>
+      <!-- Left boot -->
+      <polygon points="210,410 215,410 230,415 245,410 245,430 205,430"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="1"/>
+      <!-- Left boot sole -->
+      <polygon points="205,430 245,430 248,438 202,438"
+        fill="#111825" stroke="#1b2838" stroke-width="0.5"/>
+
+      <!-- Right leg (staggering back) -->
+      <polygon points="265,335 275,395 290,400 280,330"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Right leg inner face -->
+      <polygon points="265,335 280,330 290,390 275,395"
+        fill="#344a5e" stroke="#3a4a5a" stroke-width="0.5"/>
+      <!-- Right boot -->
+      <polygon points="270,395 275,395 290,400 300,395 302,420 268,420"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="1"/>
+      <!-- Right boot sole -->
+      <polygon points="268,420 302,420 305,428 265,428"
+        fill="#111825" stroke="#1b2838" stroke-width="0.5"/>
+    </g>
+
+    <!-- Torso -->
+    <g id="torso">
+      <!-- Chest plate - main -->
+      <polygon points="220,185 210,260 225,340 245,345 270,340 290,335 300,255 290,185"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Chest plate - left face (lit by top-left light) -->
+      <polygon points="220,185 210,260 235,270 245,200"
+        fill="#3a4a5a" stroke="#4a5a6a" stroke-width="0.5"/>
+      <!-- Chest plate - right face (shadow) -->
+      <polygon points="260,195 275,265 300,255 290,185"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="0.5"/>
+      <!-- Chest plate - center ridge -->
+      <polygon points="245,200 255,195 265,270 240,275"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="0.5"/>
+      <!-- Abdomen plate -->
+      <polygon points="225,280 220,330 245,345 270,340 285,325 280,275"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="1"/>
+      <!-- Abdomen center -->
+      <polygon points="240,285 245,340 265,335 260,280"
+        fill="#243444" stroke="#2a3a4a" stroke-width="0.5"/>
+    </g>
+
+    <!-- Belt -->
+    <g id="belt">
+      <!-- Belt strap -->
+      <polygon points="218,310 215,325 285,320 288,305"
+        fill="#ff4444" stroke="#cc3333" stroke-width="1"/>
+      <!-- Belt buckle (gold) -->
+      <polygon points="240,308 240,322 262,320 262,306"
+        fill="#ffd700" stroke="#cca800" stroke-width="1"/>
+      <!-- Buckle center detail -->
+      <polygon points="246,311 246,318 256,317 256,310"
+        fill="#ffed4a" stroke="#ffd700" stroke-width="0.5"/>
+    </g>
+
+    <!-- Left Arm (raised defensively) -->
+    <g id="arm-left">
+      <!-- Shoulder pauldron -->
+      <polygon points="195,180 190,205 215,210 225,185"
+        fill="#3a4a5a" stroke="#4a5a6a" stroke-width="1"/>
+      <polygon points="195,180 190,205 200,200 205,182"
+        fill="#4a5a6a" stroke="#5a6a7a" stroke-width="0.5"/>
+      <!-- Upper arm raised up defensively -->
+      <polygon points="195,205 180,175 165,180 185,215"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Forearm (shielding face) -->
+      <polygon points="180,175 165,180 170,145 190,140"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="1"/>
+      <!-- Forearm lit face -->
+      <polygon points="180,175 170,145 182,142 188,170"
+        fill="#344a5e" stroke="#3a4a5a" stroke-width="0.5"/>
+      <!-- Gauntlet -->
+      <polygon points="170,145 165,135 178,130 190,140"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Fingers -->
+      <polygon points="165,135 160,128 172,125 178,130"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="0.5"/>
+    </g>
+
+    <!-- Right Arm (recoiling back) -->
+    <g id="arm-right">
+      <!-- Shoulder pauldron -->
+      <polygon points="290,185 285,210 310,215 315,188"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <polygon points="290,185 310,188 312,210 285,210"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="0.5"/>
+      <!-- Upper arm pulled back -->
+      <polygon points="310,215 325,250 340,245 320,205"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Forearm dangling -->
+      <polygon points="325,250 335,300 348,295 340,245"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="1"/>
+      <!-- Gauntlet -->
+      <polygon points="335,300 330,315 345,318 348,295"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+    </g>
+
+    <!-- Helmet -->
+    <g id="helmet">
+      <!-- Helmet back/base -->
+      <polygon points="225,120 215,165 230,185 255,188 280,185 295,165 285,120"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="1"/>
+      <!-- Helmet top (lit) -->
+      <polygon points="230,115 225,120 255,125 285,120 278,112 255,108"
+        fill="#3a4a5a" stroke="#4a5a6a" stroke-width="1"/>
+      <!-- Helmet left face (lit by top-left) -->
+      <polygon points="225,120 215,165 240,170 245,130"
+        fill="#3a4a5a" stroke="#4a5a6a" stroke-width="0.5"/>
+      <!-- Helmet right face (shadow) -->
+      <polygon points="265,128 270,168 295,165 285,120"
+        fill="#1b2838" stroke="#222e3e" stroke-width="0.5"/>
+      <!-- Helmet front plate -->
+      <polygon points="235,130 230,170 255,175 280,170 275,128 255,125"
+        fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+      <!-- Visor slit (dimmer cyan - flickering) -->
+      <polygon points="235,148 232,158 255,162 278,158 275,148 255,145"
+        fill="#006880" stroke="#00d4ff" stroke-width="0.5" filter="url(#visor-flicker)" opacity="0.7"/>
+      <!-- Visor left eye glow (dim/flickering) -->
+      <polygon points="237,150 236,156 248,158 249,151"
+        fill="#00a0c0" opacity="0.6" filter="url(#visor-flicker)"/>
+      <!-- Visor right eye glow (even dimmer - asymmetric flicker) -->
+      <polygon points="261,150 260,157 272,155 273,149"
+        fill="#007090" opacity="0.4" filter="url(#visor-flicker)"/>
+      <!-- Helmet chin guard -->
+      <polygon points="232,170 230,182 255,188 280,182 278,170 255,175"
+        fill="#1b2838" stroke="#2a3a4a" stroke-width="0.5"/>
+      <!-- Helmet crest/ridge -->
+      <polygon points="253,105 250,108 255,125 260,108 257,105"
+        fill="#3a4a5a" stroke="#4a5a6a" stroke-width="0.5"/>
+    </g>
+
+    <!-- Damage Cracks on Armor -->
+    <g id="damage-effects" filter="url(#damage-glow)">
+      <!-- Chest crack 1 -->
+      <polyline points="240,210 248,225 242,240 250,258"
+        fill="none" stroke="#ff4444" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- Chest crack branch -->
+      <polyline points="248,225 258,220 265,230"
+        fill="none" stroke="#ff4444" stroke-width="1.8" stroke-linecap="round"/>
+      <!-- Shoulder crack -->
+      <polyline points="200,195 210,200 205,212"
+        fill="none" stroke="#ff4444" stroke-width="2" stroke-linecap="round"/>
+      <!-- Helmet crack -->
+      <polyline points="260,130 268,140 263,148"
+        fill="none" stroke="#ff4444" stroke-width="2" stroke-linecap="round"/>
+      <!-- Leg crack -->
+      <polyline points="232,355 238,370 234,385"
+        fill="none" stroke="#ff4444" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- Abdomen crack -->
+      <polyline points="255,290 262,300 258,312"
+        fill="none" stroke="#ff4444" stroke-width="1.8" stroke-linecap="round"/>
+
+      <!-- Flying geometric shards (debris from impact) -->
+      <!-- Shard 1 - top right -->
+      <polygon points="310,155 318,148 322,158 315,162"
+        fill="#ff4444" opacity="0.9">
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; 15,-10" dur="0.8s" repeatCount="indefinite"/>
+      </polygon>
+      <!-- Shard 2 - upper right -->
+      <polygon points="305,175 312,170 310,180"
+        fill="#cc3333" opacity="0.8">
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; 20,-5" dur="0.6s" repeatCount="indefinite"/>
+      </polygon>
+      <!-- Shard 3 - mid right -->
+      <polygon points="300,210 308,205 312,215 305,218"
+        fill="#ff4444" opacity="0.7">
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; 18,3" dur="0.7s" repeatCount="indefinite"/>
+      </polygon>
+      <!-- Shard 4 - small top -->
+      <polygon points="295,145 300,140 302,148"
+        fill="#ff6666" opacity="0.85">
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; 12,-15" dur="0.9s" repeatCount="indefinite"/>
+      </polygon>
+      <!-- Shard 5 - chest area -->
+      <polygon points="185,220 190,214 194,222"
+        fill="#ff4444" opacity="0.75">
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; -14,-8" dur="0.65s" repeatCount="indefinite"/>
+      </polygon>
+      <!-- Shard 6 - diamond shape flying left -->
+      <polygon points="175,200 180,195 185,200 180,205"
+        fill="#cc3333" opacity="0.8">
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; -18,-12" dur="0.75s" repeatCount="indefinite"/>
+      </polygon>
+    </g>
+
+    <!-- Additional damage spark particles -->
+    <g id="damage-sparks" opacity="0.6">
+      <circle cx="300" cy="190" r="2" fill="#ff6666"/>
+      <circle cx="310" cy="165" r="1.5" fill="#ff4444"/>
+      <circle cx="180" cy="210" r="1.8" fill="#ff4444"/>
+      <circle cx="295" cy="230" r="1.2" fill="#ff6666"/>
+    </g>
+
+  </g>
+</svg>

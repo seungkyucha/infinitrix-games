@@ -538,6 +538,23 @@ const MathUtil = {
     x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2,
 
   /**
+   * Fisher-Yates 배열 셔플 (in-place)
+   *
+   * 범용 셔플. 카드덱, 아이템 풀, 적 배치, 퍼즐 보드 초기화 등에 사용.
+   * 게임 상태에 의존하지 않는 순수 함수.
+   *
+   * @param {Array} arr - 셔플할 배열 (원본이 변경됨)
+   * @returns {Array} 셔플된 배열 (입력과 같은 참조)
+   */
+  shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = MathUtil.randInt(0, i);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  },
+
+  /**
    * Grid-based A* pathfinding (4-directional)
    *
    * 범용 그리드 경로 탐색. 로그라이크, 타워디펜스, 전략 등 다양한 장르에서 사용.
@@ -858,6 +875,26 @@ class Button {
 
 Button._active = [];
 Button.clearAll = function() { Button._active.length = 0; };
+/**
+ * 특정 버튼을 _active 목록에서 제거.
+ * 동적으로 생성/제거되는 버튼(카드 슬롯, 인벤토리 등)에 사용.
+ * @param {Button} btn - 제거할 버튼 인스턴스
+ */
+Button.remove = function(btn) {
+  const idx = Button._active.indexOf(btn);
+  if (idx >= 0) Button._active.splice(idx, 1);
+};
+/**
+ * 버튼 배열을 일괄 제거. 동적 버튼 그룹 관리에 사용.
+ * 예: 턴 종료 시 카드 버튼 전체 제거 → Button.removeList(cardButtons)
+ * @param {Button[]} list - 제거할 버튼 배열
+ */
+Button.removeList = function(list) {
+  for (const b of list) {
+    const idx = Button._active.indexOf(b);
+    if (idx >= 0) Button._active.splice(idx, 1);
+  }
+};
 Button.updateAll = function(input, dt) {
   for (const b of Button._active) b.update(input, dt);
 };
@@ -1211,6 +1248,83 @@ class SpatialHash {
 }
 
 // ═══════════════════════════════════════════════════════════
+// PopupText — 떠오르는 텍스트 팝업 매니저
+// 데미지 숫자, 점수 획득, 상태 알림 등 다양한 게임에서 재사용.
+// Cycle 1(pixel-depths), Cycle 3(poly-spire)에서 반복 구현되어 승격.
+// ═══════════════════════════════════════════════════════════
+class PopupText {
+  /**
+   * @param {object} [opts]
+   * @param {number} [opts.defaultVy=-60]  기본 상승 속도 (px/s, 음수=위로)
+   * @param {number} [opts.defaultLife=1.0] 기본 수명 (초)
+   */
+  constructor(opts = {}) {
+    this.items = [];
+    this._defaultVy = opts.defaultVy ?? -60;
+    this._defaultLife = opts.defaultLife ?? 1.0;
+  }
+
+  /**
+   * 팝업 추가
+   * @param {number} x
+   * @param {number} y
+   * @param {string} text  표시할 텍스트 (예: '-12', '+5 HP', '콤보!')
+   * @param {string} color CSS 색상
+   * @param {object} [opts] { vy, life }
+   */
+  add(x, y, text, color, opts = {}) {
+    this.items.push({
+      x, y, text, color,
+      vy: opts.vy ?? this._defaultVy,
+      life: opts.life ?? this._defaultLife,
+      maxLife: opts.life ?? this._defaultLife,
+    });
+  }
+
+  /** 매 프레임 호출 — dt는 밀리초 */
+  update(dt) {
+    const sec = dt / 1000;
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const p = this.items[i];
+      p.y += p.vy * sec;
+      p.life -= sec;
+      if (p.life <= 0) this.items.splice(i, 1);
+    }
+  }
+
+  /**
+   * 렌더 — 알파 페이드 + 텍스트 출력
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {object} [opts] { fontSize: 18, bold: true, glow: false }
+   */
+  render(ctx, opts = {}) {
+    const size = opts.fontSize || 18;
+    const bold = opts.bold !== false;
+    const glow = opts.glow || false;
+    for (const p of this.items) {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.font = `${bold ? 'bold ' : ''}${size}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (glow) {
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+      }
+      ctx.fillText(p.text, p.x, p.y);
+      if (glow) ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** 모든 팝업 제거 */
+  clear() { this.items = []; }
+
+  /** 현재 팝업 수 */
+  get count() { return this.items.length; }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Genre — 장르별 모듈 마운트 포인트
 // 각 장르 모듈은 /engine/genres/{genre}.js에서 IX.Genre.{Name}에 등록
 // ═══════════════════════════════════════════════════════════
@@ -1223,7 +1337,7 @@ return {
   Engine, Input, Sound, Tween, Particles, AssetLoader,
   UI, Save, MathUtil, Layout, Sprite,
   Button, Scene, StateGuard, GameFlow,
-  Pool, SpatialHash,
+  Pool, SpatialHash, PopupText,
   Genre,
 };
 

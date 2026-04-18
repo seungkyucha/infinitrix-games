@@ -422,6 +422,17 @@ ${styleListStr}
     startedAt,
   }
 
+  // 자가개선 작업 내역 — 사이클 summary에 함께 기록
+  const evolutionLog: {
+    metricsOverall?: number
+    disciplines?: { planning: number; development: number; art: number; qa: number }
+    weakestDiscipline?: string
+    proposalsTotal?: number
+    proposalsApplied: string[]
+    proposalsDeferred: string[]
+    proposalsFailed: string[]
+  } = { proposalsApplied: [], proposalsDeferred: [], proposalsFailed: [] }
+
   // ── Checkpoint: mid-cycle resume after token exhaustion ──
   const existingCp = loadCheckpoint(cycleNumber)
   const checkpoint: CycleCheckpoint = initCheckpoint(cycleNumber, existingCp)
@@ -680,7 +691,8 @@ ${styleListStr}
       state.status = 'reviewing'
       startAgent('reviewer', 5, `코드 리뷰 + 테스트 (${round}회차)`, `Code Review + Test (round ${round})`)
       const reviewResult = await runAgent('reviewer', `
-        📎 사용 가능한 스킬: button-audit (버튼 3방식 동작 감사), restart-verify (재시작 누수 검증), asset-consistency (에셋 일관성).
+        📎 사용 가능한 스킬: button-audit, restart-verify, asset-consistency, **mobile-audit**.
+           📌 H 모바일 검증 시 mobile-audit 스킬 반드시 호출.
            각 스킬을 해당 검증 항목 수행 시 반드시 활용할 것.
 
         docs/game-specs/cycle-${cycleNumber}-spec.md에서 game-id를 확인하고,
@@ -739,11 +751,30 @@ ${styleListStr}
         G-1. manifest.json 의 art-style 확인 — 썸네일·캐릭터·UI가 한 스타일인가?
         G-2. 캐릭터 변형(attack/hurt 등)이 base와 같은 인물로 보이는가?
 
+        📌 H. 모바일 완전 대응 — **CRITICAL (실패 시 자동 MAJOR)**
+        H-1. viewport meta 정확 (width=device-width, initial-scale=1.0, user-scalable=no)
+        H-2. 모든 IX.Button 이 min 48×48px (w>=48 && h>=48) — grep 으로 확인
+        H-3. 모바일에서 가상 조이스틱 또는 터치 액션 버튼이 화면에 렌더 (input.isMobile 분기 있음)
+        H-4. **키보드 없이 전 플로우 플레이 가능**:
+             TITLE(Space) 대신 TITLE 화면의 START Button 탭 가능?
+             PLAY 중 이동·액션이 터치로 가능?
+             GAMEOVER 의 RESTART/TITLE 탭으로 동작?
+        H-5. touch-action:none / overflow:hidden / user-select:none CSS 존재
+        H-6. 세로(portrait)·가로(landscape) 양쪽에서 UI가 화면 안에 배치되는가? (IX.Layout.safeArea / isPortrait 사용 흔적)
+        H-7. puppeteer로 실제 모바일 뷰포트 (390×844) 시뮬레이션해서 버튼 탭 테스트:
+             \`\`\`
+             page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true })
+             page.tap('#gameCanvas')  // 좌표 기준 탭
+             \`\`\`
+             → 타이틀에서 탭 → PLAY로 전환되는지 로그/DOM 확인
+
+        ⛔ H 항목 중 하나라도 FAIL이면 **무조건 NEEDS_MAJOR_FIX** (APPROVED 불가).
+
         ═══════════════════════════════════════════════════
         판정 기준:
-        - APPROVED: A~G 모두 PASS
-        - NEEDS_MINOR_FIX: 핵심(A/B/C/E) PASS + D/F/G 중 일부 미흡
-        - NEEDS_MAJOR_FIX: A/B/C/E 중 하나라도 FAIL
+        - APPROVED: A~H 모두 PASS
+        - NEEDS_MINOR_FIX: 핵심(A/B/C/E/H) PASS + D/F/G 중 일부 미흡
+        - NEEDS_MAJOR_FIX: A/B/C/E/H 중 하나라도 FAIL
 
         결과를 docs/reviews/cycle-${cycleNumber}-review.md에 저장해줘.
         ⚠️ 영문(.en.md) 버전은 생성하지 마세요 — 한국어만 작성
@@ -1005,6 +1036,14 @@ ${styleListStr}
           deployVerifyPass: null,
         })
         saveCycleMetrics(metrics)
+        evolutionLog.metricsOverall = metrics.overallScore
+        evolutionLog.disciplines = {
+          planning: metrics.disciplines.planning.score,
+          development: metrics.disciplines.development.score,
+          art: metrics.disciplines.art.score,
+          qa: metrics.disciplines.qa.score,
+        }
+        evolutionLog.weakestDiscipline = metrics.weakestDiscipline
         console.log(`  📊 Metrics: overall=${metrics.overallScore.toFixed(1)} | P=${metrics.disciplines.planning.score.toFixed(0)} D=${metrics.disciplines.development.score.toFixed(0)} A=${metrics.disciplines.art.score.toFixed(0)} Q=${metrics.disciplines.qa.score.toFixed(0)} | weakest=${metrics.weakestDiscipline}`)
 
         // Regenerate dashboard (cheap)
@@ -1019,6 +1058,16 @@ ${styleListStr}
             const proposalPath = `${PROJECT_ROOT}/docs/evolution/proposal-cycle-${cycleNumber}.md`
             const applyResult = await applyProposals(proposalPath, cycleNumber)
             console.log(`  🔧 [Apply] 적용 ${applyResult.applied.length} / 보류 ${applyResult.deferred.length} / 실패 ${applyResult.failed.length}`)
+            evolutionLog.proposalsTotal = applyResult.applied.length + applyResult.deferred.length + applyResult.failed.length
+            evolutionLog.proposalsApplied = applyResult.applied.map(p =>
+              `#${p.id} [${p.safety}/${p.category}] ${p.title} → ${p.targetFile}`,
+            )
+            evolutionLog.proposalsDeferred = applyResult.deferred.map(d =>
+              `#${d.proposal.id} [${d.proposal.safety}] ${d.proposal.title} — ${d.reason}`,
+            )
+            evolutionLog.proposalsFailed = applyResult.failed.map(f =>
+              `#${f.proposal.id} ${f.proposal.title} — ${f.reason}`,
+            )
           }
           // Dashboard를 evolver 이후 한 번 더 (proposal 통계 반영)
           saveDashboard()
@@ -1221,10 +1270,55 @@ ${styleListStr}
     failCycle(String(err))
     console.error(`\n❌ 사이클 오류:`, err)
     console.error(`  🔖 체크포인트 유지 — 다음 실행 시 완료된 phase 건너뛰고 재개: [${checkpoint.completedPhases.join(', ')}]`)
+    // USAGE_LIMIT / rate-limit 에러는 main.ts가 "사이클 실패 = 다음 번호"로 오해하지 않도록
+    // 반드시 rethrow 하여 usage_error 분기로 가게 한다. 그래야 counter 증가 안 되고 대기 후 재개.
+    const msg = String(err)
+    if (/USAGE_LIMIT|out of (extra )?usage|rate.?limit|resets?\s+\d/i.test(msg)) {
+      throw err
+    }
   }
 
-  const summary = `# 사이클 #${cycleNumber} 완료\n- 시작: ${state.startedAt}\n- 완료: ${state.completedAt}\n- 상태: ${state.status}\n`
-  writeFileSync(`${PROJECT_ROOT}/logs/cycle-${cycleNumber}-summary.md`, summary)
+  const summaryLines: string[] = [
+    `# 사이클 #${cycleNumber} 완료`,
+    `- 게임: ${state.gameTitle || '(N/A)'} (${state.gameId || 'n/a'})`,
+    `- 장르: ${state.gameGenre.join(', ') || 'n/a'}`,
+    `- 시작: ${state.startedAt}`,
+    `- 완료: ${state.completedAt ?? '(미완료)'}`,
+    `- 상태: ${state.status}`,
+  ]
+  if (checkpoint.resumedCount > 0) {
+    summaryLines.push(`- 재개 횟수: ${checkpoint.resumedCount}`)
+  }
+
+  // 자가개선 섹션
+  if (evolutionLog.metricsOverall != null) {
+    summaryLines.push('', '## 📊 사이클 메트릭')
+    summaryLines.push(`- Overall: **${evolutionLog.metricsOverall.toFixed(1)}** / 100`)
+    if (evolutionLog.disciplines) {
+      summaryLines.push(
+        `- 디시플린별: Planning ${evolutionLog.disciplines.planning.toFixed(0)} / Development ${evolutionLog.disciplines.development.toFixed(0)} / Art ${evolutionLog.disciplines.art.toFixed(0)} / QA ${evolutionLog.disciplines.qa.toFixed(0)}`,
+      )
+    }
+    if (evolutionLog.weakestDiscipline) summaryLines.push(`- 최약 디시플린: **${evolutionLog.weakestDiscipline}**`)
+  }
+  if ((evolutionLog.proposalsTotal ?? 0) > 0) {
+    summaryLines.push('', '## 🧬 자가진화 제안 (Evolver)')
+    summaryLines.push(`- 총 제안: ${evolutionLog.proposalsTotal}건`)
+    if (evolutionLog.proposalsApplied.length > 0) {
+      summaryLines.push('', '### ✅ 자동 적용')
+      for (const p of evolutionLog.proposalsApplied) summaryLines.push(`- ${p}`)
+    }
+    if (evolutionLog.proposalsDeferred.length > 0) {
+      summaryLines.push('', '### 🟡 수동 검토 대기')
+      for (const p of evolutionLog.proposalsDeferred) summaryLines.push(`- ${p}`)
+    }
+    if (evolutionLog.proposalsFailed.length > 0) {
+      summaryLines.push('', '### ❌ 적용 실패 (rollback)')
+      for (const p of evolutionLog.proposalsFailed) summaryLines.push(`- ${p}`)
+    }
+  }
+
+  writeFileSync(`${PROJECT_ROOT}/logs/cycle-${cycleNumber}-summary.md`, summaryLines.join('\n') + '\n')
 
   console.log(`\n✅ 사이클 #${cycleNumber} 완료!\n`)
   return state

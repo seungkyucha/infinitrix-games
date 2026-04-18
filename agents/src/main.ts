@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { execSync } from 'child_process'
+import { acquireLock, installLockHandlers, LOCK_FILE } from './lock.js'
 
 const __dirname    = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..', '..')
@@ -105,14 +106,53 @@ function saveCycleNumber(n: number) {
   writeFileSync(CYCLE_LOG, JSON.stringify({ lastCycle: n, updatedAt: new Date().toISOString() }))
 }
 
+// SDK 내부에서 USAGE_LIMIT 이후 비동기 cleanup이 던지는 rejection을 붙잡아
+// 프로세스 전체가 exit 1로 crash 하는 것을 방지한다. 실제 흐름은 runAgent →
+// runOneCycle 의 try/catch 가 처리하므로 여기서는 로깅만.
+process.on('unhandledRejection', (reason: unknown) => {
+  const msg = String(reason)
+  if (/out of (extra )?usage|rate.?limit|resets?\s+\d|Claude Code returned an error/i.test(msg)) {
+    console.error(`[unhandledRejection → swallowed usage/CLI error] ${msg.slice(0, 200)}`)
+  } else {
+    console.error(`[unhandledRejection]`, reason)
+  }
+})
+process.on('uncaughtException', (err: Error) => {
+  const msg = String(err)
+  if (/out of (extra )?usage|rate.?limit|resets?\s+\d|Claude Code returned an error/i.test(msg)) {
+    console.error(`[uncaughtException → swallowed usage/CLI error] ${msg.slice(0, 200)}`)
+  } else {
+    console.error(`[uncaughtException]`, err)
+    // 비-usage 에러는 기존대로 즉시 종료
+    process.exit(1)
+  }
+})
+
 async function main() {
   const isOnce   = process.argv.includes('--once')
   const interval = 4 * 60 * 60 * 1000 // 4시간
+
+  // ── 단일 인스턴스 락 (PID 파일) ──
+  // 같은 체크포인트·로그·git 트리에서 두 개의 사이클이 동시에 돌면 상태가 깨진다.
+  // 기존 프로세스가 살아있으면 새 실행을 거부. stale PID면 청소 후 takeover.
+  const lock = acquireLock()
+  if (!lock.acquired) {
+    console.error(`❌ ${lock.reason}`)
+    console.error(`   락 파일: ${LOCK_FILE}`)
+    console.error(`   기존 인스턴스를 먼저 중지하세요:`)
+    console.error(`     Windows:  taskkill /PID ${lock.existingPid} /F`)
+    console.error(`     Unix:     kill ${lock.existingPid}`)
+    console.error(`   체크포인트(logs/checkpoint.json)가 있으면 재실행 시 이어서 진행됩니다.`)
+    process.exit(3)  // distinct from 1 (error) / 2 (usage-limit)
+  }
+  installLockHandlers()
+  console.log(`🔒 단일 인스턴스 락 획득 (PID ${process.pid})`)
 
   console.log('🎮 InfiniTriX Agent Team 시작')
   console.log(`📁 프로젝트 루트: ${PROJECT_ROOT}`)
   console.log(`🔄 모드: ${isOnce ? '단일 사이클' : `자동 반복 (${interval / 60000}분 간격)`}`)
   console.log(`🔑 인증: Claude Code 구독 (API 키 불필요)\n`)
+  console.log(`💡 이전 사이클이 토큰 한도나 크래시로 중단됐을 경우 logs/checkpoint.json 으로 자동 재개됩니다.\n`)
 
   // Claude Code CLI 확인
   if (!checkClaudeCLI()) {

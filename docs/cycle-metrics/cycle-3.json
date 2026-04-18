@@ -1,0 +1,65 @@
+{
+  "cycle": 3,
+  "gameId": "poly-spire",
+  "genre": "deckbuilder",
+  "artStyle": "low-poly-3d",
+  "verdict": "APPROVED",
+  "reviewRounds": 1,
+  "review2Rounds": 1,
+  "durationMin": 34,
+  "disciplines": {
+    "planning": {
+      "score": 92.45833333333334,
+      "signals": {
+        "specCompleteness": 0.8333333333333334,
+        "genreDupCount": 0,
+        "styleDupCount": 0,
+        "refChainValid": 0.875,
+        "plannerReworkCount": 1,
+        "postmortemDepth": 8
+      }
+    },
+    "development": {
+      "score": 62.469317738791425,
+      "signals": {
+        "engineAdoption": 0.13352826510721247,
+        "customStateMachines": 0,
+        "directListenerCount": 0,
+        "onResetCoverage": 0.5555555555555556,
+        "totalMutableGlobals": 36,
+        "buttonKeyCoverage": 1,
+        "totalButtons": 21,
+        "codeLineCount": 1896,
+        "enginePromotions": 0
+      }
+    },
+    "art": {
+      "score": 50.35714285714286,
+      "signals": {
+        "stylePurity": 0.5,
+        "charConsistency": 0.7142857142857143,
+        "assetVerifyRate": 1,
+        "assetGenerateRate": 0,
+        "failedAssetCount": 0,
+        "verifyFailedCount": 0,
+        "thumbnailFromGameAssets": false
+      }
+    },
+    "qa": {
+      "score": 95,
+      "signals": {
+        "firstRoundVerdict": "APPROVED",
+        "reviewRounds": 1,
+        "review2Rounds": 1,
+        "buttonAuditPass": 1,
+        "restartVerifyPass": true,
+        "stuckStateBugs": 0,
+        "deployVerifyPass": "UNKNOWN"
+      }
+    }
+  },
+  "overallScore": 73.57174770258982,
+  "weakestDiscipline": "art",
+  "rootCauses": [],
+  "createdAt": "2026-04-18T06:39:21.304Z"
+}

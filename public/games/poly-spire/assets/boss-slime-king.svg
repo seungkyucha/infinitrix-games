@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Shadow underneath -->
+  <g id="shadow">
+    <ellipse cx="256" cy="470" rx="180" ry="30" fill="#0a1a0a" opacity="0.6"/>
+    <ellipse cx="256" cy="470" rx="140" ry="20" fill="#0d220d" opacity="0.4"/>
+  </g>
+
+  <!-- Dripping green drops at bottom -->
+  <g id="drips">
+    <polygon points="130,420 138,455 122,455" fill="#33aa55" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="175,435 182,468 168,468" fill="#44cc66" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="210,440 218,475 202,475" fill="#2d8a4e" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="260,445 268,480 252,480" fill="#33aa55" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="300,442 308,478 292,478" fill="#55dd77" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="340,438 348,472 332,472" fill="#44cc66" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="375,430 383,462 367,462" fill="#2d8a4e" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="155,430 160,458 150,458" fill="#55dd77" stroke="#1a6633" stroke-width="1"/>
+    <polygon points="320,440 326,470 314,470" fill="#228844" stroke="#1a6633" stroke-width="1"/>
+  </g>
+
+  <!-- Main body: low-poly geometric blob -->
+  <g id="body" stroke="#1a6633" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Bottom row -->
+    <polygon points="100,400 160,440 90,440" fill="#228844"/>
+    <polygon points="100,400 160,440 180,390" fill="#2d8a4e"/>
+    <polygon points="180,390 160,440 256,450" fill="#33aa55"/>
+    <polygon points="256,450 160,440 90,440" fill="#228844" opacity="0.9"/>
+    <polygon points="256,450 350,440 180,390" fill="#2d8a4e" opacity="0.95"/>
+    <polygon points="350,440 256,450 420,440" fill="#228844"/>
+    <polygon points="350,440 420,440 400,400" fill="#2d8a4e"/>
+    <polygon points="350,440 400,400 330,390" fill="#33aa55"/>
+    <polygon points="180,390 256,450 330,390" fill="#44cc66"/>
+
+    <!-- Middle row -->
+    <polygon points="80,320 100,400 180,390" fill="#33aa55"/>
+    <polygon points="80,320 180,390 160,300" fill="#44cc66"/>
+    <polygon points="160,300 180,390 256,340" fill="#55dd77"/>
+    <polygon points="180,390 330,390 256,340" fill="#44cc66"/>
+    <polygon points="330,390 400,400 360,300" fill="#33aa55"/>
+    <polygon points="330,390 360,300 256,340" fill="#55dd77"/>
+    <polygon points="400,400 430,320 360,300" fill="#2d8a4e"/>
+
+    <!-- Upper middle row -->
+    <polygon points="80,320 160,300 110,230" fill="#2d8a4e"/>
+    <polygon points="160,300 256,340 256,260" fill="#44cc66"/>
+    <polygon points="160,300 256,260 110,230" fill="#33aa55"/>
+    <polygon points="256,340 360,300 256,260" fill="#55dd77"/>
+    <polygon points="360,300 430,320 400,230" fill="#33aa55"/>
+    <polygon points="360,300 400,230 256,260" fill="#44cc66"/>
+
+    <!-- Top row -->
+    <polygon points="110,230 256,260 190,180" fill="#55dd77"/>
+    <polygon points="256,260 400,230 320,180" fill="#44cc66"/>
+    <polygon points="256,260 320,180 190,180" fill="#55dd77"/>
+    <polygon points="110,230 190,180 140,160" fill="#33aa55"/>
+    <polygon points="400,230 320,180 370,160" fill="#2d8a4e"/>
+
+    <!-- Crown base area -->
+    <polygon points="140,160 190,180 200,140" fill="#44cc66"/>
+    <polygon points="190,180 320,180 256,140" fill="#55dd77"/>
+    <polygon points="320,180 370,160 310,140" fill="#33aa55"/>
+    <polygon points="200,140 256,140 190,180" fill="#44cc66" opacity="0.9"/>
+    <polygon points="256,140 310,140 320,180" fill="#55dd77" opacity="0.9"/>
+  </g>
+
+  <!-- Inner slimes visible inside the body -->
+  <g id="inner-slimes" opacity="0.5">
+    <g>
+      <ellipse cx="200" cy="350" rx="28" ry="22" fill="#77ee99" stroke="#55dd77" stroke-width="1"/>
+      <circle cx="193" cy="345" r="3" fill="#ffffff" opacity="0.7"/>
+      <circle cx="207" cy="345" r="3" fill="#ffffff" opacity="0.7"/>
+      <circle cx="193" cy="345" r="1.5" fill="#225533"/>
+      <circle cx="207" cy="345" r="1.5" fill="#225533"/>
+    </g>
+    <g>
+      <ellipse cx="310" cy="360" rx="24" ry="18" fill="#88ffaa" stroke="#55dd77" stroke-width="1"/>
+      <circle cx="303" cy="355" r="2.5" fill="#ffffff" opacity="0.7"/>
+      <circle cx="317" cy="355" r="2.5" fill="#ffffff" opacity="0.7"/>
+      <circle cx="303" cy="355" r="1.2" fill="#225533"/>
+      <circle cx="317" cy="355" r="1.2" fill="#225533"/>
+    </g>
+    <g>
+      <ellipse cx="256" cy="400" rx="20" ry="16" fill="#77ee99" stroke="#55dd77" stroke-width="1"/>
+      <circle cx="250" cy="396" r="2" fill="#ffffff" opacity="0.7"/>
+      <circle cx="262" cy="396" r="2" fill="#ffffff" opacity="0.7"/>
+      <circle cx="250" cy="396" r="1" fill="#225533"/>
+      <circle cx="262" cy="396" r="1" fill="#225533"/>
+    </g>
+  </g>
+
+  <!-- Eyes: menacing, large, angry -->
+  <g id="eyes">
+    <!-- Left eye white -->
+    <polygon points="180,240 210,225 220,250 200,265 175,255" fill="#eeffee" stroke="#1a4433" stroke-width="1.5"/>
+    <!-- Left pupil -->
+    <polygon points="195,240 208,233 212,248 200,255" fill="#112211"/>
+    <!-- Left eye angry brow -->
+    <polygon points="170,228 215,218 210,225 175,238" fill="#1a6633" stroke="#0d3319" stroke-width="1.5"/>
+    <!-- Left eye highlight -->
+    <circle cx="200" cy="238" r="3" fill="#ffffff" opacity="0.8"/>
+
+    <!-- Right eye white -->
+    <polygon points="290,250 310,225 340,240 335,260 305,268" fill="#eeffee" stroke="#1a4433" stroke-width="1.5"/>
+    <!-- Right pupil -->
+    <polygon points="305,242 318,233 325,248 315,258" fill="#112211"/>
+    <!-- Right eye angry brow -->
+    <polygon points="305,218 345,230 340,240 310,225" fill="#1a6633" stroke="#0d3319" stroke-width="1.5"/>
+    <!-- Right eye highlight -->
+    <circle cx="312" cy="240" r="3" fill="#ffffff" opacity="0.8"/>
+  </g>
+
+  <!-- Mouth: menacing grin -->
+  <g id="mouth">
+    <polygon points="200,290 230,300 256,305 280,300 310,290 290,310 256,318 220,310" fill="#0d3319" stroke="#0a2210" stroke-width="1"/>
+    <!-- Teeth -->
+    <polygon points="215,295 225,300 220,308" fill="#ddffdd"/>
+    <polygon points="240,300 250,305 245,313" fill="#ddffdd"/>
+    <polygon points="265,305 275,300 270,312" fill="#ddffdd"/>
+    <polygon points="290,298 298,293 293,308" fill="#ddffdd"/>
+  </g>
+
+  <!-- Crown: low-poly gold with red gems -->
+  <g id="crown" stroke="#997700" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Crown base band -->
+    <polygon points="160,155 200,140 256,135 310,140 350,155 340,170 170,170" fill="#ffd700"/>
+    <polygon points="160,155 170,170 200,140" fill="#ccaa00"/>
+    <polygon points="350,155 340,170 310,140" fill="#ccaa00"/>
+    <polygon points="200,140 256,135 256,170 200,170" fill="#ffd700"/>
+    <polygon points="256,135 310,140 310,170 256,170" fill="#eebb00"/>
+
+    <!-- Crown spikes (5 points) -->
+    <polygon points="170,155 195,100 210,155" fill="#ffd700" stroke="#997700" stroke-width="1.5"/>
+    <polygon points="210,148 240,80 256,145" fill="#eebb00" stroke="#997700" stroke-width="1.5"/>
+    <polygon points="256,145 272,80 300,148" fill="#ffd700" stroke="#997700" stroke-width="1.5"/>
+    <polygon points="300,155 315,100 340,155" fill="#eebb00" stroke="#997700" stroke-width="1.5"/>
+
+    <!-- Left spike sub-faces -->
+    <polygon points="195,100 185,130 210,130" fill="#ccaa00" stroke="#997700" stroke-width="1"/>
+    <!-- Center-left spike sub-faces -->
+    <polygon points="240,80 228,118 256,118" fill="#ffd700" stroke="#997700" stroke-width="1"/>
+    <!-- Center-right spike sub-faces -->
+    <polygon points="272,80 256,118 284,118" fill="#ccaa00" stroke="#997700" stroke-width="1"/>
+    <!-- Right spike sub-faces -->
+    <polygon points="315,100 325,130 303,130" fill="#ffd700" stroke="#997700" stroke-width="1"/>
+
+    <!-- Red gems on crown -->
+    <polygon points="195,120 185,135 205,135" fill="#ff4444" stroke="#cc2222" stroke-width="1"/>
+    <polygon points="248,105 238,120 258,120" fill="#ff4444" stroke="#cc2222" stroke-width="1"/>
+    <polygon points="268,105 258,120 278,120" fill="#ff4444" stroke="#cc2222" stroke-width="1"/>
+    <polygon points="315,120 305,135 325,135" fill="#ff4444" stroke="#cc2222" stroke-width="1"/>
+
+    <!-- Gem highlights -->
+    <circle cx="195" cy="126" r="2" fill="#ff8888" opacity="0.7"/>
+    <circle cx="250" cy="112" r="2" fill="#ff8888" opacity="0.7"/>
+    <circle cx="270" cy="112" r="2" fill="#ff8888" opacity="0.7"/>
+    <circle cx="315" cy="126" r="2" fill="#ff8888" opacity="0.7"/>
+  </g>
+
+  <!-- Body edge highlights for 3D feel -->
+  <g id="highlights" opacity="0.15">
+    <polygon points="110,230 190,180 160,300" fill="#ffffff"/>
+    <polygon points="190,180 256,140 256,260" fill="#ffffff" opacity="0.1"/>
+  </g>
+</svg>
