@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="sunsetSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7b2d8b"/>
+      <stop offset="35%" stop-color="#a0456e"/>
+      <stop offset="60%" stop-color="#ff9100"/>
+      <stop offset="80%" stop-color="#ffb347"/>
+      <stop offset="100%" stop-color="#ffd700"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="0.5" cy="0.75" r="0.45">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.7"/>
+      <stop offset="30%" stop-color="#ff9100" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ff9100" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="watercolor" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.008" numOctaves="5" seed="12" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="mountainBlur">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <filter id="skyTexture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.003" numOctaves="3" seed="20" result="t"/>
+      <feColorMatrix in="t" type="saturate" values="0" result="g"/>
+      <feBlend in="SourceGraphic" in2="g" mode="soft-light"/>
+    </filter>
+    <linearGradient id="mtGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a1a6e" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#3d0f4e" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+  <!-- Base sunset gradient -->
+  <rect width="960" height="540" fill="url(#sunsetSky)" filter="url(#skyTexture)"/>
+  <!-- Sun backlight glow -->
+  <rect width="960" height="540" fill="url(#sunGlow)"/>
+  <!-- Distant mountain range 1 (far, blurry) -->
+  <g filter="url(#watercolor)" opacity="0.5">
+    <path d="M0 420 Q60 350 120 380 Q200 320 280 360 Q360 300 440 340 Q520 290 600 330 Q680 280 760 320 Q840 300 920 350 L960 380 L960 540 L0 540Z" fill="url(#mtGrad)" filter="url(#mountainBlur)"/>
+  </g>
+  <!-- Distant mountain range 2 (closer, slightly sharper) -->
+  <g filter="url(#watercolor)" opacity="0.6">
+    <path d="M0 450 Q80 390 160 420 Q240 370 320 400 Q400 350 480 380 Q560 340 640 370 Q720 350 800 390 Q880 370 960 400 L960 540 L0 540Z" fill="#4a1560" fill-opacity="0.7" filter="url(#mountainBlur)"/>
+  </g>
+  <!-- Backlight rim on mountains -->
+  <g opacity="0.3" filter="url(#mountainBlur)">
+    <path d="M0 450 Q80 390 160 420 Q240 370 320 400 Q400 350 480 380 Q560 340 640 370 Q720 350 800 390 Q880 370 960 400" stroke="#ffd700" stroke-width="3" fill="none" stroke-opacity="0.6"/>
+  </g>
+  <!-- Atmospheric haze at horizon -->
+  <rect x="0" y="380" width="960" height="160" fill="#ff9100" fill-opacity="0.12" filter="url(#mountainBlur)"/>
+  <!-- Brushstroke cloud wisps -->
+  <g opacity="0.25" filter="url(#watercolor)">
+    <path d="M0 80 Q160 55 320 75 Q480 50 640 70 Q800 45 960 65" stroke="#ff9100" stroke-width="20" fill="none" stroke-linecap="round" filter="url(#mountainBlur)"/>
+    <path d="M0 150 Q200 125 400 145 Q600 120 800 140 Q900 130 960 138" stroke="#7b2d8b" stroke-width="15" fill="none" stroke-linecap="round" filter="url(#mountainBlur)"/>
+  </g>
+</svg>

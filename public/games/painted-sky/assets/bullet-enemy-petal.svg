@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <filter id="paint" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="turbulence" baseFrequency="0.06" numOctaves="2" seed="30" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <radialGradient id="petalG" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#ffb3c6"/>
+      <stop offset="100%" stop-color="#ff6b8a"/>
+    </radialGradient>
+    <radialGradient id="glowG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b8a" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ff6b8a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g filter="url(#paint)">
+    <!-- Glow -->
+    <circle cx="64" cy="58" r="48" fill="url(#glowG)"/>
+    <!-- Trail -->
+    <ellipse cx="64" cy="100" rx="10" ry="20" fill="#ff6b8a" opacity="0.2"/>
+    <ellipse cx="64" cy="108" rx="6" ry="14" fill="#ffb3c6" opacity="0.1"/>
+    <!-- Petal shape -->
+    <path d="M64 18 Q90 40 88 64 Q86 88 64 98 Q42 88 40 64 Q38 40 64 18Z" fill="url(#petalG)"/>
+    <!-- Edge glow -->
+    <path d="M64 18 Q90 40 88 64 Q86 88 64 98 Q42 88 40 64 Q38 40 64 18Z" stroke="#ffb3c6" stroke-width="2" fill="none" opacity="0.8"/>
+    <!-- Center vein -->
+    <path d="M64 24 Q66 58 64 92" stroke="#ff6b8a" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <!-- Highlight -->
+    <ellipse cx="56" cy="45" rx="8" ry="12" fill="#fff" opacity="0.2" transform="rotate(-10 56 45)"/>
+  </g>
+</svg>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="petalGrad" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ffb3c6" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#ff6b8a" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ff6b8a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="petalGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b8a" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ff6b8a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softEdge" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1"/>
+    </filter>
+    <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Outer glow layer -->
+  <ellipse cx="32" cy="32" rx="18" ry="18" fill="url(#petalGlow)" opacity="0.5"/>
+  <!-- Main petal shape -->
+  <path d="M32 12 C38 18, 50 22, 50 32 C50 42, 38 50, 32 52 C26 50, 14 42, 14 32 C14 22, 26 18, 32 12Z"
+        fill="url(#petalGrad)" filter="url(#softEdge)"/>
+  <!-- Petal vein highlight (top-left light) -->
+  <path d="M30 16 C33 22, 36 28, 34 38"
+        stroke="#ffb3c6" stroke-width="0.8" fill="none" opacity="0.6" filter="url(#softEdge)"/>
+  <!-- Secondary vein -->
+  <path d="M28 20 C30 26, 30 32, 28 40"
+        stroke="#ffb3c6" stroke-width="0.5" fill="none" opacity="0.4"/>
+  <!-- Light catch highlight -->
+  <ellipse cx="28" cy="24" rx="5" ry="3" fill="#ffffff" opacity="0.35" filter="url(#softEdge)"
+           transform="rotate(-20 28 24)"/>
+  <!-- Tip glow -->
+  <ellipse cx="32" cy="14" rx="3" ry="4" fill="#ffb3c6" opacity="0.4" filter="url(#glowFilter)"/>
+  <!-- Subtle inner shadow (bottom-right) -->
+  <path d="M36 36 C40 40, 44 38, 46 34"
+        stroke="#e0507a" stroke-width="1" fill="none" opacity="0.3" filter="url(#softEdge)"/>
+</svg>

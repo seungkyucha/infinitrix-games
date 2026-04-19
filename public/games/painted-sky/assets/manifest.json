@@ -1,0 +1,304 @@
+{
+  "gameId": "painted-sky",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "provider": "gemini",
+  "artDirection": {
+    "style": "Painterly digital 2D illustration: visible brushstrokes, rich atmospheric lighting (Ori / Gris feel).",
+    "palette": "#0d1b2a, #1b2838, #f0e6d3, #ffd700, #ff6b8a, #b388ff, #00e5ff",
+    "mood": "수채화 하늘 위 빛과 어둠의 대비, 아름다우면서 긴장감 있는 탄막의 춤, 신비로운 천상 세계",
+    "reference": "Ori and the Blind Forest 발광 캐릭터 + Gris 수채화 색조 전환 + Touhou 탄막 미학"
+  },
+  "format": "svg",
+  "assets": {
+    "player": {
+      "file": "player.svg",
+      "size": "512x512",
+      "desc": "빛의 수호자 아리아 — 반투명 흰 로브의 소녀 실루엣, 등에 빛나는 금색 나비 날개(3쌍), 은빛 긴 머리카락이 위로 흩날림, 전신에 셀레스트 화이트 발광, 붓터치 질감, 정면 비행 포즈"
+    },
+    "playerIdleSheet": {
+      "file": "player-idle-sheet.svg",
+      "size": "2048x512",
+      "desc": "아리아 대기(비행) 애니메이션 — 4프레임, 로브+머리카락 바람 나부낌, 날개 펄럭임, 황금 기운 흔들림",
+      "ref": "player"
+    },
+    "playerFocus": {
+      "file": "player-focus.svg",
+      "size": "512x512",
+      "desc": "아리아 저속(집중) 포즈 — 두 손 가슴 앞에 모으고 집중, 날개 더 밝게 발광, 중앙에 작은 빛의 구체(히트박스 시각화)",
+      "ref": "player"
+    },
+    "playerHit": {
+      "file": "player-hit.svg",
+      "size": "512x512",
+      "desc": "아리아 피격 포즈 — 뒤로 밀린 자세, 로브 가장자리 붉게 물듦, 빛 흐트러짐, 고통+결의 표정",
+      "ref": "player"
+    },
+    "bossFogPainter": {
+      "file": "boss-fog-painter.svg",
+      "size": "512x512",
+      "desc": "안개 화가 (스테이지 1 보스) — 안개로 형체를 이룬 화가, 한 손에 거대한 붓, 연분홍+하늘색 수채 안개가 감싸며 흘러내림, 빛나는 두 눈만 보임, 몽환적+위엄"
+    },
+    "bossFogPainterPhase2": {
+      "file": "boss-fog-painter-phase2.svg",
+      "size": "512x512",
+      "desc": "안개 화가 2페이즈 — 안개 걷히며 어둠 드러남, 붓 2개로 분리, 남색+자주 잉크 소용돌이 격렬 회전, 눈 진홍색, 공격적 자세",
+      "ref": "boss-fog-painter"
+    },
+    "bossSunsetDancer": {
+      "file": "boss-sunset-dancer.svg",
+      "size": "512x512",
+      "desc": "노을 무희 (스테이지 2 보스) — 주황+보라 석양빛의 우아한 무희, 긴 스카프가 나선형으로 휘감김, 춤 포즈, 발끝에서 석양 파티클"
+    },
+    "bossSunsetDancerPhase2": {
+      "file": "boss-sunset-dancer-phase2.svg",
+      "size": "512x512",
+      "desc": "노을 무희 2페이즈 — 석양 지고 붉은빛만 남음, 스카프→가시 채찍 변형, 불꽃 파티클, 격렬한 춤, 자주+진홍",
+      "ref": "boss-sunset-dancer"
+    },
+    "bossDeepGiant": {
+      "file": "boss-deep-giant.svg",
+      "size": "512x512",
+      "desc": "심해 거인 (스테이지 3 보스) — 화면 하단에서 솟아오르는 거대 심해 존재, 남색+청록 수채, 촉수 여러 개, 거대한 빛나는 눈 1개, 생물발광 패턴"
+    },
+    "bossDeepGiantPhase2": {
+      "file": "boss-deep-giant-phase2.svg",
+      "size": "512x512",
+      "desc": "심해 거인 2페이즈 — 상체 드러내며 1.5배 확대, 촉수에서 청록 전기, 입에서 어둠 소용돌이 분출, 생물발광 붉게 변함",
+      "ref": "boss-deep-giant"
+    },
+    "bossInkLord": {
+      "file": "boss-ink-lord.svg",
+      "size": "512x512",
+      "desc": "먹구름의 화가 (최종 보스) — 먹구름 거대 인간형, 양손에 거대한 붓 2개, 먹 왕관, 짙은 남색+검정, 눈+왕관만 자주색 발광, 먹구름 폭풍 오라, 화면 1/3 위압감"
+    },
+    "bossInkLordPhase2": {
+      "file": "boss-ink-lord-phase2.svg",
+      "size": "512x512",
+      "desc": "먹구름의 화가 2페이즈 — 붓 합쳐 대붓 변형, 갑옷 벗겨지며 수많은 눈 드러남, 잉크 촉수 사방으로, 배경이 먹으로 물듦",
+      "ref": "boss-ink-lord"
+    },
+    "enemyInkdrop": {
+      "file": "enemy-inkdrop.svg",
+      "size": "256x256",
+      "desc": "잉크 방울 소졸 — 동그란 남색 잉크 방울, 자주색 눈 1개, 아래로 잉크 뚝뚝, 단순 형태"
+    },
+    "enemyInkbird": {
+      "file": "enemy-inkbird.svg",
+      "size": "256x256",
+      "desc": "잉크 새 — 날개 펼친 어둠의 새, 보라+남색 수채, 날갯짓 잔상이 잉크 번짐, 부리에서 자주색 빛"
+    },
+    "enemyInkfish": {
+      "file": "enemy-inkfish.svg",
+      "size": "256x256",
+      "desc": "잉크 물고기 — 유선형, 남색+청록 수채, 꼬리가 잉크 트레일, 붉은 눈. 스테이지 3 전용"
+    },
+    "enemyInkspiral": {
+      "file": "enemy-inkspiral.svg",
+      "size": "512x512",
+      "desc": "잉크 소용돌이 (중형) — 나선 회전 잉크 덩어리, 자주+남색 소용돌이, 중심에 밝은 코어, 1.5배 크기"
+    },
+    "bulletEnemyPetal": {
+      "file": "bullet-enemy-petal.svg",
+      "size": "128x128",
+      "desc": "적 꽃잎 탄 — 코랄 핑크 꽃잎, 회전하며 비행, 가장자리 발광, 짧은 트레일"
+    },
+    "bulletEnemyOrb": {
+      "file": "bullet-enemy-orb.svg",
+      "size": "128x128",
+      "desc": "적 구형 탄 — 자주색 잉크 구체, 내부 소용돌이, 잉크 트레일"
+    },
+    "bulletEnemyCrystal": {
+      "file": "bullet-enemy-crystal.svg",
+      "size": "128x128",
+      "desc": "적 결정 탄 — 아이스블루 6각형 결정, 파란 발광, 날카로운 모서리. 스테이지 3~4 전용"
+    },
+    "bulletEnemyLarge": {
+      "file": "bullet-enemy-large.svg",
+      "size": "256x256",
+      "desc": "적 대형 탄 — 자주+남색 잉크 소용돌이 구체, 파편 공전, 보스 전용, 3배 크기"
+    },
+    "bulletPlayer": {
+      "file": "bullet-player.svg",
+      "size": "128x128",
+      "desc": "아군 탄 — 사이언색 빛의 화살, 꼬리에 빛 잔상, 수채 붓터치"
+    },
+    "itemPowerAttack": {
+      "file": "item-power-attack.svg",
+      "size": "128x128",
+      "desc": "공격 파워업 — 붉은빛 수채 물감 방울, 내부 검 심볼, 빨간 파티클"
+    },
+    "itemPowerDefense": {
+      "file": "item-power-defense.svg",
+      "size": "128x128",
+      "desc": "방어 파워업 — 푸른빛 수채 물감 방울, 내부 방패 심볼, 파란 파티클"
+    },
+    "itemPowerSpecial": {
+      "file": "item-power-special.svg",
+      "size": "128x128",
+      "desc": "특수 파워업 — 금빛 수채 물감 방울, 내부 별 심볼, 금색 파티클"
+    },
+    "itemBomb": {
+      "file": "item-bomb.svg",
+      "size": "128x128",
+      "desc": "폭탄 아이템 — 은색 씨앗, 내부 빛 맴돌이, 신비로운 발광"
+    },
+    "itemScore": {
+      "file": "item-score.svg",
+      "size": "64x64",
+      "desc": "점수 아이템 — 작은 빛 파편 무더기, 파스텔, 반짝임"
+    },
+    "itemScoreSheet": {
+      "file": "item-score-sheet.svg",
+      "size": "384x64",
+      "desc": "점수 아이템 반짝임 애니메이션 — 6프레임, 빛 반사 시퀀스",
+      "ref": "item-score"
+    },
+    "bgDawnFar": {
+      "file": "bg-dawn-far.svg",
+      "size": "960x540",
+      "desc": "새벽 하늘 원경 — 연분홍→하늘색 수채 그라데이션, 먼 수채 구름, 황금 햇살, 붓터치 하늘"
+    },
+    "bgDawnMid": {
+      "file": "bg-dawn-mid.svg",
+      "size": "960x540",
+      "desc": "새벽 하늘 중경 — 연분홍+연보라 수채 구름 무리, 빛줄기"
+    },
+    "bgDawnNear": {
+      "file": "bg-dawn-near.svg",
+      "size": "960x540",
+      "desc": "새벽 하늘 근경 — 가까운 구름 파편+빛 입자, 빛나는 꽃잎"
+    },
+    "bgSunsetFar": {
+      "file": "bg-sunset-far.svg",
+      "size": "960x540",
+      "desc": "석양 들판 원경 — 주황→보라 석양, 먼 산 수채 번짐, 강한 역광"
+    },
+    "bgSunsetMid": {
+      "file": "bg-sunset-mid.svg",
+      "size": "960x540",
+      "desc": "석양 들판 중경 — 수채 꽃밭 실루엣, 금색 꽃잎 날림, 황금 먼지"
+    },
+    "bgSunsetNear": {
+      "file": "bg-sunset-near.svg",
+      "size": "960x540",
+      "desc": "석양 들판 근경 — 꽃+풀 실루엣, 석양 역광 윤곽, 드라마틱"
+    },
+    "bgOceanFar": {
+      "file": "bg-ocean-far.svg",
+      "size": "960x540",
+      "desc": "별빛 바다 원경 — 남색 밤하늘에 은하수 수채 붓터치, 별 흩뿌림"
+    },
+    "bgOceanMid": {
+      "file": "bg-ocean-mid.svg",
+      "size": "960x540",
+      "desc": "별빛 바다 중경 — 수면 반사, 남색+청록 물결 수채, 생물발광, 해파리"
+    },
+    "bgOceanNear": {
+      "file": "bg-ocean-near.svg",
+      "size": "960x540",
+      "desc": "별빛 바다 근경 — 수면 물결+빛 반사, 청록+은색, 해초+발광 생물"
+    },
+    "bgStormFar": {
+      "file": "bg-storm-far.svg",
+      "size": "960x540",
+      "desc": "먹구름 성채 원경 — 남색+검정 소용돌이 먹구름, 먹 번짐 폭풍, 번개"
+    },
+    "bgStormMid": {
+      "file": "bg-storm-mid.svg",
+      "size": "960x540",
+      "desc": "먹구름 성채 중경 — 잉크 성벽+첨탑 실루엣, 먹물 흘러내림, 자주 번개"
+    },
+    "bgStormNear": {
+      "file": "bg-storm-near.svg",
+      "size": "960x540",
+      "desc": "먹구름 성채 근경 — 무너진 성벽 파편, 잉크 파편+먹 안개, 자주+검정"
+    },
+    "effectHit": {
+      "file": "effect-hit.svg",
+      "size": "512x128",
+      "desc": "피격 이펙트 — 4프레임, 빛 산산조각, 황금 파편 사방"
+    },
+    "effectBomb": {
+      "file": "effect-bomb.svg",
+      "size": "768x128",
+      "desc": "폭탄 이펙트 — 6프레임, 금색 빛 원형 파동 전체로 퍼짐, 빛 입자가 적탄 소멸"
+    },
+    "effectEnemyDeath": {
+      "file": "effect-enemy-death.svg",
+      "size": "512x128",
+      "desc": "적 사망 이펙트 — 4프레임, 잉크 수채 번짐 증발, 자주+남색 파편"
+    },
+    "effectBossDeath": {
+      "file": "effect-boss-death.svg",
+      "size": "768x128",
+      "desc": "보스 사망 이펙트 — 6프레임, 빛으로 분해→꽃잎으로 흩어짐"
+    },
+    "effectBossPhase": {
+      "file": "effect-boss-phase.svg",
+      "size": "512x128",
+      "desc": "보스 페이즈 전환 — 4프레임, 잉크 소용돌이 격렬 회전→폭발→새 형태"
+    },
+    "effectGraze": {
+      "file": "effect-graze.svg",
+      "size": "128x128",
+      "desc": "그레이즈 이펙트 — 플레이어 주변 찰나의 사이언 빛 링+스파크"
+    },
+    "particleLight": {
+      "file": "particle-light.svg",
+      "size": "64x64",
+      "desc": "빛 파티클 — 황금빛 점, 십자 광채, 알파 그라데이션"
+    },
+    "particleInk": {
+      "file": "particle-ink.svg",
+      "size": "64x64",
+      "desc": "잉크 파티클 — 남색 잉크 방울, 불규칙, 가장자리 번짐"
+    },
+    "particlePetal": {
+      "file": "particle-petal.svg",
+      "size": "64x64",
+      "desc": "꽃잎 파티클 — 연분홍 수채 꽃잎, 붓터치 형태, 반투명"
+    },
+    "uiHp": {
+      "file": "ui-hp.svg",
+      "size": "128x128",
+      "desc": "HP 아이콘 — 빛의 나비, 황금+흰색, 작고 선명"
+    },
+    "uiHpEmpty": {
+      "file": "ui-hp-empty.svg",
+      "size": "128x128",
+      "desc": "빈 HP — 회색 나비 실루엣, 빛 꺼짐",
+      "ref": "ui-hp"
+    },
+    "uiBomb": {
+      "file": "ui-bomb.svg",
+      "size": "128x128",
+      "desc": "폭탄 아이콘 — 은색 빛 구체, 내부 광채"
+    },
+    "uiBombEmpty": {
+      "file": "ui-bomb-empty.svg",
+      "size": "128x128",
+      "desc": "빈 폭탄 — 회색 실루엣, 빛 꺼짐",
+      "ref": "ui-bomb"
+    },
+    "uiBossFrame": {
+      "file": "ui-boss-frame.svg",
+      "size": "512x64",
+      "desc": "보스 HP바 — 화면 상단 가로, 붓터치 테두리, 빛 장식, HP 게이지"
+    },
+    "uiPowerupFrame": {
+      "file": "ui-powerup-frame.svg",
+      "size": "256x384",
+      "desc": "파워업 선택 카드 — 세로, 붓터치 테두리, 아이콘+텍스트 영역"
+    },
+    "uiButtonFrame": {
+      "file": "ui-button-frame.svg",
+      "size": "256x128",
+      "desc": "범용 UI 버튼 — 수채 붓터치 둥근 사각형, 빛 배경, 9-slice"
+    },
+    "uiRotatePrompt": {
+      "file": "ui-rotate-prompt.svg",
+      "size": "512x512",
+      "desc": "모바일 가로 안내 — 세로→가로 회전 아이콘 + '가로로 돌려주세요', 수채 스타일"
+    }
+  }
+}

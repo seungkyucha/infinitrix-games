@@ -1,0 +1,426 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Body armor gradient: corrupted orange-bronze -->
+    <linearGradient id="armorGrad" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#ff9100"/>
+      <stop offset="35%" stop-color="#cc6a00"/>
+      <stop offset="70%" stop-color="#8a4400"/>
+      <stop offset="100%" stop-color="#3d1e00"/>
+    </linearGradient>
+
+    <!-- Corruption vein gradient -->
+    <linearGradient id="corruptionGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1b2a"/>
+      <stop offset="50%" stop-color="#1b2838"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
+    </linearGradient>
+
+    <!-- Void sphere: black center radiating fierce orange -->
+    <radialGradient id="voidSphere" cx="45%" cy="42%" r="50%">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="30%" stop-color="#050505"/>
+      <stop offset="60%" stop-color="#1a0800"/>
+      <stop offset="85%" stop-color="#ff6b00"/>
+      <stop offset="100%" stop-color="#ff9100"/>
+    </radialGradient>
+
+    <!-- Energy aura: dark background glow -->
+    <radialGradient id="energyAura" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#ff9100" stop-opacity="0.08"/>
+      <stop offset="35%" stop-color="#ff6b00" stop-opacity="0.15"/>
+      <stop offset="65%" stop-color="#cc3300" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0d1b2a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Cape gradient: torn purple-pink -->
+    <linearGradient id="capeGrad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#b388ff"/>
+      <stop offset="40%" stop-color="#9060dd"/>
+      <stop offset="75%" stop-color="#6a3aaa"/>
+      <stop offset="100%" stop-color="#3d1e66"/>
+    </linearGradient>
+
+    <!-- Tendril vine gradient -->
+    <linearGradient id="tendrilGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a5010"/>
+      <stop offset="50%" stop-color="#1b3508"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
+    </linearGradient>
+
+    <!-- Spear shaft gradient -->
+    <linearGradient id="spearGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#aa7744"/>
+      <stop offset="100%" stop-color="#664422"/>
+    </linearGradient>
+
+    <!-- Spear tip corrupt glow -->
+    <linearGradient id="spearTipGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ff6b8a"/>
+      <stop offset="40%" stop-color="#ff9100"/>
+      <stop offset="100%" stop-color="#cc4400"/>
+    </linearGradient>
+
+    <!-- Broken petal gradient -->
+    <linearGradient id="brokenPetalGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="40%" stop-color="#e0a000"/>
+      <stop offset="80%" stop-color="#996600"/>
+      <stop offset="100%" stop-color="#553300"/>
+    </linearGradient>
+
+    <!-- Halo/sun disk: corrupted -->
+    <radialGradient id="haloGrad" cx="45%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ff9100" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#cc5500" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#661a00" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Leaf shoulder gradient -->
+    <linearGradient id="leafGrad" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#4a7020"/>
+      <stop offset="60%" stop-color="#2a4a10"/>
+      <stop offset="100%" stop-color="#1b2838"/>
+    </linearGradient>
+
+    <!-- Void inner dark gradient -->
+    <radialGradient id="voidInner" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000"/>
+      <stop offset="100%" stop-color="#0d0d0d"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <!-- Outer energy glow -->
+    <filter id="glowOuter" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0.3 0 0 0
+                0.2 0.1 0 0 0
+                0 0 0 0 0
+                0 0 0 0.7 0" result="tinted"/>
+      <feMerge>
+        <feMergeNode in="tinted"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Void pulse glow -->
+    <filter id="voidPulse" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12"/>
+    </filter>
+
+    <!-- Small detail glow -->
+    <filter id="smallGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+    </filter>
+
+    <!-- Drop shadow for depth (top-left light) -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="4" dy="6" stdDeviation="5" flood-color="#0d1b2a" flood-opacity="0.6"/>
+    </filter>
+
+    <!-- Corruption vein distortion -->
+    <filter id="corruptFilter" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+
+    <!-- Composite glow for energy beams -->
+    <filter id="beamGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feComposite in="blur" in2="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- ============ LAYER 1: Background energy aura ============ -->
+  <g id="layer-aura">
+    <!-- Ambient dark energy field -->
+    <ellipse cx="256" cy="255" rx="240" ry="248" fill="url(#energyAura)"/>
+    <!-- Pulsing orange rings -->
+    <circle cx="256" cy="175" r="110" fill="none" stroke="#ff9100" stroke-width="1.5" opacity="0.12" filter="url(#voidPulse)"/>
+    <circle cx="256" cy="175" r="150" fill="none" stroke="#ff6b00" stroke-width="1" opacity="0.08" filter="url(#voidPulse)"/>
+  </g>
+
+  <!-- ============ LAYER 2: Corrupted sun halo behind head ============ -->
+  <g id="layer-halo" filter="url(#glowOuter)">
+    <circle cx="256" cy="168" r="88" fill="url(#haloGrad)"/>
+    <!-- Halo spokes — broken, jagged -->
+    <path d="M256,80 L262,108 L250,108 Z" fill="#ff9100" opacity="0.5"/>
+    <path d="M256,256 L262,228 L250,228 Z" fill="#cc5500" opacity="0.35"/>
+    <path d="M168,168 L196,162 L196,174 Z" fill="#ff9100" opacity="0.4"/>
+    <path d="M344,168 L316,162 L316,174 Z" fill="#ff9100" opacity="0.4"/>
+    <path d="M194,106 L212,126 L202,132 Z" fill="#cc5500" opacity="0.3"/>
+    <path d="M318,106 L300,126 L310,132 Z" fill="#cc5500" opacity="0.3"/>
+    <path d="M194,230 L212,210 L202,204 Z" fill="#cc5500" opacity="0.25"/>
+    <path d="M318,230 L300,210 L310,204 Z" fill="#cc5500" opacity="0.25"/>
+  </g>
+
+  <!-- ============ LAYER 3: Vine tentacles from broken areas ============ -->
+  <g id="layer-tentacles" filter="url(#dropShadow)">
+    <!-- Tentacle 1: upper-left, curving out aggressively -->
+    <path d="M225,195 C190,155 150,120 105,78 C95,68 88,60 75,52"
+          fill="none" stroke="url(#tendrilGrad)" stroke-width="11" stroke-linecap="round"/>
+    <path d="M105,78 C95,85 90,100 97,112" fill="none" stroke="#1b3508" stroke-width="5" stroke-linecap="round"/>
+    <!-- Thorns -->
+    <polygon points="155,138 148,126 162,125" fill="#2a5010"/>
+    <polygon points="125,108 118,96 132,97" fill="#1b3508"/>
+    <polygon points="180,160 174,150 186,149" fill="#2a5010" opacity="0.8"/>
+
+    <!-- Tentacle 2: upper-right -->
+    <path d="M287,195 C322,155 362,120 407,78 C417,68 424,60 437,52"
+          fill="none" stroke="url(#tendrilGrad)" stroke-width="11" stroke-linecap="round"/>
+    <path d="M407,78 C417,85 422,100 415,112" fill="none" stroke="#1b3508" stroke-width="5" stroke-linecap="round"/>
+    <polygon points="357,138 364,126 350,125" fill="#2a5010"/>
+    <polygon points="387,108 394,96 380,97" fill="#1b3508"/>
+
+    <!-- Tentacle 3: left mid, reaching out -->
+    <path d="M195,265 C150,248 100,252 55,262 C38,268 22,275 10,282"
+          fill="none" stroke="url(#tendrilGrad)" stroke-width="9" stroke-linecap="round"/>
+    <polygon points="105,254 101,242 113,244" fill="#2a5010"/>
+    <polygon points="65,260 60,250 72,250" fill="#1b3508"/>
+
+    <!-- Tentacle 4: right mid -->
+    <path d="M317,265 C362,248 412,252 457,262 C474,268 490,275 502,282"
+          fill="none" stroke="url(#tendrilGrad)" stroke-width="9" stroke-linecap="round"/>
+    <polygon points="407,254 411,242 399,244" fill="#2a5010"/>
+
+    <!-- Tentacle 5: lower-left -->
+    <path d="M218,348 C178,378 138,408 98,440 C82,454 68,465 55,478"
+          fill="none" stroke="url(#tendrilGrad)" stroke-width="8" stroke-linecap="round"/>
+    <polygon points="148,395 142,383 155,385" fill="#1b3508"/>
+
+    <!-- Tentacle 6: lower-right -->
+    <path d="M294,348 C334,378 374,408 414,440 C430,454 444,465 457,478"
+          fill="none" stroke="url(#tendrilGrad)" stroke-width="8" stroke-linecap="round"/>
+    <polygon points="364,395 370,383 357,385" fill="#1b3508"/>
+  </g>
+
+  <!-- ============ LAYER 4: Cape (torn/tattered) ============ -->
+  <g id="layer-cape">
+    <!-- Main cape body with torn edges -->
+    <path d="M225,228 C215,260 200,320 185,400
+             C180,430 172,458 160,490
+             L195,488 C198,470 202,445 208,415
+             L220,490 L248,485
+             C240,440 235,400 232,360
+             L256,490 L280,490
+             C278,440 277,400 280,360
+             L292,490 L318,485
+             C310,440 305,400 304,415
+             L316,488 L352,490
+             C340,458 332,430 327,400
+             C312,320 297,260 287,228 Z"
+          fill="url(#capeGrad)" opacity="0.85"/>
+    <!-- Cape tear lines -->
+    <path d="M185,400 L178,415 L190,408" fill="none" stroke="#3d1e66" stroke-width="1.5" opacity="0.7"/>
+    <path d="M327,400 L334,415 L322,408" fill="none" stroke="#3d1e66" stroke-width="1.5" opacity="0.7"/>
+    <path d="M220,460 L215,475 L225,468" fill="none" stroke="#4a2580" stroke-width="1" opacity="0.6"/>
+    <path d="M292,460 L297,475 L287,468" fill="none" stroke="#4a2580" stroke-width="1" opacity="0.6"/>
+    <!-- Cape damage patches -->
+    <path d="M200,350 L210,345 L215,358 L205,360 Z" fill="#1b2838" opacity="0.4"/>
+    <path d="M305,360 L295,355 L292,368 L302,370 Z" fill="#1b2838" opacity="0.4"/>
+  </g>
+
+  <!-- ============ LAYER 5: Legs ============ -->
+  <g id="layer-legs" filter="url(#dropShadow)">
+    <!-- Left leg — aggressive wider stance -->
+    <path d="M232,378 L218,430 L208,480 L214,500 L252,500 L250,480 L246,430 Z"
+          fill="url(#armorGrad)" stroke="#3d1e00" stroke-width="1.5"/>
+    <!-- Corruption veins on left leg -->
+    <path d="M235,395 C230,415 225,440 220,460" fill="none" stroke="#0d1b2a" stroke-width="2" opacity="0.5"/>
+    <path d="M240,405 C238,425 232,450 228,470" fill="none" stroke="#1b2838" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Right leg -->
+    <path d="M280,378 L294,430 L304,480 L298,500 L260,500 L262,480 L266,430 Z"
+          fill="url(#armorGrad)" stroke="#3d1e00" stroke-width="1.5"/>
+    <!-- Corruption veins on right leg -->
+    <path d="M277,395 C282,415 287,440 292,460" fill="none" stroke="#0d1b2a" stroke-width="2" opacity="0.5"/>
+
+    <!-- Knee armor plates -->
+    <ellipse cx="233" cy="430" rx="14" ry="8" fill="#cc6a00" stroke="#3d1e00" stroke-width="1"/>
+    <ellipse cx="279" cy="430" rx="14" ry="8" fill="#cc6a00" stroke="#3d1e00" stroke-width="1"/>
+  </g>
+
+  <!-- ============ LAYER 6: Body / torso armor ============ -->
+  <g id="layer-body" filter="url(#dropShadow)">
+    <!-- Main torso -->
+    <path d="M212,218 C198,260 200,310 208,348 L215,378 L297,378 L304,348
+             C312,310 314,260 300,218 Z"
+          fill="url(#armorGrad)" stroke="#553300" stroke-width="2"/>
+
+    <!-- Armor plate segmentation lines -->
+    <path d="M222,248 C238,242 256,248 274,242 L290,248" fill="none" stroke="#aa6600" stroke-width="1.5" opacity="0.5"/>
+    <path d="M218,285 C236,278 256,285 276,278 L294,285" fill="none" stroke="#aa6600" stroke-width="1.5" opacity="0.5"/>
+    <path d="M215,325 C236,318 256,325 276,318 L297,325" fill="none" stroke="#aa6600" stroke-width="1.5" opacity="0.5"/>
+    <path d="M213,358 C236,352 256,358 276,352 L299,358" fill="none" stroke="#aa6600" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Central armor emblem (corrupted seed pattern) -->
+    <circle cx="256" cy="290" r="12" fill="#1b2838" stroke="#ff9100" stroke-width="1.5" opacity="0.6"/>
+    <circle cx="256" cy="290" r="6" fill="#ff9100" opacity="0.3"/>
+
+    <!-- Corruption veins across torso -->
+    <path d="M230,230 C225,260 228,300 235,345" fill="none" stroke="#0d1b2a" stroke-width="2.5" opacity="0.55" filter="url(#corruptFilter)"/>
+    <path d="M282,230 C287,260 284,300 277,345" fill="none" stroke="#0d1b2a" stroke-width="2.5" opacity="0.55" filter="url(#corruptFilter)"/>
+    <path d="M245,240 C240,270 242,310 248,355" fill="none" stroke="#1b2838" stroke-width="1.5" opacity="0.4"/>
+    <path d="M268,240 C273,270 270,310 264,355" fill="none" stroke="#1b2838" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Armor crack lines -->
+    <path d="M240,260 L248,275 L242,290 L250,305" fill="none" stroke="#3d1e00" stroke-width="1.2" opacity="0.7"/>
+    <path d="M272,250 L266,268 L274,282 L268,298" fill="none" stroke="#3d1e00" stroke-width="1.2" opacity="0.7"/>
+  </g>
+
+  <!-- ============ LAYER 7: Shoulder armor (leaf/vine) ============ -->
+  <g id="layer-shoulders">
+    <!-- Left shoulder -->
+    <path d="M212,218 C192,210 172,218 162,235 C155,250 165,262 182,258 C196,254 207,242 212,232 Z"
+          fill="url(#leafGrad)" stroke="#1b3508" stroke-width="1.5"/>
+    <path d="M178,235 C182,242 188,248 195,250" fill="none" stroke="#4a7020" stroke-width="1" opacity="0.5"/>
+
+    <!-- Right shoulder -->
+    <path d="M300,218 C320,210 340,218 350,235 C357,250 347,262 330,258 C316,254 305,242 300,232 Z"
+          fill="url(#leafGrad)" stroke="#1b3508" stroke-width="1.5"/>
+    <path d="M334,235 C330,242 324,248 317,250" fill="none" stroke="#4a7020" stroke-width="1" opacity="0.5"/>
+  </g>
+
+  <!-- ============ LAYER 8: Left arm + broken shield ============ -->
+  <g id="layer-left-arm">
+    <!-- Arm -->
+    <path d="M182,258 C165,290 148,325 135,358"
+          fill="none" stroke="url(#armorGrad)" stroke-width="14" stroke-linecap="round"/>
+    <!-- Forearm corruption -->
+    <path d="M170,280 C162,305 152,330 142,348" fill="none" stroke="#0d1b2a" stroke-width="2" opacity="0.4"/>
+
+    <!-- Shield: shattered sunflower -->
+    <g transform="translate(115,358)">
+      <!-- Shield base disk (cracked) -->
+      <ellipse cx="0" cy="0" rx="44" ry="54" fill="#664400" stroke="#442200" stroke-width="2"/>
+
+      <!-- Remaining broken petals (irregular, jagged) -->
+      <path d="M0,-54 C6,-42 4,-30 0,-24 C-4,-30 -6,-42 0,-54 Z" fill="url(#brokenPetalGrad)"/>
+      <path d="M-38,-34 C-28,-28 -20,-18 -18,-10 C-24,-14 -34,-22 -38,-34 Z" fill="url(#brokenPetalGrad)"/>
+      <path d="M38,-34 C28,-28 20,-18 18,-10 C24,-14 34,-22 38,-34 Z" fill="url(#brokenPetalGrad)"/>
+      <path d="M-44,8 C-32,6 -22,2 -16,0 C-20,8 -30,14 -44,8 Z" fill="url(#brokenPetalGrad)" opacity="0.7"/>
+      <!-- Missing petal outlines (shattered away) -->
+      <path d="M28,20 L44,35 L38,52 L18,46" fill="none" stroke="#442200" stroke-width="1.2" stroke-dasharray="5,4"/>
+      <path d="M-10,48 L0,58 L10,48" fill="none" stroke="#442200" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Deep crack lines across shield -->
+      <path d="M-8,-48 C-2,-25 5,-5 12,30" fill="none" stroke="#221100" stroke-width="2.5" opacity="0.8"/>
+      <path d="M-30,-20 C-15,-8 0,5 20,18" fill="none" stroke="#221100" stroke-width="2" opacity="0.7"/>
+      <path d="M-20,15 C-8,22 5,32 15,45" fill="none" stroke="#221100" stroke-width="1.5" opacity="0.6"/>
+
+      <!-- Thorny vines emerging from cracks -->
+      <path d="M12,30 C20,38 35,42 48,50" fill="none" stroke="#1b3508" stroke-width="4" stroke-linecap="round"/>
+      <polygon points="30,38 28,32 35,33" fill="#2a5010"/>
+      <path d="M-20,15 C-30,22 -45,28 -55,38" fill="none" stroke="#1b3508" stroke-width="3.5" stroke-linecap="round"/>
+      <polygon points="-38,24 -35,18 -42,20" fill="#2a5010"/>
+    </g>
+  </g>
+
+  <!-- ============ LAYER 9: Right arm + spear ============ -->
+  <g id="layer-right-arm">
+    <!-- Arm -->
+    <path d="M330,258 C348,288 362,318 372,348"
+          fill="none" stroke="url(#armorGrad)" stroke-width="14" stroke-linecap="round"/>
+    <!-- Forearm corruption -->
+    <path d="M342,278 C352,305 362,330 368,345" fill="none" stroke="#0d1b2a" stroke-width="2" opacity="0.4"/>
+
+    <!-- Spear shaft -->
+    <line x1="370" y1="128" x2="392" y2="445" stroke="#664422" stroke-width="6"/>
+    <line x1="370" y1="128" x2="392" y2="445" stroke="url(#spearGrad)" stroke-width="4"/>
+
+    <!-- Spear tip: corrupted lotus/flame shape -->
+    <path d="M370,128 C362,110 358,90 370,60
+             C374,50 376,42 370,30
+             C378,42 382,50 386,60
+             C398,90 394,110 386,128 Z"
+          fill="url(#spearTipGrad)" stroke="#cc3355" stroke-width="1"/>
+    <!-- Spear tip inner glow -->
+    <path d="M370,128 C364,112 362,95 370,70
+             C378,95 376,112 370,128 Z"
+          fill="#ff6b8a" opacity="0.5" filter="url(#smallGlow)"/>
+    <!-- Tip energy emanation -->
+    <ellipse cx="370" cy="55" rx="8" ry="12" fill="#ff9100" opacity="0.3" filter="url(#smallGlow)"/>
+
+    <!-- Spear cross-guard -->
+    <path d="M378,130 L365,138 L356,130 L365,122 Z" fill="#cc6a00" stroke="#553300" stroke-width="1"/>
+    <path d="M378,130 L391,138 L400,130 L391,122 Z" fill="#cc6a00" stroke="#553300" stroke-width="1"/>
+  </g>
+
+  <!-- ============ LAYER 10: Sunflower head (void corruption) ============ -->
+  <g id="layer-head" transform="translate(256,170)">
+    <!-- Outer broken petal ring — irregular, some missing -->
+    <ellipse cx="0" cy="-52" rx="13" ry="24" fill="url(#brokenPetalGrad)" transform="rotate(0)" opacity="0.9"/>
+    <ellipse cx="0" cy="-52" rx="11" ry="20" fill="url(#brokenPetalGrad)" transform="rotate(45)" opacity="0.75"/>
+    <ellipse cx="0" cy="-52" rx="13" ry="24" fill="url(#brokenPetalGrad)" transform="rotate(90)" opacity="0.85"/>
+    <!-- gap: missing petal at 135 -->
+    <ellipse cx="0" cy="-52" rx="10" ry="16" fill="url(#brokenPetalGrad)" transform="rotate(135)" opacity="0.35"/>
+    <ellipse cx="0" cy="-52" rx="13" ry="24" fill="url(#brokenPetalGrad)" transform="rotate(180)" opacity="0.8"/>
+    <ellipse cx="0" cy="-52" rx="12" ry="22" fill="url(#brokenPetalGrad)" transform="rotate(225)" opacity="0.7"/>
+    <!-- gap: missing petal at 270 -->
+    <ellipse cx="0" cy="-52" rx="8" ry="12" fill="url(#brokenPetalGrad)" transform="rotate(270)" opacity="0.3"/>
+    <ellipse cx="0" cy="-52" rx="13" ry="24" fill="url(#brokenPetalGrad)" transform="rotate(315)" opacity="0.85"/>
+
+    <!-- Petal shard fragments floating away -->
+    <path d="M48,-42 L56,-50 L52,-38 Z" fill="#e0a000" opacity="0.5"/>
+    <path d="M-52,-38 L-60,-48 L-54,-34 Z" fill="#cc8800" opacity="0.45"/>
+    <path d="M38,38 L46,32 L42,44 Z" fill="#996600" opacity="0.35"/>
+
+    <!-- Black void sphere center -->
+    <circle cx="0" cy="0" r="34" fill="url(#voidSphere)"/>
+    <!-- Void outer fierce glow -->
+    <circle cx="0" cy="0" r="42" fill="#ff6b00" opacity="0.25" filter="url(#voidPulse)"/>
+    <circle cx="0" cy="0" r="55" fill="#ff9100" opacity="0.1" filter="url(#voidPulse)"/>
+
+    <!-- Orange energy beams radiating from void -->
+    <g opacity="0.7" filter="url(#beamGlow)">
+      <line x1="0" y1="0" x2="0" y2="-85" stroke="#ff9100" stroke-width="2.5"/>
+      <line x1="0" y1="0" x2="60" y2="-60" stroke="#ff6b00" stroke-width="2"/>
+      <line x1="0" y1="0" x2="85" y2="0" stroke="#ff9100" stroke-width="2.5"/>
+      <line x1="0" y1="0" x2="60" y2="60" stroke="#ff6b00" stroke-width="1.8"/>
+      <line x1="0" y1="0" x2="0" y2="85" stroke="#ff6b00" stroke-width="2"/>
+      <line x1="0" y1="0" x2="-60" y2="60" stroke="#ff9100" stroke-width="1.8"/>
+      <line x1="0" y1="0" x2="-85" y2="0" stroke="#ff9100" stroke-width="2.5"/>
+      <line x1="0" y1="0" x2="-60" y2="-60" stroke="#ff6b00" stroke-width="2"/>
+    </g>
+
+    <!-- Intermediate energy rays (thinner) -->
+    <g opacity="0.4">
+      <line x1="0" y1="0" x2="30" y2="-78" stroke="#ff6b8a" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="78" y2="-30" stroke="#ff6b8a" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="78" y2="30" stroke="#ff6b8a" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="30" y2="78" stroke="#ff6b8a" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="-30" y2="78" stroke="#ff6b8a" stroke-width="1"/>
+      <line x1="0" y1="0" x2="-78" y2="30" stroke="#ff6b8a" stroke-width="1"/>
+      <line x1="0" y1="0" x2="-78" y2="-30" stroke="#ff6b8a" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="-30" y2="-78" stroke="#ff6b8a" stroke-width="1.2"/>
+    </g>
+
+    <!-- Void inner absolute black -->
+    <circle cx="0" cy="0" r="16" fill="url(#voidInner)"/>
+    <!-- Asymmetric light reflection (top-left light source) -->
+    <ellipse cx="-6" cy="-6" rx="5" ry="4" fill="#1a0800" opacity="0.6"/>
+    <!-- Tiny bright hotspot from void energy -->
+    <circle cx="3" cy="2" r="2.5" fill="#ff9100" opacity="0.7"/>
+  </g>
+
+  <!-- ============ LAYER 11: Overlay corruption energy particles ============ -->
+  <g id="layer-particles" opacity="0.6">
+    <!-- Floating dark energy motes -->
+    <circle cx="180" cy="140" r="3" fill="#0d1b2a"/>
+    <circle cx="340" cy="130" r="2.5" fill="#1b2838"/>
+    <circle cx="150" cy="280" r="2" fill="#0d1b2a"/>
+    <circle cx="370" cy="270" r="2.8" fill="#1b2838"/>
+    <circle cx="200" cy="420" r="2.2" fill="#0d1b2a"/>
+    <circle cx="310" cy="440" r="2" fill="#1b2838"/>
+
+    <!-- Orange energy sparks -->
+    <circle cx="220" cy="115" r="2" fill="#ff9100" filter="url(#smallGlow)"/>
+    <circle cx="295" cy="108" r="1.8" fill="#ff6b00" filter="url(#smallGlow)"/>
+    <circle cx="128" cy="310" r="1.5" fill="#ff9100" filter="url(#smallGlow)"/>
+    <circle cx="385" cy="300" r="1.5" fill="#ff6b00" filter="url(#smallGlow)"/>
+
+    <!-- Pink energy wisps near broken areas -->
+    <ellipse cx="88" cy="375" rx="4" ry="2" fill="#ff6b8a" opacity="0.5" filter="url(#smallGlow)"/>
+    <ellipse cx="420" cy="380" rx="3.5" ry="2" fill="#ff6b8a" opacity="0.45" filter="url(#smallGlow)"/>
+  </g>
+</svg>

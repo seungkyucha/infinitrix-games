@@ -1,0 +1,238 @@
+{
+  "gameId": "petal-storm",
+  "artDirection": {
+    "style": "Painterly digital 2D illustration: visible brushstrokes, rich atmospheric lighting (Ori / Gris feel).",
+    "palette": ["#0d1b2a", "#1b2838", "#f0e6d3", "#ffd700", "#ff6b8a", "#b388ff", "#00e5ff"],
+    "mood": "신비로운 천상화원, 아름다우면서도 위험한 꽃의 전쟁, 발광과 어둠의 대비",
+    "reference": "Ori and the Blind Forest + Gris + Touhou",
+    "signature": "꽃잎 탄막이 아름다우면서도 위협적인 이중성"
+  },
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "수호자 하나 — 페이스리스 실루엣, 흰 로브, 금색 나비날개, 은빛 긴 머리, 천상의 발광"
+    },
+    "playerFocus": {
+      "file": "player-focus.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "player",
+      "desc": "하나 저속 이동 — 손 모아 집중, 날개 강발광, 사이언 히트박스 구체"
+    },
+    "playerHit": {
+      "file": "player-hit.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "player",
+      "desc": "하나 피격 — 뒤로 밀림, 로브 가장자리 붉은 물듦, 고통 아우라"
+    },
+    "playerIdleSheet": {
+      "file": "player-idle-sheet.svg",
+      "size": "2048x512",
+      "format": "svg",
+      "ref": "player",
+      "frames": 4,
+      "desc": "하나 대기 4프레임 — 로브/머리카락 바람 나부낌, 날개 펄럭임"
+    },
+    "bossSakura": {
+      "file": "boss-sakura.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "1스테이지 벚꽃 정령 — 거대 벚나무 형상, 분홍 꽃잎 왕관, 부패 줄기"
+    },
+    "bossSakuraPhase2": {
+      "file": "boss-sakura-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "boss-sakura",
+      "desc": "벚꽃 정령 2페이즈 — 검은 부패 절반 뒤덮음, 가시 꽃잎, 진홍 눈"
+    },
+    "bossSunflower": {
+      "file": "boss-sunflower.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "2스테이지 해바라기 장군 — 해바라기 머리 기사, 줄기 갑옷, 황금 후광"
+    },
+    "bossSunflowerPhase2": {
+      "file": "boss-sunflower-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "boss-sunflower",
+      "desc": "해바라기 장군 2페이즈 — 꽃잎 방패 파괴, 가시 촉수, 검은 핵 광선"
+    },
+    "bossMaple": {
+      "file": "boss-maple.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "3스테이지 단풍 무녀 — 단풍잎 기모노, 부채, 가을 바람"
+    },
+    "bossMaplePhase2": {
+      "file": "boss-maple-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "boss-maple",
+      "desc": "단풍 무녀 2페이즈 — 기모노 찢어짐, 이중 부채, 낙엽 폭풍"
+    },
+    "bossFrost": {
+      "file": "boss-frost.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "4스테이지 눈꽃 여왕 — 얼음 왕관, 서리꽃 드레스, 파란 발광"
+    },
+    "bossFrostPhase2": {
+      "file": "boss-frost-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "boss-frost",
+      "desc": "눈꽃 여왕 2페이즈 — 얼음 가시 드레스, 얼음 날개, 눈보라, 서리 균열"
+    },
+    "bossCelestial": {
+      "file": "boss-celestial.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "5스테이지 천화의 수호수 — 사계절 세계수, 빛나는 핵, 4색 가지"
+    },
+    "bossCelestialPhase2": {
+      "file": "boss-celestial-phase2.svg",
+      "size": "512x512",
+      "format": "svg",
+      "ref": "boss-celestial",
+      "desc": "수호수 2페이즈 — 검은 부패, 무지개 핵 파동, 4가지 독립 탄막, 가시 덩굴"
+    },
+    "bulletPetalPink": {
+      "file": "bullet-petal-pink.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "분홍 벚꽃잎 탄환 — 회전, 분홍 발광"
+    },
+    "bulletPetalGold": {
+      "file": "bullet-petal-gold.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "황금 해바라기 꽃잎 탄환 — 뾰족, 금색 발광"
+    },
+    "bulletLeafRed": {
+      "file": "bullet-leaf-red.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "붉은 단풍잎 탄환 — 느린 회전, 잔상 트레일"
+    },
+    "bulletCrystalIce": {
+      "file": "bullet-crystal-ice.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "얼음 결정 탄환 — 6각 눈 결정, 파란 발광"
+    },
+    "bulletRainbow": {
+      "file": "bullet-rainbow.png",
+      "size": "384x128",
+      "format": "png",
+      "desc": "무지개 탄환 — 7색 구체 대중소 3변형"
+    },
+    "bulletPlayer": {
+      "file": "bullet-player.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "아군 사이언 빛 화살 탄환"
+    },
+    "itemPower": {
+      "file": "item-power.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "파워업 — 금색 꽃봉오리, 빛 파티클"
+    },
+    "itemBomb": {
+      "file": "item-bomb.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "폭탄 아이템 — 은색 씨앗, 반투명 발광 구체"
+    },
+    "itemScore": {
+      "file": "item-score.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "점수 아이템 — 파스텔 꽃잎 무더기, 반짝임"
+    },
+    "bgFar": {
+      "file": "bg-far.png",
+      "size": "960x540",
+      "format": "png",
+      "desc": "원경 — 페인터리 밤하늘, 은하수, 먼 산 실루엣"
+    },
+    "bgMid": {
+      "file": "bg-mid.png",
+      "size": "960x540",
+      "format": "png",
+      "desc": "중경 — 빛나는 포자, 꽃잎, 나뭇가지 실루엣, 빛줄기"
+    },
+    "bgField": {
+      "file": "bg-field.png",
+      "size": "960x540",
+      "format": "png",
+      "desc": "게임 필드 — 덩굴/꽃 프레임, 투명 중앙, 풀밭"
+    },
+    "effectHit": {
+      "file": "effect-hit.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "피격 이펙트 — 꽃잎 임팩트, 분홍-빨강, 빛 플래시"
+    },
+    "effectBomb": {
+      "file": "effect-bomb.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "폭탄 이펙트 — 금색 빛 원, 꽃잎 원형 확산"
+    },
+    "effectBossDeathSheet": {
+      "file": "effect-boss-death-sheet.png",
+      "size": "3072x512",
+      "format": "png",
+      "frames": 6,
+      "desc": "보스 사망 6프레임 — 빛 분해→꽃잎 흩어짐→소멸"
+    },
+    "effectGraze": {
+      "file": "effect-graze.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "그레이즈 이펙트 — 사이언 빛 링, 금색 스파클, 다중 동심원"
+    },
+    "particlePetal": {
+      "file": "particle-petal.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "배경 꽃잎 파티클 — 분홍 꽃잎, 알파 그라데이션, 글로우"
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.svg",
+      "size": "64x64",
+      "format": "svg",
+      "desc": "반짝임 파티클 — 사이언-화이트 십자 빛점, 글로우"
+    },
+    "uiHp": {
+      "file": "ui-hp.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 아이콘 — 분홍 꽃봉오리/하트 식물 디자인"
+    },
+    "uiBomb": {
+      "file": "ui-bomb.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "폭탄 아이콘 — 은색 씨앗, 간결한 UI용"
+    },
+    "uiBossFrame": {
+      "file": "ui-boss-frame.png",
+      "size": "512x64",
+      "format": "png",
+      "desc": "보스 HP바 프레임 — 덩굴 감싼 가로 바, 잎사귀 장식"
+    },
+    "uiPowerupFrame": {
+      "file": "ui-powerup-frame.png",
+      "size": "256x384",
+      "format": "png",
+      "desc": "파워업 선택 카드 프레임 — 나뭇잎/덩굴 테두리"
+    }
+  }
+}

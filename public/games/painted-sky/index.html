@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>물들인 하늘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d1b2a;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script src="/engine/genres/shooter.js"></script>
+<script>
+'use strict';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil,
+        Layout, Sprite, Button, Scene, GameFlow, StateGuard, Pool, SpatialHash, PopupText } = IX;
+const { BulletPatterns, GrazeSystem } = IX.Genre.Shooter;
+const fontSize = (...a) => Layout.fontSize(...a);
+const lScale   = (...a) => Layout.scale(...a);
+const engine=new Engine('gameCanvas'), input=new Input(engine.canvas);
+const sound=new Sound(), tween=new Tween(), particles=new Particles(300);
+const assets=new AssetLoader(), popups=new PopupText({defaultVy:-80,defaultLife:0.8});
+const sHash=new SpatialHash(64), GID='painted-sky';
+const bp=new BulletPatterns({speedScale:100});
+
+/* ═══════ CONFIG: 난이도 ═══════ */
+const DIFF={
+  easy:{hp:5,bombs:5,bSpd:0.7,bDen:0.6,bhpMul:0.8,inv:3,gR:30,gMul:1,hintDur:1.5,label:'수채',col:'#7ec8e3'},
+  normal:{hp:3,bombs:3,bSpd:1.0,bDen:1.0,bhpMul:1.0,inv:2,gR:20,gMul:2,hintDur:1.0,label:'먹물',col:'#ff9100'},
+  hard:{hp:1,bombs:1,bSpd:1.3,bDen:1.4,bhpMul:1.5,inv:1,gR:15,gMul:5,hintDur:0.5,label:'진묵',col:'#ff4466'},
+};
+
+/* ═══════ CONFIG: 스테이지 ═══════ */
+const STAGES=[
+  {name:'새벽 하늘',dur:60,bgT:'#ffb3c6',bgB:'#87ceeb',bCol:'#ff6b8a',wInt:2.5,denMul:1.0,bName:'안개 화가',bA1:'bossFogPainter',bA2:'bossFogPainterPhase2'},
+  {name:'석양 들판',dur:75,bgT:'#ff9100',bgB:'#7b2d8b',bCol:'#ffa726',wInt:2.0,denMul:1.3,bName:'노을 무희',bA1:'bossSunsetDancer',bA2:'bossSunsetDancerPhase2'},
+  {name:'별빛 바다',dur:90,bgT:'#0a1628',bgB:'#004d5c',bCol:'#80d8ff',wInt:1.5,denMul:1.6,bName:'심해 거인',bA1:'bossDeepGiant',bA2:'bossDeepGiantPhase2'},
+  {name:'먹구름 성채',dur:90,bgT:'#0a0014',bgB:'#1a0033',bCol:'#e040fb',wInt:1.2,denMul:2.0,bName:'먹구름의 화가',bA1:'bossInkLord',bA2:'bossInkLordPhase2'},
+];
+
+/* ═══════ CONFIG: 보스 패턴 ═══════ */
+const BOSS=[
+  {sub:'안개 속 잊혀진 붓의 주인',hp:{easy:800,normal:1000,hard:1500},p1:[{t:'fan',n:12,s:2,sp:60,i:1.5},{t:'radial',n:12,s:1.8,i:2}],p2:[{t:'doubleFan',n:24,s:2.5,sp:90,i:1},{t:'rain',n:20,s:2,i:1.5},{t:'spiral',arms:3,n:8,s:1.8,rot:0.02,i:2}]},
+  {sub:'노을에 춤추는 붉은 그림자',hp:{easy:1200,normal:1500,hard:2250},p1:[{t:'spiral',arms:3,n:10,s:2,rot:0.02,i:1.5},{t:'fan',n:16,s:2.2,sp:90,i:1.2}],p2:[{t:'spiral',arms:5,n:12,s:2.5,rot:0.04,i:1},{t:'aimed',n:5,s:4,sp:20,i:1.5},{t:'radial',n:24,s:2,i:1.2}]},
+  {sub:'심해에서 깨어난 잉크의 거인',hp:{easy:1600,normal:2000,hard:3000},p1:[{t:'wave',n:16,s:1.5,i:2},{t:'radial',n:16,s:2,i:1.5}],p2:[{t:'aimed',n:3,s:4.5,sp:15,i:1},{t:'gravity',pull:0.3,dur:3,i:5},{t:'spiral',arms:6,n:12,s:2,rot:0.04,i:2},{t:'rain',n:15,s:3,i:0.8}]},
+  {sub:'어둠의 캔버스를 지배하는 화가',hp:{easy:2400,normal:3000,hard:4500},p1:[{t:'pattern',shape:'kanji-darkness',n:12,s:1.5,i:3},{t:'spiral',arms:6,n:15,s:2,rot:0.03,i:2},{t:'burst',n:1,splitN:12,s:3,i:4}],p2:[{t:'blackout',cov:0.3,dur:3,i:8},{t:'combined',sub:['spiral','aimed'],i:3},{t:'spiral',arms:8,n:18,s:2.5,rot:0.05,i:1.5},{t:'pattern',shape:'kanji-void',n:16,s:2,i:5}]},
+];
+
+/* ═══════ CONFIG: 파워업 12종 ═══════ */
+const PUPS=[
+  {id:'spread',cat:'atk',name:'빛의 확산',desc:'전방 3발',ic:'#ff4466'},
+  {id:'pierce',cat:'atk',name:'관통의 빛',desc:'탄환 관통',ic:'#ff6b8a'},
+  {id:'rapid',cat:'atk',name:'신속 연사',desc:'연사+50%',ic:'#ff9100'},
+  {id:'homing',cat:'atk',name:'추적 나비',desc:'5초마다 유도탄',ic:'#ffa726'},
+  {id:'shield',cat:'def',name:'빛의 보호막',desc:'30초마다 무효',ic:'#00e5ff'},
+  {id:'grzHeal',cat:'def',name:'그레이즈 치유',desc:'80회→HP+1',ic:'#00bcd4'},
+  {id:'speed',cat:'def',name:'바람의 가호',desc:'이동+20%',ic:'#4fc3f7'},
+  {id:'invExt',cat:'def',name:'연장 무적',desc:'무적+1초',ic:'#80d8ff'},
+  {id:'magnet',cat:'spc',name:'아이템 자석',desc:'흡수 2배',ic:'#ffd700'},
+  {id:'grzPro',cat:'spc',name:'그레이즈 달인',desc:'판정+10px',ic:'#ffeb3b'},
+  {id:'bombSlow',cat:'spc',name:'시간의 빛',desc:'폭탄 시 슬로우',ic:'#ce93d8'},
+  {id:'revive',cat:'spc',name:'부활의 빛',desc:'1회 부활',ic:'#e040fb'},
+];
+
+/* ═══════ CONFIG: 메타 업그레이드 ═══════ */
+const UPGS=[
+  {id:'armor',name:'빛의 갑옷',max:3,costs:[100,300,600]},
+  {id:'bombUp',name:'빛의 폭탄',max:3,costs:[80,200,400]},
+  {id:'wings',name:'빛의 날개',max:3,costs:[60,150,300]},
+  {id:'rapidUp',name:'빛의 연사',max:3,costs:[80,200,400]},
+  {id:'lifeGraze',name:'빛의 생명',max:2,costs:[200,500]},
+];
+
+/* ═══════ SVG 스프라이트 시트 크기 (Firefox/Safari naturalWidth=0 대응) ═══════ */
+const SPRITE_DIMS={
+  effectHit:{w:512,h:128},effectBomb:{w:768,h:128},effectEnemyDeath:{w:512,h:128},
+  effectBossDeath:{w:768,h:128},effectBossPhase:{w:512,h:128},effectGraze:{w:128,h:128},
+  playerIdleSheet:{w:2048,h:512},itemScoreSheet:{w:384,h:64},
+};
+
+/* ═══════ 게임 상태 변수 ═══════ */
+let diff='normal',dc=DIFF.normal;
+let sIdx=0,sTime=0,bossMode=false,bIntro=0;
+let score=0,hp=3,maxHp=3,bombs=3,maxBombs=3;
+let grzCnt=0,grzCombo=0,totalGrz=0;
+let invT=0,shakeT=0,shakeI=0,flashA=0,slowT=0,iDelay=0;
+let px=0,py=0,pSpd=280,focused=false,fTimer=0,fRate=8,bgScY=0;
+let bHP=0,bMaxHP=0,bPhase=1,bx=0,by=0,bStartTime=0;
+let bPIdx=0,bPTimer=0,bAlive=false,bTrans=false,bTransT=0,spiralA=0;
+/* 보스 예고선 & 힌트 상태 */
+let warningLines=[]; // [{x1,y1,x2,y2,timer,maxTimer}]
+let bHinting=false,bHintT=0;
+/* gravity 패턴 상태 */
+let gravityActive=false,gravityTimer=0,gravityStrength=0;
+/* blackout 패턴 상태 */
+let blackoutActive=false,blackoutTimer=0,blackoutCoverage=0;
+/* 파워업 아이템 임시 버프 */
+let tempAtkT=0;
+let wTimer=0,wCnt=0;
+let pups=[],homingT=0,shieldT=0,shieldOn=false,shieldStacks=0,revived=false;
+let grzHealCnt=0,lifeGrzCnt=0,noDmg=true,bombsUsed=0;
+let cleared=false,frags=0,savedUp=null;
+let touchJoy=null,tBombBtn=null,tFocusBtn=null,focusToggle=false;
+let _pupData=null,_pupChoices=[];
+let isMobileDevice=false;
+/* 시너지 상태 */
+let synergyApplied={atk:false,def:false,spc:false,harmony:false};
+let harmonyInvT=0,harmonyDmgMul=1;
+/* 스프라이트 애니메이션 객체 */
+let sprEffHit=null,sprEffBomb=null,sprEffEDeath=null,sprEffBDeath=null,sprEffBPhase=null;
+/* idle 스프라이트 애니메이션 */
+let sprPlayerIdle=null,idleAnimTimer=0;
+/* 이펙트 큐: [{sprite,x,y,size,done}] */
+let effectQueue=[];
+
+/* ═══════ 오브젝트 풀 ═══════ */
+const ebPool=new Pool(400,()=>({active:false,x:0,y:0,vx:0,vy:0,r:4,_grazed:false,large:false,_burst:false,_splitN:0,_splitSpd:0}));
+const pbPool=new Pool(60,()=>({active:false,x:0,y:0,vy:0,pierce:false,dmg:1}));
+const enPool=new Pool(40,()=>({active:false,x:0,y:0,hp:0,mhp:0,type:0,w:28,h:28,vx:0,vy:0,ft:0,fi:2}));
+const itPool=new Pool(20,()=>({active:false,x:0,y:0,type:'score',vy:0}));
+
+/* ═══════ 전체 초기화 ═══════ */
+function resetAll(){
+  sIdx=0;sTime=0;bossMode=false;bIntro=0;score=0;grzCnt=0;grzCombo=0;totalGrz=0;
+  invT=0;shakeT=0;shakeI=0;flashA=0;slowT=0;iDelay=0.2;focused=false;fTimer=0;bgScY=0;
+  bHP=0;bMaxHP=0;bPhase=1;bx=0;by=0;bStartTime=0;bPIdx=0;bPTimer=0;bAlive=false;bTrans=false;bTransT=0;spiralA=0;
+  warningLines=[];bHinting=false;bHintT=0;gravityActive=false;gravityTimer=0;gravityStrength=0;blackoutActive=false;blackoutTimer=0;blackoutCoverage=0;tempAtkT=0;idleAnimTimer=0;
+  wTimer=0;wCnt=0;pups=[];homingT=0;shieldT=0;shieldOn=false;shieldStacks=0;revived=false;
+  grzHealCnt=0;lifeGrzCnt=0;noDmg=true;bombsUsed=0;cleared=false;frags=0;
+  touchJoy=null;tBombBtn=null;tFocusBtn=null;focusToggle=false;_pupData=null;_pupChoices=[];
+  synergyApplied={atk:false,def:false,spc:false,harmony:false};harmonyInvT=0;harmonyDmgMul=1;
+  effectQueue=[];
+  ebPool.releaseAll();pbPool.releaseAll();enPool.releaseAll();itPool.releaseAll();popups.clear();bp.resetAngle();
+  savedUp=Save.get(GID+'_upg',{armor:0,bombUp:0,wings:0,rapidUp:0,lifeGraze:0});
+  const u=savedUp;
+  maxHp=dc.hp+(u.armor||0);hp=maxHp;maxBombs=dc.bombs+(u.bombUp||0);bombs=maxBombs;
+  pSpd=280*(1+(u.wings||0)*0.05);fRate=8*(1+(u.rapidUp||0)*0.1);
+}
+
+/* ═══════ 유틸 ═══════ */
+function hasPup(id){return pups.some(p=>p.id===id);}
+function catCnt(c){return pups.filter(p=>p.cat===c).length;}
+
+/* ═══════ 시너지 체크 & 적용 ═══════ */
+function checkSynergies(){
+  const ac=catCnt('atk'),dc2=catCnt('def'),sc=catCnt('spc');
+  /* 공격 3+: 빛의 분노 — 전체 데미지 +30% (atkB 계산에서 반영) */
+  if(ac>=3&&!synergyApplied.atk){synergyApplied.atk=true;popups.add(px,py-40,'🗡️ 빛의 분노!','#ff4466');}
+  /* 방어 3+: 빛의 축복 — 실드 2개 */
+  if(dc2>=3&&!synergyApplied.def){synergyApplied.def=true;shieldStacks=2;shieldOn=true;shieldT=0;popups.add(px,py-60,'🛡️ 빛의 축복!','#00e5ff');}
+  /* 특수 3+: 빛의 기적 — 특수 효과 +50% (그레이즈 범위, 자석 범위 등 1.5배) */
+  if(sc>=3&&!synergyApplied.spc){synergyApplied.spc=true;popups.add(px,py-80,'✨ 빛의 기적!','#ffd700');}
+  /* 공+방+특 각 1+: 조화의 빛 — 보스전 시작 5초 무적+데미지×1.5 */
+  if(ac>=1&&dc2>=1&&sc>=1&&!synergyApplied.harmony){synergyApplied.harmony=true;popups.add(px,py-100,'🌈 조화의 빛!','#e040fb');}
+}
+/** 특수 시너지 배율 (spc 3+이면 1.5, 아니면 1.0) */
+function spcMul(){return synergyApplied.spc?1.5:1.0;}
+
+/* ═══════ 이펙트 스프라이트 재생 ═══════ */
+function spawnEffect(spriteKey,x,y,size,frames,onDone){
+  if(!assets.has(spriteKey))return;
+  const img=assets.sprites[spriteKey];
+  const dims=SPRITE_DIMS[spriteKey];
+  const fW=dims?(dims.w/frames):((img.naturalWidth||512)/frames);
+  const fH=dims?dims.h:(img.naturalHeight||128);
+  const spr=new Sprite(img,fW,fH,frames,12);spr.loop=false;spr.reset();
+  effectQueue.push({sprite:spr,x,y,size,done:false,key:spriteKey});
+}
+
+/* ═══════ SFX ═══════ */
+function sfxShot(){sound.tone(800,0.04,'sine',0.12);}
+function sfxHit(){sound.tone(200,0.15,'sawtooth',0.35);sound.tone(100,0.2,'square',0.2);}
+function sfxGraze(){sound.tone(1200+grzCombo*50,0.06,'sine',0.2);}
+function sfxBomb(){sound.tone(40,0.4,'sawtooth',0.5);sound.tone(100,0.3,'square',0.3);}
+function sfxEDie(){sound.tone(400,0.1,'square',0.2);sound.tone(200,0.15,'sawtooth',0.15);}
+function sfxBPhase(){sound.tone(60,0.5,'sawtooth',0.4);}
+function sfxBDie(){for(let i=0;i<5;i++)Scene.setTimeout(()=>sound.tone(523*(1+i*0.2),0.2,'sine',0.3),i*200);}
+function sfxPow(){sound.tone(523,0.08,'sine',0.3);sound.tone(659,0.1,'sine',0.3);sound.tone(784,0.12,'sine',0.3);}
+function sfxSel(){sound.tone(660,0.06,'square',0.25);sound.tone(880,0.08,'square',0.25);}
+
+/* ═══════ 적탄 스폰 ═══════ */
+function spawnEB(x,y,vx,vy,large){const b=ebPool.acquire();if(!b)return;b.x=x;b.y=y;b.vx=vx;b.vy=vy;b.r=large?10:4;b._grazed=false;b.large=!!large;b._burst=false;b._splitN=0;b._splitSpd=0;}
+
+/* ═══════ 보스 예고선 추가 ═══════ */
+function addWarningLine(ox,oy,angle,len){
+  const warnTime=diff==='easy'?1.5:diff==='hard'?0.5:1.0;
+  warningLines.push({x1:ox,y1:oy,x2:ox+Math.cos(angle)*len,y2:oy+Math.sin(angle)*len,timer:warnTime,maxTimer:warnTime});
+}
+function addWarningBurst(ox,oy,n,len){
+  for(let i=0;i<n;i++)addWarningLine(ox,oy,(Math.PI*2/n)*i,len);
+}
+
+/* ═══════ 'pattern' 타입 좌표 배열 (문자/도형 형태 탄막) ═══════ */
+const PATTERN_SHAPES={
+  'kanji-darkness':[ // 闇(어둠) 단순화 — 십자 + 대각 격자
+    [0,0],[1,0],[-1,0],[0,1],[0,-1],[0.7,0.7],[-0.7,0.7],[0.7,-0.7],[-0.7,-0.7],
+    [0.5,0],[-0.5,0],[0,0.5],[0,-0.5],
+  ].map(([x,y])=>[x*60,y*60]),
+  'kanji-void':[ // 虛(허) 단순화 — 원형+방사
+    ...Array.from({length:8},(_,i)=>{const a=Math.PI*2/8*i;return [Math.cos(a)*50,Math.sin(a)*50];}),
+    ...Array.from({length:8},(_,i)=>{const a=Math.PI*2/8*i+Math.PI/8;return [Math.cos(a)*30,Math.sin(a)*30];}),
+    [0,0],[0,40],[0,-40],[40,0],[-40,0],
+  ],
+};
+
+/* ═══════ 예고선 생성 (발사 전 힌트) ═══════ */
+function generateWarnings(pat,ox,oy,w,h){
+  const pa=MathUtil.angle(ox,oy,px,py),dm=dc.bDen*(STAGES[sIdx].denMul||1),n=Math.round((pat.n||12)*dm);
+  switch(pat.t){
+    case'radial':addWarningBurst(ox,oy,Math.min(n,8),120);break;
+    case'fan':case'doubleFan':addWarningLine(ox,oy,pa,150);break;
+    case'spiral':addWarningBurst(ox,oy,pat.arms||3,100);break;
+    case'aimed':addWarningLine(ox,oy,pa,200);break;
+    case'pattern':addWarningBurst(ox,oy,6,80);break;
+    case'burst':addWarningBurst(ox,oy,4,100);break;
+    case'combined':{const subs=pat.sub||['spiral','aimed'];const allPats=bPhase===1?BOSS[sIdx].p1:BOSS[sIdx].p2;
+      for(const subT of subs){const ref=allPats.find(p=>p.t===subT);if(ref)generateWarnings(ref,ox,oy,w,h);}break;}
+  }
+}
+
+/* ═══════ 탄막 패턴 발사 (코어 패턴은 IX.Genre.Shooter.BulletPatterns 사용) ═══════ */
+/** bp 결과 배열을 풀에 일괄 스폰하는 헬퍼 */
+function spawnFromBP(bullets,large){for(const b of bullets)spawnEB(b.x,b.y,b.vx,b.vy,large);}
+function firePat(pat,ox,oy,w,h){
+  const sm=dc.bSpd,dm=dc.bDen*(STAGES[sIdx].denMul||1),pa=MathUtil.angle(ox,oy,px,py),n=Math.round((pat.n||12)*dm);
+  bp.speedScale=dc.bSpd*100; // 난이도별 속도 배율 동기화
+  switch(pat.t){
+    case'radial':spawnFromBP(bp.radial(ox,oy,n,pat.s));break;
+    case'fan':spawnFromBP(bp.fan(ox,oy,pa,n,pat.sp||60,pat.s));break;
+    case'doubleFan':spawnFromBP(bp.doubleFan(ox,oy,pa,n,pat.sp||60,pat.s));break;
+    case'spiral':{bp.spiralAngle=spiralA;const bullets=bp.spiral(ox,oy,pat.arms||3,n,pat.s,pat.rot||0.02);spawnFromBP(bullets);spiralA=bp.spiralAngle;break;}
+    case'aimed':spawnFromBP(bp.aimed(ox,oy,pa,n,pat.sp||20,pat.s));break;
+    case'rain':spawnFromBP(bp.rain(w,n,pat.s));break;
+    case'wave':spawnFromBP(bp.wave(ox,oy,n,pat.s));break;
+    case'burst':{const b=ebPool.acquire();if(b){b.x=ox;b.y=oy;b.vx=0;b.vy=pat.s*dc.bSpd*100*0.6;b.r=10;b._grazed=false;b.large=true;b._burst=true;b._splitN=pat.splitN||12;b._splitSpd=pat.s*dc.bSpd*100;}break;}
+    case'gravity':{gravityActive=true;gravityTimer=pat.dur||3;gravityStrength=pat.pull||0.3;break;}
+    case'blackout':{blackoutActive=true;blackoutTimer=pat.dur||3;blackoutCoverage=pat.cov||0.3;break;}
+    case'pattern':{const coords=PATTERN_SHAPES[pat.shape]||PATTERN_SHAPES['kanji-darkness'],sm2=dc.bSpd*100;
+      for(const[dx,dy] of coords){const a=MathUtil.angle(ox+dx,oy+dy,px,py);spawnEB(ox+dx,oy+dy,Math.cos(a)*pat.s*sm2*0.8,Math.sin(a)*pat.s*sm2*0.8);}break;}
+    case'combined':{const subs=pat.sub||['spiral','aimed'];const allPats=bPhase===1?BOSS[sIdx].p1:BOSS[sIdx].p2;
+      for(const subT of subs){const ref=allPats.find(p=>p.t===subT);if(ref)firePat(ref,ox,oy,w,h);
+        else{if(subT==='spiral')firePat({t:'spiral',arms:4,n:10,s:2,rot:0.03,i:2},ox,oy,w,h);
+          else if(subT==='aimed')firePat({t:'aimed',n:5,s:3.5,sp:25,i:1.5},ox,oy,w,h);}}break;}
+  }
+}
+
+/* ═══════ 적 웨이브 스폰 ═══════ */
+function spawnWave(w,h){
+  const types=sIdx>=2?[0,1,2,3]:[0,1,3],cnt=MathUtil.randInt(3,5+sIdx);
+  for(let i=0;i<cnt;i++){const e=enPool.acquire();if(!e)break;e.type=types[MathUtil.randInt(0,types.length-1)];
+    e.x=MathUtil.randRange(w*0.1,w*0.9);e.y=MathUtil.randRange(-60,-20);e.hp=e.type===3?8:3;e.mhp=e.hp;
+    e.w=e.type===3?40:28;e.h=e.w;e.vx=MathUtil.randRange(-40,40);e.vy=MathUtil.randRange(30,80);
+    e.ft=MathUtil.randRange(0.5,2);e.fi=e.type===3?1.5:2.5;}
+}
+
+/* ═══════ 보스 초기화 ═══════ */
+function initBoss(w,h){
+  const bd=BOSS[sIdx];bMaxHP=bd.hp[diff];bHP=bMaxHP;bPhase=1;bx=w/2;by=h*0.15;bPIdx=0;bPTimer=2;bAlive=true;bTrans=false;spiralA=0;bStartTime=sTime;
+  /* 조화의 빛 시너지: 보스전 시작 5초 무적 + 데미지×1.5 */
+  if(synergyApplied.harmony){harmonyInvT=5;harmonyDmgMul=1.5;invT=Math.max(invT,5);popups.add(px,py-30,'조화의 빛 발동!','#e040fb');}
+}
+
+/* ═══════ 피격 처리 ═══════ */
+function playerHit(){
+  if(invT>0)return;
+  /* 방어 시너지 실드 스택 */
+  if(shieldOn){
+    shieldStacks--;if(shieldStacks<=0){shieldOn=false;shieldT=30;}
+    invT=0.5;spawnEffect('effectHit',px,py,40,4);return;
+  }
+  hp--;noDmg=false;grzCombo=0;sfxHit();shakeT=0.2;shakeI=6;flashA=0.4;
+  spawnEffect('effectHit',px,py,48,4);
+  invT=dc.inv+(hasPup('invExt')?1:0);
+  if(hp<=0){if(hasPup('revive')&&!revived){revived=true;hp=1;invT=3;popups.add(px,py-30,'부활!','#e040fb');return;}
+    const bonus=calcBonus(false);frags=Math.floor(score/100);const sv=Save.get(GID+'_frags',0);Save.set(GID+'_frags',sv+frags);Save.setHighScore(GID,score);
+    Scene.transition('RESULT',{score,stage:sIdx,cleared:false,frags,noDmg,bombsUsed,totalGrz,bonus});}
+}
+
+/* ═══════ 폭탄 사용 ═══════ */
+function useBomb(w,h){
+  if(bombs<=0)return;bombs--;bombsUsed++;sfxBomb();ebPool.releaseAll();flashA=0.6;invT=Math.max(invT,2);
+  gravityActive=false;blackoutActive=false;blackoutTimer=0;gravityTimer=0;
+  spawnEffect('effectBomb',w/2,h/2,Math.max(w,h)*0.6,6);
+  particles.emit(px,py,40,{color:'#ffd700',speed:250,life:0.8,size:5});
+  if(hasPup('bombSlow'))slowT=3*spcMul();
+  if(bAlive){bHP-=50;if(bHP<0)bHP=0;}
+}
+
+/* ═══════ 보너스 계산 ═══════ */
+function calcBonus(isCleared){
+  const b={stage:0,noDmg:0,bombSave:0,speed:0,perfect:0,total:0};
+  if(isCleared){b.stage=1000*(sIdx+1);const ub=bombs;b.bombSave=ub*5000;
+    if(noDmg)b.noDmg=20000;if(bStartTime>0&&(sTime-bStartTime)<60)b.speed=10000;
+    if(noDmg&&bombsUsed===0)b.perfect=50000;}
+  b.total=b.stage+b.noDmg+b.bombSave+b.speed+b.perfect;score+=b.total;return b;
+}
+
+/* ═══════ 배경 렌더링 (3레이어 패럴렉스) ═══════ */
+function drawBG(ctx,w,h,dt){
+  const st=STAGES[sIdx]||STAGES[0],g=ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,st.bgT);g.addColorStop(1,st.bgB);ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  const bk=[['bgDawnFar','bgDawnMid','bgDawnNear'],['bgSunsetFar','bgSunsetMid','bgSunsetNear'],
+    ['bgOceanFar','bgOceanMid','bgOceanNear'],['bgStormFar','bgStormMid','bgStormNear']];
+  const ks=bk[sIdx]||bk[0],spds=[0.3,0.6,1.0];
+  for(let i=0;i<3;i++){if(assets.has(ks[i])){const sy=(bgScY*spds[i])%h;ctx.globalAlpha=0.5+i*0.15;
+    ctx.drawImage(assets.sprites[ks[i]],0,sy,w,h);ctx.drawImage(assets.sprites[ks[i]],0,sy-h,w,h);ctx.globalAlpha=1;}}
+  /* 빛 파티클 장식 (particleLight/particlePetal/particleInk SVG 활용) */
+  const ptcKeys=['particleLight','particlePetal','particleInk'];
+  for(let i=0;i<8;i++){const sx=Math.sin(bgScY*0.01+i*1.2)*w*0.3+w/2,sy=(bgScY*0.5+i*80)%h;
+    const pk=ptcKeys[i%3],psz=6+Math.sin(bgScY*0.02+i)*3;ctx.globalAlpha=0.2+Math.sin(bgScY*0.015+i)*0.1;
+    if(assets.has(pk))assets.draw(ctx,pk,sx-psz,sy-psz,psz*2,psz*2,'#ffd700');
+    else{ctx.fillStyle='rgba(255,215,0,0.12)';ctx.beginPath();ctx.arc(sx,sy,psz,0,Math.PI*2);ctx.fill();}
+  }ctx.globalAlpha=1;bgScY+=dt*0.03;
+}
+
+/* ═══════ 이펙트 큐 업데이트/렌더 ═══════ */
+function updateEffects(dt){
+  for(let i=effectQueue.length-1;i>=0;i--){
+    const e=effectQueue[i];e.sprite.update(dt);
+    if(!e.sprite.playing){effectQueue.splice(i,1);}
+  }
+}
+function renderEffects(ctx){
+  for(const e of effectQueue){
+    const sz=e.size;e.sprite.draw(ctx,e.x-sz/2,e.y-sz/2,sz,sz);
+  }
+}
+
+/* ═══════ 초기화 & 씬 등록 ═══════ */
+async function init(){
+  const manifest=await fetch('assets/manifest.json').then(r=>r.json()).catch(()=>null);
+  if(manifest&&manifest.assets){const map={};for(const[k,info]of Object.entries(manifest.assets))map[k]='assets/'+info.file;await assets.load(map,{timeoutMs:10000});}
+  savedUp=Save.get(GID+'_upg',{armor:0,bombUp:0,wings:0,rapidUp:0,lifeGraze:0});
+  isMobileDevice=input.isMobile;
+  Scene.bind({tween,particles});
+  /* idle 스프라이트 초기화 (playerIdleSheet: 4프레임) */
+  if(assets.has('playerIdleSheet')){const img=assets.sprites['playerIdleSheet'];
+    const d=SPRITE_DIMS['playerIdleSheet'];const fW=d?(d.w/4):((img.naturalWidth||2048)/4);const fH=d?d.h:(img.naturalHeight||512);
+    sprPlayerIdle=new Sprite(img,fW,fH,4,6);sprPlayerIdle.loop=true;}
+
+  /* ═══════ TITLE ═══════ */
+  Scene.register('TITLE',{
+    enter(){iDelay=0.2;const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+      const port=Layout.isPortrait(w,h);
+      const bw=port?Math.min(w*0.8,240):Math.max(200*s,160),bh=Math.max(56*s,48),cx=w/2-bw/2;
+      const by=port?h*0.55:h*0.48,gap=port?10:12;
+      new Button({x:cx,y:by,w:bw,h:bh,text:'게임 시작',key:['Space','Enter'],fontSize:Math.max(16,20*s),color:'#6c3cf7',onClick:()=>{sfxSel();sound.init();Scene.transition('DIFFICULTY');}});
+      new Button({x:cx,y:by+bh+gap,w:bw,h:bh,text:'성소',key:['KeyS'],fontSize:Math.max(14,18*s),color:'#ffd700',onClick:()=>{sfxSel();sound.init();Scene.transition('SANCTUARY');}});
+      new Button({x:cx,y:by+2*(bh+gap),w:bw,h:bh,text:'조작법',key:['KeyC'],fontSize:Math.max(14,18*s),color:'#555',onClick:()=>{sfxSel();Scene.transition('CONTROLS');}});},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);},
+    render(ctx,w,h){drawBG(ctx,w,h,0);ctx.fillStyle='rgba(13,27,42,0.7)';ctx.fillRect(0,0,w,h);
+      const ps=Math.min(w,h)*0.18;assets.draw(ctx,'player',w/2-ps/2,h*0.08,ps,ps,'#f0e6d3');
+      UI.text(ctx,'물들인 하늘',w/2,h*0.22+ps*0.5,{size:fontSize(42,w,h),bold:true,color:'#f0e6d3',glow:'#ffd700'});
+      UI.text(ctx,'Painted Sky',w/2,h*0.22+ps*0.5+fontSize(30,w,h),{size:fontSize(16,w,h),color:'#b388ff'});
+      const hi=Save.getHighScore(GID);if(hi>0)UI.text(ctx,'HIGH SCORE: '+hi.toLocaleString(),w/2,h*0.39,{size:fontSize(14,w,h),color:'#ffd700'});
+      const fr=Save.get(GID+'_frags',0);if(fr>0)UI.text(ctx,'빛의 조각: '+fr,w/2,h*0.43,{size:fontSize(12,w,h),color:'#ce93d8'});},
+  });
+
+  /* ═══════ DIFFICULTY ═══════ */
+  Scene.register('DIFFICULTY',{
+    enter(){iDelay=0.2;const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+      const port=Layout.isPortrait(w,h);
+      const bw=port?Math.min(w*0.8,220):Math.max(180*s,150),bh=Math.max(56*s,48),cx=w/2-bw/2;
+      const by0=port?h*0.30:h*0.35,gap=port?10:14;
+      ['easy','normal','hard'].forEach((d,i)=>{new Button({x:cx,y:by0+i*(bh+gap),w:bw,h:bh,text:DIFF[d].label,key:['Digit'+(i+1)],fontSize:Math.max(16,20*s),color:DIFF[d].col,onClick:()=>{diff=d;dc=DIFF[d];sfxSel();resetAll();Scene.transition('GAME');}});});
+      new Button({x:cx,y:by0+3*(bh+gap),w:bw,h:Math.max(48,bh*0.8),text:'뒤로',key:['Escape'],fontSize:Math.max(14,16*s),color:'#555',onClick:()=>{sfxSel();Scene.transition('TITLE');}});},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);},
+    render(ctx,w,h){drawBG(ctx,w,h,0);ctx.fillStyle='rgba(13,27,42,0.75)';ctx.fillRect(0,0,w,h);
+      const port=Layout.isPortrait(w,h),by0=port?h*0.30:h*0.35,gap=port?10:14;
+      UI.text(ctx,'난이도 선택',w/2,h*0.18,{size:fontSize(32,w,h),bold:true,color:'#f0e6d3',glow:'#ffd700'});
+      ['HP 5 | 폭탄 5 | 여유로운 탄막','HP 3 | 폭탄 3 | 표준 탄막','HP 1 | 폭탄 1 | 극한 탄막'].forEach((d,i)=>{const bh2=Math.max(56*lScale(w,h),48);UI.text(ctx,d,w/2,by0+i*(bh2+gap)+bh2+8,{size:fontSize(10,w,h),color:'#888'});});},
+  });
+
+  /* ═══════ GAME (메인 플레이) ═══════ */
+  Scene.register('GAME',{
+    enter(data){iDelay=0.2;const w=window.innerWidth,h=window.innerHeight;
+      if(data&&data.stage!==undefined){sIdx=data.stage;score=data.score||score;hp=data.hp||hp;bombs=data.bombs||bombs;pups=data.pups||pups;}
+      px=w/2;py=h*0.8;sTime=0;bossMode=false;bAlive=false;wTimer=1;wCnt=0;noDmg=true;bombsUsed=0;
+      harmonyInvT=0;harmonyDmgMul=1;effectQueue=[];warningLines=[];
+      gravityActive=false;gravityTimer=0;blackoutActive=false;blackoutTimer=0;
+      ebPool.releaseAll();enPool.releaseAll();itPool.releaseAll();
+      /* 모바일/태블릿 터치 버튼 */
+      if(isMobileDevice||Layout.isTablet(w)){const s=lScale(w,h),bs=Math.max(48,56*s);
+        tBombBtn=new Button({x:w-bs-12,y:h-bs*2-24,w:bs,h:bs,text:'BOMB',key:['KeyX'],fontSize:Math.max(12,14*s),color:'#ff9100',onClick:()=>useBomb(w,h)});
+        tFocusBtn=new Button({x:w-bs*2-24,y:h-bs-12,w:bs,h:bs,text:'SLOW',fontSize:Math.max(12,14*s),color:'#00e5ff',onClick:()=>{focusToggle=!focusToggle;}});}
+      const ps=Math.max(48,40*lScale(w,h));
+      new Button({x:w-ps-8,y:8,w:ps,h:ps,text:'⏸',key:['Escape','KeyP'],fontSize:Math.max(16,20*lScale(w,h)),color:'rgba(80,80,80,0.5)',onClick:()=>{Scene.transition('PAUSE',{stage:sIdx,score,hp,bombs,pups});}});},
+    update(dt,inp){
+      iDelay=Math.max(0,iDelay-dt/1000);if(iDelay>0)return;
+      const w=engine.W,h=engine.H,dtS=dt/1000*(slowT>0?0.5:1);
+      tween.update(dt);particles.update(dt);popups.update(dt);updateEffects(dt);
+      if(sprPlayerIdle)sprPlayerIdle.update(dt);
+      /* 조화의 빛 데미지 배율 타이머 */
+      if(harmonyInvT>0){harmonyInvT-=dtS;if(harmonyInvT<=0)harmonyDmgMul=1;}
+      /* 이동 입력 */
+      let mx=0,my=0;
+      if(inp.held('ArrowLeft')||inp.held('KeyA'))mx-=1;if(inp.held('ArrowRight')||inp.held('KeyD'))mx+=1;
+      if(inp.held('ArrowUp')||inp.held('KeyW'))my-=1;if(inp.held('ArrowDown')||inp.held('KeyS'))my+=1;
+      if((isMobileDevice||Layout.isTablet(w))&&inp.mouseDown&&inp.touches.length>0){
+        for(const tc of inp.touches){if(tc.x<w*0.5){if(!touchJoy)touchJoy={sx:tc.x,sy:tc.y};const dx2=tc.x-touchJoy.sx,dy2=tc.y-touchJoy.sy,d=Math.hypot(dx2,dy2);const clampD=Math.min(d,60);if(d>10){mx=(dx2/d)*(clampD/60);my=(dy2/d)*(clampD/60);}}}}
+      if(!inp.mouseDown)touchJoy=null;
+      focused=inp.held('ShiftLeft')||inp.held('ShiftRight')||focusToggle;
+      const spd=pSpd*(focused?0.4:1)*(1+(hasPup('speed')?0.2*spcMul():0)),len=Math.hypot(mx,my)||1;
+      px+=(mx/len)*spd*dtS;py+=(my/len)*spd*dtS;px=MathUtil.clamp(px,16,w-16);py=MathUtil.clamp(py,16,h-16);
+      /* 폭탄 입력 */
+      if(inp.jp('KeyX'))useBomb(w,h);
+      /* ▼ 발사: PC는 Z/Space 홀드, 모바일은 자동 ▼ */
+      const firing=isMobileDevice||(inp.held('KeyZ')||inp.held('Space'));
+      const rate=fRate*(1+(hasPup('rapid')?0.5:0));fTimer+=dtS;
+      if(firing&&fTimer>=1/rate){fTimer=0;sfxShot();const b=pbPool.acquire();if(b){b.x=px;b.y=py-12;b.vy=-500;b.pierce=hasPup('pierce');b.dmg=1;}
+        if(hasPup('spread')){const bl=pbPool.acquire();if(bl){bl.x=px-10;bl.y=py-8;bl.vy=-480;bl.pierce=hasPup('pierce');bl.dmg=1;}const br=pbPool.acquire();if(br){br.x=px+10;br.y=py-8;br.vy=-480;br.pierce=hasPup('pierce');br.dmg=1;}}}
+      /* 추적 나비 (유도탄) */
+      if(hasPup('homing')){homingT+=dtS;if(homingT>=5/spcMul()){homingT=0;const b=pbPool.acquire();if(b){b.x=px;b.y=py-12;b.vy=-400;b.pierce=false;b.dmg=2;}}}
+      /* 실드 쿨타임 */
+      if(hasPup('shield')&&!shieldOn){shieldT-=dtS;if(shieldT<=0){shieldOn=true;shieldStacks=synergyApplied.def?2:1;shieldT=30/spcMul();}}
+      if(slowT>0)slowT-=dtS;if(invT>0)invT-=dtS;
+      if(shakeT>0){shakeT-=dtS;if(shakeT<=0)shakeI=0;}if(flashA>0)flashA-=dtS*2;
+      sTime+=dtS;const st=STAGES[sIdx];
+      /* 웨이브 스폰 & 보스 등장 */
+      if(!bossMode){wTimer-=dtS;if(wTimer<=0){spawnWave(w,h);wCnt++;wTimer=st.wInt;}
+        if(sTime>=st.dur){bossMode=true;enPool.releaseAll();bIntro=1.5;initBoss(w,h);sfxBPhase();}}
+      if(bIntro>0){bIntro-=dtS;return;}
+      /* 보스 페이즈 전환 */
+      if(bTrans){bTransT-=dtS;
+        spawnEffect('effectBossPhase',bx,by,80,4);
+        if(bTransT<=0){bTrans=false;bPhase=2;bPIdx=0;bPTimer=1;ebPool.releaseAll();}return;}
+      /* 일반 적 업데이트 */
+      enPool.forEach(e=>{e.x+=e.vx*dtS;e.y+=e.vy*dtS;if(e.y>h+50||e.x<-50||e.x>w+50){e.active=false;return;}
+        e.ft-=dtS;if(e.ft<=0){e.ft=e.fi;const a=MathUtil.angle(e.x,e.y,px,py),sp2=120*dc.bSpd;spawnEB(e.x,e.y,Math.cos(a)*sp2,Math.sin(a)*sp2);}});
+      /* 보스 업데이트 */
+      if(bAlive&&!bTrans){bx=w/2+Math.sin(sTime*0.5)*w*0.25;by=h*0.12+Math.sin(sTime*0.3)*h*0.05;
+        const pats=bPhase===1?BOSS[sIdx].p1:BOSS[sIdx].p2;
+        if(bHinting){bHintT-=dtS;if(bHintT<=0){bHinting=false;firePat(pats[bPIdx%pats.length],bx,by,w,h);bPIdx++;bPTimer=pats[(bPIdx-1)%pats.length].i||2;}}
+        else{bPTimer-=dtS;if(bPTimer<=0){bHinting=true;bHintT=dc.hintDur;generateWarnings(pats[bPIdx%pats.length],bx,by,w,h);sound.tone(300,0.08,'sine',0.15);}}
+        /* 페이즈 1→2 전환 (+5000 보너스) */
+        if(bPhase===1&&bHP<=bMaxHP*0.5){
+          bTrans=true;bTransT=3;ebPool.releaseAll();sfxBPhase();
+          score+=5000;popups.add(bx,by,'+5000 Phase Clear','#ffd700');
+          particles.emit(bx,by,30,{color:'#b388ff',speed:200,life:1});
+        }
+      }
+      /* 아군 탄 이동 */
+      pbPool.forEach(b=>{b.y+=b.vy*dtS;if(b.y<-20)b.active=false;});
+      /* 적탄 이동 + burst 분산 판정 */
+      ebPool.forEach(b=>{b.x+=b.vx*dtS;b.y+=b.vy*dtS;
+        /* burst 탄: 화면 60% 이하 도달 시 분산 */
+        if(b._burst&&b.y>=h*0.6){b.active=false;const sN=b._splitN||12,spd=b._splitSpd||200;
+          for(let i=0;i<sN;i++){const a=(Math.PI*2/sN)*i;spawnEB(b.x,b.y,Math.cos(a)*spd,Math.sin(a)*spd);}
+          particles.emit(b.x,b.y,12,{color:'#e040fb',speed:100,life:0.4,size:3});}
+        if(b.x<-30||b.x>w+30||b.y<-30||b.y>h+30)b.active=false;});
+      /* gravity 패턴: 플레이어를 보스 방향으로 끌어당김 */
+      if(gravityActive){gravityTimer-=dtS;if(gravityTimer<=0)gravityActive=false;
+        else if(bAlive){const ga=MathUtil.angle(px,py,bx,by);px+=Math.cos(ga)*gravityStrength*200*dtS;py+=Math.sin(ga)*gravityStrength*200*dtS;px=MathUtil.clamp(px,16,w-16);py=MathUtil.clamp(py,16,h-16);}}
+      /* blackout 패턴: 타이머만 감소 (렌더에서 처리) */
+      if(blackoutActive){blackoutTimer-=dtS;if(blackoutTimer<=0)blackoutActive=false;}
+      /* 파워업 임시 공격 버프 타이머 */
+      if(tempAtkT>0)tempAtkT-=dtS;
+      /* 예고선 업데이트 */
+      for(let i=warningLines.length-1;i>=0;i--){warningLines[i].timer-=dtS;if(warningLines[i].timer<=0)warningLines.splice(i,1);}
+      /* 아이템 이동 & 자석 흡수 */
+      const magR=(hasPup('magnet')?120:60)*spcMul();
+      itPool.forEach(it=>{const d=MathUtil.dist(it.x,it.y,px,py);if(d<magR){const a=MathUtil.angle(it.x,it.y,px,py);it.x+=Math.cos(a)*300*dtS;it.y+=Math.sin(a)*300*dtS;}else it.y+=60*dtS;if(it.y>h+30)it.active=false;});
+      /* 충돌 판정: 적탄 vs 플레이어 (공간 해싱) */
+      sHash.clear();ebPool.forEach(b=>sHash.insert(b));
+      const gR=(dc.gR+(hasPup('grzPro')?10*spcMul():0))*spcMul(),gM=dc.gMul*(hasPup('grzPro')?2:1),near=sHash.query(px,py,gR+10);
+      for(const b of near){if(!b.active)continue;const d=MathUtil.dist(px,py,b.x,b.y);
+        if(d<4+b.r){b.active=false;playerHit();if(hp<=0)return;}
+        else if(d<gR+b.r&&!b._grazed){b._grazed=true;grzCombo++;grzCnt++;totalGrz++;
+          const pts=Math.round(50*Math.min(10,1+grzCombo*0.5)*gM);score+=pts;sfxGraze();
+          spawnEffect('effectGraze',px,py,30,1); // single-frame graze effect
+          particles.emit(px,py,3,{color:'#00e5ff',speed:80,life:0.3,size:2});
+          if(hasPup('grzHeal')){grzHealCnt++;if(grzHealCnt>=80){grzHealCnt=0;hp=Math.min(hp+1,maxHp);popups.add(px,py-20,'+1HP','#00e5ff');}}
+          if((savedUp.lifeGraze||0)>0){lifeGrzCnt++;if(lifeGrzCnt>=100){lifeGrzCnt=0;hp=Math.min(hp+1,maxHp);popups.add(px,py-20,'+1HP','#ce93d8');}}}}
+      /* 충돌: 적 본체 vs 플레이어 */
+      enPool.forEach(e=>{if(MathUtil.dist(px,py,e.x,e.y)<e.w/2+4)playerHit();});
+      if(bAlive&&MathUtil.dist(px,py,bx,by)<40)playerHit();
+      /* 아군 탄 vs 적/보스 */
+      const atkB=(catCnt('atk')>=3?0.3:0)+(tempAtkT>0?0.3:0);const dmgMul=(1+atkB)*harmonyDmgMul;
+      pbPool.forEach(b=>{if(!b.active)return;
+        enPool.forEach(e=>{if(!e.active)return;if(MathUtil.rectCollide(b.x-3,b.y-6,6,12,e.x-e.w/2,e.y-e.h/2,e.w,e.h)){
+          e.hp-=b.dmg*dmgMul;if(!b.pierce)b.active=false;particles.emit(e.x,e.y,4,{color:'#00e5ff',speed:80,life:0.3});
+          if(e.hp<=0){e.active=false;const pts=e.type===3?300:100;score+=pts;popups.add(e.x,e.y,'+'+pts,'#ffd700');sfxEDie();
+            spawnEffect('effectEnemyDeath',e.x,e.y,40,4);
+            particles.emit(e.x,e.y,10,{color:st.bCol,speed:120,life:0.5});
+            /* 아이템 드롭 */
+            if(Math.random()<0.3){const it=itPool.acquire();if(it){it.x=e.x;it.y=e.y;it.type='score';it.vy=60;}}
+            if(Math.random()<0.05){const it=itPool.acquire();if(it){it.x=e.x;it.y=e.y;it.type='bomb';it.vy=50;}}
+            if(Math.random()<0.08){const it=itPool.acquire();if(it){it.x=e.x;it.y=e.y;it.type=['pAtk','pDef','pSpc'][MathUtil.randInt(0,2)];it.vy=55;}}}}});
+        if(bAlive&&!bTrans&&b.active){if(MathUtil.dist(b.x,b.y,bx,by)<50){bHP-=b.dmg*dmgMul;if(!b.pierce)b.active=false;score+=10;
+          particles.emit(bx,by,2,{color:'#00e5ff',speed:50,life:0.2});
+          if(bHP<=0){bAlive=false;score+=10000;sfxBDie();
+            gravityActive=false;blackoutActive=false;bHinting=false;warningLines=[];
+            spawnEffect('effectBossDeath',bx,by,120,6);
+            particles.emit(bx,by,50,{color:'#ffd700',speed:200,life:1.5,size:5});ebPool.releaseAll();
+            hp=Math.min(hp+1,maxHp);bombs=Math.min(bombs+1,maxBombs);
+            const bonus=calcBonus(true);
+            if(sIdx>=3){cleared=true;frags=Math.floor(score/100);const sv=Save.get(GID+'_frags',0);Save.set(GID+'_frags',sv+frags);Save.setHighScore(GID,score);
+              Scene.setTimeout(()=>Scene.transition('RESULT',{score,stage:sIdx,cleared:true,frags,noDmg,bombsUsed,totalGrz,bonus}),2000);}
+            else Scene.setTimeout(()=>Scene.transition('POWERUP',{stage:sIdx,score,hp,bombs,pups}),2000);}}}});
+      /* 아이템 수집 */
+      itPool.forEach(it=>{if(MathUtil.dist(px,py,it.x,it.y)<20){it.active=false;
+        if(it.type==='score'){score+=50;popups.add(it.x,it.y,'+50','#ffd700');}
+        else if(it.type==='bomb'){bombs=Math.min(bombs+1,maxBombs);popups.add(it.x,it.y,'+BOMB','#c0c0c0');sfxPow();}
+        else if(it.type==='pAtk'){tempAtkT=8;score+=100;popups.add(it.x,it.y,'ATK UP 8s','#ff4466');sfxPow();}
+        else if(it.type==='pDef'){invT=Math.max(invT,5);score+=100;popups.add(it.x,it.y,'SHIELD 5s','#00e5ff');sfxPow();}
+        else if(it.type==='pSpc'){grzCombo+=10;score+=100;popups.add(it.x,it.y,'GRAZE+10','#ffd700');sfxPow();}}});
+    },
+    render(ctx,w,h){
+      const shake=UI.shake(shakeI);ctx.save();ctx.translate(shake.x,shake.y);drawBG(ctx,w,h,16);
+      const s=lScale(w,h),st=STAGES[sIdx];
+      /* 보스 예고선 렌더 (펄스 애니메이션) */
+      for(const wl of warningLines){const ratio=MathUtil.clamp(wl.timer/wl.maxTimer,0,1);
+        const pulse=0.4+Math.sin(wl.timer*12)*0.2;const a=ratio*pulse;
+        ctx.strokeStyle=`rgba(255,100,100,${a})`;ctx.lineWidth=1+ratio*2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(wl.x1,wl.y1);ctx.lineTo(wl.x2,wl.y2);ctx.stroke();ctx.setLineDash([]);}
+      /* 보스 힌트 글로우 (발사 직전 경고 원) */
+      if(bHinting&&bAlive){const gA=MathUtil.clamp(bHintT/(dc.hintDur||1),0,1);
+        ctx.strokeStyle=`rgba(255,50,50,${0.3+Math.sin(bHintT*10)*0.2})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,30+20*(1-gA),0,Math.PI*2);ctx.stroke();}
+      /* 아이템 렌더 (에셋 활용: itemScoreSheet 6프레임 + itemPowerAttack/Defense/Special) */
+      itPool.forEach(it=>{
+        if(it.type==='score'){/* itemScoreSheet 사용 시 프레임 애니메이션 */
+          if(assets.has('itemScoreSheet')){const img=assets.sprites['itemScoreSheet'],d=SPRITE_DIMS['itemScoreSheet'],fW=d?(d.w/6):((img.naturalWidth||384)/6),fH=d?d.h:(img.naturalHeight||64),fi=Math.floor((sTime*8)%6);
+            ctx.drawImage(img,fi*fW,0,fW,fH,it.x-8,it.y-8,16,16);}
+          else assets.draw(ctx,'itemScore',it.x-8,it.y-8,16,16,'#ffd700');}
+        else if(it.type==='bomb')assets.draw(ctx,'itemBomb',it.x-10,it.y-10,20,20,'#c0c0c0');
+        else if(it.type==='pAtk')assets.draw(ctx,'itemPowerAttack',it.x-10,it.y-10,20,20,'#ff4466');
+        else if(it.type==='pDef')assets.draw(ctx,'itemPowerDefense',it.x-10,it.y-10,20,20,'#00e5ff');
+        else if(it.type==='pSpc')assets.draw(ctx,'itemPowerSpecial',it.x-10,it.y-10,20,20,'#ffd700');
+      });
+      /* 적탄 렌더 (large 탄은 bulletEnemyLarge, 폴백은 삼각형) */
+      ctx.globalAlpha=0.9;
+      const bAK=sIdx<=1?'bulletEnemyPetal':sIdx===2?'bulletEnemyCrystal':'bulletEnemyOrb';
+      ebPool.forEach(b=>{
+        const key=b.large?'bulletEnemyLarge':bAK;
+        const bs=b.large?b.r*3:b.r*2.5;
+        if(assets.has(key))assets.draw(ctx,key,b.x-bs/2,b.y-bs/2,bs,bs,st.bCol);
+        else{/* 폴백: 삼각형 (적탄) / 원형 (대형) */
+          ctx.fillStyle=st.bCol;if(b.large){ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();}
+          else{const a=Math.atan2(b.vy,b.vx);ctx.save();ctx.translate(b.x,b.y);ctx.rotate(a);ctx.beginPath();ctx.moveTo(b.r,0);ctx.lineTo(-b.r,-b.r*0.7);ctx.lineTo(-b.r,b.r*0.7);ctx.closePath();ctx.fill();ctx.restore();}}
+      });ctx.globalAlpha=1;
+      /* 적 렌더 (폴백: 다이아몬드 형태) */
+      const eA=['enemyInkdrop','enemyInkbird','enemyInkfish','enemyInkspiral'];
+      enPool.forEach(e=>{const ek=eA[e.type]||'enemyInkdrop';
+        if(assets.has(ek))assets.draw(ctx,ek,e.x-e.w/2,e.y-e.h/2,e.w,e.h,st.bCol);
+        else{ctx.fillStyle=st.bCol;ctx.save();ctx.translate(e.x,e.y);ctx.rotate(Math.PI/4);ctx.fillRect(-e.w/3,-e.h/3,e.w*0.66,e.h*0.66);ctx.restore();}});
+      /* 보스 렌더 (보스 HP바에 uiBossFrame 에셋 활용) */
+      if(bAlive||bIntro>0){const bSz=80*s,asset=bPhase===2?st.bA2:st.bA1;
+        if(bTrans)ctx.globalAlpha=0.5+Math.sin(bTransT*10)*0.3;
+        assets.draw(ctx,asset,bx-bSz/2,by-bSz/2,bSz,bSz,'#b388ff');ctx.globalAlpha=1;
+        if(bAlive){
+          const barW=w*0.5,barH=Math.max(8,12*s),barX=w/2-barW/2,barY=8;
+          /* uiBossFrame 배경 */
+          if(assets.has('uiBossFrame'))assets.draw(ctx,'uiBossFrame',barX-4,barY-4,barW+8,barH+8,'#333');
+          UI.hpBar(ctx,barX,barY,barW,barH,bHP,bMaxHP,{fgColor:'#ff6b8a',bgColor:'rgba(0,0,0,0.5)'});
+          UI.text(ctx,st.bName+(bPhase===2?' [覚醒]':''),w/2,barY+barH+12,{size:fontSize(12,w,h),color:'#f0e6d3'});}}
+      /* 아군 탄 렌더 (폴백: 위를 향한 삼각형) */
+      pbPool.forEach(b=>{if(assets.has('bulletPlayer'))assets.draw(ctx,'bulletPlayer',b.x-4,b.y-8,8,16,'#00e5ff');
+        else{ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.moveTo(b.x,b.y-8);ctx.lineTo(b.x-4,b.y+4);ctx.lineTo(b.x+4,b.y+4);ctx.closePath();ctx.fill();}});
+      /* 플레이어 렌더 (idle 시트 / 피격 / 집중 에셋) */
+      const pSz=36*s;
+      if(invT>0&&Math.floor(invT*10)%2===0)ctx.globalAlpha=0.4;
+      if(invT>0&&invT>dc.inv*0.7){assets.draw(ctx,'playerHit',px-pSz/2,py-pSz/2,pSz,pSz,'#f0e6d3');}
+      else if(focused){assets.draw(ctx,'playerFocus',px-pSz/2,py-pSz/2,pSz,pSz,'#f0e6d3');}
+      else if(sprPlayerIdle){sprPlayerIdle.draw(ctx,px-pSz/2,py-pSz/2,pSz,pSz);}
+      else{/* 폴백: 원형 (사각형 대신) */
+        if(assets.has('player'))assets.draw(ctx,'player',px-pSz/2,py-pSz/2,pSz,pSz,'#f0e6d3');
+        else{ctx.fillStyle='#f0e6d3';ctx.beginPath();ctx.arc(px,py,pSz/2,0,Math.PI*2);ctx.fill();}}
+      ctx.globalAlpha=1;
+      /* tempAtkT 공격 버프 시각 표시 (빨간 글로우 링) */
+      if(tempAtkT>0){const ga=0.4+Math.sin(sTime*8)*0.2;ctx.strokeStyle=`rgba(255,68,102,${ga})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,pSz/2+4,0,Math.PI*2);ctx.stroke();
+        UI.text(ctx,Math.ceil(tempAtkT)+'s',px,py-pSz/2-8,{size:fontSize(9,w,h),color:'#ff4466'});}
+      /* 저속 모드 히트박스 + 그레이즈 범위 표시 */
+      if(focused){ctx.fillStyle='rgba(255,255,255,0.8)';ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='rgba(0,229,255,0.4)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(px,py,dc.gR,0,Math.PI*2);ctx.stroke();}
+      /* 실드 표시 */
+      if(shieldOn){ctx.strokeStyle='rgba(0,229,255,0.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,22,0,Math.PI*2);ctx.stroke();
+        if(shieldStacks>1){ctx.strokeStyle='rgba(0,229,255,0.3)';ctx.beginPath();ctx.arc(px,py,28,0,Math.PI*2);ctx.stroke();}}
+      /* 이펙트 스프라이트 렌더 */
+      renderEffects(ctx);
+      /* 파티클 & 팝업 */
+      particles.render(ctx);popups.render(ctx,{fontSize:fontSize(16,w,h),bold:true,glow:true});
+      /* HUD: HP/Bomb/Score/Graze */
+      const hud=Layout.hud(w,h),pad=hud.padding,icsz=hud.iconSize;
+      for(let i=0;i<maxHp;i++){const ix=pad+i*(icsz+4);assets.draw(ctx,i<hp?'uiHp':'uiHpEmpty',ix,h-icsz-pad,icsz,icsz,i<hp?'#ffd700':'#444');}
+      for(let i=0;i<maxBombs;i++){const ix=pad+i*(icsz*0.8+3);assets.draw(ctx,i<bombs?'uiBomb':'uiBombEmpty',ix,h-icsz*2-pad*2,icsz*0.8,icsz*0.8,i<bombs?'#c0c0c0':'#333');}
+      UI.text(ctx,'SCORE',w-pad,pad+8,{size:fontSize(10,w,h),color:'#888',align:'right'});
+      UI.text(ctx,score.toLocaleString(),w-pad,pad+24,{size:fontSize(16,w,h),color:'#ffd700',align:'right',bold:true});
+      UI.text(ctx,'GRAZE '+grzCombo+'x',w-pad,pad+44,{size:fontSize(10,w,h),color:'#00e5ff',align:'right'});
+      UI.text(ctx,'Stage '+(sIdx+1)+': '+st.name,w/2,h-pad-4,{size:fontSize(11,w,h),color:'#888'});
+      /* 시너지 표시 */
+      let syY=pad+60;
+      if(synergyApplied.atk){UI.text(ctx,'🗡️ 빛의 분노',w-pad,syY,{size:fontSize(9,w,h),color:'#ff4466',align:'right'});syY+=14;}
+      if(synergyApplied.def){UI.text(ctx,'🛡️ 빛의 축복',w-pad,syY,{size:fontSize(9,w,h),color:'#00e5ff',align:'right'});syY+=14;}
+      if(synergyApplied.spc){UI.text(ctx,'✨ 빛의 기적',w-pad,syY,{size:fontSize(9,w,h),color:'#ffd700',align:'right'});syY+=14;}
+      if(synergyApplied.harmony){UI.text(ctx,'🌈 조화의 빛',w-pad,syY,{size:fontSize(9,w,h),color:'#e040fb',align:'right'});}
+      /* 보스 등장 오버레이 */
+      if(bIntro>0){ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,w,h);
+        const bpSz=Math.min(w,h)*0.25;assets.draw(ctx,st.bA1,w/2-bpSz/2,h/2-bpSz-10,bpSz,bpSz,'#b388ff');
+        UI.text(ctx,'⚠ '+st.bName+' ⚠',w/2,h/2+bpSz*0.15,{size:fontSize(36,w,h),bold:true,color:'#ff6b8a',glow:'#ff0044'});
+        UI.text(ctx,BOSS[sIdx].sub||'',w/2,h/2+bpSz*0.15+fontSize(28,w,h),{size:fontSize(14,w,h),color:'#ce93d8'});}
+      /* 페이즈 전환 오버레이 */
+      if(bTrans){ctx.fillStyle=`rgba(100,0,200,${0.2+Math.sin(bTransT*5)*0.1})`;ctx.fillRect(0,0,w,h);UI.text(ctx,'覚醒',w/2,h/2,{size:fontSize(48,w,h),bold:true,color:'#b388ff',glow:'#6c3cf7'});}
+      /* 피격 플래시 */
+      if(flashA>0){ctx.fillStyle=`rgba(255,255,255,${MathUtil.clamp(flashA,0,1)})`;ctx.fillRect(0,0,w,h);}
+      /* blackout 패턴 — 화면 일부를 먹으로 가리는 시야 차단 */
+      if(blackoutActive){const cov=blackoutCoverage,bka=MathUtil.clamp(blackoutTimer*0.5,0,0.85);
+        ctx.fillStyle=`rgba(10,0,20,${bka})`;
+        /* 플레이어 주변 원형 구멍 남기고 나머지 가림 */
+        ctx.save();ctx.beginPath();ctx.rect(0,0,w,h);ctx.arc(px,py,Math.max(60,w*0.12*(1-cov)),0,Math.PI*2,true);ctx.clip();ctx.fillRect(0,0,w,h);ctx.restore();
+        /* 흡인 시각 효과 — 잉크 파티클 (particleInk 에셋 활용) */
+        for(let i=0;i<3;i++){const rx=MathUtil.randRange(0,w),ry=MathUtil.randRange(0,h),rsz=MathUtil.randRange(20,80);
+          if(assets.has('particleInk')){ctx.globalAlpha=bka*0.3;assets.draw(ctx,'particleInk',rx-rsz/2,ry-rsz/2,rsz,rsz,'rgba(60,0,120,0.5)');ctx.globalAlpha=1;}
+          else{ctx.fillStyle=`rgba(60,0,120,${bka*0.3})`;ctx.beginPath();ctx.arc(rx,ry,rsz/2,0,Math.PI*2);ctx.fill();}}}
+      /* gravity 패턴 시각 효과 */
+      if(gravityActive&&bAlive){ctx.strokeStyle='rgba(0,200,255,0.3)';ctx.lineWidth=1;
+        for(let i=0;i<6;i++){const a=Math.PI*2/6*i+sTime*2,r=40+i*15;
+          ctx.beginPath();ctx.arc(bx,by,r,a,a+0.5);ctx.stroke();}}
+      /* 가로 모드 유도 (uiRotatePrompt 에셋 활용) */
+      if(Layout.isPortrait(w,h)&&(isMobileDevice||Layout.isTablet(w))){ctx.fillStyle='rgba(13,27,42,0.92)';ctx.fillRect(0,0,w,h);
+        const rpSz=Math.min(w*0.4,120);
+        if(assets.has('uiRotatePrompt'))assets.draw(ctx,'uiRotatePrompt',w/2-rpSz/2,h/2-rpSz-10,rpSz,rpSz,'#f0e6d3');
+        else UI.text(ctx,'📱',w/2,h/2-40,{size:48});
+        UI.text(ctx,'가로로 돌려주세요',w/2,h/2+rpSz*0.3,{size:fontSize(20,w,h),color:'#f0e6d3',bold:true});}
+      ctx.restore();},
+  });
+
+  /* ═══════ PAUSE ═══════ */
+  Scene.register('PAUSE',{
+    enter(data){iDelay=0.2;this._d=data;const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+      const bw=Math.max(200*s,160),bh=Math.max(52*s,48),cx=w/2-bw/2;
+      new Button({x:cx,y:h*0.4,w:bw,h:bh,text:'계속하기',key:['Escape','KeyP','Space'],fontSize:Math.max(16,18*s),color:'#00e5ff',onClick:()=>Scene.transition('GAME',data)});
+      new Button({x:cx,y:h*0.4+bh+12,w:bw,h:bh,text:'재시작',key:['KeyR'],fontSize:Math.max(14,16*s),color:'#ff9100',onClick:()=>{resetAll();Scene.transition('GAME');}});
+      new Button({x:cx,y:h*0.4+2*(bh+12),w:bw,h:bh,text:'타이틀',key:['KeyT'],fontSize:Math.max(14,16*s),color:'#555',onClick:()=>Scene.transition('TITLE')});},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);},
+    render(ctx,w,h){ctx.fillStyle='rgba(13,27,42,0.85)';ctx.fillRect(0,0,w,h);UI.text(ctx,'일시정지',w/2,h*0.22,{size:fontSize(36,w,h),bold:true,color:'#f0e6d3',glow:'#6c3cf7'});},
+  });
+
+  /* ═══════ POWERUP: 3택 선택 (uiPowerupFrame 에셋 활용) ═══════ */
+  function buildPowerupUI(){
+    const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+    const cW=Math.max(140*s,120),cH=Math.max(180*s,150),gap=Math.max(16,20*s);
+    const tot=_pupChoices.length*cW+(_pupChoices.length-1)*gap,sx=w/2-tot/2;
+    _pupChoices.forEach((p,i)=>{new Button({x:sx+i*(cW+gap),y:h*0.3,w:cW,h:cH,text:p.name,key:['Digit'+(i+1)],fontSize:Math.max(14,16*s),color:p.ic,
+      onClick:()=>{if(p.id==='none')score+=5000;else pups.push(p);sfxPow();checkSynergies();Scene.transition('GAME',{stage:(_pupData?.stage||0)+1,score,hp,bombs,pups});}});});}
+  Scene.register('POWERUP',{
+    enter(data){iDelay=0.2;_pupData=data;const avail=PUPS.filter(p=>!pups.find(c=>c.id===p.id));MathUtil.shuffle(avail);
+      _pupChoices=avail.slice(0,3);if(_pupChoices.length===0)_pupChoices=[{id:'none',cat:'spc',name:'최대 강화!',desc:'+5000점',ic:'#ffd700'}];buildPowerupUI();},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);popups.update(dt);},
+    render(ctx,w,h){drawBG(ctx,w,h,0);ctx.fillStyle='rgba(13,27,42,0.8)';ctx.fillRect(0,0,w,h);
+      UI.text(ctx,'파워업 선택',w/2,h*0.12,{size:fontSize(28,w,h),bold:true,color:'#ffd700',glow:'#ff9100'});
+      UI.text(ctx,'스테이지 '+((_pupData?.stage||0)+1)+' 클리어!',w/2,h*0.2,{size:fontSize(16,w,h),color:'#f0e6d3'});
+      const s=lScale(w,h),cW=Math.max(140*s,120),gap=Math.max(16,20*s),cH=Math.max(180*s,150);
+      const tot=_pupChoices.length*cW+(_pupChoices.length-1)*gap,sx=w/2-tot/2;
+      _pupChoices.forEach((p,i)=>{
+        const x=sx+i*(cW+gap),y=h*0.3;
+        /* uiPowerupFrame 배경 */
+        if(assets.has('uiPowerupFrame')){ctx.globalAlpha=0.3;assets.draw(ctx,'uiPowerupFrame',x-4,y-4,cW+8,cH+8,'#333');ctx.globalAlpha=1;}
+        const cx2=x+cW/2;
+        UI.text(ctx,p.cat==='atk'?'🗡️':p.cat==='def'?'🛡️':'✨',cx2,y-12,{size:fontSize(16,w,h)});
+        UI.text(ctx,p.desc,cx2,y+cH+16,{size:fontSize(11,w,h),color:'#aab'});
+        /* 파워업 아이콘 에셋 */
+        const iconKey=p.cat==='atk'?'itemPowerAttack':p.cat==='def'?'itemPowerDefense':'itemPowerSpecial';
+        const icSz=Math.max(24,32*s);
+        assets.draw(ctx,iconKey,cx2-icSz/2,y+cH*0.15,icSz,icSz,p.ic);
+      });
+      /* 시너지 안내 */
+      const ac=catCnt('atk'),dc2=catCnt('def'),sc=catCnt('spc');
+      let synTxt='';
+      if(ac>=2)synTxt+='공격'+ac+'/3 ';if(dc2>=2)synTxt+='방어'+dc2+'/3 ';if(sc>=2)synTxt+='특수'+sc+'/3 ';
+      if(synTxt)UI.text(ctx,'시너지 진행: '+synTxt,w/2,h*0.88,{size:fontSize(11,w,h),color:'#ce93d8'});
+      popups.render(ctx,{fontSize:fontSize(14,w,h),glow:true});},
+  });
+
+  /* ═══════ RESULT ═══════ */
+  Scene.register('RESULT',{
+    enter(data){iDelay=0.2;this._d=data||{};const sc=data?.score||0;
+      this._g=sc>=400000?'S':sc>=250000?'A':sc>=120000?'B':'C';
+      this._gc=this._g==='S'?'#ffd700':this._g==='A'?'#ff9100':this._g==='B'?'#00e5ff':'#888';
+      const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+      const bw=Math.max(200*s,160),bh=Math.max(52*s,48),cx=w/2-bw/2;
+      new Button({x:cx,y:h*0.72,w:bw,h:bh,text:'성소',key:['KeyS','Enter'],fontSize:Math.max(14,16*s),color:'#ffd700',onClick:()=>{sfxSel();Scene.transition('SANCTUARY');}});
+      new Button({x:cx,y:h*0.72+bh+10,w:bw,h:bh,text:'타이틀',key:['Space','Escape'],fontSize:Math.max(14,16*s),color:'#6c3cf7',onClick:()=>{sfxSel();Scene.transition('TITLE');}});},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);},
+    render(ctx,w,h){ctx.fillStyle='#0d1b2a';ctx.fillRect(0,0,w,h);const d=this._d,bn=d?.bonus||{};
+      UI.text(ctx,d?.cleared?'게임 클리어!':'GAME OVER',w/2,h*0.06,{size:fontSize(36,w,h),bold:true,color:d?.cleared?'#ffd700':'#ff4466',glow:d?.cleared?'#ff9100':'#ff0044'});
+      UI.text(ctx,'Stage '+((d?.stage||0)+1)+' / 4',w/2,h*0.13,{size:fontSize(14,w,h),color:'#aab'});
+      UI.text(ctx,(d?.score||0).toLocaleString(),w/2,h*0.21,{size:fontSize(32,w,h),bold:true,color:'#ffd700'});
+      UI.text(ctx,this._g,w/2,h*0.30,{size:fontSize(48,w,h),bold:true,color:this._gc,glow:this._gc});
+      let by2=h*0.40;const lh=fontSize(13,w,h)+4,fs13=fontSize(13,w,h),fs11=fontSize(11,w,h);
+      if(bn.stage>0){UI.text(ctx,'스테이지 클리어: +'+bn.stage.toLocaleString(),w/2,by2,{size:fs13,color:'#ffd700'});by2+=lh;}
+      if(bn.noDmg>0){UI.text(ctx,'🌟 노데미지: +'+bn.noDmg.toLocaleString(),w/2,by2,{size:fs13,color:'#ffd700'});by2+=lh;}
+      if(bn.bombSave>0){UI.text(ctx,'💣 폭탄 절약: +'+bn.bombSave.toLocaleString(),w/2,by2,{size:fs13,color:'#ff9100'});by2+=lh;}
+      if(bn.speed>0){UI.text(ctx,'⚡ 속도 보너스: +'+bn.speed.toLocaleString(),w/2,by2,{size:fs13,color:'#00e5ff'});by2+=lh;}
+      if(bn.perfect>0){UI.text(ctx,'✨ 퍼펙트: +'+bn.perfect.toLocaleString(),w/2,by2,{size:fs13,color:'#e040fb'});by2+=lh;}
+      by2+=4;
+      UI.text(ctx,'GRAZE: '+(d?.totalGrz||0),w/2,by2,{size:fs11,color:'#00e5ff'});by2+=lh;
+      UI.text(ctx,'빛의 조각: +'+(d?.frags||0),w/2,by2,{size:fontSize(14,w,h),color:'#ce93d8'});by2+=lh+2;
+      UI.text(ctx,'HIGH SCORE: '+Save.getHighScore(GID).toLocaleString(),w/2,by2,{size:fs11,color:'#888'});},
+  });
+
+  /* ═══════ SANCTUARY (uiButtonFrame 에셋 활용) ═══════ */
+  function buildSanctuaryUI(){
+    Button.clearAll();const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+    const port=Layout.isPortrait(w,h);
+    const fr=Save.get(GID+'_frags',0),bw=port?Math.min(w*0.85,260):Math.max(240*s,200),bh=Math.max(52*s,48),cx=w/2-bw/2;
+    UPGS.forEach((up,i)=>{const lv=savedUp[up.id]||0,mx=lv>=up.max,cost=mx?'—':up.costs[lv],can=!mx&&fr>=up.costs[lv];
+      new Button({x:cx,y:h*0.15+i*(bh+8),w:bw,h:bh,text:up.name+' Lv'+lv+(mx?' MAX':' ['+cost+']'),key:['Digit'+(i+1)],
+        fontSize:Math.max(12,14*s),color:mx?'#444':can?'#ffd700':'#555',enabled:can,
+        onClick:()=>{if(!can)return;savedUp[up.id]=lv+1;Save.set(GID+'_upg',savedUp);Save.set(GID+'_frags',fr-up.costs[lv]);sfxPow();buildSanctuaryUI();}});});
+    new Button({x:cx,y:h*0.15+UPGS.length*(bh+8)+16,w:bw,h:bh,text:'돌아가기',key:['Escape','Space'],fontSize:Math.max(14,16*s),color:'#555',onClick:()=>{sfxSel();Scene.transition('TITLE');}});}
+  Scene.register('SANCTUARY',{
+    enter(){iDelay=0.2;savedUp=Save.get(GID+'_upg',{armor:0,bombUp:0,wings:0,rapidUp:0,lifeGraze:0});buildSanctuaryUI();},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);},
+    render(ctx,w,h){ctx.fillStyle='#0d1b2a';ctx.fillRect(0,0,w,h);
+      UI.text(ctx,'빛의 성소',w/2,h*0.06,{size:fontSize(28,w,h),bold:true,color:'#ffd700',glow:'#ff9100'});
+      UI.text(ctx,'빛의 조각: '+Save.get(GID+'_frags',0),w/2,h*0.11,{size:fontSize(14,w,h),color:'#ce93d8'});
+      /* uiButtonFrame 배경을 각 업그레이드 버튼 뒤에 렌더 */
+      if(assets.has('uiButtonFrame')){const s2=lScale(w,h),port=Layout.isPortrait(w,h);
+        const bw2=port?Math.min(w*0.85,260):Math.max(240*s2,200),bh2=Math.max(52*s2,48),cx2=w/2-bw2/2;
+        for(let i=0;i<UPGS.length+1;i++){const yy=h*0.15+i*(bh2+8)+(i===UPGS.length?16:0);
+          ctx.globalAlpha=0.2;assets.draw(ctx,'uiButtonFrame',cx2-4,yy-2,bw2+8,bh2+4,'#333');ctx.globalAlpha=1;}}},
+  });
+
+  /* ═══════ CONTROLS (조작법 텍스트 수정) ═══════ */
+  Scene.register('CONTROLS',{
+    enter(){iDelay=0.2;const w=window.innerWidth,h=window.innerHeight,s=lScale(w,h);
+      new Button({x:w/2-Math.max(100*s,80),y:h*0.85,w:Math.max(200*s,160),h:Math.max(48*s,48),text:'돌아가기',key:['Escape','Space','Enter'],fontSize:Math.max(14,16*s),color:'#555',onClick:()=>{sfxSel();Scene.transition('TITLE');}});},
+    update(dt){iDelay=Math.max(0,iDelay-dt/1000);tween.update(dt);},
+    render(ctx,w,h){ctx.fillStyle='#0d1b2a';ctx.fillRect(0,0,w,h);
+      UI.text(ctx,'조작법',w/2,h*0.08,{size:fontSize(28,w,h),bold:true,color:'#f0e6d3',glow:'#6c3cf7'});
+      ['← → ↑ ↓ / WASD : 이동','Shift : 저속 이동 (정밀 회피)','Z / Space 홀드 : 발사 (연사)','X : 폭탄 (적탄 소거+무적)','ESC / P : 일시정지','','[ 모바일 ]','왼쪽 드래그 = 이동 (자동 연사)','BOMB / SLOW 버튼'].forEach((l,i)=>{
+        UI.text(ctx,l,w/2,h*0.2+i*fontSize(22,w,h),{size:fontSize(14,w,h),color:l?'#aab':'transparent'});});},
+  });
+
+  /* ═══════ GameFlow 설정 ═══════ */
+  GameFlow.init({titleText:'물들인 하늘',title:Scene._states.TITLE,play:Scene._states.GAME,gameover:Scene._states.RESULT,onReset:resetAll,stuckMs:45000});
+  engine._update=(dt)=>{Scene.update(dt,input);input.flush();};
+  engine._render=(ctx,w,h)=>{Scene.render(ctx,w,h);};
+  GameFlow.start();engine.start();sound.init();
+}
+init();
+</script>
+</body>
+</html>

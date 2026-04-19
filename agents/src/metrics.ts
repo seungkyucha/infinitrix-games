@@ -118,7 +118,14 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
   // engineAdoption: IX.* calls / total function-like calls
   const ixCalls = countMatches(html, /\bIX\.(Engine|Input|Sound|Tween|Particles|AssetLoader|UI|Save|MathUtil|Layout|Sprite|Button|Scene|GameFlow|StateGuard|Genre)\b/g)
   const destructuredCalls = countMatches(html, /\b(Engine|Input|Sound|Tween|Particles|AssetLoader|Button|Scene|GameFlow|StateGuard|UI|MathUtil|Layout|Sprite)\s*[.(]/g)
-  const totalCallsApprox = countMatches(html, /\b\w+\s*\(/g)
+  const allCalls = countMatches(html, /\b\w+\s*\(/g)
+  // Exclude language built-ins from denominator — they are not "engine API" candidates.
+  // (Math/JSON/Object/Array/Number/String/console namespaced + parseInt/parseFloat/isNaN/isFinite + new Set/Map/Promise/Error/RegExp/Date/WeakMap/WeakSet)
+  const builtinCalls =
+      countMatches(html, /\b(Math|JSON|Object|Array|Number|String|console)\s*\./g)
+    + countMatches(html, /\b(parseInt|parseFloat|isNaN|isFinite)\s*\(/g)
+    + countMatches(html, /\bnew\s+(Set|Map|Promise|Error|RegExp|Date|WeakMap|WeakSet)\s*\(/g)
+  const totalCallsApprox = Math.max(1, allCalls - builtinCalls)
   const engineAdoption = totalCallsApprox > 0
     ? clamp(((ixCalls + destructuredCalls) / totalCallsApprox) * 100) / 100
     : 0
@@ -142,8 +149,18 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
   const constColls = [...html.matchAll(/^\s*const\s+([a-zA-Z_][\w$]*)\s*=\s*(\[\]|\{\}|new Map|new Set)/gm)].map(m => m[1])
   const mutableGlobals = Array.from(new Set([...letVars, ...varVars, ...constColls]))
 
-  const resetBlockMatch = html.match(/function\s+resetGameState\s*\([^)]*\)\s*\{([\s\S]*?)\}|onReset\s*:\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\}|onReset\s*:\s*function\s*\([^)]*\)\s*\{([\s\S]*?)\}/)
-  const resetBody = resetBlockMatch ? (resetBlockMatch[1] ?? resetBlockMatch[2] ?? resetBlockMatch[3] ?? '') : ''
+  const resetBody = extractBalancedBody(html, /function\s+resetGameState\s*\([^)]*\)\s*\{/)
+    || extractBalancedBody(html, /onReset\s*:\s*\([^)]*\)\s*=>\s*\{/)
+    || extractBalancedBody(html, /onReset\s*:\s*function\s*\([^)]*\)\s*\{/)
+    || ((): string => {
+      // Follow `onReset: <identifier>` references (e.g. `onReset: resetAll`)
+      // to the actual `function <id>(...) { ... }` definition elsewhere in the file.
+      // Identifier is captured via a bounded pattern so no regex injection is possible.
+      const refMatch = html.match(/onReset\s*:\s*([a-zA-Z_][\w$]*)\s*[,}]/)
+      if (!refMatch) return ''
+      const fnName = refMatch[1]
+      return extractBalancedBody(html, new RegExp(`function\\s+${fnName}\\s*\\([^)]*\\)\\s*\\{`))
+    })()
   const coveredVars = mutableGlobals.filter(v => new RegExp(`\\b${v}\\b`).test(resetBody))
   const onResetCoverage = mutableGlobals.length > 0 ? coveredVars.length / mutableGlobals.length : 1
 
@@ -159,7 +176,9 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
 
   // enginePromotions — parse promotion note (very loose: count "- " entries under "## 승격")
   const promoSection = inp.enginePromotionText.match(/##\s*승격(?:\s*완료)?([\s\S]*?)((?<!#)##(?!#)|$)/)
-  const enginePromotions = promoSection ? countMatches(promoSection[1], /^-\s+/gm) : 0
+  // 승격 항목은 `### 1. IX.Pool` 같은 H3 헤더로 구분됨 (각 헤더 아래의 `- **위치**:` 불릿은 하위 메타데이터).
+  // 과거 `/^-\s+/gm` 은 불릿 수를 셌으나 실제 승격 건수와 무관하여 3사이클 연속 false-zero 발생.
+  const enginePromotions = promoSection ? countMatches(promoSection[1], /^###\s+/gm) : 0
 
   const score = clamp(
     engineAdoption * 25
@@ -212,7 +231,16 @@ function scoreArt(inp: ArtInputs): DisciplineScore {
       const norm = (s: string) => s.replace(/[^a-z0-9]/g, '')
       const ns = norm(specStyle)
       const nm = norm(manifestStyle)
-      stylePurity = (ns && nm && (ns.includes(nm.slice(0, 20)) || nm.includes(ns.slice(0, 20)))) ? 1 : 0.5
+      // 현재(구): 양쪽에서 20자만 잘라 비교 — 짧은 canonical (예: 'handdrawn2d' 11자) 이 긴 서술에
+      // 완전 포함돼도 nm.slice(0,20) 이 ns 에 담길 수 없어 항상 FAIL. 3사이클 연속 false-0.5 원인.
+      // 수정: 짧은 쪽이 긴 쪽의 부분문자열이면 MATCH (canonical-in-descriptive 패턴을 정식 인정).
+      // 3사이클 연속 0.5 고정 해결: canonical(`painterly-2d`) 토큰이 descriptive
+      // (`Painterly digital 2D illustration`) 안에서 `digital` 같은 단어로 인터리빙되면
+      // substring 양방향 비교가 실패. canonical 을 하이픈/공백으로 split 한 뒤 모든 토큰이
+      // normalized manifest 에 존재하면 MATCH 로 인정한다.
+      const tokens = specStyle.split(/[-\s_]+/).map(t => t.replace(/[^a-z0-9]/g, '')).filter(t => t.length >= 2)
+      const allTokensPresent = tokens.length > 0 && tokens.every(t => nm.includes(t))
+      stylePurity = (ns && nm && (nm.includes(ns) || ns.includes(nm) || allTokensPresent)) ? 1 : 0.5
     }
   } catch { /* default 1 */ }
 
@@ -361,7 +389,12 @@ export function collectCycleMetrics(opts: CollectOptions): CycleMetrics {
                  : verdictText.includes('MINOR') ? 'NEEDS_MINOR_FIX'
                  : 'UNKNOWN') as CycleMetrics['verdict']
 
-  const reviewRounds = Math.max(1, countMatches(reviewText, /(\d+)회차|round\s*\d+/gi) || 1)
+  // reviewer 가 YAML front-matter 에 `reviewRound: N` 을 명시하면 이를 1차 우선. 없으면 본문 regex 폴백.
+  // 기존 regex `/round\s*\d+/gi` 는 `reviewRound: 6` 의 `:` 를 `\s` 가 매치 못 해 미탐지였음.
+  const reviewRoundYaml = parseInt(extractYaml(reviewText, 'reviewRound'), 10)
+  const reviewRounds = (Number.isFinite(reviewRoundYaml) && reviewRoundYaml > 0)
+    ? reviewRoundYaml
+    : Math.max(1, countMatches(reviewText, /(\d+)회차|round\s*\d+/gi) || 1)
 
   // Recent genre/style context (last 10 cycles excluding current)
   const recentMetrics = loadRecentMetrics(10, cycle)

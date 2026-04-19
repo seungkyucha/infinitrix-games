@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <filter id="painterly" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="1" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feFlood flood-color="#ffd700" flood-opacity="0.6" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="bodyGrad" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#f0e6d3"/>
+    </radialGradient>
+    <radialGradient id="wingGrad" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#f0e6d3" stop-opacity="0.7"/>
+    </radialGradient>
+    <linearGradient id="wingShine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ffd700" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background glow -->
+  <circle cx="64" cy="64" r="40" fill="#ffd700" opacity="0.15" filter="url(#glow)"/>
+  <g filter="url(#outerGlow)">
+    <g filter="url(#painterly)">
+      <!-- Left upper wing -->
+      <path d="M64 58 C50 30, 15 25, 18 50 C20 65, 40 68, 58 62 Z" fill="url(#wingGrad)" opacity="0.95"/>
+      <!-- Right upper wing -->
+      <path d="M64 58 C78 30, 113 25, 110 50 C108 65, 88 68, 70 62 Z" fill="url(#wingGrad)" opacity="0.95"/>
+      <!-- Left lower wing -->
+      <path d="M60 66 C45 72, 25 90, 38 95 C48 98, 56 82, 62 70 Z" fill="url(#wingGrad)" opacity="0.85"/>
+      <!-- Right lower wing -->
+      <path d="M68 66 C83 72, 103 90, 90 95 C80 98, 72 82, 66 70 Z" fill="url(#wingGrad)" opacity="0.85"/>
+      <!-- Wing details -->
+      <path d="M64 58 C55 40, 30 35, 30 48" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.5"/>
+      <path d="M64 58 C73 40, 98 35, 98 48" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.5"/>
+      <!-- Body -->
+      <ellipse cx="64" cy="68" rx="4" ry="14" fill="url(#bodyGrad)"/>
+      <!-- Head -->
+      <circle cx="64" cy="52" r="5" fill="#ffd700"/>
+      <circle cx="64" cy="52" r="3" fill="#ffffff" opacity="0.7"/>
+      <!-- Antennae -->
+      <path d="M62 48 C58 38, 50 34, 48 36" fill="none" stroke="#ffd700" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M66 48 C70 38, 78 34, 80 36" fill="none" stroke="#ffd700" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="48" cy="36" r="2.5" fill="#ffffff" opacity="0.8"/>
+      <circle cx="80" cy="36" r="2.5" fill="#ffffff" opacity="0.8"/>
+    </g>
+  </g>
+  <!-- Sparkle accents -->
+  <circle cx="35" cy="42" r="1.5" fill="#ffffff" opacity="0.7"/>
+  <circle cx="93" cy="42" r="1.5" fill="#ffffff" opacity="0.7"/>
+  <circle cx="64" cy="30" r="1" fill="#ffffff" opacity="0.5"/>
+</svg>

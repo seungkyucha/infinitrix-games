@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <filter id="painterly" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="5" seed="101" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="electricGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feFlood flood-color="#00e5ff" flood-opacity="0.7" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="redBioGlow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feFlood flood-color="#ff4444" flood-opacity="0.6" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="vortexDistort" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="turbulence" baseFrequency="0.025" numOctaves="4" seed="55" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="22" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="eyeGlowBig">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="deepBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#020508"/>
+    </linearGradient>
+    <radialGradient id="bodyGrad" cx="50%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#1a2840"/>
+      <stop offset="50%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#020810"/>
+    </radialGradient>
+    <radialGradient id="giantEye" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="15%" stop-color="#ff4444"/>
+      <stop offset="50%" stop-color="#880000"/>
+      <stop offset="100%" stop-color="#0a1628"/>
+    </radialGradient>
+    <radialGradient id="mouthVortex" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="40%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#0a1628" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Deep dark background -->
+  <rect width="512" height="512" fill="url(#deepBg)"/>
+
+  <!-- 1.5x larger upper body revealed -->
+  <g filter="url(#painterly)">
+    <!-- Massive body -->
+    <ellipse cx="256" cy="320" rx="240" ry="250" fill="url(#bodyGrad)"/>
+    <!-- Head dome - much larger -->
+    <ellipse cx="256" cy="180" rx="160" ry="120" fill="#0a1628"/>
+    <ellipse cx="256" cy="180" rx="150" ry="110" fill="#1a2840" opacity="0.5"/>
+    <!-- Body ridges -->
+    <path d="M120 230 Q180 205 256 200 Q330 205 390 230" stroke="#1a2840" stroke-width="4" fill="none" opacity="0.5"/>
+    <path d="M90 280 Q170 250 256 245 Q340 250 420 280" stroke="#1a2840" stroke-width="3" fill="none" opacity="0.4"/>
+    <path d="M70 330 Q160 300 256 295 Q350 300 440 330" stroke="#1a2840" stroke-width="3" fill="none" opacity="0.3"/>
+  </g>
+
+  <!-- Tentacles with teal electricity -->
+  <g filter="url(#painterly)">
+    <!-- Tentacle 1 far left -->
+    <path d="M50 510 Q10 400 0 300 Q-5 220 30 160 Q55 120 70 90"
+          stroke="#0a1628" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <!-- Tentacle 2 left -->
+    <path d="M130 512 Q90 420 70 340 Q55 270 80 210"
+          stroke="#0a1628" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <!-- Tentacle 3 right -->
+    <path d="M380 512 Q420 420 440 340 Q455 270 430 210"
+          stroke="#0a1628" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <!-- Tentacle 4 far right -->
+    <path d="M460 510 Q500 400 510 300 Q515 220 480 160 Q460 125 445 95"
+          stroke="#0a1628" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <!-- Tentacle 5 top left -->
+    <path d="M160 200 Q120 130 80 80 Q60 50 35 30"
+          stroke="#0a1628" stroke-width="16" fill="none" stroke-linecap="round"/>
+    <!-- Tentacle 6 top right -->
+    <path d="M350 200 Q390 130 430 80 Q450 50 475 30"
+          stroke="#0a1628" stroke-width="16" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Electricity on tentacles -->
+  <g filter="url(#electricGlow)">
+    <!-- Left electricity arcs -->
+    <path d="M25 200 L35 190 L28 175 L40 165 L32 150" stroke="#00e5ff" stroke-width="2" fill="none"/>
+    <path d="M75 280 L85 268 L78 255 L90 245" stroke="#00e5ff" stroke-width="2" fill="none"/>
+    <path d="M65 360 L75 345 L68 330 L80 320" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+    <!-- Right electricity arcs -->
+    <path d="M485 200 L475 188 L482 175 L470 163 L478 150" stroke="#00e5ff" stroke-width="2" fill="none"/>
+    <path d="M435 280 L425 268 L432 255 L420 245" stroke="#00e5ff" stroke-width="2" fill="none"/>
+    <path d="M445 360 L435 345 L442 330 L430 320" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+    <!-- Top arcs -->
+    <path d="M80 90 L90 78 L83 65 L95 55" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+    <path d="M440 90 L430 78 L437 65 L425 55" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+    <!-- Crackling between tentacles -->
+    <path d="M100 300 L120 290 L105 275 L125 265" stroke="#00e5ff" stroke-width="1.5" fill="none" opacity="0.7"/>
+    <path d="M410 300 L390 290 L405 275 L385 265" stroke="#00e5ff" stroke-width="1.5" fill="none" opacity="0.7"/>
+  </g>
+
+  <!-- Giant eye - now red -->
+  <g filter="url(#eyeGlowBig)">
+    <ellipse cx="256" cy="170" rx="50" ry="42" fill="url(#giantEye)"/>
+    <ellipse cx="256" cy="170" rx="18" ry="25" fill="#0a0000"/>
+    <ellipse cx="248" cy="162" rx="6" ry="7" fill="#ff4444" opacity="0.5"/>
+    <ellipse cx="262" cy="176" rx="4" ry="5" fill="#ff8888" opacity="0.3"/>
+  </g>
+
+  <!-- Mouth spewing dark vortex -->
+  <g filter="url(#vortexDistort)">
+    <ellipse cx="256" cy="280" rx="50" ry="35" fill="url(#mouthVortex)"/>
+    <!-- Dark vortex stream -->
+    <path d="M220 280 Q200 260 180 280 Q160 310 180 340 Q210 360 240 340 Q260 320 256 280"
+          fill="#000000" opacity="0.6"/>
+    <path d="M290 280 Q310 260 330 280 Q350 310 330 340 Q300 360 270 340 Q250 320 256 280"
+          fill="#000000" opacity="0.5"/>
+    <!-- Vortex particles -->
+    <circle cx="200" cy="310" r="8" fill="#000000" opacity="0.4"/>
+    <circle cx="310" cy="320" r="7" fill="#000000" opacity="0.35"/>
+    <circle cx="256" cy="340" r="10" fill="#000000" opacity="0.3"/>
+  </g>
+
+  <!-- Mouth teeth/edges -->
+  <g filter="url(#painterly)">
+    <path d="M215 265 L225 280 L235 265" fill="#1a2840" opacity="0.7"/>
+    <path d="M245 265 L256 282 L267 265" fill="#1a2840" opacity="0.7"/>
+    <path d="M277 265 L287 280 L297 265" fill="#1a2840" opacity="0.7"/>
+  </g>
+
+  <!-- Red bioluminescence (turned from teal) -->
+  <g filter="url(#redBioGlow)" opacity="0.7">
+    <circle cx="180" cy="220" r="3.5" fill="#ff4444"/>
+    <circle cx="330" cy="225" r="3.5" fill="#ff4444"/>
+    <circle cx="150" cy="270" r="3" fill="#ff4444"/>
+    <circle cx="360" cy="275" r="3" fill="#ff4444"/>
+    <circle cx="200" cy="320" r="2.5" fill="#ff4444"/>
+    <circle cx="310" cy="315" r="2.5" fill="#ff4444"/>
+    <path d="M170 235 Q190 228 210 235" stroke="#ff4444" stroke-width="1.5" fill="none"/>
+    <path d="M300 235 Q320 228 340 237" stroke="#ff4444" stroke-width="1.5" fill="none"/>
+    <!-- On tentacles -->
+    <circle cx="30" cy="250" r="2.5" fill="#ff4444"/>
+    <circle cx="50" cy="350" r="3" fill="#ff4444"/>
+    <circle cx="480" cy="255" r="2.5" fill="#ff4444"/>
+    <circle cx="460" cy="345" r="3" fill="#ff4444"/>
+  </g>
+
+  <!-- Some remaining teal sparks for contrast -->
+  <g filter="url(#electricGlow)" opacity="0.4">
+    <circle cx="100" cy="150" r="2" fill="#00e5ff"/>
+    <circle cx="410" cy="145" r="2" fill="#00e5ff"/>
+    <circle cx="60" cy="420" r="1.5" fill="#00e5ff"/>
+    <circle cx="450" cy="430" r="1.5" fill="#00e5ff"/>
+  </g>
+</svg>

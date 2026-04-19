@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <filter id="inkBleed" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008 0.015" numOctaves="5" seed="31" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="25" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="inkSmear">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="3" seed="44" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="10"/>
+    </filter>
+    <filter id="lightningGlow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="0 0 0 0 0.7  0 0 0 0 0.53  0 0 0 0 1  0 0 0 1 0" result="c"/>
+      <feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="fogBlur"><feGaussianBlur stdDeviation="12"/></filter>
+    <radialGradient id="flashGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#b388ff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1a0033" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="inkDrip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0014" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#0a0014" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Swirling ink cloud masses -->
+  <g filter="url(#inkBleed)" opacity="0.7">
+    <ellipse cx="200" cy="120" rx="220" ry="100" fill="#0a0014" opacity="0.6"/>
+    <ellipse cx="500" cy="80" rx="280" ry="120" fill="#1a0033" opacity="0.5"/>
+    <ellipse cx="780" cy="140" rx="200" ry="90" fill="#0a0014" opacity="0.55"/>
+    <ellipse cx="350" cy="200" rx="250" ry="80" fill="#120020" opacity="0.45"/>
+    <ellipse cx="650" cy="250" rx="200" ry="70" fill="#0a0014" opacity="0.4"/>
+  </g>
+  <!-- Vortex spiral suggestion -->
+  <g filter="url(#inkSmear)" opacity="0.35">
+    <path d="M480,180 Q380,120 320,180 Q260,240 340,280 Q420,320 500,260 Q560,200 480,180" fill="none" stroke="#1a0033" stroke-width="8"/>
+    <path d="M480,180 Q400,140 350,190 Q300,240 370,270 Q440,300 490,250 Q530,210 480,180" fill="none" stroke="#200040" stroke-width="5"/>
+  </g>
+  <!-- Ink splatter patches -->
+  <g filter="url(#inkSmear)" opacity="0.5">
+    <circle cx="150" cy="300" r="30" fill="#0a0014"/>
+    <circle cx="130" cy="310" r="18" fill="#120020"/>
+    <circle cx="800" cy="280" r="25" fill="#0a0014"/>
+    <circle cx="820" cy="260" r="15" fill="#1a0033"/>
+    <circle cx="400" cy="350" r="20" fill="#0a0014"/>
+  </g>
+  <!-- Lightning bolt 1 -->
+  <g filter="url(#lightningGlow)" opacity="0.7">
+    <path d="M320,60 L310,120 L330,125 L305,200 L325,205 L290,280" fill="none" stroke="#b388ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M320,60 L310,120 L330,125 L305,200 L325,205 L290,280" fill="none" stroke="#e0d0ff" stroke-width="1" stroke-linecap="round"/>
+  </g>
+  <!-- Lightning bolt 2 -->
+  <g filter="url(#lightningGlow)" opacity="0.45">
+    <path d="M720,30 L710,80 L725,85 L700,150 L718,155 L695,220" fill="none" stroke="#b388ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M720,30 L710,80 L725,85 L700,150 L718,155 L695,220" fill="none" stroke="#e0d0ff" stroke-width="0.8"/>
+  </g>
+  <!-- Flash glows behind clouds -->
+  <g filter="url(#fogBlur)">
+    <circle cx="310" cy="160" r="80" fill="url(#flashGlow)"/>
+    <circle cx="710" cy="120" r="60" fill="url(#flashGlow)"/>
+  </g>
+  <!-- Dripping ink from clouds -->
+  <g filter="url(#inkSmear)" opacity="0.3">
+    <rect x="180" y="200" width="4" height="80" fill="url(#inkDrip)" rx="2"/>
+    <rect x="420" y="240" width="3" height="60" fill="url(#inkDrip)" rx="1.5"/>
+    <rect x="600" y="220" width="5" height="90" fill="url(#inkDrip)" rx="2.5"/>
+    <rect x="850" y="260" width="3.5" height="70" fill="url(#inkDrip)" rx="1.8"/>
+  </g>
+  <!-- Distant storm fog -->
+  <g filter="url(#fogBlur)" opacity="0.2">
+    <ellipse cx="480" cy="400" rx="400" ry="60" fill="#1a0033"/>
+    <ellipse cx="200" cy="450" rx="200" ry="40" fill="#0a0014"/>
+    <ellipse cx="760" cy="440" rx="180" ry="35" fill="#120020"/>
+  </g>
+</svg>

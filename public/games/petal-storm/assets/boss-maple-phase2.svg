@@ -1,0 +1,313 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Torn kimono gradient — deep autumn reds fading to corruption -->
+    <linearGradient id="kimonoGrad" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#cc4400"/>
+      <stop offset="35%" stop-color="#991100"/>
+      <stop offset="70%" stop-color="#661000"/>
+      <stop offset="100%" stop-color="#1b2838"/>
+    </linearGradient>
+    <!-- Dark bark armor revealed beneath torn fabric -->
+    <linearGradient id="barkArmor" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0%" stop-color="#3a2210"/>
+      <stop offset="40%" stop-color="#1b2838"/>
+      <stop offset="75%" stop-color="#0d1b2a"/>
+      <stop offset="100%" stop-color="#0a1420"/>
+    </linearGradient>
+    <!-- Crimson fury eye radial -->
+    <radialGradient id="fireEye" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#ffcc44"/>
+      <stop offset="30%" stop-color="#ff6b8a"/>
+      <stop offset="65%" stop-color="#cc0022"/>
+      <stop offset="100%" stop-color="#660011" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Vortex aura — chaotic leaf storm backdrop -->
+    <radialGradient id="vortexAura" cx="50%" cy="48%" r="50%">
+      <stop offset="0%" stop-color="#ff9100" stop-opacity="0.05"/>
+      <stop offset="40%" stop-color="#cc4400" stop-opacity="0.08"/>
+      <stop offset="70%" stop-color="#ff6b8a" stop-opacity="0.15"/>
+      <stop offset="90%" stop-color="#1b2838" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0d1b2a" stop-opacity="0.5"/>
+    </radialGradient>
+    <!-- Fan gradient — left hand -->
+    <linearGradient id="fanGradL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff9100"/>
+      <stop offset="40%" stop-color="#cc4400"/>
+      <stop offset="100%" stop-color="#661000"/>
+    </linearGradient>
+    <!-- Fan gradient — right hand -->
+    <linearGradient id="fanGradR" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff9100"/>
+      <stop offset="40%" stop-color="#cc4400"/>
+      <stop offset="100%" stop-color="#661000"/>
+    </linearGradient>
+    <!-- Hair gradient — dark with corruption streaks -->
+    <linearGradient id="hairGrad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#1a0e08"/>
+      <stop offset="60%" stop-color="#0d0805"/>
+      <stop offset="100%" stop-color="#0d1b2a"/>
+    </linearGradient>
+    <!-- Skin with warm top-left lighting -->
+    <linearGradient id="skinLit" x1="0.2" y1="0.1" x2="0.8" y2="0.9">
+      <stop offset="0%" stop-color="#f5e4d0"/>
+      <stop offset="100%" stop-color="#dbc4a8"/>
+    </linearGradient>
+    <!-- Dark vine corruption gradient -->
+    <linearGradient id="vineCorrupt" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#0d1b2a"/>
+      <stop offset="50%" stop-color="#1b2838" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#1b2838" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Obi sash gradient -->
+    <linearGradient id="obiGrad" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#4a0a00"/>
+      <stop offset="50%" stop-color="#661000"/>
+      <stop offset="100%" stop-color="#330800"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="fireGlow" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="saturate" values="1.5"/>
+    </filter>
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+    <filter id="auraFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="16"/>
+    </filter>
+    <filter id="dropShadow" x="-20%" y="-10%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="5" stdDeviation="6" flood-color="#0d1b2a" flood-opacity="0.5"/>
+    </filter>
+    <filter id="corruptPulse" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <!-- ===== LAYER 1: Background Aura ===== -->
+  <g id="layer-aura">
+    <ellipse cx="256" cy="268" rx="240" ry="248" fill="url(#vortexAura)" filter="url(#auraFilter)"/>
+    <!-- Inner corruption ring -->
+    <ellipse cx="256" cy="265" rx="170" ry="190" fill="none" stroke="#ff6b8a" stroke-width="2" opacity="0.15" filter="url(#corruptPulse)"/>
+  </g>
+
+  <!-- ===== LAYER 2: Swirling Wind Lines ===== -->
+  <g id="layer-wind" opacity="0.35">
+    <path d="M55,140 Q155,110 265,170 Q375,230 430,155" fill="none" stroke="#cc4400" stroke-width="2.5" filter="url(#softBlur)"/>
+    <path d="M45,240 Q155,205 270,265 Q385,325 455,245" fill="none" stroke="#ff6b8a" stroke-width="2" filter="url(#softBlur)"/>
+    <path d="M75,345 Q185,305 295,365 Q405,425 445,340" fill="none" stroke="#cc4400" stroke-width="2" filter="url(#softBlur)"/>
+    <path d="M40,195 Q150,160 260,215 Q370,270 465,195" fill="none" stroke="#ff9100" stroke-width="1.5" filter="url(#softBlur)"/>
+    <path d="M60,300 Q170,265 280,315 Q390,365 475,290" fill="none" stroke="#ff9100" stroke-width="1.5" filter="url(#softBlur)"/>
+    <path d="M90,400 Q200,370 300,410 Q380,440 440,390" fill="none" stroke="#cc4400" stroke-width="1.5" filter="url(#softBlur)"/>
+  </g>
+
+  <!-- ===== LAYER 3: Outer Chaotic Leaf Storm ===== -->
+  <g id="layer-leaves-outer">
+    <!-- Outer orbit — large corrupted leaves -->
+    <path d="M100,125 Q107,113 116,120 Q112,132 100,125Z" fill="#cc4400" opacity="0.7"/>
+    <path d="M405,135 Q412,123 420,130 Q415,142 405,135Z" fill="#0d1b2a" opacity="0.75"/>
+    <path d="M70,285 Q77,273 86,280 Q81,292 70,285Z" fill="#ff6b8a" opacity="0.55"/>
+    <path d="M440,295 Q447,283 456,290 Q451,302 440,295Z" fill="#cc4400" opacity="0.6"/>
+    <path d="M115,405 Q122,393 131,400 Q126,412 115,405Z" fill="#1b2838" opacity="0.7"/>
+    <path d="M395,415 Q402,403 411,410 Q406,422 395,415Z" fill="#ff9100" opacity="0.5"/>
+    <path d="M195,115 Q203,105 210,112 Q205,122 195,115Z" fill="#cc4400" opacity="0.6"/>
+    <path d="M315,118 Q323,108 330,115 Q325,125 315,118Z" fill="#0d1b2a" opacity="0.65"/>
+    <!-- Mid orbit leaves -->
+    <path d="M145,168 Q151,158 159,164 Q154,174 145,168Z" fill="#ff9100" opacity="0.6"/>
+    <path d="M370,172 Q376,162 384,168 Q379,178 370,172Z" fill="#ff6b8a" opacity="0.6"/>
+    <path d="M125,340 Q131,330 139,336 Q134,346 125,340Z" fill="#cc4400" opacity="0.5"/>
+    <path d="M385,348 Q391,338 399,344 Q394,354 385,348Z" fill="#1b2838" opacity="0.6"/>
+    <!-- Inner orbit -->
+    <path d="M170,208 Q176,199 183,205 Q178,214 170,208Z" fill="#ff9100" opacity="0.5"/>
+    <path d="M345,212 Q351,203 358,209 Q353,218 345,212Z" fill="#cc4400" opacity="0.55"/>
+    <path d="M160,372 Q166,363 173,369 Q168,378 160,372Z" fill="#0d1b2a" opacity="0.55"/>
+    <path d="M352,378 Q358,369 365,375 Q360,384 352,378Z" fill="#ff6b8a" opacity="0.45"/>
+    <!-- Extra chaotic scattered leaves -->
+    <path d="M88,210 Q95,200 103,207 Q98,217 88,210Z" fill="#ff6b8a" opacity="0.4"/>
+    <path d="M425,225 Q432,215 440,222 Q435,232 425,225Z" fill="#cc4400" opacity="0.5"/>
+    <path d="M260,95 Q267,85 275,92 Q270,102 260,95Z" fill="#1b2838" opacity="0.5"/>
+    <path d="M55,355 Q62,345 70,352 Q65,362 55,355Z" fill="#ff9100" opacity="0.4"/>
+    <path d="M455,370 Q462,360 470,367 Q465,377 455,370Z" fill="#0d1b2a" opacity="0.45"/>
+  </g>
+
+  <!-- ===== LAYER 4: Hair (flowing behind body) ===== -->
+  <g id="layer-hair" filter="url(#dropShadow)">
+    <!-- Main hair mass -->
+    <path d="M226,138 Q218,115 212,90 Q208,72 218,62 Q234,50 256,47 Q278,50 294,62 Q304,72 300,90 Q294,115 286,138 Z" fill="url(#hairGrad)" stroke="#0a0604" stroke-width="1"/>
+    <!-- Long flowing strands blown by wind — left -->
+    <path d="M218,62 Q190,50 165,56 Q142,65 125,82 Q112,100 108,125" fill="none" stroke="url(#hairGrad)" stroke-width="9" stroke-linecap="round"/>
+    <path d="M215,75 Q195,68 178,76 Q158,88 145,108 Q138,125 136,148" fill="none" stroke="#1a0e08" stroke-width="6" stroke-linecap="round"/>
+    <path d="M222,88 Q208,85 195,92 Q178,102 168,125" fill="none" stroke="#2a1810" stroke-width="4" stroke-linecap="round"/>
+    <!-- Long flowing strands — right -->
+    <path d="M294,62 Q318,52 340,60 Q358,70 372,88 Q382,108 385,130" fill="none" stroke="url(#hairGrad)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M297,78 Q315,72 332,82 Q348,95 358,115" fill="none" stroke="#1a0e08" stroke-width="5" stroke-linecap="round"/>
+    <!-- Blade-like leaf ornaments in hair -->
+    <path d="M170,58 L155,38 L162,55 L148,45 L160,60 L142,52 L158,64 Z" fill="#cc4400" stroke="#991100" stroke-width="0.8"/>
+    <path d="M345,62 L360,42 L353,58 L368,48 L355,64 L372,55 L358,67 Z" fill="#cc4400" stroke="#991100" stroke-width="0.8"/>
+    <!-- Sharp corrupted leaf ornament — top center -->
+    <path d="M256,42 L248,22 L253,38 L242,28 L251,42 L240,34 L250,44 L256,18 L262,44 L272,34 L261,42 L270,28 L259,38 L264,22 Z" fill="#ff6b8a" stroke="#cc4400" stroke-width="0.7"/>
+    <!-- Side blade ornaments -->
+    <path d="M120,85 L105,70 L115,82 L98,75 L113,86 Z" fill="#1b2838" stroke="#0d1b2a" stroke-width="0.5" opacity="0.8"/>
+    <path d="M388,90 L403,75 L393,87 L408,80 L395,92 Z" fill="#1b2838" stroke="#0d1b2a" stroke-width="0.5" opacity="0.8"/>
+  </g>
+
+  <!-- ===== LAYER 5: Body — Bark Armor + Torn Kimono ===== -->
+  <g id="layer-body" filter="url(#dropShadow)">
+    <!-- Bark armor base (visible under kimono tears) -->
+    <path d="M218,165 Q206,228 202,300 Q198,370 193,432 L218,443 L256,448 L294,443 L319,432 Q314,370 310,300 Q306,228 294,165 Z" fill="url(#barkArmor)" stroke="#0d1b2a" stroke-width="1.5"/>
+    <!-- Bark texture veins -->
+    <path d="M232,195 Q237,250 234,310 Q232,360 230,410" fill="none" stroke="#2a3a10" stroke-width="2.5" opacity="0.5"/>
+    <path d="M278,195 Q274,250 277,310 Q279,360 281,410" fill="none" stroke="#2a3a10" stroke-width="2.5" opacity="0.5"/>
+    <path d="M256,185 Q256,245 256,320 Q256,380 256,420" fill="none" stroke="#2a3a10" stroke-width="1.8" opacity="0.35"/>
+    <path d="M244,200 Q248,260 246,330" fill="none" stroke="#1b2838" stroke-width="1.5" opacity="0.3"/>
+    <path d="M268,200 Q265,260 267,330" fill="none" stroke="#1b2838" stroke-width="1.5" opacity="0.3"/>
+
+    <!-- Torn kimono — left panel -->
+    <path d="M216,165 Q200,215 195,278 Q190,335 186,405 L206,425 L228,435 Q233,378 237,318 Q241,258 237,198 Z" fill="url(#kimonoGrad)" stroke="#661000" stroke-width="1.5"/>
+    <!-- Torn edge — left -->
+    <path d="M237,318 L241,308 L235,302 L240,292 L234,286 L239,276 L233,270" fill="none" stroke="#661000" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- Torn kimono — right panel (shorter, more torn) -->
+    <path d="M296,165 Q312,215 316,268 Q320,310 322,348 L304,368 L287,374 Q284,328 282,278 Q278,228 280,188 Z" fill="url(#kimonoGrad)" stroke="#661000" stroke-width="1.5"/>
+    <!-- Torn edge — right -->
+    <path d="M282,278 L286,268 L280,262 L285,252 L279,246 L284,236" fill="none" stroke="#661000" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- Obi sash -->
+    <path d="M208,258 Q228,253 256,256 Q284,253 304,258 Q304,280 300,292 Q282,287 256,290 Q230,287 212,292 Q208,280 208,258 Z" fill="url(#obiGrad)" stroke="#330500" stroke-width="1.5"/>
+    <!-- Obi knot — ornate -->
+    <ellipse cx="256" cy="276" rx="14" ry="12" fill="#661000" stroke="#4a0a00" stroke-width="1"/>
+    <path d="M248,276 Q256,266 264,276 Q256,286 248,276 Z" fill="#cc4400" opacity="0.6"/>
+  </g>
+
+  <!-- ===== LAYER 6: Face & Neck ===== -->
+  <g id="layer-face">
+    <!-- Neck -->
+    <rect x="247" y="152" width="18" height="16" rx="5" fill="url(#skinLit)"/>
+    <!-- Face -->
+    <ellipse cx="256" cy="118" rx="34" ry="40" fill="url(#skinLit)"/>
+    <!-- Face shadow — right/bottom (light from top-left) -->
+    <ellipse cx="262" cy="126" rx="28" ry="32" fill="#dbc4a8" opacity="0.35"/>
+
+    <!-- Eyes — deep crimson, burning fury -->
+    <!-- Left eye glow aura -->
+    <ellipse cx="243" cy="112" rx="14" ry="14" fill="url(#fireEye)" filter="url(#fireGlow)"/>
+    <!-- Right eye glow aura -->
+    <ellipse cx="269" cy="112" rx="14" ry="14" fill="url(#fireEye)" filter="url(#fireGlow)"/>
+    <!-- Left eye iris -->
+    <ellipse cx="243" cy="112" rx="7" ry="8" fill="#cc0022"/>
+    <ellipse cx="243" cy="112" rx="3" ry="4" fill="#ff6b8a"/>
+    <ellipse cx="242" cy="110" rx="1.5" ry="1.5" fill="#ffcc44"/>
+    <!-- Right eye iris -->
+    <ellipse cx="269" cy="112" rx="7" ry="8" fill="#cc0022"/>
+    <ellipse cx="269" cy="112" rx="3" ry="4" fill="#ff6b8a"/>
+    <ellipse cx="268" cy="110" rx="1.5" ry="1.5" fill="#ffcc44"/>
+
+    <!-- Eyebrows — fierce, angled -->
+    <path d="M230,102 Q237,97 250,100" fill="none" stroke="#1a0e08" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M262,100 Q275,97 282,102" fill="none" stroke="#1a0e08" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Mouth — fierce, slightly open -->
+    <path d="M247,132 Q252,136 256,137 Q260,136 265,132" fill="none" stroke="#993333" stroke-width="1.8"/>
+    <path d="M250,133 Q256,136 262,133" fill="#993333" opacity="0.3"/>
+
+    <!-- Nose highlight -->
+    <path d="M255,120 Q256,125 257,120" fill="none" stroke="#e0c8b0" stroke-width="1" opacity="0.5"/>
+  </g>
+
+  <!-- ===== LAYER 7: Arms & Dual Fans ===== -->
+  <g id="layer-arms">
+    <!-- Left arm — extended aggressively -->
+    <path d="M216,182 Q178,205 140,235 Q118,252 95,272" fill="none" stroke="url(#skinLit)" stroke-width="9" stroke-linecap="round"/>
+    <!-- Left arm kimono sleeve remnant -->
+    <path d="M216,178 Q195,190 175,210 Q165,220 158,232 L168,240 Q175,225 190,212 Q205,198 220,188 Z" fill="url(#kimonoGrad)" opacity="0.7"/>
+
+    <!-- LEFT FAN — spread open, aggressive angle -->
+    <g transform="translate(82,262) rotate(-25)">
+      <path d="M0,0 L-42,-58 A60,60 0 0,1 42,-58 Z" fill="url(#fanGradL)" stroke="#cc4400" stroke-width="1.5"/>
+      <!-- Fan ribs -->
+      <line x1="0" y1="0" x2="-32" y2="-56" stroke="#991100" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="-18" y2="-60" stroke="#991100" stroke-width="1"/>
+      <line x1="0" y1="0" x2="-3" y2="-61" stroke="#991100" stroke-width="1"/>
+      <line x1="0" y1="0" x2="12" y2="-60" stroke="#991100" stroke-width="1"/>
+      <line x1="0" y1="0" x2="28" y2="-56" stroke="#991100" stroke-width="1.2"/>
+      <!-- Fan edge glow -->
+      <path d="M-42,-58 A60,60 0 0,1 42,-58" fill="none" stroke="#ff9100" stroke-width="2.5" opacity="0.6" filter="url(#softBlur)"/>
+      <!-- Maple blade emblem -->
+      <path d="M0,-32 L-6,-42 L-12,-35 L-16,-45 L-9,-38 L0,-52 L9,-38 L16,-45 L12,-35 L6,-42 Z" fill="#ff9100" opacity="0.6"/>
+      <!-- Corruption vein on fan -->
+      <path d="M-20,-50 Q0,-35 20,-50" fill="none" stroke="#0d1b2a" stroke-width="1.5" opacity="0.4"/>
+    </g>
+
+    <!-- Right arm — extended aggressively -->
+    <path d="M296,182 Q334,205 372,235 Q394,252 417,272" fill="none" stroke="url(#skinLit)" stroke-width="9" stroke-linecap="round"/>
+    <!-- Right arm kimono sleeve remnant -->
+    <path d="M296,178 Q317,190 337,210 Q347,220 354,232 L344,240 Q337,225 322,212 Q307,198 292,188 Z" fill="url(#kimonoGrad)" opacity="0.7"/>
+
+    <!-- RIGHT FAN — spread open, mirrored aggressive angle -->
+    <g transform="translate(430,262) rotate(25)">
+      <path d="M0,0 L-42,-58 A60,60 0 0,1 42,-58 Z" fill="url(#fanGradR)" stroke="#cc4400" stroke-width="1.5"/>
+      <line x1="0" y1="0" x2="-32" y2="-56" stroke="#991100" stroke-width="1.2"/>
+      <line x1="0" y1="0" x2="-18" y2="-60" stroke="#991100" stroke-width="1"/>
+      <line x1="0" y1="0" x2="-3" y2="-61" stroke="#991100" stroke-width="1"/>
+      <line x1="0" y1="0" x2="12" y2="-60" stroke="#991100" stroke-width="1"/>
+      <line x1="0" y1="0" x2="28" y2="-56" stroke="#991100" stroke-width="1.2"/>
+      <path d="M-42,-58 A60,60 0 0,1 42,-58" fill="none" stroke="#ff9100" stroke-width="2.5" opacity="0.6" filter="url(#softBlur)"/>
+      <path d="M0,-32 L-6,-42 L-12,-35 L-16,-45 L-9,-38 L0,-52 L9,-38 L16,-45 L12,-35 L6,-42 Z" fill="#ff9100" opacity="0.6"/>
+      <path d="M-20,-50 Q0,-35 20,-50" fill="none" stroke="#0d1b2a" stroke-width="1.5" opacity="0.4"/>
+    </g>
+  </g>
+
+  <!-- ===== LAYER 8: Dark Vine Corruption (creeping up from feet) ===== -->
+  <g id="layer-corruption">
+    <!-- Vine corruption overlay on lower body -->
+    <path d="M193,448 Q198,410 202,380 Q206,350 210,320 Q215,290 218,265" fill="none" stroke="#0d1b2a" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+    <path d="M319,448 Q314,410 310,380 Q306,350 302,320 Q298,290 294,265" fill="none" stroke="#0d1b2a" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+    <!-- Vine tendrils branching -->
+    <path d="M208,355 Q195,340 185,348" fill="none" stroke="#1b2838" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <path d="M215,310 Q200,300 192,308" fill="none" stroke="#1b2838" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+    <path d="M304,355 Q317,340 327,348" fill="none" stroke="#1b2838" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <path d="M298,310 Q312,300 320,308" fill="none" stroke="#1b2838" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+    <!-- Vine thorns -->
+    <path d="M205,370 L198,362 L207,367" fill="#0d1b2a" opacity="0.6"/>
+    <path d="M307,370 L314,362 L305,367" fill="#0d1b2a" opacity="0.6"/>
+    <path d="M212,330 L205,322 L214,327" fill="#1b2838" opacity="0.5"/>
+    <path d="M300,330 L307,322 L298,327" fill="#1b2838" opacity="0.5"/>
+    <!-- Corruption spread gradient overlay -->
+    <rect x="185" y="350" width="142" height="105" fill="url(#vineCorrupt)" opacity="0.4" rx="10"/>
+  </g>
+
+  <!-- ===== LAYER 9: Feet & Hem ===== -->
+  <g id="layer-feet">
+    <!-- Lower kimono hem — flowing, tattered -->
+    <path d="M193,432 Q208,448 228,443 Q256,452 284,443 Q304,448 319,432 Q312,462 302,482 Q282,494 256,496 Q230,494 210,482 Q200,462 193,432 Z" fill="url(#kimonoGrad)" opacity="0.75"/>
+    <!-- Tattered edge details -->
+    <path d="M200,465 L205,458 L198,453 L204,446" fill="none" stroke="#661000" stroke-width="1.2"/>
+    <path d="M312,465 L307,458 L314,453 L308,446" fill="none" stroke="#661000" stroke-width="1.2"/>
+    <!-- Sandals -->
+    <ellipse cx="234" cy="455" rx="20" ry="9" fill="#3a2210" stroke="#1a0f0a" stroke-width="1"/>
+    <ellipse cx="278" cy="455" rx="20" ry="9" fill="#3a2210" stroke="#1a0f0a" stroke-width="1"/>
+  </g>
+
+  <!-- ===== LAYER 10: Foreground Particles & Energy ===== -->
+  <g id="layer-particles">
+    <!-- Corrupted energy sparks near eyes -->
+    <circle cx="228" cy="105" r="2" fill="#ff6b8a" opacity="0.7" filter="url(#softBlur)"/>
+    <circle cx="284" cy="105" r="2" fill="#ff6b8a" opacity="0.7" filter="url(#softBlur)"/>
+    <circle cx="222" cy="98" r="1.5" fill="#ffcc44" opacity="0.5"/>
+    <circle cx="290" cy="98" r="1.5" fill="#ffcc44" opacity="0.5"/>
+
+    <!-- Foreground falling/swirling corrupted leaves -->
+    <path d="M185,160 Q192,150 200,157 Q195,167 185,160Z" fill="#0d1b2a" opacity="0.6" transform="rotate(-15,192,158)"/>
+    <path d="M325,155 Q332,145 340,152 Q335,162 325,155Z" fill="#ff6b8a" opacity="0.5" transform="rotate(10,332,153)"/>
+    <path d="M140,250 Q147,240 155,247 Q150,257 140,250Z" fill="#cc4400" opacity="0.45" transform="rotate(-30,147,248)"/>
+    <path d="M375,245 Q382,235 390,242 Q385,252 375,245Z" fill="#0d1b2a" opacity="0.55" transform="rotate(25,382,243)"/>
+    <path d="M200,440 Q207,430 215,437 Q210,447 200,440Z" fill="#ff9100" opacity="0.4" transform="rotate(-20,207,438)"/>
+    <path d="M305,435 Q312,425 320,432 Q315,442 305,435Z" fill="#1b2838" opacity="0.5" transform="rotate(15,312,433)"/>
+
+    <!-- Tiny energy motes around fans -->
+    <circle cx="65" cy="225" r="2.5" fill="#ff9100" opacity="0.5" filter="url(#softBlur)"/>
+    <circle cx="50" cy="245" r="2" fill="#ff6b8a" opacity="0.4" filter="url(#softBlur)"/>
+    <circle cx="448" cy="220" r="2.5" fill="#ff9100" opacity="0.5" filter="url(#softBlur)"/>
+    <circle cx="460" cy="240" r="2" fill="#ff6b8a" opacity="0.4" filter="url(#softBlur)"/>
+  </g>
+</svg>

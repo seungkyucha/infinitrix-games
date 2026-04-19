@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="backlightGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ff8c00" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#ff6b00" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ff4500" stop-opacity="0.15"/>
+    </linearGradient>
+    <filter id="brushTex" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.015 0.009" numOctaves="4" seed="22" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="8" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="edgeGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <!-- Backlight warmth -->
+  <rect width="960" height="540" fill="url(#backlightGrad)"/>
+  <!-- Dark foreground grass hill silhouette -->
+  <g filter="url(#brushTex)">
+    <path d="M0 440 Q40 415 80 425 Q140 400 200 420 Q280 395 360 415 Q440 390 520 410 Q600 385 680 405 Q760 390 840 410 Q920 400 960 420 L960 540 L0 540Z" fill="#0d1b2a" fill-opacity="0.85"/>
+  </g>
+  <!-- Grass blade silhouettes -->
+  <g fill="#0d1b2a" fill-opacity="0.9" filter="url(#brushTex)">
+    <path d="M30 440 L25 400 Q28 390 35 440Z"/>
+    <path d="M50 435 L48 385 Q52 375 58 435Z"/>
+    <path d="M90 425 L82 375 Q88 365 95 425Z"/>
+    <path d="M140 418 L135 370 Q140 358 148 418Z"/>
+    <path d="M200 420 L192 368 Q198 356 208 420Z"/>
+    <path d="M260 410 L255 362 Q260 350 268 410Z"/>
+    <path d="M330 415 L322 360 Q328 348 338 415Z"/>
+    <path d="M400 408 L395 355 Q400 342 410 408Z"/>
+    <path d="M470 410 L462 358 Q468 345 478 410Z"/>
+    <path d="M540 405 L535 350 Q540 338 550 405Z"/>
+    <path d="M610 408 L602 355 Q608 342 618 408Z"/>
+    <path d="M680 405 L672 352 Q678 340 688 405Z"/>
+    <path d="M750 410 L742 358 Q748 345 758 410Z"/>
+    <path d="M820 412 L815 360 Q820 348 828 412Z"/>
+    <path d="M890 418 L882 365 Q888 352 898 418Z"/>
+    <path d="M940 420 L935 372 Q940 360 948 420Z"/>
+  </g>
+  <!-- Flower silhouettes with backlight rim -->
+  <g filter="url(#brushTex)">
+    <circle cx="120" cy="410" r="14" fill="#0d1b2a" fill-opacity="0.85"/>
+    <circle cx="120" cy="410" r="15" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-opacity="0.4" filter="url(#edgeGlow)"/>
+    <circle cx="320" cy="400" r="16" fill="#0d1b2a" fill-opacity="0.85"/>
+    <circle cx="320" cy="400" r="17" fill="none" stroke="#ff6b00" stroke-width="1.5" stroke-opacity="0.4" filter="url(#edgeGlow)"/>
+    <circle cx="520" cy="395" r="18" fill="#0d1b2a" fill-opacity="0.85"/>
+    <circle cx="520" cy="395" r="19" fill="none" stroke="#ffd700" stroke-width="1.5" stroke-opacity="0.35" filter="url(#edgeGlow)"/>
+    <circle cx="720" cy="398" r="15" fill="#0d1b2a" fill-opacity="0.85"/>
+    <circle cx="720" cy="398" r="16" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-opacity="0.4" filter="url(#edgeGlow)"/>
+    <circle cx="900" cy="410" r="13" fill="#0d1b2a" fill-opacity="0.85"/>
+    <circle cx="900" cy="410" r="14" fill="none" stroke="#ff6b00" stroke-width="1.5" stroke-opacity="0.4" filter="url(#edgeGlow)"/>
+  </g>
+  <!-- Backlit rim light on grass tops -->
+  <g opacity="0.35" filter="url(#softBlur)">
+    <path d="M0 435 Q120 410 240 420 Q360 400 480 415 Q600 395 720 410 Q840 400 960 418" stroke="#ff8c00" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- Dramatic dust/pollen in backlight -->
+  <g opacity="0.5">
+    <circle cx="150" cy="350" r="2" fill="#ffd700" fill-opacity="0.6"/>
+    <circle cx="300" cy="320" r="1.5" fill="#ffd700" fill-opacity="0.5"/>
+    <circle cx="450" cy="340" r="2.5" fill="#ffd700" fill-opacity="0.55"/>
+    <circle cx="580" cy="310" r="1.8" fill="#ffd700" fill-opacity="0.5"/>
+    <circle cx="700" cy="330" r="2" fill="#ffd700" fill-opacity="0.6"/>
+    <circle cx="850" cy="350" r="1.5" fill="#ffd700" fill-opacity="0.45"/>
+  </g>
+</svg>

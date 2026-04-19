@@ -274,10 +274,14 @@ ${GAME_PAGE_LAYOUT}
 - 유사한 아트 디렉션을 가진 Steam 인디 게임이나 모바일 게임을 레퍼런스로 참고하세요.
 - 에셋 간 스타일 불일치(예: 캐릭터는 픽셀아트인데 배경은 수채화)는 절대 금지입니다.
 
-⚠️ 변형 에셋(ref 필드 있음)은 **반드시 SVG로 직접 제작** (Cycle 1·2 반복 지적):
-- ref 필드(예: player-hurt → ref: "player", enemy-boss-phase2 → ref: "enemy-boss") 로 base 를 참조하더라도, Gemini PNG 생성기는 동일 인물 일관성을 보장하지 못함. Cycle 1·2 에서 player/player-hurt/player-idle-sheet 전부 **서로 다른 인물**로 생성된 사례가 designer/platform wisdom 에 2회 연속 기록됨.
-- 따라서 ref 필드가 있는 모든 변형 에셋은 .png 로 두지 말고, base PNG 를 Read 로 열어 시각적으로 확인한 뒤 **동일 팔레트·동일 실루엣·동일 스타일 cue** 를 적용한 .svg 를 Write 로 직접 제작할 것. manifest.json 의 해당 항목 "file" 확장자도 .svg 로 맞춰야 함.
-- 반투명/밝은색 소형 오브젝트(아이템, 보석, 파티클)도 PNG 생성 불안정 → 처음부터 SVG + glow 필터로 제작 권장.
+⚠️ 변형 에셋(ref 필드 있음)은 **Gemini 호출 금지 — 처음부터 SVG 직접 제작** (Cycle 1·2·3·4 **4사이클 연속 동일 실패** 확정):
+- ref 필드(예: player-hurt → ref: "player", enemy-boss-phase2 → ref: "enemy-boss") 로 base 를 참조해도 Gemini PNG 생성기는 **동일 인물 일관성을 보장하지 못함**. wisdom-designer.md 에 4사이클 연속 "Gemini 변형 일관성 붕괴" 가 기록됨. C4 최종 결론: "**캐릭터 변형은 PNG 생성 요청 자체를 하지 말 것**".
+- 따라서 워크플로우는 다음과 같다:
+  1. base 에셋(player, enemy-basic, enemy-boss, bg-* 등) 만 Gemini 호출 대상.
+  2. ref 필드가 있는 모든 변형(hurt/attack/dash/jump/phase2/idle-sheet 등)은 **Gemini 호출을 건너뛰고** base PNG 를 Read 로 열어 시각 확인 후 **동일 팔레트·동일 실루엣·동일 스타일 cue** 를 적용한 .svg 를 Write 로 **직접 제작**. manifest.json 의 해당 항목 "file" 확장자는 반드시 .svg, "format" 필드도 "svg" 로 맞춤.
+  3. Gemini fallback 2단계 루프(PNG 시도→실패→SVG)는 **금지** — 시간·비용 낭비 반복의 원인. C4 에서 이미 플레이어 7변형·보스 phase2 4종 등 15개를 처음부터 SVG 로 성공 제작함(wisdom-designer 성공 패턴 #3).
+- 반투명/밝은색 소형 오브젝트(아이템, 보석, 파티클) 도 PNG 생성 불안정 4사이클 확인 → **처음부터 SVG + glow 필터** 로 제작 (fallback 아님).
+- **manifest.json 은 수동 작성 후 `node -e "JSON.parse(...)"` 로 검증 필수** (Gemini 자동 생성 manifest 는 ref 필드 이스케이프 오류 4사이클 연속 확인됨).
 
 사용 가능한 스킬:
 - WebSearch: 레퍼런스 게임/아트 스타일 조사

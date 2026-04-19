@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Painterly texture filter -->
+    <filter id="painterly" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="1" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="painterly-fine" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="3" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Celestial body radial glow -->
+    <radialGradient id="bodyGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="#f0e6d3" stop-opacity="0.7"/>
+      <stop offset="70%" stop-color="#ffd700" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Wing gradient gold -->
+    <linearGradient id="wingGoldL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#ffe566" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#b388ff" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="wingGoldR" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#ffe566" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#b388ff" stop-opacity="0.4"/>
+    </linearGradient>
+    <!-- Robe gradient -->
+    <linearGradient id="robeGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="40%" stop-color="#f0e6d3" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#b388ff" stop-opacity="0.25"/>
+    </linearGradient>
+    <!-- Hair gradient -->
+    <linearGradient id="hairGrad" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#f0e6d3" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.4"/>
+    </linearGradient>
+    <!-- Background atmosphere -->
+    <radialGradient id="atmosphere" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.15"/>
+      <stop offset="60%" stop-color="#b388ff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#0d1b2a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Atmospheric background glow -->
+  <ellipse cx="256" cy="240" rx="280" ry="260" fill="url(#atmosphere)"/>
+
+  <!-- Outer celestial glow -->
+  <ellipse cx="256" cy="260" rx="120" ry="140" fill="url(#bodyGlow)" filter="url(#glow-strong)"/>
+
+  <!-- === WINGS (3 pairs of butterfly wings) === -->
+  <g filter="url(#painterly)">
+    <!-- Top pair (largest) -->
+    <path d="M256 200 C210 120, 100 100, 80 160 C65 200, 120 230, 180 220 C200 216, 240 210, 256 200Z" fill="url(#wingGoldL)" opacity="0.85"/>
+    <path d="M256 200 C302 120, 412 100, 432 160 C447 200, 392 230, 332 220 C312 216, 272 210, 256 200Z" fill="url(#wingGoldR)" opacity="0.85"/>
+    <!-- Middle pair -->
+    <path d="M256 240 C220 180, 120 185, 105 230 C95 260, 150 275, 200 260 C225 252, 248 245, 256 240Z" fill="url(#wingGoldL)" opacity="0.7"/>
+    <path d="M256 240 C292 180, 392 185, 407 230 C417 260, 362 275, 312 260 C287 252, 264 245, 256 240Z" fill="url(#wingGoldR)" opacity="0.7"/>
+    <!-- Bottom pair (smallest) -->
+    <path d="M256 280 C235 240, 155 250, 150 285 C147 305, 190 310, 225 295 C242 288, 252 283, 256 280Z" fill="url(#wingGoldL)" opacity="0.6"/>
+    <path d="M256 280 C277 240, 357 250, 362 285 C365 305, 322 310, 287 295 C270 288, 260 283, 256 280Z" fill="url(#wingGoldR)" opacity="0.6"/>
+  </g>
+
+  <!-- Wing vein details -->
+  <g stroke="#ffd700" stroke-width="0.8" fill="none" opacity="0.5" filter="url(#painterly-fine)">
+    <path d="M256 200 C220 155, 140 140, 100 165"/>
+    <path d="M256 200 C200 160, 130 170, 110 190"/>
+    <path d="M256 200 C292 155, 372 140, 412 165"/>
+    <path d="M256 200 C312 160, 382 170, 402 190"/>
+    <path d="M256 240 C230 210, 155 215, 125 240"/>
+    <path d="M256 240 C282 210, 357 215, 387 240"/>
+  </g>
+
+  <!-- === HAIR flowing upward === -->
+  <g filter="url(#painterly)">
+    <path d="M230 180 C225 130, 210 80, 195 40 C192 30, 200 25, 210 50 C218 75, 225 120, 232 165Z" fill="url(#hairGrad)" opacity="0.7"/>
+    <path d="M245 175 C243 120, 240 70, 250 25 C252 15, 258 18, 255 40 C250 80, 247 130, 248 170Z" fill="url(#hairGrad)" opacity="0.8"/>
+    <path d="M260 175 C262 115, 268 65, 260 20 C258 10, 252 14, 256 40 C262 80, 263 130, 261 170Z" fill="url(#hairGrad)" opacity="0.75"/>
+    <path d="M275 178 C280 125, 290 75, 305 35 C308 25, 300 22, 295 45 C287 75, 278 125, 273 168Z" fill="url(#hairGrad)" opacity="0.65"/>
+    <path d="M285 185 C295 140, 310 90, 320 55 C323 45, 315 42, 310 60 C300 90, 290 140, 283 178Z" fill="url(#hairGrad)" opacity="0.55"/>
+    <!-- Main hair mass -->
+    <ellipse cx="256" cy="185" rx="35" ry="25" fill="url(#hairGrad)" opacity="0.85"/>
+  </g>
+
+  <!-- === BODY / ROBE silhouette === -->
+  <g filter="url(#painterly)">
+    <!-- Head -->
+    <ellipse cx="256" cy="205" rx="22" ry="26" fill="url(#robeGrad)"/>
+    <!-- Neck -->
+    <rect x="249" y="228" width="14" height="12" rx="5" fill="url(#robeGrad)" opacity="0.8"/>
+    <!-- Torso -->
+    <path d="M232 238 C228 250, 225 280, 228 310 L284 310 C287 280, 284 250, 280 238 Z" fill="url(#robeGrad)"/>
+    <!-- Robe skirt flowing -->
+    <path d="M228 310 C220 350, 210 400, 200 450 C198 460, 215 465, 230 455 C240 448, 250 460, 256 462 C262 460, 272 448, 282 455 C297 465, 314 460, 312 450 C302 400, 292 350, 284 310 Z" fill="url(#robeGrad)" opacity="0.75"/>
+    <!-- Arms extended slightly -->
+    <path d="M232 250 C215 258, 195 270, 185 285 C182 290, 188 293, 192 288 C200 275, 218 262, 235 255Z" fill="url(#robeGrad)" opacity="0.7"/>
+    <path d="M280 250 C297 258, 317 270, 327 285 C330 290, 324 293, 320 288 C312 275, 294 262, 277 255Z" fill="url(#robeGrad)" opacity="0.7"/>
+  </g>
+
+  <!-- Face features (minimal, luminous) -->
+  <g filter="url(#glow)">
+    <ellipse cx="246" cy="200" rx="4" ry="3" fill="#00e5ff" opacity="0.8"/>
+    <ellipse cx="266" cy="200" rx="4" ry="3" fill="#00e5ff" opacity="0.8"/>
+    <path d="M250 212 Q256 216, 262 212" stroke="#f0e6d3" stroke-width="1.2" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- Central light core -->
+  <ellipse cx="256" cy="275" rx="10" ry="12" fill="#ffffff" opacity="0.5" filter="url(#glow-strong)"/>
+
+  <!-- Particle sparkles -->
+  <g fill="#ffd700" filter="url(#glow)">
+    <circle cx="180" cy="160" r="2" opacity="0.7"/>
+    <circle cx="340" cy="150" r="1.5" opacity="0.6"/>
+    <circle cx="150" cy="250" r="1.8" opacity="0.5"/>
+    <circle cx="370" cy="240" r="2" opacity="0.65"/>
+    <circle cx="200" cy="320" r="1.5" opacity="0.5"/>
+    <circle cx="320" cy="330" r="1.2" opacity="0.55"/>
+    <circle cx="130" cy="190" r="1" opacity="0.4"/>
+    <circle cx="385" cy="195" r="1.3" opacity="0.45"/>
+  </g>
+  <g fill="#00e5ff" filter="url(#glow)">
+    <circle cx="210" cy="100" r="1.5" opacity="0.5"/>
+    <circle cx="310" cy="90" r="1" opacity="0.4"/>
+    <circle cx="170" cy="300" r="1.2" opacity="0.45"/>
+    <circle cx="350" cy="290" r="1.5" opacity="0.5"/>
+  </g>
+  <g fill="#b388ff" filter="url(#glow)">
+    <circle cx="190" cy="380" r="1.5" opacity="0.4"/>
+    <circle cx="330" cy="370" r="1.8" opacity="0.45"/>
+    <circle cx="230" cy="430" r="1" opacity="0.35"/>
+    <circle cx="290" cy="440" r="1.3" opacity="0.4"/>
+  </g>
+</svg>

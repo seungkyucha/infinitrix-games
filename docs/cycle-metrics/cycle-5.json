@@ -1,0 +1,65 @@
+{
+  "cycle": 5,
+  "gameId": "painted-sky",
+  "genre": "bullet-hell",
+  "artStyle": "painterly-2d",
+  "verdict": "APPROVED",
+  "reviewRounds": 1,
+  "review2Rounds": 1,
+  "durationMin": 28,
+  "disciplines": {
+    "planning": {
+      "score": 90.87179487179488,
+      "signals": {
+        "specCompleteness": 0.8333333333333334,
+        "genreDupCount": 0,
+        "styleDupCount": 0,
+        "refChainValid": 0.7692307692307693,
+        "plannerReworkCount": 1,
+        "postmortemDepth": 8
+      }
+    },
+    "development": {
+      "score": 64.08968483218337,
+      "signals": {
+        "engineAdoption": 0.15308151093439365,
+        "customStateMachines": 0,
+        "directListenerCount": 0,
+        "onResetCoverage": 0,
+        "totalMutableGlobals": 29,
+        "buttonKeyCoverage": 0.9411764705882353,
+        "totalButtons": 17,
+        "codeLineCount": 729,
+        "enginePromotions": 13
+      }
+    },
+    "art": {
+      "score": 67.5,
+      "signals": {
+        "stylePurity": 0.5,
+        "charConsistency": 1,
+        "assetVerifyRate": 1,
+        "assetGenerateRate": 0,
+        "failedAssetCount": 0,
+        "verifyFailedCount": 0,
+        "thumbnailFromGameAssets": true
+      }
+    },
+    "qa": {
+      "score": 95,
+      "signals": {
+        "firstRoundVerdict": "APPROVED",
+        "reviewRounds": 1,
+        "review2Rounds": 1,
+        "buttonAuditPass": 1,
+        "restartVerifyPass": true,
+        "stuckStateBugs": 0,
+        "deployVerifyPass": "UNKNOWN"
+      }
+    }
+  },
+  "overallScore": 78.02626442401399,
+  "weakestDiscipline": "development",
+  "rootCauses": [],
+  "createdAt": "2026-04-19T12:33:22.416Z"
+}

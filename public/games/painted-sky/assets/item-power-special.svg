@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <filter id="painterly">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <radialGradient id="dropGrad" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffeb3b"/>
+      <stop offset="60%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#c8a600" stop-opacity="0.8"/>
+    </radialGradient>
+    <radialGradient id="innerGlow" cx="50%" cy="35%" r="35%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer glow -->
+  <ellipse cx="64" cy="68" rx="38" ry="42" fill="#ffd700" opacity="0.25" filter="url(#glow)"/>
+  <!-- Main droplet -->
+  <path d="M64 18 C64 18 30 58 30 78 C30 97 45 112 64 112 C83 112 98 97 98 78 C98 58 64 18 64 18Z" fill="url(#dropGrad)" filter="url(#painterly)"/>
+  <!-- Inner highlight -->
+  <path d="M64 18 C64 18 30 58 30 78 C30 97 45 112 64 112 C83 112 98 97 98 78 C98 58 64 18 64 18Z" fill="url(#innerGlow)"/>
+  <!-- Star symbol -->
+  <g transform="translate(64,72)" fill="#ffffff" fill-opacity="0.9" stroke="none">
+    <polygon points="0,-18 4,-7 16,-7 7,1 10,13 0,6 -10,13 -7,1 -16,-7 -4,-7"/>
+  </g>
+  <g transform="translate(64,72)" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.5">
+    <polygon points="0,-18 4,-7 16,-7 7,1 10,13 0,6 -10,13 -7,1 -16,-7 -4,-7"/>
+  </g>
+  <!-- Gold particles -->
+  <circle cx="22" cy="46" r="3" fill="#ffeb3b" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="104" cy="50" r="2.5" fill="#ffd700" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="34" cy="26" r="2" fill="#ffeb3b" opacity="0.5"/>
+  <circle cx="94" cy="34" r="2.5" fill="#ffd700" opacity="0.6"/>
+  <circle cx="16" cy="68" r="1.8" fill="#ffeb3b" opacity="0.5"/>
+  <circle cx="112" cy="71" r="2" fill="#ffd700" opacity="0.4"/>
+  <circle cx="44" cy="12" r="1.5" fill="#ffeb3b" opacity="0.4"/>
+  <circle cx="84" cy="16" r="1.8" fill="#ffd700" opacity="0.5"/>
+</svg>

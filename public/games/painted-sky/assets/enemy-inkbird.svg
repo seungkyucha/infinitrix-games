@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <filter id="paint" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="turbulence" baseFrequency="0.035" numOctaves="3" seed="7" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="wingL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7b2d8b"/>
+      <stop offset="100%" stop-color="#1a0a3e"/>
+    </linearGradient>
+    <linearGradient id="wingR" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7b2d8b"/>
+      <stop offset="100%" stop-color="#1a0a3e"/>
+    </linearGradient>
+    <radialGradient id="bodyG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a1a5e"/>
+      <stop offset="100%" stop-color="#1a0a3e"/>
+    </radialGradient>
+    <radialGradient id="beakGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#b388ff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#b388ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g filter="url(#paint)">
+    <!-- Wing trails (ink blur) -->
+    <ellipse cx="40" cy="120" rx="30" ry="8" fill="#7b2d8b" opacity="0.3" transform="rotate(-10 40 120)"/>
+    <ellipse cx="216" cy="120" rx="30" ry="8" fill="#7b2d8b" opacity="0.3" transform="rotate(10 216 120)"/>
+    <!-- Left wing -->
+    <path d="M128 110 L20 70 L35 105 L15 120 L40 130 L30 155 L128 140Z" fill="url(#wingL)" opacity="0.9"/>
+    <!-- Right wing -->
+    <path d="M128 110 L236 70 L221 105 L241 120 L216 130 L226 155 L128 140Z" fill="url(#wingR)" opacity="0.9"/>
+    <!-- Body -->
+    <ellipse cx="128" cy="128" rx="35" ry="45" fill="url(#bodyG)"/>
+    <!-- Head -->
+    <circle cx="128" cy="90" r="22" fill="#1a0a3e"/>
+    <!-- Eyes -->
+    <circle cx="118" cy="86" r="5" fill="#b388ff"/>
+    <circle cx="138" cy="86" r="5" fill="#b388ff"/>
+    <circle cx="119" cy="85" r="2" fill="#fff" opacity="0.6"/>
+    <circle cx="139" cy="85" r="2" fill="#fff" opacity="0.6"/>
+    <!-- Beak -->
+    <polygon points="128,96 122,104 134,104" fill="#7b2d8b"/>
+    <!-- Beak glow -->
+    <circle cx="128" cy="104" r="14" fill="url(#beakGlow)"/>
+    <!-- Tail feathers -->
+    <path d="M118 170 L110 210 L128 190 L146 210 L138 170Z" fill="#1a0a3e" opacity="0.8"/>
+    <!-- Wing edge highlights -->
+    <path d="M128 110 L20 70" stroke="#b388ff" stroke-width="1" opacity="0.4" fill="none"/>
+    <path d="M128 110 L236 70" stroke="#b388ff" stroke-width="1" opacity="0.4" fill="none"/>
+  </g>
+</svg>

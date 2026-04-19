@@ -1,0 +1,348 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 512" width="2048" height="512">
+  <defs>
+    <!-- Shared gradients -->
+    <radialGradient id="i-bodyGrad" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#1b2838"/>
+      <stop offset="80%" stop-color="#0d1b2a"/>
+      <stop offset="100%" stop-color="#070f18"/>
+    </radialGradient>
+    <linearGradient id="i-robeGrad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#f0e6d3" stop-opacity="0.82"/>
+      <stop offset="40%" stop-color="#e0d6c3" stop-opacity="0.68"/>
+      <stop offset="100%" stop-color="#c8bfb0" stop-opacity="0.38"/>
+    </linearGradient>
+    <linearGradient id="i-hairGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#d0ccc5"/>
+      <stop offset="50%" stop-color="#a8a29e"/>
+      <stop offset="100%" stop-color="#78716c" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="i-wingLGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#ffb300" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ff8f00" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="i-wingRGrad" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#ffb300" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ff8f00" stop-opacity="0.35"/>
+    </linearGradient>
+    <radialGradient id="i-auraGrad" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#b388ff" stop-opacity="0.15"/>
+      <stop offset="70%" stop-color="#7c4dff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#6200ea" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="i-wingGlowGrad" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffa000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Shared filters -->
+    <filter id="i-wingGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="i-softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="i-auraFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="16"/>
+    </filter>
+    <filter id="i-hairGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- ==================== FRAME 1 (x=0): Neutral pose ==================== -->
+  <g id="frame1" transform="translate(0,0)">
+    <!-- Aura -->
+    <ellipse cx="256" cy="280" rx="140" ry="180" fill="url(#i-auraGrad)" filter="url(#i-auraFilter)"/>
+
+    <!-- Wings -->
+    <g filter="url(#i-wingGlow)">
+      <ellipse cx="180" cy="215" rx="55" ry="70" fill="url(#i-wingGlowGrad)" opacity="0.35"/>
+      <ellipse cx="332" cy="215" rx="55" ry="70" fill="url(#i-wingGlowGrad)" opacity="0.35"/>
+      <!-- Left wing upper -->
+      <path d="M232 222 C214 175, 158 140, 128 162 C106 180, 120 212, 148 225 C162 231, 198 236, 232 230 Z"
+            fill="url(#i-wingLGrad)" opacity="0.8"/>
+      <!-- Left wing lower -->
+      <path d="M232 234 C214 250, 166 272, 148 258 C128 243, 136 218, 154 227 C170 234, 204 240, 232 237 Z"
+            fill="url(#i-wingLGrad)" opacity="0.6"/>
+      <!-- Right wing upper -->
+      <path d="M280 222 C298 175, 354 140, 384 162 C406 180, 392 212, 364 225 C350 231, 314 236, 280 230 Z"
+            fill="url(#i-wingRGrad)" opacity="0.8"/>
+      <!-- Right wing lower -->
+      <path d="M280 234 C298 250, 346 272, 364 258 C384 243, 376 218, 358 227 C342 234, 308 240, 280 237 Z"
+            fill="url(#i-wingRGrad)" opacity="0.6"/>
+      <path d="M230 224 C206 190, 164 160, 138 172" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.35"/>
+      <path d="M282 224 C306 190, 348 160, 374 172" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.35"/>
+    </g>
+
+    <!-- Body/Robe -->
+    <path d="M222 242 C216 282, 200 345, 192 405 C188 435, 198 468, 218 484
+             Q244 500, 256 502 Q268 500, 294 484
+             C314 468, 324 435, 320 405 C312 345, 296 282, 290 242 Z"
+          fill="url(#i-robeGrad)"/>
+    <path d="M230 260 C226 298, 214 358, 208 412 C205 438, 218 462, 236 476
+             Q250 484, 256 486 Q262 484, 276 476
+             C294 462, 307 438, 304 412 C298 358, 286 298, 282 260 Z"
+          fill="#0d1b2a" opacity="0.25"/>
+    <path d="M218 484 Q244 500, 256 502 Q268 500, 294 484" stroke="#f0e6d3" stroke-width="1.2" fill="none" opacity="0.5"/>
+
+    <!-- Head -->
+    <ellipse cx="256" cy="178" rx="37" ry="45" fill="url(#i-bodyGrad)"/>
+    <ellipse cx="247" cy="168" rx="24" ry="28" fill="#1b2838" opacity="0.45"/>
+
+    <!-- Hair -->
+    <g filter="url(#i-hairGlow)">
+      <path d="M220 168 C212 143, 228 118, 256 113 C284 118, 300 143, 292 168
+               C298 178, 302 198, 305 222 C308 245, 298 268, 293 288
+               L288 272 C292 248, 294 225, 288 205 C278 190, 234 190, 224 205
+               C218 225, 220 248, 224 272 L219 288 C214 268, 204 245, 207 222
+               C210 198, 214 178, 220 168 Z"
+            fill="url(#i-hairGrad)"/>
+      <path d="M219 288 C214 318, 212 348, 218 375" stroke="#a8a29e" stroke-width="2.2" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <path d="M293 288 C298 318, 300 348, 294 375" stroke="#a8a29e" stroke-width="2.2" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <path d="M242 128 Q256 122, 270 128" stroke="#e0dcd5" stroke-width="0.8" fill="none" opacity="0.5"/>
+    </g>
+
+    <!-- Arms at sides -->
+    <path d="M228 255 C218 280, 212 310, 215 335" fill="#0d1b2a" opacity="0.7"/>
+    <path d="M284 255 C294 280, 300 310, 297 335" fill="#0d1b2a" opacity="0.7"/>
+
+    <!-- Petal accent on robe -->
+    <path d="M248 380 Q256 374, 264 380" stroke="#ff6b8a" stroke-width="0.8" fill="none" opacity="0.25"/>
+
+    <!-- Particles -->
+    <circle cx="195" cy="185" r="1.5" fill="#ffd700" opacity="0.4" filter="url(#i-softGlow)"/>
+    <circle cx="318" cy="195" r="1.2" fill="#b388ff" opacity="0.3" filter="url(#i-softGlow)"/>
+    <circle cx="236" cy="280" r="1" fill="#ff6b8a" opacity="0.3" filter="url(#i-softGlow)"/>
+  </g>
+
+  <!-- ==================== FRAME 2 (x=512): Inhale — robe lifts, wings up ==================== -->
+  <g id="frame2" transform="translate(512,0)">
+    <!-- Aura — slightly brighter -->
+    <ellipse cx="256" cy="275" rx="145" ry="185" fill="url(#i-auraGrad)" filter="url(#i-auraFilter)" opacity="1.1"/>
+
+    <!-- Wings — slightly raised -->
+    <g filter="url(#i-wingGlow)">
+      <ellipse cx="178" cy="208" rx="58" ry="72" fill="url(#i-wingGlowGrad)" opacity="0.38"/>
+      <ellipse cx="334" cy="208" rx="58" ry="72" fill="url(#i-wingGlowGrad)" opacity="0.38"/>
+      <!-- Left wing upper — angled up more -->
+      <path d="M230 218 C210 168, 152 130, 122 155 C98 175, 115 208, 144 222 C158 228, 196 234, 230 227 Z"
+            fill="url(#i-wingLGrad)" opacity="0.82"/>
+      <!-- Left wing lower -->
+      <path d="M230 231 C212 246, 162 268, 144 254 C124 240, 133 215, 150 224 C168 232, 202 238, 230 234 Z"
+            fill="url(#i-wingLGrad)" opacity="0.62"/>
+      <!-- Right wing upper — angled up more -->
+      <path d="M282 218 C302 168, 360 130, 390 155 C414 175, 397 208, 368 222 C354 228, 316 234, 282 227 Z"
+            fill="url(#i-wingRGrad)" opacity="0.82"/>
+      <!-- Right wing lower -->
+      <path d="M282 231 C300 246, 350 268, 368 254 C388 240, 379 215, 362 224 C344 232, 310 238, 282 234 Z"
+            fill="url(#i-wingRGrad)" opacity="0.62"/>
+      <path d="M228 220 C202 184, 158 152, 132 165" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.38"/>
+      <path d="M284 220 C310 184, 354 152, 380 165" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.38"/>
+    </g>
+
+    <!-- Body/Robe — hem lifted slightly -->
+    <path d="M222 242 C216 280, 200 342, 193 400 C190 428, 200 462, 220 478
+             Q244 494, 256 496 Q268 494, 294 478
+             C314 462, 322 428, 319 400 C312 342, 296 280, 290 242 Z"
+          fill="url(#i-robeGrad)"/>
+    <path d="M230 260 C226 296, 214 354, 209 406 C206 432, 220 456, 238 470
+             Q250 478, 256 480 Q262 478, 276 470
+             C294 456, 306 432, 303 406 C298 354, 286 296, 282 260 Z"
+          fill="#0d1b2a" opacity="0.25"/>
+    <!-- Robe hem — lifted, slightly curved upward -->
+    <path d="M220 478 Q244 492, 256 496 Q268 492, 294 478" stroke="#f0e6d3" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <!-- Robe flutter detail -->
+    <path d="M198 440 Q205 435, 210 440" stroke="#f0e6d3" stroke-width="0.7" fill="none" opacity="0.3"/>
+    <path d="M310 438 Q316 432, 322 438" stroke="#f0e6d3" stroke-width="0.7" fill="none" opacity="0.3"/>
+
+    <!-- Head -->
+    <ellipse cx="256" cy="176" rx="37" ry="45" fill="url(#i-bodyGrad)"/>
+    <ellipse cx="247" cy="166" rx="24" ry="28" fill="#1b2838" opacity="0.45"/>
+
+    <!-- Hair — slight rightward drift -->
+    <g filter="url(#i-hairGlow)">
+      <path d="M220 166 C212 141, 228 116, 256 111 C284 116, 301 141, 293 166
+               C299 176, 304 196, 308 220 C312 244, 302 268, 296 290
+               L290 274 C294 248, 296 224, 290 204 C280 189, 234 189, 224 204
+               C218 224, 220 248, 224 274 L218 290 C213 268, 204 244, 206 220
+               C209 196, 214 176, 220 166 Z"
+            fill="url(#i-hairGrad)"/>
+      <path d="M218 290 C214 320, 214 350, 222 378" stroke="#a8a29e" stroke-width="2.2" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <path d="M296 290 C302 320, 306 350, 300 378" stroke="#a8a29e" stroke-width="2.2" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <!-- Extra strand drifting -->
+      <path d="M212 280 C208 308, 210 335, 216 360" stroke="#9e9a94" stroke-width="1.5" fill="none" opacity="0.3" stroke-linecap="round"/>
+      <path d="M244 126 Q258 120, 272 126" stroke="#e0dcd5" stroke-width="0.8" fill="none" opacity="0.5"/>
+    </g>
+
+    <!-- Arms — very slightly raised -->
+    <path d="M228 253 C217 276, 210 305, 214 330" fill="#0d1b2a" opacity="0.7"/>
+    <path d="M284 253 C295 276, 302 305, 298 330" fill="#0d1b2a" opacity="0.7"/>
+
+    <!-- Petal accent on robe -->
+    <path d="M246 374 Q256 368, 266 374" stroke="#ff6b8a" stroke-width="0.8" fill="none" opacity="0.28"/>
+
+    <!-- Particles -->
+    <circle cx="192" cy="180" r="1.5" fill="#ffd700" opacity="0.45" filter="url(#i-softGlow)"/>
+    <circle cx="322" cy="190" r="1.3" fill="#b388ff" opacity="0.35" filter="url(#i-softGlow)"/>
+    <circle cx="270" cy="160" r="1" fill="#00e5ff" opacity="0.3" filter="url(#i-softGlow)"/>
+    <circle cx="240" cy="275" r="1.1" fill="#ff6b8a" opacity="0.32" filter="url(#i-softGlow)"/>
+  </g>
+
+  <!-- ==================== FRAME 3 (x=1024): Full breath — robe billows, wings spread ==================== -->
+  <g id="frame3" transform="translate(1024,0)">
+    <!-- Aura — brightest -->
+    <ellipse cx="256" cy="272" rx="155" ry="190" fill="url(#i-auraGrad)" filter="url(#i-auraFilter)" opacity="1.2"/>
+
+    <!-- Wings — spread wider -->
+    <g filter="url(#i-wingGlow)">
+      <ellipse cx="172" cy="202" rx="65" ry="78" fill="url(#i-wingGlowGrad)" opacity="0.42"/>
+      <ellipse cx="340" cy="202" rx="65" ry="78" fill="url(#i-wingGlowGrad)" opacity="0.42"/>
+      <!-- Left wing upper — most spread -->
+      <path d="M228 215 C205 160, 142 118, 110 145 C85 168, 105 205, 138 220 C154 227, 194 233, 228 225 Z"
+            fill="url(#i-wingLGrad)" opacity="0.85"/>
+      <!-- Left wing lower -->
+      <path d="M228 229 C208 246, 155 270, 135 254 C113 238, 124 210, 144 222 C164 232, 200 238, 228 234 Z"
+            fill="url(#i-wingLGrad)" opacity="0.65"/>
+      <!-- Right wing upper — most spread -->
+      <path d="M284 215 C307 160, 370 118, 402 145 C427 168, 407 205, 374 220 C358 227, 318 233, 284 225 Z"
+            fill="url(#i-wingRGrad)" opacity="0.85"/>
+      <!-- Right wing lower -->
+      <path d="M284 229 C304 246, 357 270, 377 254 C399 238, 388 210, 368 222 C348 232, 312 238, 284 234 Z"
+            fill="url(#i-wingRGrad)" opacity="0.65"/>
+      <path d="M226 217 C196 178, 150 145, 120 160" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.42"/>
+      <path d="M286 217 C316 178, 362 145, 392 160" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.42"/>
+    </g>
+
+    <!-- Body/Robe — most billowing -->
+    <path d="M220 242 C212 278, 194 338, 186 395 C182 424, 192 460, 214 478
+             Q242 496, 256 498 Q270 496, 298 478
+             C318 460, 330 424, 326 395 C318 338, 300 278, 292 242 Z"
+          fill="url(#i-robeGrad)"/>
+    <path d="M230 260 C224 294, 210 350, 204 402 C200 428, 216 454, 236 468
+             Q250 476, 256 478 Q262 476, 276 468
+             C296 454, 312 428, 308 402 C302 350, 288 294, 282 260 Z"
+          fill="#0d1b2a" opacity="0.25"/>
+    <!-- Robe billow effects — wider hem -->
+    <path d="M186 395 C180 420, 185 450, 200 468" stroke="#f0e6d3" stroke-width="1" fill="none" opacity="0.35"/>
+    <path d="M326 395 C332 420, 327 450, 312 468" stroke="#f0e6d3" stroke-width="1" fill="none" opacity="0.35"/>
+    <path d="M214 478 Q242 496, 256 498 Q270 496, 298 478" stroke="#f0e6d3" stroke-width="1.3" fill="none" opacity="0.55"/>
+    <!-- Robe flutter details -->
+    <path d="M192 432 Q200 424, 206 432" stroke="#f0e6d3" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M306 430 Q314 422, 320 430" stroke="#f0e6d3" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M240 490 Q248 486, 256 492 Q264 486, 272 490" stroke="#f0e6d3" stroke-width="0.6" fill="none" opacity="0.25"/>
+
+    <!-- Head — very slightly raised -->
+    <ellipse cx="256" cy="175" rx="37" ry="45" fill="url(#i-bodyGrad)"/>
+    <ellipse cx="247" cy="165" rx="24" ry="28" fill="#1b2838" opacity="0.45"/>
+
+    <!-- Hair — most movement, flowing outward -->
+    <g filter="url(#i-hairGlow)">
+      <path d="M218 165 C210 140, 226 115, 256 110 C286 115, 302 140, 294 165
+               C302 175, 308 196, 314 222 C318 248, 306 274, 300 296
+               L294 278 C298 252, 300 228, 292 206 C282 190, 234 190, 222 206
+               C216 228, 216 252, 222 278 L216 296 C210 274, 200 248, 200 222
+               C204 196, 210 175, 218 165 Z"
+            fill="url(#i-hairGrad)"/>
+      <path d="M216 296 C208 328, 204 360, 212 390" stroke="#a8a29e" stroke-width="2.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+      <path d="M300 296 C308 328, 314 360, 306 390" stroke="#a8a29e" stroke-width="2.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+      <path d="M208 285 C200 315, 196 345, 204 372" stroke="#9e9a94" stroke-width="1.8" fill="none" opacity="0.35" stroke-linecap="round"/>
+      <path d="M308 285 C316 315, 320 345, 312 372" stroke="#9e9a94" stroke-width="1.8" fill="none" opacity="0.35" stroke-linecap="round"/>
+      <path d="M240 124 Q256 117, 272 124" stroke="#e0dcd5" stroke-width="0.9" fill="none" opacity="0.55"/>
+    </g>
+
+    <!-- Arms — slightly outward from breath -->
+    <path d="M226 252 C214 276, 206 308, 210 335" fill="#0d1b2a" opacity="0.7"/>
+    <path d="M286 252 C298 276, 306 308, 302 335" fill="#0d1b2a" opacity="0.7"/>
+
+    <!-- Petal accent on robe -->
+    <path d="M244 370 Q256 362, 268 370" stroke="#ff6b8a" stroke-width="0.9" fill="none" opacity="0.3"/>
+
+    <!-- Particles — most active -->
+    <circle cx="188" cy="175" r="1.8" fill="#ffd700" opacity="0.5" filter="url(#i-softGlow)"/>
+    <circle cx="328" cy="185" r="1.5" fill="#b388ff" opacity="0.4" filter="url(#i-softGlow)"/>
+    <circle cx="268" cy="155" r="1.2" fill="#00e5ff" opacity="0.35" filter="url(#i-softGlow)"/>
+    <circle cx="200" cy="250" r="1" fill="#ffd700" opacity="0.3" filter="url(#i-softGlow)"/>
+    <circle cx="310" cy="270" r="1.2" fill="#ff6b8a" opacity="0.35" filter="url(#i-softGlow)"/>
+  </g>
+
+  <!-- ==================== FRAME 4 (x=1536): Exhale — settling back ==================== -->
+  <g id="frame4" transform="translate(1536,0)">
+    <!-- Aura — dimming back -->
+    <ellipse cx="256" cy="278" rx="142" ry="182" fill="url(#i-auraGrad)" filter="url(#i-auraFilter)"/>
+
+    <!-- Wings — settling -->
+    <g filter="url(#i-wingGlow)">
+      <ellipse cx="178" cy="212" rx="57" ry="72" fill="url(#i-wingGlowGrad)" opacity="0.36"/>
+      <ellipse cx="334" cy="212" rx="57" ry="72" fill="url(#i-wingGlowGrad)" opacity="0.36"/>
+      <!-- Left wing upper — between frame 1 and 2 -->
+      <path d="M231 220 C212 172, 155 136, 125 160 C102 178, 118 210, 146 224 C160 230, 197 235, 231 228 Z"
+            fill="url(#i-wingLGrad)" opacity="0.8"/>
+      <!-- Left wing lower -->
+      <path d="M231 233 C213 248, 164 270, 146 256 C126 241, 134 216, 152 226 C169 233, 203 239, 231 236 Z"
+            fill="url(#i-wingLGrad)" opacity="0.6"/>
+      <!-- Right wing upper -->
+      <path d="M281 220 C300 172, 357 136, 387 160 C410 178, 394 210, 366 224 C352 230, 315 235, 281 228 Z"
+            fill="url(#i-wingRGrad)" opacity="0.8"/>
+      <!-- Right wing lower -->
+      <path d="M281 233 C299 248, 348 270, 366 256 C386 241, 378 216, 360 226 C343 233, 309 239, 281 236 Z"
+            fill="url(#i-wingRGrad)" opacity="0.6"/>
+      <path d="M229 222 C204 187, 161 157, 135 170" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.36"/>
+      <path d="M283 222 C308 187, 351 157, 377 170" stroke="#fff8e1" stroke-width="0.7" fill="none" opacity="0.36"/>
+    </g>
+
+    <!-- Body/Robe — settling back toward neutral -->
+    <path d="M222 242 C216 281, 198 344, 191 402 C187 432, 197 466, 218 482
+             Q243 498, 256 500 Q269 498, 294 482
+             C315 466, 325 432, 321 402 C314 344, 296 281, 290 242 Z"
+          fill="url(#i-robeGrad)"/>
+    <path d="M230 260 C226 297, 213 356, 207 410 C204 436, 218 460, 237 474
+             Q250 482, 256 484 Q262 482, 275 474
+             C294 460, 308 436, 305 410 C299 356, 286 297, 282 260 Z"
+          fill="#0d1b2a" opacity="0.25"/>
+    <path d="M218 482 Q243 498, 256 500 Q269 498, 294 482" stroke="#f0e6d3" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <!-- Settling flutter -->
+    <path d="M196 438 Q202 434, 208 438" stroke="#f0e6d3" stroke-width="0.7" fill="none" opacity="0.28"/>
+    <path d="M308 436 Q314 432, 320 436" stroke="#f0e6d3" stroke-width="0.7" fill="none" opacity="0.28"/>
+
+    <!-- Head -->
+    <ellipse cx="256" cy="177" rx="37" ry="45" fill="url(#i-bodyGrad)"/>
+    <ellipse cx="247" cy="167" rx="24" ry="28" fill="#1b2838" opacity="0.45"/>
+
+    <!-- Hair — settling, still slightly flowing -->
+    <g filter="url(#i-hairGlow)">
+      <path d="M220 167 C212 142, 228 117, 256 112 C284 117, 300 142, 292 167
+               C298 177, 303 197, 306 221 C309 244, 300 267, 294 287
+               L289 272 C293 248, 295 224, 289 204 C279 189, 233 189, 223 204
+               C217 224, 219 248, 223 272 L218 287 C213 267, 203 244, 206 221
+               C209 197, 214 177, 220 167 Z"
+            fill="url(#i-hairGrad)"/>
+      <path d="M218 287 C213 317, 211 347, 218 374" stroke="#a8a29e" stroke-width="2.3" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <path d="M294 287 C299 317, 302 347, 296 374" stroke="#a8a29e" stroke-width="2.3" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <path d="M210 278 C206 306, 205 335, 212 360" stroke="#9e9a94" stroke-width="1.6" fill="none" opacity="0.32" stroke-linecap="round"/>
+      <path d="M243 127 Q257 121, 271 127" stroke="#e0dcd5" stroke-width="0.8" fill="none" opacity="0.5"/>
+    </g>
+
+    <!-- Arms — settling -->
+    <path d="M228 254 C218 278, 212 308, 215 334" fill="#0d1b2a" opacity="0.7"/>
+    <path d="M284 254 C294 278, 300 308, 297 334" fill="#0d1b2a" opacity="0.7"/>
+
+    <!-- Petal accent on robe -->
+    <path d="M247 377 Q256 371, 265 377" stroke="#ff6b8a" stroke-width="0.8" fill="none" opacity="0.25"/>
+
+    <!-- Particles — fading -->
+    <circle cx="194" cy="182" r="1.5" fill="#ffd700" opacity="0.38" filter="url(#i-softGlow)"/>
+    <circle cx="320" cy="192" r="1.2" fill="#b388ff" opacity="0.28" filter="url(#i-softGlow)"/>
+    <circle cx="242" cy="158" r="1" fill="#00e5ff" opacity="0.25" filter="url(#i-softGlow)"/>
+    <circle cx="238" cy="278" r="1" fill="#ff6b8a" opacity="0.28" filter="url(#i-softGlow)"/>
+  </g>
+</svg>

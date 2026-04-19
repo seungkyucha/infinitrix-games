@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <filter id="painterly" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="4" seed="13" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feFlood flood-color="#ffd700" flood-opacity="0.35" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feFlood flood-color="#ffd700" flood-opacity="0.5" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0d1b2a" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0d1b2a" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0e6d3"/>
+      <stop offset="100%" stop-color="#ffd700"/>
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#f0e6d3"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bgGrad)"/>
+  <!-- Decorative watercolor splotches -->
+  <g filter="url(#painterly)" opacity="0.12">
+    <circle cx="80" cy="80" r="60" fill="#ffd700"/>
+    <circle cx="432" cy="432" r="70" fill="#ffd700"/>
+    <circle cx="420" cy="80" r="45" fill="#f0e6d3"/>
+    <circle cx="90" cy="420" r="50" fill="#f0e6d3"/>
+    <ellipse cx="256" cy="256" rx="200" ry="160" fill="#ffd700" opacity="0.3"/>
+  </g>
+  <!-- Decorative brushstroke frame -->
+  <g filter="url(#painterly)" opacity="0.3">
+    <path d="M60 40 C180 30, 340 30, 452 40" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round"/>
+    <path d="M60 472 C180 482, 340 482, 452 472" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round"/>
+    <path d="M40 60 C30 180, 30 340, 40 452" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round"/>
+    <path d="M472 60 C482 180, 482 340, 472 452" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <!-- Vertical phone (left) -->
+  <g filter="url(#glow)">
+    <g filter="url(#painterly)">
+      <rect x="160" y="140" width="60" height="100" rx="8" ry="8" fill="none" stroke="url(#phoneGrad)" stroke-width="3"/>
+      <!-- Screen -->
+      <rect x="166" y="152" width="48" height="76" rx="3" ry="3" fill="#0d1b2a" opacity="0.6"/>
+      <!-- Home button hint -->
+      <circle cx="190" cy="234" r="3" fill="none" stroke="#f0e6d3" stroke-width="1" opacity="0.5"/>
+      <!-- Speaker -->
+      <line x1="184" y1="147" x2="196" y2="147" stroke="#f0e6d3" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    </g>
+  </g>
+  <!-- Curved rotation arrow -->
+  <g filter="url(#glow)">
+    <g filter="url(#painterly)">
+      <path d="M230 190 C250 160, 280 150, 300 165 C320 180, 310 200, 290 210" fill="none" stroke="url(#arrowGrad)" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Arrowhead -->
+      <polygon points="285,200 295,215 278,212" fill="#ffd700"/>
+    </g>
+  </g>
+  <!-- Horizontal phone (right) -->
+  <g filter="url(#glow)">
+    <g filter="url(#painterly)">
+      <rect x="296" y="185" width="100" height="60" rx="8" ry="8" fill="none" stroke="url(#phoneGrad)" stroke-width="3"/>
+      <!-- Screen -->
+      <rect x="308" y="191" width="76" height="48" rx="3" ry="3" fill="#0d1b2a" opacity="0.6"/>
+      <!-- Home button hint -->
+      <circle cx="392" cy="215" r="3" fill="none" stroke="#f0e6d3" stroke-width="1" opacity="0.5"/>
+      <!-- Speaker -->
+      <line x1="301" y1="209" x2="301" y2="221" stroke="#f0e6d3" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <!-- Checkmark on landscape screen -->
+      <path d="M336 215 L344 223 L360 207" fill="none" stroke="#ffd700" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+    </g>
+  </g>
+  <!-- Text area -->
+  <g filter="url(#textGlow)">
+    <text x="256" y="330" text-anchor="middle" font-family="'Noto Sans KR', 'Malgun Gothic', sans-serif" font-size="32" font-weight="700" fill="#f0e6d3" filter="url(#painterly)">가로로 돌려주세요</text>
+  </g>
+  <!-- Subtitle -->
+  <text x="256" y="365" text-anchor="middle" font-family="'Noto Sans KR', 'Malgun Gothic', sans-serif" font-size="16" fill="#f0e6d3" opacity="0.5" filter="url(#painterly)">Please rotate to landscape</text>
+  <!-- Bottom decorative brushstrokes -->
+  <g filter="url(#painterly)" opacity="0.2">
+    <path d="M140 400 C180 395, 280 410, 372 400" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round"/>
+    <path d="M170 415 C210 420, 300 408, 342 415" fill="none" stroke="#f0e6d3" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <!-- Corner decorative dots -->
+  <g opacity="0.4">
+    <circle cx="50" cy="50" r="3" fill="#ffd700"/>
+    <circle cx="462" cy="50" r="3" fill="#ffd700"/>
+    <circle cx="50" cy="462" r="3" fill="#ffd700"/>
+    <circle cx="462" cy="462" r="3" fill="#ffd700"/>
+  </g>
+</svg>

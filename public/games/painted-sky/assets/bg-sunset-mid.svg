@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="midGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.05"/>
+      <stop offset="40%" stop-color="#ff8c00" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#b388ff" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="brushTex" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.007" numOctaves="3" seed="14" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="10" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <filter id="dustBlur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  <!-- Warm atmospheric haze -->
+  <rect width="960" height="540" fill="url(#midGlow)"/>
+  <!-- Rolling flower field silhouettes -->
+  <g filter="url(#brushTex)" opacity="0.45">
+    <path d="M0 380 Q60 340 120 355 Q200 320 300 345 Q400 310 480 335 Q560 305 660 330 Q760 310 860 340 Q920 325 960 350 L960 540 L0 540Z" fill="#8b4513" fill-opacity="0.35"/>
+    <path d="M0 400 Q80 370 180 385 Q280 350 380 370 Q480 340 580 365 Q680 345 780 370 Q880 355 960 375 L960 540 L0 540Z" fill="#6b2d5b" fill-opacity="0.3"/>
+  </g>
+  <!-- Watercolor flower clusters -->
+  <g filter="url(#brushTex)" opacity="0.5">
+    <circle cx="120" cy="370" r="18" fill="#ff6b8a" fill-opacity="0.5"/>
+    <circle cx="135" cy="365" r="12" fill="#ffd700" fill-opacity="0.4"/>
+    <circle cx="280" cy="350" r="20" fill="#b388ff" fill-opacity="0.45"/>
+    <circle cx="300" cy="345" r="14" fill="#ff6b8a" fill-opacity="0.4"/>
+    <circle cx="450" cy="340" r="16" fill="#ffd700" fill-opacity="0.5"/>
+    <circle cx="470" cy="335" r="22" fill="#ff6b8a" fill-opacity="0.35"/>
+    <circle cx="620" cy="345" r="18" fill="#b388ff" fill-opacity="0.4"/>
+    <circle cx="640" cy="340" r="13" fill="#ffd700" fill-opacity="0.45"/>
+    <circle cx="790" cy="355" r="20" fill="#ff6b8a" fill-opacity="0.4"/>
+    <circle cx="810" cy="350" r="15" fill="#b388ff" fill-opacity="0.35"/>
+  </g>
+  <!-- Golden petal particles drifting -->
+  <g opacity="0.6" filter="url(#dustBlur)">
+    <ellipse cx="80" cy="250" rx="5" ry="3" fill="#ffd700" transform="rotate(25 80 250)"/>
+    <ellipse cx="200" cy="180" rx="4" ry="2.5" fill="#ffd700" transform="rotate(-15 200 180)"/>
+    <ellipse cx="350" cy="220" rx="6" ry="3" fill="#ffd700" transform="rotate(40 350 220)"/>
+    <ellipse cx="500" cy="150" rx="4" ry="2" fill="#ffd700" transform="rotate(-30 500 150)"/>
+    <ellipse cx="620" cy="200" rx="5" ry="3" fill="#ffd700" transform="rotate(20 620 200)"/>
+    <ellipse cx="750" cy="170" rx="4" ry="2.5" fill="#ffd700" transform="rotate(-25 750 170)"/>
+    <ellipse cx="880" cy="230" rx="5" ry="2.5" fill="#ffd700" transform="rotate(35 880 230)"/>
+    <ellipse cx="160" cy="300" rx="4" ry="2" fill="#ffd700" transform="rotate(10 160 300)"/>
+    <ellipse cx="420" cy="280" rx="3" ry="2" fill="#ffd700" transform="rotate(-20 420 280)"/>
+    <ellipse cx="700" cy="260" rx="5" ry="2.5" fill="#ffd700" transform="rotate(30 700 260)"/>
+  </g>
+  <!-- Golden dust haze -->
+  <g opacity="0.15" filter="url(#softBlur)">
+    <rect x="0" y="280" width="960" height="120" fill="#ffd700"/>
+  </g>
+  <!-- Brushstroke accents -->
+  <g opacity="0.12" filter="url(#brushTex)">
+    <path d="M0 360 Q240 330 480 350 Q720 320 960 345" stroke="#ff8c00" stroke-width="15" fill="none" stroke-linecap="round"/>
+    <path d="M0 390 Q200 360 400 375 Q600 350 800 370 Q900 360 960 368" stroke="#b388ff" stroke-width="10" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

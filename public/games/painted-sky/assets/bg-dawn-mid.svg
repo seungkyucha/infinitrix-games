@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <filter id="brushWarp" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.012" numOctaves="4" seed="5" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="cloudBlur">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <radialGradient id="lightRay1" cx="0.5" cy="0.7" r="0.6">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cloudPink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb3c6" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#d4a0e0" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="cloudLav" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d4a0e0" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#ffb3c6" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <!-- Light rays passing through -->
+  <g opacity="0.3">
+    <polygon points="380,540 340,0 370,0" fill="#ffd700" opacity="0.2" filter="url(#cloudBlur)"/>
+    <polygon points="520,540 550,0 590,0" fill="#ffd700" opacity="0.18" filter="url(#cloudBlur)"/>
+    <polygon points="680,540 740,0 790,0" fill="#ffd700" opacity="0.12" filter="url(#cloudBlur)"/>
+  </g>
+  <!-- Large cloud cluster left -->
+  <g filter="url(#brushWarp)">
+    <ellipse cx="120" cy="160" rx="200" ry="70" fill="url(#cloudPink)" filter="url(#cloudBlur)"/>
+    <ellipse cx="180" cy="140" rx="150" ry="55" fill="url(#cloudLav)" filter="url(#cloudBlur)"/>
+    <ellipse cx="80" cy="180" rx="130" ry="50" fill="#d4a0e0" fill-opacity="0.4" filter="url(#cloudBlur)"/>
+    <ellipse cx="220" cy="170" rx="100" ry="40" fill="#ffb3c6" fill-opacity="0.5" filter="url(#cloudBlur)"/>
+  </g>
+  <!-- Cloud cluster center-right -->
+  <g filter="url(#brushWarp)">
+    <ellipse cx="650" cy="130" rx="220" ry="80" fill="url(#cloudLav)" filter="url(#cloudBlur)"/>
+    <ellipse cx="720" cy="110" rx="160" ry="60" fill="url(#cloudPink)" filter="url(#cloudBlur)"/>
+    <ellipse cx="580" cy="150" rx="140" ry="50" fill="#d4a0e0" fill-opacity="0.45" filter="url(#cloudBlur)"/>
+    <ellipse cx="750" cy="145" rx="120" ry="45" fill="#ffb3c6" fill-opacity="0.4" filter="url(#cloudBlur)"/>
+  </g>
+  <!-- Mid-height scattered clouds -->
+  <g filter="url(#brushWarp)" opacity="0.5">
+    <ellipse cx="400" cy="250" rx="180" ry="50" fill="#d4a0e0" fill-opacity="0.4" filter="url(#cloudBlur)"/>
+    <ellipse cx="350" cy="240" rx="120" ry="35" fill="#ffb3c6" fill-opacity="0.5" filter="url(#cloudBlur)"/>
+    <ellipse cx="850" cy="280" rx="140" ry="45" fill="#d4a0e0" fill-opacity="0.35" filter="url(#cloudBlur)"/>
+  </g>
+  <!-- Lower wisps -->
+  <g opacity="0.35" filter="url(#brushWarp)">
+    <path d="M0 380 Q100 360 200 375 Q350 350 500 370" stroke="#ffb3c6" stroke-width="30" fill="none" stroke-linecap="round" stroke-opacity="0.4" filter="url(#cloudBlur)"/>
+    <path d="M500 400 Q650 375 800 390 Q900 380 960 385" stroke="#d4a0e0" stroke-width="25" fill="none" stroke-linecap="round" stroke-opacity="0.35" filter="url(#cloudBlur)"/>
+  </g>
+  <!-- Warm light glow overlay -->
+  <rect width="960" height="540" fill="url(#lightRay1)" opacity="0.4"/>
+</svg>
