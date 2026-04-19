@@ -1325,6 +1325,83 @@ class PopupText {
 }
 
 // ═══════════════════════════════════════════════════════════
+// EffectQueue — 원샷 스프라이트 이펙트 큐
+//
+// 히트/폭발/사망 등 일회성 스프라이트 애니메이션을 관리.
+// Sprite(loop=false) 인스턴스를 큐에 넣으면 재생 완료 시 자동 제거.
+// Cycle 5(painted-sky)에서 승격 — 모든 장르의 시각 이펙트에 공통 사용 가능.
+//
+// 사용법:
+//   const fx = new IX.EffectQueue();
+//   // 직접 Sprite 추가:
+//   const spr = new Sprite(img, fW, fH, 4, 12);
+//   fx.add(spr, x, y, 48);
+//   // 또는 이미지로부터 자동 생성:
+//   fx.spawn(img, x, y, 48, 4, 12);
+//   // 매 프레임:
+//   fx.update(dt);   fx.render(ctx);
+//   // 리셋:
+//   fx.clear();
+// ═══════════════════════════════════════════════════════════
+class EffectQueue {
+  constructor() { this.items = []; }
+
+  /**
+   * 사전 생성된 Sprite를 큐에 추가 (loop=false 강제, reset 호출)
+   * @param {Sprite} sprite - 재생할 Sprite 인스턴스
+   * @param {number} x - 중심 X
+   * @param {number} y - 중심 Y
+   * @param {number} size - 렌더 크기 (정사각 기준)
+   */
+  add(sprite, x, y, size) {
+    sprite.loop = false;
+    sprite.reset();
+    this.items.push({ sprite, x, y, size });
+  }
+
+  /**
+   * 이미지 + 프레임 정보로 Sprite를 자동 생성하여 큐에 추가
+   * @param {HTMLImageElement} image
+   * @param {number} x - 중심 X
+   * @param {number} y - 중심 Y
+   * @param {number} size - 렌더 크기
+   * @param {number} frames - 총 프레임 수
+   * @param {number} [fps=12] - 재생 fps
+   * @param {object} [dims] - { w, h } 시트 전체 크기 (SVG naturalWidth=0 대응)
+   */
+  spawn(image, x, y, size, frames, fps, dims) {
+    fps = fps || 12;
+    const fW = dims ? (dims.w / frames) : ((image.naturalWidth || image.width || size) / frames);
+    const fH = dims ? dims.h : (image.naturalHeight || image.height || size);
+    const spr = new Sprite(image, fW, fH, frames, fps);
+    spr.loop = false;
+    this.items.push({ sprite: spr, x, y, size });
+  }
+
+  /** 매 프레임 호출 — dt는 밀리초 */
+  update(dt) {
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      this.items[i].sprite.update(dt);
+      if (!this.items[i].sprite.playing) this.items.splice(i, 1);
+    }
+  }
+
+  /** 모든 이펙트 렌더 — 중심 좌표 기준 정사각 */
+  render(ctx) {
+    for (const e of this.items) {
+      const s = e.size;
+      e.sprite.draw(ctx, e.x - s / 2, e.y - s / 2, s, s);
+    }
+  }
+
+  /** 모든 이펙트 제거 */
+  clear() { this.items.length = 0; }
+
+  /** 현재 활성 이펙트 수 */
+  get count() { return this.items.length; }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Genre — 장르별 모듈 마운트 포인트
 // 각 장르 모듈은 /engine/genres/{genre}.js에서 IX.Genre.{Name}에 등록
 // ═══════════════════════════════════════════════════════════
@@ -1337,7 +1414,7 @@ return {
   Engine, Input, Sound, Tween, Particles, AssetLoader,
   UI, Save, MathUtil, Layout, Sprite,
   Button, Scene, StateGuard, GameFlow,
-  Pool, SpatialHash, PopupText,
+  Pool, SpatialHash, PopupText, EffectQueue,
   Genre,
 };
 

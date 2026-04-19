@@ -161,6 +161,15 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
       const fnName = refMatch[1]
       return extractBalancedBody(html, new RegExp(`function\\s+${fnName}\\s*\\([^)]*\\)\\s*\\{`))
     })()
+    || ((): string => {
+      // Follow `onReset: <identifier>` references (e.g. `onReset: resetAll`)
+      // to the actual `function <id>(...) { ... }` definition elsewhere in the file.
+      // Identifier is captured via a bounded pattern so no regex injection is possible.
+      const refMatch = html.match(/onReset\s*:\s*([a-zA-Z_][\w$]*)\s*[,}]/)
+      if (!refMatch) return ''
+      const fnName = refMatch[1]
+      return extractBalancedBody(html, new RegExp(`function\\s+${fnName}\\s*\\([^)]*\\)\\s*\\{`))
+    })()
   const coveredVars = mutableGlobals.filter(v => new RegExp(`\\b${v}\\b`).test(resetBody))
   const onResetCoverage = mutableGlobals.length > 0 ? coveredVars.length / mutableGlobals.length : 1
 

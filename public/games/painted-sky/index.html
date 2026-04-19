@@ -17,7 +17,7 @@ canvas{display:block;width:100%;height:100%}
 <script>
 'use strict';
 const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil,
-        Layout, Sprite, Button, Scene, GameFlow, StateGuard, Pool, SpatialHash, PopupText } = IX;
+        Layout, Sprite, Button, Scene, GameFlow, StateGuard, Pool, SpatialHash, PopupText, EffectQueue } = IX;
 const { BulletPatterns, GrazeSystem } = IX.Genre.Shooter;
 const fontSize = (...a) => Layout.fontSize(...a);
 const lScale   = (...a) => Layout.scale(...a);
@@ -114,8 +114,8 @@ let harmonyInvT=0,harmonyDmgMul=1;
 let sprEffHit=null,sprEffBomb=null,sprEffEDeath=null,sprEffBDeath=null,sprEffBPhase=null;
 /* idle 스프라이트 애니메이션 */
 let sprPlayerIdle=null,idleAnimTimer=0;
-/* 이펙트 큐: [{sprite,x,y,size,done}] */
-let effectQueue=[];
+/* 이펙트 큐 (IX.EffectQueue 사용) */
+const effectQueue=new EffectQueue();
 
 /* ═══════ 오브젝트 풀 ═══════ */
 const ebPool=new Pool(400,()=>({active:false,x:0,y:0,vx:0,vy:0,r:4,_grazed:false,large:false,_burst:false,_splitN:0,_splitSpd:0}));
@@ -133,7 +133,7 @@ function resetAll(){
   grzHealCnt=0;lifeGrzCnt=0;noDmg=true;bombsUsed=0;cleared=false;frags=0;
   touchJoy=null;tBombBtn=null;tFocusBtn=null;focusToggle=false;_pupData=null;_pupChoices=[];
   synergyApplied={atk:false,def:false,spc:false,harmony:false};harmonyInvT=0;harmonyDmgMul=1;
-  effectQueue=[];
+  effectQueue.clear();
   ebPool.releaseAll();pbPool.releaseAll();enPool.releaseAll();itPool.releaseAll();popups.clear();bp.resetAngle();
   savedUp=Save.get(GID+'_upg',{armor:0,bombUp:0,wings:0,rapidUp:0,lifeGraze:0});
   const u=savedUp;
@@ -161,14 +161,11 @@ function checkSynergies(){
 function spcMul(){return synergyApplied.spc?1.5:1.0;}
 
 /* ═══════ 이펙트 스프라이트 재생 ═══════ */
-function spawnEffect(spriteKey,x,y,size,frames,onDone){
+function spawnEffect(spriteKey,x,y,size,frames){
   if(!assets.has(spriteKey))return;
   const img=assets.sprites[spriteKey];
   const dims=SPRITE_DIMS[spriteKey];
-  const fW=dims?(dims.w/frames):((img.naturalWidth||512)/frames);
-  const fH=dims?dims.h:(img.naturalHeight||128);
-  const spr=new Sprite(img,fW,fH,frames,12);spr.loop=false;spr.reset();
-  effectQueue.push({sprite:spr,x,y,size,done:false,key:spriteKey});
+  effectQueue.spawn(img,x,y,size,frames,12,dims);
 }
 
 /* ═══════ SFX ═══════ */
@@ -317,18 +314,7 @@ function drawBG(ctx,w,h,dt){
   }ctx.globalAlpha=1;bgScY+=dt*0.03;
 }
 
-/* ═══════ 이펙트 큐 업데이트/렌더 ═══════ */
-function updateEffects(dt){
-  for(let i=effectQueue.length-1;i>=0;i--){
-    const e=effectQueue[i];e.sprite.update(dt);
-    if(!e.sprite.playing){effectQueue.splice(i,1);}
-  }
-}
-function renderEffects(ctx){
-  for(const e of effectQueue){
-    const sz=e.size;e.sprite.draw(ctx,e.x-sz/2,e.y-sz/2,sz,sz);
-  }
-}
+/* 이펙트 큐 업데이트/렌더 — IX.EffectQueue 인스턴스 사용 */
 
 /* ═══════ 초기화 & 씬 등록 ═══════ */
 async function init(){
@@ -380,7 +366,7 @@ async function init(){
     enter(data){iDelay=0.2;const w=window.innerWidth,h=window.innerHeight;
       if(data&&data.stage!==undefined){sIdx=data.stage;score=data.score||score;hp=data.hp||hp;bombs=data.bombs||bombs;pups=data.pups||pups;}
       px=w/2;py=h*0.8;sTime=0;bossMode=false;bAlive=false;wTimer=1;wCnt=0;noDmg=true;bombsUsed=0;
-      harmonyInvT=0;harmonyDmgMul=1;effectQueue=[];warningLines=[];
+      harmonyInvT=0;harmonyDmgMul=1;effectQueue.clear();warningLines=[];
       gravityActive=false;gravityTimer=0;blackoutActive=false;blackoutTimer=0;
       ebPool.releaseAll();enPool.releaseAll();itPool.releaseAll();
       /* 모바일/태블릿 터치 버튼 */
@@ -392,7 +378,7 @@ async function init(){
     update(dt,inp){
       iDelay=Math.max(0,iDelay-dt/1000);if(iDelay>0)return;
       const w=engine.W,h=engine.H,dtS=dt/1000*(slowT>0?0.5:1);
-      tween.update(dt);particles.update(dt);popups.update(dt);updateEffects(dt);
+      tween.update(dt);particles.update(dt);popups.update(dt);effectQueue.update(dt);
       if(sprPlayerIdle)sprPlayerIdle.update(dt);
       /* 조화의 빛 데미지 배율 타이머 */
       if(harmonyInvT>0){harmonyInvT-=dtS;if(harmonyInvT<=0)harmonyDmgMul=1;}
@@ -579,7 +565,7 @@ async function init(){
       if(shieldOn){ctx.strokeStyle='rgba(0,229,255,0.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,22,0,Math.PI*2);ctx.stroke();
         if(shieldStacks>1){ctx.strokeStyle='rgba(0,229,255,0.3)';ctx.beginPath();ctx.arc(px,py,28,0,Math.PI*2);ctx.stroke();}}
       /* 이펙트 스프라이트 렌더 */
-      renderEffects(ctx);
+      effectQueue.render(ctx);
       /* 파티클 & 팝업 */
       particles.render(ctx);popups.render(ctx,{fontSize:fontSize(16,w,h),bold:true,glow:true});
       /* HUD: HP/Bomb/Score/Graze */

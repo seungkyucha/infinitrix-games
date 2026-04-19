@@ -1,6 +1,6 @@
 # InfiniTriX Quality Dashboard
 
-_Last updated: 2026-04-19 12:33:22_
+_Last updated: 2026-04-19 17:10:26_
 
 _Based on last 5 cycles (1~5)_
 
@@ -28,9 +28,9 @@ _Based on last 5 cycles (1~5)_
 
 ## 🔧 Evolver 제안 통계 (최근 10사이클)
 
-- 총 제안: 10건
-- 자동 적용 (LOW): 6건
-- 수동 대기 (MEDIUM/HIGH): 4건
+- 총 제안: 16건
+- 자동 적용 (LOW): 9건
+- 수동 대기 (MEDIUM/HIGH): 7건
 
 ## 🔍 최약 디시플린 시그널 (최신 사이클)
 
@@ -38,8 +38,8 @@ _Based on last 5 cycles (1~5)_
 - `customStateMachines`: 0.00
 - `directListenerCount`: 0.00
 - `onResetCoverage`: 0.00
-- `totalMutableGlobals`: 29.00
+- `totalMutableGlobals`: 28.00
 - `buttonKeyCoverage`: 0.94
 - `totalButtons`: 17.00
-- `codeLineCount`: 729.00
+- `codeLineCount`: 715.00
 - `enginePromotions`: 13.00
