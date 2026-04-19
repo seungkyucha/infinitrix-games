@@ -165,7 +165,7 @@ generatedAt: <ISO timestamp>
 |--------|------|------|-----------|
 | **LOW** | 파일 뒤에 섹션 추가 / 스킬 문구 보강 / 새 메서드 추가 / 새 skill 파일 | 기존 동작에 영향 0 | ✅ YES |
 | **MEDIUM** | 기존 프롬프트 rule 수정 / skill 절차 변경 / 엔진 기존 API에 파라미터 추가 | 영향 제한적, 하위호환 유지 | ✅ YES (기본) |
-| **HIGH** | cycle.ts phase 순서 변경 / agent 역할 정의 교체 / scoring 공식 교체 / 기존 API 시그니처 변경 | 구조적 영향 | ❌ 수동 대기 |
+| **HIGH** | cycle.ts phase 순서 변경 / agent 역할 정의 교체 / scoring 공식 교체 / 기존 API 시그니처 변경 | 구조적 영향 | ✅ YES (EVOLVER_AUTO_APPLY=HIGH 기본) |
 
 **LOW 판정 기준** (반드시 근거에 명시):
 - "다른 파일·다른 경로의 동작에 영향이 없음" 을 근거로 설명
@@ -176,7 +176,7 @@ generatedAt: <ISO timestamp>
 - 하위호환: 시그니처 변경은 기본값 있는 파라미터 추가만 허용 (기존 호출부 변경 불필요)
 - rollback: `git tag evolve/cycle-<N>` 로 즉시 원복 가능함 확인
 
-**HIGH 로 분류해야 하는 것** (자동 적용 금지):
+**HIGH 로 분류해야 하는 것** (자동 적용되지만 rollback 경로 필수):
 - cycle.ts 의 phase 순서/개수 변경
 - agent role(team.ts) 의 description 또는 핵심 책임 변경
 - metrics.ts 의 score 공식 교체 (가중치 변경은 MEDIUM 가능)

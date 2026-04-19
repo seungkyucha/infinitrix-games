@@ -198,3 +198,26 @@ export function removeVectorThumbnail(gameId: string): void {
     try { unlinkSync(svgPath); console.log(`  🗑️ [Screenshot] removed stale thumbnail.svg`) } catch {}
   }
 }
+
+/**
+ * Delete every *.svg file under the game's assets/ directory.
+ * Vector graphics are banned platform-wide — only PNG (from OpenAI/Gemini) + runtime
+ * screenshots are allowed. AssetLoader falls back to colored boxes when a PNG is missing.
+ */
+export function purgeAllSvg(gameId: string): number {
+  const dir = resolvePath(PUBLIC_ROOT, 'games', gameId, 'assets')
+  if (!existsSync(dir)) return 0
+  const { readdirSync, statSync } = require('fs') as typeof import('fs')
+  let removed = 0
+  function walk(d: string) {
+    for (const name of readdirSync(d)) {
+      const p = resolvePath(d, name)
+      try {
+        if (statSync(p).isDirectory()) walk(p)
+        else if (name.toLowerCase().endsWith('.svg')) { unlinkSync(p); removed++ }
+      } catch {}
+    }
+  }
+  walk(dir)
+  return removed
+}

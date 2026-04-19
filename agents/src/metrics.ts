@@ -39,6 +39,26 @@ function countMatches(text: string, re: RegExp): number {
   return (text.match(re) ?? []).length
 }
 
+/**
+ * Given a regex that matches a function header ending with `{`,
+ * return the body substring up to the matching closing brace.
+ * Returns '' when the header isn't found.
+ */
+function extractBalancedBody(src: string, headerRe: RegExp): string {
+  const m = src.match(headerRe)
+  if (!m || m.index == null) return ''
+  const start = m.index + m[0].length
+  let depth = 1
+  let i = start
+  while (i < src.length && depth > 0) {
+    const c = src[i]
+    if (c === '{') depth++
+    else if (c === '}') depth--
+    i++
+  }
+  return depth === 0 ? src.slice(start, i - 1) : ''
+}
+
 // ═══════════════════════════════════════════════════════════
 // 🎯 Planning signals (6)
 // ═══════════════════════════════════════════════════════════
@@ -192,11 +212,11 @@ function scoreDevelopment(inp: DevelopmentInputs): DisciplineScore {
   const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/)
   const codeLineCount = scriptMatch ? scriptMatch[1].split('\n').length : html.split('\n').length
 
-  // enginePromotions — parse promotion note (very loose: count "- " entries under "## 승격")
-  const promoSection = inp.enginePromotionText.match(/##\s*승격(?:\s*완료)?([\s\S]*?)((?<!#)##(?!#)|$)/)
-  // 승격 항목은 `### 1. IX.Pool` 같은 H3 헤더로 구분됨 (각 헤더 아래의 `- **위치**:` 불릿은 하위 메타데이터).
-  // 과거 `/^-\s+/gm` 은 불릿 수를 셌으나 실제 승격 건수와 무관하여 3사이클 연속 false-zero 발생.
-  const enginePromotions = promoSection ? countMatches(promoSection[1], /^###\s+/gm) : 0
+  // enginePromotions — 승격 헤더는 항상 `### ... IX.<Symbol> ...` 구조.
+  // 과거: `## 승격` 고정 섹션의 `### ` 만 카운트 → `## N차 검증` 섹션의 `### 추가 승격: IX.X`
+  // 와 `## 보류` 섹션의 `### 2. 패럴렉스`(IX. 없음) 를 동시에 혼동하여 false-positive/negative 발생.
+  // 수정: 전체 문서에서 `### ` 헤더 중 같은 줄에 `IX.` 심볼을 언급한 항목만 실제 승격으로 인정.
+  const enginePromotions = countMatches(inp.enginePromotionText, /^###\s+[^\n]*IX\./gm)
 
   const score = clamp(
     engineAdoption * 25
@@ -282,14 +302,26 @@ function scoreArt(inp: ArtInputs): DisciplineScore {
     }
   } catch { /* default */ }
 
-  // assetVerifyRate
-  const assetVerifyRate = inp.requestedAssetCount > 0
-    ? 1 - (inp.verifyFailedCount / inp.requestedAssetCount)
+  // cycle.ts:1040 이 assetStats 를 하드코딩 {0,0,0,0} 으로 넘기는 구조적 한계를 해결.
+  // 파이프라인이 실제 값을 넘기면(>0) 폴백은 실행 안 되고 기존 경로 유지. 하드코딩 상태(현재)는
+  // manifest.assets 선언 수를 requested, 디스크에 실재하는 파일 수를 generated 로 사용.
+  let requested = inp.requestedAssetCount
+  let generated = inp.generatedAssetCount
+  if (requested === 0 && generated === 0) {
+    try {
+      const m2 = JSON.parse(inp.manifestText || '{}') as { assets?: Record<string, { file?: string }> }
+      const entries = Object.values(m2.assets ?? {})
+      requested = entries.length
+      generated = entries.filter(a => !!a.file && existsSync(resolve(inp.assetsDir, a.file))).length
+    } catch { /* manifest 파싱 실패 시 기존 0 유지 */ }
+  }
+  // assetVerifyRate (verifyFailed 는 파이프라인만 알 수 있음 — 폴백 시 0 가정)
+  const assetVerifyRate = requested > 0
+    ? 1 - (inp.verifyFailedCount / requested)
     : 1
-
   // assetGenerateRate
-  const assetGenerateRate = inp.requestedAssetCount > 0
-    ? inp.generatedAssetCount / inp.requestedAssetCount
+  const assetGenerateRate = requested > 0
+    ? generated / requested
     : 0
 
   const score = clamp(

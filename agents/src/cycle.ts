@@ -118,41 +118,36 @@ function buildGrowthDirective(cycleNumber: number): string {
     parts.push('- 스토리/내러티브 요소')
   }
 
-  // ── 그래픽 (Visual) ──
+  // ── 그래픽 (Visual) — PNG 에셋 기반, SVG 전면 금지 ──
   parts.push('\n### 🎨 그래픽')
+  parts.push('- **모든 에셋은 PNG**만 (OpenAI/Gemini 이미지 생성 + 크기 정확). SVG 절대 금지.')
+  parts.push('- 아트 스타일은 기획서의 art-style 필드 하나로 통일')
+  parts.push('- 캐릭터 변형은 ref 이미지로 base 참조 (같은 인물)')
+  parts.push('- 썸네일은 생성하지 말 것 — 사이클 후반 스크린샷 phase가 자동 캡처')
   if (n <= 5) {
-    parts.push('- 깔끔한 SVG 에셋 + 일관된 컬러 팔레트')
     parts.push('- 기본 애니메이션 (이동, 페이드)')
     parts.push('- Canvas 해상도: 800×600 이상')
-    parts.push('- SVG viewBox: 각 에셋 최소 100×100 단위')
   } else if (n <= 10) {
-    parts.push('- 세밀한 SVG 디테일 (그라데이션, 그림자, 하이라이트)')
     parts.push('- 파티클 이펙트 (폭발, 스파크, 먼지)')
     parts.push('- 화면 전환 애니메이션')
     parts.push('- 배경 패럴랙스 스크롤링')
-    parts.push('- Canvas 해상도: 1024×768 이상, devicePixelRatio 대응 (레티나 선명도)')
-    parts.push('- SVG viewBox: 각 에셋 200×200 이상, 세밀한 path 디테일')
-    parts.push('- 캐릭터 SVG: 관절/파츠 분리 구조 (머리, 몸통, 팔다리)')
+    parts.push('- Canvas 해상도: 1024×768 이상, devicePixelRatio 대응')
+    parts.push('- 캐릭터 스프라이트 시트 (idle, walk) 기본')
   } else if (n <= 20) {
-    parts.push('- 풍부한 SVG 아트 (캐릭터 표정/포즈 변화, 환경 디테일)')
     parts.push('- 다중 파티클 시스템 (타격, 이동 궤적, 환경 효과)')
     parts.push('- 화면 흔들림(screen shake), 슬로우모션 연출')
     parts.push('- 다이나믹 라이팅/글로우 효과')
     parts.push('- UI 애니메이션 (숫자 카운트업, 바운스, 슬라이드)')
     parts.push('- Canvas 해상도: 전체 화면 대응 (window.innerWidth/Height), devicePixelRatio 필수')
-    parts.push('- SVG viewBox: 각 에셋 300×300 이상, filter/gradient 적극 활용')
-    parts.push('- 캐릭터 SVG: 다중 프레임/포즈 (idle, walk, attack, hit, death)')
-    parts.push('- 배경 SVG: 3~4 레이어 (far, mid, near, foreground)')
-    parts.push('- 적 SVG: 타입별 고유 디자인 (최소 5종), 보스 전용 대형 에셋')
+    parts.push('- 캐릭터 다중 프레임 (idle, walk, attack, hit, death) — 각각 ref 로 base 참조')
+    parts.push('- 배경 3~4 레이어 (far, mid, near, foreground)')
+    parts.push('- 적 타입별 고유 디자인 (최소 5종), 보스 전용 대형 에셋')
   } else {
     parts.push('- 프리미엄급 비주얼 (캐릭터 애니메이션 시퀀스, 보스 등장 연출)')
-    parts.push('- 날씨/시간대 변화 효과')
-    parts.push('- 카메라 줌/팬 연출')
-    parts.push('- 배경 인터랙티브 요소')
+    parts.push('- 날씨/시간대 변화 효과, 카메라 줌/팬, 배경 인터랙티브 요소')
     parts.push('- Canvas 해상도: 풀스크린 + devicePixelRatio + 동적 리사이즈')
-    parts.push('- SVG viewBox: 각 에셋 400×400 이상, 복합 filter 체인 (blur+glow+shadow)')
     parts.push('- 캐릭터: 스프라이트 시트급 다중 포즈 (8방향 이동, 스킬 시전)')
-    parts.push('- 보스 에셋: 전용 등장 컷신용 대형 SVG (600×400+)')
+    parts.push('- 보스 에셋: 전용 등장 컷신용 대형 PNG (1024×1024+)')
     parts.push('- 환경 에셋: 파괴 가능 오브젝트, 인터랙티브 배경 요소')
   }
 
@@ -160,20 +155,17 @@ function buildGrowthDirective(cycleNumber: number): string {
   parts.push('\n### 📏 분량')
   parts.push(`- 코드 최소 ${minCodeLines}줄 이상`)
   if (n <= 5) {
-    parts.push('- 에셋 8~10개, 각 SVG 평균 2~5KB')
+    parts.push('- PNG 에셋 8~10개, 각 평균 20~300KB')
   } else if (n <= 10) {
-    parts.push('- 에셋 12~15개 (적/아이템 변형 포함), 각 SVG 평균 5~10KB')
+    parts.push('- PNG 에셋 12~15개 (적/아이템 변형 포함)')
     parts.push('- 사운드 이펙트 시뮬레이션 (Web Audio API 비프음)')
-    parts.push('- 썸네일 SVG: 디테일한 게임 장면 묘사 (10KB+)')
   } else if (n <= 20) {
-    parts.push('- 에셋 15~20개 (캐릭터 변형, 환경 변형 포함), 각 SVG 평균 8~15KB')
+    parts.push('- PNG 에셋 15~20개 (캐릭터 변형, 환경 변형 포함)')
     parts.push('- Web Audio API 기반 BGM + 효과음 (최소 5종 효과음)')
-    parts.push('- 썸네일 SVG: 게임 하이라이트 장면 + 캐릭터 + UI 요소 포함 (15KB+)')
   } else {
-    parts.push('- 에셋 20~25개 (캐릭터 포즈별, 보스 전용, 환경 변형), 각 SVG 10~20KB')
+    parts.push('- PNG 에셋 20~25개 (캐릭터 포즈별, 보스 전용, 환경 변형)')
     parts.push('- Web Audio API: BGM 루프 + 상황별 효과음 8종+')
     parts.push('- 다국어 지원 (한국어 기본, 영어 UI)')
-    parts.push('- 썸네일 SVG: 시네마틱 구도의 대표 장면 (20KB+)')
   }
 
   parts.push('')
@@ -535,7 +527,7 @@ ${styleListStr}
           console.error(`  ❌ ${providerName} 에셋 생성 실패:`, err)
         }
       } else {
-        console.log(`  ⚠️ 이미지 provider 없음 (OPENAI_API_KEY / GEMINI_API_KEY 미설정) — Claude 디자이너로 SVG 폴백`)
+        console.log(`  ⛔ 이미지 provider 없음 (OPENAI_API_KEY / GEMINI_API_KEY 미설정) — SVG 폴백 금지, 플레이스홀더 컬러 박스로 진행`)
       }
 
       // 3-C: 디자이너 — 생성된 에셋 검증 + 누락 SVG 보완 + 일관성 체크
@@ -565,11 +557,12 @@ ${styleListStr}
            - 작은 크기(32px)에서도 식별 가능한가?
            - 텍스트가 포함된 에셋(썸네일 등)의 텍스트가 읽히는가?
         5. **누락 에셋 보완**:
-           - 없는 에셋은 SVG로 보완 생성 (스타일 일치시킬 것)
-           - ⛔ thumbnail은 절대 만들지 말 것 (SVG도 PNG도) — 사이클 후반 스크린샷 phase가 자동 캡처
+           - ⛔ **SVG 전면 금지** — .svg 파일을 생성하지 말 것. 보완도 PNG 프롬프트 재요청으로만.
+           - 누락된 PNG는 manifest.json 에서 제거 (게임 코드는 AssetLoader 폴백 컬러로 렌더)
+           - ⛔ thumbnail은 절대 만들지 말 것 (어떤 포맷도) — 사이클 후반 스크린샷 phase가 자동 캡처
         6. **manifest.json 갱신**:
            - 실제 존재하는 파일만 등록
-           - format 필드는 주 포맷(png/svg) 기록
+           - format 필드는 "png" 고정 (SVG 금지)
            - 각 에셋에 desc 포함
 
         ${agentWisdomBlock('designer', cycleNumber)}
@@ -1089,14 +1082,17 @@ ${styleListStr}
       console.log(`\n⏭️ [6.5/7] Self-Evolution — 체크포인트로 건너뜀`)
     }
 
-    // ── 6.8단계: 실제 게임플레이 스크린샷 → 썸네일 + 런타임 헬스체크 ──
-    // 썸네일은 실제 돌아가는 게임의 스크린샷. 동시에 puppeteer가 잡는 pageerror는
+    // ── 6.8단계: 실제 게임플레이 스크린샷 → 썸네일 + 런타임 헬스체크 + SVG 전면 제거 ──
+    // 썸네일은 실제 돌아가는 게임의 스크린샷. puppeteer가 잡는 pageerror는
     // 리뷰어의 정적 분석이 놓친 runtime 버그를 노출한다. 버그 감지 시 코더 핫픽스 후 재촬영.
+    // SVG는 이 단계에서 **모조리 삭제** — 벡터 자산 원천 차단.
     if (state.gameId && !phaseDone('deploy')) {
       console.log(`\n📸 [6.8/7] 게임플레이 스크린샷 캡처 + 런타임 헬스체크`)
       try {
-        const { captureGameplayScreenshot, removeVectorThumbnail } = await import('./screenshot.js')
+        const { captureGameplayScreenshot, removeVectorThumbnail, purgeAllSvg } = await import('./screenshot.js')
         removeVectorThumbnail(state.gameId)
+        const purged = purgeAllSvg(state.gameId)
+        if (purged > 0) console.log(`  🗑️ [6.8] 에셋 폴더의 .svg 파일 ${purged}개 제거`)
         let shot = await captureGameplayScreenshot({ gameId: state.gameId })
 
         // 런타임 에러 또는 블랭크 스크린샷 → 최대 2회까지 코더 핫픽스 + 재촬영

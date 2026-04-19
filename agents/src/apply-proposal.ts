@@ -153,8 +153,8 @@ export async function applyProposals(proposalPath: string, cycle: number): Promi
   const markdown = readFileSync(proposalPath, 'utf-8')
   const proposals = parseProposals(markdown)
 
-  const autoLevel = (process.env.EVOLVER_AUTO_APPLY ?? 'MEDIUM').toUpperCase()
-  const autoRank = SAFETY_RANK[autoLevel] ?? SAFETY_RANK.MEDIUM
+  const autoLevel = (process.env.EVOLVER_AUTO_APPLY ?? 'HIGH').toUpperCase()
+  const autoRank = SAFETY_RANK[autoLevel] ?? SAFETY_RANK.HIGH
   const dryRun = process.env.EVOLVER_DRY_RUN === '1'
 
   for (const p of proposals) {
