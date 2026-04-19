@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-04-18T21:13:13.440Z",
-  "totalGames": 4,
+  "lastUpdated": "2026-04-19T17:11:52.664Z",
+  "totalGames": 5,
   "games": [
     {
       "id": "pixel-depths",
@@ -490,6 +490,136 @@
             "X / Espaço: Atacar",
             "Parede + ↑: Escalar parede",
             "ESC: Pausar / Mapa",
+            "Toque: Joystick virtual + Botões"
+          ]
+        }
+      }
+    },
+    {
+      "id": "painted-sky",
+      "title": "물들인 하늘",
+      "description": "수채화 하늘 위 빛과 어둠의 탄막 대결! 극좌표 탄막을 회피하고 타락한 화가를 정화하라",
+      "genre": ["action", "arcade"],
+      "thumbnail": "/games/painted-sky/assets/thumbnail.png",
+      "path": "/games/painted-sky/index.html",
+      "addedAt": "2026-04-19T17:11:44.178Z",
+      "featured": false,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["탄막", "불릿헬", "보스러시", "페인터리", "그레이즈", "파워업", "종스크롤"],
+      "controls": [
+        "←→↑↓/WASD: 8방향 이동",
+        "Shift: 저속 이동 (정밀 회피)",
+        "Z/Space: 발사 (홀드 연사)",
+        "X: 폭탄 (적탄 소거)",
+        "ESC: 일시정지",
+        "터치: 가상 조이스틱 + 버튼"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Painted Sky",
+          "description": "A watercolor bullet hell! Dodge polar-coordinate barrage patterns and purify the fallen painters",
+          "tags": ["bullet-hell", "danmaku", "boss-rush", "painterly", "graze", "power-up", "vertical-scroller"],
+          "controls": [
+            "←→↑↓/WASD: 8-directional move",
+            "Shift: Slow mode (precise dodging)",
+            "Z/Space: Shoot (hold to auto-fire)",
+            "X: Bomb (clear all enemy bullets)",
+            "ESC: Pause",
+            "Touch: Virtual joystick + Buttons"
+          ]
+        },
+        "ja": {
+          "title": "染まりゆく空",
+          "description": "水彩画の空を舞台にした弾幕シューティング！極座標弾幕を避けて堕ちた画家を浄化せよ",
+          "tags": ["弾幕", "ダンマク", "ボスラッシュ", "ペインタリー", "グレイズ", "パワーアップ", "縦スクロール"],
+          "controls": [
+            "←→↑↓/WASD: 8方向移動",
+            "Shift: 低速移動（精密回避）",
+            "Z/Space: ショット（長押しで連射）",
+            "X: ボム（敵弾全消去）",
+            "ESC: ポーズ",
+            "タッチ: 仮想ジョイスティック + ボタン"
+          ]
+        },
+        "zh-CN": {
+          "title": "染色天空",
+          "description": "水彩风弹幕射击！躲避极坐标弹幕图案，净化堕落的画师",
+          "tags": ["弹幕", "弹幕射击", "Boss连战", "水彩风", "擦弹", "强化道具", "纵向卷轴"],
+          "controls": [
+            "←→↑↓/WASD: 8方向移动",
+            "Shift: 低速移动（精确闪避）",
+            "Z/Space: 射击（按住连射）",
+            "X: 炸弹（清除全屏敌弹）",
+            "ESC: 暂停",
+            "触屏: 虚拟摇杆 + 按钮"
+          ]
+        },
+        "zh-TW": {
+          "title": "染色天空",
+          "description": "水彩風彈幕射擊！閃避極座標彈幕圖案，淨化墮落的畫師",
+          "tags": ["彈幕", "彈幕射擊", "Boss連戰", "水彩風", "擦彈", "強化道具", "縱向捲軸"],
+          "controls": [
+            "←→↑↓/WASD: 8方向移動",
+            "Shift: 低速移動（精確閃避）",
+            "Z/Space: 射擊（按住連射）",
+            "X: 炸彈（清除全屏敵彈）",
+            "ESC: 暫停",
+            "觸控: 虛擬搖桿 + 按鈕"
+          ]
+        },
+        "es": {
+          "title": "Cielo Pintado",
+          "description": "¡Un bullet hell en acuarela! Esquiva patrones de barraje en coordenadas polares y purifica a los pintores caídos",
+          "tags": ["bullet-hell", "danmaku", "boss-rush", "pictórico", "roce", "potenciadores", "scroll-vertical"],
+          "controls": [
+            "←→↑↓/WASD: Movimiento en 8 direcciones",
+            "Shift: Modo lento (esquiva precisa)",
+            "Z/Espacio: Disparar (mantener para ráfaga)",
+            "X: Bomba (eliminar balas enemigas)",
+            "ESC: Pausa",
+            "Táctil: Joystick virtual + Botones"
+          ]
+        },
+        "fr": {
+          "title": "Ciel Peint",
+          "description": "Un bullet hell aquarelle ! Esquivez les barrages en coordonnées polaires et purifiez les peintres déchus",
+          "tags": ["bullet-hell", "danmaku", "boss-rush", "pictural", "frôlement", "bonus", "défilement vertical"],
+          "controls": [
+            "←→↑↓/WASD : Déplacement 8 directions",
+            "Shift : Mode lent (esquive précise)",
+            "Z/Espace : Tirer (maintenir pour rafale)",
+            "X : Bombe (effacer les tirs ennemis)",
+            "Échap : Pause",
+            "Tactile : Joystick virtuel + Boutons"
+          ]
+        },
+        "de": {
+          "title": "Bemalter Himmel",
+          "description": "Ein Aquarell-Bullet-Hell! Weiche Polarkoordinaten-Sperrfeuermustern aus und läutere die gefallenen Maler",
+          "tags": ["Bullet-Hell", "Danmaku", "Boss-Rush", "Malerisch", "Streifschuss", "Power-Ups", "Vertikal-Scroller"],
+          "controls": [
+            "←→↑↓/WASD: 8-Richtungen-Bewegung",
+            "Shift: Langsamer Modus (präzises Ausweichen)",
+            "Z/Leertaste: Schießen (halten für Dauerfeuer)",
+            "X: Bombe (alle feindlichen Kugeln löschen)",
+            "ESC: Pause",
+            "Touch: Virtueller Joystick + Tasten"
+          ]
+        },
+        "pt": {
+          "title": "Céu Pintado",
+          "description": "Um bullet hell em aquarela! Desvie de padrões de barragem em coordenadas polares e purifique os pintores caídos",
+          "tags": ["bullet-hell", "danmaku", "boss-rush", "pictórico", "raspar", "power-ups", "rolagem vertical"],
+          "controls": [
+            "←→↑↓/WASD: Movimento em 8 direções",
+            "Shift: Modo lento (esquiva precisa)",
+            "Z/Espaço: Atirar (segurar para rajada)",
+            "X: Bomba (limpar balas inimigas)",
+            "ESC: Pausar",
             "Toque: Joystick virtual + Botões"
           ]
         }
