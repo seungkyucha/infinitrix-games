@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>셀 아레나</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1a1a2e;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script>
+'use strict';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil,
+  Layout, Sprite, Button, Scene, GameFlow, StateGuard, Pool, PopupText, EffectQueue } = IX;
+
+// === Binding-safe layout helpers ===
+const fontSize = (...a) => Layout.fontSize(...a);
+const clamp = MathUtil.clamp;
+
+// === Engine instances ===
+const engine = new Engine('gameCanvas');
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(400);
+const assets = new AssetLoader();
+const popups = new PopupText({ defaultVy: -80, defaultLife: 1.2 });
+const effects = new EffectQueue();
+Scene.bind({ tween, particles });
+
+// =====================================================================
+// GAME DATA -- JSON declarative data (code-data separation)
+// =====================================================================
+const GAME_ID = 'cel-arena';
+const GRID_COLS = 5, GRID_ROWS = 4;
+const TRIBE_COLORS = { flame:'#ff4444', frost:'#44bbff', nature:'#44cc44', shadow:'#9944cc', light:'#ffdd44' };
+const TRIBE_NAMES = { flame:'불꽃', frost:'얼음', nature:'자연', shadow:'암흑', light:'빛' };
+const JOB_NAMES = { warrior:'전사', ranger:'궁수', mage:'마법사' };
+const STAR_MULT = { 1:1.0, 2:1.8, 3:3.0 };
+
+/** 시너지 아이콘 에셋 키 매핑 */
+const SYN_ICON = {
+  flame:'uiSynergyIconFlame', frost:'uiSynergyIconFrost', nature:'uiSynergyIconNature',
+  shadow:'uiSynergyIconShadow', light:'uiSynergyIconLight',
+  warrior:'uiJobWarrior', ranger:'uiJobRanger', mage:'uiJobMage',
+};
+
+/** 15 units (5 tribes x 3 jobs) -- skill/skillDesc/skillMul/skillCd added */
+const UNITS = {
+  'flame-warrior':  { tribe:'flame',  job:'warrior', hp:800, atk:60, atkSpd:1.0, range:1, name:'화염전사', skill:'화염 베기', skillDesc:'전방 적에게 ATK x1.5 화염 데미지', skillMul:1.5, skillCd:5 },
+  'flame-ranger':   { tribe:'flame',  job:'ranger',  hp:500, atk:70, atkSpd:1.2, range:3, name:'화염궁수', skill:'불화살', skillDesc:'가장 먼 적에게 ATK x2.0 관통 데미지', skillMul:2.0, skillCd:6 },
+  'flame-mage':     { tribe:'flame',  job:'mage',    hp:400, atk:90, atkSpd:0.8, range:4, name:'화염마법사', skill:'폭렬 화구', skillDesc:'범위 2칸에 ATK x2.5 화염 데미지', skillMul:2.5, skillCd:7 },
+  'frost-warrior':  { tribe:'frost',  job:'warrior', hp:900, atk:50, atkSpd:0.9, range:1, name:'얼음전사', skill:'빙결 강타', skillDesc:'ATK x1.5 + 적 공속 30% 감소 3초', skillMul:1.5, skillCd:5 },
+  'frost-ranger':   { tribe:'frost',  job:'ranger',  hp:500, atk:65, atkSpd:1.1, range:3, name:'얼음궁수', skill:'얼음 화살', skillDesc:'ATK x2.0 빙결 사격', skillMul:2.0, skillCd:6 },
+  'frost-mage':     { tribe:'frost',  job:'mage',    hp:400, atk:85, atkSpd:0.8, range:4, name:'얼음마법사', skill:'눈보라', skillDesc:'범위 ATK x2.0 데미지 + 감속', skillMul:2.0, skillCd:7 },
+  'nature-warrior': { tribe:'nature', job:'warrior', hp:850, atk:55, atkSpd:1.0, range:1, name:'자연전사', skill:'덩굴 강타', skillDesc:'ATK x1.5 + HP 10% 회복', skillMul:1.5, skillCd:5 },
+  'nature-ranger':  { tribe:'nature', job:'ranger',  hp:520, atk:60, atkSpd:1.2, range:3, name:'자연궁수', skill:'가시 화살', skillDesc:'ATK x1.8 독 화살', skillMul:1.8, skillCd:6 },
+  'nature-mage':    { tribe:'nature', job:'mage',    hp:420, atk:80, atkSpd:0.9, range:4, name:'자연마법사', skill:'생명의 숨결', skillDesc:'아군 전체 HP 8% 회복', skillMul:0, skillCd:8 },
+  'shadow-warrior': { tribe:'shadow', job:'warrior', hp:750, atk:70, atkSpd:1.0, range:1, name:'암흑전사', skill:'암흑 베기', skillDesc:'ATK x1.8 그림자 피해', skillMul:1.8, skillCd:5 },
+  'shadow-ranger':  { tribe:'shadow', job:'ranger',  hp:480, atk:75, atkSpd:1.3, range:3, name:'암흑궁수', skill:'독침 투척', skillDesc:'ATK x2.0 + 독 3초', skillMul:2.0, skillCd:6 },
+  'shadow-mage':    { tribe:'shadow', job:'mage',    hp:380, atk:95, atkSpd:0.7, range:4, name:'암흑마법사', skill:'어둠 폭발', skillDesc:'범위 ATK x2.5 암흑 폭발', skillMul:2.5, skillCd:7 },
+  'light-warrior':  { tribe:'light',  job:'warrior', hp:820, atk:55, atkSpd:1.1, range:1, name:'빛전사', skill:'성스러운 검', skillDesc:'ATK x1.5 + 실드 부여', skillMul:1.5, skillCd:5 },
+  'light-ranger':   { tribe:'light',  job:'ranger',  hp:500, atk:65, atkSpd:1.2, range:3, name:'빛궁수', skill:'빛의 화살', skillDesc:'ATK x2.0 빛 관통', skillMul:2.0, skillCd:6 },
+  'light-mage':     { tribe:'light',  job:'mage',    hp:400, atk:85, atkSpd:0.9, range:4, name:'빛마법사', skill:'축복', skillDesc:'아군 전체 공속 +20% 5초', skillMul:0, skillCd:8 },
+};
+const UNIT_IDS = Object.keys(UNITS);
+
+/** Synergy data (8 types: 5 tribes + 3 jobs) -- tier 3 special effects included */
+const SYNERGIES = {
+  flame:   { type:'tribe', thr:[2,3], eff:[{atkMul:1.15},{atkMul:1.30, onHit:'burn'}] },
+  frost:   { type:'tribe', thr:[2,3], eff:[{defMul:1.20},{defMul:1.40, onHurt:'slow'}] },
+  nature:  { type:'tribe', thr:[2,3], eff:[{regenPct:0.05, regenSec:5},{regenPct:0.08, regenSec:3, revive:1}] },
+  shadow:  { type:'tribe', thr:[2,3], eff:[{critChance:0.15},{critChance:0.30, critDmg:2.0}] },
+  light:   { type:'tribe', thr:[2,3], eff:[{atkSpdMul:1.10},{atkSpdMul:1.25, shield:true}] },
+  warrior: { type:'job',   thr:[2,3], eff:[{hpBonus:200},{hpBonus:500, dmgReduce:0.10}] },
+  ranger:  { type:'job',   thr:[2,3], eff:[{rangeBonus:1},{rangeBonus:2, doubleShot:2}] },
+  mage:    { type:'job',   thr:[2,3], eff:[{skillMul:1.20},{skillMul:1.50, cdReduce:0.30}] },
+};
+
+/** Difficulty settings */
+const DIFFICULTIES = {
+  easy:   { hp:30, gold:15, eMul:0.8, baseGold:6, rerollCost:1, shopSlots:5, bMul:0.8, sMul:0.8, label:'Easy' },
+  normal: { hp:20, gold:10, eMul:1.0, baseGold:5, rerollCost:1, shopSlots:4, bMul:1.0, sMul:1.0, label:'Normal' },
+  hard:   { hp:15, gold:8,  eMul:1.3, baseGold:4, rerollCost:2, shopSlots:4, bMul:1.5, sMul:1.5, label:'Hard' },
+};
+
+/** 15 rounds enemy configuration */
+const ROUNDS = [
+  { enemies:[{id:'flame-warrior',star:1,pos:[2,0]}], maxUnits:3 },
+  { enemies:[{id:'frost-warrior',star:1,pos:[1,0]},{id:'frost-ranger',star:1,pos:[3,1]}], maxUnits:3 },
+  { enemies:[{id:'nature-warrior',star:1,pos:[1,0]},{id:'nature-ranger',star:1,pos:[3,0]},{id:'flame-mage',star:1,pos:[2,1]}], maxUnits:4 },
+  { enemies:[{id:'shadow-warrior',star:1,pos:[0,0]},{id:'shadow-ranger',star:1,pos:[4,0]},{id:'light-mage',star:1,pos:[2,1]}], maxUnits:4 },
+  { enemies:[{id:'boss-golem',star:1,pos:[2,0],hp:3000,atk:80}], boss:true, maxUnits:4, p2:0.5 },
+  { enemies:[{id:'frost-warrior',star:2,pos:[1,0]},{id:'frost-mage',star:2,pos:[3,0]},{id:'flame-ranger',star:1,pos:[2,1]}], maxUnits:5 },
+  { enemies:[{id:'shadow-warrior',star:2,pos:[0,0]},{id:'shadow-ranger',star:2,pos:[4,0]},{id:'nature-mage',star:1,pos:[2,0]},{id:'light-warrior',star:1,pos:[2,1]}], maxUnits:5 },
+  { enemies:[{id:'flame-warrior',star:2,pos:[1,0]},{id:'flame-ranger',star:2,pos:[3,0]},{id:'flame-mage',star:2,pos:[2,1]}], maxUnits:5 },
+  { enemies:[{id:'light-warrior',star:2,pos:[0,0]},{id:'light-ranger',star:2,pos:[4,0]},{id:'light-mage',star:2,pos:[2,1]},{id:'nature-warrior',star:2,pos:[2,0]}], maxUnits:5 },
+  { enemies:[{id:'boss-dragon',star:1,pos:[2,0],hp:6000,atk:120}], boss:true, maxUnits:5, p2:0.5 },
+  { enemies:[{id:'shadow-warrior',star:2,pos:[0,0]},{id:'shadow-mage',star:2,pos:[4,0]},{id:'flame-ranger',star:2,pos:[1,1]},{id:'frost-mage',star:2,pos:[3,1]}], maxUnits:5 },
+  { enemies:[{id:'nature-warrior',star:3,pos:[1,0]},{id:'nature-mage',star:3,pos:[3,0]},{id:'light-ranger',star:2,pos:[2,1]},{id:'shadow-ranger',star:2,pos:[0,1]}], maxUnits:5 },
+  { enemies:[{id:'flame-warrior',star:3,pos:[0,0]},{id:'frost-warrior',star:3,pos:[4,0]},{id:'shadow-mage',star:3,pos:[2,0]},{id:'light-mage',star:2,pos:[1,1]},{id:'nature-ranger',star:2,pos:[3,1]}], maxUnits:5 },
+  { enemies:[{id:'flame-mage',star:3,pos:[1,0]},{id:'frost-ranger',star:3,pos:[3,0]},{id:'shadow-warrior',star:3,pos:[0,0]},{id:'light-warrior',star:3,pos:[4,0]},{id:'nature-mage',star:3,pos:[2,1]}], maxUnits:5 },
+  { enemies:[{id:'boss-demon',star:1,pos:[2,0],hp:10000,atk:160}], boss:true, maxUnits:5, p2:0.5, p3:0.25 },
+];
+
+/** Meta upgrades (4 types) */
+const META_UPG = {
+  wallet:  { name:'두둑한 지갑',   lvs:[{cost:100,val:2},{cost:300,val:4},{cost:600,val:6}] },
+  health:  { name:'강인한 체력',   lvs:[{cost:200,val:3},{cost:500,val:5},{cost:1000,val:8}] },
+  network: { name:'폭넓은 인맥',   lvs:[{cost:150,val:1},{cost:400,val:2},{cost:800,val:3}] },
+  luck:    { name:'행운의 별',     lvs:[{cost:300,val:0.05},{cost:700,val:0.10}] },
+};
+
+// =====================================================================
+// GAME STATE -- global variables (all reset in resetGameState)
+// =====================================================================
+let diff = 'normal';
+let cmdHp = 20, cmdMaxHp = 20;
+let gold = 10, curRound = 1, score = 0;
+let bench = [];             // [{id, star}]
+let grid = [];              // [row][col] = null | {id, star}
+let shopSlots = [];         // [{id, star}|null]
+let selUnit = null;         // {source:'bench'|'grid', idx?, row?, col?}
+let bUnits = [];            // battle units
+let bSpeed = 1;             // battle speed multiplier
+let bOver = false;          // battle finished flag
+let bResult = null;         // 'win'|'lose'
+let bTimer = 0;             // battle elapsed
+let iDelay = 0;             // scene transition input ignore
+let showSyn = false;        // synergy panel toggle
+let tutDone = false;        // tutorial
+let tutStep = 0;
+let shopBtns = [];          // shop button refs
+let benchBtns = [];         // bench button refs
+let aBtns = {};             // action button refs
+let bossPhase = 1;
+let bossPhaseAnim = 0;
+let shakeInt = 0;
+let dragUnit = null, dragActive = false, dragStartX = 0, dragStartY = 0, prevMouseDown = false;
+let animTimer = 0;
+let spriteAnims = [];       // sprite sheet animations
+let infoPopup = null;       // {unitData, x, y} for right-click/long-press info
+let longPressTimer = 0;     // mobile long-press tracking
+let longPressTarget = null; // unit under long press
+
+// Meta data (localStorage)
+let metaGold = Save.get('celArena_metaGold', 0);
+let metaLvs = Save.get('celArena_metaLvs', { wallet:0, health:0, network:0, luck:0 });
+// Migration: ensure new keys exist
+if (metaLvs.network === undefined) metaLvs.network = 0;
+if (metaLvs.luck === undefined) metaLvs.luck = 0;
+
+/** Reset all game state */
+function resetGameState() {
+  const d = DIFFICULTIES[diff];
+  const walletB = metaLvs.wallet > 0 ? META_UPG.wallet.lvs[metaLvs.wallet - 1].val : 0;
+  const healthB = metaLvs.health > 0 ? META_UPG.health.lvs[metaLvs.health - 1].val : 0;
+  cmdMaxHp = d.hp + healthB;
+  cmdHp = cmdMaxHp;
+  gold = d.gold + walletB;
+  curRound = 1; score = 0;
+  bench = []; grid = mkGrid();
+  shopSlots = []; selUnit = null;
+  bUnits = []; bSpeed = 1;
+  bOver = false; bResult = null; bTimer = 0;
+  iDelay = 0.2; showSyn = false;
+  tutStep = 0; bossPhase = 1; bossPhaseAnim = 0;
+  shakeInt = 0; shopBtns = []; benchBtns = []; aBtns = {};
+  dragUnit = null; dragActive = false; dragStartX = 0; dragStartY = 0; prevMouseDown = false;
+  animTimer = 0; spriteAnims = []; infoPopup = null; longPressTimer = 0; longPressTarget = null;
+  resultData = {}; goData = {}; vicData = {};
+  popups.clear(); effects.clear();
+}
+
+function mkGrid() {
+  const g = [];
+  for (let r = 0; r < GRID_ROWS; r++) { g.push([]); for (let c = 0; c < GRID_COLS; c++) g[r].push(null); }
+  return g;
+}
+
+// =====================================================================
+// HELPER FUNCTIONS
+// =====================================================================
+
+/** Unit ID -> asset key (manifest camelCase) */
+function uKey(id) {
+  if (id.startsWith('boss-')) {
+    const p = id.split('-')[1];
+    return 'boss' + p[0].toUpperCase() + p.slice(1);
+  }
+  return 'unit' + id.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('');
+}
+
+/** Grid layout calculation */
+function calcGL(w, h) {
+  const s = Layout.scale(w, h);
+  const safe = Layout.safeArea(w, h);
+  const hudH = Math.max(48, 65 * s);
+  const shopH = Math.max(110, 160 * s);
+  const gAreaW = safe.w * 0.72;
+  const gAreaH = safe.h - hudH - shopH;
+  const g = Layout.grid(GRID_COLS, GRID_ROWS, gAreaW, gAreaH, Math.max(2, 4 * s));
+  const bx = safe.x + (safe.w - g.totalW) / 2 + g.offsetX;
+  const by = safe.y + hudH + g.offsetY;
+  return { g, bx, by, hudH, shopH, s, safe, cs: g.cellSize, pad: g.padding };
+}
+
+/** Grid cell -> screen coords */
+function c2p(col, row, L) {
+  return { x: L.bx + col * (L.cs + L.pad), y: L.by + row * (L.cs + L.pad) };
+}
+
+/** Screen coords -> grid cell */
+function p2c(px, py, L) {
+  const cs = L.cs, p = L.pad;
+  const col = Math.floor((px - L.bx) / (cs + p));
+  const row = Math.floor((py - L.by) / (cs + p));
+  if (col < 0 || col >= GRID_COLS || row < 0 || row >= GRID_ROWS) return null;
+  const cx = L.bx + col * (cs + p), cy = L.by + row * (cs + p);
+  if (px >= cx && px <= cx + cs && py >= cy && py <= cy + cs) return { col, row };
+  return null;
+}
+
+function countPlaced() {
+  let c = 0;
+  for (let r = 2; r < 4; r++) for (let col = 0; col < 5; col++) if (grid[r][col]) c++;
+  return c;
+}
+function maxU() { return ROUNDS[curRound - 1].maxUnits; }
+
+/** Shop generation (respects network/luck meta upgrades) */
+function genShop() {
+  const d = DIFFICULTIES[diff];
+  const networkB = metaLvs.network > 0 ? META_UPG.network.lvs[metaLvs.network - 1].val : 0;
+  const luckB = metaLvs.luck > 0 ? META_UPG.luck.lvs[metaLvs.luck - 1].val : 0;
+  const slots = d.shopSlots + networkB;
+  shopSlots = [];
+  for (let i = 0; i < slots; i++) {
+    const uid = UNIT_IDS[MathUtil.randInt(0, UNIT_IDS.length - 1)];
+    const star = Math.random() < luckB ? 2 : 1;
+    shopSlots.push({ id: uid, star });
+  }
+}
+
+/** Buy unit from shop */
+function buyUnit(idx) {
+  if (idx < 0 || idx >= shopSlots.length || !shopSlots[idx]) return false;
+  if (gold < 3 || bench.length >= 8) return false;
+  gold -= 3;
+  const slot = shopSlots[idx];
+  bench.push({ id: slot.id, star: slot.star });
+  shopSlots[idx] = null;
+  sfx('buy');
+  tryMerge(slot.id, slot.star);
+  return true;
+}
+
+/** Sell selected unit */
+function sellSel() {
+  if (!selUnit) return;
+  if (selUnit.source === 'bench') bench.splice(selUnit.idx, 1);
+  else grid[selUnit.row][selUnit.col] = null;
+  gold += 1; selUnit = null; sfx('sell');
+}
+
+/** Merge (3 same -> star+1) */
+function tryMerge(uid, star) {
+  if (star >= 3) return;
+  const m = [];
+  bench.forEach((u, i) => { if (u.id === uid && u.star === star) m.push({ src:'b', idx:i }); });
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
+    if (grid[r][c] && grid[r][c].id === uid && grid[r][c].star === star) m.push({ src:'g', row:r, col:c });
+  }
+  if (m.length < 3) return;
+  const keep = m[0], rm = m.slice(1, 3);
+  const bRm = rm.filter(x => x.src === 'b').map(x => x.idx).sort((a, b) => b - a);
+  const gRm = rm.filter(x => x.src === 'g');
+  for (const i of bRm) bench.splice(i, 1);
+  for (const x of gRm) grid[x.row][x.col] = null;
+  if (keep.src === 'b') {
+    const ni = bench.findIndex(u => u.id === uid && u.star === star);
+    if (ni >= 0) bench[ni].star = star + 1;
+  } else {
+    if (grid[keep.row][keep.col]) grid[keep.row][keep.col].star = star + 1;
+  }
+  score += star === 1 ? 50 : 200;
+  sfx('merge');
+  particles.emit(engine.W / 2, engine.H / 2, 25, { color:'#ffd700', speed:200, life:0.8, size:6 });
+  tryMerge(uid, star + 1);
+}
+
+/** Calculate active synergies for placed units */
+function calcSyn(units, countFrom) {
+  const cnt = {};
+  if (countFrom === 'grid') {
+    for (let r = 2; r < 4; r++) for (let c = 0; c < 5; c++) {
+      const u = grid[r][c]; if (!u) continue;
+      const d = UNITS[u.id]; if (!d) continue;
+      cnt[d.tribe] = (cnt[d.tribe] || 0) + 1;
+      cnt[d.job] = (cnt[d.job] || 0) + 1;
+    }
+  } else if (units) {
+    const team = countFrom || 'ally';
+    units.filter(u => u.team === team && u.alive).forEach(u => {
+      cnt[u.tribe] = (cnt[u.tribe] || 0) + 1;
+      cnt[u.job] = (cnt[u.job] || 0) + 1;
+    });
+  }
+  const act = [];
+  for (const [k, s] of Object.entries(SYNERGIES)) {
+    const n = cnt[k] || 0; let lv = 0;
+    for (let i = s.thr.length - 1; i >= 0; i--) { if (n >= s.thr[i]) { lv = i + 1; break; } }
+    if (lv > 0) act.push({ key:k, lv, cnt:n, thr:s.thr[lv-1], eff:s.eff[lv-1] });
+  }
+  return act;
+}
+
+function calcInterest() { return Math.min(5, Math.floor(gold / 10)); }
+
+// =====================================================================
+// SPRITE SHEET ANIMATION HELPER
+// =====================================================================
+function addSpriteAnim(assetKey, x, y, size, frames, frameDur) {
+  if (!assets.has(assetKey)) return;
+  spriteAnims.push({ key:assetKey, x, y, size, frames:frames||4, frameDur:frameDur||0.08, timer:0, frame:0 });
+}
+function updateSpriteAnims(dt) {
+  for (let i = spriteAnims.length - 1; i >= 0; i--) {
+    const a = spriteAnims[i];
+    a.timer += dt / 1000;
+    a.frame = Math.floor(a.timer / a.frameDur);
+    if (a.frame >= a.frames) spriteAnims.splice(i, 1);
+  }
+}
+function renderSpriteAnims(ctx) {
+  for (const a of spriteAnims) {
+    const img = assets.sprites[a.key];
+    if (!img) continue;
+    const fw = img.naturalWidth / a.frames;
+    const fh = img.naturalHeight;
+    ctx.drawImage(img, a.frame * fw, 0, fw, fh, a.x - a.size/2, a.y - a.size/2, a.size, a.size);
+  }
+}
+
+// =====================================================================
+// CUSTOM SFX -- Web Audio tone synthesis
+// =====================================================================
+function sfx(name) {
+  if (!sound._ctx) return;
+  const t = (f, d, tp, v) => sound.tone(f, d, tp || 'square', v || 0.3);
+  const map = {
+    buy:     () => { t(1200,0.03,'triangle'); t(1600,0.05,'triangle'); },
+    sell:    () => { t(800,0.04,'triangle'); t(400,0.08,'triangle'); },
+    reroll:  () => { t(600,0.03,'sine'); t(800,0.03,'sine'); t(1000,0.03,'sine'); },
+    place:   () => { t(440,0.03,'sine'); t(880,0.05,'sine'); },
+    merge:   () => { t(523,0.05); t(659,0.08); t(784,0.1); t(1047,0.12); },
+    melee:   () => { t(200,0.06,'sawtooth',0.4); },
+    ranged:  () => { t(1500,0.04,'sine',0.2); t(800,0.06,'sine',0.2); },
+    magic:   () => { t(300,0.05,'sine'); t(600,0.08,'sine'); t(1200,0.1,'sine'); },
+    skill:   () => { t(400,0.08,'sine',0.4); t(800,0.12,'sine',0.3); t(1200,0.15,'sine',0.2); },
+    death:   () => { t(200,0.15,'sawtooth',0.2); t(100,0.2,'sawtooth',0.15); },
+    synergy: () => { t(523,0.1,'sine'); t(659,0.1,'sine'); t(784,0.15,'sine'); },
+    bossIn:  () => { t(80,0.5,'sawtooth',0.4); t(60,0.3,'sawtooth',0.3); },
+    bossP:   () => { t(100,0.3,'sawtooth',0.5); t(50,0.5,'sawtooth',0.3); },
+    win:     () => { t(523,0.1,'sine'); t(659,0.1,'sine'); t(784,0.1,'sine'); t(1047,0.15,'sine'); },
+    lose:    () => { t(440,0.3,'sawtooth',0.3); t(220,0.5,'sawtooth',0.2); },
+    victory: () => { t(523,0.15,'sine'); t(659,0.15,'sine'); t(784,0.15,'sine'); t(1047,0.2,'sine'); t(1319,0.25,'sine'); },
+    gover:   () => { t(220,0.5,'sawtooth',0.3); t(110,0.8,'sawtooth',0.2); },
+    burn:    () => { t(600,0.04,'sawtooth',0.15); },
+    revive:  () => { t(523,0.1,'sine',0.35); t(784,0.15,'sine',0.3); },
+  };
+  if (map[name]) map[name]();
+}
+
+// =====================================================================
+// RENDERING HELPERS
+// =====================================================================
+
+/** Parallax background */
+function renderBg(ctx, w, h) {
+  if (assets.has('bgFar')) ctx.drawImage(assets.sprites.bgFar, 0, 0, w, h);
+  else { ctx.fillStyle = '#0d0d2b'; ctx.fillRect(0, 0, w, h); }
+  if (assets.has('bgMid')) { ctx.globalAlpha = 0.6; ctx.drawImage(assets.sprites.bgMid, 0, 0, w, h); ctx.globalAlpha = 1; }
+}
+
+/** Grid background -- uses bgArena asset */
+function renderGrid(ctx, L, hlAlly) {
+  // Draw arena floor background behind grid
+  if (assets.has('bgArena')) {
+    const gw = GRID_COLS * (L.cs + L.pad) - L.pad;
+    const gh = GRID_ROWS * (L.cs + L.pad) - L.pad;
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(assets.sprites.bgArena, L.bx - 8, L.by - 8, gw + 16, gh + 16);
+    ctx.globalAlpha = 1;
+  }
+  for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) {
+    const { x, y } = c2p(c, r, L);
+    ctx.fillStyle = r >= 2 ? 'rgba(22,33,62,0.7)' : 'rgba(26,16,40,0.7)';
+    ctx.fillRect(x, y, L.cs, L.cs);
+    ctx.strokeStyle = r >= 2 && hlAlly ? '#ffd70033' : '#2a2a4a';
+    ctx.lineWidth = 1; ctx.strokeRect(x, y, L.cs, L.cs);
+  }
+}
+
+/** Draw icon asset at position, with shape/emoji fallback */
+function drawIcon(ctx, key, x, y, sz) {
+  if (assets.has(key)) { ctx.drawImage(assets.sprites[key], x, y, sz, sz); return; }
+  // Fallback: colored circle + emoji/text
+  const fallbacks = {
+    uiGold: { bg:'#ffd700', txt:'$' },
+    uiHp: { bg:'#ff4444', txt:'♥' },
+    uiStar: { bg:'#ffd700', txt:'★' },
+    uiSynergyIconFlame: { bg:'#ff4444', txt:'🔥' },
+    uiSynergyIconFrost: { bg:'#44bbff', txt:'❄' },
+    uiSynergyIconNature: { bg:'#44cc44', txt:'🌿' },
+    uiSynergyIconShadow: { bg:'#9944cc', txt:'💀' },
+    uiSynergyIconLight: { bg:'#ffdd44', txt:'☀' },
+    uiJobWarrior: { bg:'#8888aa', txt:'⚔' },
+    uiJobRanger: { bg:'#88aa88', txt:'🏹' },
+    uiJobMage: { bg:'#aa88cc', txt:'✦' },
+  };
+  const fb = fallbacks[key];
+  const cx = x + sz / 2, cy = y + sz / 2, r = sz / 2;
+  ctx.fillStyle = fb ? fb.bg : '#555';
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.85, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.round(sz * 0.5)}px system-ui, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(fb ? fb.txt : '?', cx, cy);
+}
+
+/** Unit render -- uses unit/boss PNG assets */
+function renderUnit(ctx, id, star, x, y, cs, hp, maxHp, hl) {
+  const data = UNITS[id];
+  const isBoss = id.startsWith('boss-');
+  const tc = isBoss ? '#ff4444' : TRIBE_COLORS[data?.tribe] || '#888';
+  const m = cs * 0.08;
+  assets.draw(ctx, uKey(id), x + m, y + m, cs - m * 2, cs - m * 2, tc);
+  // Border
+  ctx.strokeStyle = tc; ctx.lineWidth = hl ? 3 : 2;
+  ctx.strokeRect(x + 1, y + 1, cs - 2, cs - 2);
+  if (hl) { ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.strokeRect(x - 1, y - 1, cs + 2, cs + 2); }
+  // Stars -- use uiStar asset
+  const starSz = Math.max(10, cs * 0.17);
+  if (assets.has('uiStar')) {
+    for (let i = 0; i < star; i++) drawIcon(ctx, 'uiStar', x + 2 + i * (starSz + 1), y + 2, starSz);
+  } else {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = `bold ${starSz}px system-ui, sans-serif`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('★'.repeat(star), x + 3, y + 2);
+  }
+  // Boss name
+  if (isBoss) {
+    ctx.font = `bold ${Math.max(8, cs * 0.13)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+    ctx.fillText(id.split('-')[1].toUpperCase(), x + cs / 2, y + cs * 0.2);
+  }
+  // HP bar
+  if (hp !== undefined && maxHp > 0) {
+    const bh = Math.max(4, cs * 0.06);
+    const ratio = clamp(hp / maxHp, 0, 1);
+    ctx.fillStyle = '#222'; ctx.fillRect(x + 2, y + cs - bh - 2, cs - 4, bh);
+    ctx.fillStyle = ratio > 0.5 ? '#44cc44' : ratio > 0.25 ? '#ffaa00' : '#ff4444';
+    ctx.fillRect(x + 2, y + cs - bh - 2, (cs - 4) * ratio, bh);
+  }
+  // Shield bar (if unit has shield in battle)
+  if (hp !== undefined && typeof maxHp === 'number') {
+    // Shield drawn above HP bar in battle scene
+  }
+}
+
+/** Render battle unit with shield indicator */
+function renderBattleUnit(ctx, u, L) {
+  const pos = c2p(u.col, u.row, L);
+  const bob = Math.sin(animTimer * 2.5 + u.col * 1.2 + u.row * 0.8) * 2;
+  // Team tint
+  ctx.fillStyle = u.team === 'ally' ? 'rgba(68,204,68,0.12)' : 'rgba(255,68,68,0.12)';
+  ctx.fillRect(pos.x, pos.y, L.cs, L.cs);
+  renderUnit(ctx, u.id, u.star, pos.x, pos.y + bob, L.cs, u.hp, u.maxHp, false);
+  // Shield overlay + sparkle particle PNG
+  if (u.shield > 0) {
+    const bh = Math.max(3, L.cs * 0.04);
+    const sRatio = clamp(u.shield / u.shieldMax, 0, 1);
+    ctx.fillStyle = 'rgba(68,187,255,0.4)'; ctx.fillRect(pos.x + 2, pos.y + L.cs - bh * 2 - 4, L.cs - 4, bh);
+    ctx.fillStyle = '#44bbff'; ctx.fillRect(pos.x + 2, pos.y + L.cs - bh * 2 - 4, (L.cs - 4) * sRatio, bh);
+    // Sparkle particle PNG on shielded units
+    const spSz = Math.max(10, L.cs * 0.22);
+    if (assets.has('particleSparkle')) {
+      ctx.globalAlpha = 0.4 + Math.sin(animTimer * 3 + u.col * 2) * 0.3;
+      ctx.drawImage(assets.sprites.particleSparkle, pos.x + L.cs * 0.7, pos.y + bob + 2, spSz, spSz);
+      ctx.globalAlpha = 1;
+    }
+  }
+  // Burn indicator + tribe particle PNG overlay
+  if (u.burnTimer > 0) {
+    ctx.fillStyle = 'rgba(255,68,0,0.3)'; ctx.fillRect(pos.x, pos.y, L.cs, L.cs);
+    const pSz = Math.max(12, L.cs * 0.3);
+    if (assets.has('particleTribeFlame')) {
+      ctx.globalAlpha = 0.6 + Math.sin(animTimer * 6) * 0.3;
+      ctx.drawImage(assets.sprites.particleTribeFlame, pos.x + L.cs - pSz, pos.y, pSz, pSz);
+      ctx.globalAlpha = 1;
+    }
+  }
+  // Slow indicator + frost particle PNG overlay
+  if (u.slowTimer > 0) {
+    ctx.fillStyle = 'rgba(68,187,255,0.2)'; ctx.fillRect(pos.x, pos.y, L.cs, L.cs);
+    const pSz = Math.max(12, L.cs * 0.3);
+    if (assets.has('particleTribeFrost')) {
+      ctx.globalAlpha = 0.6 + Math.sin(animTimer * 4) * 0.2;
+      ctx.drawImage(assets.sprites.particleTribeFrost, pos.x, pos.y, pSz, pSz);
+      ctx.globalAlpha = 1;
+    }
+  }
+  // Skill cooldown indicator
+  if (u.skillCd > 0 && u.skillTimer > 0) {
+    const cdRatio = clamp(u.skillTimer / u.skillCd, 0, 1);
+    const barW = L.cs * 0.6, barH = Math.max(3, L.cs * 0.04);
+    const bx = pos.x + (L.cs - barW) / 2, by = pos.y + 2 + Math.max(10, L.cs * 0.17) + 2;
+    ctx.fillStyle = '#333'; ctx.fillRect(bx, by + bob, barW, barH);
+    ctx.fillStyle = '#6c3cf7'; ctx.fillRect(bx, by + bob, barW * cdRatio, barH);
+  }
+}
+
+/** Portrait warning — delegated to engine UI.portraitWarning (promoted cycle 7) */
+function renderPortrait(ctx, w, h) {
+  return UI.portraitWarning(ctx, w, h);
+}
+
+/** Unit info popup render */
+function renderInfoPopup(ctx, w, h) {
+  if (!infoPopup) return;
+  const u = infoPopup;
+  const s = Layout.scale(w, h);
+  const pw = Math.min(w * 0.5, 280 * s), ph = Math.min(h * 0.55, 240 * s);
+  let px = clamp(u.x - pw / 2, 8, w - pw - 8);
+  let py = clamp(u.y - ph - 10, 8, h - ph - 8);
+  // Panel background
+  ctx.fillStyle = 'rgba(18,18,30,0.95)'; ctx.fillRect(px, py, pw, ph);
+  ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.strokeRect(px, py, pw, ph);
+  const d = u.data; const fs = fontSize(12, w, h); let yy = py + 10;
+  const tc = TRIBE_COLORS[d.tribe] || '#aab';
+  // Icon
+  const iconSz = Math.min(48 * s, pw * 0.2);
+  drawIcon(ctx, uKey(u.unitId), px + 8, yy, iconSz);
+  // Name + stars
+  UI.text(ctx, `${'★'.repeat(u.star)} ${d.name}`, px + iconSz + 16, yy + iconSz / 2, { size: fs * 1.2, bold: true, color: tc, align: 'left' });
+  yy += iconSz + 6;
+  // Tribe/Job icons
+  const iSz = Math.max(16, 20 * s);
+  drawIcon(ctx, SYN_ICON[d.tribe], px + 8, yy, iSz);
+  UI.text(ctx, TRIBE_NAMES[d.tribe], px + 8 + iSz + 4, yy + iSz / 2, { size: fs, color: tc, align: 'left' });
+  drawIcon(ctx, SYN_ICON[d.job], px + pw * 0.45, yy, iSz);
+  UI.text(ctx, JOB_NAMES[d.job], px + pw * 0.45 + iSz + 4, yy + iSz / 2, { size: fs, color: '#aab', align: 'left' });
+  yy += iSz + 8;
+  const m = STAR_MULT[u.star] || 1;
+  const lines = [
+    `HP: ${Math.round(d.hp * m)}  ATK: ${Math.round(d.atk * m)}`,
+    `공속: ${d.atkSpd.toFixed(1)}  사거리: ${d.range}`,
+  ];
+  if (d.skill) {
+    lines.push(`스킬: ${d.skill} (CD: ${d.skillCd}s)`);
+    lines.push(d.skillDesc);
+  }
+  lines.forEach(l => {
+    UI.text(ctx, l, px + pw / 2, yy + fs / 2, { size: fs * 0.9, color: '#c0c0d0' });
+    yy += fs + 6;
+  });
+  UI.text(ctx, '아무 곳이나 클릭하여 닫기', px + pw / 2, py + ph - fs - 4, { size: fs * 0.75, color: '#606080' });
+}
+
+// =====================================================================
+// SCENE: TITLE
+// =====================================================================
+Scene.register('TITLE', {
+  enter() {
+    sound.init(); iDelay = 0.2; infoPopup = null;
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(200, 240 * s), bh = Math.max(52, 56 * s);
+    const cx = w / 2 - bw / 2;
+    new Button({ x:cx, y:h*0.45, w:bw, h:bh, text:'게임 시작', key:['Space','Enter'],
+      fontSize:Math.max(16, 20*s), color:'#ffd700',
+      onClick:() => Scene.transition('DIFFICULTY') });
+    new Button({ x:cx, y:h*0.45+bh+14, w:bw, h:bh, text:'조작법', key:['KeyC'],
+      fontSize:Math.max(14, 16*s), color:'#44bbff',
+      onClick:() => Scene.transition('CONTROLS') });
+    if (metaGold > 0) {
+      new Button({ x:cx, y:h*0.45+(bh+14)*2, w:bw, h:Math.max(52, bh),
+        text:`메타 업그레이드 (${metaGold}G)`, key:['KeyU','KeyM'],
+        fontSize:Math.max(14, 16*s), color:'#44cc44',
+        onClick:() => Scene.transition('META') });
+    }
+  },
+  update(dt) { iDelay = Math.max(0, iDelay - dt / 1000); tween.update(dt); },
+  render(ctx, w, h) {
+    renderBg(ctx, w, h);
+    ctx.fillStyle = 'rgba(26,26,46,0.7)'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '셀 아레나', w/2, h*0.18, { size:fontSize(48,w,h), bold:true, color:'#ffd700', glow:'#ff8800' });
+    UI.text(ctx, 'CEL ARENA', w/2, h*0.26, { size:fontSize(16,w,h), color:'#8080a0' });
+    UI.text(ctx, '5부족 x 3직업 -- 로그라이크 오토 배틀러', w/2, h*0.33, { size:fontSize(13,w,h), color:'#606080' });
+    const hi = Save.getHighScore(GAME_ID);
+    if (hi > 0) UI.text(ctx, `최고 점수: ${hi}`, w/2, h*0.88, { size:fontSize(14,w,h), color:'#aab' });
+    if (assets.has('player')) {
+      const sz = Math.min(w, h) * 0.12;
+      ctx.drawImage(assets.sprites.player, w/2-sz/2, h*0.06, sz, sz);
+    }
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: DIFFICULTY
+// =====================================================================
+Scene.register('DIFFICULTY', {
+  enter() {
+    iDelay = 0.2;
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(220, 260*s), bh = Math.max(52, 56*s), cx = w/2-bw/2;
+    const diffs = ['easy','normal','hard'], colors = ['#44cc44','#44bbff','#ff4444'];
+    diffs.forEach((d, i) => {
+      new Button({ x:cx, y:h*0.3+i*(bh+14), w:bw, h:bh,
+        text:`${DIFFICULTIES[d].label} (HP:${DIFFICULTIES[d].hp} G:${DIFFICULTIES[d].gold})`,
+        key:[`Digit${i+1}`], fontSize:Math.max(14,16*s), color:colors[i],
+        onClick:() => { diff = d; resetGameState(); genShop(); Scene.transition('PLAY'); } });
+    });
+    new Button({ x:cx, y:h*0.3+3*(bh+14), w:bw, h:Math.max(52, bh), text:'<- 타이틀', key:['Escape'],
+      fontSize:Math.max(14,16*s), color:'#555', onClick:() => Scene.transition('TITLE') });
+  },
+  update(dt) { iDelay = Math.max(0, iDelay - dt/1000); tween.update(dt); },
+  render(ctx, w, h) {
+    renderBg(ctx, w, h);
+    ctx.fillStyle = 'rgba(26,26,46,0.8)'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '난이도 선택', w/2, h*0.15, { size:fontSize(36,w,h), bold:true, color:'#ffd700', glow:'#ff8800' });
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: CONTROLS
+// =====================================================================
+Scene.register('CONTROLS', {
+  enter() {
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    new Button({ x:w/2-100, y:h*0.85, w:200, h:Math.max(52,56*s), text:'뒤로',
+      key:['Escape','Space'], color:'#555', onClick:() => Scene.transition('TITLE') });
+  },
+  update(dt) { tween.update(dt); },
+  render(ctx, w, h) {
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, w, h);
+    const fs = fontSize(14, w, h);
+    UI.text(ctx, '조작법', w/2, h*0.08, { size:fontSize(28,w,h), bold:true, color:'#ffd700' });
+    const lines = [
+      '클릭/탭: 유닛 구매, 선택, 배치', '1~5: 상점 슬롯 직접 구매',
+      'R: 상점 리롤', 'S: 선택 유닛 판매 (1골드)',
+      'Space/Enter: 전투 시작', 'Tab: 시너지 패널 토글',
+      'F: 전투 속도 (x1/x2)', 'Esc/P: 타이틀 복귀',
+      '우클릭/길게 탭: 유닛 정보 팝업',
+      '', '모바일: 모든 동작을 탭으로 수행',
+    ];
+    lines.forEach((l, i) => UI.text(ctx, l, w/2, h*0.2+i*(fs+8), { size:fs, color:'#c0c0d0' }));
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: META (meta upgrades -- 4 types)
+// =====================================================================
+Scene.register('META', {
+  enter() {
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(240, 280*s), bh = Math.max(52, 56*s), cx = w/2-bw/2;
+    let yO = h * 0.28, metaIdx = 0;
+    for (const [key, upg] of Object.entries(META_UPG)) {
+      metaIdx++;
+      const lv = metaLvs[key] || 0, mxLv = upg.lvs.length;
+      const can = lv < mxLv, cost = can ? upg.lvs[lv].cost : 0;
+      const txt = can ? `${upg.name} Lv${lv+1} (${cost}G)` : `${upg.name} MAX`;
+      new Button({ x:cx, y:yO, w:bw, h:bh, text:txt,
+        key:[`Digit${metaIdx}`],
+        color:can && metaGold >= cost ? '#44cc44' : '#555',
+        enabled:can && metaGold >= cost, fontSize:Math.max(12,14*s),
+        onClick:() => {
+          if (can && metaGold >= cost) {
+            metaGold -= cost; metaLvs[key] = lv + 1;
+            Save.set('celArena_metaGold', metaGold);
+            Save.set('celArena_metaLvs', metaLvs);
+            sfx('merge'); Scene.transition('META');
+          }
+        } });
+      yO += bh + 10;
+    }
+    new Button({ x:cx, y:yO+10, w:bw, h:bh, text:'뒤로', key:['Escape'],
+      color:'#555', fontSize:Math.max(14,16*s), onClick:() => Scene.transition('TITLE') });
+  },
+  update(dt) { tween.update(dt); },
+  render(ctx, w, h) {
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '메타 업그레이드', w/2, h*0.1, { size:fontSize(32,w,h), bold:true, color:'#ffd700' });
+    UI.text(ctx, `보유 골드: ${metaGold}`, w/2, h*0.18, { size:fontSize(18,w,h), color:'#ffd700' });
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: PLAY (= SHOP phase) -- core scene
+// =====================================================================
+
+/** Build all shop UI buttons */
+function buildShopUI(w, h) {
+  Button.removeList(shopBtns); shopBtns = [];
+  Button.removeList(benchBtns); benchBtns = [];
+  for (const k of Object.keys(aBtns)) { if (aBtns[k]) Button.remove(aBtns[k]); }
+  aBtns = {};
+  const L = calcGL(w, h), s = L.s;
+  const shopY = L.by + GRID_ROWS * (L.cs + L.pad) + 8;
+  const slotW = Math.max(48, Math.min(85, (w - 40) / (shopSlots.length + 2)));
+  const slotH = Math.max(48, slotW * 1.15);
+  const d = DIFFICULTIES[diff];
+
+  // Shop slots
+  const sx = w / 2 - (shopSlots.length * (slotW + 5)) / 2;
+  shopSlots.forEach((slot, i) => {
+    if (!slot) return;
+    const data = UNITS[slot.id]; if (!data) return;
+    const starTxt = slot.star > 1 ? ` ${'★'.repeat(slot.star)}` : '';
+    const btn = new Button({ x:sx+i*(slotW+5), y:shopY, w:slotW, h:slotH,
+      text:`${data.name.slice(0,3)}${starTxt}\n3G`, key:[`Digit${i+1}`],
+      color:TRIBE_COLORS[data.tribe]||'#555', fontSize:Math.max(9,11*s),
+      onClick:() => { if (buyUnit(i)) buildShopUI(engine.W, engine.H); } });
+    shopBtns.push(btn);
+  });
+
+  // Action buttons
+  const abw = Math.max(48, 75*s), abh = Math.max(48, 38*s);
+  const aY = shopY + slotH + 6;
+  aBtns.reroll = new Button({ x:w*0.03, y:aY, w:abw, h:abh,
+    text:`리롤(${d.rerollCost}G)`, key:['KeyR'], color:'#44bbff', fontSize:Math.max(10,12*s),
+    onClick:() => { if (gold >= d.rerollCost) { gold -= d.rerollCost; genShop(); sfx('reroll'); buildShopUI(engine.W, engine.H); } } });
+  aBtns.sell = new Button({ x:w*0.03+abw+6, y:aY, w:abw, h:abh,
+    text:'판매(S)', key:['KeyS'], color:'#ff6644', fontSize:Math.max(10,12*s),
+    onClick:() => { sellSel(); buildShopUI(engine.W, engine.H); } });
+  aBtns.fight = new Button({ x:w-w*0.03-abw*1.5, y:aY, w:Math.max(48,abw*1.5), h:abh,
+    text:'전투!', key:['Space','Enter'], color:'#ffd700', fontSize:Math.max(12,14*s),
+    onClick:() => { if (countPlaced() > 0) { sound.init(); Scene.transition('BATTLE'); } } });
+  aBtns.syn = new Button({ x:w-w*0.03-abw, y:shopY, w:abw, h:abh,
+    text:showSyn ? '시너지 ON' : '시너지', key:['Tab'],
+    color:showSyn ? '#44cc44' : '#6c3cf7', fontSize:Math.max(10,12*s),
+    onClick:() => { showSyn = !showSyn; buildShopUI(engine.W, engine.H); } });
+  aBtns.back = new Button({ x:w*0.03, y:L.safe.y+4, w:Math.max(48,55*s), h:Math.max(48,30*s),
+    text:'나가기', key:['Escape','KeyP'], color:'#555', fontSize:Math.max(9,11*s),
+    onClick:() => Scene.transition('TITLE') });
+
+  // Bench units
+  const benchY = shopY - Math.max(48, slotW * 0.55) - 6;
+  const bsw = Math.max(48, Math.min(50, L.cs * 0.75));
+  bench.forEach((u, i) => {
+    const data = UNITS[u.id]; if (!data) return;
+    const isSel = selUnit && selUnit.source === 'bench' && selUnit.idx === i;
+    const btn = new Button({ x:L.bx + i*(bsw+4), y:benchY, w:bsw, h:bsw,
+      text:`${data.name.slice(0,2)}${'★'.repeat(u.star)}`,
+      color:isSel ? '#ffd700' : TRIBE_COLORS[data.tribe]||'#555',
+      fontSize:Math.max(8,9*s),
+      onClick:() => { selUnit = { source:'bench', idx:i }; buildShopUI(engine.W, engine.H); } });
+    benchBtns.push(btn);
+  });
+}
+
+/** Find unit under cursor in grid (for info popup) */
+function findUnitAtCursor(px, py, L) {
+  const cell = p2c(px, py, L);
+  if (!cell) return null;
+  const u = grid[cell.row][cell.col];
+  if (!u) return null;
+  return { unitId: u.id, star: u.star, data: UNITS[u.id], x: px, y: py };
+}
+function findBenchUnitAtCursor(px, py, L) {
+  const s = L.s;
+  const shopY = L.by + GRID_ROWS * (L.cs + L.pad) + 8;
+  const bsw = Math.max(48, Math.min(50, L.cs * 0.75));
+  const benchY = shopY - bsw - 6;
+  for (let i = 0; i < bench.length; i++) {
+    const bx = L.bx + i * (bsw + 4);
+    if (px >= bx && px <= bx + bsw && py >= benchY && py <= benchY + bsw) {
+      return { unitId: bench[i].id, star: bench[i].star, data: UNITS[bench[i].id], x: px, y: py };
+    }
+  }
+  return null;
+}
+
+Scene.register('PLAY', {
+  enter() {
+    iDelay = 0.2; infoPopup = null; longPressTimer = 0; longPressTarget = null;
+    if (!shopSlots.length || shopSlots.every(s => !s)) genShop();
+    buildShopUI(engine.W, engine.H);
+    Scene.on(window, 'resize', () => buildShopUI(engine.W, engine.H));
+    // Right-click for info popup (desktop) — use input.mouseX/Y (engine-processed coords)
+    Scene.on(engine.canvas, 'contextmenu', (e) => {
+      e.preventDefault();
+      const L = calcGL(engine.W, engine.H);
+      infoPopup = findUnitAtCursor(input.mouseX, input.mouseY, L) || findBenchUnitAtCursor(input.mouseX, input.mouseY, L);
+    });
+    tutDone = Save.get('celArena_tutDone', false);
+  },
+  update(dt, inp) {
+    iDelay = Math.max(0, iDelay - dt / 1000);
+    tween.update(dt); popups.update(dt);
+    animTimer += dt / 1000;
+
+    // Dismiss info popup on any tap
+    if (infoPopup && inp.tapped) { infoPopup = null; prevMouseDown = inp.mouseDown; return; }
+
+    if (iDelay > 0) { prevMouseDown = inp.mouseDown; return; }
+
+    const L = calcGL(engine.W, engine.H);
+    const nowDown = inp.mouseDown;
+
+    // Mobile long press tracking (500ms)
+    if (nowDown && !dragActive) {
+      longPressTimer += dt / 1000;
+      if (longPressTimer >= 0.5 && !longPressTarget) {
+        longPressTarget = true;
+        infoPopup = findUnitAtCursor(inp.mouseX, inp.mouseY, L) || findBenchUnitAtCursor(inp.mouseX, inp.mouseY, L);
+        if (infoPopup) { prevMouseDown = nowDown; return; } // consume
+      }
+    }
+    if (!nowDown) { longPressTimer = 0; longPressTarget = null; }
+
+    // Drag start
+    if (nowDown && !prevMouseDown) {
+      dragStartX = inp.mouseX; dragStartY = inp.mouseY;
+      dragActive = false; dragUnit = null;
+      longPressTimer = 0; longPressTarget = null;
+      const cell = p2c(inp.mouseX, inp.mouseY, L);
+      if (cell && cell.row >= 2 && grid[cell.row][cell.col]) {
+        dragUnit = { id:grid[cell.row][cell.col].id, star:grid[cell.row][cell.col].star,
+          source:'grid', row:cell.row, col:cell.col };
+      } else {
+        const shopY = L.by + GRID_ROWS * (L.cs + L.pad) + 8;
+        const bsw = Math.max(48, Math.min(50, L.cs * 0.75));
+        const benchY = shopY - bsw - 6;
+        for (let i = 0; i < bench.length; i++) {
+          const bx = L.bx + i * (bsw + 4);
+          if (inp.mouseX >= bx && inp.mouseX <= bx + bsw &&
+              inp.mouseY >= benchY && inp.mouseY <= benchY + bsw) {
+            dragUnit = { id:bench[i].id, star:bench[i].star, source:'bench', idx:i };
+            break;
+          }
+        }
+      }
+    }
+
+    // Drag threshold (8px)
+    if (nowDown && dragUnit && !dragActive) {
+      const dx = inp.mouseX - dragStartX, dy = inp.mouseY - dragStartY;
+      if (dx * dx + dy * dy > 64) dragActive = true;
+    }
+
+    // Drag end -> place
+    if (!nowDown && prevMouseDown && dragActive && dragUnit) {
+      const cell = p2c(inp.mouseX, inp.mouseY, L);
+      if (cell && cell.row >= 2) {
+        if (dragUnit.source === 'grid') {
+          if (cell.row !== dragUnit.row || cell.col !== dragUnit.col) {
+            if (!grid[cell.row][cell.col]) {
+              grid[cell.row][cell.col] = grid[dragUnit.row][dragUnit.col];
+              grid[dragUnit.row][dragUnit.col] = null;
+            } else {
+              const tmp = grid[cell.row][cell.col];
+              grid[cell.row][cell.col] = grid[dragUnit.row][dragUnit.col];
+              grid[dragUnit.row][dragUnit.col] = tmp;
+            }
+            sfx('place'); selUnit = null; buildShopUI(engine.W, engine.H);
+          }
+        } else if (dragUnit.source === 'bench') {
+          if (!grid[cell.row][cell.col] && countPlaced() < maxU()) {
+            grid[cell.row][cell.col] = bench.splice(dragUnit.idx, 1)[0];
+            sfx('place'); selUnit = null;
+            if (!tutDone && tutStep === 1) { tutStep = 2; tutDone = true; Save.set('celArena_tutDone', true); }
+            buildShopUI(engine.W, engine.H);
+          }
+        }
+      }
+      dragUnit = null; dragActive = false;
+    } else if (!nowDown && prevMouseDown) {
+      dragUnit = null; dragActive = false;
+    }
+    prevMouseDown = nowDown;
+
+    // Grid cell tap (non-drag)
+    if (inp.tapped && !dragActive) {
+      const cell = p2c(inp.tapX, inp.tapY, L);
+      if (cell && cell.row >= 2) {
+        if (selUnit && selUnit.source === 'bench') {
+          if (!grid[cell.row][cell.col] && countPlaced() < maxU()) {
+            grid[cell.row][cell.col] = bench.splice(selUnit.idx, 1)[0];
+            selUnit = null; sfx('place');
+            if (!tutDone && tutStep === 1) { tutStep = 2; tutDone = true; Save.set('celArena_tutDone', true); }
+            buildShopUI(engine.W, engine.H);
+          }
+        } else if (selUnit && selUnit.source === 'grid') {
+          if (!grid[cell.row][cell.col]) {
+            grid[cell.row][cell.col] = grid[selUnit.row][selUnit.col];
+            grid[selUnit.row][selUnit.col] = null;
+          } else {
+            const tmp = grid[cell.row][cell.col];
+            grid[cell.row][cell.col] = grid[selUnit.row][selUnit.col];
+            grid[selUnit.row][selUnit.col] = tmp;
+          }
+          selUnit = null; sfx('place'); buildShopUI(engine.W, engine.H);
+        } else if (grid[cell.row][cell.col]) {
+          selUnit = { source:'grid', row:cell.row, col:cell.col };
+          buildShopUI(engine.W, engine.H);
+        } else { selUnit = null; buildShopUI(engine.W, engine.H); }
+      }
+    }
+    // Tutorial
+    if (!tutDone && tutStep === 0 && bench.length > 0) tutStep = 1;
+  },
+  render(ctx, w, h) {
+    renderBg(ctx, w, h);
+    ctx.fillStyle = 'rgba(26,26,46,0.5)'; ctx.fillRect(0, 0, w, h);
+    const L = calcGL(w, h), s = L.s, fs = fontSize(14, w, h);
+
+    // Shop frame background asset
+    const shopY = L.by + GRID_ROWS * (L.cs + L.pad) + 8;
+    const shopH = L.shopH;
+    if (assets.has('uiShopFrame')) {
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(assets.sprites.uiShopFrame, w * 0.02, shopY - 8, w * 0.96, shopH);
+      ctx.globalAlpha = 1;
+    }
+
+    // HUD
+    const hy = L.safe.y + 6;
+    UI.text(ctx, `라운드 ${curRound}/15`, w/2, hy+10, { size:fontSize(18,w,h), bold:true, color:'#ffd700' });
+    // Gold icon
+    const iSz = Math.max(16, 20 * s);
+    drawIcon(ctx, 'uiGold', w*0.27, hy + 2, iSz);
+    UI.text(ctx, `${gold}`, w*0.27 + iSz + 4, hy+10, { size:fs, color:'#ffd700', align:'left' });
+    // HP icon
+    const hpc = cmdHp > cmdMaxHp*0.5 ? '#44cc44' : cmdHp > cmdMaxHp*0.25 ? '#ffaa00' : '#ff4444';
+    drawIcon(ctx, 'uiHp', w*0.52, hy + 2, iSz);
+    UI.text(ctx, `${cmdHp}/${cmdMaxHp}`, w*0.52 + iSz + 4, hy+10, { size:fs, color:hpc, align:'left' });
+    UI.text(ctx, `배치: ${countPlaced()}/${maxU()}`, w*0.78, hy+10, { size:fs*0.9, color:'#aab', align:'left' });
+
+    // Grid
+    renderGrid(ctx, L, true);
+    for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) {
+      if (!grid[r][c]) continue;
+      const isDrag = dragActive && dragUnit && dragUnit.source === 'grid' && dragUnit.row === r && dragUnit.col === c;
+      const pos = c2p(c, r, L);
+      const bob = Math.sin(animTimer * 2.5 + c * 1.2 + r * 0.8) * 2;
+      const isSel = selUnit && selUnit.source === 'grid' && selUnit.row === r && selUnit.col === c;
+      const data = UNITS[grid[r][c].id];
+      const m = STAR_MULT[grid[r][c].star];
+      if (isDrag) ctx.globalAlpha = 0.3;
+      renderUnit(ctx, grid[r][c].id, grid[r][c].star, pos.x, pos.y + bob, L.cs, data.hp*m, data.hp*m, isSel);
+      if (isDrag) ctx.globalAlpha = 1;
+    }
+
+    // Dragging unit at cursor
+    if (dragActive && dragUnit) {
+      const ds = L.cs * 0.9;
+      ctx.globalAlpha = 0.85;
+      renderUnit(ctx, dragUnit.id, dragUnit.star, input.mouseX - ds / 2, input.mouseY - ds / 2, ds);
+      ctx.globalAlpha = 1;
+      const tgt = p2c(input.mouseX, input.mouseY, L);
+      if (tgt && tgt.row >= 2) {
+        const tp = c2p(tgt.col, tgt.row, L);
+        ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+        ctx.strokeRect(tp.x - 2, tp.y - 2, L.cs + 4, L.cs + 4);
+      }
+    }
+
+    // Bench label
+    if (bench.length > 0) {
+      const benchY = L.by + GRID_ROWS*(L.cs+L.pad)+8 - Math.max(48, 45*s) - 6;
+      UI.text(ctx, '벤치:', L.bx - 4, benchY + Math.max(24, 24*s), { size:fs*0.8, color:'#8080a0', align:'right' });
+    }
+
+    // Synergy panel (with icons)
+    if (showSyn) {
+      const syns = calcSyn(null, 'grid');
+      const px = w - w*0.25, py = L.by;
+      const pw = w*0.23, lineH = Math.max(28, 30 * s);
+      const ph = Math.max(100, syns.length * lineH + 35);
+      ctx.fillStyle = 'rgba(42,42,74,0.92)'; ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1; ctx.strokeRect(px, py, pw, ph);
+      UI.text(ctx, '활성 시너지', px+pw/2, py+14, { size:fs*0.9, bold:true, color:'#ffd700' });
+      syns.forEach((sy, i) => {
+        const nm = TRIBE_NAMES[sy.key] || JOB_NAMES[sy.key] || sy.key;
+        const cl = TRIBE_COLORS[sy.key] || '#aab';
+        const iy = py + 28 + i * lineH;
+        const synIconSz = Math.max(18, 22 * s);
+        drawIcon(ctx, SYN_ICON[sy.key], px + 6, iy - synIconSz/2 + 4, synIconSz);
+        UI.text(ctx, `${nm} (${sy.cnt}/${sy.thr})`, px + 8 + synIconSz + pw*0.1, iy + 4,
+          { size:fs*0.8, color:cl, bold:sy.lv>=2, align:'left' });
+        // Show tier 3 special effect label
+        if (sy.lv >= 2) {
+          const spec = [];
+          if (sy.eff.onHit === 'burn') spec.push('화상');
+          if (sy.eff.onHurt === 'slow') spec.push('감속');
+          if (sy.eff.revive) spec.push('부활');
+          if (sy.eff.critDmg) spec.push('치명x2');
+          if (sy.eff.shield) spec.push('실드');
+          if (sy.eff.dmgReduce) spec.push('-10%피해');
+          if (sy.eff.doubleShot) spec.push('더블샷');
+          if (sy.eff.cdReduce) spec.push('쿨감');
+          if (spec.length) UI.text(ctx, spec.join(' '), px + pw - 6, iy + 4, { size:fs*0.65, color:'#ffd700', align:'right' });
+        }
+      });
+      if (!syns.length) UI.text(ctx, '없음', px+pw/2, py+40, { size:fs*0.8, color:'#606080' });
+    }
+
+    // Tutorial hint
+    if (!tutDone && curRound <= 2) {
+      const hints = ['상점에서 유닛을 구매하세요! (숫자키 1~5)', '유닛을 그리드 하단에 드래그하여 배치하세요'];
+      if (tutStep < hints.length) {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(w*0.08, L.by-35, w*0.84, 30);
+        UI.text(ctx, hints[tutStep], w/2, L.by-20, { size:fs, color:'#ffd700' });
+      }
+    }
+
+    popups.render(ctx, { fontSize:Math.max(14, 18*s), glow:true });
+    renderInfoPopup(ctx, w, h);
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// BATTLE SYSTEM -- auto-combat logic
+// =====================================================================
+
+/** Create battle unit */
+function mkBUnit(id, star, col, row, team) {
+  const data = UNITS[id];
+  const isBoss = id.startsWith('boss-');
+  const mult = STAR_MULT[star] || 1;
+  const dMul = team === 'enemy' ? DIFFICULTIES[diff].eMul : 1;
+  const bMul = isBoss ? DIFFICULTIES[diff].bMul : 1;
+  const rd = ROUNDS[curRound - 1];
+  const eData = rd.enemies.find(e => e.id === id);
+  const baseHp = isBoss ? (eData?.hp || 3000) : (data?.hp || 500);
+  const baseAtk = isBoss ? (eData?.atk || 80) : (data?.atk || 50);
+  const totalHp = baseHp * mult * dMul * bMul;
+  return {
+    id, star, team, col, row, alive: true,
+    hp: totalHp, maxHp: totalHp,
+    atk: baseAtk * mult * dMul * bMul,
+    atkSpd: isBoss ? 0.7 : (data?.atkSpd || 1),
+    range: isBoss ? 2 : (data?.range || 1),
+    tribe: data?.tribe || 'flame', job: data?.job || 'warrior',
+    atkTimer: 0, moveTimer: 0, isBoss,
+    phaseTriggered: false, phase3Triggered: false,
+    atkMul: 1, defMul: 1,
+    // Skill system
+    skillTimer: 0, skillCd: isBoss ? 0 : (data?.skillCd || 0),
+    skillMul: data?.skillMul || 0, skillBonusMul: 1, cdReduction: 0,
+    // Synergy special effects
+    shield: 0, shieldMax: 0,
+    burnTimer: 0, burnDmg: 0,
+    slowTimer: 0, slowRate: 0.7,
+    reviveCount: 0,
+    critChance: 0, critDmg: 1.5, // default crit = 10% base + synergy
+    dmgReduce: 0,
+    doubleShot: 0, atkCount: 0,
+    regenPct: 0, regenSec: 0, _regenT: 0,
+  };
+}
+
+/** Apply synergy bonuses to battle units */
+function applySyn(units, team) {
+  const cnt = {};
+  units.filter(u => u.team === team && u.alive).forEach(u => {
+    cnt[u.tribe] = (cnt[u.tribe] || 0) + 1;
+    cnt[u.job] = (cnt[u.job] || 0) + 1;
+  });
+  let synScore = 0;
+  for (const [k, s] of Object.entries(SYNERGIES)) {
+    const n = cnt[k] || 0; let lv = 0;
+    for (let i = s.thr.length - 1; i >= 0; i--) { if (n >= s.thr[i]) { lv = i + 1; break; } }
+    if (!lv) continue;
+    const e = s.eff[lv - 1];
+    // Score bonus for tier 3 synergy (3 units)
+    if (lv >= 2 && team === 'ally') synScore += 100;
+    units.filter(u => u.team === team && u.alive).forEach(u => {
+      if (e.atkMul) u.atkMul *= e.atkMul;
+      if (e.defMul) u.defMul *= e.defMul;
+      if (e.hpBonus) { u.hp += e.hpBonus; u.maxHp += e.hpBonus; }
+      if (e.atkSpdMul) u.atkSpd *= e.atkSpdMul;
+      if (e.rangeBonus) u.range += e.rangeBonus;
+      // Nature regen (store on unit for data-driven bTick processing)
+      if (e.regenPct && e.regenSec) { u.regenPct = Math.max(u.regenPct, e.regenPct); u.regenSec = e.regenSec > 0 ? (u.regenSec > 0 ? Math.min(u.regenSec, e.regenSec) : e.regenSec) : u.regenSec; }
+      // Tier 3 special effects
+      if (e.critChance) u.critChance += e.critChance;
+      if (e.critDmg) u.critDmg = e.critDmg;
+      if (e.shield) { const sh = Math.round(u.maxHp * 0.2); u.shield = sh; u.shieldMax = sh; }
+      if (e.dmgReduce) u.dmgReduce += e.dmgReduce;
+      if (e.revive) u.reviveCount += e.revive;
+      if (e.doubleShot) u.doubleShot = e.doubleShot;
+      if (e.skillMul) u.skillBonusMul *= e.skillMul;
+      if (e.cdReduce) u.cdReduction = e.cdReduce;
+    });
+  }
+  return synScore;
+}
+
+/** Find closest enemy */
+function findTgt(unit) {
+  let best = null, bd = Infinity;
+  for (const u of bUnits) {
+    if (!u.alive || u.team === unit.team) continue;
+    const d = Math.abs(u.col - unit.col) + Math.abs(u.row - unit.row);
+    if (d < bd) { bd = d; best = u; }
+  }
+  return best;
+}
+
+/** Find farthest enemy (for some skills) */
+function findFarthest(unit) {
+  let best = null, bd = 0;
+  for (const u of bUnits) {
+    if (!u.alive || u.team === unit.team) continue;
+    const d = Math.abs(u.col - unit.col) + Math.abs(u.row - unit.row);
+    if (d > bd) { bd = d; best = u; }
+  }
+  return best;
+}
+
+/** Deal damage to a target with all modifiers */
+function dealDamage(attacker, target, rawDmg, isSkill, L) {
+  let dmg = Math.max(1, rawDmg / target.defMul);
+  dmg = Math.round(dmg * (1 - target.dmgReduce));
+
+  // Crit check
+  const baseCrit = 0.1 + attacker.critChance;
+  const isCrit = Math.random() < baseCrit;
+  if (isCrit) dmg = Math.round(dmg * attacker.critDmg);
+
+  // Shield absorb
+  if (target.shield > 0) {
+    const absorbed = Math.min(target.shield, dmg);
+    target.shield -= absorbed;
+    dmg -= absorbed;
+  }
+
+  target.hp -= dmg;
+  const tp = c2p(target.col, target.row, L);
+  const cx = tp.x + L.cs / 2, cy = tp.y + L.cs / 2;
+  popups.add(cx, cy, `-${dmg}`, isCrit ? '#ffd700' : isSkill ? '#6c3cf7' : '#ff4444');
+  particles.emit(cx, cy, 4, { color:TRIBE_COLORS[attacker.tribe]||'#fff', speed:120, life:0.3, size:4 });
+
+  // Burn on hit (flame synergy tier 3)
+  if (attacker._hasBurn && !isSkill) {
+    target.burnTimer = 3;
+    target.burnDmg = Math.round(attacker.atk * attacker.atkMul * 0.15);
+    // Tribe particle PNG visual
+    particles.emit(cx, cy, 2, { color:'#ff4400', speed:60, life:0.5, size:5 });
+  }
+  // Slow on hurt (frost synergy tier 3)
+  if (target._hasSlow) {
+    attacker.slowTimer = 2;
+    particles.emit(cx, cy, 2, { color:'#44bbff', speed:50, life:0.4, size:4 });
+  }
+
+  // Effect asset: attack type visual
+  if (L && L.cs > 0) {
+    const effSz = L.cs * 0.8;
+    if (attacker.range <= 1) addSpriteAnim('effectAttackSlash', cx, cy, effSz, 4, 0.06);
+    else if (attacker.job === 'mage' || attacker.isBoss || isSkill) addSpriteAnim('effectMagicBurst', cx, cy, effSz, 4, 0.07);
+    else addSpriteAnim('effectArrow', cx, cy, effSz * 0.6, 1, 0.15);
+  }
+
+  // Death check
+  if (target.hp <= 0) {
+    if (target.reviveCount > 0) {
+      target.reviveCount--;
+      target.hp = Math.round(target.maxHp * 0.3);
+      sfx('revive');
+      popups.add(cx, cy, 'REVIVE!', '#44cc44');
+      addSpriteAnim('effectSynergyActivate', cx, cy, L.cs, 4, 0.08);
+    } else {
+      target.alive = false;
+      particles.emit(cx, cy, 15, { color:'#ffaa00', speed:180, life:0.6, size:5 });
+      sfx('death');
+      addSpriteAnim('effectDeathSequence', cx, cy, L.cs, 4, 0.1);
+    }
+  }
+  return { dmg, isCrit };
+}
+
+/** Process skill activation */
+function processSkill(u, L) {
+  const data = UNITS[u.id];
+  if (!data || !data.skill || u.isBoss) return;
+  const effectiveCd = u.skillCd * (1 - u.cdReduction);
+  if (effectiveCd <= 0) return;
+  u.skillTimer += 1;
+  if (u.skillTimer < effectiveCd) return;
+  u.skillTimer = 0;
+
+  const skillDmg = Math.round(u.atk * u.atkMul * u.skillMul * u.skillBonusMul);
+  sfx('skill');
+
+  // Nature mage special: heal all allies
+  if (u.id === 'nature-mage') {
+    bUnits.filter(a => a.team === u.team && a.alive).forEach(a => {
+      const heal = Math.round(a.maxHp * 0.08 * u.skillBonusMul);
+      a.hp = Math.min(a.maxHp, a.hp + heal);
+      const tp = c2p(a.col, a.row, L);
+      popups.add(tp.x + L.cs/2, tp.y + L.cs/2, `+${heal}`, '#44cc44');
+    });
+    return;
+  }
+  // Light mage special: buff all allies attack speed
+  if (u.id === 'light-mage') {
+    bUnits.filter(a => a.team === u.team && a.alive).forEach(a => {
+      a.atkSpd *= 1.2;
+    });
+    const tp = c2p(u.col, u.row, L);
+    addSpriteAnim('effectSynergyActivate', tp.x + L.cs/2, tp.y + L.cs/2, L.cs, 4, 0.08);
+    return;
+  }
+  // AoE skills (mages)
+  if (data.job === 'mage' && data.skillMul >= 2.0) {
+    const tgt = findTgt(u);
+    if (!tgt) return;
+    const aoeRange = 2;
+    bUnits.filter(e => e.team !== u.team && e.alive &&
+      Math.abs(e.col - tgt.col) + Math.abs(e.row - tgt.row) <= aoeRange
+    ).forEach(e => dealDamage(u, e, skillDmg, true, L));
+    return;
+  }
+  // Ranger special: target farthest
+  if (data.job === 'ranger') {
+    const tgt = findFarthest(u);
+    if (tgt) dealDamage(u, tgt, skillDmg, true, L);
+    return;
+  }
+  // Default: damage closest target
+  const tgt = findTgt(u);
+  if (tgt) dealDamage(u, tgt, skillDmg, true, L);
+  // Nature warrior self-heal
+  if (u.id === 'nature-warrior') {
+    const heal = Math.round(u.maxHp * 0.1);
+    u.hp = Math.min(u.maxHp, u.hp + heal);
+    const tp = c2p(u.col, u.row, L);
+    popups.add(tp.x + L.cs/2, tp.y + L.cs/2, `+${heal}`, '#44cc44');
+  }
+  // Light warrior self-shield
+  if (u.id === 'light-warrior') {
+    const sh = Math.round(u.maxHp * 0.1);
+    u.shield = Math.min(u.shieldMax > 0 ? u.shieldMax : sh * 2, u.shield + sh);
+    if (u.shieldMax <= 0) u.shieldMax = sh * 2;
+  }
+}
+
+/** Battle tick */
+function bTick(dt) {
+  const ds = (dt / 1000) * bSpeed;
+  if (bOver) return;
+  const L = calcGL(engine.W, engine.H);
+
+  // Burn DoT processing
+  for (const u of bUnits) {
+    if (!u.alive) continue;
+    if (u.burnTimer > 0) {
+      u.burnTimer -= ds;
+      u._burnDotT = (u._burnDotT || 0) + ds;
+      if (u._burnDotT >= 1) {
+        u._burnDotT = 0;
+        u.hp -= u.burnDmg;
+        const tp = c2p(u.col, u.row, L);
+        popups.add(tp.x + L.cs/2, tp.y + L.cs/2, `-${u.burnDmg}`, '#ff8800');
+        sfx('burn');
+        particles.emit(tp.x + L.cs/2, tp.y + L.cs/2, 3, { color:'#ff4400', speed:80, life:0.3, size:3 });
+        if (u.hp <= 0 && u.alive) {
+          if (u.reviveCount > 0) {
+            u.reviveCount--; u.hp = Math.round(u.maxHp * 0.3); sfx('revive');
+          } else {
+            u.alive = false; sfx('death');
+            addSpriteAnim('effectDeathSequence', tp.x+L.cs/2, tp.y+L.cs/2, L.cs, 4, 0.1);
+          }
+        }
+      }
+    }
+    // Slow timer decay
+    if (u.slowTimer > 0) u.slowTimer -= ds;
+  }
+
+  for (const u of bUnits) {
+    if (!u.alive) continue;
+    const tgt = findTgt(u);
+    if (!tgt) continue;
+    const dist = Math.abs(tgt.col - u.col) + Math.abs(tgt.row - u.row);
+    const effectiveAtkSpd = u.slowTimer > 0 ? u.atkSpd * u.slowRate : u.atkSpd;
+
+    if (dist <= u.range) {
+      u.atkTimer += ds;
+      if (u.atkTimer >= 1 / effectiveAtkSpd) {
+        u.atkTimer = 0;
+        u.atkCount++;
+        const rawDmg = u.atk * u.atkMul;
+        // SFX
+        if (u.range <= 1) sfx('melee'); else if (u.job === 'mage' || u.isBoss) sfx('magic'); else sfx('ranged');
+        dealDamage(u, tgt, rawDmg, false, L);
+        // Ranger doubleShot: every Nth attack hits twice
+        if (u.doubleShot > 0 && u.atkCount % u.doubleShot === 0) {
+          const tgt2 = findTgt(u);
+          if (tgt2 && tgt2.alive) dealDamage(u, tgt2, rawDmg, false, L);
+        }
+        // Skill cooldown tick (per attack cycle)
+        processSkill(u, L);
+
+        // Boss phase triggers
+        if (tgt.isBoss && tgt.alive) {
+          const rd = ROUNDS[curRound - 1];
+          if (rd.p2 && !tgt.phaseTriggered && tgt.hp <= tgt.maxHp * rd.p2) {
+            tgt.phaseTriggered = true;
+            tgt.atk *= 1.5; tgt.atkSpd *= 1.3;
+            bossPhase = 2; bossPhaseAnim = 2; shakeInt = 15;
+            sfx('bossP');
+            const bp = c2p(tgt.col, tgt.row, L);
+            particles.emit(bp.x+L.cs/2, bp.y+L.cs/2, 30, { color:'#9944cc', speed:250, life:1, size:6 });
+            addSpriteAnim('effectBossPhase', engine.W/2, engine.H/2, Math.min(engine.W, engine.H)*0.4, 4, 0.15);
+          }
+          if (rd.p3 && !tgt.phase3Triggered && tgt.hp <= tgt.maxHp * rd.p3) {
+            tgt.phase3Triggered = true;
+            tgt.atk *= 1.3; tgt.atkSpd *= 1.2;
+            bossPhase = 3; bossPhaseAnim = 2.5; shakeInt = 20;
+            sfx('bossP');
+            const bp = c2p(tgt.col, tgt.row, L);
+            particles.emit(bp.x+L.cs/2, bp.y+L.cs/2, 40, { color:'#ff4444', speed:300, life:1.2, size:7 });
+            addSpriteAnim('effectBossPhase', engine.W/2, engine.H/2, Math.min(engine.W, engine.H)*0.5, 4, 0.12);
+          }
+        }
+      }
+    } else {
+      u.moveTimer += ds;
+      if (u.moveTimer >= 0.45) {
+        u.moveTimer = 0;
+        const dx = Math.sign(tgt.col - u.col), dy = Math.sign(tgt.row - u.row);
+        const occ = (c, r) => bUnits.some(o => o.alive && o.col === c && o.row === r && o !== u);
+        if (dx !== 0 && u.col + dx >= 0 && u.col + dx < 5 && !occ(u.col + dx, u.row)) u.col += dx;
+        else if (dy !== 0 && u.row + dy >= 0 && u.row + dy < 4 && !occ(u.col, u.row + dy)) u.row += dy;
+      }
+    }
+  }
+
+  // Data-driven regen (set by applySyn from nature synergy)
+  for (const u of bUnits) {
+    if (!u.alive || u.regenPct <= 0 || u.regenSec <= 0) continue;
+    u._regenT = (u._regenT || 0) + ds;
+    if (u._regenT >= u.regenSec) {
+      u._regenT = 0;
+      const heal = Math.round(u.maxHp * u.regenPct);
+      u.hp = Math.min(u.maxHp, u.hp + heal);
+      const tp = c2p(u.col, u.row, L);
+      popups.add(tp.x + L.cs / 2, tp.y + L.cs / 2, `+${heal}`, '#44cc44');
+      // Use particle PNG for nature regen visual
+      if (assets.has('particleSparkle')) {
+        particles.emit(tp.x + L.cs/2, tp.y + L.cs/2, 3, { color:'#44cc44', speed:60, life:0.4, size:4 });
+      }
+    }
+  }
+
+  // Win/lose check
+  const aAlive = bUnits.filter(u => u.team === 'ally' && u.alive).length;
+  const eAlive = bUnits.filter(u => u.team === 'enemy' && u.alive).length;
+  if (eAlive === 0) { bOver = true; bResult = 'win'; }
+  else if (aAlive === 0) { bOver = true; bResult = 'lose'; }
+
+  if (bossPhaseAnim > 0) bossPhaseAnim -= ds;
+  if (shakeInt > 0) shakeInt = Math.max(0, shakeInt - ds * 15);
+}
+
+// =====================================================================
+// SCENE: BATTLE
+// =====================================================================
+Scene.register('BATTLE', {
+  enter() {
+    iDelay = 0.3; bUnits = []; bOver = false; bResult = null;
+    bTimer = 0; bossPhase = 1; bossPhaseAnim = 0; shakeInt = 0;
+    spriteAnims = []; infoPopup = null;
+    // Ally units
+    for (let r = 2; r < 4; r++) for (let c = 0; c < 5; c++) {
+      if (grid[r][c]) bUnits.push(mkBUnit(grid[r][c].id, grid[r][c].star, c, r, 'ally'));
+    }
+    // Enemy units
+    for (const e of ROUNDS[curRound - 1].enemies) bUnits.push(mkBUnit(e.id, e.star, e.pos[0], e.pos[1], 'enemy'));
+    // Apply synergies to BOTH teams
+    const allyBonusScore = applySyn(bUnits, 'ally');
+    score += allyBonusScore; // +100 per tier 3 synergy
+    applySyn(bUnits, 'enemy'); // enemy synergy now applied!
+
+    // Mark special synergy flags on units for combat processing
+    const markFlags = (team) => {
+      const teamU = bUnits.filter(u => u.team === team && u.alive);
+      const cnt = {};
+      teamU.forEach(u => { cnt[u.tribe] = (cnt[u.tribe]||0)+1; cnt[u.job] = (cnt[u.job]||0)+1; });
+      // flame 3 -> burn on hit
+      if ((cnt.flame||0) >= 3) teamU.forEach(u => { u._hasBurn = true; });
+      // frost 3 -> slow on hurt
+      if ((cnt.frost||0) >= 3) teamU.forEach(u => { u._hasSlow = true; });
+    };
+    markFlags('ally'); markFlags('enemy');
+
+    if (ROUNDS[curRound - 1].boss) { sfx('bossIn'); shakeInt = 8; }
+
+    // Speed toggle button
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(48, 70*s), bh = Math.max(48, 40*s);
+    const speedBtn = new Button({ x:w-bw-10, y:10, w:bw, h:bh,
+      text:bSpeed === 1 ? 'x1' : 'x2', key:['KeyF'],
+      color:bSpeed === 2 ? '#ffd700' : '#555', fontSize:Math.max(12,14*s),
+      onClick:() => {
+        bSpeed = bSpeed === 1 ? 2 : 1;
+        speedBtn.text = bSpeed === 1 ? 'x1' : 'x2';
+        speedBtn.color = bSpeed === 2 ? '#ffd700' : '#555';
+      } });
+    new Button({ x:10, y:10, w:Math.max(48,55*s), h:bh,
+      text:'나가기', key:['Escape','KeyP'], color:'#555', fontSize:Math.max(9,11*s),
+      onClick:() => Scene.transition('TITLE') });
+    // Right-click info in battle — use input.mouseX/Y (engine-processed coords)
+    Scene.on(engine.canvas, 'contextmenu', (e) => {
+      e.preventDefault();
+      const L = calcGL(engine.W, engine.H);
+      const cell = p2c(input.mouseX, input.mouseY, L);
+      if (cell) {
+        const bu = bUnits.find(u => u.alive && u.col === cell.col && u.row === cell.row);
+        if (bu) { infoPopup = { unitId:bu.id, star:bu.star, data:UNITS[bu.id]||{name:bu.id,tribe:'flame',job:'warrior',hp:0,atk:0,atkSpd:0,range:0}, x:input.mouseX, y:input.mouseY }; }
+      }
+    });
+  },
+  update(dt, inp) {
+    iDelay = Math.max(0, iDelay - dt / 1000);
+    tween.update(dt); popups.update(dt); effects.update(dt); particles.update(dt);
+    updateSpriteAnims(dt);
+    animTimer += dt / 1000;
+    // Dismiss info popup
+    if (infoPopup && inp.tapped) { infoPopup = null; return; }
+    if (iDelay > 0) return;
+    bTimer += dt;
+    bTick(dt);
+    // Battle end -> RESULT
+    if (bOver === true) {
+      bOver = 'done';
+      Scene.setTimeout(() => {
+        if (bResult === 'win') sfx('win'); else sfx('lose');
+        Scene.transition('RESULT', { result: bResult });
+      }, 1200);
+    }
+  },
+  render(ctx, w, h) {
+    const sk = UI.shake(shakeInt);
+    ctx.save(); ctx.translate(sk.x, sk.y);
+    renderBg(ctx, w, h);
+    ctx.fillStyle = 'rgba(26,26,46,0.4)'; ctx.fillRect(0, 0, w, h);
+    const L = calcGL(w, h), s = L.s, fs = fontSize(14, w, h);
+
+    // HUD
+    const iSz = Math.max(16, 20 * s);
+    UI.text(ctx, `라운드 ${curRound}/15`, w/2, L.safe.y+14, { size:fontSize(18,w,h), bold:true, color:'#ffd700' });
+    drawIcon(ctx, 'uiHp', w*0.08, L.safe.y+4, iSz);
+    const hpc = cmdHp > cmdMaxHp*0.5 ? '#44cc44' : '#ff4444';
+    UI.text(ctx, `${cmdHp}`, w*0.08+iSz+4, L.safe.y+14, { size:fs, color:hpc, align:'left' });
+    if (ROUNDS[curRound-1].boss && bossPhase >= 2)
+      UI.text(ctx, `PHASE ${bossPhase}`, w/2, L.safe.y+34, { size:fontSize(16,w,h), bold:true, color:'#ff4444', glow:'#ff0000' });
+
+    // Grid
+    renderGrid(ctx, L, false);
+
+    // Battle units
+    for (const u of bUnits) {
+      if (!u.alive) continue;
+      renderBattleUnit(ctx, u, L);
+    }
+
+    // Boss phase flash
+    if (bossPhaseAnim > 0) {
+      ctx.fillStyle = `rgba(153,68,204,${bossPhaseAnim * 0.25})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    particles.render(ctx);
+    popups.render(ctx, { fontSize:Math.max(14, 18*s), glow:true });
+    effects.render(ctx);
+    renderSpriteAnims(ctx);
+
+    // Result text
+    if (bResult === 'win') UI.text(ctx, '승리!', w/2, h/2, { size:fontSize(48,w,h), bold:true, color:'#ffd700', glow:'#ff8800' });
+    else if (bResult === 'lose') UI.text(ctx, '패배...', w/2, h/2, { size:fontSize(48,w,h), bold:true, color:'#ff4444', glow:'#ff0000' });
+
+    ctx.restore();
+    renderInfoPopup(ctx, w, h);
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: RESULT
+// =====================================================================
+let resultData = {};
+Scene.register('RESULT', {
+  enter(data) {
+    iDelay = 0.3;
+    const won = data?.result === 'win';
+    const rd = ROUNDS[curRound - 1];
+    // Score
+    if (won) {
+      score += 100 * curRound;
+      if (rd.boss) score += 500 * (curRound <= 5 ? 1 : curRound <= 10 ? 2 : 3);
+    } else {
+      score += 20 * curRound;
+      const surv = bUnits.filter(u => u.team === 'enemy' && u.alive).length;
+      cmdHp = Math.max(0, cmdHp - surv);
+    }
+    // Gold
+    const d = DIFFICULTIES[diff];
+    const totalG = d.baseGold + calcInterest() + (won ? MathUtil.randInt(1, 3) : 0);
+    gold += totalG;
+    resultData = { won, totalG };
+
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(200, 240*s), bh = Math.max(52, 56*s), cx = w/2-bw/2;
+
+    if (cmdHp <= 0) {
+      score = Math.round(score * DIFFICULTIES[diff].sMul);
+      new Button({ x:cx, y:h*0.6, w:bw, h:bh, text:'결과 확인', key:['Space','Enter'],
+        color:'#ff4444', fontSize:Math.max(14,16*s),
+        onClick:() => Scene.transition('GAMEOVER', { score }) });
+    } else if (won && curRound >= 15) {
+      score += cmdHp * 50;
+      score = Math.round(score * DIFFICULTIES[diff].sMul);
+      new Button({ x:cx, y:h*0.6, w:bw, h:bh, text:'승리 확인!', key:['Space','Enter'],
+        color:'#ffd700', fontSize:Math.max(14,16*s),
+        onClick:() => Scene.transition('VICTORY', { score }) });
+    } else {
+      curRound++;
+      genShop();
+      new Button({ x:cx, y:h*0.6, w:bw, h:bh, text:`라운드 ${curRound}`, key:['Space','Enter'],
+        color:'#44cc44', fontSize:Math.max(14,16*s),
+        onClick:() => Scene.transition('PLAY') });
+    }
+  },
+  update(dt) { iDelay = Math.max(0, iDelay - dt/1000); tween.update(dt); },
+  render(ctx, w, h) {
+    renderBg(ctx, w, h);
+    ctx.fillStyle = 'rgba(26,26,46,0.85)'; ctx.fillRect(0, 0, w, h);
+    const rd = resultData;
+    UI.text(ctx, rd.won ? '전투 승리!' : '전투 패배...', w/2, h*0.15,
+      { size:fontSize(36,w,h), bold:true, color:rd.won ? '#ffd700' : '#ff4444', glow:rd.won ? '#ff8800' : '#ff0000' });
+    UI.text(ctx, `점수: ${score}`, w/2, h*0.28, { size:fontSize(20,w,h), color:'#ffd700' });
+    const iSz = Math.max(16, 20 * Layout.scale(w,h));
+    drawIcon(ctx, 'uiGold', w/2 - 60, h*0.34, iSz);
+    UI.text(ctx, `+${rd.totalG} (총 ${gold})`, w/2 - 60 + iSz + 6, h*0.36, { size:fontSize(16,w,h), color:'#ffd700', align:'left' });
+    drawIcon(ctx, 'uiHp', w/2 - 60, h*0.41, iSz);
+    UI.text(ctx, `${cmdHp}/${cmdMaxHp}`, w/2 - 60 + iSz + 6, h*0.43, { size:fontSize(16,w,h), color:cmdHp>0?'#44cc44':'#ff4444', align:'left' });
+    if (cmdHp <= 0) UI.text(ctx, '지휘관이 쓰러졌습니다...', w/2, h*0.52, { size:fontSize(18,w,h), color:'#ff4444' });
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: GAMEOVER
+// =====================================================================
+let goData = {};
+Scene.register('GAMEOVER', {
+  enter(data) {
+    iDelay = 0.3;
+    const fs = data?.score || score;
+    const isNew = Save.setHighScore(GAME_ID, fs);
+    const em = Math.floor(fs / 100);
+    metaGold += em; Save.set('celArena_metaGold', metaGold);
+    sfx('gover');
+    goData = { fs, isNew, em, rd: curRound };
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(200, 240*s), bh = Math.max(52, 56*s), cx = w/2-bw/2;
+    new Button({ x:cx, y:h*0.64, w:bw, h:bh, text:'다시 도전', key:['KeyR','Space','Enter'],
+      color:'#ffd700', fontSize:Math.max(14,16*s), onClick:() => Scene.transition('DIFFICULTY') });
+    new Button({ x:cx, y:h*0.64+bh+12, w:bw, h:Math.max(52, bh), text:'타이틀', key:['Escape'],
+      color:'#555', fontSize:Math.max(14,16*s), onClick:() => Scene.transition('TITLE') });
+  },
+  update(dt) { iDelay = Math.max(0, iDelay - dt/1000); tween.update(dt); },
+  render(ctx, w, h) {
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, w, h);
+    const d = goData;
+    UI.text(ctx, 'GAME OVER', w/2, h*0.12, { size:fontSize(48,w,h), bold:true, color:'#ff4444', glow:'#ff0000' });
+    UI.text(ctx, `라운드 ${d.rd || 0}/15 도달`, w/2, h*0.25, { size:fontSize(18,w,h), color:'#aab' });
+    UI.text(ctx, `최종 점수: ${d.fs || 0}`, w/2, h*0.33, { size:fontSize(24,w,h), bold:true, color:'#ffd700' });
+    if (d.isNew) UI.text(ctx, 'NEW HIGH SCORE!', w/2, h*0.4, { size:fontSize(18,w,h), color:'#ff8800', glow:'#ffd700' });
+    UI.text(ctx, `메타 골드 +${d.em || 0}`, w/2, h*0.47, { size:fontSize(16,w,h), color:'#44cc44' });
+    const g = (d.fs||0) >= 10000 ? 'S' : (d.fs||0) >= 6000 ? 'A' : (d.fs||0) >= 3000 ? 'B' : (d.fs||0) >= 1000 ? 'C' : 'D';
+    const gc = { S:'#ffd700', A:'#ff8800', B:'#44bbff', C:'#44cc44', D:'#888' };
+    UI.text(ctx, `등급: ${g}`, w/2, h*0.55, { size:fontSize(28,w,h), bold:true, color:gc[g], glow:gc[g] });
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// SCENE: VICTORY
+// =====================================================================
+let vicData = {};
+Scene.register('VICTORY', {
+  enter(data) {
+    iDelay = 0.3;
+    const fs = data?.score || score;
+    const isNew = Save.setHighScore(GAME_ID, fs);
+    const em = Math.floor(fs / 100) + 50;
+    metaGold += em; Save.set('celArena_metaGold', metaGold);
+    sfx('victory');
+    vicData = { fs, isNew, em };
+    const w = engine.W, h = engine.H, s = Layout.scale(w, h);
+    const bw = Math.max(200, 240*s), bh = Math.max(52, 56*s), cx = w/2-bw/2;
+    new Button({ x:cx, y:h*0.68, w:bw, h:bh, text:'타이틀로', key:['Space','Enter','Escape'],
+      color:'#ffd700', fontSize:Math.max(14,16*s), onClick:() => Scene.transition('TITLE') });
+  },
+  update(dt) {
+    iDelay = Math.max(0, iDelay - dt/1000);
+    tween.update(dt); particles.update(dt);
+    if (Math.random() < 0.3)
+      particles.emit(MathUtil.randRange(0, engine.W), -10, 3, {
+        color:['#ffd700','#ff4444','#44bbff','#44cc44','#9944cc'][MathUtil.randInt(0,4)],
+        speed:100, life:2, size:5, angle:Math.PI/2 });
+  },
+  render(ctx, w, h) {
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, w, h);
+    particles.render(ctx);
+    const d = vicData;
+    UI.text(ctx, 'VICTORY!', w/2, h*0.1, { size:fontSize(42,w,h), bold:true, color:'#ffd700', glow:'#ff8800' });
+    UI.text(ctx, '아레나를 정복했습니다!', w/2, h*0.2, { size:fontSize(20,w,h), color:'#e0e0f0' });
+    // Commander image
+    if (assets.has('player')) {
+      const sz = Math.min(w, h) * 0.15;
+      ctx.drawImage(assets.sprites.player, w/2-sz/2, h*0.24, sz, sz);
+    }
+    UI.text(ctx, `최종 점수: ${d.fs || 0}`, w/2, h*0.42, { size:fontSize(28,w,h), bold:true, color:'#ffd700' });
+    if (d.isNew) UI.text(ctx, 'NEW HIGH SCORE!', w/2, h*0.49, { size:fontSize(18,w,h), color:'#ff8800', glow:'#ffd700' });
+    UI.text(ctx, `메타 골드 +${d.em || 0}`, w/2, h*0.55, { size:fontSize(16,w,h), color:'#44cc44' });
+    const g = (d.fs||0) >= 15000 ? 'S' : (d.fs||0) >= 10000 ? 'A' : (d.fs||0) >= 6000 ? 'B' : 'C';
+    const gc = { S:'#ffd700', A:'#ff8800', B:'#44bbff', C:'#44cc44' };
+    UI.text(ctx, `등급: ${g}`, w/2, h*0.62, { size:fontSize(32,w,h), bold:true, color:gc[g], glow:gc[g] });
+    renderPortrait(ctx, w, h);
+  },
+});
+
+// =====================================================================
+// GAMEFLOW INIT + ENGINE START
+// =====================================================================
+GameFlow.init({
+  title: Scene._states.TITLE,
+  play: Scene._states.PLAY,
+  gameover: Scene._states.GAMEOVER,
+  onReset: resetGameState,
+  titleText: '셀 아레나',
+  stuckMs: 60000,
+});
+
+engine._update = (dt) => { Scene.update(dt, input); input.flush(); };
+engine._render = (ctx, w, h) => { Scene.render(ctx, w, h); };
+
+// =====================================================================
+// ASSET LOADING + INIT
+// =====================================================================
+async function init() {
+  let manifest = null;
+  try { manifest = await fetch('assets/manifest.json').then(r => r.json()); } catch (e) {}
+  if (manifest && manifest.assets) {
+    const map = {};
+    for (const [key, info] of Object.entries(manifest.assets)) map[key] = 'assets/' + info.file;
+    await assets.load(map, { timeoutMs: 10000 });
+  }
+  GameFlow.start();
+  engine.start();
+}
+init();
+</script>
+</body>
+</html>

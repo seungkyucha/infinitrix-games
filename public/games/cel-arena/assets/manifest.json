@@ -1,0 +1,238 @@
+{
+  "gameId": "cel-arena",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "provider": "gemini",
+  "artDirection": {
+    "style": "Cel-shaded 3D: bold outlines, flat color zones, anime/comic book shading (Jet Set Radio / Borderlands feel).",
+    "palette": ["#1a1a2e", "#ff4444", "#44bbff", "#44cc44", "#9944cc", "#ffdd44", "#ffd700"],
+    "mood": "판타지 아레나 전투, 밝고 역동적인 만화풍, 부족 대전의 긴장감",
+    "reference": "Jet Set Radio 셀 셰이드 + Super Auto Pets 전투 연출 + Borderlands 이펙트"
+  },
+  "format": "png",
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "desc": "지휘관 캐릭터 — 3등신 치비 판타지 사령관. 금색 갑옷+망토, 작은 왕관, 자신감 있는 포즈."
+    },
+    "unitFlameWarrior": {
+      "file": "unit-flame-warrior.png",
+      "size": "512x512",
+      "desc": "불꽃 전사 — 3등신 치비. 붉은 갑옷+대검, 불꽃 머리카락. 빨간+주황 플랫 셰이딩."
+    },
+    "unitFlameRanger": {
+      "file": "unit-flame-ranger.png",
+      "size": "512x512",
+      "desc": "불꽃 궁수 — 3등신 치비. 붉은 가죽 갑옷+불꽃 활. 빨간+주황 톤."
+    },
+    "unitFlameMage": {
+      "file": "unit-flame-mage.png",
+      "size": "512x512",
+      "desc": "불꽃 마법사 — 3등신 치비. 붉은 로브+불꽃 지팡이. 빨간+주황+금색 톤."
+    },
+    "unitFrostWarrior": {
+      "file": "unit-frost-warrior.png",
+      "size": "512x512",
+      "desc": "얼음 전사 — 3등신 치비. 얼음결정 갑옷+빙결 방패+도끼. 스카이블루+연하늘."
+    },
+    "unitFrostRanger": {
+      "file": "unit-frost-ranger.png",
+      "size": "512x512",
+      "desc": "얼음 궁수 — 3등신 치비. 은빛 경장갑+얼음 석궁. 스카이블루+화이트."
+    },
+    "unitFrostMage": {
+      "file": "unit-frost-mage.png",
+      "size": "512x512",
+      "desc": "얼음 마법사 — 3등신 치비. 하늘색 로브+얼음 수정구. 스카이블루+연보라."
+    },
+    "unitNatureWarrior": {
+      "file": "unit-nature-warrior.png",
+      "size": "512x512",
+      "desc": "자연 전사 — 3등신 치비. 나무껍질 갑옷+덩굴 방패+돌도끼. 초록+갈색."
+    },
+    "unitNatureRanger": {
+      "file": "unit-nature-ranger.png",
+      "size": "512x512",
+      "desc": "자연 궁수 — 3등신 치비. 잎사귀 망토+나무 장궁. 초록+라임."
+    },
+    "unitNatureMage": {
+      "file": "unit-nature-mage.png",
+      "size": "512x512",
+      "desc": "자연 마법사 — 3등신 치비. 꽃 로브+덩굴 지팡이. 초록+연노랑."
+    },
+    "unitShadowWarrior": {
+      "file": "unit-shadow-warrior.png",
+      "size": "512x512",
+      "desc": "암흑 전사 — 3등신 치비. 검은 중갑+해골 대검, 보라색 연기. 퍼플+마젠타."
+    },
+    "unitShadowRanger": {
+      "file": "unit-shadow-ranger.png",
+      "size": "512x512",
+      "desc": "암흑 궁수 — 3등신 치비. 검은 망토+독 단검 2개. 퍼플+다크블루."
+    },
+    "unitShadowMage": {
+      "file": "unit-shadow-mage.png",
+      "size": "512x512",
+      "desc": "암흑 마법사 — 3등신 치비. 보라 로브+해골 지팡이, 어둠 마법진. 퍼플+검정."
+    },
+    "unitLightWarrior": {
+      "file": "unit-light-warrior.png",
+      "size": "512x512",
+      "desc": "빛 전사 — 3등신 치비. 금빛 성기사 갑옷+빛나는 검+날개 장식. 골드+화이트."
+    },
+    "unitLightRanger": {
+      "file": "unit-light-ranger.png",
+      "size": "512x512",
+      "desc": "빛 궁수 — 3등신 치비. 흰 경장갑+빛의 활, 날개 장식. 골드+화이트."
+    },
+    "unitLightMage": {
+      "file": "unit-light-mage.png",
+      "size": "512x512",
+      "desc": "빛 마법사 — 3등신 치비. 흰 로브+금빛 홀, 후광 이펙트. 골드+화이트+연노랑."
+    },
+    "bossGolem": {
+      "file": "boss-golem.png",
+      "size": "512x512",
+      "desc": "보스 1: 고대 골렘 — 4등신. 돌+금속, 붉은 눈, 마그마 균열. 코드에서 tint/glow로 phase2 처리."
+    },
+    "bossDragon": {
+      "file": "boss-dragon.png",
+      "size": "512x512",
+      "desc": "보스 2: 서리 용 — 4등신. 스카이블루 비늘+얼음 날개+금색 갑옷. 코드에서 tint/glow로 phase2 처리."
+    },
+    "bossDemon": {
+      "file": "boss-demon.png",
+      "size": "512x512",
+      "desc": "보스 3: 마왕 — 5등신. 검은 갑옷+보라빛 날개+해골 왕관+마검. 코드에서 tint/glow/scale로 phase2/3 처리."
+    },
+    "bgFar": {
+      "file": "bg-far.png",
+      "size": "1920x1080",
+      "desc": "원경 배경 — 일몰 그라데이션(오렌지→진남색), 구름 실루엣, 산맥. 셀 셰이드."
+    },
+    "bgMid": {
+      "file": "bg-mid.png",
+      "size": "1920x1080",
+      "desc": "중경 배경 — 아레나 관중석. 돌기둥+5부족 색상 깃발+횃불+관중 실루엣. 셀 셰이드."
+    },
+    "bgArena": {
+      "file": "bg-arena.png",
+      "size": "1024x768",
+      "desc": "전투 그리드 바닥 — 등각투영 5×4 타일, 진한 청색 돌바닥, 밝은 격자선, 아레나 문양."
+    },
+    "uiShopFrame": {
+      "file": "ui-shop-frame.png",
+      "size": "1024x256",
+      "desc": "상점 UI 프레임 — 판타지 RPG 패널. 금색 테두리+어두운 남색 배경."
+    },
+    "uiSynergyIconFlame": {
+      "file": "ui-synergy-icon-flame.png",
+      "size": "128x128",
+      "desc": "불꽃 시너지 아이콘 — 불꽃 심볼, 빨간+주황. 원형 배지."
+    },
+    "uiSynergyIconFrost": {
+      "file": "ui-synergy-icon-frost.png",
+      "size": "128x128",
+      "desc": "얼음 시너지 아이콘 — 눈결정 심볼, 스카이블루. 원형 배지."
+    },
+    "uiSynergyIconNature": {
+      "file": "ui-synergy-icon-nature.png",
+      "size": "128x128",
+      "desc": "자연 시너지 아이콘 — 잎사귀 심볼, 초록. 원형 배지."
+    },
+    "uiSynergyIconShadow": {
+      "file": "ui-synergy-icon-shadow.png",
+      "size": "128x128",
+      "desc": "암흑 시너지 아이콘 — 해골 심볼, 퍼플. 원형 배지."
+    },
+    "uiSynergyIconLight": {
+      "file": "ui-synergy-icon-light.png",
+      "size": "128x128",
+      "desc": "빛 시너지 아이콘 — 태양/후광 심볼, 골드. 원형 배지."
+    },
+    "uiJobWarrior": {
+      "file": "ui-job-warrior.png",
+      "size": "128x128",
+      "desc": "전사 직업 아이콘 — 검+방패 심볼, 은색+남색. 원형 배지."
+    },
+    "uiJobRanger": {
+      "file": "ui-job-ranger.png",
+      "size": "128x128",
+      "desc": "궁수 직업 아이콘 — 활+화살 심볼, 은색+초록. 원형 배지."
+    },
+    "uiJobMage": {
+      "file": "ui-job-mage.png",
+      "size": "128x128",
+      "desc": "마법사 직업 아이콘 — 지팡이+별 심볼, 은색+보라. 원형 배지."
+    },
+    "uiGold": {
+      "file": "ui-gold.png",
+      "size": "128x128",
+      "desc": "골드 아이콘 — 금화 3개 겹침, 반짝임. 셀 셰이드."
+    },
+    "uiHp": {
+      "file": "ui-hp.png",
+      "size": "128x128",
+      "desc": "HP 아이콘 — 붉은 하트, 2톤 플랫 셰이딩."
+    },
+    "uiStar": {
+      "file": "ui-star.png",
+      "size": "128x128",
+      "desc": "별 등급 아이콘 — ★ 모양, 금색 플랫 셰이딩. ★1/★2/★3 구분용."
+    },
+    "effectAttackSlash": {
+      "file": "effect-attack-slash.png",
+      "size": "256x256",
+      "desc": "근접 공격 이펙트 — 만화풍 참격 궤적, 속도감 있는 셀 셰이드 라인."
+    },
+    "effectArrow": {
+      "file": "effect-arrow.png",
+      "size": "128x128",
+      "desc": "원거리 공격 투사체 — 빛나는 화살, 부족 색상 꼬리 잔상."
+    },
+    "effectMagicBurst": {
+      "file": "effect-magic-burst.png",
+      "size": "256x256",
+      "desc": "마법 폭발 이펙트 — 원형 에너지 파동, 만화풍 방사선."
+    },
+    "effectHitSequence": {
+      "file": "effect-hit-sequence.png",
+      "size": "512x128",
+      "frames": 4,
+      "desc": "피격 이펙트 시퀀스 — 만화풍 임팩트 별+파편, 4프레임."
+    },
+    "effectDeathSequence": {
+      "file": "effect-death-sequence.png",
+      "size": "512x128",
+      "frames": 4,
+      "desc": "사망 이펙트 시퀀스 — 연기+빛 파편 흩어짐, 4프레임."
+    },
+    "effectSynergyActivate": {
+      "file": "effect-synergy-activate.png",
+      "size": "512x128",
+      "frames": 4,
+      "desc": "시너지 발동 이펙트 — 발 아래 마법진+상승 파티클, 4프레임."
+    },
+    "effectBossPhase": {
+      "file": "effect-boss-phase.png",
+      "size": "512x128",
+      "frames": 4,
+      "desc": "보스 페이즈 전환 이펙트 — 화면 플래시+균열, 4프레임. 보라+검정."
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "desc": "반짝임 파티클 — 작은 별 모양 빛점, 알파 그라데이션."
+    },
+    "particleTribeFlame": {
+      "file": "particle-tribe-flame.png",
+      "size": "64x64",
+      "desc": "불꽃 파티클 — 작은 불씨, 빨간+주황 글로우."
+    },
+    "particleTribeFrost": {
+      "file": "particle-tribe-frost.png",
+      "size": "64x64",
+      "desc": "얼음 파티클 — 작은 눈결정, 스카이블루 글로우."
+    }
+  }
+}

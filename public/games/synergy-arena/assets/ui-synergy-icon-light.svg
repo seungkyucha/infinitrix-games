@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="sunG" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#ffdd44"/>
+      <stop offset="100%" stop-color="#ffaa00"/>
+    </linearGradient>
+    <linearGradient id="litBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#2e2a0a"/>
+      <stop offset="100%" stop-color="#1a180a"/>
+    </linearGradient>
+    <filter id="lGlow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feFlood flood-color="#ffdd44" flood-opacity="0.6"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#litBg)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#ffdd44" stroke-width="2" opacity="0.5"/>
+  <!-- Sun/halo symbol -->
+  <g filter="url(#lGlow)">
+    <!-- Rays -->
+    <g stroke="url(#sunG)" stroke-width="4" stroke-linecap="round">
+      <line x1="64" y1="22" x2="64" y2="34"/>
+      <line x1="64" y1="94" x2="64" y2="106"/>
+      <line x1="22" y1="64" x2="34" y2="64"/>
+      <line x1="94" y1="64" x2="106" y2="64"/>
+      <line x1="34" y1="34" x2="43" y2="43"/>
+      <line x1="85" y1="85" x2="94" y2="94"/>
+      <line x1="94" y1="34" x2="85" y2="43"/>
+      <line x1="34" y1="94" x2="43" y2="85"/>
+    </g>
+    <!-- Sun circle -->
+    <circle cx="64" cy="64" r="22" fill="url(#sunG)" stroke="#111" stroke-width="3"/>
+    <!-- Inner glow -->
+    <circle cx="64" cy="64" r="14" fill="#fff8dd" stroke="none" opacity="0.6"/>
+    <!-- Face -->
+    <circle cx="58" cy="60" r="3" fill="#cc9900"/>
+    <circle cx="70" cy="60" r="3" fill="#cc9900"/>
+    <path d="M58,70 Q64,76 70,70" fill="none" stroke="#cc9900" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#ffdd44" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+</svg>

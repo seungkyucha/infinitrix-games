@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="frostG" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#aaeeff"/>
+      <stop offset="100%" stop-color="#44bbff"/>
+    </linearGradient>
+    <linearGradient id="frostBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0a1a2e"/>
+      <stop offset="100%" stop-color="#0a0f1e"/>
+    </linearGradient>
+    <filter id="iGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feFlood flood-color="#44bbff" flood-opacity="0.5"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#frostBg)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#44bbff" stroke-width="2" opacity="0.5"/>
+  <!-- Snowflake crystal -->
+  <g filter="url(#iGlow)" stroke="#111" stroke-width="2.5" fill="url(#frostG)">
+    <!-- Main 6 arms -->
+    <line x1="64" y1="24" x2="64" y2="104" stroke="url(#frostG)" stroke-width="5"/>
+    <line x1="29" y1="44" x2="99" y2="84" stroke="url(#frostG)" stroke-width="5"/>
+    <line x1="29" y1="84" x2="99" y2="44" stroke="url(#frostG)" stroke-width="5"/>
+    <!-- Branch details -->
+    <line x1="64" y1="34" x2="54" y2="42" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="64" y1="34" x2="74" y2="42" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="64" y1="94" x2="54" y2="86" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="64" y1="94" x2="74" y2="86" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="38" y1="49" x2="38" y2="60" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="90" y1="49" x2="90" y2="60" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="38" y1="79" x2="38" y2="68" stroke="url(#frostG)" stroke-width="3"/>
+    <line x1="90" y1="79" x2="90" y2="68" stroke="url(#frostG)" stroke-width="3"/>
+    <!-- Center diamond -->
+    <path d="M64,52 L76,64 L64,76 L52,64 Z" fill="#aaeeff" stroke="#111" stroke-width="2.5"/>
+    <path d="M64,56 L72,64 L64,72 L56,64 Z" fill="#ddf4ff" stroke="none"/>
+  </g>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#44bbff" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+</svg>

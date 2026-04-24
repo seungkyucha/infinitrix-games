@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="leafG" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#88ee44"/>
+      <stop offset="100%" stop-color="#44cc44"/>
+    </linearGradient>
+    <linearGradient id="natBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0a1e0a"/>
+      <stop offset="100%" stop-color="#0a150a"/>
+    </linearGradient>
+    <filter id="nGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feFlood flood-color="#44cc44" flood-opacity="0.5"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#natBg)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#44cc44" stroke-width="2" opacity="0.5"/>
+  <!-- Leaf symbol -->
+  <g filter="url(#nGlow)">
+    <path d="M64,28 Q90,40 98,64 Q100,82 88,94 Q76,100 64,96 Q52,100 40,94 Q28,82 30,64 Q38,40 64,28 Z" fill="url(#leafG)" stroke="#111" stroke-width="3"/>
+    <!-- Leaf veins -->
+    <path d="M64,34 L64,90" fill="none" stroke="#2a8a2a" stroke-width="2.5"/>
+    <path d="M64,50 Q50,54 40,64" fill="none" stroke="#2a8a2a" stroke-width="2"/>
+    <path d="M64,50 Q78,54 88,64" fill="none" stroke="#2a8a2a" stroke-width="2"/>
+    <path d="M64,66 Q52,70 44,78" fill="none" stroke="#2a8a2a" stroke-width="1.8"/>
+    <path d="M64,66 Q76,70 84,78" fill="none" stroke="#2a8a2a" stroke-width="1.8"/>
+    <!-- Highlight -->
+    <path d="M52,42 Q58,38 64,36 Q58,44 54,52" fill="#bbff88" opacity="0.4" stroke="none"/>
+  </g>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#44cc44" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+</svg>

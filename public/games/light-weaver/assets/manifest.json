@@ -1,0 +1,250 @@
+{
+  "gameId": "light-weaver",
+  "generatedBy": "gemini-3.1-flash-image-preview",
+  "provider": "gemini",
+  "artDirection": {
+    "style": "Flat vector art: clean geometric shapes, bold outlines, limited gradients, modern mobile-game look.",
+    "palette": ["#F5F0E8", "#FFD93D", "#FFA726", "#1A1A2E", "#533483", "#0F3460", "#FF1744", "#B388FF", "#00BCD4", "#FFD700"],
+    "mood": "밝고 따뜻한 빛과 차갑고 신비로운 그림자의 이원 대비. 몽환적이면서도 명쾌한 퍼즐 분위기",
+    "reference": "Thomas Was Alone 기하학 + Pikuniku 컬러감 + Closure 빛/그림자 대비",
+    "signature": "빛/그림자 이원 팔레트 전환 — 같은 기하학 세계가 골드↔네이비로 완전히 변하는 이중성"
+  },
+  "format": "png",
+  "assets": {
+    "player": {
+      "file": "player.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 캐릭터 '루미' — 둥근 삼각형 몸체, 하얀 색상, 큰 원형 눈 2개, 짧은 팔다리, 황금빛 글로우 후광. 플랫 벡터 스타일."
+    },
+    "platformLight": {
+      "file": "platform-light.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "빛 플랫폼 타일 — 둥근 모서리 직사각형, 골든 옐로우 색상, 밝은 테두리, 3px 아웃라인."
+    },
+    "platformShadow": {
+      "file": "platform-shadow.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "그림자 플랫폼 타일 — 둥근 모서리 직사각형, 딥 퍼플 색상, 소용돌이 무늬, 3px 아웃라인."
+    },
+    "platformNeutral": {
+      "file": "platform-neutral.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "중립 플랫폼 타일 — 블루그레이 색상, 석재 질감, 3px 아웃라인."
+    },
+    "lightOrb": {
+      "file": "light-orb.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "빛 구슬 투사체 — 밝은 백색 코어 + 황금 글로우 외곽, 파티클 트레일."
+    },
+    "switchOn": {
+      "file": "switch-on.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "스위치 ON — 정사각형 베이스 + 올라간 레버, 황금색 글로우, 활성 상태."
+    },
+    "switchOff": {
+      "file": "switch-off.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "스위치 OFF — 정사각형 베이스 + 내려간 레버, 어두운 회색, 비활성 상태."
+    },
+    "prism": {
+      "file": "prism.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "프리즘 오브젝트 — 정삼각형 크리스탈, 무지개 반사, 회전 화살표 표시."
+    },
+    "exitDoor": {
+      "file": "exit-door.png",
+      "size": "256x512",
+      "format": "png",
+      "desc": "빛의 문 (출구) — 아치형 문틀, 황금빛 내부, 빛 파티클 방출."
+    },
+    "starCollectible": {
+      "file": "star-collectible.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "빛의 조각 — 6각 별, 밝은 골드, 방사형 빛줄기."
+    },
+    "starSheet": {
+      "file": "star-sheet.png",
+      "size": "768x128",
+      "format": "png",
+      "desc": "빛의 조각 반짝임 애니메이션 — 6프레임, 크리스탈 회전 시퀀스."
+    },
+    "spikeHazard": {
+      "file": "spike-hazard.png",
+      "size": "128x64",
+      "format": "png",
+      "desc": "가시 함정 — 삼각형 가시 3개, 위험 레드, 어두운 베이스."
+    },
+    "checkpoint": {
+      "file": "checkpoint.png",
+      "size": "128x256",
+      "format": "png",
+      "desc": "체크포인트 깃발 — 깃대 + 시안 삼각 깃발, 빛 파티클."
+    },
+    "boss1": {
+      "file": "boss1.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "보스1 '빛의 수호자' — 거대 금빛 구체, 중앙 눈, 회전 빛 고리 3중. 플랫 벡터."
+    },
+    "boss2": {
+      "file": "boss2.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "보스2 '먹구름의 심장' — 어둠의 핵, 불규칙 다각형, 보라+검정, 붉은 핵심, 그림자 촉수."
+    },
+    "bgLightFar": {
+      "file": "bg-light-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "빛 모드 원경 — 크림 하늘, 기하학적 산맥, 구름, 태양. 플랫 벡터."
+    },
+    "bgLightMid": {
+      "file": "bg-light-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "빛 모드 중경 — 골든 아치·기둥 실루엣, 빛 줄기, 나무. 패럴랙스용."
+    },
+    "bgShadowFar": {
+      "file": "bg-shadow-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "그림자 모드 원경 — 딥 네이비 하늘, 퍼플 산맥, 별, 달."
+    },
+    "bgShadowMid": {
+      "file": "bg-shadow-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "그림자 모드 중경 — 어두운 아치·건물, 달빛 창문, 그림자 나무."
+    },
+    "particleLight": {
+      "file": "particle-light.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "빛 파티클 — 원형 글로우, 백색→투명 그라데이션."
+    },
+    "particleShadow": {
+      "file": "particle-shadow.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "그림자 파티클 — 원형 어둠, 보라→투명."
+    },
+    "effectModeSwitch": {
+      "file": "effect-mode-switch.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "모드 전환 이펙트 — 4프레임, 빛↔어둠 방사형 물결."
+    },
+    "effectDeath": {
+      "file": "effect-death.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "사망 이펙트 — 4프레임, 빛 파편 방사 폭발."
+    },
+    "effectClear": {
+      "file": "effect-clear.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "클리어 이펙트 — 4프레임, 황금빛 확산 시퀀스."
+    },
+    "uiModeLight": {
+      "file": "ui-mode-light.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "빛 모드 UI — 원형 태양, 골드, 방사 광선."
+    },
+    "uiModeShadow": {
+      "file": "ui-mode-shadow.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "그림자 모드 UI — 초승달, 딥 퍼플+은색."
+    },
+    "uiStarEmpty": {
+      "file": "ui-star-empty.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "미수집 별 — 회색 별 윤곽선."
+    },
+    "uiStarFull": {
+      "file": "ui-star-full.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "수집 별 — 채워진 골드 별."
+    },
+    "uiOrbReady": {
+      "file": "ui-orb-ready.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "빛 구슬 준비 — 밝은 원형 구슬."
+    },
+    "uiOrbCooldown": {
+      "file": "ui-orb-cooldown.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "빛 구슬 쿨다운 — 회색 구슬 + 쿨다운 게이지."
+    },
+    "uiDeathIcon": {
+      "file": "ui-death-icon.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "사망 카운터 — 해골 + 빨강 X 마크."
+    },
+    "playerShadow": {
+      "file": "player-shadow.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 그림자 모드 — 루미 캐릭터, 보라+회색 톤, 동일 포즈. 플랫 벡터.",
+      "ref": "player"
+    },
+    "playerJump": {
+      "file": "player-jump.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 점프 포즈 — 루미, 팔다리 위로 뻗음, 글로우 트레일. 플랫 벡터.",
+      "ref": "player"
+    },
+    "playerDash": {
+      "file": "player-dash.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 대시 포즈 — 루미, 수평 돌진, 스피드 라인. 플랫 벡터.",
+      "ref": "player"
+    },
+    "playerDeath": {
+      "file": "player-death.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 사망 — 루미 파편화, 빛 파티클 방사. 플랫 벡터.",
+      "ref": "player"
+    },
+    "playerIdleSheet": {
+      "file": "player-idle-sheet.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "플레이어 대기 애니메이션 — 4프레임, 루미 숨쉬기+눈 깜빡임. 플랫 벡터.",
+      "ref": "player"
+    },
+    "boss1Phase2": {
+      "file": "boss1-phase2.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "보스1 페이즈2 '분노한 빛의 수호자' — 금빛 구체 붉은 균열, 5중 빛 고리, 강렬한 글로우. 플랫 벡터.",
+      "ref": "boss1"
+    },
+    "boss2Phase2": {
+      "file": "boss2-phase2.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "보스2 페이즈2 '각성한 먹구름' — 어둠 핵 확장, 붉은+보라 소용돌이, 다수 촉수. 플랫 벡터.",
+      "ref": "boss2"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="skullG" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#cc44ff"/>
+      <stop offset="100%" stop-color="#9944cc"/>
+    </linearGradient>
+    <linearGradient id="shadBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#0f0818"/>
+    </linearGradient>
+    <filter id="sGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feFlood flood-color="#9944cc" flood-opacity="0.5"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#shadBg)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#9944cc" stroke-width="2" opacity="0.5"/>
+  <!-- Skull symbol -->
+  <g filter="url(#sGlow)">
+    <!-- Skull dome -->
+    <path d="M38,60 Q38,30 64,26 Q90,30 90,60 Q90,74 82,82 L74,90 L54,90 L46,82 Q38,74 38,60 Z" fill="url(#skullG)" stroke="#111" stroke-width="3"/>
+    <!-- Eye sockets -->
+    <ellipse cx="52" cy="58" rx="10" ry="11" fill="#1a0a2e" stroke="#111" stroke-width="2"/>
+    <ellipse cx="76" cy="58" rx="10" ry="11" fill="#1a0a2e" stroke="#111" stroke-width="2"/>
+    <!-- Glowing eyes -->
+    <ellipse cx="52" cy="58" rx="5" ry="6" fill="#ff44ff" opacity="0.8"/>
+    <ellipse cx="76" cy="58" rx="5" ry="6" fill="#ff44ff" opacity="0.8"/>
+    <!-- Nose -->
+    <path d="M60,70 L64,74 L68,70" fill="none" stroke="#111" stroke-width="2.5"/>
+    <!-- Teeth -->
+    <path d="M50,82 L54,90 L58,82 L62,90 L66,82 L70,90 L74,82 L78,90" fill="none" stroke="#111" stroke-width="2.5"/>
+    <rect x="50" y="82" width="28" height="8" rx="2" fill="#cc88ee" stroke="#111" stroke-width="2"/>
+    <!-- Forehead crack -->
+    <path d="M58,36 L62,48 L56,42 L60,52" fill="none" stroke="#660088" stroke-width="2"/>
+  </g>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#9944cc" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+</svg>

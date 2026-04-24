@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="armorGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe066"/>
+      <stop offset="50%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#b8960c"/>
+    </linearGradient>
+    <linearGradient id="armorDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2a5a"/>
+      <stop offset="100%" stop-color="#1a1a3e"/>
+    </linearGradient>
+    <linearGradient id="capeRed" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#cc2244"/>
+      <stop offset="100%" stop-color="#881133"/>
+    </linearGradient>
+    <linearGradient id="skinTone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdd8b5"/>
+      <stop offset="100%" stop-color="#e8b88a"/>
+    </linearGradient>
+    <linearGradient id="crownGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff4cc"/>
+      <stop offset="60%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#cc9900"/>
+    </linearGradient>
+    <linearGradient id="bootGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#665544"/>
+      <stop offset="100%" stop-color="#3d2e1f"/>
+    </linearGradient>
+    <linearGradient id="eyeGlow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#44ddff"/>
+      <stop offset="100%" stop-color="#2288cc"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feFlood flood-color="#ffd700" flood-opacity="0.4" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Cape (behind body) -->
+  <g id="cape">
+    <path d="M200,200 Q180,240 170,320 Q165,380 190,430 Q210,450 230,440 L256,430 L282,440 Q302,450 322,430 Q347,380 342,320 Q332,240 312,200 Z" fill="url(#capeRed)" stroke="#111" stroke-width="3.5"/>
+    <path d="M200,200 Q190,260 185,320 Q183,350 195,390" fill="none" stroke="#661122" stroke-width="2" opacity="0.6"/>
+    <path d="M312,200 Q322,260 327,320 Q329,350 317,390" fill="none" stroke="#661122" stroke-width="2" opacity="0.6"/>
+    <!-- Cape inner folds -->
+    <path d="M220,280 Q240,310 256,300 Q272,310 292,280" fill="none" stroke="#991133" stroke-width="1.5" opacity="0.5"/>
+  </g>
+
+  <!-- Legs -->
+  <g id="legs">
+    <!-- Left leg -->
+    <path d="M222,370 L218,420 Q216,440 220,450 L240,450 Q244,440 242,420 L238,370 Z" fill="url(#armorDark)" stroke="#111" stroke-width="3.5"/>
+    <path d="M218,420 Q216,440 220,455 L240,455 Q244,440 242,420 Z" fill="url(#bootGrad)" stroke="#111" stroke-width="3"/>
+    <!-- Gold knee guard -->
+    <ellipse cx="230" cy="375" rx="14" ry="10" fill="url(#armorGold)" stroke="#111" stroke-width="2.5"/>
+
+    <!-- Right leg -->
+    <path d="M270,370 L266,420 Q264,440 268,450 L288,450 Q292,440 290,420 L286,370 Z" fill="url(#armorDark)" stroke="#111" stroke-width="3.5"/>
+    <path d="M266,420 Q264,440 268,455 L288,455 Q292,440 290,420 Z" fill="url(#bootGrad)" stroke="#111" stroke-width="3"/>
+    <!-- Gold knee guard -->
+    <ellipse cx="278" cy="375" rx="14" ry="10" fill="url(#armorGold)" stroke="#111" stroke-width="2.5"/>
+  </g>
+
+  <!-- Body / Torso armor -->
+  <g id="torso">
+    <path d="M215,210 Q210,240 212,300 Q214,340 220,370 L292,370 Q298,340 300,300 Q302,240 297,210 Z" fill="url(#armorDark)" stroke="#111" stroke-width="3.5"/>
+    <!-- Chest plate gold -->
+    <path d="M226,220 Q240,215 256,218 Q272,215 286,220 L282,280 Q270,290 256,292 Q242,290 230,280 Z" fill="url(#armorGold)" stroke="#111" stroke-width="2.5"/>
+    <!-- Center crest -->
+    <path d="M250,235 L256,225 L262,235 L258,260 L254,260 Z" fill="#fff4cc" stroke="#b8960c" stroke-width="1.5"/>
+    <!-- Belt -->
+    <rect x="218" y="330" width="76" height="18" rx="4" fill="url(#armorGold)" stroke="#111" stroke-width="2.5"/>
+    <circle cx="256" cy="339" r="7" fill="#cc9900" stroke="#111" stroke-width="2"/>
+    <!-- Shoulder shadow lines -->
+    <path d="M226,230 Q236,240 240,260" fill="none" stroke="#0d0d2e" stroke-width="1.5" opacity="0.4"/>
+    <path d="M286,230 Q276,240 272,260" fill="none" stroke="#0d0d2e" stroke-width="1.5" opacity="0.4"/>
+  </g>
+
+  <!-- Arms -->
+  <g id="arms">
+    <!-- Left arm -->
+    <path d="M212,215 Q195,220 185,245 Q178,270 182,300 Q184,318 190,330" fill="url(#armorDark)" stroke="#111" stroke-width="3.5"/>
+    <!-- Left shoulder guard -->
+    <ellipse cx="202" cy="218" rx="22" ry="16" fill="url(#armorGold)" stroke="#111" stroke-width="3"/>
+    <ellipse cx="202" cy="218" rx="12" ry="8" fill="#fff4cc" stroke="#b8960c" stroke-width="1"/>
+    <!-- Left hand (holding scroll/baton) -->
+    <circle cx="188" cy="332" r="10" fill="url(#skinTone)" stroke="#111" stroke-width="2.5"/>
+    <!-- Command baton -->
+    <rect x="180" y="300" width="8" height="50" rx="3" fill="url(#armorGold)" stroke="#111" stroke-width="2" transform="rotate(-15,184,325)"/>
+    <circle cx="183" cy="298" r="6" fill="#44ddff" stroke="#111" stroke-width="2" filter="url(#glow)"/>
+
+    <!-- Right arm -->
+    <path d="M300,215 Q317,220 327,245 Q334,270 330,300 Q328,318 322,330" fill="url(#armorDark)" stroke="#111" stroke-width="3.5"/>
+    <!-- Right shoulder guard -->
+    <ellipse cx="310" cy="218" rx="22" ry="16" fill="url(#armorGold)" stroke="#111" stroke-width="3"/>
+    <ellipse cx="310" cy="218" rx="12" ry="8" fill="#fff4cc" stroke="#b8960c" stroke-width="1"/>
+    <!-- Right hand on hip -->
+    <circle cx="324" cy="332" r="10" fill="url(#skinTone)" stroke="#111" stroke-width="2.5"/>
+  </g>
+
+  <!-- Head -->
+  <g id="head">
+    <!-- Neck -->
+    <rect x="244" y="190" width="24" height="22" rx="6" fill="url(#skinTone)" stroke="#111" stroke-width="2.5"/>
+    <!-- Face -->
+    <ellipse cx="256" cy="170" rx="38" ry="42" fill="url(#skinTone)" stroke="#111" stroke-width="3.5"/>
+    <!-- Hair (dark blue) -->
+    <path d="M218,165 Q220,125 256,118 Q292,125 294,165 Q290,140 270,135 Q256,133 242,135 Q222,140 218,165 Z" fill="#2a2a5a" stroke="#111" stroke-width="2.5"/>
+    <!-- Hair side tufts -->
+    <path d="M218,165 Q212,160 215,150" fill="none" stroke="#2a2a5a" stroke-width="5"/>
+    <path d="M294,165 Q300,160 297,150" fill="none" stroke="#2a2a5a" stroke-width="5"/>
+
+    <!-- Eyes -->
+    <ellipse cx="242" cy="168" rx="8" ry="9" fill="white" stroke="#111" stroke-width="2"/>
+    <ellipse cx="270" cy="168" rx="8" ry="9" fill="white" stroke="#111" stroke-width="2"/>
+    <circle cx="244" cy="168" r="5" fill="url(#eyeGlow)"/>
+    <circle cx="272" cy="168" r="5" fill="url(#eyeGlow)"/>
+    <circle cx="245" cy="166" r="2" fill="white"/>
+    <circle cx="273" cy="166" r="2" fill="white"/>
+
+    <!-- Eyebrows (confident) -->
+    <path d="M232,156 Q240,152 252,155" fill="none" stroke="#1a1a3e" stroke-width="3" stroke-linecap="round"/>
+    <path d="M260,155 Q272,152 280,156" fill="none" stroke="#1a1a3e" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Nose -->
+    <path d="M256,174 L253,182 Q256,184 259,182 Z" fill="#e0a878" stroke="#c0906a" stroke-width="1"/>
+    <!-- Mouth (confident smirk) -->
+    <path d="M244,192 Q256,198 268,192" fill="none" stroke="#884444" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Crown -->
+    <g filter="url(#outerGlow)">
+      <path d="M222,140 L226,118 L238,130 L248,108 L256,126 L264,108 L274,130 L286,118 L290,140 Z" fill="url(#crownGlow)" stroke="#111" stroke-width="3"/>
+      <!-- Crown gems -->
+      <circle cx="248" cy="124" r="4" fill="#ff4444" stroke="#111" stroke-width="1.5"/>
+      <circle cx="256" cy="118" r="5" fill="#44ddff" stroke="#111" stroke-width="1.5" filter="url(#glow)"/>
+      <circle cx="264" cy="124" r="4" fill="#44cc44" stroke="#111" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <!-- Highlight / rim light (top-left light source) -->
+  <g id="highlights" opacity="0.3">
+    <path d="M226,220 Q234,218 238,225" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M230,340 L280,340" fill="none" stroke="white" stroke-width="1.5"/>
+    <ellipse cx="244" cy="155" rx="15" ry="3" fill="white" opacity="0.15"/>
+  </g>
+
+  <!-- Ground shadow -->
+  <ellipse cx="256" cy="462" rx="70" ry="12" fill="#000" opacity="0.2"/>
+</svg>

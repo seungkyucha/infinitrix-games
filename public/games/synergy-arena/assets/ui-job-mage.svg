@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="staffG" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#8866aa"/>
+      <stop offset="100%" stop-color="#553377"/>
+    </linearGradient>
+    <linearGradient id="mBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#0f0818"/>
+    </linearGradient>
+    <linearGradient id="orbG" x1="0.3" y1="0.2" x2="0.7" y2="0.8">
+      <stop offset="0%" stop-color="#bb88ff"/>
+      <stop offset="100%" stop-color="#6622cc"/>
+    </linearGradient>
+    <filter id="mGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feFlood flood-color="#9944cc" flood-opacity="0.5"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#mBg)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#9944cc" stroke-width="2" opacity="0.5"/>
+  <g filter="url(#mGlow)">
+    <!-- Staff -->
+    <rect x="58" y="36" width="8" height="72" rx="3" fill="url(#staffG)" stroke="#111" stroke-width="2.5"/>
+    <rect x="60" y="38" width="3" height="60" fill="#9977bb" opacity="0.3"/>
+    <!-- Staff rings -->
+    <rect x="55" y="52" width="14" height="4" rx="2" fill="#ffd700" stroke="#111" stroke-width="1.5"/>
+    <rect x="55" y="72" width="14" height="4" rx="2" fill="#ffd700" stroke="#111" stroke-width="1.5"/>
+    <!-- Orb cradle -->
+    <path d="M50,36 Q48,28 54,24 Q58,22 62,24 L62,36 Z" fill="url(#staffG)" stroke="#111" stroke-width="2"/>
+    <path d="M74,36 Q76,28 70,24 Q66,22 62,24 L62,36 Z" fill="url(#staffG)" stroke="#111" stroke-width="2"/>
+    <!-- Magic orb -->
+    <circle cx="62" cy="22" r="14" fill="url(#orbG)" stroke="#111" stroke-width="2.5"/>
+    <circle cx="58" cy="18" r="5" fill="#ddbbff" opacity="0.5"/>
+    <circle cx="62" cy="22" r="8" fill="none" stroke="#dd88ff" stroke-width="1" opacity="0.6"/>
+    <!-- Star sparkles around orb -->
+    <path d="M48,14 L50,12 L52,14 L50,16 Z" fill="#ffdd44" stroke="none"/>
+    <path d="M74,16 L76,14 L78,16 L76,18 Z" fill="#ffdd44" stroke="none"/>
+    <path d="M60,4 L62,2 L64,4 L62,6 Z" fill="#ffdd44" stroke="none"/>
+    <!-- Staff base -->
+    <circle cx="62" cy="108" r="5" fill="#553377" stroke="#111" stroke-width="2"/>
+  </g>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#9944cc" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+</svg>

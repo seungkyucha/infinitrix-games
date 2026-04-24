@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="steelG" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#dddde8"/>
+      <stop offset="50%" stop-color="#8888aa"/>
+      <stop offset="100%" stop-color="#555570"/>
+    </linearGradient>
+    <linearGradient id="wBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#2e1515"/>
+      <stop offset="100%" stop-color="#1a0d0d"/>
+    </linearGradient>
+    <filter id="wGlow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feFlood flood-color="#aaaacc" flood-opacity="0.4"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#wBg)" stroke="#111" stroke-width="4"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#cc4444" stroke-width="2" opacity="0.5"/>
+  <g filter="url(#wGlow)">
+    <!-- Sword -->
+    <rect x="56" y="18" width="10" height="52" rx="2" fill="url(#steelG)" stroke="#111" stroke-width="2.5"/>
+    <path d="M56,18 L61,8 L66,18" fill="url(#steelG)" stroke="#111" stroke-width="2.5"/>
+    <!-- Sword highlight -->
+    <rect x="59" y="20" width="3" height="40" fill="#eeeeff" opacity="0.4"/>
+    <!-- Crossguard -->
+    <rect x="44" y="68" width="34" height="8" rx="3" fill="#ffd700" stroke="#111" stroke-width="2.5"/>
+    <!-- Grip -->
+    <rect x="57" y="76" width="8" height="16" rx="2" fill="#664422" stroke="#111" stroke-width="2"/>
+    <!-- Pommel -->
+    <circle cx="61" cy="96" r="6" fill="#ffd700" stroke="#111" stroke-width="2"/>
+    <!-- Shield behind -->
+    <path d="M72,42 Q98,44 100,62 Q100,88 82,100 Q72,106 72,42 Z" fill="#cc2244" stroke="#111" stroke-width="2.5" opacity="0.85"/>
+    <path d="M78,52 Q92,54 94,66 Q94,82 82,92" fill="none" stroke="#ff4466" stroke-width="1.5" opacity="0.5"/>
+    <!-- Shield emblem -->
+    <circle cx="84" cy="68" r="8" fill="#ffd700" stroke="#111" stroke-width="1.5"/>
+    <path d="M84,62 L86,66 L84,70 L82,66 Z" fill="#cc9900"/>
+  </g>
+  <circle cx="64" cy="64" r="52" fill="none" stroke="#cc4444" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.4"/>
+</svg>

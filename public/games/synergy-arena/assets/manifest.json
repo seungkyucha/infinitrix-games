@@ -1,0 +1,318 @@
+{
+  "gameId": "synergy-arena",
+  "artDirection": {
+    "style": "Cel-shaded 3D: bold outlines, flat color zones, anime/comic book shading",
+    "palette": ["#1a1a2e", "#ff4444", "#44bbff", "#44cc44", "#9944cc", "#ffdd44", "#ffd700", "#ff8800"],
+    "mood": "판타지 아레나 전투, 밝고 역동적인 만화풍, 부족 대전의 긴장감",
+    "reference": "Jet Set Radio + Super Auto Pets + Borderlands",
+    "signature": "굵은 검정 아웃라인(3px+) + 2~3톤 플랫 셰이딩 + 부족별 컬러 코딩"
+  },
+  "assets": {
+    "player": {
+      "file": "player.svg",
+      "size": "512x512",
+      "format": "svg",
+      "desc": "지휘관 캐릭터 — 금색 갑옷+왕관, 남색 인너아머, 빨간 망토. 셀 셰이드 치비."
+    },
+    "unitKnight": {
+      "file": "unit-knight.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "강철 기사 — 붉은 갑옷+검+방패, 날개투구. 전사 계열. 굵은 아웃라인."
+    },
+    "unitBerserker": {
+      "file": "unit-berserker.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "광전사 — 상체 노출, 쌍도끼, 붉은 바디페인트. 전사 계열. 굵은 아웃라인."
+    },
+    "unitFireMage": {
+      "file": "unit-fire-mage.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "화염 마법사 — 뾰족 모자, 불꽃 지팡이, 붉은-보라 로브. 마법사 계열."
+    },
+    "unitIceMage": {
+      "file": "unit-ice-mage.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "빙결 마법사 — 수정 관, 얼음 지팡이, 하늘색-보라 로브. 마법사 계열."
+    },
+    "unitShadowBlade": {
+      "file": "unit-shadow-blade.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "그림자 칼날 — 후드 암살자, 쌍검, 녹색-검정 의상. 암살자 계열."
+    },
+    "unitVenomFang": {
+      "file": "unit-venom-fang.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "독아 암살자 — 독사 모티브 갑옷, 독 단검. 암살자 계열."
+    },
+    "unitHolyShield": {
+      "file": "unit-holy-shield.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "성기사 — 거대 황금 방패, 성스러운 갑옷, 후광. 수호자 계열."
+    },
+    "unitStoneGolem": {
+      "file": "unit-stone-golem.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "돌 골렘 — 바위 몸체, 이끼 관절, 룬 발광 눈. 수호자 계열."
+    },
+    "unitGenericDeath": {
+      "file": "unit-generic-death.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "유닛 사망 — 디지털 분해 파편 흩어짐. 셀 셰이드."
+    },
+    "bossShadowLord": {
+      "file": "boss-shadow-lord.png",
+      "size": "768x768",
+      "format": "png",
+      "desc": "보스 1: 그림자 군주 — 어두운 갑옷, 붉은 눈, 보라 그림자 망토. 유닛 1.5배."
+    },
+    "bossChaosEmperor": {
+      "file": "boss-chaos-emperor.png",
+      "size": "1024x1024",
+      "format": "png",
+      "desc": "보스 2: 혼돈의 황제 — 왕관, 차원 균열, 4색 카오스 갑옷. 유닛 2배."
+    },
+    "bgFar": {
+      "file": "bg-far.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "원경 배경 — 보라-남색 우주, 네온 빛줄기, 구름+성운. 셀 셰이드 플랫."
+    },
+    "bgMid": {
+      "file": "bg-mid.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "중경 배경 — 부유 돌기둥, 룬 문양, 차원 파편. 셀 셰이드 굵은 아웃라인."
+    },
+    "bgArena": {
+      "file": "bg-arena.png",
+      "size": "1920x1080",
+      "format": "png",
+      "desc": "아레나 바닥 — 육각형 타일 그리드, 시안 발광 격자선, 중앙 문양."
+    },
+    "effectHit": {
+      "file": "effect-hit.png",
+      "size": "256x256",
+      "format": "png",
+      "desc": "일반 타격 이펙트 — 만화적 별 충격파, 굵은 라인, 흰+노란."
+    },
+    "effectCritical": {
+      "file": "effect-critical.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "치명타 이펙트 — 큰 별+속도선, 붉은-주황 폭발."
+    },
+    "effectSynergyWarrior": {
+      "file": "effect-synergy-warrior.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "전사 시너지 발동 — 붉은 검 아우라, 불꽃 파티클."
+    },
+    "effectSynergyMage": {
+      "file": "effect-synergy-mage.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "마법사 시너지 발동 — 보라 마법진 회전, 룬 문자."
+    },
+    "effectSynergyAssassin": {
+      "file": "effect-synergy-assassin.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "암살자 시너지 발동 — 녹색 독연기, 단검 아이콘."
+    },
+    "effectSynergyGuardian": {
+      "file": "effect-synergy-guardian.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "수호자 시너지 발동 — 황금 방패 글로우, 빛 입자."
+    },
+    "effectMerge": {
+      "file": "effect-merge.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "유닛 합성(별업) 이펙트 — 빛 폭발, 별 반짝임."
+    },
+    "effectBossAppear": {
+      "file": "effect-boss-appear.png",
+      "size": "512x512",
+      "format": "png",
+      "desc": "보스 등장 — 차원 균열, 어둠 에너지 분출."
+    },
+    "effectHitSequence": {
+      "file": "effect-hit-sequence.png",
+      "size": "1024x256",
+      "format": "png",
+      "desc": "연속 타격 시퀀스 — 4프레임 충격파 확산."
+    },
+    "effectDeathSequence": {
+      "file": "effect-death-sequence.png",
+      "size": "1024x256",
+      "format": "png",
+      "desc": "사망 시퀀스 — 4프레임 디지털 분해."
+    },
+    "effectAttackSlash": {
+      "file": "effect-attack-slash.svg",
+      "size": "256x256",
+      "format": "svg",
+      "desc": "근접 공격 이펙트 — 만화풍 참격 궤적, 속도선. 셀 셰이드 라인."
+    },
+    "effectArrow": {
+      "file": "effect-arrow.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "원거리 투사체 — 빛나는 화살, 잔상 꼬리."
+    },
+    "effectMagicBurst": {
+      "file": "effect-magic-burst.svg",
+      "size": "256x256",
+      "format": "svg",
+      "desc": "마법 폭발 — 원형 에너지 파동, 만화풍 방사선."
+    },
+    "effectSynergyActivate": {
+      "file": "effect-synergy-activate.svg",
+      "size": "256x256",
+      "format": "svg",
+      "desc": "시너지 발동 — 발 아래 마법진+상승 파티클 빛기둥."
+    },
+    "effectBossPhase": {
+      "file": "effect-boss-phase.svg",
+      "size": "256x256",
+      "format": "svg",
+      "desc": "보스 페이즈 전환 — 화면 균열+보라 플래시."
+    },
+    "particleSparkle": {
+      "file": "particle-sparkle.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "반짝임 파티클 — 별 빛점, 시안/골드."
+    },
+    "particleFire": {
+      "file": "particle-fire.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "불꽃 파티클 — 주황-빨강 화염."
+    },
+    "particlePoison": {
+      "file": "particle-poison.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "독 파티클 — 녹색 연기, 해골 실루엣."
+    },
+    "particleIce": {
+      "file": "particle-ice.png",
+      "size": "64x64",
+      "format": "png",
+      "desc": "얼음 파티클 — 하늘색 얼음 결정."
+    },
+    "uiHp": {
+      "file": "ui-hp.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "HP 아이콘 — 셀 셰이드 빨간 하트, 굵은 아웃라인."
+    },
+    "uiGold": {
+      "file": "ui-gold.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "골드 아이콘 — 금화, 반짝임, 굵은 아웃라인."
+    },
+    "uiStar": {
+      "file": "ui-star.png",
+      "size": "128x128",
+      "format": "png",
+      "desc": "별 등급 아이콘 — 회색/금/다이아 3단계."
+    },
+    "uiSynergyFrame": {
+      "file": "ui-synergy-frame.png",
+      "size": "256x512",
+      "format": "png",
+      "desc": "시너지 패널 프레임 — 반투명 어둠+시안 테두리."
+    },
+    "uiShopFrame": {
+      "file": "ui-shop-frame.png",
+      "size": "256x320",
+      "format": "png",
+      "desc": "상점 슬롯 프레임 — 유닛 카드 형태."
+    },
+    "uiButtonBattle": {
+      "file": "ui-button-battle.png",
+      "size": "256x96",
+      "format": "png",
+      "desc": "전투 시작 버튼 — 시안 글로우, FIGHT!"
+    },
+    "uiButtonReroll": {
+      "file": "ui-button-reroll.png",
+      "size": "192x96",
+      "format": "png",
+      "desc": "리롤 버튼 — 주사위+비용 표시."
+    },
+    "uiSynergyIconFlame": {
+      "file": "ui-synergy-icon-flame.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "불꽃 시너지 아이콘 — 빨간+주황 화염 심볼, 원형 배지."
+    },
+    "uiSynergyIconFrost": {
+      "file": "ui-synergy-icon-frost.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "얼음 시너지 아이콘 — 눈결정, 스카이블루, 원형 배지."
+    },
+    "uiSynergyIconNature": {
+      "file": "ui-synergy-icon-nature.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "자연 시너지 아이콘 — 잎사귀, 초록, 원형 배지."
+    },
+    "uiSynergyIconShadow": {
+      "file": "ui-synergy-icon-shadow.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "암흑 시너지 아이콘 — 해골, 퍼플, 원형 배지."
+    },
+    "uiSynergyIconLight": {
+      "file": "ui-synergy-icon-light.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "빛 시너지 아이콘 — 태양/후광, 골드, 원형 배지."
+    },
+    "uiJobWarrior": {
+      "file": "ui-job-warrior.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "전사 직업 아이콘 — 검+방패, 은색+빨강, 원형 배지."
+    },
+    "uiJobRanger": {
+      "file": "ui-job-ranger.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "궁수 직업 아이콘 — 활+화살, 은색+초록, 원형 배지."
+    },
+    "uiJobMage": {
+      "file": "ui-job-mage.svg",
+      "size": "128x128",
+      "format": "svg",
+      "desc": "마법사 직업 아이콘 — 지팡이+오브, 은색+보라, 원형 배지."
+    },
+    "unitIdleSheet": {
+      "file": "unit-idle-sheet.png",
+      "size": "512x128",
+      "format": "png",
+      "desc": "유닛 대기 모션 프레임 가이드 — 4프레임 호흡."
+    },
+    "goldSpinSheet": {
+      "file": "gold-spin-sheet.png",
+      "size": "768x128",
+      "format": "png",
+      "desc": "골드 동전 회전 — 6프레임 Y축 회전 시퀀스."
+    }
+  }
+}

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="burstG" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="20%" stop-color="#dd88ff"/>
+      <stop offset="60%" stop-color="#9944cc"/>
+      <stop offset="100%" stop-color="#9944cc" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="burstCore" cx="0.5" cy="0.5" r="0.3">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#dd88ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="bGlow">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feFlood flood-color="#9944cc" flood-opacity="0.5"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#bGlow)">
+    <!-- Outer energy ring -->
+    <circle cx="128" cy="128" r="100" fill="none" stroke="#9944cc" stroke-width="4" opacity="0.3"/>
+    <circle cx="128" cy="128" r="85" fill="none" stroke="#cc66ff" stroke-width="2" opacity="0.4"/>
+    <!-- Magic circle runes -->
+    <circle cx="128" cy="128" r="75" fill="none" stroke="#bb66ee" stroke-width="2" stroke-dasharray="12,8" opacity="0.5"/>
+    <!-- Radial burst -->
+    <circle cx="128" cy="128" r="60" fill="url(#burstG)" opacity="0.7"/>
+    <!-- Energy rays -->
+    <g stroke="#cc88ff" stroke-width="3" stroke-linecap="round" opacity="0.6">
+      <line x1="128" y1="40" x2="128" y2="70"/>
+      <line x1="128" y1="186" x2="128" y2="216"/>
+      <line x1="40" y1="128" x2="70" y2="128"/>
+      <line x1="186" y1="128" x2="216" y2="128"/>
+      <line x1="66" y1="66" x2="86" y2="86"/>
+      <line x1="170" y1="170" x2="190" y2="190"/>
+      <line x1="190" y1="66" x2="170" y2="86"/>
+      <line x1="66" y1="190" x2="86" y2="170"/>
+    </g>
+    <!-- Core flash -->
+    <circle cx="128" cy="128" r="30" fill="url(#burstCore)"/>
+    <!-- Inner star burst -->
+    <path d="M128,108 L133,122 L148,118 L136,128 L148,138 L133,134 L128,148 L123,134 L108,138 L120,128 L108,118 L123,122 Z" fill="white" stroke="none" opacity="0.8"/>
+    <!-- Floating particles -->
+    <circle cx="90" cy="80" r="3" fill="#dd88ff" opacity="0.6"/>
+    <circle cx="170" cy="90" r="4" fill="#bb66ee" opacity="0.5"/>
+    <circle cx="85" cy="170" r="3.5" fill="#cc88ff" opacity="0.4"/>
+    <circle cx="175" cy="165" r="3" fill="#dd88ff" opacity="0.5"/>
+    <circle cx="128" cy="50" r="2.5" fill="white" opacity="0.6"/>
+    <circle cx="128" cy="206" r="2.5" fill="white" opacity="0.5"/>
+  </g>
+</svg>

@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>빛의 직조자</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1A1A2E;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script src="/engine/ix-engine.js"></script>
+<script src="/engine/genres/platformer.js"></script>
+<script>
+'use strict';
+const { Engine, Input, Sound, Tween, Particles, AssetLoader, UI, Save, MathUtil,
+  Layout, Sprite, Button, Scene, GameFlow, StateGuard, Pool, PopupText, EffectQueue } = IX;
+const { PlatformPhysics, CoyoteJump, WallMechanics } = IX.Genre.Platformer;
+
+// ═══════════════════════════════════════════
+// CONFIG & CONSTANTS
+// ═══════════════════════════════════════════
+const GAME_ID = 'light-weaver';
+const TILE = 32; // base tile size (scaled to screen)
+const GRAVITY = 980;
+const MOVE_SPD = 240;
+const MOVE_ACCEL = 1600;
+const MOVE_DECEL = 2400;
+const JUMP_VEL = -420;
+const DASH_SPD = 480;
+const DASH_FRAMES = 8;
+const WALL_SLIDE_SPD = 60;
+const WALL_JUMP_VX = 300;
+const WALL_JUMP_VY = -380;
+
+// Layout helpers (arrow wrappers to prevent binding loss)
+const fontSize = (...a) => Layout.fontSize(...a);
+const layoutScale = (...a) => Layout.scale(...a);
+const layoutPx = (...a) => Layout.px(...a);
+
+// ═══════════════════════════════════════════
+// DIFFICULTY SETTINGS
+// ═══════════════════════════════════════════
+const DIFF_PRESETS = {
+  easy:   { orbCooldown: 3, orbDuration: 8, hazardScale: 0.75, checkpoints: 2, ghostAlpha: 0.4, dashCooldown: 0, hintAuto: true, label: '쉬움' },
+  normal: { orbCooldown: 5, orbDuration: 5, hazardScale: 1.0,  checkpoints: 1, ghostAlpha: 0.2, dashCooldown: 0, hintAuto: false, label: '보통' },
+  hard:   { orbCooldown: 8, orbDuration: 3, hazardScale: 1.1,  checkpoints: 0, ghostAlpha: 0.1, dashCooldown: 0.3, hintAuto: false, label: '어려움' },
+};
+
+// ═══════════════════════════════════════════
+// LEVEL DATA (JSON declarative)
+// ═══════════════════════════════════════════
+// Tile types: 0=empty, 1=neutral, 2=light, 3=shadow, 4=spike, 5=exit, 6=checkpoint
+// Each level: { name, cols, rows, startX, startY, initialMode, tiles[][], lights[], switches[], stars[], par }
+const LEVELS = [
+  // Tutorial: "빛의 시작"
+  { id: 0, name: '빛의 시작', cols: 30, rows: 17, startX: 2, startY: 14, initialMode: 'light',
+    tiles: (() => { const m = Array.from({length:17}, () => Array(30).fill(0));
+      for(let c=0;c<30;c++) m[16][c]=1; // floor
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][29]=1; } // walls
+      // light platforms
+      m[13][5]=2; m[13][6]=2; m[13][7]=2;
+      m[10][10]=2; m[10][11]=2; m[10][12]=2;
+      // shadow platforms
+      m[11][16]=3; m[11][17]=3; m[11][18]=3;
+      m[8][21]=3; m[8][22]=3; m[8][23]=3;
+      // neutral stepping
+      m[7][14]=1; m[7][15]=1;
+      m[5][25]=1; m[5][26]=1; m[5][27]=1;
+      // exit platform
+      m[4][27]=5;
+      return m;
+    })(),
+    lights: [{ id:'L1', x:8, y:8, radius:7, on:true, movable:false }],
+    switches: [],
+    stars: [{ x:12, y:9 }, { x:7, y:6 }, { x:17, y:10 }],
+    par: { deaths:1, time:45 }, hint: '빛 모드에서만 노란 플랫폼이 실체화됩니다.\nE키로 모드를 전환하세요!' },
+
+  // Level 1: "첫 빛"
+  { id: 1, name: '첫 빛', cols: 35, rows: 17, startX: 2, startY: 14, initialMode: 'light',
+    tiles: (() => { const m = Array.from({length:17}, () => Array(35).fill(0));
+      for(let c=0;c<35;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][34]=1; }
+      // light path
+      m[13][4]=2; m[13][5]=2; m[13][6]=2;
+      m[11][8]=2; m[11][9]=2;
+      m[9][11]=2; m[9][12]=2; m[9][13]=2;
+      // shadow path
+      m[12][15]=3; m[12][16]=3; m[12][17]=3;
+      m[10][19]=3; m[10][20]=3;
+      m[8][22]=3; m[8][23]=3;
+      // neutral bridges
+      m[7][14]=1;
+      m[6][25]=1; m[6][26]=1; m[6][27]=1;
+      // upper section
+      m[5][29]=2; m[5][30]=2;
+      m[4][32]=1; m[4][33]=5;
+      // spikes
+      m[15][12]=4; m[15][13]=4; m[15][20]=4; m[15][21]=4;
+      return m;
+    })(),
+    lights: [{ id:'L1', x:10, y:6, radius:8, on:true, movable:false }],
+    switches: [],
+    stars: [{ x:6, y:12 }, { x:20, y:9 }, { x:30, y:4 }],
+    par: { deaths:3, time:60 } },
+
+  // Level 2: "반전된 길"
+  { id: 2, name: '반전된 길', cols: 35, rows: 17, startX: 2, startY: 14, initialMode: 'light',
+    tiles: (() => { const m = Array.from({length:17}, () => Array(35).fill(0));
+      for(let c=0;c<35;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][34]=1; }
+      // light platforms (high path)
+      for(let c=4;c<=8;c++) m[10][c]=2;
+      for(let c=12;c<=15;c++) m[8][c]=2;
+      // shadow platforms (low path)
+      for(let c=6;c<=9;c++) m[14][c]=3;
+      for(let c=18;c<=22;c++) m[12][c]=3;
+      // mixed section
+      m[6][17]=2; m[6][18]=2;
+      m[9][24]=3; m[9][25]=3;
+      m[5][27]=1; m[5][28]=1;
+      m[4][30]=1; m[4][31]=1; m[4][32]=5;
+      // walls/blocks
+      m[13][11]=1; m[14][11]=1; m[15][11]=1;
+      // spikes
+      m[15][14]=4; m[15][15]=4; m[15][24]=4;
+      return m;
+    })(),
+    lights: [
+      { id:'L1', x:8, y:5, radius:7, on:true, movable:false },
+      { id:'L2', x:22, y:6, radius:6, on:false, movable:false },
+    ],
+    switches: [{ x:15, y:7, target:'L2' }],
+    stars: [{ x:9, y:13 }, { x:18, y:5 }, { x:31, y:3 }],
+    par: { deaths:4, time:75 } },
+
+  // Level 3: "떠다니는 빛"
+  { id: 3, name: '떠다니는 빛', cols: 35, rows: 17, startX: 2, startY: 14, initialMode: 'shadow',
+    tiles: (() => { const m = Array.from({length:17}, () => Array(35).fill(0));
+      for(let c=0;c<35;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][34]=1; }
+      // shadow dominant
+      for(let c=5;c<=8;c++) m[13][c]=3;
+      for(let c=10;c<=13;c++) m[11][c]=3;
+      // light platforms (need light source)
+      for(let c=16;c<=19;c++) m[9][c]=2;
+      for(let c=22;c<=24;c++) m[7][c]=2;
+      // mixed end
+      m[5][26]=3; m[5][27]=3;
+      m[4][29]=1; m[4][30]=5;
+      // neutral
+      m[14][3]=1; m[12][9]=1;
+      // spikes
+      m[15][14]=4; m[15][15]=4; m[15][22]=4; m[15][23]=4;
+      return m;
+    })(),
+    lights: [
+      { id:'L1', x:5, y:8, radius:6, on:true, movable:true },
+      { id:'L2', x:20, y:4, radius:5, on:false, movable:false },
+    ],
+    switches: [{ x:13, y:10, target:'L2' }],
+    stars: [{ x:8, y:12 }, { x:18, y:8 }, { x:28, y:3 }],
+    par: { deaths:5, time:90 } },
+
+  // Boss 1: "빛의 수호자"
+  { id: 4, name: '빛의 수호자', cols: 25, rows: 17, startX: 2, startY: 14, initialMode: 'light', isBoss: true, bossId: 1,
+    tiles: (() => { const m = Array.from({length:17}, () => Array(25).fill(0));
+      for(let c=0;c<25;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][24]=1; }
+      // arena platforms
+      for(let c=3;c<=6;c++) m[12][c]=2;
+      for(let c=9;c<=15;c++) m[10][c]=1;
+      for(let c=18;c<=21;c++) m[12][c]=3;
+      m[7][5]=1; m[7][6]=1;
+      m[7][18]=1; m[7][19]=1;
+      m[5][11]=1; m[5][12]=1; m[5][13]=5;
+      // spikes at bottom edges
+      m[15][8]=4; m[15][16]=4;
+      return m;
+    })(),
+    lights: [
+      { id:'L1', x:6, y:5, radius:5, on:true, movable:false },
+      { id:'L2', x:12, y:3, radius:6, on:false, movable:false },
+      { id:'L3', x:19, y:5, radius:5, on:false, movable:false },
+    ],
+    switches: [
+      { x:5, y:11, target:'L2' },
+      { x:19, y:11, target:'L3' },
+      { x:12, y:9, target:'L1' },
+    ],
+    stars: [{ x:3, y:11 }, { x:12, y:4 }, { x:21, y:11 }],
+    par: { deaths:6, time:120 },
+    boss: { switchGoal: 3, phase2At: 2, speedMult: 1.5 } },
+
+  // Level 4: "빛의 구슬"
+  { id: 5, name: '빛의 구슬', cols: 35, rows: 17, startX: 2, startY: 14, initialMode: 'light', hasOrb: true,
+    tiles: (() => { const m = Array.from({length:17}, () => Array(35).fill(0));
+      for(let c=0;c<35;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][34]=1; }
+      // needs orb to create light for light-platforms
+      for(let c=5;c<=8;c++) m[12][c]=2;
+      for(let c=11;c<=14;c++) m[10][c]=2;
+      m[8][17]=2; m[8][18]=2; m[8][19]=2;
+      // shadow
+      for(let c=21;c<=24;c++) m[11][c]=3;
+      m[6][26]=3; m[6][27]=3;
+      // end
+      m[4][30]=1; m[4][31]=1; m[4][32]=5;
+      m[13][3]=1;
+      // spikes
+      m[15][10]=4; m[15][20]=4; m[15][25]=4;
+      return m;
+    })(),
+    lights: [{ id:'L1', x:4, y:8, radius:5, on:true, movable:false }],
+    switches: [],
+    stars: [{ x:8, y:11 }, { x:19, y:7 }, { x:27, y:5 }],
+    par: { deaths:5, time:90 } },
+
+  // Level 5: "프리즘 미궁"
+  { id: 6, name: '프리즘 미궁', cols: 35, rows: 17, startX: 2, startY: 14, initialMode: 'shadow', hasPrism: true,
+    tiles: (() => { const m = Array.from({length:17}, () => Array(35).fill(0));
+      for(let c=0;c<35;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][34]=1; }
+      // complex layout
+      for(let c=4;c<=7;c++) m[13][c]=3;
+      for(let c=9;c<=11;c++) m[11][c]=2;
+      m[9][14]=3; m[9][15]=3;
+      for(let c=17;c<=20;c++) m[10][c]=2;
+      m[7][22]=3; m[7][23]=3; m[7][24]=3;
+      m[5][26]=2; m[5][27]=2;
+      // high neutral
+      m[4][29]=1; m[4][30]=1; m[4][31]=5;
+      m[12][8]=1; m[8][13]=1;
+      // spikes
+      m[15][12]=4; m[15][13]=4; m[15][21]=4; m[15][28]=4;
+      return m;
+    })(),
+    lights: [
+      { id:'L1', x:6, y:8, radius:6, on:true, movable:false },
+      { id:'L2', x:25, y:4, radius:5, on:false, movable:false },
+    ],
+    switches: [{ x:15, y:8, target:'L2' }],
+    prisms: [{ x:20, y:6, angle:45 }],
+    stars: [{ x:7, y:12 }, { x:15, y:8 }, { x:27, y:4 }],
+    par: { deaths:6, time:100 } },
+
+  // Level 6: "그림자 심연"
+  { id: 7, name: '그림자 심연', cols: 40, rows: 17, startX: 2, startY: 14, initialMode: 'shadow', hasOrb: true, hasPrism: true,
+    tiles: (() => { const m = Array.from({length:17}, () => Array(40).fill(0));
+      for(let c=0;c<40;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][39]=1; }
+      // complex multi-mechanic
+      for(let c=4;c<=6;c++) m[13][c]=3;
+      for(let c=8;c<=10;c++) m[11][c]=2;
+      m[9][13]=3; m[9][14]=3;
+      for(let c=16;c<=18;c++) m[10][c]=2;
+      m[7][20]=3; m[7][21]=3;
+      for(let c=23;c<=25;c++) m[8][c]=2;
+      m[6][27]=3; m[6][28]=3;
+      m[5][30]=2; m[5][31]=2;
+      m[4][33]=1; m[4][34]=1;
+      m[3][36]=1; m[3][37]=1; m[3][38]=5;
+      // walls
+      m[14][12]=1; m[15][12]=1;
+      m[12][22]=1; m[13][22]=1;
+      // spikes
+      m[15][7]=4; m[15][15]=4; m[15][19]=4; m[15][26]=4; m[15][32]=4;
+      return m;
+    })(),
+    lights: [
+      { id:'L1', x:6, y:7, radius:5, on:true, movable:false },
+      { id:'L2', x:18, y:5, radius:5, on:false, movable:false },
+      { id:'L3', x:30, y:3, radius:5, on:false, movable:false },
+    ],
+    switches: [{ x:10, y:10, target:'L2' }, { x:25, y:7, target:'L3' }],
+    prisms: [{ x:15, y:6, angle:30 }],
+    stars: [{ x:6, y:12 }, { x:21, y:6 }, { x:34, y:3 }],
+    par: { deaths:8, time:120 } },
+
+  // Boss 2: "먹구름의 심장"
+  { id: 8, name: '먹구름의 심장', cols: 25, rows: 17, startX: 2, startY: 14, initialMode: 'shadow', isBoss: true, bossId: 2, hasOrb: true,
+    tiles: (() => { const m = Array.from({length:17}, () => Array(25).fill(0));
+      for(let c=0;c<25;c++) m[16][c]=1;
+      for(let r=0;r<17;r++) { m[r][0]=1; m[r][24]=1; }
+      // arena
+      for(let c=3;c<=7;c++) m[12][c]=3;
+      for(let c=9;c<=15;c++) m[10][c]=1;
+      for(let c=17;c<=21;c++) m[12][c]=2;
+      m[7][4]=1; m[7][5]=1;
+      m[7][19]=1; m[7][20]=1;
+      m[5][11]=1; m[5][12]=1; m[5][13]=5;
+      // spikes
+      m[15][8]=4; m[15][16]=4;
+      return m;
+    })(),
+    lights: [
+      { id:'L1', x:5, y:5, radius:5, on:true, movable:false },
+      { id:'L2', x:12, y:3, radius:7, on:false, movable:false },
+      { id:'L3', x:20, y:5, radius:5, on:false, movable:false },
+    ],
+    switches: [
+      { x:5, y:11, target:'L2' },
+      { x:19, y:11, target:'L3' },
+    ],
+    stars: [{ x:4, y:11 }, { x:12, y:4 }, { x:20, y:11 }],
+    par: { deaths:8, time:150 },
+    boss: { orbHits: 3, phase2At: 2, speedMult: 1.8 } },
+];
+
+// ═══════════════════════════════════════════
+// GAME STATE (all reset in resetGameState)
+// ═══════════════════════════════════════════
+let difficulty = 'normal';
+let diffSettings = DIFF_PRESETS.normal;
+let currentLevelIdx = 0;
+let currentMode = 'light'; // 'light' | 'shadow'
+let modeTransition = 0; // 0-1 transition progress
+let player = { x: 0, y: 0, w: 20, h: 28, vx: 0, vy: 0, grounded: false, prevY: 0,
+  facing: 1, dashing: false, dashFrames: 0, dashCooldown: 0,
+  wallSliding: false, wallDir: 0, dead: false, deathTimer: 0,
+  coyoteTime: 0, jumpBuffer: 0 };
+let camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+let levelTimer = 0;
+let deathCount = 0;
+let starsCollected = [];
+let activeSwitches = {};
+let activeLights = {};
+let orbReady = true;
+let orbCooldownTimer = 0;
+let orbProjectiles = [];
+let tempLights = [];
+let checkpointPos = null;
+let movableLightPos = {}; // runtime positions for movable lights {id: {x,y}}
+let prevOnSwitch = {}; // tracks per-switch whether player was on it last frame
+let prismZones = []; // calculated prism reflection beam zones
+let activeCheckpoints = {}; // activated checkpoint positions by key
+let inputDelay = 0;
+let pauseRequested = false;
+let levelCleared = false;
+let bossState = { phase: 1, switchesDone: 0, orbHits: 0, timer: 0, angle: 0, active: false };
+let shakeIntensity = 0;
+let totalScore = 0;
+let popups = null;
+let effects = null;
+let idleSprite = null;
+let starSprite = null;
+
+// Save data
+let saveData = null;
+
+// Clear screen data (for render access)
+let clearScreenData = {};
+
+// Effect overlay states
+let modeSwitchEffect = { active: false, timer: 0, duration: 0.4 };
+let clearEffect = { active: false, timer: 0, duration: 0.6 };
+
+// Touch control state
+let touchMoveDir = 0;
+let touchJump = false;
+let touchDash = false;
+let touchModeSwitch = false;
+let touchOrb = false;
+let joystickActive = false;
+let joystickBaseX = 0, joystickBaseY = 0;
+let joystickDx = 0, joystickDy = 0;
+
+// ═══════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════
+const engine = new Engine('gameCanvas');
+const input = new Input(engine.canvas);
+const sound = new Sound();
+const tween = new Tween();
+const particles = new Particles(150);
+const assets = new AssetLoader();
+
+function resetGameState() {
+  currentLevelIdx = 0;
+  currentMode = 'light';
+  modeTransition = 0;
+  player = { x: 0, y: 0, w: 20, h: 28, vx: 0, vy: 0, grounded: false, prevY: 0,
+    facing: 1, dashing: false, dashFrames: 0, dashCooldown: 0,
+    wallSliding: false, wallDir: 0, dead: false, deathTimer: 0,
+    coyoteTime: 0, jumpBuffer: 0 };
+  camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  levelTimer = 0;
+  deathCount = 0;
+  starsCollected = [];
+  activeSwitches = {};
+  activeLights = {};
+  orbReady = true;
+  orbCooldownTimer = 0;
+  orbProjectiles = [];
+  tempLights = [];
+  checkpointPos = null;
+  inputDelay = 0;
+  pauseRequested = false;
+  levelCleared = false;
+  bossState = { phase: 1, switchesDone: 0, orbHits: 0, timer: 0, angle: 0, active: false };
+  shakeIntensity = 0;
+  totalScore = 0;
+  touchMoveDir = 0;
+  touchJump = false;
+  touchDash = false;
+  touchModeSwitch = false;
+  touchOrb = false;
+  joystickActive = false;
+  joystickBaseX = 0; joystickBaseY = 0;
+  joystickDx = 0; joystickDy = 0;
+  if (popups) popups.clear();
+  if (effects) effects.clear();
+  clearScreenData = {};
+  modeSwitchEffect = { active: false, timer: 0, duration: 0.4 };
+  clearEffect = { active: false, timer: 0, duration: 0.6 };
+}
+
+function resetLevelState(lvlIdx) {
+  const lvl = LEVELS[lvlIdx];
+  currentLevelIdx = lvlIdx;
+  currentMode = lvl.initialMode || 'light';
+  modeTransition = currentMode === 'light' ? 0 : 1;
+  const tw = getTileW(), th = getTileH();
+  player.x = lvl.startX * tw + tw * 0.2;
+  player.y = lvl.startY * th - player.h;
+  player.vx = 0; player.vy = 0;
+  player.grounded = false; player.prevY = player.y;
+  player.facing = 1; player.dashing = false; player.dashFrames = 0; player.dashCooldown = 0;
+  player.wallSliding = false; player.wallDir = 0;
+  player.dead = false; player.deathTimer = 0;
+  player.coyoteTime = 0; player.jumpBuffer = 0;
+  camera.x = player.x - engine.W / 2;
+  camera.y = player.y - engine.H / 2;
+  camera.targetX = camera.x; camera.targetY = camera.y;
+  levelTimer = 0; deathCount = 0;
+  starsCollected = [];
+  activeSwitches = {};
+  activeLights = {};
+  // init lights
+  if (lvl.lights) lvl.lights.forEach(l => { activeLights[l.id] = l.on; });
+  orbReady = true; orbCooldownTimer = 0;
+  orbProjectiles = []; tempLights = [];
+  checkpointPos = null;
+  inputDelay = 0.2;
+  pauseRequested = false;
+  levelCleared = false;
+  bossState = { phase: 1, switchesDone: 0, orbHits: 0, timer: 0, angle: 0, active: lvl.isBoss };
+  shakeIntensity = 0;
+  if (popups) popups.clear();
+  if (effects) effects.clear();
+  modeSwitchEffect = { active: false, timer: 0, duration: 0.4 };
+  clearEffect = { active: false, timer: 0, duration: 0.6 };
+}
+
+// ═══════════════════════════════════════════
+// TILE / WORLD HELPERS
+// ═══════════════════════════════════════════
+function getTileW() { return engine.W / (LEVELS[currentLevelIdx]?.cols || 30); }
+function getTileH() { return engine.H / (LEVELS[currentLevelIdx]?.rows || 17); }
+
+function getTile(col, row) {
+  const lvl = LEVELS[currentLevelIdx];
+  if (!lvl || row < 0 || row >= lvl.rows || col < 0 || col >= lvl.cols) return 1; // OOB = solid
+  return lvl.tiles[row][col];
+}
+
+function isInLight(tileX, tileY) {
+  const lvl = LEVELS[currentLevelIdx];
+  if (!lvl) return false;
+  // Check fixed/toggled lights
+  for (const l of (lvl.lights || [])) {
+    if (!activeLights[l.id]) continue;
+    const dx = tileX - l.x, dy = tileY - l.y;
+    if (dx * dx + dy * dy <= l.radius * l.radius) return true;
+  }
+  // Check temp lights (orbs)
+  for (const tl of tempLights) {
+    const dx = tileX - tl.tx, dy = tileY - tl.ty;
+    if (dx * dx + dy * dy <= tl.radius * tl.radius) return true;
+  }
+  return false;
+}
+
+function isTileSolid(col, row) {
+  const t = getTile(col, row);
+  if (t === 1) return true; // neutral always solid
+  if (t === 2) return currentMode === 'light'; // light platform in light mode
+  if (t === 3) return currentMode === 'shadow'; // shadow platform in shadow mode
+  return false;
+}
+
+function isTileHazard(col, row) {
+  return getTile(col, row) === 4;
+}
+
+function isTileExit(col, row) {
+  return getTile(col, row) === 5;
+}
+
+// ═══════════════════════════════════════════
+// SOUND EFFECTS
+// ═══════════════════════════════════════════
+function playSfx(name) {
+  if (!sound._ctx) return;
+  const t = sound._ctx.currentTime;
+  const ctx = sound._ctx;
+  const vol = sound._vol;
+  try {
+    const play = (freq, dur, type, v) => {
+      const osc = ctx.createOscillator(); const g = ctx.createGain();
+      osc.type = type; osc.frequency.value = freq;
+      g.gain.setValueAtTime((v||0.3)*vol, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+      osc.connect(g); g.connect(ctx.destination); osc.start(t); osc.stop(t+dur);
+    };
+    const playAt = (freq, dur, type, delay, v) => {
+      const osc = ctx.createOscillator(); const g = ctx.createGain();
+      osc.type = type; osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime((v||0.3)*vol, t+delay);
+      g.gain.exponentialRampToValueAtTime(0.001, t+delay+dur);
+      osc.connect(g); g.connect(ctx.destination); osc.start(t); osc.stop(t+delay+dur);
+    };
+    switch(name) {
+      case 'jump': play(800, 0.06, 'sine', 0.25); playAt(1200, 0.04, 'sine', 0.06, 0.2); break;
+      case 'land': play(200, 0.05, 'triangle', 0.2); break;
+      case 'dash': play(400, 0.04, 'sawtooth', 0.3); playAt(600, 0.04, 'sawtooth', 0.04, 0.25); break;
+      case 'modeLight': play(523, 0.08, 'sine', 0.2); playAt(659, 0.08, 'sine', 0.1, 0.2); playAt(784, 0.1, 'sine', 0.2, 0.25); break;
+      case 'modeShadow': play(784, 0.08, 'sine', 0.2); playAt(659, 0.08, 'sine', 0.1, 0.2); playAt(523, 0.1, 'sine', 0.2, 0.25); break;
+      case 'star': play(1000, 0.06, 'sine', 0.25); playAt(1500, 0.06, 'sine', 0.08, 0.25); playAt(2000, 0.08, 'sine', 0.16, 0.3); break;
+      case 'death': play(150, 0.3, 'square', 0.3); break;
+      case 'switch': play(500, 0.04, 'square', 0.2); playAt(300, 0.04, 'square', 0.04, 0.2); break;
+      case 'clear': play(523, 0.1, 'sine', 0.3); playAt(659, 0.1, 'sine', 0.12, 0.3); playAt(784, 0.1, 'sine', 0.24, 0.3); playAt(1047, 0.15, 'sine', 0.36, 0.35); break;
+      case 'orb': play(600, 0.05, 'sine', 0.2); playAt(1000, 0.1, 'sine', 0.05, 0.25); break;
+      case 'bossHit': play(300, 0.1, 'sawtooth', 0.3); playAt(100, 0.1, 'sawtooth', 0.1, 0.3); break;
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// SAVE SYSTEM
+// ═══════════════════════════════════════════
+function loadSaveData() {
+  saveData = Save.get('ix_lightWeaver', {
+    difficulty: 'normal',
+    levels: {},
+    totalStars: 0,
+    totalScore: 0,
+  });
+  difficulty = saveData.difficulty || 'normal';
+  diffSettings = DIFF_PRESETS[difficulty] || DIFF_PRESETS.normal;
+}
+
+function saveLevelResult(lvlIdx, stars, deaths, time) {
+  const lvl = LEVELS[lvlIdx];
+  const key = String(lvl.id);
+  const baseScore = lvl.isBoss ? 3000 : 1000;
+  const starScore = stars * 500;
+  const deathBonus = deaths === 0 ? 2000 : 0;
+  const timeBonus = time <= lvl.par.time ? Math.floor(1000 * (lvl.par.time - time) / lvl.par.time) : 0;
+  const score = baseScore + starScore + deathBonus + timeBonus;
+
+  // Grade
+  let grade = 'C';
+  const noDeathOrPar = (deaths === 0 || time <= lvl.par.time);
+  if (stars === 3 && deaths === 0 && time <= lvl.par.time) grade = 'S';
+  else if (stars === 3 && noDeathOrPar) grade = 'A';
+  else if (stars >= 2) grade = 'B';
+
+  const prev = saveData.levels[key] || {};
+  const best = {
+    cleared: true,
+    stars: Math.max(prev.stars || 0, stars),
+    deaths: prev.cleared ? Math.min(prev.deaths ?? 999, deaths) : deaths,
+    bestTime: prev.cleared ? Math.min(prev.bestTime ?? 9999, time) : time,
+    grade: gradeRank(grade) > gradeRank(prev.grade) ? grade : (prev.grade || grade),
+    score: Math.max(prev.score || 0, score),
+  };
+  saveData.levels[key] = best;
+
+  // Recalc totals
+  let ts = 0, tscore = 0;
+  for (const v of Object.values(saveData.levels)) { ts += v.stars || 0; tscore += v.score || 0; }
+  saveData.totalStars = ts; saveData.totalScore = tscore;
+  saveData.difficulty = difficulty;
+  Save.set('ix_lightWeaver', saveData);
+  Save.setHighScore(GAME_ID, tscore);
+  return { score, grade, stars };
+}
+
+function gradeRank(g) { return { S: 4, A: 3, B: 2, C: 1 }[g] || 0; }
+function isLevelUnlocked(idx) {
+  if (idx === 0) return true;
+  const prevId = String(LEVELS[idx - 1].id);
+  return !!(saveData.levels[prevId]?.cleared);
+}
+
+// ═══════════════════════════════════════════
+// PHYSICS UPDATE
+// ═══════════════════════════════════════════
+function updatePlayer(dt, inp) {
+  if (player.dead) {
+    player.deathTimer -= dt / 1000;
+    if (player.deathTimer <= 0) respawnPlayer();
+    return;
+  }
+  const sec = dt / 1000;
+  const lvl = LEVELS[currentLevelIdx];
+  const tw = getTileW(), th = getTileH();
+
+  // Input
+  let moveDir = 0;
+  if (inp.held('ArrowLeft') || inp.held('KeyA')) moveDir = -1;
+  if (inp.held('ArrowRight') || inp.held('KeyD')) moveDir = 1;
+  if (touchMoveDir !== 0) moveDir = touchMoveDir;
+
+  const wantJump = inp.jp('ArrowUp') || inp.jp('KeyW') || inp.jp('Space') || touchJump;
+  const wantDash = inp.jp('ShiftLeft') || inp.jp('ShiftRight') || touchDash;
+  const wantMode = inp.jp('KeyE') || inp.jp('KeyX') || touchModeSwitch;
+  const wantOrb = inp.jp('KeyF') || inp.jp('KeyZ') || touchOrb;
+
+  // Mode switch
+  if (wantMode) switchMode();
+
+  // Orb throw
+  if (wantOrb && (lvl.hasOrb || lvl.isBoss) && orbReady) throwOrb();
+
+  // Horizontal movement
+  if (moveDir !== 0) {
+    player.vx += moveDir * MOVE_ACCEL * sec;
+    player.vx = MathUtil.clamp(player.vx, -MOVE_SPD, MOVE_SPD);
+    player.facing = moveDir;
+  } else {
+    if (Math.abs(player.vx) < 10) player.vx = 0;
+    else player.vx -= Math.sign(player.vx) * MOVE_DECEL * sec;
+  }
+
+  // Coyote time
+  if (player.grounded) player.coyoteTime = 0.1;
+  else player.coyoteTime = Math.max(0, player.coyoteTime - sec);
+
+  // Jump buffer
+  if (wantJump) player.jumpBuffer = 0.08;
+  else player.jumpBuffer = Math.max(0, player.jumpBuffer - sec);
+
+  // Jump
+  if (player.jumpBuffer > 0 && (player.grounded || player.coyoteTime > 0)) {
+    player.vy = JUMP_VEL;
+    player.grounded = false;
+    player.coyoteTime = 0;
+    player.jumpBuffer = 0;
+    playSfx('jump');
+  }
+  // Wall jump
+  else if (wantJump && player.wallSliding) {
+    player.vx = -player.wallDir * WALL_JUMP_VX;
+    player.vy = WALL_JUMP_VY;
+    player.facing = -player.wallDir;
+    player.wallSliding = false;
+    playSfx('jump');
+  }
+
+  // Variable jump height
+  if (player.vy < 0 && !(inp.held('ArrowUp') || inp.held('KeyW') || inp.held('Space'))) {
+    player.vy += GRAVITY * 0.5 * sec; // extra gravity when release
+  }
+
+  // Dash
+  if (player.dashCooldown > 0) player.dashCooldown -= sec;
+  if (wantDash && !player.dashing && player.dashCooldown <= 0) {
+    player.dashing = true;
+    player.dashFrames = DASH_FRAMES;
+    player.dashCooldown = diffSettings.dashCooldown;
+    playSfx('dash');
+  }
+  if (player.dashing) {
+    player.vx = player.facing * DASH_SPD;
+    player.vy = 0;
+    player.dashFrames--;
+    if (player.dashFrames <= 0) player.dashing = false;
+  }
+
+  // Gravity
+  if (!player.dashing) {
+    player.vy += GRAVITY * sec;
+    player.vy = Math.min(player.vy, 600);
+  }
+
+  // Wall slide
+  player.wallSliding = false;
+  if (!player.grounded && !player.dashing) {
+    // Check wall touch
+    const midRow = Math.floor((player.y + player.h * 0.5) / th);
+    const rightCol = Math.floor((player.x + player.w + 2) / tw);
+    const leftCol = Math.floor((player.x - 2) / tw);
+    if (moveDir > 0 && isTileSolid(rightCol, midRow)) { player.wallSliding = true; player.wallDir = 1; }
+    else if (moveDir < 0 && isTileSolid(leftCol, midRow)) { player.wallSliding = true; player.wallDir = -1; }
+  }
+  if (player.wallSliding && player.vy > 0) {
+    player.vy = Math.min(player.vy, WALL_SLIDE_SPD);
+  }
+
+  // Store prev position
+  player.prevY = player.y;
+
+  // Apply velocity
+  player.x += player.vx * sec;
+  player.y += player.vy * sec;
+
+  // Tile collision X
+  const wasGrounded = player.grounded;
+  player.grounded = false;
+  resolveCollisionX();
+  resolveCollisionY();
+
+  if (player.grounded && !wasGrounded && Math.abs(player.vy) < 5) {
+    playSfx('land');
+    player.dashCooldown = 0; // reset dash on land
+  }
+
+  // Clamp to world
+  player.x = MathUtil.clamp(player.x, 0, lvl.cols * tw - player.w);
+  if (player.y > lvl.rows * th) killPlayer();
+
+  // Check hazards
+  const pcx = player.x + player.w / 2, pcy = player.y + player.h / 2;
+  const hCol = Math.floor(pcx / tw), hRow = Math.floor((player.y + player.h - 2) / th);
+  if (isTileHazard(hCol, hRow)) killPlayer();
+  // Also check top
+  const hRowTop = Math.floor(player.y / th);
+  if (isTileHazard(hCol, hRowTop)) killPlayer();
+
+  // Check star collection
+  for (let i = 0; i < (lvl.stars || []).length; i++) {
+    if (starsCollected.includes(i)) continue;
+    const s = lvl.stars[i];
+    const sx = s.x * tw + tw / 2, sy = s.y * th + th / 2;
+    if (MathUtil.dist(pcx, pcy, sx, sy) < tw * 1.2) {
+      starsCollected.push(i);
+      playSfx('star');
+      particles.emit(sx - camera.x, sy - camera.y, 12, { color: '#FFD700', speed: 120, life: 0.6, size: 4 });
+      if (popups) popups.add(sx - camera.x, sy - camera.y - 20, '★ +500', '#FFD700');
+    }
+  }
+
+  // Check switches
+  for (const sw of (lvl.switches || [])) {
+    const sx = sw.x * tw, sy = sw.y * th;
+    if (player.grounded && MathUtil.rectCollide(player.x, player.y, player.w, player.h, sx, sy, tw, th)) {
+      const key = sw.x + ',' + sw.y;
+      if (!activeSwitches[key]) {
+        activeSwitches[key] = true;
+        activeLights[sw.target] = !activeLights[sw.target];
+        playSfx('switch');
+        particles.emit(sx + tw / 2 - camera.x, sy - camera.y, 8, { color: '#00BCD4', speed: 80, life: 0.4 });
+        if (bossState.active) bossState.switchesDone++;
+      }
+    }
+  }
+
+  // Check exit
+  for (let r = 0; r < lvl.rows; r++) {
+    for (let c = 0; c < lvl.cols; c++) {
+      if (getTile(c, r) === 5) {
+        const ex = c * tw, ey = r * th;
+        if (MathUtil.rectCollide(player.x, player.y, player.w, player.h, ex, ey, tw, th)) {
+          if (!levelCleared) completeLevel();
+        }
+      }
+    }
+  }
+
+  // Check checkpoints
+  // (simplified: based on player progress)
+  if (!checkpointPos) {
+    const midX = lvl.cols * tw * 0.5;
+    if (player.x > midX) checkpointPos = { x: player.x, y: player.y };
+  }
+
+  // Camera
+  camera.targetX = player.x - engine.W / 2 + player.w / 2;
+  camera.targetY = player.y - engine.H / 2 + player.h / 2;
+  camera.x = MathUtil.lerp(camera.x, camera.targetX, 0.1);
+  camera.y = MathUtil.lerp(camera.y, camera.targetY, 0.1);
+  camera.x = MathUtil.clamp(camera.x, 0, Math.max(0, lvl.cols * tw - engine.W));
+  camera.y = MathUtil.clamp(camera.y, 0, Math.max(0, lvl.rows * th - engine.H));
+}
+
+function resolveCollisionX() {
+  const tw = getTileW(), th = getTileH();
+  const sr = Math.floor(player.y / th);
+  const er = Math.floor((player.y + player.h - 1) / th);
+  if (player.vx > 0) {
+    const col = Math.floor((player.x + player.w) / tw);
+    for (let r = sr; r <= er; r++) {
+      if (isTileSolid(col, r)) { player.x = col * tw - player.w; player.vx = 0; break; }
+    }
+  } else if (player.vx < 0) {
+    const col = Math.floor(player.x / tw);
+    for (let r = sr; r <= er; r++) {
+      if (isTileSolid(col, r)) { player.x = (col + 1) * tw; player.vx = 0; break; }
+    }
+  }
+}
+
+function resolveCollisionY() {
+  const tw = getTileW(), th = getTileH();
+  const sc = Math.floor(player.x / tw);
+  const ec = Math.floor((player.x + player.w - 1) / tw);
+  if (player.vy > 0) {
+    const row = Math.floor((player.y + player.h) / th);
+    for (let c = sc; c <= ec; c++) {
+      if (isTileSolid(c, row)) {
+        player.y = row * th - player.h; player.vy = 0; player.grounded = true; break;
+      }
+    }
+  } else if (player.vy < 0) {
+    const row = Math.floor(player.y / th);
+    for (let c = sc; c <= ec; c++) {
+      if (isTileSolid(c, row)) { player.y = (row + 1) * th; player.vy = 0; break; }
+    }
+  }
+}
+
+function killPlayer() {
+  if (player.dead) return;
+  player.dead = true;
+  player.deathTimer = 1.0;
+  deathCount++;
+  playSfx('death');
+  shakeIntensity = 8;
+  const tw = getTileW(), th = getTileH();
+  const px = player.x + player.w / 2 - camera.x;
+  const py = player.y + player.h / 2 - camera.y;
+  particles.emit(px, py, 15, { color: '#FF1744', speed: 150, life: 0.5, size: 4 });
+}
+
+function respawnPlayer() {
+  const lvl = LEVELS[currentLevelIdx];
+  const tw = getTileW(), th = getTileH();
+  const spawn = checkpointPos || { x: lvl.startX * tw + tw * 0.2, y: lvl.startY * th - player.h };
+  player.x = spawn.x; player.y = spawn.y;
+  player.vx = 0; player.vy = 0;
+  player.dead = false; player.dashing = false; player.dashFrames = 0;
+  player.wallSliding = false;
+}
+
+function switchMode() {
+  currentMode = currentMode === 'light' ? 'shadow' : 'light';
+  playSfx(currentMode === 'light' ? 'modeLight' : 'modeShadow');
+  // Check if player is now inside solid tile — push out
+  const tw = getTileW(), th = getTileH();
+  const col = Math.floor((player.x + player.w / 2) / tw);
+  const row = Math.floor((player.y + player.h / 2) / th);
+  if (isTileSolid(col, row)) {
+    // Push up
+    player.y = row * th - player.h;
+    player.vy = -50;
+  }
+  particles.emit(engine.W / 2, engine.H / 2, 20, {
+    color: currentMode === 'light' ? '#FFD93D' : '#B388FF',
+    speed: 200, life: 0.4, size: 6, spread: Math.PI * 2
+  });
+  // Activate mode switch effect sheet overlay
+  modeSwitchEffect.active = true;
+  modeSwitchEffect.timer = modeSwitchEffect.duration;
+}
+
+function throwOrb() {
+  if (!orbReady) return;
+  orbReady = false;
+  orbCooldownTimer = diffSettings.orbCooldown;
+  const tw = getTileW();
+  orbProjectiles.push({
+    x: player.x + player.w / 2,
+    y: player.y,
+    vx: player.facing * 300,
+    vy: -200,
+    life: 2,
+  });
+  playSfx('orb');
+}
+
+function completeLevel() {
+  levelCleared = true;
+  playSfx('clear');
+  // Activate clear effect sheet overlay
+  clearEffect.active = true;
+  clearEffect.timer = clearEffect.duration;
+  const result = saveLevelResult(currentLevelIdx, starsCollected.length, deathCount, levelTimer);
+  Scene.transition('CLEAR', { lvlIdx: currentLevelIdx, ...result, deaths: deathCount, time: levelTimer, starsArr: starsCollected });
+}
+
+// ═══════════════════════════════════════════
+// BOSS LOGIC
+// ═══════════════════════════════════════════
+function updateBoss(dt) {
+  if (!bossState.active) return;
+  const sec = dt / 1000;
+  const lvl = LEVELS[currentLevelIdx];
+  bossState.timer += sec;
+  bossState.angle += sec * (bossState.phase === 2 ? 2.0 : 1.0);
+
+  // Boss 1: auto-toggle lights periodically
+  if (lvl.bossId === 1) {
+    if (bossState.switchesDone >= (lvl.boss?.switchGoal || 3)) {
+      // Victory condition met — unlock exit
+      bossState.active = false;
+    }
+    // Phase 2 check
+    if (bossState.switchesDone >= (lvl.boss?.phase2At || 2) && bossState.phase === 1) {
+      bossState.phase = 2;
+      shakeIntensity = 6;
+      particles.emit(engine.W / 2, engine.H / 2, 25, { color: '#FF6B35', speed: 180, life: 0.6 });
+    }
+    // Periodically toggle random lights
+    if (Math.floor(bossState.timer * (bossState.phase === 2 ? 1.5 : 1)) % 4 === 0 && Math.random() < 0.01) {
+      const keys = Object.keys(activeLights);
+      if (keys.length) {
+        const k = keys[MathUtil.randInt(0, keys.length - 1)];
+        activeLights[k] = !activeLights[k];
+        // Reset corresponding switch
+        for (const sw of (lvl.switches || [])) {
+          if (sw.target === k) activeSwitches[sw.x + ',' + sw.y] = false;
+        }
+      }
+    }
+  }
+
+  // Boss 2: orbHits based
+  if (lvl.bossId === 2) {
+    if (bossState.orbHits >= (lvl.boss?.orbHits || 3)) {
+      bossState.active = false;
+    }
+    if (bossState.orbHits >= (lvl.boss?.phase2At || 2) && bossState.phase === 1) {
+      bossState.phase = 2;
+      shakeIntensity = 8;
+      particles.emit(engine.W / 2, engine.H / 2, 30, { color: '#FF1744', speed: 200, life: 0.8 });
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// ORB & TEMP LIGHTS
+// ═══════════════════════════════════════════
+function updateOrbs(dt) {
+  const sec = dt / 1000;
+  const tw = getTileW(), th = getTileH();
+
+  // Orb cooldown
+  if (!orbReady) {
+    orbCooldownTimer -= sec;
+    if (orbCooldownTimer <= 0) { orbReady = true; orbCooldownTimer = 0; }
+  }
+
+  // Update projectiles
+  for (let i = orbProjectiles.length - 1; i >= 0; i--) {
+    const o = orbProjectiles[i];
+    o.vy += 400 * sec; // gravity on orb
+    o.x += o.vx * sec;
+    o.y += o.vy * sec;
+    o.life -= sec;
+
+    // Check collision with solid tiles
+    const col = Math.floor(o.x / tw), row = Math.floor(o.y / th);
+    if (isTileSolid(col, row) || o.life <= 0) {
+      // Create temp light
+      if (o.life > -0.5) {
+        tempLights.push({ tx: col, ty: row, radius: 4, timer: diffSettings.orbDuration, x: o.x, y: o.y });
+        particles.emit(o.x - camera.x, o.y - camera.y, 10, { color: '#FFD93D', speed: 100, life: 0.3 });
+      }
+      // Boss 2: check if orb hit boss center
+      if (bossState.active && LEVELS[currentLevelIdx].bossId === 2) {
+        const bx = 12 * tw + tw / 2, by = 6 * th;
+        if (MathUtil.dist(o.x, o.y, bx, by) < tw * 3) {
+          bossState.orbHits++;
+          playSfx('bossHit');
+          shakeIntensity = 5;
+          particles.emit(bx - camera.x, by - camera.y, 20, { color: '#FF6B35', speed: 150, life: 0.5 });
+        }
+      }
+      orbProjectiles.splice(i, 1);
+    }
+  }
+
+  // Update temp lights
+  for (let i = tempLights.length - 1; i >= 0; i--) {
+    tempLights[i].timer -= sec;
+    if (tempLights[i].timer <= 0) tempLights.splice(i, 1);
+  }
+}
+
+// ═══════════════════════════════════════════
+// RENDERING HELPERS
+// ═══════════════════════════════════════════
+function drawBackground(ctx, w, h) {
+  const lightT = currentMode === 'light' ? 1 : 0;
+  const t = MathUtil.lerp(modeTransition, lightT, 0.05);
+  modeTransition = t;
+
+  // Background gradient
+  const bgLight = '#F5F0E8', bgShadow = '#1A1A2E';
+  const r1 = MathUtil.lerp(0x1A, 0xF5, t), g1 = MathUtil.lerp(0x1A, 0xF0, t), b1 = MathUtil.lerp(0x2E, 0xE8, t);
+  ctx.fillStyle = `rgb(${r1|0},${g1|0},${b1|0})`;
+  ctx.fillRect(0, 0, w, h);
+
+  // Parallax backgrounds
+  const parallax = (key, factor) => {
+    const img = assets.sprites[key];
+    if (!img) return;
+    const ox = -(camera.x * factor) % w;
+    ctx.globalAlpha = key.includes('Light') ? t : (1 - t);
+    ctx.drawImage(img, ox, 0, w, h);
+    if (ox < 0) ctx.drawImage(img, ox + w, 0, w, h);
+    ctx.globalAlpha = 1;
+  };
+
+  parallax('bgLightFar', 0.3);
+  parallax('bgShadowFar', 0.3);
+  parallax('bgLightMid', 0.6);
+  parallax('bgShadowMid', 0.6);
+}
+
+function drawTiles(ctx, w, h) {
+  const lvl = LEVELS[currentLevelIdx];
+  if (!lvl) return;
+  const tw = getTileW(), th = getTileH();
+  const startCol = Math.max(0, Math.floor(camera.x / tw));
+  const endCol = Math.min(lvl.cols, Math.ceil((camera.x + w) / tw) + 1);
+  const startRow = Math.max(0, Math.floor(camera.y / th));
+  const endRow = Math.min(lvl.rows, Math.ceil((camera.y + h) / th) + 1);
+
+  for (let r = startRow; r < endRow; r++) {
+    for (let c = startCol; c < endCol; c++) {
+      const t = getTile(c, r);
+      if (t === 0) continue;
+      const x = c * tw - camera.x, y = r * th - camera.y;
+
+      if (t === 1) { // Neutral
+        assets.draw(ctx, 'platformNeutral', x, y, tw + 1, th + 1, '#546E7A');
+      } else if (t === 2) { // Light platform
+        const active = currentMode === 'light';
+        ctx.globalAlpha = active ? 1 : diffSettings.ghostAlpha;
+        if (!active) { ctx.setLineDash([4, 4]); ctx.strokeStyle = '#FFD93D55'; ctx.strokeRect(x + 2, y + 2, tw - 4, th - 4); ctx.setLineDash([]); }
+        assets.draw(ctx, 'platformLight', x, y, tw + 1, th + 1, '#FFD93D');
+        ctx.globalAlpha = 1;
+      } else if (t === 3) { // Shadow platform
+        const active = currentMode === 'shadow';
+        ctx.globalAlpha = active ? 1 : diffSettings.ghostAlpha;
+        if (!active) { ctx.setLineDash([4, 4]); ctx.strokeStyle = '#533483'+'55'; ctx.strokeRect(x + 2, y + 2, tw - 4, th - 4); ctx.setLineDash([]); }
+        assets.draw(ctx, 'platformShadow', x, y, tw + 1, th + 1, '#533483');
+        ctx.globalAlpha = 1;
+      } else if (t === 4) { // Spike
+        assets.draw(ctx, 'spikeHazard', x, y + th * 0.3, tw, th * 0.7, '#FF1744');
+      } else if (t === 5) { // Exit
+        assets.draw(ctx, 'exitDoor', x - tw * 0.25, y - th, tw * 1.5, th * 2, '#FFD700');
+        // Glow
+        ctx.globalAlpha = 0.15 + 0.05 * Math.sin(Date.now() / 300);
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath(); ctx.arc(x + tw / 2, y, tw, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+}
+
+function drawLights(ctx) {
+  const lvl = LEVELS[currentLevelIdx];
+  if (!lvl) return;
+  const tw = getTileW(), th = getTileH();
+
+  // Draw light sources
+  for (const l of (lvl.lights || [])) {
+    if (!activeLights[l.id]) continue;
+    const lx = l.x * tw + tw / 2 - camera.x;
+    const ly = l.y * th + th / 2 - camera.y;
+    const lr = l.radius * tw;
+
+    // Glow circle
+    const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr);
+    grad.addColorStop(0, 'rgba(255,217,61,0.15)');
+    grad.addColorStop(0.7, 'rgba(255,217,61,0.05)');
+    grad.addColorStop(1, 'rgba(255,217,61,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(lx - lr, ly - lr, lr * 2, lr * 2);
+
+    // Source icon
+    const s = tw * 0.8;
+    assets.draw(ctx, 'lightOrb', lx - s / 2, ly - s / 2, s, s, '#FFD93D');
+  }
+
+  // Temp lights from orbs
+  for (const tl of tempLights) {
+    const lx = tl.x - camera.x, ly = tl.y - camera.y;
+    const lr = tl.radius * tw;
+    const alpha = Math.min(1, tl.timer / 1.0) * 0.12;
+    const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr);
+    grad.addColorStop(0, `rgba(255,217,61,${alpha})`);
+    grad.addColorStop(1, 'rgba(255,217,61,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(lx - lr, ly - lr, lr * 2, lr * 2);
+  }
+}
+
+function drawSwitches(ctx) {
+  const lvl = LEVELS[currentLevelIdx];
+  const tw = getTileW(), th = getTileH();
+  for (const sw of (lvl.switches || [])) {
+    const x = sw.x * tw - camera.x, y = sw.y * th - camera.y;
+    const key = sw.x + ',' + sw.y;
+    const on = !!activeSwitches[key];
+    assets.draw(ctx, on ? 'switchOn' : 'switchOff', x, y, tw, th, on ? '#FFD93D' : '#666');
+    if (on) {
+      ctx.strokeStyle = '#00BCD4';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 1, y - 1, tw + 2, th + 2);
+    }
+  }
+}
+
+function drawStars(ctx) {
+  const lvl = LEVELS[currentLevelIdx];
+  const tw = getTileW(), th = getTileH();
+  // Update star sprite animation (shared across all stars)
+  if (starSprite) starSprite.update(1 / 60);
+  for (let i = 0; i < (lvl.stars || []).length; i++) {
+    if (starsCollected.includes(i)) continue;
+    const s = lvl.stars[i];
+    const x = s.x * tw - camera.x, y = s.y * th - camera.y;
+    const pulse = 1 + 0.1 * Math.sin(Date.now() / 200 + i);
+    const sz = tw * 0.8 * pulse;
+    // Use animated starSheet sprite if available, else static fallback
+    if (starSprite) {
+      starSprite.draw(ctx, x + tw / 2 - sz / 2, y + th / 2 - sz / 2, sz, sz);
+    } else {
+      assets.draw(ctx, 'starCollectible', x + tw / 2 - sz / 2, y + th / 2 - sz / 2, sz, sz, '#FFD700');
+    }
+    // glow
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath(); ctx.arc(x + tw / 2, y + th / 2, tw * 0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawPlayer(ctx) {
+  const px = player.x - camera.x, py = player.y - camera.y;
+  const pw = player.w * 1.4, ph = player.h * 1.4;
+
+  // Death state: show playerDeath sprite + death effect sheet
+  if (player.dead) {
+    const deathAlpha = MathUtil.clamp(player.deathTimer / 1.0, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = deathAlpha;
+    ctx.translate(px + player.w / 2, py + player.h / 2);
+    if (player.facing < 0) ctx.scale(-1, 1);
+    // Draw death sprite
+    assets.draw(ctx, 'playerDeath', -pw / 2, -ph / 2, pw, ph, '#FF1744');
+    ctx.restore();
+
+    // Draw death effect sheet (4-frame, 512x128 → 128x128 per frame)
+    const deathEffImg = assets.sprites.effectDeath;
+    if (deathEffImg) {
+      const frameIdx = Math.min(3, 3 - Math.floor(player.deathTimer / 0.25));
+      const fSize = pw * 2;
+      ctx.save();
+      ctx.globalAlpha = deathAlpha * 0.8;
+      ctx.drawImage(deathEffImg, frameIdx * 128, 0, 128, 128,
+        px + player.w / 2 - fSize / 2, py + player.h / 2 - fSize / 2, fSize, fSize);
+      ctx.restore();
+    }
+    return;
+  }
+
+  // Glow
+  const glowColor = currentMode === 'light' ? '#FFD93D' : '#B388FF';
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = glowColor;
+  ctx.beginPath();
+  ctx.arc(px + player.w / 2, py + player.h / 2, player.w, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Sprite selection
+  ctx.save();
+  ctx.translate(px + player.w / 2, py + player.h / 2);
+  if (player.facing < 0) ctx.scale(-1, 1);
+
+  let sprKey = currentMode === 'light' ? 'player' : 'playerShadow';
+  if (player.dashing) sprKey = 'playerDash';
+  else if (!player.grounded && player.vy < -50) sprKey = 'playerJump';
+  else if (player.grounded && Math.abs(player.vx) < 10 && idleSprite) {
+    // Idle animation using playerIdleSheet sprite
+    idleSprite.update(1 / 60);
+    idleSprite.draw(ctx, -pw / 2, -ph / 2, pw, ph);
+    ctx.restore();
+    return;
+  }
+
+  assets.draw(ctx, sprKey, -pw / 2, -ph / 2, pw, ph, currentMode === 'light' ? '#FFF' : '#E0E0E0');
+  ctx.restore();
+}
+
+function drawBoss(ctx) {
+  if (!bossState.active) return;
+  const lvl = LEVELS[currentLevelIdx];
+  const tw = getTileW(), th = getTileH();
+  const bx = 12 * tw + tw / 2 - camera.x;
+  const by = 5 * th - camera.y;
+  const bobY = Math.sin(bossState.angle) * 15;
+
+  let sprKey = lvl.bossId === 1 ? 'boss1' : 'boss2';
+  if (bossState.phase === 2) sprKey += 'Phase2';
+
+  const bSize = tw * 4;
+  assets.draw(ctx, sprKey, bx - bSize / 2, by + bobY - bSize / 2, bSize, bSize,
+    lvl.bossId === 1 ? '#FFD93D' : '#533483');
+
+  // Rotating ring for boss 1
+  if (lvl.bossId === 1) {
+    ctx.save();
+    ctx.translate(bx, by + bobY);
+    ctx.rotate(bossState.angle);
+    ctx.strokeStyle = bossState.phase === 2 ? '#FF6B3588' : '#FFD93D88';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, bSize * 0.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawPrisms(ctx) {
+  const lvl = LEVELS[currentLevelIdx];
+  if (!lvl || !lvl.prisms) return;
+  const tw = getTileW(), th = getTileH();
+  for (const p of lvl.prisms) {
+    const px = p.x * tw + tw / 2 - camera.x;
+    const py = p.y * th + th / 2 - camera.y;
+    const sz = tw * 1.5;
+    // Rotating prism
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate((Date.now() / 2000 + p.angle) % (Math.PI * 2));
+    assets.draw(ctx, 'prism', -sz / 2, -sz / 2, sz, sz, '#00BCD4');
+    ctx.restore();
+    // Rainbow glow
+    ctx.globalAlpha = 0.15 + 0.05 * Math.sin(Date.now() / 400);
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, tw * 2);
+    grad.addColorStop(0, 'rgba(0,188,212,0.3)');
+    grad.addColorStop(0.5, 'rgba(179,136,255,0.1)');
+    grad.addColorStop(1, 'rgba(255,217,61,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(px, py, tw * 2, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawCheckpoint(ctx) {
+  if (!checkpointPos) return;
+  const px = checkpointPos.x - camera.x;
+  const py = checkpointPos.y - camera.y;
+  const tw = getTileW(), th = getTileH();
+  const sz = tw * 1.2;
+  assets.draw(ctx, 'checkpoint', px - sz * 0.3, py - sz * 0.8, sz * 0.6, sz, '#00BCD4');
+  // Subtle glow
+  ctx.globalAlpha = 0.15 + 0.05 * Math.sin(Date.now() / 500);
+  ctx.fillStyle = '#00BCD4';
+  ctx.beginPath(); ctx.arc(px, py - sz * 0.3, tw * 0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawAmbientParticles(ctx, w, h) {
+  // Use particleLight / particleShadow images for ambient floating particles
+  const particleKey = currentMode === 'light' ? 'particleLight' : 'particleShadow';
+  const img = assets.sprites[particleKey];
+  if (!img) return;
+  const time = Date.now() / 1000;
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < 6; i++) {
+    const px = (w * (0.1 + 0.15 * i) + Math.sin(time * 0.5 + i * 1.7) * 30) % w;
+    const py = (h * 0.2 + Math.cos(time * 0.3 + i * 2.3) * h * 0.25 + i * h * 0.1) % h;
+    const sz = 12 + 6 * Math.sin(time + i);
+    ctx.drawImage(img, px - sz / 2, py - sz / 2, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawOrbs(ctx) {
+  const tw = getTileW();
+  for (const o of orbProjectiles) {
+    const x = o.x - camera.x, y = o.y - camera.y;
+    const s = tw * 0.6;
+    assets.draw(ctx, 'lightOrb', x - s / 2, y - s / 2, s, s, '#FFD93D');
+    // trail
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#FFD93D';
+    ctx.beginPath(); ctx.arc(x, y, s * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawHUD(ctx, w, h) {
+  const hud = Layout.hud(w, h);
+  const fs = hud.fontSize;
+  const pad = hud.padding;
+  const safe = Layout.safeArea(w, h);
+  const lvl = LEVELS[currentLevelIdx];
+
+  // Top bar background
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(0, 0, w, hud.top.h);
+
+  // Level name
+  UI.text(ctx, lvl.name, w / 2, hud.top.h / 2, { size: fs, bold: true, color: '#e0e0f0' });
+
+  // Stars (left)
+  const starSize = hud.iconSize;
+  for (let i = 0; i < 3; i++) {
+    const sx = pad + i * (starSize + 4), sy = (hud.top.h - starSize) / 2;
+    const collected = starsCollected.includes(i);
+    assets.draw(ctx, collected ? 'uiStarFull' : 'uiStarEmpty', sx, sy, starSize, starSize, collected ? '#FFD700' : '#555');
+  }
+
+  // Death counter (right)
+  const diSize = hud.iconSize * 0.8;
+  assets.draw(ctx, 'uiDeathIcon', w - pad - diSize - 40, (hud.top.h - diSize) / 2, diSize, diSize, '#FF1744');
+  UI.text(ctx, String(deathCount), w - pad - 15, hud.top.h / 2, { size: fs * 0.9, color: '#FF1744', align: 'right' });
+
+  // Timer
+  const timeStr = formatTime(levelTimer);
+  UI.text(ctx, timeStr, w - pad - 100, hud.top.h / 2, { size: fs * 0.8, color: '#aab', align: 'right' });
+
+  // Mode indicator
+  const modeIcon = currentMode === 'light' ? 'uiModeLight' : 'uiModeShadow';
+  const modeSize = hud.iconSize * 1.2;
+  assets.draw(ctx, modeIcon, w / 2 + 80, (hud.top.h - modeSize) / 2, modeSize, modeSize,
+    currentMode === 'light' ? '#FFD93D' : '#B388FF');
+
+  // Orb indicator (if level has orbs)
+  if (lvl.hasOrb || lvl.isBoss) {
+    const orbKey = orbReady ? 'uiOrbReady' : 'uiOrbCooldown';
+    const orbSize = hud.iconSize;
+    const orbX = w / 2 + 80 + modeSize + 8;
+    assets.draw(ctx, orbKey, orbX, (hud.top.h - orbSize) / 2, orbSize, orbSize, orbReady ? '#FFD93D' : '#555');
+    if (!orbReady) {
+      UI.text(ctx, Math.ceil(orbCooldownTimer) + 's', orbX + orbSize / 2, hud.top.h / 2, { size: 10, color: '#fff' });
+    }
+  }
+
+  // Boss HP indicator
+  if (bossState.active) {
+    const bossLvl = LEVELS[currentLevelIdx];
+    const total = bossLvl.bossId === 1 ? bossLvl.boss.switchGoal : bossLvl.boss.orbHits;
+    const done = bossLvl.bossId === 1 ? bossState.switchesDone : bossState.orbHits;
+    const barW = w * 0.3, barH = 8;
+    const barX = w / 2 - barW / 2, barY = hud.top.h + 8;
+    UI.hpBar(ctx, barX, barY, barW, barH, total - done, total, { fgColor: '#FF6B35', bgColor: '#333' });
+    UI.text(ctx, `BOSS Phase ${bossState.phase}`, w / 2, barY + barH + 14, { size: 12, color: '#FF6B35' });
+  }
+
+  // Hint for tutorial
+  if (lvl.hint && currentLevelIdx === 0 && levelTimer < 8) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    const hintY = h * 0.7;
+    ctx.fillRect(w * 0.1, hintY - 20, w * 0.8, 50);
+    UI.text(ctx, lvl.hint.split('\n')[0], w / 2, hintY, { size: fontSize(14, w, h), color: '#FFD93D' });
+    if (lvl.hint.split('\n')[1]) UI.text(ctx, lvl.hint.split('\n')[1], w / 2, hintY + 20, { size: fontSize(12, w, h), color: '#aab' });
+  }
+}
+
+function drawTouchControls(ctx, w, h) {
+  if (!input.isMobile) return;
+  const tc = Layout.touchControls(w, h);
+  if (!tc) return;
+
+  // Joystick
+  const jx = tc.joystick.x, jy = tc.joystick.y, jr = tc.joystick.radius;
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.fill();
+  if (joystickActive) {
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(jx + MathUtil.clamp(joystickDx, -jr, jr), jy + MathUtil.clamp(joystickDy, -jr, jr), jr * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function formatTime(t) {
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+// ═══════════════════════════════════════════
+// TOUCH INPUT PROCESSING
+// ═══════════════════════════════════════════
+function processTouch(inp) {
+  touchJump = false; touchDash = false; touchModeSwitch = false; touchOrb = false; touchMoveDir = 0;
+  if (!input.isMobile) return;
+
+  const w = engine.W, h = engine.H;
+  const tc = Layout.touchControls(w, h);
+  if (!tc) return;
+
+  // Process multi-touch via inp.touches
+  joystickActive = false;
+  for (const t of inp.touches) {
+    // Left side = joystick
+    if (t.x < w * 0.4) {
+      joystickActive = true;
+      joystickDx = t.x - tc.joystick.x;
+      joystickDy = t.y - tc.joystick.y;
+      if (Math.abs(joystickDx) > 10) touchMoveDir = joystickDx > 0 ? 1 : -1;
+      if (joystickDy < -20) touchJump = true;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// SCENES
+// ═══════════════════════════════════════════
+Scene.bind({ tween, particles });
+
+// --- TITLE ---
+Scene.register('TITLE', {
+  enter: () => {
+    const w = engine.W, h = engine.H;
+    const btnW = Math.max(220, w * 0.3), btnH = Math.max(52, h * 0.07);
+    const cx = w / 2 - btnW / 2;
+    const baseY = h * 0.5;
+    new Button({ x: cx, y: baseY, w: btnW, h: btnH, text: '새 게임', key: ['Space', 'Enter'],
+      onClick: () => Scene.transition('DIFFICULTY'), color: '#FFD93D', textColor: '#1A1A2E', fontSize: fontSize(18, w, h) });
+    if (saveData && Object.keys(saveData.levels).length > 0) {
+      new Button({ x: cx, y: baseY + btnH + 12, w: btnW, h: btnH, text: '이어하기', key: ['KeyC'],
+        onClick: () => Scene.transition('LEVEL_SELECT'), color: '#00BCD4', textColor: '#fff', fontSize: fontSize(18, w, h) });
+    }
+    new Button({ x: cx, y: baseY + (btnH + 12) * 2, w: btnW, h: Math.max(48, btnH * 0.85), text: '조작법', key: ['KeyH'],
+      onClick: () => Scene.transition('CONTROLS'), color: '#546E7A', fontSize: fontSize(14, w, h) });
+  },
+  update: () => {},
+  render: (ctx, w, h) => {
+    // Animated light/shadow split background
+    const t = (Math.sin(Date.now() / 2000) + 1) / 2;
+    ctx.fillStyle = '#1A1A2E'; ctx.fillRect(0, 0, w, h);
+    // Light half
+    ctx.fillStyle = `rgba(245,240,232,${0.3 + t * 0.15})`;
+    ctx.fillRect(0, 0, w * (0.4 + t * 0.2), h);
+    // Title
+    const ts = fontSize(42, w, h);
+    UI.text(ctx, '빛의 직조자', w / 2, h * 0.2, { size: ts, bold: true, color: '#FFD93D', glow: '#FFA726' });
+    UI.text(ctx, 'Light Weaver', w / 2, h * 0.2 + ts + 8, { size: fontSize(16, w, h), color: '#B388FF' });
+    // Subtitle
+    UI.text(ctx, '빛과 그림자를 전환하여 사라지는 길을 건너세요', w / 2, h * 0.35, { size: fontSize(13, w, h), color: '#8080a0' });
+    // High score
+    const hi = Save.getHighScore(GAME_ID);
+    if (hi > 0) UI.text(ctx, `최고 점수: ${hi}`, w / 2, h * 0.42, { size: fontSize(14, w, h), color: '#ffd700' });
+    // Floating particles
+    const time = Date.now() / 1000;
+    for (let i = 0; i < 8; i++) {
+      const px = w * (0.1 + 0.1 * i) + Math.sin(time + i) * 20;
+      const py = h * 0.15 + Math.cos(time * 0.7 + i * 2) * 30;
+      ctx.globalAlpha = 0.3 + 0.1 * Math.sin(time + i);
+      ctx.fillStyle = i % 2 === 0 ? '#FFD93D' : '#B388FF';
+      ctx.beginPath(); ctx.arc(px, py, 3 + Math.sin(time + i) * 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  },
+});
+
+// --- DIFFICULTY ---
+Scene.register('DIFFICULTY', {
+  enter: () => {
+    const w = engine.W, h = engine.H;
+    const btnW = Math.max(200, w * 0.25), btnH = Math.max(56, h * 0.08);
+    const cx = w / 2 - btnW / 2;
+    const baseY = h * 0.35;
+    const diffs = ['easy', 'normal', 'hard'];
+    const colors = ['#00ff87', '#FFD93D', '#FF1744'];
+    const labels = ['쉬움 — 넉넉한 체크포인트, 자동 힌트', '보통 — 균형 잡힌 도전', '어려움 — 체크포인트 없음, 대시 쿨다운'];
+    diffs.forEach((d, i) => {
+      new Button({ x: cx, y: baseY + i * (btnH + 16), w: btnW, h: btnH,
+        text: DIFF_PRESETS[d].label, key: [`Digit${i + 1}`],
+        onClick: () => { difficulty = d; diffSettings = DIFF_PRESETS[d]; saveData.difficulty = d; Save.set('ix_lightWeaver', saveData); Scene.transition('LEVEL_SELECT'); },
+        color: colors[i], textColor: '#fff', fontSize: fontSize(18, w, h) });
+    });
+    new Button({ x: cx, y: baseY + 3 * (btnH + 16), w: btnW, h: Math.max(48, btnH * 0.75),
+      text: '← 뒤로', key: ['Escape'],
+      onClick: () => Scene.transition('TITLE'), color: '#555', fontSize: fontSize(14, w, h) });
+  },
+  update: () => {},
+  render: (ctx, w, h) => {
+    ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '난이도 선택', w / 2, h * 0.15, { size: fontSize(32, w, h), bold: true, color: '#e0e0f0' });
+    UI.text(ctx, '1·2·3 키로도 선택 가능', w / 2, h * 0.24, { size: fontSize(12, w, h), color: '#8080a0' });
+  },
+});
+
+// --- LEVEL SELECT ---
+Scene.register('LEVEL_SELECT', {
+  enter: () => {
+    const w = engine.W, h = engine.H;
+    const mobile = Layout.isMobile(w);
+    const cols = mobile ? 3 : 4;
+    const btnW = Math.max(80, (w * 0.7) / cols), btnH = Math.max(64, h * 0.12);
+    const startX = (w - cols * (btnW + 12)) / 2;
+    const startY = h * 0.25;
+
+    LEVELS.forEach((lvl, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const bx = startX + col * (btnW + 12);
+      const by = startY + row * (btnH + 16);
+      const unlocked = isLevelUnlocked(i);
+      const data = saveData.levels[String(lvl.id)];
+      const label = unlocked ? (lvl.isBoss ? '⚔' : String(lvl.id)) + (data?.grade ? ` ${data.grade}` : '') : '🔒';
+      new Button({ x: bx, y: by, w: btnW, h: btnH, text: label,
+        key: i < 9 ? [`Digit${i + 1}`] : [],
+        onClick: () => { if (unlocked) { resetLevelState(i); Scene.transition('GAMEPLAY'); } },
+        color: unlocked ? (lvl.isBoss ? '#FF6B35' : '#6c3cf7') : '#333',
+        textColor: unlocked ? '#fff' : '#555',
+        fontSize: fontSize(16, w, h),
+        enabled: unlocked });
+    });
+
+    new Button({ x: w / 2 - 100, y: h * 0.88, w: 200, h: Math.max(48, h * 0.06), text: '← 타이틀', key: ['Escape'],
+      onClick: () => Scene.transition('TITLE'), color: '#555', fontSize: fontSize(14, w, h) });
+  },
+  update: () => {},
+  render: (ctx, w, h) => {
+    ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '레벨 선택', w / 2, h * 0.08, { size: fontSize(28, w, h), bold: true, color: '#e0e0f0' });
+    const ts = saveData.totalStars || 0;
+    UI.text(ctx, `★ ${ts} / ${LEVELS.length * 3}  |  총 점수: ${saveData.totalScore || 0}`, w / 2, h * 0.16, { size: fontSize(13, w, h), color: '#ffd700' });
+
+    // Draw stars under each level button
+    const mobile = Layout.isMobile(w);
+    const cols = mobile ? 3 : 4;
+    const btnW = Math.max(80, (w * 0.7) / cols), btnH = Math.max(64, h * 0.12);
+    const startX = (w - cols * (btnW + 12)) / 2;
+    const startY = h * 0.25;
+    LEVELS.forEach((lvl, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const bx = startX + col * (btnW + 12);
+      const by = startY + row * (btnH + 16);
+      const data = saveData.levels[String(lvl.id)];
+      if (data) {
+        for (let s = 0; s < 3; s++) {
+          const sx = bx + btnW / 2 - 20 + s * 14, sy = by + btnH + 2;
+          ctx.fillStyle = s < (data.stars || 0) ? '#FFD700' : '#333';
+          UI.text(ctx, '★', sx + 7, sy + 5, { size: 10, color: ctx.fillStyle });
+        }
+      }
+    });
+  },
+});
+
+// --- GAMEPLAY ---
+Scene.register('GAMEPLAY', {
+  enter: () => {
+    sound.init();
+    const w = engine.W, h = engine.H;
+    popups = new PopupText();
+    effects = new EffectQueue();
+
+    // Pause button (min 48×48 touch target)
+    new Button({ x: w - 56, y: 4, w: Math.max(52, 52), h: Math.max(48, 48), text: '⏸', key: ['Escape', 'KeyP'],
+      onClick: () => Scene.transition('PAUSE', { lvlIdx: currentLevelIdx }),
+      color: '#33333388', fontSize: 16 });
+
+    // Mobile mode switch button (stores ref for visual update)
+    if (input.isMobile) {
+      const bsz = Math.max(52, 52);
+      const modeBtn = new Button({ x: w - bsz - 8, y: h - bsz * 2 - 16, w: bsz, h: bsz,
+        text: currentMode === 'light' ? '☀' : '🌙', key: [],
+        onClick: () => { switchMode(); modeBtn.text = currentMode === 'light' ? '☀' : '🌙'; modeBtn.color = currentMode === 'light' ? '#FFD93D' : '#533483'; },
+        color: currentMode === 'light' ? '#FFD93D' : '#533483', fontSize: 22 });
+
+      // Mobile jump button
+      new Button({ x: w - bsz - 8, y: h - bsz - 8, w: bsz, h: bsz,
+        text: 'A', key: [],
+        onClick: () => { touchJump = true; },
+        color: '#FFD93D88', fontSize: 20 });
+
+      // Mobile dash button
+      new Button({ x: w - bsz * 2 - 16, y: h - bsz - 8, w: bsz, h: bsz,
+        text: 'B', key: [],
+        onClick: () => { touchDash = true; },
+        color: '#B388FF88', fontSize: 20 });
+
+      // Orb button (if available)
+      const lvl = LEVELS[currentLevelIdx];
+      if (lvl.hasOrb || lvl.isBoss) {
+        new Button({ x: w - bsz * 2 - 16, y: h - bsz * 2 - 16, w: bsz, h: bsz,
+          text: '💡', key: [],
+          onClick: () => { touchOrb = true; },
+          color: '#FFD93D55', fontSize: 20 });
+      }
+    }
+
+    // Restart button (min 48×48 touch target)
+    new Button({ x: 4, y: engine.H - 52, w: Math.max(48, 48), h: Math.max(48, 48), text: 'R', key: ['KeyR'],
+      onClick: () => { resetLevelState(currentLevelIdx); Scene.transition('GAMEPLAY'); },
+      color: '#33333366', fontSize: 12 });
+  },
+  update: (dt, inp) => {
+    if (inputDelay > 0) { inputDelay -= dt / 1000; return; }
+    processTouch(inp);
+    levelTimer += dt / 1000;
+    updatePlayer(dt, inp);
+    updateOrbs(dt);
+    updateBoss(dt);
+    tween.update(dt);
+    particles.update(dt);
+    if (popups) popups.update(dt);
+    if (effects) effects.update(dt);
+    if (shakeIntensity > 0) shakeIntensity *= 0.9;
+    if (shakeIntensity < 0.3) shakeIntensity = 0;
+    // Update mode switch effect timer
+    if (modeSwitchEffect.active) {
+      modeSwitchEffect.timer -= dt / 1000;
+      if (modeSwitchEffect.timer <= 0) modeSwitchEffect.active = false;
+    }
+  },
+  render: (ctx, w, h) => {
+    const shake = shakeIntensity > 0 ? UI.shake(shakeIntensity) : { x: 0, y: 0 };
+    ctx.save();
+    ctx.translate(shake.x, shake.y);
+
+    drawBackground(ctx, w, h);
+    drawAmbientParticles(ctx, w, h);
+    drawLights(ctx);
+    drawTiles(ctx, w, h);
+    drawSwitches(ctx);
+    drawPrisms(ctx);
+    drawCheckpoint(ctx);
+    drawStars(ctx);
+    drawOrbs(ctx);
+    drawBoss(ctx);
+    drawPlayer(ctx);
+
+    ctx.restore();
+
+    // Mode switch effect sheet overlay (4-frame, 512x128 → 128x128 per frame)
+    if (modeSwitchEffect.active) {
+      const effImg = assets.sprites.effectModeSwitch;
+      if (effImg) {
+        const progress = 1 - modeSwitchEffect.timer / modeSwitchEffect.duration;
+        const frameIdx = Math.min(3, Math.floor(progress * 4));
+        const effAlpha = 1 - progress;
+        const effSize = Math.min(w, h) * 0.6;
+        ctx.save();
+        ctx.globalAlpha = effAlpha * 0.7;
+        ctx.drawImage(effImg, frameIdx * 128, 0, 128, 128,
+          w / 2 - effSize / 2, h / 2 - effSize / 2, effSize, effSize);
+        ctx.restore();
+      }
+    }
+
+    particles.render(ctx);
+    if (effects) effects.render(ctx);
+    if (popups) popups.render(ctx, { fontSize: 16, bold: true, glow: true });
+    drawHUD(ctx, w, h);
+    drawTouchControls(ctx, w, h);
+  },
+});
+
+// --- PAUSE ---
+Scene.register('PAUSE', {
+  enter: (data) => {
+    const w = engine.W, h = engine.H;
+    const btnW = Math.max(200, w * 0.25), btnH = Math.max(52, h * 0.07);
+    const cx = w / 2 - btnW / 2;
+    new Button({ x: cx, y: h * 0.4, w: btnW, h: btnH, text: '계속하기', key: ['Escape', 'KeyP', 'Space'],
+      onClick: () => Scene.transition('GAMEPLAY'), color: '#FFD93D', textColor: '#1A1A2E', fontSize: fontSize(18, w, h) });
+    new Button({ x: cx, y: h * 0.4 + btnH + 12, w: btnW, h: btnH, text: '재시작', key: ['KeyR'],
+      onClick: () => { resetLevelState(data?.lvlIdx ?? currentLevelIdx); Scene.transition('GAMEPLAY'); },
+      color: '#FF6B35', fontSize: fontSize(16, w, h) });
+    new Button({ x: cx, y: h * 0.4 + (btnH + 12) * 2, w: btnW, h: btnH, text: '레벨 선택', key: ['KeyL'],
+      onClick: () => Scene.transition('LEVEL_SELECT'), color: '#546E7A', fontSize: fontSize(14, w, h) });
+    new Button({ x: cx, y: h * 0.4 + (btnH + 12) * 3, w: btnW, h: Math.max(48, btnH * 0.85), text: '타이틀', key: ['KeyT'],
+      onClick: () => Scene.transition('TITLE'), color: '#333', fontSize: fontSize(14, w, h) });
+  },
+  update: () => {},
+  render: (ctx, w, h) => {
+    // Dim overlay
+    ctx.fillStyle = 'rgba(10,10,30,0.85)'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '일시정지', w / 2, h * 0.2, { size: fontSize(36, w, h), bold: true, color: '#e0e0f0' });
+    UI.text(ctx, `레벨: ${LEVELS[currentLevelIdx]?.name}  |  시간: ${formatTime(levelTimer)}`, w / 2, h * 0.3, { size: fontSize(14, w, h), color: '#8080a0' });
+  },
+});
+
+// --- CLEAR ---
+Scene.register('CLEAR', {
+  enter: (data) => {
+    const w = engine.W, h = engine.H;
+    const btnW = Math.max(200, w * 0.25), btnH = Math.max(52, h * 0.07);
+    const cx = w / 2 - btnW / 2;
+    const nextIdx = (data?.lvlIdx ?? currentLevelIdx) + 1;
+    const hasNext = nextIdx < LEVELS.length;
+
+    if (hasNext) {
+      new Button({ x: cx, y: h * 0.65, w: btnW, h: btnH, text: '다음 레벨', key: ['Space', 'Enter'],
+        onClick: () => { resetLevelState(nextIdx); Scene.transition('GAMEPLAY'); },
+        color: '#FFD93D', textColor: '#1A1A2E', fontSize: fontSize(18, w, h) });
+    }
+    new Button({ x: cx, y: h * 0.65 + btnH + 12, w: btnW, h: Math.max(48, btnH * 0.85), text: '레벨 선택', key: ['KeyL'],
+      onClick: () => Scene.transition('LEVEL_SELECT'), color: '#546E7A', fontSize: fontSize(14, w, h) });
+    new Button({ x: cx, y: h * 0.65 + (btnH + 12) * 2, w: btnW, h: Math.max(48, btnH * 0.85), text: '재도전', key: ['KeyR'],
+      onClick: () => { resetLevelState(data?.lvlIdx ?? currentLevelIdx); Scene.transition('GAMEPLAY'); },
+      color: '#333', fontSize: fontSize(14, w, h) });
+
+    if (!hasNext) {
+      // Final victory
+      new Button({ x: cx, y: h * 0.65, w: btnW, h: btnH, text: '🎉 축하합니다!', key: ['Space', 'Enter'],
+        onClick: () => Scene.transition('TITLE'), color: '#FFD93D', textColor: '#1A1A2E', fontSize: fontSize(18, w, h) });
+    }
+  },
+  update: (dt) => {
+    tween.update(dt); particles.update(dt);
+    // Update clear effect timer
+    if (clearEffect.active) {
+      clearEffect.timer -= dt / 1000;
+      if (clearEffect.timer <= 0) clearEffect.active = false;
+    }
+  },
+  render: (ctx, w, h) => {
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, w, h);
+
+    // Clear effect sheet overlay (4-frame, 512x128 → 128x128 per frame)
+    if (clearEffect.active) {
+      const effImg = assets.sprites.effectClear;
+      if (effImg) {
+        const progress = 1 - clearEffect.timer / clearEffect.duration;
+        const frameIdx = Math.min(3, Math.floor(progress * 4));
+        const effAlpha = 1 - progress * 0.5;
+        const effSize = Math.min(w, h) * 0.8;
+        ctx.save();
+        ctx.globalAlpha = effAlpha * 0.6;
+        ctx.drawImage(effImg, frameIdx * 128, 0, 128, 128,
+          w / 2 - effSize / 2, h / 2 - effSize / 2, effSize, effSize);
+        ctx.restore();
+      }
+    }
+
+    const data = clearScreenData;
+    const lvl = LEVELS[data.lvlIdx ?? currentLevelIdx];
+
+    UI.text(ctx, '레벨 클리어!', w / 2, h * 0.1, { size: fontSize(36, w, h), bold: true, color: '#FFD93D', glow: '#FFA726' });
+    UI.text(ctx, lvl?.name || '', w / 2, h * 0.18, { size: fontSize(18, w, h), color: '#e0e0f0' });
+
+    // Grade
+    const grade = data.grade || 'C';
+    const gradeColors = { S: '#FFD700', A: '#00ff87', B: '#00BCD4', C: '#8080a0' };
+    UI.text(ctx, grade, w / 2, h * 0.3, { size: fontSize(64, w, h), bold: true, color: gradeColors[grade], glow: gradeColors[grade] });
+
+    // Stars
+    const starY = h * 0.42;
+    for (let i = 0; i < 3; i++) {
+      const sx = w / 2 - 50 + i * 40;
+      const collected = i < (data.stars || 0);
+      UI.text(ctx, '★', sx + 10, starY, { size: fontSize(28, w, h), color: collected ? '#FFD700' : '#333' });
+    }
+
+    // Stats
+    const fs = fontSize(14, w, h);
+    UI.text(ctx, `점수: ${data.score || 0}`, w / 2, h * 0.5, { size: fs, color: '#ffd700' });
+    UI.text(ctx, `사망: ${data.deaths ?? 0}회  |  시간: ${formatTime(data.time ?? 0)}`, w / 2, h * 0.55, { size: fs, color: '#aab' });
+
+    particles.render(ctx);
+  },
+});
+// CLEAR scene data stored in module scope for render access
+{
+  const origClearEnter = Scene._states.CLEAR.enter;
+  Scene._states.CLEAR.enter = (data) => { clearScreenData = data || {}; origClearEnter(data); };
+}
+
+// --- CONTROLS ---
+Scene.register('CONTROLS', {
+  enter: () => {
+    const w = engine.W, h = engine.H;
+    new Button({ x: w / 2 - 100, y: h * 0.85, w: 200, h: Math.max(48, h * 0.06), text: '← 뒤로', key: ['Escape', 'Space'],
+      onClick: () => Scene.transition('TITLE'), color: '#555', fontSize: fontSize(14, w, h) });
+  },
+  update: () => {},
+  render: (ctx, w, h) => {
+    ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0, 0, w, h);
+    UI.text(ctx, '조작법', w / 2, h * 0.08, { size: fontSize(28, w, h), bold: true, color: '#e0e0f0' });
+
+    const fs = fontSize(13, w, h);
+    const lines = [
+      ['← → / A D', '이동'],
+      ['↑ / W / Space', '점프 (벽 근처에서 벽 점프)'],
+      ['Shift', '대시 (공중 1회)'],
+      ['E / X', '빛/그림자 모드 전환'],
+      ['F / Z', '빛 구슬 던지기 (레벨 4+)'],
+      ['R', '재시작'],
+      ['ESC / P', '일시정지'],
+    ];
+    const startY = h * 0.2;
+    lines.forEach(([key, desc], i) => {
+      UI.text(ctx, key, w * 0.35, startY + i * (fs + 12), { size: fs, color: '#FFD93D', align: 'right' });
+      UI.text(ctx, desc, w * 0.4, startY + i * (fs + 12), { size: fs, color: '#aab', align: 'left' });
+    });
+
+    UI.text(ctx, '모바일: 좌측 가상 조이스틱 + 우측 버튼', w / 2, h * 0.72, { size: fontSize(12, w, h), color: '#8080a0' });
+    UI.text(ctx, '빛 모드: 노란 플랫폼 실체화 / 그림자 모드: 보라 플랫폼 실체화', w / 2, h * 0.78, { size: fontSize(12, w, h), color: '#B388FF' });
+  },
+});
+
+// ═══════════════════════════════════════════
+// GAMEFLOW & ENGINE LOOP
+// ═══════════════════════════════════════════
+GameFlow.init({
+  titleText: '빛의 직조자',
+  title: Scene._states.TITLE,
+  play: Scene._states.GAMEPLAY,
+  onReset: resetGameState,
+  stuckMs: 45000,
+});
+
+engine._update = (dt) => {
+  Scene.update(dt, input);
+  input.flush();
+};
+
+engine._render = (ctx, w, h) => {
+  Scene.render(ctx, w, h);
+  // Portrait mode rotation overlay (H-6)
+  if (Layout.isMobile(w) && h > w * 1.1) {
+    ctx.fillStyle = 'rgba(10,10,30,0.92)';
+    ctx.fillRect(0, 0, w, h);
+    const fs = fontSize(28, w, h);
+    UI.text(ctx, '📱', w / 2, h * 0.35, { size: fs * 1.8, color: '#FFD93D' });
+    UI.text(ctx, '화면을 가로로 회전해 주세요', w / 2, h * 0.48, { size: fs * 0.7, bold: true, color: '#e0e0f0' });
+    UI.text(ctx, 'Please rotate to landscape', w / 2, h * 0.55, { size: fs * 0.45, color: '#8080a0' });
+    // Animated rotation arrow
+    const t = Date.now() / 1000;
+    const arrowAlpha = 0.5 + 0.5 * Math.sin(t * 2);
+    ctx.save();
+    ctx.translate(w / 2, h * 0.68);
+    ctx.rotate(Math.sin(t * 1.5) * 0.3);
+    ctx.globalAlpha = arrowAlpha;
+    ctx.strokeStyle = '#FFD93D';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 30, -Math.PI * 0.7, Math.PI * 0.3);
+    ctx.stroke();
+    // arrowhead
+    const ax = 30 * Math.cos(Math.PI * 0.3), ay = 30 * Math.sin(Math.PI * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(ax + 8, ay - 6); ctx.lineTo(ax, ay); ctx.lineTo(ax - 6, ay - 8);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  loadSaveData();
+
+  // Load all assets from manifest
+  const manifest = await fetch('assets/manifest.json').then(r => r.json()).catch(() => null);
+  if (manifest && manifest.assets) {
+    const assetMap = {};
+    for (const [key, info] of Object.entries(manifest.assets)) {
+      assetMap[key] = 'assets/' + info.file;
+    }
+    await assets.load(assetMap, { timeoutMs: 10000 });
+  }
+
+  // Create sprites
+  if (assets.sprites.playerIdleSheet) {
+    idleSprite = new Sprite(assets.sprites.playerIdleSheet, 128, 128, 4, 6);
+  }
+  if (assets.sprites.starSheet) {
+    starSprite = new Sprite(assets.sprites.starSheet, 128, 128, 6, 8);
+  }
+
+  popups = new PopupText();
+  effects = new EffectQueue();
+
+  GameFlow.start();
+  engine.start();
+}
+init();
+</script>
+</body>
+</html>

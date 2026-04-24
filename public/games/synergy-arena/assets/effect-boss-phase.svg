@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="phaseG" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#cc44ff"/>
+      <stop offset="70%" stop-color="#440066" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="pGlow">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feFlood flood-color="#cc44ff" flood-opacity="0.6"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#pGlow)">
+    <!-- Dark screen overlay -->
+    <rect x="0" y="0" width="256" height="256" fill="#0a0018" opacity="0.4"/>
+    <!-- Crack lines from center -->
+    <g stroke="#cc44ff" stroke-width="3" stroke-linecap="round">
+      <path d="M128,128 L80,40 L90,60 L50,20"/>
+      <path d="M128,128 L180,50 L170,70 L210,30"/>
+      <path d="M128,128 L40,100 L60,110 L20,95"/>
+      <path d="M128,128 L220,120 L200,115 L240,105"/>
+      <path d="M128,128 L70,200 L85,185 L55,230"/>
+      <path d="M128,128 L190,210 L175,190 L205,240"/>
+      <path d="M128,128 L128,230 L125,200 L130,250"/>
+    </g>
+    <!-- Crack glow inner -->
+    <g stroke="#ff88ff" stroke-width="1.5" opacity="0.6">
+      <path d="M128,128 L80,40 L90,60 L50,20"/>
+      <path d="M128,128 L180,50 L170,70 L210,30"/>
+      <path d="M128,128 L40,100 L60,110 L20,95"/>
+      <path d="M128,128 L220,120 L200,115 L240,105"/>
+      <path d="M128,128 L70,200 L85,185 L55,230"/>
+      <path d="M128,128 L190,210 L175,190 L205,240"/>
+    </g>
+    <!-- Central flash -->
+    <circle cx="128" cy="128" r="50" fill="url(#phaseG)" opacity="0.8"/>
+    <circle cx="128" cy="128" r="25" fill="white" opacity="0.6"/>
+    <!-- Shockwave rings -->
+    <circle cx="128" cy="128" r="80" fill="none" stroke="#9944cc" stroke-width="3" opacity="0.4"/>
+    <circle cx="128" cy="128" r="110" fill="none" stroke="#660088" stroke-width="2" opacity="0.25"/>
+    <!-- Debris particles -->
+    <rect x="60" y="70" width="8" height="5" rx="1" fill="#332244" stroke="#9944cc" stroke-width="1" transform="rotate(30,64,72)" opacity="0.7"/>
+    <rect x="180" y="80" width="10" height="4" rx="1" fill="#332244" stroke="#9944cc" stroke-width="1" transform="rotate(-20,185,82)" opacity="0.6"/>
+    <rect x="50" y="160" width="6" height="8" rx="1" fill="#332244" stroke="#9944cc" stroke-width="1" transform="rotate(45,53,164)" opacity="0.5"/>
+    <rect x="190" y="170" width="7" height="5" rx="1" fill="#332244" stroke="#9944cc" stroke-width="1" transform="rotate(-35,193,172)" opacity="0.6"/>
+  </g>
+</svg>

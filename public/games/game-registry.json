@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-04-19T17:13:06.720Z",
-  "totalGames": 5,
+  "lastUpdated": "2026-04-24T02:14:17.430Z",
+  "totalGames": 6,
   "games": [
     {
       "id": "pixel-depths",
@@ -621,6 +621,172 @@
             "X: Bomba (limpar balas inimigas)",
             "ESC: Pausar",
             "Toque: Joystick virtual + Botões"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cel-arena",
+      "title": "셀 아레나",
+      "description": "유닛을 드래프트하고 배치하여 자동 전투하는 로그라이크 오토 배틀러",
+      "genre": ["strategy", "casual"],
+      "thumbnail": "/games/cel-arena/assets/thumbnail.png",
+      "path": "/games/cel-arena/index.html",
+      "addedAt": "2026-04-24T02:14:17.430Z",
+      "featured": true,
+      "playCount": 0,
+      "rating": 0,
+      "tags": ["오토배틀러", "전략", "셀셰이드", "로그라이크", "시너지", "판타지", "유닛배치"],
+      "controls": [
+        "마우스 드래그: 유닛 배치/이동",
+        "클릭: 유닛 구매/선택",
+        "1~5: 상점 슬롯 직접 구매",
+        "R: 상점 리롤",
+        "S: 유닛 판매",
+        "Space: 전투 시작",
+        "Tab: 시너지 패널",
+        "F: 전투 속도 토글",
+        "Esc/P: 일시정지",
+        "터치: 탭/드래그로 동일 조작"
+      ],
+      "difficulty": "medium",
+      "version": "1.0.0",
+      "author": "InfiniTriX AI",
+      "i18n": {
+        "en": {
+          "title": "Cel Arena",
+          "description": "Draft units, place them strategically, and watch auto-battles unfold in this roguelike auto-battler",
+          "tags": ["auto-battler", "strategy", "cel-shaded", "roguelike", "synergy", "fantasy", "unit-placement"],
+          "controls": [
+            "Mouse drag: Place/move units",
+            "Click: Buy/select units",
+            "1~5: Quick buy shop slots",
+            "R: Reroll shop",
+            "S: Sell unit",
+            "Space: Start battle",
+            "Tab: Synergy panel",
+            "F: Toggle battle speed",
+            "Esc/P: Pause",
+            "Touch: Tap/drag for same controls"
+          ]
+        },
+        "ja": {
+          "title": "セルアリーナ",
+          "description": "ユニットをドラフトして戦略的に配置し、自動バトルを観戦するローグライクオートバトラー",
+          "tags": ["オートバトラー", "戦略", "セルシェード", "ローグライク", "シナジー", "ファンタジー", "ユニット配置"],
+          "controls": [
+            "マウスドラッグ: ユニット配置/移動",
+            "クリック: ユニット購入/選択",
+            "1~5: ショップ枠を直接購入",
+            "R: ショップリロール",
+            "S: ユニット売却",
+            "Space: バトル開始",
+            "Tab: シナジーパネル",
+            "F: バトル速度切替",
+            "Esc/P: 一時停止",
+            "タッチ: タップ/ドラッグで同じ操作"
+          ]
+        },
+        "zh-CN": {
+          "title": "赛尔竞技场",
+          "description": "选秀单位并战略布阵，观看自动战斗的Roguelike自走棋",
+          "tags": ["自走棋", "策略", "赛璐璐风", "Roguelike", "羁绊", "奇幻", "单位布阵"],
+          "controls": [
+            "鼠标拖拽: 放置/移动单位",
+            "点击: 购买/选择单位",
+            "1~5: 快速购买商店格",
+            "R: 刷新商店",
+            "S: 出售单位",
+            "Space: 开始战斗",
+            "Tab: 羁绊面板",
+            "F: 切换战斗速度",
+            "Esc/P: 暂停",
+            "触屏: 点击/拖拽操作"
+          ]
+        },
+        "zh-TW": {
+          "title": "賽爾競技場",
+          "description": "選秀單位並戰略佈陣，觀看自動戰鬥的Roguelike自走棋",
+          "tags": ["自走棋", "策略", "賽璐璐風", "Roguelike", "羈絆", "奇幻", "單位佈陣"],
+          "controls": [
+            "滑鼠拖曳: 放置/移動單位",
+            "點擊: 購買/選擇單位",
+            "1~5: 快速購買商店格",
+            "R: 重骰商店",
+            "S: 出售單位",
+            "Space: 開始戰鬥",
+            "Tab: 羈絆面板",
+            "F: 切換戰鬥速度",
+            "Esc/P: 暫停",
+            "觸控: 點擊/拖曳操作"
+          ]
+        },
+        "es": {
+          "title": "Cel Arena",
+          "description": "Recluta unidades, colócalas estratégicamente y observa los combates automáticos en este auto-battler roguelike",
+          "tags": ["auto-battler", "estrategia", "cel-shaded", "roguelike", "sinergia", "fantasía", "colocación de unidades"],
+          "controls": [
+            "Arrastrar ratón: Colocar/mover unidades",
+            "Clic: Comprar/seleccionar unidades",
+            "1~5: Compra rápida de la tienda",
+            "R: Relanzar tienda",
+            "S: Vender unidad",
+            "Espacio: Iniciar batalla",
+            "Tab: Panel de sinergias",
+            "F: Alternar velocidad de batalla",
+            "Esc/P: Pausa",
+            "Táctil: Tocar/arrastrar para los mismos controles"
+          ]
+        },
+        "fr": {
+          "title": "Cel Arena",
+          "description": "Recrutez des unités, placez-les stratégiquement et regardez les combats automatiques dans ce roguelike auto-battler",
+          "tags": ["auto-battler", "stratégie", "cel-shaded", "roguelike", "synergie", "fantaisie", "placement d'unités"],
+          "controls": [
+            "Glisser souris : Placer/déplacer les unités",
+            "Clic : Acheter/sélectionner des unités",
+            "1~5 : Achat rapide en boutique",
+            "R : Relancer la boutique",
+            "S : Vendre une unité",
+            "Espace : Lancer le combat",
+            "Tab : Panneau des synergies",
+            "F : Basculer la vitesse de combat",
+            "Échap/P : Pause",
+            "Tactile : Toucher/glisser pour les mêmes contrôles"
+          ]
+        },
+        "de": {
+          "title": "Cel Arena",
+          "description": "Rekrutiere Einheiten, platziere sie strategisch und beobachte automatische Kämpfe in diesem Roguelike-Auto-Battler",
+          "tags": ["Auto-Battler", "Strategie", "Cel-Shading", "Roguelike", "Synergie", "Fantasy", "Einheiten-Platzierung"],
+          "controls": [
+            "Maus ziehen: Einheiten platzieren/bewegen",
+            "Klick: Einheiten kaufen/auswählen",
+            "1~5: Schnellkauf im Shop",
+            "R: Shop neu würfeln",
+            "S: Einheit verkaufen",
+            "Leertaste: Kampf starten",
+            "Tab: Synergie-Panel",
+            "F: Kampfgeschwindigkeit umschalten",
+            "Esc/P: Pause",
+            "Touch: Tippen/Ziehen für gleiche Steuerung"
+          ]
+        },
+        "pt": {
+          "title": "Cel Arena",
+          "description": "Recrute unidades, posicione-as estrategicamente e assista aos combates automáticos neste auto-battler roguelike",
+          "tags": ["auto-battler", "estratégia", "cel-shaded", "roguelike", "sinergia", "fantasia", "posicionamento de unidades"],
+          "controls": [
+            "Arrastar mouse: Posicionar/mover unidades",
+            "Clique: Comprar/selecionar unidades",
+            "1~5: Compra rápida na loja",
+            "R: Rolar loja novamente",
+            "S: Vender unidade",
+            "Espaço: Iniciar batalha",
+            "Tab: Painel de sinergias",
+            "F: Alternar velocidade de batalha",
+            "Esc/P: Pausar",
+            "Toque: Tocar/arrastar para os mesmos controles"
           ]
         }
       }

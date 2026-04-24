@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="slashG" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#ffddaa" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ffaa44" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="slGlow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.6"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#slGlow)">
+    <!-- Main slash arc -->
+    <path d="M30,200 Q80,160 128,100 Q176,40 226,20" fill="none" stroke="url(#slashG)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M40,210 Q90,165 130,108 Q170,50 220,28" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+    <!-- Secondary slash trails -->
+    <path d="M50,190 Q100,150 140,105 Q175,65 210,40" fill="none" stroke="#ffddaa" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
+    <path d="M60,220 Q100,180 135,125 Q165,80 200,50" fill="none" stroke="#ffcc66" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+    <!-- Speed lines -->
+    <line x1="60" y1="160" x2="110" y2="120" stroke="white" stroke-width="2" opacity="0.4"/>
+    <line x1="80" y1="175" x2="130" y2="130" stroke="white" stroke-width="1.5" opacity="0.3"/>
+    <line x1="100" y1="140" x2="160" y2="90" stroke="white" stroke-width="2" opacity="0.35"/>
+    <!-- Impact sparks -->
+    <circle cx="220" cy="30" r="6" fill="#ffdd44" opacity="0.7"/>
+    <circle cx="210" cy="40" r="4" fill="#ffaa00" opacity="0.5"/>
+    <path d="M225,22 L230,18 M218,25 L214,20 M228,30 L234,28" stroke="#ffee88" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>
